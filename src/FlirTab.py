@@ -135,7 +135,16 @@ class FlirTab(QWidget):
         self.checkerboardButton.setEnabled(True)
 
     def findCheckerboards(self):
-        self.msgLog.post('findCheckerboards(): TODO')
+
+        ldata = cv.pyrDown(self.lcamera.getLastImageData()) # half-res
+        lret, lcorners = cv.findChessboardCorners(ldata, (9,8), None)
+        rdata = cv.pyrDown(self.rcamera.getLastImageData()) # half-res
+        rret, rcorners = cv.findChessboardCorners(rdata, (9,8), None)
+        if not (lret and rret):
+            self.msgLog.post('Checkerboard corners not found in both images')
+            return
+        self.lscreen.setData(cv.drawChessboardCorners(ldata, (9,8), lcorners, lret))
+        self.rscreen.setData(cv.drawChessboardCorners(rdata, (9,8), rcorners, rret))
 
     def save(self):
 

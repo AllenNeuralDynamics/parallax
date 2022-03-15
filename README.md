@@ -3,5 +3,6 @@
 
 ### Dependencies
 * python3-pyqt5
+* python3-opencv
 * spinnaker-python
 
