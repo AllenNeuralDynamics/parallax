@@ -1,5 +1,4 @@
 import PySpin
-import numpy as np
 
 
 class Camera():
@@ -68,4 +67,24 @@ class Camera():
         self.camera.EndAcquisition()
         del self.camera
 
+if __name__ == '__main__':
+
+    # test code: captures an image and reports resolution
+
+    import sys
+    instance = PySpin.System.GetInstance()
+    cameras_pyspin = instance.GetCameras()
+    ncameras = cameras_pyspin.GetSize()
+    print('%d camera%s detected' % (ncameras, 's' if ncameras!=1 else ''))
+    if not ncameras:
+        sys.exit(0)
+
+    camera = Camera(cameras_pyspin.GetByIndex(0))
+    camera.capture()
+    print('image size: ', camera.getLastImageData().shape)
+
+    # clean up
+    camera.clean()
+    cameras_pyspin.Clear()
+    instance.ReleaseInstance()
 
