@@ -66,5 +66,6 @@ class Camera():
 
     def clean(self):
         self.camera.EndAcquisition()
+        del self.camera
 
 

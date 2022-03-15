@@ -79,7 +79,6 @@ class FlirTab(QWidget):
             time.sleep(1)
             for camera in self.cameras:
                 camera.clean()
-                del camera
             self.cameras_pyspin.Clear()
             self.instance.ReleaseInstance()
 
