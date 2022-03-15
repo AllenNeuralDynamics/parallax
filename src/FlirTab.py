@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt
 import PySpin
 import time, datetime
 import numpy as np
+import cv2 as cv
 
 from Camera import Camera
 
@@ -58,14 +59,14 @@ class FlirTab(QWidget):
 
         ncameras_string = '%d camera%s detected' % (self.ncameras, 's' if self.ncameras!=1 else '')
         self.msgLog.post(ncameras_string)
-        if not self.ncameras:
+        if self.ncameras < 2:
+            print('Error: need at least 2 cameras')
             return
 
         ###
 
-        self.cameras = []
-        for i in range(2):
-            self.cameras.append(Camera(self.cameras_pyspin.GetByIndex(i)))
+        self.lcamera = Camera(self.cameras_pyspin.GetByIndex(0))
+        self.rcamera = Camera(self.cameras_pyspin.GetByIndex(1))
 
         self.msgLog.post('FLIR Library Version is %s' % self.libVerString)
 
@@ -77,8 +78,8 @@ class FlirTab(QWidget):
         if (self.initialized):
             print('cleaning up SpinSDK')
             time.sleep(1)
-            for camera in self.cameras:
-                camera.clean()
+            self.lcamera.clean()
+            self.rcamera.clean()
             self.cameras_pyspin.Clear()
             self.instance.ReleaseInstance()
 
@@ -88,17 +89,23 @@ class FlirTab(QWidget):
 
         self.screens = QWidget()
         hlayout = QHBoxLayout()
-        self.screen_l = ScreenWidget()
-        hlayout.addWidget(self.screen_l)
-        self.screen_r = ScreenWidget()
-        hlayout.addWidget(self.screen_r)
+        self.lscreen = ScreenWidget()
+        hlayout.addWidget(self.lscreen)
+        self.rscreen = ScreenWidget()
+        hlayout.addWidget(self.rscreen)
         self.screens.setLayout(hlayout)
 
         self.initializeButton = QPushButton('Initialize Cameras')
         self.initializeButton.clicked.connect(self.initCameras)
-        self.captureButton = QPushButton('Capture Frame')
+
+        self.captureButton = QPushButton('Capture Frames')
         self.captureButton.setEnabled(False)
         self.captureButton.clicked.connect(self.capture)
+
+        self.checkerboardButton = QPushButton('Find Checkerboards')
+        self.checkerboardButton.setEnabled(False)
+        self.checkerboardButton.clicked.connect(self.findCheckerboards)
+
         self.saveButton = QPushButton('Save Last Frame')
         self.saveButton.setEnabled(False)
         self.saveButton.clicked.connect(self.save)
@@ -106,6 +113,7 @@ class FlirTab(QWidget):
         mainLayout.addWidget(self.initializeButton)
         mainLayout.addWidget(self.screens)
         mainLayout.addWidget(self.captureButton)
+        mainLayout.addWidget(self.checkerboardButton)
         mainLayout.addWidget(self.saveButton)
 
         self.setLayout(mainLayout)
@@ -117,23 +125,27 @@ class FlirTab(QWidget):
         strTime = '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
         self.lastStrTime= strTime
 
-        self.cameras[0].capture()
-        self.screen_l.setData(self.cameras[0].getLastImageData())
+        self.lcamera.capture()
+        self.lscreen.setData(self.lcamera.getLastImageData())
 
-        self.cameras[1].capture()
-        self.screen_r.setData(self.cameras[1].getLastImageData())
+        self.rcamera.capture()
+        self.rscreen.setData(self.rcamera.getLastImageData())
 
         self.saveButton.setEnabled(True)
+        self.checkerboardButton.setEnabled(True)
+
+    def findCheckerboards(self):
+        self.msgLog.post('findCheckerboards(): TODO')
 
     def save(self):
 
-        image_converted = self.cameras[0].getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
-        filename = 'capture_l_%s.jpg' % self.lastStrTime
+        image_converted = self.lcamera.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
+        filename = 'lcamera_%s.jpg' % self.lastStrTime
         image_converted.Save(filename)
         self.msgLog.post('Saved %s' % filename)
 
-        image_converted = self.cameras[1].getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
-        filename = 'capture_r_%s.jpg' % self.lastStrTime
+        image_converted = self.rcamera.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
+        filename = 'rcamera_%s.jpg' % self.lastStrTime
         image_converted.Save(filename)
         self.msgLog.post('Saved %s' % filename)
 
