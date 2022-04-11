@@ -29,7 +29,7 @@ class Camera():
         node_expauto_mode_off = node_expauto_mode.GetEntryByName("Off")
         node_expauto_mode.SetIntValue(node_expauto_mode_off.GetValue())
         node_exptime = PySpin.CFloatPtr(self.nodeMap.GetNode("ExposureTime"))
-        node_exptime.SetValue(1e5)
+        node_exptime.SetValue(2e5)
 
         # begin acquisition
         self.beginAcquisition()
