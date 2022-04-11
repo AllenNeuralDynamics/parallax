@@ -102,19 +102,14 @@ class FlirTab(QWidget):
         self.captureButton.setEnabled(False)
         self.captureButton.clicked.connect(self.capture)
 
-        self.checkerboardButton = QPushButton('Find Checkerboards')
-        self.checkerboardButton.setEnabled(False)
-        self.checkerboardButton.clicked.connect(self.findCheckerboards)
-
         self.saveButton = QPushButton('Save Last Frame')
         self.saveButton.setEnabled(False)
         self.saveButton.clicked.connect(self.save)
 
         mainLayout.addWidget(self.initializeButton)
-        mainLayout.addWidget(self.screens)
         mainLayout.addWidget(self.captureButton)
-        mainLayout.addWidget(self.checkerboardButton)
         mainLayout.addWidget(self.saveButton)
+        mainLayout.addWidget(self.screens)
 
         self.setLayout(mainLayout)
 
@@ -132,19 +127,6 @@ class FlirTab(QWidget):
         self.rscreen.setData(self.rcamera.getLastImageData())
 
         self.saveButton.setEnabled(True)
-        self.checkerboardButton.setEnabled(True)
-
-    def findCheckerboards(self):
-
-        ldata = cv.pyrDown(self.lcamera.getLastImageData()) # half-res
-        lret, lcorners = cv.findChessboardCorners(ldata, (9,8), None)
-        rdata = cv.pyrDown(self.rcamera.getLastImageData()) # half-res
-        rret, rcorners = cv.findChessboardCorners(rdata, (9,8), None)
-        if not (lret and rret):
-            self.msgLog.post('Checkerboard corners not found in both images')
-            return
-        self.lscreen.setData(cv.drawChessboardCorners(ldata, (9,8), lcorners, lret))
-        self.rscreen.setData(cv.drawChessboardCorners(rdata, (9,8), rcorners, rret))
 
     def save(self):
 
