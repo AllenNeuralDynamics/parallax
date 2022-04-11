@@ -20,8 +20,8 @@ class MainWindow(QWidget):
         self.newscaleTab = NewScaleTab(self.msgLog)
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.flirTab, 'FLIR')
         self.tabs.addTab(self.newscaleTab, 'New Scale')
+        self.tabs.addTab(self.flirTab, 'FLIR')
         self.tabs.addTab(self.zaberTab, 'Zaber')
 
         mainLayout = QVBoxLayout()
