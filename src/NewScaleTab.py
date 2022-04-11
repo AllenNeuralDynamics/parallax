@@ -1,11 +1,14 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
+
+from PyQt5.QtGui import QFont
 
 import socket
 socket.setdefaulttimeout(0.01)  # 10 ms timeout
 
+PORT_NEWSCALE = 23
 
 class ScanWorker(QObject):
     finished = pyqtSignal()
@@ -23,16 +26,24 @@ class ScanWorker(QObject):
         self.ips = []
 
     def run(self):
-        port = 23
         for i in range(1,256):
-            hostname = '%d.%d.%d.%d' % (self.b1, self.b2, self.b3, i)
+            ip = '%d.%d.%d.%d' % (self.b1, self.b2, self.b3, i)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            target = socket.gethostbyname(hostname)
-            if not s.connect_ex((target,port)):
-                self.ips.append(hostname)
+            if (s.connect_ex((ip, PORT_NEWSCALE)) == 0):
+                fw_version = self.getFirmwareVersion(s)
+                self.ips.append((ip, fw_version))
             s.close()
             self.progress.emit(i)
         self.finished.emit()
+
+    def getFirmwareVersion(self, sock):
+        cmd = b"TR<01>\r"
+        sock.sendall(cmd)
+        resp = sock.recv(1024).decode('utf-8').strip('<>\r')
+        version = resp.split()[3]
+        info = resp.split()[4]
+        fw_version = '%s (%s)' % (version, info)
+        return fw_version
 
 
 class SubnetWidget(QWidget):
@@ -45,7 +56,7 @@ class SubnetWidget(QWidget):
         self.label = QLabel('Subnet:')
         self.lineEdit_byte1 = QLineEdit('10')
         self.lineEdit_byte2 = QLineEdit('128')
-        self.lineEdit_byte3 = QLineEdit('50')
+        self.lineEdit_byte3 = QLineEdit('49')
         self.lineEdit_byte4 = QLineEdit('*')
 
         self.layout.addWidget(self.label)
@@ -70,6 +81,7 @@ class NewScaleTab(QWidget):
 
         self.msgLog = msgLog
 
+
         # widgets
         self.subnetWidget = SubnetWidget()
         self.scanButton = QPushButton('Scan for stages')
@@ -77,13 +89,23 @@ class NewScaleTab(QWidget):
         self.table = QTableWidget()
         self.table.setRowCount(10)
         self.table.setColumnCount(3)
+
         self.table.setItem(0,0, QTableWidgetItem('IP'))
         self.table.setItem(0,1, QTableWidgetItem('Status'))
         self.table.setItem(0,2, QTableWidgetItem('FW Version'))
+        boldFont = QFont()
+        boldFont.setBold(True)
+        self.table.item(0,0).setFont(boldFont)
+        self.table.item(0,1).setFont(boldFont)
+        self.table.item(0,2).setFont(boldFont)
+
+
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setMaximumHeight(300)
-        # TODO: try this
-        # https://stackoverflow.com/questions/23215456/resize-column-width-qtablewidget
+        self.table.cellDoubleClicked.connect(self.handleDoubleClick)
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
 
         # layout
         mainLayout = QVBoxLayout()
@@ -94,6 +116,10 @@ class NewScaleTab(QWidget):
 
         # data structures
         self.ips_connected = []
+
+    def handleDoubleClick(self, row, col):
+        ip = self.table.item(row,0).text()
+        pass
 
     def scan(self):
         self.scanThread = QThread()
@@ -112,8 +138,9 @@ class NewScaleTab(QWidget):
         self.msgLog.post('Scan finished.')
         self.ips_connected = self.scanWorker.ips
         for i,ip in enumerate(self.ips_connected):
-            self.table.setItem(1+i,0, QTableWidgetItem(ip))
+            self.table.setItem(1+i,0, QTableWidgetItem(ip[0]))
             self.table.setItem(1+i,1, QTableWidgetItem("Online"))
+            self.table.setItem(1+i,2, QTableWidgetItem(ip[1]))
 
     def reportProgress(self, i):
         pass    # TODO show progress bar
