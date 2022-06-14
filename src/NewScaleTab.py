@@ -9,6 +9,8 @@ from PyQt5.QtGui import QFont
 import socket
 socket.setdefaulttimeout(0.01)  # 10 ms timeout
 
+from Stage import Stage
+
 PORT_NEWSCALE = 23
 FONT_BOLD = QFont()
 FONT_BOLD.setBold(True)
@@ -34,7 +36,7 @@ class NewScaleTab(QWidget):
 
 
 class SelectionPanel(QFrame):
-    selected = pyqtSignal(str)
+    selected = pyqtSignal(object)
 
     def __init__(self, msgLog):
         QFrame.__init__(self)
@@ -76,8 +78,8 @@ class SelectionPanel(QFrame):
         self.setLineWidth(2);
 
     def handleDoubleClick(self, row, col):
-        ip = self.table.item(row,0).text()
-        self.selected.emit(ip)
+        stage = self.stages_connected[row-1]
+        self.selected.emit(stage)
 
     def scan(self):
         self.scanThread = QThread()
@@ -94,11 +96,11 @@ class SelectionPanel(QFrame):
 
     def handleScanFinished(self):
         self.msgLog.post('Scan finished.')
-        self.ips_connected = self.scanWorker.ips
-        for i,ip in enumerate(self.ips_connected):
-            self.table.setItem(1+i,0, QTableWidgetItem(ip[0]))
-            self.table.setItem(1+i,1, QTableWidgetItem("Online"))
-            self.table.setItem(1+i,2, QTableWidgetItem(ip[1]))
+        self.stages_connected = self.scanWorker.stages
+        for i,stage in enumerate(self.stages_connected):
+            self.table.setItem(1+i, 0, QTableWidgetItem(stage.getIP()))
+            self.table.setItem(1+i, 1, QTableWidgetItem("Online"))
+            self.table.setItem(1+i, 2, QTableWidgetItem(stage.getFirmwareVersion()))
 
     def reportProgress(self, i):
         pass    # TODO show progress bar
@@ -145,27 +147,18 @@ class ScanWorker(QObject):
         self.b2 = subnet[1]
         self.b3 = subnet[2]
 
-        self.ips = []
+        self.stages = []    # list of tuples: (socket, fw_version)
 
     def run(self):
         for i in range(1,256):
             ip = '%d.%d.%d.%d' % (self.b1, self.b2, self.b3, i)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            if (s.connect_ex((ip, PORT_NEWSCALE)) == 0):
-                fw_version = self.getFirmwareVersion(s)
-                self.ips.append((ip, fw_version))
-            s.close()
+            if (s.connect_ex((ip, PORT_NEWSCALE))): # non-zero return value indicates failure
+                s.close()
+            else:
+                self.stages.append(Stage(s))
             self.progress.emit(i)
         self.finished.emit()
-
-    def getFirmwareVersion(self, sock):
-        cmd = b"TR<01>\r"
-        sock.sendall(cmd)
-        resp = sock.recv(1024).decode('utf-8').strip('<>\r')
-        version = resp.split()[3]
-        info = resp.split()[4]
-        fw_version = '%s (%s)' % (version, info)
-        return fw_version
 
 
 class ControlPanel(QFrame):
@@ -179,6 +172,8 @@ class ControlPanel(QFrame):
         self.ipLabel = QLabel('<select a stage to control>')
         self.ipLabel.setAlignment(Qt.AlignCenter)
         self.ipLabel.setFont(FONT_BOLD)
+        self.initButton = QPushButton('Initialize')
+        self.initButton.clicked.connect(self.initialize)
         self.haltButton = QPushButton('Halt the Motor')
         self.haltButton.clicked.connect(self.haltMotor)
         self.runButton = QPushButton('Run the Motor')
@@ -187,6 +182,7 @@ class ControlPanel(QFrame):
         # layout
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.ipLabel)
+        mainLayout.addWidget(self.initButton)
         mainLayout.addWidget(self.haltButton)
         mainLayout.addWidget(self.runButton)
         self.setLayout(mainLayout)
@@ -195,9 +191,12 @@ class ControlPanel(QFrame):
         self.setFrameStyle(QFrame.Box | QFrame.Plain);
         self.setLineWidth(2);
 
-    def handleSelection(self, ip):
-        self.ip = ip
-        self.ipLabel.setText(self.ip)
+    def handleSelection(self, stage):
+        self.stage = stage
+        self.ipLabel.setText(self.stage.getIP())
+
+    def initialize(self):
+        self.msgLog.post('initialize!')
 
     def haltMotor(self):
         pass
