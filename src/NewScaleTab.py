@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QLineEdit, QFrame
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView
-from PyQt5.QtWidgets import QFrame
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
@@ -174,17 +174,35 @@ class ControlPanel(QFrame):
         self.ipLabel.setFont(FONT_BOLD)
         self.initButton = QPushButton('Initialize')
         self.initButton.clicked.connect(self.initialize)
-        self.haltButton = QPushButton('Halt the Motor')
-        self.haltButton.clicked.connect(self.haltMotor)
-        self.runButton = QPushButton('Run the Motor')
-        self.runButton.clicked.connect(self.runMotor)
+        self.statusButton = QPushButton('Get Status')
+        self.statusButton.clicked.connect(self.getStatus)
+        self.jogForwardXButton= QPushButton('+X')
+        self.jogForwardXButton.clicked.connect(self.jogForwardX)
+        self.jogBackwardXButton= QPushButton('-X')
+        self.jogBackwardXButton.clicked.connect(self.jogBackwardX)
+        self.jogForwardYButton= QPushButton('+Y')
+        self.jogForwardYButton.clicked.connect(self.jogForwardY)
+        self.jogBackwardYButton= QPushButton('-Y')
+        self.jogBackwardYButton.clicked.connect(self.jogBackwardY)
+        self.jogForwardZButton= QPushButton('+Z')
+        self.jogForwardZButton.clicked.connect(self.jogForwardZ)
+        self.jogBackwardZButton= QPushButton('-Z')
+        self.jogBackwardZButton.clicked.connect(self.jogBackwardZ)
+        self.haltButton = QPushButton('HALT')
+        self.haltButton.clicked.connect(self.halt)
 
         # layout
-        mainLayout = QVBoxLayout()
-        mainLayout.addWidget(self.ipLabel)
-        mainLayout.addWidget(self.initButton)
-        mainLayout.addWidget(self.haltButton)
-        mainLayout.addWidget(self.runButton)
+        mainLayout = QGridLayout()
+        mainLayout.addWidget(self.ipLabel, 0,0, 1,2)
+        mainLayout.addWidget(self.initButton, 1,0, 1,2)
+        mainLayout.addWidget(self.statusButton, 2,0, 1,2)
+        mainLayout.addWidget(self.jogBackwardXButton, 3,0)
+        mainLayout.addWidget(self.jogForwardXButton, 3,1)
+        mainLayout.addWidget(self.jogBackwardYButton, 4,0)
+        mainLayout.addWidget(self.jogForwardYButton, 4,1)
+        mainLayout.addWidget(self.jogBackwardZButton, 5,0)
+        mainLayout.addWidget(self.jogForwardZButton, 5,1)
+        mainLayout.addWidget(self.haltButton, 6,0, 1,2)
         self.setLayout(mainLayout)
 
         # frame border
@@ -195,13 +213,38 @@ class ControlPanel(QFrame):
         self.stage = stage
         self.ipLabel.setText(self.stage.getIP())
 
+    def jogForwardX(self):
+        self.stage.selectAxis('x')
+        self.stage.jogForward()
+
+    def jogBackwardX(self):
+        self.stage.selectAxis('x')
+        self.stage.jogBackward()
+
+    def jogForwardY(self):
+        self.stage.selectAxis('y')
+        self.stage.jogForward()
+
+    def jogBackwardY(self):
+        self.stage.selectAxis('y')
+        self.stage.jogBackward()
+
+    def jogForwardZ(self):
+        self.stage.selectAxis('z')
+        self.stage.jogForward()
+
+    def jogBackwardZ(self):
+        self.stage.selectAxis('z')
+        self.stage.jogBackward()
+
     def initialize(self):
-        self.msgLog.post('initialize!')
+        self.stage.initialize()
 
-    def haltMotor(self):
-        pass
+    def getStatus(self):
+        self.stage.getStatus()
+        self.stage.status.pprint()
 
-    def runMotor(self):
-        pass
+    def halt(self):
+        self.stage.halt()
 
 
