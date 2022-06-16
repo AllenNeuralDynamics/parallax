@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QTabWidget
 from FlirTab import FlirTab
 from ZaberTab import ZaberTab
 from NewScaleTab import NewScaleTab
+from ProbeTrackingTab import ProbeTrackingTab
 from MessageLog import MessageLog
 
 import time
@@ -18,11 +19,13 @@ class MainWindow(QWidget):
         self.zaberTab = ZaberTab(self.msgLog)
         self.flirTab = FlirTab(self.msgLog)
         self.newscaleTab = NewScaleTab(self.msgLog)
+        self.probeTrackingTab = ProbeTrackingTab(self.msgLog)
 
         self.tabs = QTabWidget()
         self.tabs.addTab(self.newscaleTab, 'New Scale')
         self.tabs.addTab(self.flirTab, 'FLIR')
         self.tabs.addTab(self.zaberTab, 'Zaber')
+        self.tabs.addTab(self.probeTrackingTab, 'Probe Tracking')
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.tabs)

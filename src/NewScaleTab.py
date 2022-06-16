@@ -10,6 +10,7 @@ import socket
 socket.setdefaulttimeout(0.01)  # 10 ms timeout
 
 from Stage import Stage
+import State
 
 PORT_NEWSCALE = 23
 FONT_BOLD = QFont()
@@ -78,7 +79,7 @@ class SelectionPanel(QFrame):
         self.setLineWidth(2);
 
     def handleDoubleClick(self, row, col):
-        stage = self.stages_connected[row-1]
+        stage = State.STAGES[row-1]
         self.selected.emit(stage)
 
     def scan(self):
@@ -96,8 +97,7 @@ class SelectionPanel(QFrame):
 
     def handleScanFinished(self):
         self.msgLog.post('Scan finished.')
-        self.stages_connected = self.scanWorker.stages
-        for i,stage in enumerate(self.stages_connected):
+        for i,stage in enumerate(State.STAGES):
             self.table.setItem(1+i, 0, QTableWidgetItem(stage.getIP()))
             self.table.setItem(1+i, 1, QTableWidgetItem("Online"))
             self.table.setItem(1+i, 2, QTableWidgetItem(stage.getFirmwareVersion()))
@@ -147,8 +147,6 @@ class ScanWorker(QObject):
         self.b2 = subnet[1]
         self.b3 = subnet[2]
 
-        self.stages = []    # list of tuples: (socket, fw_version)
-
     def run(self):
         for i in range(1,256):
             ip = '%d.%d.%d.%d' % (self.b1, self.b2, self.b3, i)
@@ -156,7 +154,7 @@ class ScanWorker(QObject):
             if (s.connect_ex((ip, PORT_NEWSCALE))): # non-zero return value indicates failure
                 s.close()
             else:
-                self.stages.append(Stage(s))
+                State.STAGES.append(Stage(s))
             self.progress.emit(i)
         self.finished.emit()
 

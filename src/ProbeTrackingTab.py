@@ -8,34 +8,10 @@ import numpy as np
 import cv2 as cv
 
 from Camera import Camera
+from ScreenWidget import ScreenWidget
 import State
 
-xScreen = 500
-yScreen = 375
-
-
-class ScreenWidget(QLabel):
-
-    def __init__(self, parent=None):
-        QWidget.__init__(self, parent=parent)
-
-        self.setMinimumSize(xScreen, yScreen)
-        self.setMaximumSize(xScreen, yScreen)
-        self.setData(np.zeros((3000,4000), dtype=np.uint8))
-
-    def setData(self, data):
-        # data should be a numpy array
-        qimage = QImage(data, data.shape[1], data.shape[0], QImage.Format_Grayscale8)
-        pixmap = QPixmap(qimage.scaled(xScreen, yScreen, Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
-        self.setPixmap(pixmap)
-        self.update()
-
-    def mousePressEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            print('click: %d, %d' % (e.x(), e.y()))
-
-
-class FlirTab(QWidget):
+class ProbeTrackingTab(QWidget):
 
     def __init__(self, msgLog):
         QWidget.__init__(self)
@@ -43,39 +19,17 @@ class FlirTab(QWidget):
         self.msgLog = msgLog
         self.ncameras = 0
         self.initGui()
-        self.initialized = False
         self.lastImage = None
 
-    def initCameras(self):
+        self.initialized = False
 
-        self.msgLog.post('Initializing cameras...')
-
-        self.instance = PySpin.System.GetInstance()
-
-        self.libVer = self.instance.GetLibraryVersion()
-        self.libVerString = 'Version %d.%d.%d.%d' % (self.libVer.major, self.libVer.minor,
-                                                    self.libVer.type, self.libVer.build)
-        self.cameras_pyspin = self.instance.GetCameras()
-        self.ncameras = self.cameras_pyspin.GetSize()
-
-        ncameras_string = '%d camera%s detected' % (self.ncameras, 's' if self.ncameras!=1 else '')
-        self.msgLog.post(ncameras_string)
-        if self.ncameras < 2:
-            print('Error: need at least 2 cameras')
-            return
-
-        ###
-
-        for i in range(self.ncameras):
-            State.CAMERAS.append(Camera(self.cameras_pyspin.GetByIndex(i)))
-
-        self.lcamera = State.CAMERAS[0]
-        self.rcamera = State.CAMERAS[1]
-
-        self.msgLog.post('FLIR Library Version is %s' % self.libVerString)
-
-        self.captureButton.setEnabled(True)
-        self.initialized = True
+    def initialize(self):
+        # this function is idempotent
+        if not self.initialized:
+            self.lcamera = State.CAMERAS[0]
+            self.rcamera = State.CAMERAS[1]
+            self.stage = State.STAGES[0]
+            self.initialized = True
 
     def clean(self):
 
@@ -94,30 +48,63 @@ class FlirTab(QWidget):
         self.screens = QWidget()
         hlayout = QHBoxLayout()
         self.lscreen = ScreenWidget()
+        self.lscreen.clicked.connect(self.handleScreenClicked)
         hlayout.addWidget(self.lscreen)
         self.rscreen = ScreenWidget()
         hlayout.addWidget(self.rscreen)
         self.screens.setLayout(hlayout)
 
-        self.initializeButton = QPushButton('Initialize Cameras')
-        self.initializeButton.clicked.connect(self.initCameras)
-
         self.captureButton = QPushButton('Capture Frames')
-        self.captureButton.setEnabled(False)
         self.captureButton.clicked.connect(self.capture)
 
         self.saveButton = QPushButton('Save Last Frame')
-        self.saveButton.setEnabled(False)
         self.saveButton.clicked.connect(self.save)
 
-        mainLayout.addWidget(self.initializeButton)
+        self.calibrateButton = QPushButton('Calibrate')
+        self.calibrateButton.clicked.connect(self.calibrate)
+
         mainLayout.addWidget(self.captureButton)
         mainLayout.addWidget(self.saveButton)
         mainLayout.addWidget(self.screens)
+        mainLayout.addWidget(self.calibrateButton)
 
         self.setLayout(mainLayout)
 
+    def handleScreenClicked(self, xClicked, yClicked):
+        print(xClicked, yClicked)
+
+    def calibrate(self):
+
+        self.initialize()
+
+        self.stage.selectAxis('x')
+        self.stage.jogForward()
+        time.sleep(1)
+        self.capture()
+        self.stage.selectAxis('y')
+        self.stage.jogForward()
+        time.sleep(1)
+        self.capture()
+        self.stage.selectAxis('z')
+        self.stage.jogForward()
+        time.sleep(1)
+        self.capture()
+        self.stage.selectAxis('x')
+        self.stage.jogBackward()
+        time.sleep(1)
+        self.capture()
+        self.stage.selectAxis('y')
+        self.stage.jogBackward()
+        time.sleep(1)
+        self.capture()
+        self.stage.selectAxis('z')
+        self.stage.jogBackward()
+        time.sleep(1)
+        self.capture()
+
     def capture(self):
+
+        self.initialize()
 
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
@@ -130,7 +117,8 @@ class FlirTab(QWidget):
         self.rcamera.capture()
         self.rscreen.setData(self.rcamera.getLastImageData())
 
-        self.saveButton.setEnabled(True)
+        self.lscreen.repaint()
+        self.rscreen.repaint()
 
     def save(self):
 
