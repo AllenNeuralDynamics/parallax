@@ -1,4 +1,8 @@
+#!/usr/bin/python3
+
 import PySpin
+
+import numpy as np
 
 
 class Camera():
@@ -61,6 +65,7 @@ class Camera():
         return self.lastImage
 
     def getLastImageData(self):
+        # returns a shape=(3000,4000), type=uint8 grayscale image
         return self.lastImage.GetNDArray()
 
     def clean(self):

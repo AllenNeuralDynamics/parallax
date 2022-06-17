@@ -8,6 +8,8 @@ class MessageLog(QWidget):
         QWidget.__init__(self, parent=parent)
 
         self.messageLog = QTextEdit()
+        self.vbar = self.messageLog.verticalScrollBar()
+
         self.messageLog.setReadOnly(True)
         self.messageLog.objectName = 'Messages'
 
@@ -23,4 +25,4 @@ class MessageLog(QWidget):
         self.messageLog.append(prefix + split_messages.pop(0))
         while split_messages != []:
             self.messageLog.append(split_messages.pop(0))
-
+        self.vbar.setValue(self.vbar.maximum())

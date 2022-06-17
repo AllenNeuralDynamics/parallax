@@ -8,31 +8,11 @@ import numpy as np
 import cv2 as cv
 
 from Camera import Camera
+from ScreenWidget import ScreenWidget
 import State
 
 xScreen = 500
 yScreen = 375
-
-
-class ScreenWidget(QLabel):
-
-    def __init__(self, parent=None):
-        QWidget.__init__(self, parent=parent)
-
-        self.setMinimumSize(xScreen, yScreen)
-        self.setMaximumSize(xScreen, yScreen)
-        self.setData(np.zeros((3000,4000), dtype=np.uint8))
-
-    def setData(self, data):
-        # data should be a numpy array
-        qimage = QImage(data, data.shape[1], data.shape[0], QImage.Format_Grayscale8)
-        pixmap = QPixmap(qimage.scaled(xScreen, yScreen, Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
-        self.setPixmap(pixmap)
-        self.update()
-
-    def mousePressEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            print('click: %d, %d' % (e.x(), e.y()))
 
 
 class FlirTab(QWidget):

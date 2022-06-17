@@ -22,10 +22,10 @@ class MainWindow(QWidget):
         self.probeTrackingTab = ProbeTrackingTab(self.msgLog)
 
         self.tabs = QTabWidget()
+        self.tabs.addTab(self.probeTrackingTab, 'Probe Tracking')
         self.tabs.addTab(self.newscaleTab, 'New Scale')
         self.tabs.addTab(self.flirTab, 'FLIR')
-        self.tabs.addTab(self.zaberTab, 'Zaber')
-        self.tabs.addTab(self.probeTrackingTab, 'Probe Tracking')
+        #self.tabs.addTab(self.zaberTab, 'Zaber')
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.tabs)
@@ -36,4 +36,5 @@ class MainWindow(QWidget):
 
     def exit(self):
         self.flirTab.clean()
+        self.probeTrackingTab.clean()
 

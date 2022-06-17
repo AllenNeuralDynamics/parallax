@@ -1,17 +1,24 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton
 from PyQt5.QtGui import QPainter, QPixmap, QImage
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
 import PySpin
 import time, datetime
 import numpy as np
 import cv2 as cv
 
-from Camera import Camera
-from ScreenWidget import ScreenWidget
+import socket
+socket.setdefaulttimeout(0.020)  # 20 ms timeout
+
 import State
+from Camera import Camera
+from Stage import Stage
+from ScreenWidget import ScreenWidget
+from CalibrationWorker import CalibrationWorker
+from Helper import *
 
 class ProbeTrackingTab(QWidget):
+    imagePointsSelected = pyqtSignal()
 
     def __init__(self, msgLog):
         QWidget.__init__(self)
@@ -19,17 +26,37 @@ class ProbeTrackingTab(QWidget):
         self.msgLog = msgLog
         self.ncameras = 0
         self.initGui()
-        self.lastImage = None
-
+        self.lastImage = None 
         self.initialized = False
+
+        self.lcorrs = []
+        self.rcorrs = []
 
     def initialize(self):
         # this function is idempotent
+
         if not self.initialized:
             self.lcamera = State.CAMERAS[0]
             self.rcamera = State.CAMERAS[1]
             self.stage = State.STAGES[0]
             self.initialized = True
+
+    def quickInit(self):
+
+        # stage
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(('10.128.49.22', 23))
+        self.stage = Stage(sock)
+        self.stage.initialize()
+        self.stage.center()
+        # cameras
+        self.instance = PySpin.System.GetInstance()
+        self.cameras_pyspin = self.instance.GetCameras()
+        self.lcamera = Camera(self.cameras_pyspin.GetByIndex(0))
+        self.rcamera = Camera(self.cameras_pyspin.GetByIndex(1))
+        self.initialized = True
+        self.msgLog.post('Cameras and Stage initialized')
+
 
     def clean(self):
 
@@ -48,11 +75,13 @@ class ProbeTrackingTab(QWidget):
         self.screens = QWidget()
         hlayout = QHBoxLayout()
         self.lscreen = ScreenWidget()
-        self.lscreen.clicked.connect(self.handleScreenClicked)
         hlayout.addWidget(self.lscreen)
         self.rscreen = ScreenWidget()
         hlayout.addWidget(self.rscreen)
         self.screens.setLayout(hlayout)
+
+        self.quickInitButton = QPushButton('Quick Init')
+        self.quickInitButton.clicked.connect(self.quickInit)
 
         self.captureButton = QPushButton('Capture Frames')
         self.captureButton.clicked.connect(self.capture)
@@ -63,44 +92,120 @@ class ProbeTrackingTab(QWidget):
         self.calibrateButton = QPushButton('Calibrate')
         self.calibrateButton.clicked.connect(self.calibrate)
 
+        self.registerButton = QPushButton('Register')
+        self.registerButton.clicked.connect(self.registerCorrespondencePoints)
+
+        self.checkerboardButton = QPushButton('Do Checkerboards')
+        self.checkerboardButton.clicked.connect(self.doCheckerboards)
+
+        self.randomButton = QPushButton('Move to a Random Position')
+        self.randomButton.clicked.connect(self.moveToRandomPosition)
+
+        self.reconstructButton = QPushButton('Reconstruct Correspondence Point')
+        self.reconstructButton.clicked.connect(self.reconstruct)
+
+        mainLayout.addWidget(self.quickInitButton)
         mainLayout.addWidget(self.captureButton)
         mainLayout.addWidget(self.saveButton)
         mainLayout.addWidget(self.screens)
+        mainLayout.addWidget(self.checkerboardButton)
         mainLayout.addWidget(self.calibrateButton)
+        mainLayout.addWidget(self.registerButton)
+        mainLayout.addWidget(self.randomButton)
+        mainLayout.addWidget(self.reconstructButton)
 
         self.setLayout(mainLayout)
 
-    def handleScreenClicked(self, xClicked, yClicked):
-        print(xClicked, yClicked)
+    def reconstruct(self):
+
+        lcorr = (self.lscreen.xclicked, self.lscreen.yclicked)
+        rcorr = (self.rscreen.xclicked, self.rscreen.yclicked)
+
+        x,y,z = DLT(self.lproj, self.rproj, lcorr, rcorr)
+        self.msgLog.post('Reconstructed position: (%f, %f, %f) mm' % (x,y,z))
+
+    def moveToRandomPosition(self):
+    
+        x = np.random.uniform(-7.5, 7.5)
+        y = np.random.uniform(-7.5, 7.5)
+        z = np.random.uniform(-7.5, 7.5)
+        self.stage.moveToTarget_mm3d(x, y, z)
+        time.sleep(2)
+        self.msgLog.post('Moved to a random position: (%f, %f, %f) mm' % (x, y, z))
+
+    def doCheckerboards(self):
+
+        self.ldata = cv.pyrDown(self.lcamera.getLastImageData()) # half-res
+        self.ldata = cv.pyrDown(self.ldata) # quarter-res
+        self.ldata = cv.pyrDown(self.ldata) # eighth-res
+        self.lret, self.lcorners = cv.findChessboardCorners(self.ldata, (NCW,NCH), None)
+        if self.lret:
+            #self.lscreen.setData(cv.drawChessboardCorners(self.ldata, (NCW,NCH), self.lcorners, self.lret))
+            self.msgLog.post('left checkerboard found')
+        else:
+            self.msgLog.post('Checkerboard corners not found in left frame')
+
+        self.rdata = cv.pyrDown(self.rcamera.getLastImageData()) # half-res
+        self.rdata = cv.pyrDown(self.rdata) # quarter-res
+        self.rdata = cv.pyrDown(self.rdata) # eighth-res
+        self.rret, self.rcorners = cv.findChessboardCorners(self.rdata, (NCW,NCH), None)
+        if self.rret:
+            #self.rscreen.setData(cv.drawChessboardCorners(self.rdata, (NCW,NCH), self.rcorners, self.rret))
+            self.msgLog.post('right checkerboard found')
+        else:
+            self.msgLog.post('Checkerboard corners not found in right frame')
+
+        if self.lret and self.rret:
+            self.lmtx, self.ldist = getIntrinsicsFromCheckerboard(self.lcorners)
+            self.rmtx, self.rdist = getIntrinsicsFromCheckerboard(self.rcorners)
+        else:
+            self.msgLog.post('Error: one or both checkerboards could not be found')
+
+    def registerCorrespondencePoints(self):
+
+        # weird "tuple of length 1" thing to facilitate direct conversion to the proper numpy shape
+        self.lcorrs.append(((self.lscreen.xclicked, self.lscreen.yclicked),))
+        self.rcorrs.append(((self.rscreen.xclicked, self.rscreen.yclicked),))
+        self.calWorker.carryOn()
 
     def calibrate(self):
 
         self.initialize()
+        self.calThread = QThread()
+        self.calWorker = CalibrationWorker(self.stage)
+        self.calWorker.moveToThread(self.calThread)
+        self.calThread.started.connect(self.calWorker.run)
+        self.calWorker.finished.connect(self.calThread.quit)
+        self.calWorker.finished.connect(self.calWorker.deleteLater)
+        self.calWorker.imagePointsRequested.connect(self.handleImagePoints)
+        self.calThread.finished.connect(self.calThread.deleteLater)
+        self.calThread.finished.connect(self.handleCalFinished)
+        self.imagePointsSelected.connect(self.calWorker.carryOn)
+        self.msgLog.post('Starting Calibration...')
+        self.calThread.start()
 
-        self.stage.selectAxis('x')
-        self.stage.jogForward()
-        time.sleep(1)
+    def handleImagePoints(self, step, nsteps):
+
         self.capture()
-        self.stage.selectAxis('y')
-        self.stage.jogForward()
-        time.sleep(1)
-        self.capture()
-        self.stage.selectAxis('z')
-        self.stage.jogForward()
-        time.sleep(1)
-        self.capture()
-        self.stage.selectAxis('x')
-        self.stage.jogBackward()
-        time.sleep(1)
-        self.capture()
-        self.stage.selectAxis('y')
-        self.stage.jogBackward()
-        time.sleep(1)
-        self.capture()
-        self.stage.selectAxis('z')
-        self.stage.jogBackward()
-        time.sleep(1)
-        self.capture()
+        self.msgLog.post('Calibration point reached (%d of %d)' % (step, nsteps))
+        self.msgLog.post('Click on probe tip in both images, then press "Register"')
+
+    def handleCalFinished(self):
+
+        self.msgLog.post('Calibration finished.')
+
+        objectPoints = self.calWorker.getObjectPoints()
+        objectPoints_cv = [np.array(objectPoints, dtype=np.float32)]
+
+        limagepoints_cv = [np.array(self.lcorrs, dtype=np.float32)]
+        rimagepoints_cv = [np.array(self.rcorrs, dtype=np.float32)]
+
+        if (len(objectPoints) != len(self.lcorrs)) or (len(self.rcorrs) != len(self.lcorrs)):
+            self.msgLog.post('Error: number of object points does not match correspondence points')
+            return
+
+        self.lproj = getProjectionMatrix(objectPoints_cv, limagepoints_cv, self.lmtx, self.ldist)
+        self.rproj = getProjectionMatrix(objectPoints_cv, rimagepoints_cv, self.rmtx, self.rdist)
 
     def capture(self):
 

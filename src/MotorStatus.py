@@ -1,10 +1,11 @@
 class MotorStatus():
 
-    def __init__(self, bitfield):
+    def __init__(self, bitfield, position):
         """
         initialize with 24-bit integer bitfield
         """
         self.bitfield = bitfield
+        self.position = position
 
     def direction(self):
         return 'forward' if (self.bitfield & (1 << 1)) else 'reverse'
@@ -79,5 +80,10 @@ class MotorStatus():
         print('Closed Loop Enabled: ', self.isClosedLoopEnabled())
         print('Accelerating: ', self.isAccelerating())
         print('Stalled: ', self.isStalled())
+        print('')
+        print('Position: ', self.position)
         if newline: print()
+
+    def getPosition(self):
+        return self.position
 

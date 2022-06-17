@@ -7,7 +7,7 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QFont
 
 import socket
-socket.setdefaulttimeout(0.01)  # 10 ms timeout
+socket.setdefaulttimeout(0.020)  # 20 ms timeout
 
 from Stage import Stage
 import State
@@ -172,8 +172,12 @@ class ControlPanel(QFrame):
         self.ipLabel.setFont(FONT_BOLD)
         self.initButton = QPushButton('Initialize')
         self.initButton.clicked.connect(self.initialize)
+        self.centerButton = QPushButton('Center')
+        self.centerButton.clicked.connect(self.center)
         self.statusButton = QPushButton('Get Status')
         self.statusButton.clicked.connect(self.getStatus)
+        self.positionButton = QPushButton('Get Position')
+        self.positionButton.clicked.connect(self.getPosition)
         self.plusXButton= QPushButton('+X')
         self.plusXButton.clicked.connect(self.jogForwardX)
         self.minusXButton= QPushButton('-X')
@@ -193,14 +197,16 @@ class ControlPanel(QFrame):
         mainLayout = QGridLayout()
         mainLayout.addWidget(self.ipLabel, 0,0, 1,2)
         mainLayout.addWidget(self.initButton, 1,0, 1,2)
-        mainLayout.addWidget(self.statusButton, 2,0, 1,2)
-        mainLayout.addWidget(self.minusXButton, 3,0)
-        mainLayout.addWidget(self.plusXButton, 3,1)
-        mainLayout.addWidget(self.minusYButton, 4,0)
-        mainLayout.addWidget(self.plusYButton, 4,1)
-        mainLayout.addWidget(self.minusZButton, 5,0)
-        mainLayout.addWidget(self.plusZButton, 5,1)
-        mainLayout.addWidget(self.haltButton, 6,0, 1,2)
+        mainLayout.addWidget(self.centerButton, 2,0, 1,2)
+        mainLayout.addWidget(self.statusButton, 3,0, 1,2)
+        mainLayout.addWidget(self.minusXButton, 4,0)
+        mainLayout.addWidget(self.plusXButton, 4,1)
+        mainLayout.addWidget(self.minusYButton, 5,0)
+        mainLayout.addWidget(self.plusYButton, 5,1)
+        mainLayout.addWidget(self.minusZButton, 6,0)
+        mainLayout.addWidget(self.plusZButton, 6,1)
+        mainLayout.addWidget(self.haltButton, 7,0, 1,2)
+        mainLayout.addWidget(self.positionButton, 8,0, 1,2)
         self.setLayout(mainLayout)
 
         # frame border
@@ -218,6 +224,9 @@ class ControlPanel(QFrame):
     def jogBackwardX(self):
         self.stage.selectAxis('x')
         self.stage.jogBackward()
+
+    def center(self):
+        self.stage.center()
 
     def jogForwardY(self):
         self.stage.selectAxis('y')
@@ -241,6 +250,10 @@ class ControlPanel(QFrame):
     def getStatus(self):
         self.stage.getStatus()
         self.stage.status.pprint()
+
+    def getPosition(self):
+        x, y, z = self.stage.getPosition()
+        print('Position: ', x, y, z)
 
     def halt(self):
         self.stage.halt()
