@@ -56,10 +56,10 @@ def getIntrinsicsFromCheckerboard(imagePoints):
 
 def getProjectionMatrix(objectPoints, imagePoints, mtx_guess=None, dist_guess=None):
 
-    if not mtx_guess:
+    if mtx_guess is None:
         mtx_guess = MTX_GUESS_DEFAULT
 
-    if not dist_guess:
+    if dist_guess is None:
         dist_guess = DIST_GUESS_DEFAULT
 
     err, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objectPoints, imagePoints, (WD,HD), mtx_guess, dist_guess,
