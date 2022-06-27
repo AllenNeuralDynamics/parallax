@@ -2,14 +2,13 @@ import cv2 as cv
 import numpy as np
 from scipy import linalg
 
-WIDTH_SENSOR = 4072
-HEIGHT_SENSOR = 3046
+WIDTH_FRAME = WF = 4000
+HEIGHT_FRAME = HF = 3000
 
-WIDTH_CV = WCV = 2000
-HEIGHT_CV = HCV = 1500
+WIDTH_SCREEN = 500
+HEIGHT_SCREEN = 375
 
-WIDTH_DISPLAY = WD = 500
-HEIGHT_DISPLAY = HD = 375
+CONVERSION_PX = WIDTH_FRAME / WIDTH_SCREEN
 
 NCORNERS_W = NCW = 9
 NCORNERS_H = NCH = 8
@@ -46,11 +45,12 @@ def getIntrinsicsFromCheckerboard(imagePoints):
 
     objectPoints_cb = np.zeros((NCW*NCH, 3), np.float32)
     objectPoints_cb[:,:2] = np.mgrid[:NCW,:NCH].T.reshape(-1,2)
+    objectPoints_cb = objectPoints_cb * 5   # 5mm per checker
 
     objectPoints_cb = [objectPoints_cb]
     imagePoints = [imagePoints]
 
-    err, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objectPoints_cb, imagePoints, (WD,HD), None, None)
+    err, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objectPoints_cb, imagePoints, (WF,HF), None, None)
 
     return mtx, dist
 
@@ -62,7 +62,7 @@ def getProjectionMatrix(objectPoints, imagePoints, mtx_guess=None, dist_guess=No
     if dist_guess is None:
         dist_guess = DIST_GUESS_DEFAULT
 
-    err, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objectPoints, imagePoints, (WD,HD), mtx_guess, dist_guess,
+    err, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objectPoints, imagePoints, (WF,HF), mtx_guess, dist_guess,
                                         flags=cv.CALIB_USE_INTRINSIC_GUESS)
 
     # for now just take the first instance

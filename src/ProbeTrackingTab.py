@@ -118,8 +118,8 @@ class ProbeTrackingTab(QWidget):
 
     def reconstruct(self):
 
-        lcorr = (self.lscreen.xclicked, self.lscreen.yclicked)
-        rcorr = (self.rscreen.xclicked, self.rscreen.yclicked)
+        lcorr = (self.lscreen.xclicked * 8, self.lscreen.yclicked * 8)
+        rcorr = (self.rscreen.xclicked * 8, self.rscreen.yclicked * 8)
 
         x,y,z = DLT(self.lproj, self.rproj, lcorr, rcorr)
         self.msgLog.post('Reconstructed position: (%f, %f, %f) mm' % (x,y,z))
@@ -135,22 +135,18 @@ class ProbeTrackingTab(QWidget):
 
     def doCheckerboards(self):
 
-        self.ldata = cv.pyrDown(self.lcamera.getLastImageData()) # half-res
-        self.ldata = cv.pyrDown(self.ldata) # quarter-res
-        self.ldata = cv.pyrDown(self.ldata) # eighth-res
+        self.ldata = self.lcamera.getLastImageData()
         self.lret, self.lcorners = cv.findChessboardCorners(self.ldata, (NCW,NCH), None)
         if self.lret:
-            #self.lscreen.setData(cv.drawChessboardCorners(self.ldata, (NCW,NCH), self.lcorners, self.lret))
+            self.lscreen.setData(cv.drawChessboardCorners(self.ldata, (NCW,NCH), self.lcorners, self.lret))
             self.msgLog.post('left checkerboard found')
         else:
             self.msgLog.post('Checkerboard corners not found in left frame')
 
-        self.rdata = cv.pyrDown(self.rcamera.getLastImageData()) # half-res
-        self.rdata = cv.pyrDown(self.rdata) # quarter-res
-        self.rdata = cv.pyrDown(self.rdata) # eighth-res
+        self.rdata = self.rcamera.getLastImageData()
         self.rret, self.rcorners = cv.findChessboardCorners(self.rdata, (NCW,NCH), None)
         if self.rret:
-            #self.rscreen.setData(cv.drawChessboardCorners(self.rdata, (NCW,NCH), self.rcorners, self.rret))
+            self.rscreen.setData(cv.drawChessboardCorners(self.rdata, (NCW,NCH), self.rcorners, self.rret))
             self.msgLog.post('right checkerboard found')
         else:
             self.msgLog.post('Checkerboard corners not found in right frame')
@@ -159,13 +155,13 @@ class ProbeTrackingTab(QWidget):
             self.lmtx, self.ldist = getIntrinsicsFromCheckerboard(self.lcorners)
             self.rmtx, self.rdist = getIntrinsicsFromCheckerboard(self.rcorners)
         else:
-            self.msgLog.post('Error: one or both checkerboards could not be found')
+            self.msgLog.post('Error: intrinsics could not be calculated for both cameras')
 
     def registerCorrespondencePoints(self):
 
         # weird "tuple of length 1" thing to facilitate direct conversion to the proper numpy shape
-        self.lcorrs.append(((self.lscreen.xclicked, self.lscreen.yclicked),))
-        self.rcorrs.append(((self.rscreen.xclicked, self.rscreen.yclicked),))
+        self.lcorrs.append(((self.lscreen.xclicked*CONVERSION_PX, self.lscreen.yclicked*CONVERSION_PX),))
+        self.rcorrs.append(((self.rscreen.xclicked*CONVERSION_PX, self.rscreen.yclicked*CONVERSION_PX),))
         self.calWorker.carryOn()
 
     def calibrate(self):
@@ -195,17 +191,19 @@ class ProbeTrackingTab(QWidget):
         self.msgLog.post('Calibration finished.')
 
         objectPoints = self.calWorker.getObjectPoints()
-        objectPoints_cv = [np.array(objectPoints, dtype=np.float32)]
+        objectPoints = [np.array(objectPoints, dtype=np.float32)]
 
-        limagepoints_cv = [np.array(self.lcorrs, dtype=np.float32)]
-        rimagepoints_cv = [np.array(self.rcorrs, dtype=np.float32)]
+        limagepoints = [np.array(self.lcorrs, dtype=np.float32)]
+        rimagepoints = [np.array(self.rcorrs, dtype=np.float32)]
 
-        if (len(objectPoints) != len(self.lcorrs)) or (len(self.rcorrs) != len(self.lcorrs)):
+        if (len(objectPoints[0]) != len(self.lcorrs)) or (len(self.rcorrs) != len(self.lcorrs)):
             self.msgLog.post('Error: number of object points does not match correspondence points')
+            self.msgLog.post('Error: %d vs %d vs %d' %
+                                (len(self.lcorrs), len(self.rcorrs), len(objectPoints[0])) )
             return
 
-        self.lproj = getProjectionMatrix(objectPoints_cv, limagepoints_cv, self.lmtx, self.ldist)
-        self.rproj = getProjectionMatrix(objectPoints_cv, rimagepoints_cv, self.rmtx, self.rdist)
+        self.lproj = getProjectionMatrix(objectPoints, limagepoints, self.lmtx, self.ldist)
+        self.rproj = getProjectionMatrix(objectPoints, rimagepoints, self.rmtx, self.rdist)
 
     def capture(self):
 

@@ -6,15 +6,10 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 import numpy as np
 
-#from glue import *
+from Helper import *
 
-xScreen = 500
-yScreen = 375
-
-xCamera = 4000
-yCamera = 3000
-
-CONVERSION = xCamera / xScreen
+WIDTH_FRAME = 4000
+HEIGHT_FRAME = 3000
 
 class ScreenWidget(QLabel):
 
@@ -23,17 +18,17 @@ class ScreenWidget(QLabel):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
 
-        self.setMinimumSize(xScreen, yScreen)
-        self.setMaximumSize(xScreen, yScreen)
+        self.setMinimumSize(WIDTH_SCREEN, HEIGHT_SCREEN)
+        self.setMaximumSize(WIDTH_SCREEN, HEIGHT_SCREEN)
 
-        self.qimage = QImage(xCamera, yCamera, QImage.Format_RGB32)
+        self.qimage = QImage(WIDTH_FRAME, HEIGHT_FRAME, QImage.Format_RGB32)
         self.show()
 
     def setData(self, data):
         # takes a 3000,4000 grayscale image straight from the camera
 
         self.data = data
-        rgbData = np.zeros((yCamera,xCamera,4), dtype=np.uint8)
+        rgbData = np.zeros((HEIGHT_FRAME,WIDTH_FRAME,4), dtype=np.uint8)
         for i in range(3):
             rgbData[:,:,i] = self.data
         self.qimage = QImage(rgbData, rgbData.shape[1], rgbData.shape[0], QImage.Format_RGB32)
@@ -41,7 +36,7 @@ class ScreenWidget(QLabel):
 
     def show(self):
 
-        pixmap = QPixmap(self.qimage.scaled(xScreen, yScreen, Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
+        pixmap = QPixmap(self.qimage.scaled(WIDTH_SCREEN, HEIGHT_SCREEN, Qt.IgnoreAspectRatio, Qt.SmoothTransformation))
         self.setPixmap(pixmap)
         self.update()
 
@@ -57,8 +52,7 @@ class ScreenWidget(QLabel):
         if e.button() == Qt.LeftButton:
             self.xclicked = e.x()
             self.yclicked = e.y()
-            self.updatePixel(int(self.xclicked*CONVERSION), int(self.yclicked*CONVERSION))
-            #self.clicked.emit(self.xclicked, self.yclicked) # emits raw screen pixels
+            self.updatePixel(int(self.xclicked*CONVERSION_PX), int(self.yclicked*CONVERSION_PX))
     
 
 if __name__ == '__main__':
