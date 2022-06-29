@@ -226,12 +226,12 @@ class ProbeTrackingTab(QWidget):
     def save(self):
 
         image_converted = self.lcamera.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
-        filename = 'lcamera_%s.jpg' % self.lastStrTime
+        filename = 'lcamera_%s.png' % self.lastStrTime
         image_converted.Save(filename)
         self.msgLog.post('Saved %s' % filename)
 
         image_converted = self.rcamera.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
-        filename = 'rcamera_%s.jpg' % self.lastStrTime
+        filename = 'rcamera_%s.png' % self.lastStrTime
         image_converted.Save(filename)
         self.msgLog.post('Saved %s' % filename)
 
