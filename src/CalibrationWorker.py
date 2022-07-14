@@ -7,92 +7,40 @@ import time
 
 class CalibrationWorker(QObject):
     finished = pyqtSignal()
-    imagePointsRequested = pyqtSignal(int, int)
+    calibrationPointReached = pyqtSignal(int, float, float, float)
 
-    def __init__(self, stage, parent=None):
+    def __init__(self, stage, stepsPerDim=3, extent_mm=2, parent=None):
+        # stepsPerDim is steps per dimension, for 3 dimensions
+        # (so default value of 3 will yield 3^3 = 27 calibration points)
+        # extent_mm is the extent in mm for each dimension, centered on zero
         QObject.__init__(self)
         self.stage = stage
+        self.stepsPerDim = stepsPerDim
+        self.extent_mm = extent_mm
 
         self.readyToGo = False
-
         self.objectPoints = []  # units are mm
+        self.numCal = self.stepsPerDim**3
 
     def carryOn(self):
         self.readyToGo = True
 
     def run(self):
 
-        # +x
-        self.stage.moveToTarget_mm3d(5,0,0)
-        time.sleep(2)
-        self.readyToGo = False
-        self.imagePointsRequested.emit(1, 8)
-        while not self.readyToGo:
-            time.sleep(0.1)
-        self.objectPoints.append(np.array([5,0,0], dtype=float))
-
-        # -y
-        self.stage.moveToTarget_mm3d(5,-5,0)
-        time.sleep(2)
-        self.readyToGo = False
-        self.imagePointsRequested.emit(2, 8)
-        while not self.readyToGo:
-            time.sleep(0.1)
-        self.objectPoints.append(np.array([5,-5,0], dtype=float))
-
-        # +z
-        self.stage.moveToTarget_mm3d(5,-5,5)
-        time.sleep(2)
-        self.readyToGo = False
-        self.imagePointsRequested.emit(3, 8)
-        while not self.readyToGo:
-            time.sleep(0.1)
-        self.objectPoints.append(np.array([5,-5,5], dtype=float))
-
-        # +y
-        self.stage.moveToTarget_mm3d(5,0,5)
-        time.sleep(2)
-        self.readyToGo = False
-        self.imagePointsRequested.emit(4, 8)
-        while not self.readyToGo:
-            time.sleep(0.1)
-        self.objectPoints.append(np.array([5,0,5], dtype=float))
-
-        # -x
-        self.stage.moveToTarget_mm3d(0,0,5)
-        time.sleep(2)
-        self.readyToGo = False
-        self.imagePointsRequested.emit(5, 8)
-        while not self.readyToGo:
-            time.sleep(0.1)
-        self.objectPoints.append(np.array([0,0,5], dtype=float))
-
-        # -z
-        self.stage.moveToTarget_mm3d(0,0,0)
-        time.sleep(2)
-        self.readyToGo = False
-        self.imagePointsRequested.emit(6, 8)
-        while not self.readyToGo:
-            time.sleep(0.1)
-        self.objectPoints.append(np.array([0,0,0], dtype=float))
-
-        # -y
-        self.stage.moveToTarget_mm3d(0,-5,0)
-        time.sleep(2)
-        self.readyToGo = False
-        self.imagePointsRequested.emit(7, 8)
-        while not self.readyToGo:
-            time.sleep(0.1)
-        self.objectPoints.append(np.array([0,-5,0], dtype=float))
-
-        # +z
-        self.stage.moveToTarget_mm3d(0,-5,5)
-        time.sleep(2)
-        self.readyToGo = False
-        self.imagePointsRequested.emit(8, 8)
-        while not self.readyToGo:
-            time.sleep(0.1)
-        self.objectPoints.append(np.array([0,-5,5], dtype=float))
+        n = 0
+        mx =  self.extent_mm / 2.
+        mn =  (-1) * mx
+        for x in np.linspace(mn, mx, self.stepsPerDim):
+            for y in np.linspace(mn, mx, self.stepsPerDim):
+                for z in np.linspace(mn, mx, self.stepsPerDim):
+                    self.stage.moveToTarget_mm3d(x,y,z)
+                    time.sleep(3)
+                    self.calibrationPointReached.emit(n,x,y,z)
+                    self.readyToGo = False
+                    while not self.readyToGo:
+                        time.sleep(0.1)
+                    self.objectPoints.append(np.array([x,y,z], dtype=float))
+                    n += 1
 
         self.finished.emit()
 

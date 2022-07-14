@@ -89,11 +89,11 @@ class ProbeTrackingTab(QWidget):
         self.saveButton = QPushButton('Save Last Frame')
         self.saveButton.clicked.connect(self.save)
 
-        self.calibrateButton = QPushButton('Calibrate')
+        self.calibrateButton = QPushButton('Start Calibration Procedure')
         self.calibrateButton.clicked.connect(self.calibrate)
 
-        self.registerButton = QPushButton('Register')
-        self.registerButton.clicked.connect(self.registerCorrespondencePoints)
+        self.calContinueButton = QPushButton('Continue with Calibration')
+        self.calContinueButton.clicked.connect(self.carryOn)
 
         self.checkerboardButton = QPushButton('Do Checkerboards')
         self.checkerboardButton.clicked.connect(self.doCheckerboards)
@@ -101,17 +101,21 @@ class ProbeTrackingTab(QWidget):
         self.randomButton = QPushButton('Move to a Random Position')
         self.randomButton.clicked.connect(self.moveToRandomPosition)
 
+        self.registerButton = QPushButton('Register Correspondence Point')
+        self.registerButton.clicked.connect(self.registerCorrespondencePoints)
+
         self.reconstructButton = QPushButton('Reconstruct Correspondence Point')
         self.reconstructButton.clicked.connect(self.reconstruct)
 
         mainLayout.addWidget(self.quickInitButton)
         mainLayout.addWidget(self.captureButton)
         mainLayout.addWidget(self.saveButton)
-        mainLayout.addWidget(self.screens)
         mainLayout.addWidget(self.checkerboardButton)
+        mainLayout.addWidget(self.screens)
         mainLayout.addWidget(self.calibrateButton)
-        mainLayout.addWidget(self.registerButton)
+        mainLayout.addWidget(self.calContinueButton)
         mainLayout.addWidget(self.randomButton)
+        mainLayout.addWidget(self.registerButton)
         mainLayout.addWidget(self.reconstructButton)
 
         self.setLayout(mainLayout)
@@ -126,12 +130,15 @@ class ProbeTrackingTab(QWidget):
 
     def moveToRandomPosition(self):
     
-        x = np.random.uniform(-7.5, 7.5)
-        y = np.random.uniform(-7.5, 7.5)
-        z = np.random.uniform(-7.5, 7.5)
+        x = np.random.uniform(-2., 2.)
+        y = np.random.uniform(-2., 2.)
+        z = np.random.uniform(-2., 2.)
         self.stage.moveToTarget_mm3d(x, y, z)
-        time.sleep(2)
+        time.sleep(3)
         self.msgLog.post('Moved to a random position: (%f, %f, %f) mm' % (x, y, z))
+        self.capture()
+        tag = "x{0:f}_y{1:f}_z{2:f}".format(x,y,z)
+        self.save(tag=tag)
 
     def doCheckerboards(self):
 
@@ -159,9 +166,12 @@ class ProbeTrackingTab(QWidget):
 
     def registerCorrespondencePoints(self):
 
-        # weird "tuple of length 1" thing to facilitate direct conversion to the proper numpy shape
+        # "tuple of length 1" to facilitate direct conversion to the proper numpy shape
         self.lcorrs.append(((self.lscreen.xclicked*CONVERSION_PX, self.lscreen.yclicked*CONVERSION_PX),))
         self.rcorrs.append(((self.rscreen.xclicked*CONVERSION_PX, self.rscreen.yclicked*CONVERSION_PX),))
+        self.calWorker.carryOn()
+
+    def carryOn(self):
         self.calWorker.carryOn()
 
     def calibrate(self):
@@ -173,18 +183,20 @@ class ProbeTrackingTab(QWidget):
         self.calThread.started.connect(self.calWorker.run)
         self.calWorker.finished.connect(self.calThread.quit)
         self.calWorker.finished.connect(self.calWorker.deleteLater)
-        self.calWorker.imagePointsRequested.connect(self.handleImagePoints)
+        self.calWorker.calibrationPointReached.connect(self.handleCalPointReached)
         self.calThread.finished.connect(self.calThread.deleteLater)
         self.calThread.finished.connect(self.handleCalFinished)
         self.imagePointsSelected.connect(self.calWorker.carryOn)
         self.msgLog.post('Starting Calibration...')
         self.calThread.start()
 
-    def handleImagePoints(self, step, nsteps):
+    def handleCalPointReached(self, n, x,y,z):
 
+        self.msgLog.post('Calibration point %d reached (%f, %f, %f)' % (n,x,y,z))
         self.capture()
-        self.msgLog.post('Calibration point reached (%d of %d)' % (step, nsteps))
-        self.msgLog.post('Click on probe tip in both images, then press "Register"')
+        tag = "x{0:.2f}_y{1:.2f}_z{2:.2f}".format(x,y,z)
+        self.save(tag=tag)
+        self.msgLog.post('Click "Continue with Calibration"')
 
     def handleCalFinished(self):
 
@@ -223,15 +235,18 @@ class ProbeTrackingTab(QWidget):
         self.lscreen.repaint()
         self.rscreen.repaint()
 
-    def save(self):
+    def save(self, tag=None):
+
+        if tag is None:
+            tag = self.lastStrTime
 
         image_converted = self.lcamera.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
-        filename = 'lcamera_%s.png' % self.lastStrTime
+        filename = 'lcamera_%s.png' % tag
         image_converted.Save(filename)
         self.msgLog.post('Saved %s' % filename)
 
         image_converted = self.rcamera.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
-        filename = 'rcamera_%s.png' % self.lastStrTime
+        filename = 'rcamera_%s.png' % tag
         image_converted.Save(filename)
         self.msgLog.post('Saved %s' % filename)
 
