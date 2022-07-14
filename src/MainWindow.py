@@ -25,7 +25,6 @@ class MainWindow(QWidget):
         self.tabs.addTab(self.probeTrackingTab, 'Probe Tracking')
         self.tabs.addTab(self.newscaleTab, 'New Scale')
         self.tabs.addTab(self.flirTab, 'FLIR')
-        #self.tabs.addTab(self.zaberTab, 'Zaber')
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.tabs)

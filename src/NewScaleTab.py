@@ -4,17 +4,12 @@ from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, Q
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
-from PyQt5.QtGui import QFont
-
 import socket
 socket.setdefaulttimeout(0.020)  # 20 ms timeout
 
 from Stage import Stage
 import State
-
-PORT_NEWSCALE = 23
-FONT_BOLD = QFont()
-FONT_BOLD.setBold(True)
+from Helper import *
 
 
 class NewScaleTab(QWidget):

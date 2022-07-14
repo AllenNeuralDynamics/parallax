@@ -2,11 +2,17 @@ import cv2 as cv
 import numpy as np
 from scipy import linalg
 
+PORT_NEWSCALE = 23
+
+from PyQt5.QtGui import QFont
+FONT_BOLD = QFont()
+FONT_BOLD.setBold(True)
+
 WIDTH_FRAME = WF = 4000
 HEIGHT_FRAME = HF = 3000
 
-WIDTH_SCREEN = 500
-HEIGHT_SCREEN = 375
+WIDTH_SCREEN = WS =  500
+HEIGHT_SCREEN = HS = 375
 
 CONVERSION_PX = WIDTH_FRAME / WIDTH_SCREEN
 
@@ -54,26 +60,3 @@ def getIntrinsicsFromCheckerboard(imagePoints):
 
     return mtx, dist
 
-def getProjectionMatrix(objectPoints, imagePoints, mtx_guess=None, dist_guess=None):
-
-    if mtx_guess is None:
-        mtx_guess = MTX_GUESS_DEFAULT
-
-    if dist_guess is None:
-        dist_guess = DIST_GUESS_DEFAULT
-
-    err, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objectPoints, imagePoints, (WF,HF), mtx_guess, dist_guess,
-                                        flags=cv.CALIB_USE_INTRINSIC_GUESS)
-
-    # for now just take the first instance
-    rvec = rvecs[0]
-    tvec = tvecs[0]
-
-    # compute the projection matrix
-    R, jacobian = cv.Rodrigues(rvec)
-    t = tvec
-    Rt = np.concatenate([R,t], axis=-1) # [R|t]
-    P = np.matmul(mtx,Rt) # A[R|t]
-
-    return P
-    

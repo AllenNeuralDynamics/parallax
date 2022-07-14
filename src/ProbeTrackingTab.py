@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QFrame, QFileDialog
 from PyQt5.QtGui import QPainter, QPixmap, QImage
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
@@ -10,15 +10,17 @@ import cv2 as cv
 import socket
 socket.setdefaulttimeout(0.020)  # 20 ms timeout
 
+from Helper import *
 import State
 from Camera import Camera
 from Stage import Stage
 from ScreenWidget import ScreenWidget
-from CalibrationWorker import CalibrationWorker
-from Helper import *
+from IntrinsicsPanel import IntrinsicsPanel
+from ExtrinsicsPanel import ExtrinsicsPanel
+from ReconstructionPanel import ReconstructionPanel
+
 
 class ProbeTrackingTab(QWidget):
-    imagePointsSelected = pyqtSignal()
 
     def __init__(self, msgLog):
         QWidget.__init__(self)
@@ -32,31 +34,72 @@ class ProbeTrackingTab(QWidget):
         self.lcorrs = []
         self.rcorrs = []
 
+    def initGui(self):
+
+        mainLayout = QVBoxLayout()
+
+        self.screens = QWidget()
+        hlayout = QHBoxLayout()
+        self.lscreen = ScreenWidget()
+        self.rscreen = ScreenWidget()
+        hlayout.addWidget(self.lscreen)
+        hlayout.addWidget(self.rscreen)
+        self.screens.setLayout(hlayout)
+
+        self.controls = QWidget()
+        hlayout = QHBoxLayout()
+        self.intrinsicsPanel = IntrinsicsPanel(self.msgLog)
+        self.extrinsicsPanel = ExtrinsicsPanel(self.msgLog, self.intrinsicsPanel)
+        self.reconstructionPanel = ReconstructionPanel(self.msgLog, self.extrinsicsPanel)
+        hlayout.addWidget(self.intrinsicsPanel)
+        hlayout.addWidget(self.extrinsicsPanel)
+        hlayout.addWidget(self.reconstructionPanel)
+        self.controls.setLayout(hlayout)
+
+        self.initButton = QPushButton('Initialize Peripherals')
+        self.initButton.clicked.connect(self.initialize)
+
+        self.captureButton = QPushButton('Take Snapshot')
+        self.captureButton.clicked.connect(self.capture)
+
+        self.saveButton = QPushButton('Save Snapshot')
+        self.saveButton.clicked.connect(self.save)
+
+        self.extrinsicsPanel.snapshotRequested.connect(self.capture)
+        self.reconstructionPanel.snapshotRequested.connect(self.capture)
+
+        mainLayout.addWidget(self.initButton)
+        mainLayout.addWidget(self.captureButton)
+        mainLayout.addWidget(self.saveButton)
+        mainLayout.addWidget(self.screens)
+        mainLayout.addWidget(self.controls)
+
+        self.setLayout(mainLayout)
+
     def initialize(self):
-        # this function is idempotent
 
+        # for idempotency
         if not self.initialized:
-            self.lcamera = State.CAMERAS[0]
-            self.rcamera = State.CAMERAS[1]
-            self.stage = State.STAGES[0]
+            # stage
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(('10.128.49.22', PORT_NEWSCALE))
+            self.stage = Stage(sock)
+            self.stage.initialize()
+            self.stage.center()
+            self.extrinsicsPanel.setStage(self.stage)
+            self.reconstructionPanel.setStage(self.stage)
+            # cameras
+            self.instance = PySpin.System.GetInstance()
+            self.cameras_pyspin = self.instance.GetCameras()
+            self.lcamera = Camera(self.cameras_pyspin.GetByIndex(0))
+            self.rcamera = Camera(self.cameras_pyspin.GetByIndex(1))
+            self.extrinsicsPanel.setScreens(self.lscreen, self.rscreen)
+            self.reconstructionPanel.setScreens(self.lscreen, self.rscreen)
+            # ok
             self.initialized = True
+            self.msgLog.post('Cameras and Stage initialized')
 
-    def quickInit(self):
-
-        # stage
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(('10.128.49.22', 23))
-        self.stage = Stage(sock)
-        self.stage.initialize()
-        self.stage.center()
-        # cameras
-        self.instance = PySpin.System.GetInstance()
-        self.cameras_pyspin = self.instance.GetCameras()
-        self.lcamera = Camera(self.cameras_pyspin.GetByIndex(0))
-        self.rcamera = Camera(self.cameras_pyspin.GetByIndex(1))
-        self.initialized = True
-        self.msgLog.post('Cameras and Stage initialized')
-
+        self.capture()
 
     def clean(self):
 
@@ -68,58 +111,6 @@ class ProbeTrackingTab(QWidget):
             self.cameras_pyspin.Clear()
             self.instance.ReleaseInstance()
 
-    def initGui(self):
-
-        mainLayout = QVBoxLayout()
-
-        self.screens = QWidget()
-        hlayout = QHBoxLayout()
-        self.lscreen = ScreenWidget()
-        hlayout.addWidget(self.lscreen)
-        self.rscreen = ScreenWidget()
-        hlayout.addWidget(self.rscreen)
-        self.screens.setLayout(hlayout)
-
-        self.quickInitButton = QPushButton('Quick Init')
-        self.quickInitButton.clicked.connect(self.quickInit)
-
-        self.captureButton = QPushButton('Capture Frames')
-        self.captureButton.clicked.connect(self.capture)
-
-        self.saveButton = QPushButton('Save Last Frame')
-        self.saveButton.clicked.connect(self.save)
-
-        self.calibrateButton = QPushButton('Start Calibration Procedure')
-        self.calibrateButton.clicked.connect(self.calibrate)
-
-        self.calContinueButton = QPushButton('Continue with Calibration')
-        self.calContinueButton.clicked.connect(self.carryOn)
-
-        self.checkerboardButton = QPushButton('Do Checkerboards')
-        self.checkerboardButton.clicked.connect(self.doCheckerboards)
-
-        self.randomButton = QPushButton('Move to a Random Position')
-        self.randomButton.clicked.connect(self.moveToRandomPosition)
-
-        self.registerButton = QPushButton('Register Correspondence Point')
-        self.registerButton.clicked.connect(self.registerCorrespondencePoints)
-
-        self.reconstructButton = QPushButton('Reconstruct Correspondence Point')
-        self.reconstructButton.clicked.connect(self.reconstruct)
-
-        mainLayout.addWidget(self.quickInitButton)
-        mainLayout.addWidget(self.captureButton)
-        mainLayout.addWidget(self.saveButton)
-        mainLayout.addWidget(self.checkerboardButton)
-        mainLayout.addWidget(self.screens)
-        mainLayout.addWidget(self.calibrateButton)
-        mainLayout.addWidget(self.calContinueButton)
-        mainLayout.addWidget(self.randomButton)
-        mainLayout.addWidget(self.registerButton)
-        mainLayout.addWidget(self.reconstructButton)
-
-        self.setLayout(mainLayout)
-
     def reconstruct(self):
 
         lcorr = (self.lscreen.xclicked * 8, self.lscreen.yclicked * 8)
@@ -127,18 +118,6 @@ class ProbeTrackingTab(QWidget):
 
         x,y,z = DLT(self.lproj, self.rproj, lcorr, rcorr)
         self.msgLog.post('Reconstructed position: (%f, %f, %f) mm' % (x,y,z))
-
-    def moveToRandomPosition(self):
-    
-        x = np.random.uniform(-2., 2.)
-        y = np.random.uniform(-2., 2.)
-        z = np.random.uniform(-2., 2.)
-        self.stage.moveToTarget_mm3d(x, y, z)
-        time.sleep(3)
-        self.msgLog.post('Moved to a random position: (%f, %f, %f) mm' % (x, y, z))
-        self.capture()
-        tag = "x{0:f}_y{1:f}_z{2:f}".format(x,y,z)
-        self.save(tag=tag)
 
     def doCheckerboards(self):
 
@@ -174,6 +153,8 @@ class ProbeTrackingTab(QWidget):
     def carryOn(self):
         self.calWorker.carryOn()
 
+    """
+
     def calibrate(self):
 
         self.initialize()
@@ -198,6 +179,7 @@ class ProbeTrackingTab(QWidget):
         self.save(tag=tag)
         self.msgLog.post('Click "Continue with Calibration"')
 
+
     def handleCalFinished(self):
 
         self.msgLog.post('Calibration finished.')
@@ -217,9 +199,9 @@ class ProbeTrackingTab(QWidget):
         self.lproj = getProjectionMatrix(objectPoints, limagepoints, self.lmtx, self.ldist)
         self.rproj = getProjectionMatrix(objectPoints, rimagepoints, self.rmtx, self.rdist)
 
-    def capture(self):
+    """
 
-        self.initialize()
+    def capture(self):
 
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
@@ -237,7 +219,7 @@ class ProbeTrackingTab(QWidget):
 
     def save(self, tag=None):
 
-        if tag is None:
+        if not tag:
             tag = self.lastStrTime
 
         image_converted = self.lcamera.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)

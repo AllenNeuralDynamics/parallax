@@ -7,7 +7,7 @@ import time
 
 class CalibrationWorker(QObject):
     finished = pyqtSignal()
-    calibrationPointReached = pyqtSignal(int, float, float, float)
+    calibrationPointReached = pyqtSignal(int, int, float, float, float)
 
     def __init__(self, stage, stepsPerDim=3, extent_mm=2, parent=None):
         # stepsPerDim is steps per dimension, for 3 dimensions
@@ -35,15 +35,16 @@ class CalibrationWorker(QObject):
                 for z in np.linspace(mn, mx, self.stepsPerDim):
                     self.stage.moveToTarget_mm3d(x,y,z)
                     time.sleep(3)
-                    self.calibrationPointReached.emit(n,x,y,z)
+                    self.calibrationPointReached.emit(n,self.numCal, x,y,z)
                     self.readyToGo = False
                     while not self.readyToGo:
                         time.sleep(0.1)
-                    self.objectPoints.append(np.array([x,y,z], dtype=float))
+                    #self.objectPoints.append(np.array([x,y,z], dtype=float32))
+                    self.objectPoints.append([x,y,z])
                     n += 1
 
         self.finished.emit()
 
     def getObjectPoints(self):
-        return self.objectPoints
+        return np.array([self.objectPoints], dtype=np.float32)
 
