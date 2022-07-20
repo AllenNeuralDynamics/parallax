@@ -5,7 +5,6 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 import numpy as np
 import time
  
-from PixelPicker import PixelPicker
 from Helper import *
 from lib import *
 
