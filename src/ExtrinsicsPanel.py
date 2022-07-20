@@ -99,23 +99,9 @@ class ExtrinsicsPanel(QFrame):
         imgPoints2_cal = np.array([self.imgPoints2_cal], dtype=np.float32)
         objPoints_cal = self.calWorker.getObjectPoints()
 
-        print('---')
-        print('pre-undistorting:')
-        print('imgPoints1: ', imgPoints1_cal)
-        print('imgPoints2: ', imgPoints2_cal)
-        print('objPoints: ', objPoints_cal)
-        print('---')
-
         # undistort calibration points
         imgPoints1_cal = undistortImagePoints(imgPoints1_cal, self.mtx1_in, self.dist1_in)
         imgPoints2_cal = undistortImagePoints(imgPoints2_cal, self.mtx2_in, self.dist2_in)
-
-        print('---')
-        print('post-undistorting:')
-        print('imgPoints1: ', imgPoints1_cal)
-        print('imgPoints2: ', imgPoints2_cal)
-        print('objPoints: ', objPoints_cal)
-        print('---')
 
         # calibrate each camera against these points
         myFlags = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT
