@@ -1,13 +1,12 @@
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QPushButton, QFrame, QFileDialog
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
-
 import numpy as np
 import time
  
 from Helper import *
 from lib import *
-
+from TargetDialog import TargetDialog
 
 class ReconstructionPanel(QFrame):
     snapshotRequested = pyqtSignal()
@@ -24,7 +23,6 @@ class ReconstructionPanel(QFrame):
         self.mainLabel.setFont(FONT_BOLD)
         self.moveRandomButton = QPushButton('Move to a random position')
         self.moveGivenButton = QPushButton('Move to a given position')
-        self.moveGivenButton.setEnabled(False)
         self.triangulateButton = QPushButton('Triangulate Points')
         self.triangulateButton.setEnabled(False)
         self.statusLabel = QLabel('Correspondence Points: None')
@@ -61,12 +59,18 @@ class ReconstructionPanel(QFrame):
         z = np.random.uniform(-2., 2.)
         self.stage.moveToTarget_mm3d(x, y, z)
         time.sleep(3)
-        self.msgLog.post('Moved to a random position: (%f, %f, %f) mm' % (x, y, z))
+        self.msgLog.post('Moved to position: (%f, %f, %f) mm' % (x, y, z))
         self.snapshotRequested.emit()
 
     def moveGiven(self):
     
-        pass # TODO pop up dialog
+        dlg = TargetDialog()
+        if dlg.exec_():
+            x,y,z = dlg.getParams()
+            self.stage.moveToTarget_mm3d(x, y, z)
+            time.sleep(3)
+            self.msgLog.post('Moved to position: (%f, %f, %f) mm' % (x, y, z))
+            self.snapshotRequested.emit()
 
     def triangulate(self):
         lcorr = self.lscreen.getSelected()
