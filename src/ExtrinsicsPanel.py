@@ -25,7 +25,6 @@ class ExtrinsicsPanel(QFrame):
         self.registerButton = QPushButton('Register Correspondence Points')
         self.loadButton = QPushButton('Load')
         self.saveButton = QPushButton('Save')
-        self.saveButton.setEnabled(False)
         self.statusLabel = QLabel('Cached: None')
         self.statusLabel.setAlignment(Qt.AlignCenter)
         self.statusLabel.setFont(FONT_BOLD)
@@ -39,7 +38,8 @@ class ExtrinsicsPanel(QFrame):
 
         # connections
         self.startButton.clicked.connect(self.startCalibration)
-        self.loadButton.clicked.connect(self.browse)
+        self.loadButton.clicked.connect(self.load)
+        self.saveButton.clicked.connect(self.save)
         self.registerButton.clicked.connect(self.register)
 
         # frame border
@@ -47,9 +47,11 @@ class ExtrinsicsPanel(QFrame):
         self.setLineWidth(2);
 
     def setStage(self, stage):
+
         self.stage = stage
 
     def setScreens(self, lscreen, rscreen):
+
         self.lscreen = lscreen
         self.rscreen = rscreen
 
@@ -76,6 +78,7 @@ class ExtrinsicsPanel(QFrame):
         self.calThread.start()
 
     def register(self):
+
         lcorr = self.lscreen.getSelected()
         rcorr = self.rscreen.getSelected()
         self.imgPoints1_cal.append(lcorr)
@@ -118,7 +121,7 @@ class ExtrinsicsPanel(QFrame):
 
         self.updateStatus()
 
-    def browse(self):
+    def load(self):
 
         filenames = QFileDialog.getOpenFileNames(self, 'Select intrinsics files', '.',
                                                     'Numpy files (*.npy)')
@@ -151,9 +154,30 @@ class ExtrinsicsPanel(QFrame):
         if m1 and m2 and d1 and d2 and p1 and p2:
             self.updateStatus()
 
+    def save(self):
+
+        path = QFileDialog.getExistingDirectory(self, 'Save Extrinsics: '
+                                                    'Choose Destination Folder', '.')
+        if path:
+            self.saveExtrinsics(path)
+
+    def saveExtrinsics(self, path):
+
+        try:
+            np.save(os.path.join(path, 'ex_mtx1.npy'), self.mtx1_ex)
+            np.save(os.path.join(path, 'ex_mtx2.npy'), self.mtx2_ex)
+            np.save(os.path.join(path, 'ex_dist1.npy'), self.dist1_ex)
+            np.save(os.path.join(path, 'ex_dist2.npy'), self.dist2_ex)
+            np.save(os.path.join(path, 'ex_proj1.npy'), self.proj1)
+            np.save(os.path.join(path, 'ex_proj2.npy'), self.proj2)
+        except AttributeError:
+            self.msgLog.post('Error: extrinsics missing')
+
     def updateStatus(self):
-            self.statusLabel.setText('Loaded: mtx1, mtx2, dist1, dist2, proj1, proj2')
+
+        self.statusLabel.setText('Loaded: mtx1, mtx2, dist1, dist2, proj1, proj2')
 
     def getExtrinsics(self):
+
         return self.mtx1_ex, self.mtx2_ex, self.dist1_ex, self.dist2_ex, self.proj1, self.proj2
 
