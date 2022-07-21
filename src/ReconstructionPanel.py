@@ -24,7 +24,6 @@ class ReconstructionPanel(QFrame):
         self.moveRandomButton = QPushButton('Move to a random position')
         self.moveGivenButton = QPushButton('Move to a given position')
         self.triangulateButton = QPushButton('Triangulate Points')
-        self.triangulateButton.setEnabled(False)
         self.statusLabel = QLabel('Correspondence Points: None')
         self.statusLabel.setAlignment(Qt.AlignCenter)
         self.statusLabel.setFont(FONT_BOLD)
@@ -93,3 +92,4 @@ class ReconstructionPanel(QFrame):
         objPoint_recon = triangulateFromImagePoints(imgPoint1, imgPoint2, proj1, proj2)
         x,y,z = objPoint_recon
         self.msgLog.post('Reconstructed object point: (%f, %f, %f)' % (x,y,z))
+

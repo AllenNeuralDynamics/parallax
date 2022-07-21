@@ -51,6 +51,7 @@ class ProbeTrackingTab(QWidget):
         self.intrinsicsPanel = IntrinsicsPanel(self.msgLog)
         self.extrinsicsPanel = ExtrinsicsPanel(self.msgLog, self.intrinsicsPanel)
         self.reconstructionPanel = ReconstructionPanel(self.msgLog, self.extrinsicsPanel)
+        self.reconstructionPanel.setScreens(self.lscreen, self.rscreen)
         hlayout.addWidget(self.intrinsicsPanel)
         hlayout.addWidget(self.extrinsicsPanel)
         hlayout.addWidget(self.reconstructionPanel)
@@ -94,7 +95,6 @@ class ProbeTrackingTab(QWidget):
             self.lcamera = Camera(self.cameras_pyspin.GetByIndex(0))
             self.rcamera = Camera(self.cameras_pyspin.GetByIndex(1))
             self.extrinsicsPanel.setScreens(self.lscreen, self.rscreen)
-            self.reconstructionPanel.setScreens(self.lscreen, self.rscreen)
             # ok
             self.initialized = True
             self.msgLog.post('Cameras and Stage initialized')
@@ -152,54 +152,6 @@ class ProbeTrackingTab(QWidget):
 
     def carryOn(self):
         self.calWorker.carryOn()
-
-    """
-
-    def calibrate(self):
-
-        self.initialize()
-        self.calThread = QThread()
-        self.calWorker = CalibrationWorker(self.stage)
-        self.calWorker.moveToThread(self.calThread)
-        self.calThread.started.connect(self.calWorker.run)
-        self.calWorker.finished.connect(self.calThread.quit)
-        self.calWorker.finished.connect(self.calWorker.deleteLater)
-        self.calWorker.calibrationPointReached.connect(self.handleCalPointReached)
-        self.calThread.finished.connect(self.calThread.deleteLater)
-        self.calThread.finished.connect(self.handleCalFinished)
-        self.imagePointsSelected.connect(self.calWorker.carryOn)
-        self.msgLog.post('Starting Calibration...')
-        self.calThread.start()
-
-    def handleCalPointReached(self, n, x,y,z):
-
-        self.msgLog.post('Calibration point %d reached (%f, %f, %f)' % (n,x,y,z))
-        self.capture()
-        tag = "x{0:.2f}_y{1:.2f}_z{2:.2f}".format(x,y,z)
-        self.save(tag=tag)
-        self.msgLog.post('Click "Continue with Calibration"')
-
-
-    def handleCalFinished(self):
-
-        self.msgLog.post('Calibration finished.')
-
-        objectPoints = self.calWorker.getObjectPoints()
-        objectPoints = [np.array(objectPoints, dtype=np.float32)]
-
-        limagepoints = [np.array(self.lcorrs, dtype=np.float32)]
-        rimagepoints = [np.array(self.rcorrs, dtype=np.float32)]
-
-        if (len(objectPoints[0]) != len(self.lcorrs)) or (len(self.rcorrs) != len(self.lcorrs)):
-            self.msgLog.post('Error: number of object points does not match correspondence points')
-            self.msgLog.post('Error: %d vs %d vs %d' %
-                                (len(self.lcorrs), len(self.rcorrs), len(objectPoints[0])) )
-            return
-
-        self.lproj = getProjectionMatrix(objectPoints, limagepoints, self.lmtx, self.ldist)
-        self.rproj = getProjectionMatrix(objectPoints, rimagepoints, self.rmtx, self.rdist)
-
-    """
 
     def capture(self):
 
