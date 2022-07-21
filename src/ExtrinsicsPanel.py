@@ -133,22 +133,22 @@ class ExtrinsicsPanel(QFrame):
         m1,m2,d1,d2,p1,p2 = False, False, False, False, False, False
         for filename in filenames:
             basename = os.path.basename(filename)
-            if basename == 'cal_mtx1.npy':
+            if basename == 'ex_mtx1.npy':
                 self.mtx1_ex = np.load(filename)
                 m1 = True
-            elif basename == 'cal_mtx2.npy':
+            elif basename == 'ex_mtx2.npy':
                 self.mtx2_ex = np.load(filename)
                 m2 = True
-            elif basename == 'cal_dist1.npy':
+            elif basename == 'ex_dist1.npy':
                 self.dist1_ex = np.load(filename)
                 d1 = True
-            elif basename == 'cal_dist2.npy':
+            elif basename == 'ex_dist2.npy':
                 self.dist2_ex = np.load(filename)
                 d2 = True
-            elif basename == 'cal_proj1.npy':
+            elif basename == 'ex_proj1.npy':
                 self.proj1 = np.load(filename)
                 p1 = True
-            elif basename == 'cal_proj2.npy':
+            elif basename == 'ex_proj2.npy':
                 self.proj2 = np.load(filename)
                 p2 = True
         if m1 and m2 and d1 and d2 and p1 and p2:
