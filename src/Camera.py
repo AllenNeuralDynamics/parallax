@@ -53,7 +53,10 @@ class Camera():
     def capture(self):
 
         if self.lastImage:
-            self.lastImage.Release()
+            try:
+                self.lastImage.Release()
+            except _PySpin.SpinnakerException:
+                print("Spinnaker Exception: Could't release last image")
 
         image = self.camera.GetNextImage(1000)
         while image.IsIncomplete():
