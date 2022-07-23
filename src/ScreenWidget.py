@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QMenu
 from PyQt5.QtGui import QPainter, QPixmap, QImage, QColor, qRgb
 from PyQt5.QtCore import Qt, pyqtSignal, QRect
 
 import numpy as np
 
 from Helper import *
+import State
 
 
 class ScreenWidget(QLabel):
@@ -70,6 +71,9 @@ class ScreenWidget(QLabel):
                 self.qimage.setPixel(i, j, qRgb(255, 0, 0)) # red
         self.display()
 
+    def setCamera(self, index):
+        self.camera = State.CAMERAS[index]
+
     def mousePressEvent(self, e): 
 
         if e.button() == Qt.LeftButton:
@@ -82,15 +86,28 @@ class ScreenWidget(QLabel):
                 self.xsel = int(e.x() * CONVERSION_PX)
                 self.ysel = int(e.y() * CONVERSION_PX)
             self.updatePixel(self.xsel, self.ysel)
+
         elif e.button() == Qt.RightButton:
-            if self.zoom:
-                self.zoom = False
-                self.display()
-            else:
-                self.xc = e.x() * CONVERSION_PX
-                self.yc = e.y() * CONVERSION_PX
-                self.zoom = True
-                self.display()
+            contextMenu = QMenu(self)
+            actions = []
+            for i in State.CAMERAS.keys():
+                actions.append(contextMenu.addAction('Camera %d' % i))
+            chosenAction = contextMenu.exec_(self.mapToGlobal(e.pos()))
+            for i,action in enumerate(actions):
+                if action is chosenAction:
+                    self.setCamera(i)
+            e.accept()
+
+    def wheelEvent(self, e):
+        if e.angleDelta().y() > 0:
+            self.xc = e.x() * CONVERSION_PX
+            self.yc = e.y() * CONVERSION_PX
+            self.zoom = True
+            self.display()
+        else:
+            self.zoom = False
+            self.display()
+        e.accept()
 
     def getSelected(self):
         if (self.xsel and self.ysel):

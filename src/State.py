@@ -1,2 +1,2 @@
-CAMERAS = []
-STAGES = []
+CAMERAS = {}
+STAGES = {}
