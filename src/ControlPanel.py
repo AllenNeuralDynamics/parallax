@@ -24,6 +24,7 @@ class Dropdown(QComboBox):
 
 class AxisControl(QLabel):
     jogRequested = pyqtSignal(bool)
+    centerRequested = pyqtSignal()
 
     def __init__(self, text):
         QLabel.__init__(self)
@@ -40,6 +41,9 @@ class AxisControl(QLabel):
         e.accept()
         self.jogRequested.emit(e.angleDelta().y() > 0)
 
+    def mousePressEvent(self, e):
+        if e.button() == Qt.MiddleButton:
+            self.centerRequested.emit()
 
 class ControlPanel(QFrame):
     msgPosted = pyqtSignal(str)
@@ -55,10 +59,13 @@ class ControlPanel(QFrame):
 
         self.xcontrol = AxisControl('X')
         self.xcontrol.jogRequested.connect(self.jogX)
+        self.xcontrol.centerRequested.connect(self.centerX)
         self.ycontrol = AxisControl('Y')
         self.ycontrol.jogRequested.connect(self.jogY)
+        self.ycontrol.centerRequested.connect(self.centerY)
         self.zcontrol = AxisControl('Z')
         self.zcontrol.jogRequested.connect(self.jogZ)
+        self.zcontrol.jogRequested.connect(self.centerZ)
 
         self.zeroButton = QPushButton('Zero')
         self.zeroButton.clicked.connect(self.zero)
@@ -143,27 +150,26 @@ class ControlPanel(QFrame):
         self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
         self.updateCoordinates()
 
+    def centerX(self):
+        self.stage.selectAxis('x')
+        self.stage.moveToTarget(15000)
+        self.updateCoordinates()
+
+    def centerY(self):
+        self.stage.selectAxis('y')
+        self.stage.moveToTarget(15000)
+        self.updateCoordinates()
+
+    def centerZ(self):
+        self.stage.selectAxis('z')
+        self.stage.moveToTarget(15000)
+        self.updateCoordinates()
+
     def zero(self):
         x, y, z = self.stage.getPosition_abs()
         self.stage.setOrigin(x, y, z)
-        self.zeroButton.setText('Zero: %d %d %d' % (x, y, z))
+        self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
         self.updateCoordinates()
-
-    def jogForwardY(self):
-        self.stage.selectAxis('y')
-        self.stage.jogForward()
-
-    def jogBackwardY(self):
-        self.stage.selectAxis('y')
-        self.stage.jogBackward()
-
-    def jogForwardZ(self):
-        self.stage.selectAxis('z')
-        self.stage.jogForward()
-
-    def jogBackwardZ(self):
-        self.stage.selectAxis('z')
-        self.stage.jogBackward()
 
     def getStatus(self):
         self.stage.getStatus()
