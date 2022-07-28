@@ -81,7 +81,7 @@ class ControlPanel(QFrame):
 
     def updateCoordinates(self):
         # could be faster if we separate out the 3 coordinates
-        x, y, z = self.stage.getPosition()
+        x, y, z = self.stage.getPosition_abs()
         self.xcontrol.setValue(x)
         self.ycontrol.setValue(y)
         self.zcontrol.setValue(z)
@@ -140,7 +140,7 @@ class ControlPanel(QFrame):
         self.updateCoordinates()
 
     def zero(self):
-        self.stage.toggleAbsoluteRelative()
+        self.stage.setOrigin()
         self.updateCoordinates()
 
     def jogForwardY(self):
@@ -164,8 +164,8 @@ class ControlPanel(QFrame):
         self.stage.status.pprint()
 
     def getPosition(self):
-        x, y, z = self.stage.getPosition()
-        self.msgPosted.emit('Position: (%d, %d, %d)' % (x, y, z))
+        x, y, z = self.stage.getPosition_abs()
+        self.msgPosted.emit('Absolute Position: (%d, %d, %d)' % (x, y, z))
 
     def halt(self):
         # doesn't actually work now because we need threading

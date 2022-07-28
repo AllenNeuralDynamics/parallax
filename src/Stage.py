@@ -12,7 +12,7 @@ class Stage():
     def __init__(self, sock):
         self.sock = sock
         self.status = None
-        self.center = [0., 0., 0.]
+        self.origin = [0., 0., 0.]
 
     def close(self):
         self.sock.close()
@@ -123,6 +123,8 @@ class Stage():
         This command toggles the relative or absolute position modes. If the M3
         is currently in Absolute position mode, then the current reported position
         is set to 0.
+        NOTE: is there really no way to do this idempotently? Or for that matter,
+        to query the current status?
         """
         cmd = "<07>\r"
         cmd_bytes = bytes(cmd, 'utf-8')
@@ -159,7 +161,7 @@ class Stage():
         """
         This command is used to view the motor status and position.
         """
-        cmd = b"<10>\r"
+        cmd = "<10>\r"
         cmd_bytes = bytes(cmd, 'utf-8')
         self.sock.sendall(cmd_bytes)
         resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
@@ -267,13 +269,27 @@ class Stage():
     debug commands
     """
 
-    def setCenter(self, x, y, z):
-        self.center = [x,y,z]
+    def setOrigin(self, x, y, z):
+        self.origin = [x,y,z]
 
-    def getPosition(self):
+    def getPosition_abs(self):
+
+        self.selectAxis('x')
+        x = self.viewClosedLoopStatus()[1] / 2.
+        self.selectAxis('y')
+        y = self.viewClosedLoopStatus()[1] / 2.
+        self.selectAxis('z')
+        z = self.viewClosedLoopStatus()[1] / 2.
+        return x, y, z
+
+    def getPosition_rel(self):
+        """
+        This is a software-defined relative positioning mode.
+        """
         cmd = b"<10>\r"
 
         self.selectAxis('x')
+        self.get
         self.sock.sendall(cmd)
         time.sleep(0.1)
         resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
