@@ -13,6 +13,10 @@ JOG_SIZE_STEPS = 1000
 class Dropdown(QComboBox):
     popupAboutToBeShown = pyqtSignal()
 
+    def __init__(self):
+        QComboBox.__init__(self)
+        self.setFocusPolicy(Qt.NoFocus)
+
     def showPopup(self):
         self.popupAboutToBeShown.emit()
         super(Dropdown, self).showPopup()
@@ -81,7 +85,7 @@ class ControlPanel(QFrame):
 
     def updateCoordinates(self):
         # could be faster if we separate out the 3 coordinates
-        x, y, z = self.stage.getPosition_abs()
+        x, y, z = self.stage.getPosition_rel()
         self.xcontrol.setValue(x)
         self.ycontrol.setValue(y)
         self.zcontrol.setValue(z)
@@ -140,7 +144,9 @@ class ControlPanel(QFrame):
         self.updateCoordinates()
 
     def zero(self):
-        self.stage.setOrigin()
+        x, y, z = self.stage.getPosition_abs()
+        self.stage.setOrigin(x, y, z)
+        self.zeroButton.setText('Zero: %d %d %d' % (x, y, z))
         self.updateCoordinates()
 
     def jogForwardY(self):

@@ -1,13 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QMenu
 from PyQt5.QtCore import Qt
 
-"""
-from FlirTab import FlirTab
-from ZaberTab import ZaberTab
-from NewScaleTab import NewScaleTab
-from ProbeTrackingTab import ProbeTrackingTab
-"""
-
 from MessageLog import MessageLog
 from ScreenWidget import ScreenWidget
 from ControlPanel import ControlPanel
@@ -73,8 +66,12 @@ class MainWindow(QWidget):
                 print('TODO: scan stages')
             e.accept()
 
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_R:
+            self.lscreen.refrash()
+            self.rscreen.refrash()
+            e.accept()
+
     def exit(self):
         pass # TODO
-        #self.flirTab.clean()
-        #self.probeTrackingTab.clean()
 

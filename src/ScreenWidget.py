@@ -28,6 +28,13 @@ class ScreenWidget(QLabel):
         self.xsel = False
         self.ysel = False
 
+        self.camera = None
+
+    def refrash(self):
+        if self.camera:
+            self.camera.capture()
+            self.setData(self.camera.getLastImageData())
+
     def setData(self, data):
         # takes a 3000,4000 grayscale image straight from the camera
 
@@ -71,8 +78,8 @@ class ScreenWidget(QLabel):
                 self.qimage.setPixel(i, j, qRgb(255, 0, 0)) # red
         self.display()
 
-    def setCamera(self, index):
-        self.camera = self.model.cameras[index]
+    def setCamera(self, camera):
+        self.camera = camera
 
     def mousePressEvent(self, e): 
 
@@ -90,12 +97,12 @@ class ScreenWidget(QLabel):
         elif e.button() == Qt.RightButton:
             contextMenu = QMenu(self)
             actions = []
-            for i in self.model.cameras.keys():
-                actions.append(contextMenu.addAction('Camera %d' % i))
+            for camera in self.model.cameras.values():
+                actions.append(contextMenu.addAction(camera.name()))
             chosenAction = contextMenu.exec_(self.mapToGlobal(e.pos()))
             for i,action in enumerate(actions): # wtf
                 if action is chosenAction:
-                    self.setCamera(i)
+                    self.setCamera(self.model.cameras[i])
             e.accept()
 
     def wheelEvent(self, e):

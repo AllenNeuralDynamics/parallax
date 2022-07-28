@@ -46,10 +46,11 @@ class CameraManager(QFrame):
     def scan(self):
         self.model.cameraScanFinished.connect(self.handleScanFinished)
         self.model.scanForCameras()
+        self.handleScanFinished()
 
     def handleScanFinished(self):
-        for index in self.model.cameras.keys():
-            QListWidgetItem(index, self.list)  # TODO use CameraListItem?
+        for camera in self.model.cameras.values():
+            QListWidgetItem(camera.name(), self.list)  # TODO use CameraListItem?
 
     def reportProgress(self, i):
         print(i)

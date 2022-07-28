@@ -286,28 +286,8 @@ class Stage():
         """
         This is a software-defined relative positioning mode.
         """
-        cmd = b"<10>\r"
-
-        self.selectAxis('x')
-        self.get
-        self.sock.sendall(cmd)
-        time.sleep(0.1)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-        x = int(resp.split()[2], 16)
-
-        self.selectAxis('y')
-        self.sock.sendall(cmd)
-        time.sleep(0.1)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-        y = int(resp.split()[2], 16)
-
-        self.selectAxis('z')
-        self.sock.sendall(cmd)
-        time.sleep(0.1)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-        z = int(resp.split()[2], 16)
-
-        return x, y, z
+        x,y,z = self.getPosition_abs()
+        return x-self.origin[0], y-self.origin[1], z-self.origin[2]
 
     #################################
 

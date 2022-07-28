@@ -40,6 +40,11 @@ class Camera():
 
         self.lastImage = None
 
+    def name(self):
+        sn = self.camera.DeviceSerialNumber()
+        deviceModel = self.camera.DeviceModelName()
+        return '%s (Serial # %s)' % (deviceModel, sn)
+
     def beginAcquisition(self):
 
         # set acquisition mode continuous
