@@ -3,7 +3,6 @@
 from MotorStatus import MotorStatus
 
 import time, socket
-socket.setdefaulttimeout(0.050)  # 50 ms timeout
 
 JOG_STEPS = 10000   # 5 mm
 # steps are 0.5 um by default
@@ -126,8 +125,6 @@ class Stage():
         cmd_bytes = bytes(cmd, 'utf-8')
         self.sock.sendall(cmd_bytes)
         resp = self.sock.recv(1024)
-        #TODO wait until it's done moving
-        print(resp)
 
     # 07
     def toggleAbsoluteRelative(self):
@@ -305,7 +302,7 @@ class Stage():
         motorStatus = MotorStatus(SSSSSS, PPPPPPPP)
         return motorStatus.isRunning()
 
-    def waitUntilStopped(self):
+    def wait(self):
         while self.isMoving():
             time.sleep(0.01)
 
@@ -347,13 +344,30 @@ class Stage():
         self.sock.sendall(cmd)
         resp = self.sock.recv(1024)
 
-    def moveToTarget_mm3d(self, x, y, z):
+    def moveToTarget3d_abs(self, x, y, z):
+        """
+        units are microns
+        """
+        # fire off each axis
         self.selectAxis('x')
-        self.moveToTarget(15000 + 15000*x/7.5)
+        self.moveToTarget(x * 2)
         self.selectAxis('y')
-        self.moveToTarget(15000 + 15000*y/7.5)
+        self.moveToTarget(y * 2)
         self.selectAxis('z')
-        self.moveToTarget(15000 + 15000*z/7.5)
+        self.moveToTarget(z * 2)
+        # now wait for all 3
+        self.selectAxis('x')
+        self.wait()
+        self.selectAxis('y')
+        self.wait()
+        self.selectAxis('z')
+        self.wait()
+
+    def moveToTarget3d_rel(self, x, y, z):
+        """
+        units are microns
+        """
+        self.moveToTarget3d_abs(x-self.origin[0], y-self.origin[1], z-self.origin[2])
 
     def center(self):
         self.moveToTarget_mm3d(0, 0, 0)

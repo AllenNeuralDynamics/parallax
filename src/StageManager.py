@@ -4,11 +4,10 @@ from PyQt5.QtWidgets import QListWidget, QListWidgetItem
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
 import socket
-socket.setdefaulttimeout(0.020)  # 20 ms timeout
 
 from Helper import *
 from Stage import Stage
-from ScanStageDialog import ScanStageDialog
+from Dialogs import *
 
 
 class StageListItem(QListWidgetItem):
@@ -39,6 +38,7 @@ class ScanStageWorker(QObject):
 
     def run(self):
         self.model.initStages() # clear the dict
+        socket.setdefaulttimeout(0.020)  # 20 ms timeout
         for i in range(1,256):
             ip = '%d.%d.%d.%d' % (self.b1, self.b2, self.b3, i)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

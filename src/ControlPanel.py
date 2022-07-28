@@ -4,9 +4,9 @@ from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, Q
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
 from Helper import *
-from TargetDialog import TargetDialog
-from CenterDialog import CenterDialog
+from Dialogs import *
 import time
+import socket
 
 JOG_SIZE_STEPS = 1000
 
@@ -70,10 +70,10 @@ class ControlPanel(QFrame):
         self.zeroButton = QPushButton('Zero')
         self.zeroButton.clicked.connect(self.zero)
 
-        self.moveGivenButton = QPushButton('Move to a given position')
-        self.moveGivenButton.clicked.connect(self.moveGiven)
+        self.moveTargetButton = QPushButton('Move to Target')
+        self.moveTargetButton.clicked.connect(self.moveToTarget)
 
-        self.moveRandomButton = QPushButton('Move to a random position')
+        self.moveRandomButton = QPushButton('Move Random')
         self.moveRandomButton.clicked.connect(self.moveRandom)
 
         # layout
@@ -83,7 +83,7 @@ class ControlPanel(QFrame):
         mainLayout.addWidget(self.ycontrol, 1,1, 1,1)
         mainLayout.addWidget(self.zcontrol, 1,2, 1,1)
         mainLayout.addWidget(self.zeroButton, 2,0, 1,3)
-        mainLayout.addWidget(self.moveGivenButton, 3,0, 1,3)
+        mainLayout.addWidget(self.moveTargetButton, 3,0, 1,3)
         mainLayout.addWidget(self.moveRandomButton, 4,0, 1,3)
         self.setLayout(mainLayout)
 
@@ -101,6 +101,7 @@ class ControlPanel(QFrame):
         self.zcontrol.setValue(z)
 
     def handleStageSelection(self, index):
+        socket.setdefaulttimeout(0.100)  # 50 ms timeout
         ip = self.dropdown.currentText()
         self.setStage(self.model.stages[ip])
         self.updateCoordinates()
@@ -119,32 +120,36 @@ class ControlPanel(QFrame):
             x,y,z = dlg.getParams()
             self.stage.setCenter(x,y,z)
 
-    def moveGiven(self):
+    def moveToTarget(self):
         dlg = TargetDialog()
         if dlg.exec_():
-            x,y,z = dlg.getParams()
-            self.stage.moveToTarget_mm3d(x, y, z)
-            time.sleep(3)
-            self.msgPosted.emit('Moved to position: (%f, %f, %f) mm' % (x, y, z))
-            self.updateCoordinates()
-            #self.snapshotRequested.emit()
+            params = dlg.getParams()
+            x = params['x']
+            y = params['y']
+            z = params['z']
+            if self.stage:
+                if params['relative']:
+                    self.stage.moveToTarget3d_rel(x, y, z)
+                else:
+                    self.stage.moveToTarget3d_abs(x, y, z)
+                self.msgPosted.emit('Moved to position: (%f, %f, %f) mm' % (x, y, z))
+                self.updateCoordinates()
 
     def moveRandom(self):
-        x = np.random.uniform(-2., 2.)
-        y = np.random.uniform(-2., 2.)
-        z = np.random.uniform(-2., 2.)
-        self.stage.moveToTarget_mm3d(x, y, z)
-        self.stage.waitUntilStopped()
-        self.msgPosted.emit('Moved to position: (%f, %f, %f) mm' % (x, y, z))
-        self.updateCoordinates()
-        #self.snapshotRequested.emit()
+        if self.stage:
+            x = np.random.uniform(7000, 8000)
+            y = np.random.uniform(7000, 8000)
+            z = np.random.uniform(7000, 8000)
+            self.stage.moveToTarget3d_abs(x, y, z)
+            self.msgPosted.emit('Moved to position: (%f, %f, %f) mm' % (x, y, z))
+            self.updateCoordinates()
 
     def jogX(self, forward):
         if self.stage:
             self.stage.selectAxis('x')
             direction = 'forward' if forward else 'backward'
             self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
-            self.stage.waitUntilStopped()
+            self.stage.wait()
             self.updateCoordinates()
 
     def jogY(self, forward):
@@ -152,37 +157,36 @@ class ControlPanel(QFrame):
             self.stage.selectAxis('y')
             direction = 'forward' if forward else 'backward'
             self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
-            self.stage.waitUntilStopped()
+            self.stage.wait()
             self.updateCoordinates()
 
     def jogZ(self, forward):
-        print('jog forward: ', forward)
         if self.stage:
             self.stage.selectAxis('z')
             direction = 'forward' if forward else 'backward'
             self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
-            self.stage.waitUntilStopped()
+            self.stage.wait()
             self.updateCoordinates()
 
     def centerX(self):
         if self.stage:
             self.stage.selectAxis('x')
             self.stage.moveToTarget(15000)
-            self.stage.waitUntilStopped()
+            self.stage.wait()
             self.updateCoordinates()
 
     def centerY(self):
         if self.stage:
             self.stage.selectAxis('y')
             self.stage.moveToTarget(15000)
-            self.stage.waitUntilStopped()
+            self.stage.wait()
             self.updateCoordinates()
 
     def centerZ(self):
         if self.stage:
             self.stage.selectAxis('z')
             self.stage.moveToTarget(15000)
-            self.stage.waitUntilStopped()
+            self.stage.wait()
             self.updateCoordinates()
 
     def zero(self):

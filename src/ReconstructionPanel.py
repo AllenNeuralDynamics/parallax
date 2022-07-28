@@ -6,7 +6,7 @@ import time
  
 from Helper import *
 from lib import *
-from TargetDialog import TargetDialog
+from Dialogs import *
 
 class ReconstructionPanel(QFrame):
     snapshotRequested = pyqtSignal()
