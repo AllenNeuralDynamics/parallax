@@ -7,15 +7,15 @@ from PyQt5.QtCore import Qt, pyqtSignal, QRect
 import numpy as np
 
 from Helper import *
-import State
 
 
 class ScreenWidget(QLabel):
 
     clicked = pyqtSignal(int, int)
 
-    def __init__(self, parent=None):
+    def __init__(self, model, parent=None):
         QWidget.__init__(self, parent=parent)
+        self.model = model
 
         self.zoom = False
 
@@ -72,7 +72,7 @@ class ScreenWidget(QLabel):
         self.display()
 
     def setCamera(self, index):
-        self.camera = State.CAMERAS[index]
+        self.camera = self.model.cameras[index]
 
     def mousePressEvent(self, e): 
 
@@ -90,10 +90,10 @@ class ScreenWidget(QLabel):
         elif e.button() == Qt.RightButton:
             contextMenu = QMenu(self)
             actions = []
-            for i in State.CAMERAS.keys():
+            for i in self.model.cameras.keys():
                 actions.append(contextMenu.addAction('Camera %d' % i))
             chosenAction = contextMenu.exec_(self.mapToGlobal(e.pos()))
-            for i,action in enumerate(actions):
+            for i,action in enumerate(actions): # wtf
                 if action is chosenAction:
                     self.setCamera(i)
             e.accept()

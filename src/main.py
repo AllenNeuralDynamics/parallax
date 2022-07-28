@@ -2,11 +2,15 @@
 
 from PyQt5.QtWidgets import QApplication
 
+from Model import Model
 from MainWindow import MainWindow
+
 
 if __name__ == '__main__':
     app = QApplication([])
-    mainWindow = MainWindow()
+    model = Model()
+    mainWindow = MainWindow(model)
     mainWindow.show()
     app.exec()
+    model.clean()
     mainWindow.exit()

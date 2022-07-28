@@ -19,28 +19,30 @@ import time
 
 class MainWindow(QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, model, parent=None):
         QWidget.__init__(self) 
+        self.model = model
+
         self.deviceManager = QWidget()
         hlayout = QHBoxLayout()
-        self.cameraManager = CameraManager()
-        self.stageManager = StageManager()
+        self.cameraManager = CameraManager(self.model)
+        self.stageManager = StageManager(self.model)
         hlayout.addWidget(self.cameraManager)
         hlayout.addWidget(self.stageManager)
         self.deviceManager.setLayout(hlayout)
 
         self.screens = QWidget()
         hlayout = QHBoxLayout()
-        self.lscreen = ScreenWidget()
-        self.rscreen = ScreenWidget()
+        self.lscreen = ScreenWidget(self.model)
+        self.rscreen = ScreenWidget(self.model)
         hlayout.addWidget(self.lscreen)
         hlayout.addWidget(self.rscreen)
         self.screens.setLayout(hlayout)
 
         self.controls = QWidget()
-        self.c1 = ControlPanel()
-        self.c2 = ControlPanel()
-        self.c3 = ControlPanel()
+        self.c1 = ControlPanel(self.model)
+        self.c2 = ControlPanel(self.model)
+        self.c3 = ControlPanel(self.model)
         hlayout = QHBoxLayout()
         hlayout.addWidget(self.c1)
         hlayout.addWidget(self.c2)

@@ -6,7 +6,6 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 from Helper import *
 from TargetDialog import TargetDialog
 from CenterDialog import CenterDialog
-import State
 import time
 
 JOG_SIZE_STEPS = 1000
@@ -41,8 +40,9 @@ class AxisControl(QLabel):
 class ControlPanel(QFrame):
     msgPosted = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, model):
         QFrame.__init__(self)
+        self.model = model
 
         # widgets
         self.dropdown = Dropdown()
@@ -88,11 +88,11 @@ class ControlPanel(QFrame):
 
     def handleStageSelection(self, index):
         ip = self.dropdown.currentText()
-        self.setStage(State.STAGES[ip])
+        self.setStage(self.model.stages[ip])
 
     def populateDropdown(self):
         self.dropdown.clear()
-        for ip in State.STAGES.keys():
+        for ip in self.model.stages.keys():
             self.dropdown.addItem(ip)
 
     def setStage(self, stage):
