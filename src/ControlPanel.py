@@ -65,7 +65,7 @@ class ControlPanel(QFrame):
         self.ycontrol.centerRequested.connect(self.centerY)
         self.zcontrol = AxisControl('Z')
         self.zcontrol.jogRequested.connect(self.jogZ)
-        self.zcontrol.jogRequested.connect(self.centerZ)
+        self.zcontrol.centerRequested.connect(self.centerZ)
 
         self.zeroButton = QPushButton('Zero')
         self.zeroButton.clicked.connect(self.zero)
@@ -103,6 +103,7 @@ class ControlPanel(QFrame):
     def handleStageSelection(self, index):
         ip = self.dropdown.currentText()
         self.setStage(self.model.stages[ip])
+        self.updateCoordinates()
 
     def populateDropdown(self):
         self.dropdown.clear()
@@ -133,7 +134,7 @@ class ControlPanel(QFrame):
         y = np.random.uniform(-2., 2.)
         z = np.random.uniform(-2., 2.)
         self.stage.moveToTarget_mm3d(x, y, z)
-        time.sleep(3)
+        self.stage.waitUntilStopped()
         self.msgPosted.emit('Moved to position: (%f, %f, %f) mm' % (x, y, z))
         self.updateCoordinates()
         #self.snapshotRequested.emit()
@@ -143,6 +144,7 @@ class ControlPanel(QFrame):
             self.stage.selectAxis('x')
             direction = 'forward' if forward else 'backward'
             self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
+            self.stage.waitUntilStopped()
             self.updateCoordinates()
 
     def jogY(self, forward):
@@ -150,31 +152,37 @@ class ControlPanel(QFrame):
             self.stage.selectAxis('y')
             direction = 'forward' if forward else 'backward'
             self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
+            self.stage.waitUntilStopped()
             self.updateCoordinates()
 
     def jogZ(self, forward):
+        print('jog forward: ', forward)
         if self.stage:
             self.stage.selectAxis('z')
             direction = 'forward' if forward else 'backward'
             self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
+            self.stage.waitUntilStopped()
             self.updateCoordinates()
 
     def centerX(self):
         if self.stage:
             self.stage.selectAxis('x')
             self.stage.moveToTarget(15000)
+            self.stage.waitUntilStopped()
             self.updateCoordinates()
 
     def centerY(self):
         if self.stage:
             self.stage.selectAxis('y')
             self.stage.moveToTarget(15000)
+            self.stage.waitUntilStopped()
             self.updateCoordinates()
 
     def centerZ(self):
         if self.stage:
             self.stage.selectAxis('z')
             self.stage.moveToTarget(15000)
+            self.stage.waitUntilStopped()
             self.updateCoordinates()
 
     def zero(self):

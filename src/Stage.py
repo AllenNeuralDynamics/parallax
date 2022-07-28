@@ -3,6 +3,7 @@
 from MotorStatus import MotorStatus
 
 import time, socket
+socket.setdefaulttimeout(0.050)  # 50 ms timeout
 
 JOG_STEPS = 10000   # 5 mm
 # steps are 0.5 um by default
@@ -125,6 +126,8 @@ class Stage():
         cmd_bytes = bytes(cmd, 'utf-8')
         self.sock.sendall(cmd_bytes)
         resp = self.sock.recv(1024)
+        #TODO wait until it's done moving
+        print(resp)
 
     # 07
     def toggleAbsoluteRelative(self):
@@ -177,7 +180,6 @@ class Stage():
         SSSSSS = int(resp.split()[1], 16)
         PPPPPPPP = int(resp.split()[2], 16)
         EEEEEEEE = int(resp.split()[3], 16)
-        # self.status = MotorStatus(status_bitfield, position)
         return SSSSSS, PPPPPPPP, EEEEEEEE
         
     # 19
@@ -295,8 +297,17 @@ class Stage():
     #################################
 
     """
-    debug commands
+    higher-level commands
     """
+
+    def isMoving(self):
+        SSSSSS, PPPPPPPP, EEEEEEEE = self.viewClosedLoopStatus()
+        motorStatus = MotorStatus(SSSSSS, PPPPPPPP)
+        return motorStatus.isRunning()
+
+    def waitUntilStopped(self):
+        while self.isMoving():
+            time.sleep(0.01)
 
     def setOrigin(self, x, y, z):
         self.origin = [x,y,z]
@@ -313,16 +324,10 @@ class Stage():
 
     def getPosition_rel(self):
         """
-        This is a software-defined relative positioning mode.
+        This is a software-defined relative positioning system.
         """
         x,y,z = self.getPosition_abs()
         return x-self.origin[0], y-self.origin[1], z-self.origin[2]
-
-    #################################
-
-    """
-    setup commands
-    """
 
     def selectAxis(self, axis):
         if (axis=='x') or (axis=='X'):
@@ -341,18 +346,6 @@ class Stage():
         cmd = b"TR<A0>\r"
         self.sock.sendall(cmd)
         resp = self.sock.recv(1024)
-
-    #################################
-
-    """
-    per-axis motion commands
-    """
-
-    #################################
-
-    """
-    higher level motion commands
-    """
 
     def moveToTarget_mm3d(self, x, y, z):
         self.selectAxis('x')

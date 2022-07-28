@@ -3,9 +3,6 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
-import socket
-socket.setdefaulttimeout(0.020)  # 20 ms timeout
-
 from Helper import *
 
 
