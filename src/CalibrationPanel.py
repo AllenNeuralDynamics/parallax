@@ -8,17 +8,16 @@ from Helper import *
 
 import os
 
-class ExtrinsicsPanel(QFrame):
+class CalibrationPanel(QFrame):
     snapshotRequested = pyqtSignal()
+    msgPosted = pyqtSignal(str)
 
-    def __init__(self, msgLog, intrinsicsPanel):
+    def __init__(self):
         QFrame.__init__(self)
-        self.msgLog = msgLog
-        self.intrinsicsPanel = intrinsicsPanel
 
         # layout
         mainLayout = QVBoxLayout()
-        self.mainLabel = QLabel('Extrinsics')
+        self.mainLabel = QLabel('Calibration')
         self.mainLabel.setAlignment(Qt.AlignCenter)
         self.mainLabel.setFont(FONT_BOLD)
         self.startButton = QPushButton('Start Calibration Procedure')
@@ -60,7 +59,7 @@ class ExtrinsicsPanel(QFrame):
         try:
             self.mtx1_in, self.mtx2_in, self.dist1_in, self.dist2_in = self.intrinsicsPanel.getIntrinsics()
         except AttributeError:
-            self.msgLog.post('Error: No intrinsics loaded.')
+            self.msgPosted.emit('Error: No intrinsics loaded.')
             return
 
         self.imgPoints1_cal = []
@@ -74,7 +73,7 @@ class ExtrinsicsPanel(QFrame):
         self.calWorker.calibrationPointReached.connect(self.handleCalPointReached)
         self.calThread.finished.connect(self.calThread.deleteLater)
         self.calThread.finished.connect(self.handleCalFinished)
-        self.msgLog.post('Starting Calibration...')
+        self.msgPosted.emit('Starting Calibration...')
         self.calThread.start()
 
     def register(self):
@@ -83,20 +82,20 @@ class ExtrinsicsPanel(QFrame):
         rcorr = self.rscreen.getSelected()
         self.imgPoints1_cal.append(lcorr)
         self.imgPoints2_cal.append(rcorr)
-        self.msgLog.post('Registered correspondence points %s and %s' % (lcorr.__str__(),rcorr.__str__()))
+        self.msgPosted.emit('Registered correspondence points %s and %s' % (lcorr.__str__(),rcorr.__str__()))
         self.calWorker.carryOn()
 
     def handleCalPointReached(self, n, numCal, x,y,z):
 
-        self.msgLog.post('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,numCal, x,y,z))
+        self.msgPosted.emit('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,numCal, x,y,z))
         self.snapshotRequested.emit()
-        self.msgLog.post('Select correspondence points and click Register to continue')
+        self.msgPosted.emit('Select correspondence points and click Register to continue')
         #tag = "x{0:.2f}_y{1:.2f}_z{2:.2f}".format(x,y,z)
         #self.save(tag=tag)
 
     def handleCalFinished(self):
 
-        self.msgLog.post('Calibration finished')
+        self.msgPosted.emit('Calibration finished')
 
         imgPoints1_cal = np.array([self.imgPoints1_cal], dtype=np.float32)
         imgPoints2_cal = np.array([self.imgPoints2_cal], dtype=np.float32)
@@ -171,7 +170,7 @@ class ExtrinsicsPanel(QFrame):
             np.save(os.path.join(path, 'ex_proj1.npy'), self.proj1)
             np.save(os.path.join(path, 'ex_proj2.npy'), self.proj2)
         except AttributeError:
-            self.msgLog.post('Error: extrinsics missing')
+            self.msgPosted.emit('Error: extrinsics missing')
 
     def updateStatus(self):
 

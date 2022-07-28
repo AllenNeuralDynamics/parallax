@@ -4,6 +4,8 @@ from PyQt5.QtCore import Qt
 from MessageLog import MessageLog
 from ScreenWidget import ScreenWidget
 from ControlPanel import ControlPanel
+from CalibrationPanel import CalibrationPanel
+from ReconstructionPanel import ReconstructionPanel
 from StageManager import StageManager
 from CameraManager import CameraManager
 
@@ -33,17 +35,19 @@ class MainWindow(QWidget):
         self.screens.setLayout(hlayout)
 
         self.controls = QWidget()
-        self.c1 = ControlPanel(self.model)
-        self.c2 = ControlPanel(self.model)
-        self.c3 = ControlPanel(self.model)
+        self.controlPanel = ControlPanel(self.model)
+        self.calPanel = CalibrationPanel()
+        self.reconPanel = ReconstructionPanel()
         hlayout = QHBoxLayout()
-        hlayout.addWidget(self.c1)
-        hlayout.addWidget(self.c2)
-        hlayout.addWidget(self.c3)
+        hlayout.addWidget(self.controlPanel)
+        hlayout.addWidget(self.calPanel)
+        hlayout.addWidget(self.reconPanel)
         self.controls.setLayout(hlayout)
 
         self.msgLog = MessageLog()
-        self.c1.msgPosted.connect(self.msgLog.post)
+        self.controlPanel.msgPosted.connect(self.msgLog.post)
+        self.calPanel.msgPosted.connect(self.msgLog.post)
+        self.reconPanel.msgPosted.connect(self.msgLog.post)
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.deviceManager)
@@ -54,22 +58,10 @@ class MainWindow(QWidget):
 
         self.setWindowTitle('MISGUIde')
 
-    def mousePressEvent(self, e):
-        if e.button == Qt.RightButton:
-            contextMenu = QMenu(self)
-            scanCamerasAction = contextMenu.addAction("Scan for Cameras")
-            scanStagesAction = contextMenu.addAction("Scan for Stages")
-            action = contextMenu.exec_(self.mapToGlobal(e.pos()))
-            if action == scanCamerasAction:
-                print('TODO: scan cameras')
-            elif action == scanStagesAction:
-                print('TODO: scan stages')
-            e.accept()
-
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
-            self.lscreen.refrash()
-            self.rscreen.refrash()
+            self.lscreen.refresh()
+            self.rscreen.refresh()
             e.accept()
 
     def exit(self):

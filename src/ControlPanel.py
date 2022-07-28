@@ -70,11 +70,11 @@ class ControlPanel(QFrame):
         self.zeroButton = QPushButton('Zero')
         self.zeroButton.clicked.connect(self.zero)
 
-        self.statusButton = QPushButton('Get Status')
-        self.statusButton.clicked.connect(self.getStatus)
-
         self.moveGivenButton = QPushButton('Move to a given position')
         self.moveGivenButton.clicked.connect(self.moveGiven)
+
+        self.moveRandomButton = QPushButton('Move to a random position')
+        self.moveRandomButton.clicked.connect(self.moveRandom)
 
         # layout
         mainLayout = QGridLayout()
@@ -84,11 +84,14 @@ class ControlPanel(QFrame):
         mainLayout.addWidget(self.zcontrol, 1,2, 1,1)
         mainLayout.addWidget(self.zeroButton, 2,0, 1,3)
         mainLayout.addWidget(self.moveGivenButton, 3,0, 1,3)
+        mainLayout.addWidget(self.moveRandomButton, 4,0, 1,3)
         self.setLayout(mainLayout)
 
         # frame border
         self.setFrameStyle(QFrame.Box | QFrame.Plain);
         self.setLineWidth(2);
+
+        self.stage = None
 
     def updateCoordinates(self):
         # could be faster if we separate out the 3 coordinates
@@ -132,52 +135,60 @@ class ControlPanel(QFrame):
             self.updateCoordinates()
             #self.snapshotRequested.emit()
 
+    def moveRandom(self):
+        x = np.random.uniform(-2., 2.)
+        y = np.random.uniform(-2., 2.)
+        z = np.random.uniform(-2., 2.)
+        self.stage.moveToTarget_mm3d(x, y, z)
+        time.sleep(3)
+        self.msgPosted.emit('Moved to position: (%f, %f, %f) mm' % (x, y, z))
+        #self.snapshotRequested.emit()
+
     def jogX(self, forward):
-        self.stage.selectAxis('x')
-        direction = 'forward' if forward else 'backward'
-        self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
-        self.updateCoordinates()
+        if self.stage:
+            self.stage.selectAxis('x')
+            direction = 'forward' if forward else 'backward'
+            self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
+            self.updateCoordinates()
 
     def jogY(self, forward):
-        self.stage.selectAxis('y')
-        direction = 'forward' if forward else 'backward'
-        self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
-        self.updateCoordinates()
+        if self.stage:
+            self.stage.selectAxis('y')
+            direction = 'forward' if forward else 'backward'
+            self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
+            self.updateCoordinates()
 
     def jogZ(self, forward):
-        self.stage.selectAxis('z')
-        direction = 'forward' if forward else 'backward'
-        self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
-        self.updateCoordinates()
+        if self.stage:
+            self.stage.selectAxis('z')
+            direction = 'forward' if forward else 'backward'
+            self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
+            self.updateCoordinates()
 
     def centerX(self):
-        self.stage.selectAxis('x')
-        self.stage.moveToTarget(15000)
-        self.updateCoordinates()
+        if self.stage:
+            self.stage.selectAxis('x')
+            self.stage.moveToTarget(15000)
+            self.updateCoordinates()
 
     def centerY(self):
-        self.stage.selectAxis('y')
-        self.stage.moveToTarget(15000)
-        self.updateCoordinates()
+        if self.stage:
+            self.stage.selectAxis('y')
+            self.stage.moveToTarget(15000)
+            self.updateCoordinates()
 
     def centerZ(self):
-        self.stage.selectAxis('z')
-        self.stage.moveToTarget(15000)
-        self.updateCoordinates()
+        if self.stage:
+            self.stage.selectAxis('z')
+            self.stage.moveToTarget(15000)
+            self.updateCoordinates()
 
     def zero(self):
-        x, y, z = self.stage.getPosition_abs()
-        self.stage.setOrigin(x, y, z)
-        self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
-        self.updateCoordinates()
-
-    def getStatus(self):
-        self.stage.getStatus()
-        self.stage.status.pprint()
-
-    def getPosition(self):
-        x, y, z = self.stage.getPosition_abs()
-        self.msgPosted.emit('Absolute Position: (%d, %d, %d)' % (x, y, z))
+        if self.stage:
+            x, y, z = self.stage.getPosition_abs()
+            self.stage.setOrigin(x, y, z)
+            self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
+            self.updateCoordinates()
 
     def halt(self):
         # doesn't actually work now because we need threading

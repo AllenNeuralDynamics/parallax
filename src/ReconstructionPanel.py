@@ -10,33 +10,26 @@ from TargetDialog import TargetDialog
 
 class ReconstructionPanel(QFrame):
     snapshotRequested = pyqtSignal()
+    msgPosted = pyqtSignal(str)
 
-    def __init__(self, msgLog, extrinsicsPanel):
+    def __init__(self):
         QFrame.__init__(self)
-        self.msgLog = msgLog
-        self.extrinsicsPanel = extrinsicsPanel
 
         # layout
         mainLayout = QVBoxLayout()
         self.mainLabel = QLabel('Reconstruction')
         self.mainLabel.setAlignment(Qt.AlignCenter)
         self.mainLabel.setFont(FONT_BOLD)
-        self.moveRandomButton = QPushButton('Move to a random position')
-        self.moveGivenButton = QPushButton('Move to a given position')
         self.triangulateButton = QPushButton('Triangulate Points')
         self.statusLabel = QLabel('Correspondence Points: None')
         self.statusLabel.setAlignment(Qt.AlignCenter)
         self.statusLabel.setFont(FONT_BOLD)
         mainLayout.addWidget(self.mainLabel)
-        mainLayout.addWidget(self.moveRandomButton)
-        mainLayout.addWidget(self.moveGivenButton)
         mainLayout.addWidget(self.triangulateButton)
         mainLayout.addWidget(self.statusLabel)
         self.setLayout(mainLayout)
 
         # connections
-        self.moveRandomButton.clicked.connect(self.moveRandom)
-        self.moveGivenButton.clicked.connect(self.moveGiven)
         self.triangulateButton.clicked.connect(self.triangulate)
 
         # frame border
@@ -51,31 +44,11 @@ class ReconstructionPanel(QFrame):
         self.rscreen = rscreen
         self.triangulateButton.setEnabled(True)
 
-    def moveRandom(self):
-    
-        x = np.random.uniform(-2., 2.)
-        y = np.random.uniform(-2., 2.)
-        z = np.random.uniform(-2., 2.)
-        self.stage.moveToTarget_mm3d(x, y, z)
-        time.sleep(3)
-        self.msgLog.post('Moved to position: (%f, %f, %f) mm' % (x, y, z))
-        self.snapshotRequested.emit()
-
-    def moveGiven(self):
-    
-        dlg = TargetDialog()
-        if dlg.exec_():
-            x,y,z = dlg.getParams()
-            self.stage.moveToTarget_mm3d(x, y, z)
-            time.sleep(3)
-            self.msgLog.post('Moved to position: (%f, %f, %f) mm' % (x, y, z))
-            self.snapshotRequested.emit()
-
     def triangulate(self):
         lcorr = self.lscreen.getSelected()
         rcorr = self.rscreen.getSelected()
         if not (lcorr and rcorr):
-            self.msgLog.post('Error: please select corresponding points in both frames to triangulate')
+            self.msgPosted.emit('Error: please select corresponding points in both frames to triangulate')
             return
 
         mtx1, mtx2, dist1, dist2, proj1, proj2 = self.extrinsicsPanel.getExtrinsics()
@@ -91,5 +64,5 @@ class ReconstructionPanel(QFrame):
         imgPoint2 = imgPoints2[0,0]
         objPoint_recon = triangulateFromImagePoints(imgPoint1, imgPoint2, proj1, proj2)
         x,y,z = objPoint_recon
-        self.msgLog.post('Reconstructed object point: (%f, %f, %f)' % (x,y,z))
+        self.msgPosted.emit('Reconstructed object point: (%f, %f, %f)' % (x,y,z))
 

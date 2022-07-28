@@ -2,7 +2,6 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
 import numpy as np
 
-import State
 import time
 
 class CalibrationWorker(QObject):

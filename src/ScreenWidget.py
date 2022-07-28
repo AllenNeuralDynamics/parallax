@@ -30,7 +30,7 @@ class ScreenWidget(QLabel):
 
         self.camera = None
 
-    def refrash(self):
+    def refresh(self):
         if self.camera:
             self.camera.capture()
             self.setData(self.camera.getLastImageData())
@@ -80,6 +80,7 @@ class ScreenWidget(QLabel):
 
     def setCamera(self, camera):
         self.camera = camera
+        self.refresh()
 
     def mousePressEvent(self, e): 
 
