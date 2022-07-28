@@ -1,14 +1,14 @@
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QPushButton, QFrame, QFileDialog
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from Helper import *
 
 import os
 
 class IntrinsicsPanel(QFrame):
+    msgPosted = pyqtSignal(str)
 
-    def __init__(self, msgLog):
+    def __init__(self):
         QFrame.__init__(self)
-        self.msgLog = msgLog
 
         # layout
         mainLayout = QVBoxLayout()
@@ -80,7 +80,7 @@ class IntrinsicsPanel(QFrame):
             np.save(os.path.join(path, 'in_dist1.npy'), self.dist1)
             np.save(os.path.join(path, 'in_dist2.npy'), self.dist2)
         except AttributeError:
-            self.msgLog.post('Error: intrinsics missing')
+            self.msgPosted.emit('Error: intrinsics missing')
 
     def getIntrinsics(self):
 

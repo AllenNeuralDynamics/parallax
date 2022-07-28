@@ -11,7 +11,7 @@ class Stage():
 
     def __init__(self, sock):
         self.sock = sock
-        self.origin = [0., 0., 0.]
+        self.origin = [7500., 7500., 7500.]
         self.initialize()
 
     def initialize(self):

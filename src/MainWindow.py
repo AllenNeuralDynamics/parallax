@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt
 from MessageLog import MessageLog
 from ScreenWidget import ScreenWidget
 from ControlPanel import ControlPanel
-from CalibrationPanel import CalibrationPanel
+from TriangulationPanel import TriangulationPanel
 from ReconstructionPanel import ReconstructionPanel
 from StageManager import StageManager
 from CameraManager import CameraManager
@@ -35,19 +35,24 @@ class MainWindow(QWidget):
         self.screens.setLayout(hlayout)
 
         self.controls = QWidget()
-        self.controlPanel = ControlPanel(self.model)
-        self.calPanel = CalibrationPanel()
-        self.reconPanel = ReconstructionPanel()
+        self.controlPanel1 = ControlPanel(self.model)
+        self.controlPanel2 = ControlPanel(self.model)
+        self.triPanel = TriangulationPanel(self.model)
         hlayout = QHBoxLayout()
-        hlayout.addWidget(self.controlPanel)
-        hlayout.addWidget(self.calPanel)
-        hlayout.addWidget(self.reconPanel)
+        hlayout.addWidget(self.controlPanel1)
+        hlayout.addWidget(self.triPanel)
+        hlayout.addWidget(self.controlPanel2)
         self.controls.setLayout(hlayout)
 
+        # connections
         self.msgLog = MessageLog()
-        self.controlPanel.msgPosted.connect(self.msgLog.post)
-        self.calPanel.msgPosted.connect(self.msgLog.post)
-        self.reconPanel.msgPosted.connect(self.msgLog.post)
+        self.controlPanel1.msgPosted.connect(self.msgLog.post)
+        self.controlPanel2.msgPosted.connect(self.msgLog.post)
+        self.triPanel.msgPosted.connect(self.msgLog.post)
+        self.triPanel.snapshotRequested.connect(self.takeSnapshot)
+        self.model.msgPosted.connect(self.msgLog.post)
+        self.lscreen.selected.connect(self.model.setLcorr)
+        self.rscreen.selected.connect(self.model.setRcorr)
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.deviceManager)
@@ -60,9 +65,12 @@ class MainWindow(QWidget):
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
-            self.lscreen.refresh()
-            self.rscreen.refresh()
+            self.takeSnapshot()
             e.accept()
+
+    def takeSnapshot(self):
+        self.lscreen.refresh()
+        self.rscreen.refresh()
 
     def exit(self):
         pass # TODO

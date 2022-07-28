@@ -11,7 +11,7 @@ from Helper import *
 
 class ScreenWidget(QLabel):
 
-    clicked = pyqtSignal(int, int)
+    selected = pyqtSignal(int, int)
 
     def __init__(self, model, parent=None):
         QWidget.__init__(self, parent=parent)
@@ -94,6 +94,7 @@ class ScreenWidget(QLabel):
                 self.xsel = int(e.x() * CONVERSION_PX)
                 self.ysel = int(e.y() * CONVERSION_PX)
             self.updatePixel(self.xsel, self.ysel)
+            self.selected.emit(self.xsel, self.ysel)
 
         elif e.button() == Qt.RightButton:
             contextMenu = QMenu(self)

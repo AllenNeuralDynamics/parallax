@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QLineEdit, QFrame, QMenu
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QComboBox
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout 
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 
@@ -7,19 +7,9 @@ from Helper import *
 from Dialogs import *
 import time
 import socket
+from StageDropdown import StageDropdown
 
 JOG_SIZE_STEPS = 1000
-
-class Dropdown(QComboBox):
-    popupAboutToBeShown = pyqtSignal()
-
-    def __init__(self):
-        QComboBox.__init__(self)
-        self.setFocusPolicy(Qt.NoFocus)
-
-    def showPopup(self):
-        self.popupAboutToBeShown.emit()
-        super(Dropdown, self).showPopup()
 
 
 class AxisControl(QLabel):
@@ -53,8 +43,7 @@ class ControlPanel(QFrame):
         self.model = model
 
         # widgets
-        self.dropdown = Dropdown()
-        self.dropdown.popupAboutToBeShown.connect(self.populateDropdown)
+        self.dropdown = StageDropdown(self.model)
         self.dropdown.activated.connect(self.handleStageSelection)
 
         self.xcontrol = AxisControl('X')
@@ -106,13 +95,10 @@ class ControlPanel(QFrame):
         self.setStage(self.model.stages[ip])
         self.updateCoordinates()
 
-    def populateDropdown(self):
-        self.dropdown.clear()
-        for ip in self.model.stages.keys():
-            self.dropdown.addItem(ip)
-
     def setStage(self, stage):
         self.stage = stage
+        x,y,z = self.stage.origin
+        self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
 
     def setCenter(self):
         dlg = CenterDialog()
