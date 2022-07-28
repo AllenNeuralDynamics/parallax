@@ -111,13 +111,6 @@ class ControlPanel(QFrame):
 
     def setStage(self, stage):
         self.stage = stage
-        self.stage.selectAxis('x')
-        self.stage.setOrQueryDriveMode('closed')
-        self.stage.selectAxis('y')
-        self.stage.setOrQueryDriveMode('closed')
-        self.stage.selectAxis('z')
-        self.stage.setOrQueryDriveMode('closed')
-        self.updateCoordinates()
 
     def setCenter(self):
         dlg = CenterDialog()
@@ -142,6 +135,7 @@ class ControlPanel(QFrame):
         self.stage.moveToTarget_mm3d(x, y, z)
         time.sleep(3)
         self.msgPosted.emit('Moved to position: (%f, %f, %f) mm' % (x, y, z))
+        self.updateCoordinates()
         #self.snapshotRequested.emit()
 
     def jogX(self, forward):

@@ -2,7 +2,7 @@
 
 from MotorStatus import MotorStatus
 
-import time
+import time, socket
 
 JOG_STEPS = 10000   # 5 mm
 # steps are 0.5 um by default
@@ -11,8 +11,17 @@ class Stage():
 
     def __init__(self, sock):
         self.sock = sock
-        self.status = None
         self.origin = [0., 0., 0.]
+        self.initialize()
+
+    def initialize(self):
+        try:
+            for axis in ['x', 'y', 'z']:
+                self.selectAxis(axis)
+                self.setOrQueryDriveMode('closed')
+                self.activateSoftLimits('deactivate')
+        except socket.timeout:
+            print('Socket timed out on Stage %s. No MPM connected?' % self.getIP())
 
     def close(self):
         self.sock.close()
@@ -217,7 +226,27 @@ class Stage():
     # TODO view and set forward and reverse soft limit values
 
     # 47
-    # TODO view activate/deactivate soft limits
+    def activateSoftLimits(self, action='query'):
+        """
+        This command is used to view, activate and deactivate motor travel limits.
+        This command can disable the soft limits but the factory limits will remain
+        active in both open- and closed-loop modes at all times. To define travel
+        limits, use command <46...>. These values are saved to internal EEPROM.
+        """
+        if action == 'query':
+            X = ''  # query
+        elif action=='activate':
+            X = ' 1'
+        elif action=='deactivate':
+            X = ' 0'
+        else:
+            print('unrecognized action')
+            return
+        cmd = "<47{0}>\r".format(X)
+        cmd_bytes = bytes(cmd, 'utf-8')
+        self.sock.sendall(cmd_bytes)
+        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
+        #TODO parse response for query
 
     # 52
     # TODO view time interval units
