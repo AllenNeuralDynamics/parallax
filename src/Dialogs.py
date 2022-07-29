@@ -86,28 +86,14 @@ class CalibrationDialog(QWidget):
 
     def handleCalFinished(self):
 
-        self.msgPosted.emit('Calibration finished')
-
         imgPoints1_cal = np.array([self.imgPoints1_cal], dtype=np.float32)
         imgPoints2_cal = np.array([self.imgPoints2_cal], dtype=np.float32)
         objPoints_cal = self.calWorker.getObjectPoints()
 
-        # undistort calibration points
-        imgPoints1_cal = undistortImagePoints(imgPoints1_cal, self.mtx1_in, self.dist1_in)
-        imgPoints2_cal = undistortImagePoints(imgPoints2_cal, self.mtx2_in, self.dist2_in)
+        self.model.doCalibration(imgPoints1_cal, imgPoints2_cal, objPoints_cal)
 
-        # calibrate each camera against these points
-        myFlags = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT
-        rmse1, self.mtx1_ex, self.dist1_ex, rvecs1, tvecs1 = cv.calibrateCamera(objPoints_cal, imgPoints1_cal,
-                                                                        (WF, HF), self.mtx1_in, self.dist1_in,
-                                                                        flags=myFlags)
-        rmse2, self.mtx2_ex, self.dist2_ex, rvecs2, tvecs2 = cv.calibrateCamera(objPoints_cal, imgPoints2_cal,
-                                                                        (WF, HF), self.mtx2_in, self.dist2_in,
-                                                                        flags=myFlags)
-
-        # calculate projection matrices
-        self.proj1 = getProjectionMatrix(self.mtx1_ex, rvecs1[0], tvecs1[0])
-        self.proj2 = getProjectionMatrix(self.mtx2_ex, rvecs2[0], tvecs2[0])
+        self.msgPosted.emit('Calibration finished')
+        self.calDone.emit()
 
     def updateIntrinsicsStatus(self):
         if self.model.intrinsicsLoaded:

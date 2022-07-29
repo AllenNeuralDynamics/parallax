@@ -62,6 +62,7 @@ class TriangulationPanel(QFrame):
         self.calDialog = CalibrationDialog(self.model)
         self.calDialog.msgPosted.connect(self.msgPosted)
         self.calDialog.snapshotRequested.connect(self.snapshotRequested)
+        self.calDialog.calDone.connect(self.updateStatus)
         self.calDialog.show()
 
     def load(self):
@@ -102,13 +103,7 @@ class TriangulationPanel(QFrame):
             self.saveExtrinsics(path)
 
     def saveExtrinsics(self, path):
-
-        np.save(os.path.join(path, 'ex_mtx1.npy'), self.mtx1_ex)
-        np.save(os.path.join(path, 'ex_mtx2.npy'), self.mtx2_ex)
-        np.save(os.path.join(path, 'ex_dist1.npy'), self.dist1_ex)
-        np.save(os.path.join(path, 'ex_dist2.npy'), self.dist2_ex)
-        np.save(os.path.join(path, 'ex_proj1.npy'), self.proj1)
-        np.save(os.path.join(path, 'ex_proj2.npy'), self.proj2)
+        self.model.saveCalibration()
 
     def updateStatus(self):
 

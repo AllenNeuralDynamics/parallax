@@ -5,10 +5,13 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 import numpy as np
+import cv2 as cv
+import os
 
 from Camera import Camera
 from Stage import Stage
 from lib import *
+from Helper import *
 
 
 class Model(QObject):
@@ -35,6 +38,31 @@ class Model(QObject):
 
         self.intrinsicsLoaded = True
 
+    def doCalibration(self, imgPoints1, imgPoints2, objPoints):
+
+        if not self.intrinsicsLoaded:
+            print("Can't do calibration without intrinsics")
+            return
+
+        # undistort calibration points
+        imgPoints1 = undistortImagePoints(imgPoints1, self.imtx1, self.idist1)
+        imgPoints2 = undistortImagePoints(imgPoints2, self.imtx2, self.idist2)
+
+        # calibrate each camera against these points
+        myFlags = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT
+        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv.calibrateCamera(objPoints, imgPoints1,
+                                                                        (WF, HF), self.imtx1, self.idist1,
+                                                                        flags=myFlags)
+        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv.calibrateCamera(objPoints, imgPoints2,
+                                                                        (WF, HF), self.imtx2, self.idist2,
+                                                                        flags=myFlags)
+
+        # calculate projection matrices
+        proj1 = getProjectionMatrix(mtx1, rvecs1[0], tvecs1[0])
+        proj2 = getProjectionMatrix(mtx2, rvecs2[0], tvecs2[0])
+
+        self.setCalibration(mtx1, mtx2, dist1, dist2, proj1, proj2)
+
     def setCalibration(self, mtx1, mtx2, dist1, dist2, proj1, proj2):
         
         self.mtx1 = mtx1
@@ -45,6 +73,19 @@ class Model(QObject):
         self.proj2 = proj2
 
         self.calLoaded = True
+
+    def saveCalibration(self):
+
+        if not self.calLoaded:
+            print('no calibration loaded')
+            return
+
+        np.save(os.path.join(path, 'emtx1.npy'), self.mtx1)
+        np.save(os.path.join(path, 'emtx2.npy'), self.mtx2)
+        np.save(os.path.join(path, 'edist1.npy'), self.dist1)
+        np.save(os.path.join(path, 'edist2.npy'), self.dist2)
+        np.save(os.path.join(path, 'eproj1.npy'), self.proj1)
+        np.save(os.path.join(path, 'eproj2.npy'), self.proj2)
 
     def setLcorr(self, xc, yc):
         self.lcorr = [xc, yc]
