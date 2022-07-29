@@ -76,14 +76,16 @@ class Model(QObject):
         self.msgPosted.emit('Reconstructed object point: (%f, %f, %f)' % (x,y,z))
 
     def initCameras(self):
-        self.cameras = {}
         self.pyspin_instance = PySpin.System.GetInstance()
         self.pyspin_cameras = self.pyspin_instance.GetCameras()
+        self.cameras = {}
+        self.ncameras = 0
 
     def initStages(self):
         self.stages = {}
 
     def scanForCameras(self):
+        self.initCameras()
         self.pyspin_cameras = self.pyspin_instance.GetCameras()
         self.ncameras = self.pyspin_cameras.GetSize()
         for i in range(self.ncameras):

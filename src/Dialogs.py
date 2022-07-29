@@ -83,8 +83,6 @@ class CalibrationDialog(QWidget):
         self.msgPosted.emit('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,numCal, x,y,z))
         self.msgPosted.emit('Select correspondence points and click Register to continue')
         self.snapshotRequested.emit()
-        #tag = "x{0:.2f}_y{1:.2f}_z{2:.2f}".format(x,y,z)
-        #self.save(tag=tag)
 
     def handleCalFinished(self):
 
@@ -230,13 +228,6 @@ class CenterDialog(QDialog):
 
         self.currentButton = QPushButton('Set current location as center')
         self.givenButton = QPushButton('Set given location as center')
-
-        """
-        self.dialogButtons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
-        self.dialogButtons.accepted.connect(self.accept)
-        self.dialogButtons.rejected.connect(self.reject)
-        """
 
         ####
 

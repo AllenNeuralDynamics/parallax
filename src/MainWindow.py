@@ -67,10 +67,18 @@ class MainWindow(QWidget):
         if e.key() == Qt.Key_R:
             self.takeSnapshot()
             e.accept()
+        elif e.key() == Qt.Key_S:
+            if (e.modifiers() & Qt.ControlModifier):
+                self.saveCameraFrames()
+                e.accept()
 
     def takeSnapshot(self):
         self.lscreen.refresh()
         self.rscreen.refresh()
+
+    def saveCameraFrames(self):
+        for i,camera in enumerate(self.model.cameras.values()):
+            camera.saveLastImage('camera_%d.png')
 
     def exit(self):
         pass # TODO

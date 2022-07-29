@@ -3,6 +3,7 @@
 import PySpin
 
 import numpy as np
+import time, datetime
 
 
 class Camera():
@@ -57,6 +58,10 @@ class Camera():
 
     def capture(self):
 
+        ts = time.time()
+        dt = datetime.datetime.fromtimestamp(ts)
+        self.lastCaptureTime_str = '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+
         if self.lastImage:
             try:
                 self.lastImage.Release()
@@ -68,6 +73,10 @@ class Camera():
             print('waiting')
 
         self.lastImage = image
+
+    def saveLastImage(self, filename):
+        image_converted = self.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
+        image_converted.Save(filename)
 
     def getLastImage(self):
         return self.lastImage
