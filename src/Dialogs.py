@@ -108,25 +108,23 @@ class CalibrationDialog(QWidget):
     def loadIntrinsics(self):
 
         filenames = QFileDialog.getOpenFileNames(self, 'Select intrinsics files', '.',
-                                                    'Numpy files (*.npy)')
+                                                    'Numpy files (*.npy)')[0]
+
         if filenames:
-            filenames = filenames[0]
-        else:
-            return
 
-        for filename in filenames:
-            basename = os.path.basename(filename)
-            if basename == 'mtx1.npy':
-                mtx1 = np.load(filename)
-            elif basename == 'mtx2.npy':
-                mtx2 = np.load(filename)
-            elif basename == 'dist1.npy':
-                dist1= np.load(filename)
-            elif basename == 'dist2.npy':
-                dist2= np.load(filename)
+            for filename in filenames:
+                basename = os.path.basename(filename)
+                if basename == 'mtx1.npy':
+                    mtx1 = np.load(filename)
+                elif basename == 'mtx2.npy':
+                    mtx2 = np.load(filename)
+                elif basename == 'dist1.npy':
+                    dist1= np.load(filename)
+                elif basename == 'dist2.npy':
+                    dist2= np.load(filename)
 
-        self.model.setIntrinsics(mtx1, mtx2, dist1, dist2)
-        self.updateIntrinsicsStatus()
+            self.model.setIntrinsics(mtx1, mtx2, dist1, dist2)
+            self.updateIntrinsicsStatus()
 
 
 class TargetDialog(QDialog):
