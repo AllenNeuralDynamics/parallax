@@ -49,7 +49,7 @@ class MainWindow(QWidget):
         self.controlPanel1.msgPosted.connect(self.msgLog.post)
         self.controlPanel2.msgPosted.connect(self.msgLog.post)
         self.triPanel.msgPosted.connect(self.msgLog.post)
-        self.triPanel.snapshotRequested.connect(self.takeSnapshot)
+        self.model.snapshotRequested.connect(self.takeSnapshot)
         self.model.msgPosted.connect(self.msgLog.post)
         self.lscreen.selected.connect(self.model.setLcorr)
         self.rscreen.selected.connect(self.model.setRcorr)
@@ -71,6 +71,8 @@ class MainWindow(QWidget):
             if (e.modifiers() & Qt.ControlModifier):
                 self.saveCameraFrames()
                 e.accept()
+        elif e.key() == Qt.Key_C:
+            self.model.registerCorrPoints_cal()
 
     def takeSnapshot(self):
         self.lscreen.refresh()
@@ -78,7 +80,10 @@ class MainWindow(QWidget):
 
     def saveCameraFrames(self):
         for i,camera in enumerate(self.model.cameras.values()):
-            camera.saveLastImage('camera_%d.png')
+            if camera.lastImage:
+                filename = 'camera%d_%s.png' % (i, camera.getLastCaptureTime())
+                camera.saveLastImage(filename)
+                self.msgLog.post('Saved camera frame: %s' % filename)
 
     def exit(self):
         pass # TODO

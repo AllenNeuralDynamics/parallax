@@ -5,11 +5,13 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 import numpy as np
-import cv2 as cv
 import os
+import pickle
 
 from Camera import Camera
 from Stage import Stage
+from Calibration import Calibration
+from CalibrationWorker import CalibrationWorker
 from lib import *
 from Helper import *
 
@@ -17,6 +19,8 @@ from Helper import *
 class Model(QObject):
     stageScanFinished = pyqtSignal()
     cameraScanFinished = pyqtSignal()
+    calFinished = pyqtSignal()
+    snapshotRequested = pyqtSignal()
     msgPosted = pyqtSignal(str)
 
     def __init__(self):
@@ -25,67 +29,28 @@ class Model(QObject):
         self.initCameras()
         self.initStages()
 
-        self.intrinsicsLoaded = False
-        self.calLoaded = False
+        self.calibration = None
         self.lcorr, self.rcorr = False, False
 
-    def setIntrinsics(self, mtx1, mtx2, dist1, dist2):
+    def triangulate(self):
+        objPoint = self.calibration.triangulate(self.lcorr, self.rcorr)
+        return objPoint # x,y,z
 
-        self.imtx1 = mtx1
-        self.imtx2 = mtx2
-        self.idist1 = dist1
-        self.idist2 = dist2
+    def setCalibration(self, calibration):
+        self.calibration = calibration
 
-        self.intrinsicsLoaded = True
+    def saveCalibration(self, filename):
 
-    def doCalibration(self, imgPoints1, imgPoints2, objPoints):
-
-        if not self.intrinsicsLoaded:
-            print("Can't do calibration without intrinsics")
+        if not self.calibration:
+            self.msgPosted.emit('No calibration loaded.')
             return
 
-        # undistort calibration points
-        imgPoints1 = undistortImagePoints(imgPoints1, self.imtx1, self.idist1)
-        imgPoints2 = undistortImagePoints(imgPoints2, self.imtx2, self.idist2)
+        with open(filename, 'wb') as f:
+            pickle.dump(self.calibration, f)
 
-        # calibrate each camera against these points
-        myFlags = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT
-        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv.calibrateCamera(objPoints, imgPoints1,
-                                                                        (WF, HF), self.imtx1, self.idist1,
-                                                                        flags=myFlags)
-        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv.calibrateCamera(objPoints, imgPoints2,
-                                                                        (WF, HF), self.imtx2, self.idist2,
-                                                                        flags=myFlags)
-
-        # calculate projection matrices
-        proj1 = getProjectionMatrix(mtx1, rvecs1[0], tvecs1[0])
-        proj2 = getProjectionMatrix(mtx2, rvecs2[0], tvecs2[0])
-
-        self.setCalibration(mtx1, mtx2, dist1, dist2, proj1, proj2)
-
-    def setCalibration(self, mtx1, mtx2, dist1, dist2, proj1, proj2):
-        
-        self.mtx1 = mtx1
-        self.mtx2 = mtx2
-        self.dist1 = dist1
-        self.dist2 = dist2
-        self.proj1 = proj1
-        self.proj2 = proj2
-
-        self.calLoaded = True
-
-    def saveCalibration(self):
-
-        if not self.calLoaded:
-            print('no calibration loaded')
-            return
-
-        np.save(os.path.join(path, 'emtx1.npy'), self.mtx1)
-        np.save(os.path.join(path, 'emtx2.npy'), self.mtx2)
-        np.save(os.path.join(path, 'edist1.npy'), self.dist1)
-        np.save(os.path.join(path, 'edist2.npy'), self.dist2)
-        np.save(os.path.join(path, 'eproj1.npy'), self.proj1)
-        np.save(os.path.join(path, 'eproj2.npy'), self.proj2)
+    def loadCalibration(self, filename):
+        with open(filename, 'rb') as f:
+            self.calibration = pickle.load(f)
 
     def setLcorr(self, xc, yc):
         self.lcorr = [xc, yc]
@@ -93,28 +58,12 @@ class Model(QObject):
     def setRcorr(self, xc, yc):
         self.rcorr = [xc, yc]
 
-    def triangulate(self):
-
-        if not (self.lcorr and self.rcorr):
-            self.msgPosted.emit('Error: please select corresponding points in both frames to triangulate')
-            return
-
-        if not self.calLoaded:
-            self.msgPosted.emit('Error: please run calibration or load previous')
-            return
-
-        imgPoints1 = np.array([[self.lcorr]], dtype=np.float32)
-        imgPoints2 = np.array([[self.rcorr]], dtype=np.float32)
-
-        # undistort
-        imgPoints1 = undistortImagePoints(imgPoints1, self.mtx1, self.dist1)
-        imgPoints2 = undistortImagePoints(imgPoints2, self.mtx2, self.dist2)
-
-        imgPoint1 = imgPoints1[0,0]
-        imgPoint2 = imgPoints2[0,0]
-        objPoint_recon = triangulateFromImagePoints(imgPoint1, imgPoint2, self.proj1, self.proj2)
-        x,y,z = objPoint_recon
-        self.msgPosted.emit('Reconstructed object point: (%f, %f, %f)' % (x,y,z))
+    def registerCorrPoints_cal(self):
+        self.imgPoints1_cal.append(self.lcorr)
+        self.imgPoints2_cal.append(self.lcorr)
+        self.msgPosted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
+                                (self.lcorr[0],self.lcorr[1],self.rcorr[0], self.rcorr[1]))
+        self.calWorker.carryOn()
 
     def initCameras(self):
         self.pyspin_instance = PySpin.System.GetInstance()
@@ -124,6 +73,7 @@ class Model(QObject):
 
     def initStages(self):
         self.stages = {}
+        self.calStage = None
 
     def scanForCameras(self):
         self.initCameras()
@@ -134,6 +84,38 @@ class Model(QObject):
 
     def addStage(self, ip, stage):
         self.stages[ip] = stage
+
+    def setCalStage(self, stage):
+        self.calStage = stage
+
+    def startCalibration(self):
+        self.imgPoints1_cal = []
+        self.imgPoints2_cal = []
+        self.calThread = QThread()
+        self.calWorker = CalibrationWorker(self.calStage, stepsPerDim=2)
+        self.calWorker.moveToThread(self.calThread)
+        self.calThread.started.connect(self.calWorker.run)
+        self.calWorker.calibrationPointReached.connect(self.handleCalPointReached)
+        self.calThread.finished.connect(self.handleCalFinished)
+        self.calWorker.finished.connect(self.calThread.quit)
+        self.calWorker.finished.connect(self.calWorker.deleteLater)
+        self.calThread.finished.connect(self.calThread.deleteLater)
+        self.msgPosted.emit('Starting Calibration...')
+        self.calThread.start()
+
+    def handleCalPointReached(self, n, numCal, x,y,z):
+        self.msgPosted.emit('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,numCal, x,y,z))
+        self.msgPosted.emit('Highlight correspondence points and press C to continue')
+        self.snapshotRequested.emit()
+
+    def handleCalFinished(self):
+        self.calibration = Calibration()
+        imgPoints1_cal = np.array([self.imgPoints1_cal], dtype=np.float32)
+        imgPoints2_cal = np.array([self.imgPoints2_cal], dtype=np.float32)
+        objPoints_cal = self.calWorker.getObjectPoints()
+        self.calibration.calibrate(imgPoints1_cal, imgPoints2_cal, objPoints_cal)
+        self.msgPosted.emit('Calibration finished')
+        self.calFinished.emit()
 
     def clean(self):
         self.cleanCameras()

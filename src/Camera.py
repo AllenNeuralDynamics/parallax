@@ -60,7 +60,8 @@ class Camera():
 
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
-        self.lastCaptureTime_str = '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        self.lastCaptureTime_str = '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
+                                                                    dt.hour, dt.minute, dt.second)
 
         if self.lastImage:
             try:
@@ -73,6 +74,9 @@ class Camera():
             print('waiting')
 
         self.lastImage = image
+
+    def getLastCaptureTime(self):
+        return self.lastCaptureTime_str
 
     def saveLastImage(self, filename):
         image_converted = self.getLastImage().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)

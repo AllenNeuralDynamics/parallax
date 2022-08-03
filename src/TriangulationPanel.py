@@ -2,15 +2,16 @@ from PyQt5.QtWidgets import QLabel, QVBoxLayout, QPushButton, QFrame, QFileDialo
 from PyQt5.QtCore import QThread, Qt
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 
-from CalibrationWorker import CalibrationWorker
+import os
+import numpy as np
+
+from Calibration import Calibration
 from lib import *
 from Helper import *
 from Dialogs import *
 
-import os
 
 class TriangulationPanel(QFrame):
-    snapshotRequested = pyqtSignal()
     msgPosted = pyqtSignal(str)
 
     def __init__(self, model):
@@ -22,7 +23,7 @@ class TriangulationPanel(QFrame):
         self.mainLabel = QLabel('Triangulation')
         self.mainLabel.setAlignment(Qt.AlignCenter)
         self.mainLabel.setFont(FONT_BOLD)
-        self.calButton = QPushButton('Run Calibration')
+        self.calButton = QPushButton('Run Calibration Routine')
         self.loadButton = QPushButton('Load Calibration')
         self.saveButton = QPushButton('Save Calibration')
         self.goButton = QPushButton('Triangulate Points')
@@ -41,7 +42,7 @@ class TriangulationPanel(QFrame):
         self.setLayout(mainLayout)
 
         # connections
-        self.calButton.clicked.connect(self.startCalibration)
+        self.calButton.clicked.connect(self.launchCalibrationDialog)
         self.loadButton.clicked.connect(self.load)
         self.saveButton.clicked.connect(self.save)
         self.goButton.clicked.connect(self.triangulate)
@@ -51,64 +52,49 @@ class TriangulationPanel(QFrame):
         self.setLineWidth(2);
 
     def triangulate(self):
-        self.model.triangulate()
 
-    def setStage(self, stage):
+        if not (self.model.calibration and self.model.lcorr and self.model.rcorr):
+            self.msgPosted.emit('Error: please load a calibration, and select '
+                                'correspondence points before attempting triangulation')
+            return
 
-        self.stage = stage
+        x,y,z = self.model.triangulate()
+        self.msgPosted.emit('Reconstructed object point: (%f, %f, %f)' % (x,y,z))
 
-    def startCalibration(self):
-
-        self.calDialog = CalibrationDialog(self.model)
-        self.calDialog.msgPosted.connect(self.msgPosted)
-        self.calDialog.snapshotRequested.connect(self.snapshotRequested)
-        self.calDialog.calDone.connect(self.updateStatus)
-        self.calDialog.show()
+    def launchCalibrationDialog(self):
+        dlg = CalibrationDialog(self.model)
+        if dlg.exec_():
+            self.model.setCalStage(dlg.getStage())
+            if dlg.intrinsicsFromFile():
+                #cal.setInitialIntrinsics(mtx, mtx2, mtx3, mtx4)
+                print('TODO intrinsics from file')
+                return
+            self.model.calFinished.connect(self.updateStatus)
+            self.model.startCalibration()
 
     def load(self):
-
-        filenames = QFileDialog.getOpenFileNames(self, 'Select extrinsics files', '.',
-                                                    'Numpy files (*.npy)')
-        if filenames[0]:
-            self.loadExtrinsics(filenames[0])
-
-    def loadExtrinsics(self, filenames):
-
-        for filename in filenames:
-            basename = os.path.basename(filename)
-            if basename == 'ex_mtx1.npy':
-                mtx1_ex = np.load(filename)
-            elif basename == 'ex_mtx2.npy':
-                mtx2_ex = np.load(filename)
-            elif basename == 'ex_dist1.npy':
-                dist1_ex = np.load(filename)
-            elif basename == 'ex_dist2.npy':
-                dist2_ex = np.load(filename)
-            elif basename == 'ex_proj1.npy':
-                proj1 = np.load(filename)
-            elif basename == 'ex_proj2.npy':
-                proj2 = np.load(filename)
-        self.model.setCalibration(mtx1_ex, mtx2_ex, dist1_ex, dist2_ex, proj1, proj2)
-        self.updateStatus()
+        filename = QFileDialog.getOpenFileName(self, 'Load calibration file', '.',
+                                                    'Pickle files (*.pkl)')[0]
+        if filename:
+            self.model.loadCalibration(filename)
+            self.updateStatus()
 
     def save(self):
 
-        if not self.model.calLoaded:
-            self.msgPosted.emit('Error: extrinsics missing')
+        if not self.model.calibration:
+            self.msgPosted.emit('Error: no calibration loaded')
             return
 
-        path = QFileDialog.getExistingDirectory(self, 'Save Extrinsics: '
-                                                    'Choose Destination Folder', '.')
-        if path:
-            self.saveExtrinsics(path)
-
-    def saveExtrinsics(self, path):
-        self.model.saveCalibration()
+        filename = QFileDialog.getSaveFileName(self, 'Save calibration file', '.',
+                                                'Pickle files (*.pkl)')[0]
+        if filename:
+            self.model.saveCalibration(filename)
+            self.msgPosted.emit('Saved calibration to: %s' % filename)
 
     def updateStatus(self):
-
-        if self.model.calLoaded:
-            self.statusLabel.setText('Calibration loaded.')
+        if self.model.calibration:
+            self.statusLabel.setText('Calibration is loaded.')
         else:
-            self.statusLabel.setText('Calibration needed.')
+            self.statusLabel.setText('No calibration loaded.')
+
 

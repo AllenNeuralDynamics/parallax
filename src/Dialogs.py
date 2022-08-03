@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QWidget
+from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QRadioButton
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QFileDialog, QDialog, QCheckBox, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
@@ -11,10 +11,65 @@ from lib import *
 from StageDropdown import StageDropdown
 from CalibrationWorker import CalibrationWorker
 
-class CalibrationDialog(QWidget):
+
+class CalibrationDialog(QDialog):
+
+    def __init__(self, model, parent=None):
+        QDialog.__init__(self, parent)
+        self.model = model
+
+        self.defaultButton = QRadioButton("Use Default Intrinsics")
+        self.defaultButton.setChecked(True)
+        self.defaultButton.toggled.connect(self.handleRadio)
+
+        self.loadButton = QRadioButton("Load Intrinsics from File")
+        self.loadButton.toggled.connect(self.handleRadio)
+
+        self.stageLabel = QLabel('Select a Stage:')
+        self.stageLabel.setAlignment(Qt.AlignCenter)
+        self.stageLabel.setFont(FONT_BOLD)
+
+        self.stageDropdown = StageDropdown(self.model)
+        self.stageDropdown.activated.connect(self.updateStatus)
+
+        self.goButton = QPushButton('Start Calibration Routine')
+        self.goButton.setEnabled(False)
+        self.goButton.clicked.connect(self.go)
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.defaultButton)
+        layout.addWidget(self.loadButton)
+        layout.addWidget(self.stageLabel)
+        layout.addWidget(self.stageDropdown)
+        layout.addWidget(self.goButton)
+        self.setLayout(layout)
+
+        self.setWindowTitle("Calibration Routine Parameters")
+
+    def intrinsicsFromFile(self):
+        return self.loadButton.isChecked()
+
+    def getStage(self):
+        ip = self.stageDropdown.currentText()
+        stage = self.model.stages[ip]
+        return stage
+
+    def go(self):
+        self.accept()
+
+    def handleRadio(self, button):
+        print('TODO handleRadio')
+
+    def updateStatus(self):
+        if self.stageDropdown.isSelected():
+            self.goButton.setEnabled(True)
+
+
+class CalibrationDialog_old(QWidget):
     msgPosted = pyqtSignal(str)
     calDone = pyqtSignal()
     snapshotRequested = pyqtSignal()
+    started = pyqtSignal()
 
     def __init__(self, model, parent=None):
         QWidget.__init__(self, parent)
@@ -31,79 +86,51 @@ class CalibrationDialog(QWidget):
         self.stageDropdown.activated.connect(self.handleStageSelection)
 
         self.goButton = QPushButton('Start Calibration Routine')
-        self.registerButton = QPushButton('Register Corresponding Image Points')
+        self.goButton.setEnabled(False)
 
-        self.updateIntrinsicsStatus()
+        self.updateStatus()
 
         self.intrinsicsButton.clicked.connect(self.loadIntrinsics)
-        self.goButton.clicked.connect(self.startCalibration)
-        self.registerButton.clicked.connect(self.register)
+        #self.goButton.clicked.connect(self.startCalibration)
+        self.goButton.clicked.connect(self.go)
 
         layout = QVBoxLayout()
         layout.addWidget(self.intrinsicsButton)
         layout.addWidget(self.intrinsicsLabel)
         layout.addWidget(self.stageDropdown)
         layout.addWidget(self.goButton)
-        layout.addWidget(self.registerButton)
         self.setLayout(layout)
+
+        self.setWindowTitle('Start Calibration Routine')
+        self.setMinimumWidth(300)
+
+    def go(self):
+        self.started.emit()
+        self.close()
 
     def handleStageSelection(self, index):
         ip = self.stageDropdown.currentText()
-        self.setStage(self.model.stages[ip])
+        self.model.setCalStage(self.model.stages[ip])
+        self.updateStatus()
 
-    def setStage(self, stage):
-        self.stage = stage
-
-    def startCalibration(self):
-
-        self.imgPoints1_cal = []
-        self.imgPoints2_cal = []
-        self.calThread = QThread()
-        self.calWorker = CalibrationWorker(self.stage, stepsPerDim=2)
-        self.calWorker.moveToThread(self.calThread)
-        self.calThread.started.connect(self.calWorker.run)
-        self.calWorker.finished.connect(self.calThread.quit)
-        self.calWorker.finished.connect(self.calWorker.deleteLater)
-        self.calWorker.calibrationPointReached.connect(self.handleCalPointReached)
-        self.calThread.finished.connect(self.calThread.deleteLater)
-        self.calThread.finished.connect(self.handleCalFinished)
-        self.msgPosted.emit('Starting Calibration...')
-        self.calThread.start()
 
     def register(self):
-
         self.imgPoints1_cal.append(self.model.lcorr)
         self.imgPoints2_cal.append(self.model.rcorr)
         self.msgPosted.emit('Registered correspondence points %s and %s' % (self.model.lcorr.__str__(),
                                                                             self.model.rcorr.__str__()))
         self.calWorker.carryOn()
 
-    def handleCalPointReached(self, n, numCal, x,y,z):
-
-        self.msgPosted.emit('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,numCal, x,y,z))
-        self.msgPosted.emit('Select correspondence points and click Register to continue')
-        self.snapshotRequested.emit()
-
-    def handleCalFinished(self):
-
-        imgPoints1_cal = np.array([self.imgPoints1_cal], dtype=np.float32)
-        imgPoints2_cal = np.array([self.imgPoints2_cal], dtype=np.float32)
-        objPoints_cal = self.calWorker.getObjectPoints()
-
-        self.model.doCalibration(imgPoints1_cal, imgPoints2_cal, objPoints_cal)
-
-        self.msgPosted.emit('Calibration finished')
-        self.calDone.emit()
+    def updateStatus(self):
+        if self.updateIntrinsicsStatus() and self.model.calStage:
+            self.goButton.setEnabled(True)
 
     def updateIntrinsicsStatus(self):
         if self.model.intrinsicsLoaded:
             self.intrinsicsLabel.setText('Intrinsics loaded.')
-            self.goButton.setEnabled(True)
-            self.registerButton.setEnabled(True)
         else:
             self.intrinsicsLabel.setText('Intrinsics needed.')
-            self.goButton.setEnabled(False)
-            self.registerButton.setEnabled(False)
+        return self.model.intrinsicsLoaded
 
     def loadIntrinsics(self):
 
@@ -126,6 +153,11 @@ class CalibrationDialog(QWidget):
             self.model.setIntrinsics(mtx1, mtx2, dist1, dist2)
             self.updateIntrinsicsStatus()
 
+    def getParams(self):
+        params = {}
+        params['instrinsics_default'] = True
+        params['calStage'] = True
+        return params
 
 class TargetDialog(QDialog):
 
@@ -175,14 +207,6 @@ class TargetDialog(QDialog):
         self.setLayout(layout)
         self.setWindowTitle('Set Target Coordinates')
 
-    def setDisabledAllChips(self):
-        self.oneChannelLine.setDisabled(True)
-        self.plotCheckbox.setDisabled(False)
-
-    def setDisabledOneChannel(self):
-        self.oneChannelLine.setDisabled(False)
-        self.plotCheckbox.setDisabled(True)
-
     def getParams(self):
         params = {}
         params['x'] = float(self.xedit.text())
@@ -223,14 +247,6 @@ class CenterDialog(QDialog):
         layout.addWidget(self.givenButton, 2,0, 1,3)
         self.setLayout(layout)
         self.setWindowTitle('Set Target Coordinates')
-
-    def setDisabledAllChips(self):
-        self.oneChannelLine.setDisabled(True)
-        self.plotCheckbox.setDisabled(False)
-
-    def setDisabledOneChannel(self):
-        self.oneChannelLine.setDisabled(False)
-        self.plotCheckbox.setDisabled(True)
 
     def getParams(self):
         x = float(self.xedit.text())
