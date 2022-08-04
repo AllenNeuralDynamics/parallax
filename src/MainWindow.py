@@ -52,7 +52,9 @@ class MainWindow(QWidget):
         self.model.snapshotRequested.connect(self.takeSnapshot)
         self.model.msgPosted.connect(self.msgLog.post)
         self.lscreen.selected.connect(self.model.setLcorr)
+        self.lscreen.cleared.connect(self.model.clearLcorr)
         self.rscreen.selected.connect(self.model.setRcorr)
+        self.rscreen.cleared.connect(self.model.clearRcorr)
 
         mainLayout = QVBoxLayout()
         mainLayout.addWidget(self.deviceManager)

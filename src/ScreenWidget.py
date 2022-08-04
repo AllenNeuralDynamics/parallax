@@ -12,6 +12,7 @@ from Helper import *
 class ScreenWidget(QLabel):
 
     selected = pyqtSignal(int, int)
+    cleared = pyqtSignal()
 
     def __init__(self, model, parent=None):
         QWidget.__init__(self, parent=parent)
@@ -25,8 +26,7 @@ class ScreenWidget(QLabel):
         self.qimage = QImage(WIDTH_FRAME, HEIGHT_FRAME, QImage.Format_RGB32)
         self.display()
 
-        self.xsel = False
-        self.ysel = False
+        self.clearSelected()
 
         self.camera = None
 
@@ -34,6 +34,12 @@ class ScreenWidget(QLabel):
         if self.camera:
             self.camera.capture()
             self.setData(self.camera.getLastImageData())
+        self.clearSelected()
+
+    def clearSelected(self):
+        self.xsel = False
+        self.ysel = False
+        self.cleared.emit()
 
     def setData(self, data):
         # takes a 3000,4000 grayscale image straight from the camera

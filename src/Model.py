@@ -55,15 +55,24 @@ class Model(QObject):
     def setLcorr(self, xc, yc):
         self.lcorr = [xc, yc]
 
+    def clearLcorr(self):
+        self.lcorr = False
+
     def setRcorr(self, xc, yc):
         self.rcorr = [xc, yc]
 
+    def clearRcorr(self):
+        self.rcorr = False
+
     def registerCorrPoints_cal(self):
-        self.imgPoints1_cal.append(self.lcorr)
-        self.imgPoints2_cal.append(self.lcorr)
-        self.msgPosted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
-                                (self.lcorr[0],self.lcorr[1],self.rcorr[0], self.rcorr[1]))
-        self.calWorker.carryOn()
+        if (self.lcorr and self.rcorr):
+            self.imgPoints1_cal.append(self.lcorr)
+            self.imgPoints2_cal.append(self.lcorr)
+            self.msgPosted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
+                                    (self.lcorr[0],self.lcorr[1],self.rcorr[0], self.rcorr[1]))
+            self.calWorker.carryOn()
+        else:
+            self.msgPosted.emit('Highlight correspondence points and press C to continue')
 
     def initCameras(self):
         self.pyspin_instance = PySpin.System.GetInstance()
