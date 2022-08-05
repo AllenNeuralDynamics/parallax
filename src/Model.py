@@ -67,7 +67,7 @@ class Model(QObject):
     def registerCorrPoints_cal(self):
         if (self.lcorr and self.rcorr):
             self.imgPoints1_cal.append(self.lcorr)
-            self.imgPoints2_cal.append(self.lcorr)
+            self.imgPoints2_cal.append(self.rcorr)
             self.msgPosted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
                                     (self.lcorr[0],self.lcorr[1],self.rcorr[0], self.rcorr[1]))
             self.calWorker.carryOn()
