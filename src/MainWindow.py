@@ -5,7 +5,6 @@ from MessageLog import MessageLog
 from ScreenWidget import ScreenWidget
 from ControlPanel import ControlPanel
 from TriangulationPanel import TriangulationPanel
-from ReconstructionPanel import ReconstructionPanel
 from StageManager import StageManager
 from CameraManager import CameraManager
 

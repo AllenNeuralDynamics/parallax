@@ -100,12 +100,6 @@ class ControlPanel(QFrame):
         x,y,z = self.stage.origin
         self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
 
-    def setCenter(self):
-        dlg = CenterDialog()
-        if dlg.exec_():
-            x,y,z = dlg.getParams()
-            self.stage.setCenter(x,y,z)
-
     def moveToTarget(self):
         dlg = TargetDialog()
         if dlg.exec_():
