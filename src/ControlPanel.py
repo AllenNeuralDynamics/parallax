@@ -116,18 +116,19 @@ class ControlPanel(QFrame):
             if self.stage:
                 if params['relative']:
                     self.stage.moveToTarget3d_rel(x, y, z)
+                    self.msgPosted.emit('Moved to relative position: (%f, %f, %f) um' % (x, y, z))
                 else:
                     self.stage.moveToTarget3d_abs(x, y, z)
-                self.msgPosted.emit('Moved to position: (%f, %f, %f) um' % (x, y, z))
+                    self.msgPosted.emit('Moved to absolute position: (%f, %f, %f) um' % (x, y, z))
                 self.updateCoordinates()
 
     def moveRandom(self):
         if self.stage:
-            x = np.random.uniform(7000, 8000)
-            y = np.random.uniform(7000, 8000)
-            z = np.random.uniform(7000, 8000)
-            self.stage.moveToTarget3d_abs(x, y, z)
-            self.msgPosted.emit('Moved to position: (%f, %f, %f) um' % (x, y, z))
+            x = np.random.uniform(-2000, 2000)
+            y = np.random.uniform(-2000, 2000)
+            z = np.random.uniform(-2000, 2000)
+            self.stage.moveToTarget3d_rel(x, y, z)
+            self.msgPosted.emit('Moved to relative position: (%f, %f, %f) um' % (x, y, z))
             self.updateCoordinates()
 
     def jogX(self, forward):
