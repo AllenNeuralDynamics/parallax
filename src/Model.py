@@ -123,7 +123,8 @@ class Model(QObject):
         imgPoints2_cal = np.array([self.imgPoints2_cal], dtype=np.float32)
         objPoints_cal = self.calWorker.getObjectPoints()
         self.calibration.calibrate(imgPoints1_cal, imgPoints2_cal, objPoints_cal)
-        self.msgPosted.emit('Calibration finished')
+        self.msgPosted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
+                                (self.calibration.rmse1, self.calibration.rmse2))
         self.calFinished.emit()
 
     def clean(self):

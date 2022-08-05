@@ -72,9 +72,6 @@ class Calibration:
                                                                         (WF, HF), self.imtx2, self.idist2,
                                                                         flags=myFlags)
 
-        print('rmse1 = ', rmse1)
-        print('rmse2 = ', rmse2)
-
         # calculate projection matrices
         proj1 = lib.getProjectionMatrix(mtx1, rvecs1[0], tvecs1[0])
         proj2 = lib.getProjectionMatrix(mtx2, rvecs2[0], tvecs2[0])
