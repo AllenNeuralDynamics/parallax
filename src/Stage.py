@@ -367,7 +367,8 @@ class Stage():
         """
         units are microns
         """
-        self.moveToTarget3d_abs(x-self.origin[0], y-self.origin[1], z-self.origin[2])
+        self.moveToTarget3d_abs(self.origin[0] + x, self.origin[1] + y,
+                                    self.origin[2] + z)
 
     def center(self):
         self.moveToTarget_mm3d(0, 0, 0)
