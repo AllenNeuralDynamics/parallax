@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QRadioButton
+from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QRadioButton, QSpinBox
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QFileDialog, QDialog, QCheckBox, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
@@ -9,7 +9,7 @@ from ToggleSwitch import ToggleSwitch
 from Helper import *
 from lib import *
 from StageDropdown import StageDropdown
-from CalibrationWorker import CalibrationWorker
+from CalibrationWorker import CalibrationWorker as cw
 
 
 class CalibrationDialog(QDialog):
@@ -18,12 +18,12 @@ class CalibrationDialog(QDialog):
         QDialog.__init__(self, parent)
         self.model = model
 
-        self.defaultButton = QRadioButton("Use Default Intrinsics")
-        self.defaultButton.setChecked(True)
-        self.defaultButton.toggled.connect(self.handleRadio)
+        self.intrinsicsDefaultButton = QRadioButton("Use Default Intrinsics")
+        self.intrinsicsDefaultButton.setChecked(True)
+        self.intrinsicsDefaultButton.toggled.connect(self.handleRadio)
 
-        self.loadButton = QRadioButton("Load Intrinsics from File")
-        self.loadButton.toggled.connect(self.handleRadio)
+        self.intrinsicsLoadButton = QRadioButton("Load Intrinsics from File")
+        self.intrinsicsLoadButton.toggled.connect(self.handleRadio)
 
         self.stageLabel = QLabel('Select a Stage:')
         self.stageLabel.setAlignment(Qt.AlignCenter)
@@ -32,27 +32,48 @@ class CalibrationDialog(QDialog):
         self.stageDropdown = StageDropdown(self.model)
         self.stageDropdown.activated.connect(self.updateStatus)
 
+        self.resolutionLabel = QLabel('Resolution:')
+        self.resolutionLabel.setAlignment(Qt.AlignCenter)
+        self.resolutionBox = QSpinBox()
+        self.resolutionBox.setMinimum(2)
+        self.resolutionBox.setValue(cw.RESOLUTION_DEFAULT)
+
+        self.extentLabel = QLabel('Extent (um):')
+        self.extentLabel.setAlignment(Qt.AlignCenter)
+        self.extentEdit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
+
         self.goButton = QPushButton('Start Calibration Routine')
         self.goButton.setEnabled(False)
         self.goButton.clicked.connect(self.go)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.defaultButton)
-        layout.addWidget(self.loadButton)
-        layout.addWidget(self.stageLabel)
-        layout.addWidget(self.stageDropdown)
-        layout.addWidget(self.goButton)
+        layout = QGridLayout()
+        layout.addWidget(self.intrinsicsDefaultButton, 0,0, 1,2)
+        layout.addWidget(self.intrinsicsLoadButton, 1,0, 1,2)
+        layout.addWidget(self.stageLabel, 2,0, 1,1)
+        layout.addWidget(self.stageDropdown, 2,1, 1,1)
+        layout.addWidget(self.resolutionLabel, 3,0, 1,1)
+        layout.addWidget(self.resolutionBox, 3,1, 1,1)
+        layout.addWidget(self.extentLabel, 4,0, 1,1)
+        layout.addWidget(self.extentEdit, 4,1, 1,1)
+        layout.addWidget(self.goButton, 5,0, 1,2)
         self.setLayout(layout)
 
         self.setWindowTitle("Calibration Routine Parameters")
+        self.setMinimumWidth(300)
 
-    def intrinsicsFromFile(self):
-        return self.loadButton.isChecked()
+    def getIntrinsicsLoad(self):
+        return self.intrinsicsLoadButton.isChecked()
 
     def getStage(self):
         ip = self.stageDropdown.currentText()
         stage = self.model.stages[ip]
         return stage
+
+    def getResolution(self):
+        return self.resolutionBox.value()
+
+    def getExtent(self):
+        return float(self.extentEdit.text())
 
     def go(self):
         self.accept()
@@ -64,100 +85,6 @@ class CalibrationDialog(QDialog):
         if self.stageDropdown.isSelected():
             self.goButton.setEnabled(True)
 
-
-class CalibrationDialog_old(QWidget):
-    msgPosted = pyqtSignal(str)
-    calDone = pyqtSignal()
-    snapshotRequested = pyqtSignal()
-    started = pyqtSignal()
-
-    def __init__(self, model, parent=None):
-        QWidget.__init__(self, parent)
-        self.model = model
-        self.stage = None
-
-        self.intrinsicsButton = QPushButton('Load Intrinsics')
-
-        self.intrinsicsLabel = QLabel()
-        self.intrinsicsLabel.setAlignment(Qt.AlignCenter)
-        self.intrinsicsLabel.setFont(FONT_BOLD)
-
-        self.stageDropdown = StageDropdown(self.model)
-        self.stageDropdown.activated.connect(self.handleStageSelection)
-
-        self.goButton = QPushButton('Start Calibration Routine')
-        self.goButton.setEnabled(False)
-
-        self.updateStatus()
-
-        self.intrinsicsButton.clicked.connect(self.loadIntrinsics)
-        #self.goButton.clicked.connect(self.startCalibration)
-        self.goButton.clicked.connect(self.go)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.intrinsicsButton)
-        layout.addWidget(self.intrinsicsLabel)
-        layout.addWidget(self.stageDropdown)
-        layout.addWidget(self.goButton)
-        self.setLayout(layout)
-
-        self.setWindowTitle('Start Calibration Routine')
-        self.setMinimumWidth(300)
-
-    def go(self):
-        self.started.emit()
-        self.close()
-
-    def handleStageSelection(self, index):
-        ip = self.stageDropdown.currentText()
-        self.model.setCalStage(self.model.stages[ip])
-        self.updateStatus()
-
-
-    def register(self):
-        self.imgPoints1_cal.append(self.model.lcorr)
-        self.imgPoints2_cal.append(self.model.rcorr)
-        self.msgPosted.emit('Registered correspondence points %s and %s' % (self.model.lcorr.__str__(),
-                                                                            self.model.rcorr.__str__()))
-        self.calWorker.carryOn()
-
-    def updateStatus(self):
-        if self.updateIntrinsicsStatus() and self.model.calStage:
-            self.goButton.setEnabled(True)
-
-    def updateIntrinsicsStatus(self):
-        if self.model.intrinsicsLoaded:
-            self.intrinsicsLabel.setText('Intrinsics loaded.')
-        else:
-            self.intrinsicsLabel.setText('Intrinsics needed.')
-        return self.model.intrinsicsLoaded
-
-    def loadIntrinsics(self):
-
-        filenames = QFileDialog.getOpenFileNames(self, 'Select intrinsics files', '.',
-                                                    'Numpy files (*.npy)')[0]
-
-        if filenames:
-
-            for filename in filenames:
-                basename = os.path.basename(filename)
-                if basename == 'mtx1.npy':
-                    mtx1 = np.load(filename)
-                elif basename == 'mtx2.npy':
-                    mtx2 = np.load(filename)
-                elif basename == 'dist1.npy':
-                    dist1= np.load(filename)
-                elif basename == 'dist2.npy':
-                    dist2= np.load(filename)
-
-            self.model.setIntrinsics(mtx1, mtx2, dist1, dist2)
-            self.updateIntrinsicsStatus()
-
-    def getParams(self):
-        params = {}
-        params['instrinsics_default'] = True
-        params['calStage'] = True
-        return params
 
 class TargetDialog(QDialog):
 
@@ -269,4 +196,5 @@ class ScanStageDialog(QDialog):
         y = float(self.yedit.text())
         z = float(self.zedit.text())
         return x,y,z
+
 

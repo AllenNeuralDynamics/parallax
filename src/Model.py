@@ -97,11 +97,11 @@ class Model(QObject):
     def setCalStage(self, stage):
         self.calStage = stage
 
-    def startCalibration(self):
+    def startCalibration(self, resolution, extent_um):
         self.imgPoints1_cal = []
         self.imgPoints2_cal = []
         self.calThread = QThread()
-        self.calWorker = CalibrationWorker(self.calStage, stepsPerDim=2)
+        self.calWorker = CalibrationWorker(self.calStage, resolution, extent_um)
         self.calWorker.moveToThread(self.calThread)
         self.calThread.started.connect(self.calWorker.run)
         self.calWorker.calibrationPointReached.connect(self.handleCalPointReached)

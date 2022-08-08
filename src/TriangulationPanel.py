@@ -8,7 +8,7 @@ import numpy as np
 from Calibration import Calibration
 from lib import *
 from Helper import *
-from Dialogs import *
+from Dialogs import CalibrationDialog
 
 
 class TriangulationPanel(QFrame):
@@ -62,15 +62,21 @@ class TriangulationPanel(QFrame):
         self.msgPosted.emit('Reconstructed object point: (%f, %f, %f)' % (x,y,z))
 
     def launchCalibrationDialog(self):
+
         dlg = CalibrationDialog(self.model)
         if dlg.exec_():
-            self.model.setCalStage(dlg.getStage())
-            if dlg.intrinsicsFromFile():
-                #cal.setInitialIntrinsics(mtx, mtx2, mtx3, mtx4)
-                print('TODO intrinsics from file')
+
+            intrinsicsLoad = dlg.getIntrinsicsLoad()
+            stage = dlg.getStage()
+            res = dlg.getResolution()
+            extent = dlg.getExtent()
+
+            self.model.setCalStage(stage)
+            if intrinsicsLoad:
+                print('TODO load intrinsics from file')
                 return
             self.model.calFinished.connect(self.updateStatus)
-            self.model.startCalibration()
+            self.model.startCalibration(res, extent)
 
     def load(self):
         filename = QFileDialog.getOpenFileName(self, 'Load calibration file', '.',
