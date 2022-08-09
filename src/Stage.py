@@ -4,8 +4,10 @@ from MotorStatus import MotorStatus
 
 import time, socket
 
-JOG_STEPS = 10000   # 5 mm
-# steps are 0.5 um by default
+STEPS_PER_MICRON = 2
+AXIS_ORDER_INSERT = ['x','y','z']
+AXIS_ORDER_RETRACT = ['z','y','x']
+
 
 class Stage():
 
@@ -16,7 +18,7 @@ class Stage():
 
     def initialize(self):
         try:
-            for axis in ['x', 'y', 'z']:
+            for axis in AXIS_ORDER_INSERT:
                 self.selectAxis(axis)
                 self.setOrQueryDriveMode('closed')
                 self.activateSoftLimits('deactivate')
@@ -312,11 +314,11 @@ class Stage():
     def getPosition_abs(self):
 
         self.selectAxis('x')
-        x = self.viewClosedLoopStatus()[1] / 2.
+        x = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
         self.selectAxis('y')
-        y = self.viewClosedLoopStatus()[1] / 2.
+        y = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
         self.selectAxis('z')
-        z = self.viewClosedLoopStatus()[1] / 2.
+        z = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
         return x, y, z
 
     def getPosition_rel(self):
@@ -348,20 +350,19 @@ class Stage():
         """
         units are microns
         """
-        # fire off each axis
-        self.selectAxis('x')
-        self.moveToTarget(x * 2)
-        self.selectAxis('y')
-        self.moveToTarget(y * 2)
+
+        coords = {'x':x, 'y':y, 'z':z}
+
+        # determine axis order based on delta-z
         self.selectAxis('z')
-        self.moveToTarget(z * 2)
-        # now wait for all 3
-        self.selectAxis('x')
-        self.wait()
-        self.selectAxis('y')
-        self.wait()
-        self.selectAxis('z')
-        self.wait()
+        z0 = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
+        deltaz = z - z0
+        axis_order = AXIS_ORDER_INSERT if (deltaz < 0) else AXIS_ORDER_RETRACT
+
+        for axis in axis_order:
+            self.selectAxis(axis)
+            self.moveToTarget(coords[axis] * STEPS_PER_MICRON)
+            self.wait()
 
     def moveToTarget3d_rel(self, x, y, z):
         """
