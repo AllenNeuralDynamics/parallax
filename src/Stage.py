@@ -311,6 +311,9 @@ class Stage():
     def setOrigin(self, x, y, z):
         self.origin = [x,y,z]
 
+    def getOrigin(self):
+        return self.origin
+
     def getPosition_abs(self):
 
         self.selectAxis('x')

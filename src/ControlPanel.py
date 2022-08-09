@@ -12,28 +12,37 @@ from StageDropdown import StageDropdown
 JOG_SIZE_STEPS = 1000
 
 
-class AxisControl(QLabel):
+class AxisControl(QWidget):
     jogRequested = pyqtSignal(bool)
     centerRequested = pyqtSignal()
 
-    def __init__(self, text):
-        QLabel.__init__(self)
-        self.text = text
+    def __init__(self, axis):
+        QWidget.__init__(self)
+        self.axis = axis    # e.g. 'X'
 
-        self.setText(self.text)
-        self.setAlignment(Qt.AlignCenter)
+        self.relLabel = QLabel(self.axis + 'r')
+        self.relLabel.setAlignment(Qt.AlignCenter)
+        self.relLabel.setFont(FONT_BOLD)
+        self.absLabel = QLabel('(%sa)' % self.axis)
+        self.absLabel.setAlignment(Qt.AlignCenter)
 
-    def setValue(self, val):
-        self.value = val
-        self.setText('{0} = {1}'.format(self.text, self.value))
+        layout = QVBoxLayout()
+        layout.addWidget(self.relLabel)
+        layout.addWidget(self.absLabel)
+        self.setLayout(layout)
+
+    def setValue(self, val_rel, val_abs):
+        self.relLabel.setText('%sr = %0.1f' % (self.axis, val_rel))
+        self.absLabel.setText('(%0.1f)' % val_abs)
 
     def wheelEvent(self, e):
-        e.accept()
         self.jogRequested.emit(e.angleDelta().y() > 0)
+        e.accept()
 
     def mousePressEvent(self, e):
         if e.button() == Qt.MiddleButton:
             self.centerRequested.emit()
+            e.accept()
 
 class ControlPanel(QFrame):
     msgPosted = pyqtSignal(str)
@@ -83,11 +92,11 @@ class ControlPanel(QFrame):
         self.stage = None
 
     def updateCoordinates(self):
-        # could be faster if we separate out the 3 coordinates
-        x, y, z = self.stage.getPosition_rel()
-        self.xcontrol.setValue(x)
-        self.ycontrol.setValue(y)
-        self.zcontrol.setValue(z)
+        xa, ya, za = self.stage.getPosition_abs()
+        xo, yo, zo = self.stage.getOrigin()
+        self.xcontrol.setValue(xa-xo, xa)
+        self.ycontrol.setValue(ya-yo, ya)
+        self.zcontrol.setValue(za-zo, za)
 
     def handleStageSelection(self, index):
         socket.setdefaulttimeout(0.100)  # 50 ms timeout
