@@ -16,6 +16,48 @@ from StageDropdown import StageDropdown
 from CalibrationWorker import CalibrationWorker as cw
 
 
+class StageSettingsDialog(QDialog):
+
+    def __init__(self, stage):
+        QDialog.__init__(self)
+        self.stage = stage
+
+        self.currentLabel = QLabel('Current Value')
+        self.currentLabel.setAlignment(Qt.AlignCenter)
+        self.desiredLabel = QLabel('Desired Value')
+        self.desiredLabel.setAlignment(Qt.AlignCenter)
+
+        self.speedLabel = QLabel('Closed-Loop Speed')
+        self.speedCurrent = QLineEdit(str(self.stage.setClosedLoopSpeed()))
+        self.speedCurrent.setEnabled(False)
+        self.speedDesired = QLineEdit()
+
+        self.jogIncLabel = QLabel('Jog Increment')
+        self.jogIncCurrent = QLineEdit('1000')
+        self.jogIncCurrent.setEnabled(False)
+        self.jogIncDesired = QLineEdit()
+
+        self.dialogButtons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
+        self.dialogButtons.accepted.connect(self.accept)
+        self.dialogButtons.rejected.connect(self.reject)
+
+        layout = QGridLayout()
+        layout.addWidget(self.currentLabel, 0,1, 1,1)
+        layout.addWidget(self.desiredLabel, 0,2, 1,1)
+        layout.addWidget(self.speedLabel, 1,0, 1,1)
+        layout.addWidget(self.speedCurrent, 1,1, 1,1)
+        layout.addWidget(self.speedDesired, 1,2, 1,1)
+        layout.addWidget(self.jogIncLabel, 2,0, 1,1)
+        layout.addWidget(self.jogIncCurrent, 2,1, 1,1)
+        layout.addWidget(self.jogIncDesired, 2,2, 1,1)
+        layout.addWidget(self.dialogButtons, 3,0, 1,3)
+        self.setLayout(layout)
+
+    def getDesiredSpeed(self):
+        return int(self.speedDesired.text())
+
+
 class CalibrationDialog(QDialog):
 
     def __init__(self, model, parent=None):
@@ -92,8 +134,8 @@ class CalibrationDialog(QDialog):
 
 class TargetDialog(QDialog):
 
-    def __init__(self, model, parent=None):
-        QDialog.__init__(self, parent)
+    def __init__(self, model):
+        QDialog.__init__(self)
         self.model = model
 
         self.lastButton = QPushButton('Last Reconstructed Point')
@@ -229,7 +271,7 @@ if __name__ == '__main__':
     from Model import Model
     model = Model()
     app = QApplication([])
-    dlg = TargetDialog(model)
+    dlg = StageSettingsDialog(model)
     dlg.show()
     app.exec()
 

@@ -215,7 +215,31 @@ class Stage():
         resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
 
     # 40
-    # TODO set the closed-loop mode speed
+    def setClosedLoopSpeed(self, speed=None):
+        """
+        This command sets the closed-loop speed of the current axis (motor).
+        Note that the controller works in 0.5-micron encoder units. It also
+        works in increments of the closed-loop interval (time between each
+        processing of the current encoder position) rather than in seconds. So,
+        the host must convert the required velocity and acceleration into those
+        units.
+        If <40> is sent with no parameter, it will report the current settings.
+        Default is <40 001000 000014 000029 0001>
+        TODO get/set the other parameters (cutoff, acceleration, interval)
+        """
+        if (speed is None):
+            query = True
+            cmd = "<40>\r"
+        else:
+            query = False
+            SSSSSS = '{0:06x}'.format(int(speed))
+            cmd = "<40 {0} 000014 000029 0001>\r".format(SSSSSS)
+        cmd_bytes = bytes(cmd, 'utf-8')
+        self.sock.sendall(cmd_bytes)
+        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
+        if query:
+            SSSSSS = int(resp.split()[1], 16)
+            return SSSSSS
 
     # 41
     # TODO set the position error thresholds and stall detection

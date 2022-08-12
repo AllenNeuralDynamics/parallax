@@ -44,6 +44,7 @@ class AxisControl(QWidget):
             self.centerRequested.emit()
             e.accept()
 
+
 class ControlPanel(QFrame):
     msgPosted = pyqtSignal(str)
 
@@ -71,6 +72,9 @@ class ControlPanel(QFrame):
         self.moveTargetButton = QPushButton('Move to Target')
         self.moveTargetButton.clicked.connect(self.moveToTarget)
 
+        self.settingsButton = QPushButton('Settings')
+        self.settingsButton.clicked.connect(self.handleSettings)
+
         # layout
         mainLayout = QGridLayout()
         mainLayout.addWidget(self.dropdown, 0,0, 1,3)
@@ -79,6 +83,7 @@ class ControlPanel(QFrame):
         mainLayout.addWidget(self.zcontrol, 1,2, 1,1)
         mainLayout.addWidget(self.zeroButton, 2,0, 1,3)
         mainLayout.addWidget(self.moveTargetButton, 3,0, 1,3)
+        mainLayout.addWidget(self.settingsButton, 4,0, 1,3)
         self.setLayout(mainLayout)
 
         # frame border
@@ -120,6 +125,15 @@ class ControlPanel(QFrame):
                     self.stage.moveToTarget3d_abs(x, y, z)
                     self.msgPosted.emit('Moved to absolute position: (%f, %f, %f) um' % (x, y, z))
                 self.updateCoordinates()
+
+    def handleSettings(self):
+        if self.stage:
+            dlg = StageSettingsDialog(self.stage)
+            if dlg.exec_():
+                speed = dlg.getDesiredSpeed()
+                self.stage.setClosedLoopSpeed(speed)
+        else:
+            self.msgPosted.emit('ControlPanel: No stage selected.')
 
     def jogX(self, forward):
         if self.stage:
