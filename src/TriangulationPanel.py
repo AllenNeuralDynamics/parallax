@@ -59,7 +59,8 @@ class TriangulationPanel(QFrame):
             return
 
         x,y,z = self.model.triangulate()
-        self.msgPosted.emit('Reconstructed object point: (%f, %f, %f)' % (x,y,z))
+        self.msgPosted.emit('Reconstructed object point: '
+                            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
 
     def launchCalibrationDialog(self):
 

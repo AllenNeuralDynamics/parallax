@@ -115,10 +115,12 @@ class ControlPanel(QFrame):
             if self.stage:
                 if params['relative']:
                     self.stage.moveToTarget3d_rel(x, y, z)
-                    self.msgPosted.emit('Moved to relative position: (%f, %f, %f) um' % (x, y, z))
+                    self.msgPosted.emit('Moved to relative position: '
+                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
                 else:
                     self.stage.moveToTarget3d_abs(x, y, z)
-                    self.msgPosted.emit('Moved to absolute position: (%f, %f, %f) um' % (x, y, z))
+                    self.msgPosted.emit('Moved to absolute position: '
+                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
                 self.updateCoordinates()
 
     def jogX(self, forward):
