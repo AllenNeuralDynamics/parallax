@@ -1,9 +1,13 @@
+#!/usr/bin/python3
+
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QRadioButton, QSpinBox
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QFileDialog, QDialog, QCheckBox, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QDoubleValidator, QIcon
+
 import time, datetime, os, sys
+import numpy as np
 
 from ToggleSwitch import ToggleSwitch
 from Helper import *
@@ -88,19 +92,28 @@ class CalibrationDialog(QDialog):
 
 class TargetDialog(QDialog):
 
-    def __init__(self, parent=None):
+    def __init__(self, model, parent=None):
         QDialog.__init__(self, parent)
+        self.model = model
 
-        self.infoLabel = QLabel('Units are microns')
-        self.infoLabel.setAlignment(Qt.AlignCenter)
-        self.infoLabel.setFont(FONT_BOLD)
+        self.lastButton = QPushButton('Last Reconstructed Point')
+        self.lastButton.clicked.connect(self.populateLast)
+        if self.model.objPoint_last is None:
+            self.lastButton.setEnabled(False)
+
+        self.randomButton = QPushButton('Random Point')
+        self.randomButton.clicked.connect(self.populateRandom)
 
         self.relativeLabel = QLabel('Relative Coordinates')
+        self.absRelToggle = ToggleSwitch(thumb_radius=11, track_radius=8)
+        self.absRelToggle.setChecked(True)
 
         self.xlabel = QLabel('X = ')
+        self.xlabel.setAlignment(Qt.AlignCenter)
         self.ylabel = QLabel('Y = ')
+        self.ylabel.setAlignment(Qt.AlignCenter)
         self.zlabel = QLabel('Z = ')
-
+        self.zlabel.setAlignment(Qt.AlignCenter)
         validator = QDoubleValidator(-15000,15000,-1)
         validator.setNotation(QDoubleValidator.StandardNotation)
         self.xedit = QLineEdit()
@@ -110,8 +123,10 @@ class TargetDialog(QDialog):
         self.zedit = QLineEdit()
         self.zedit.setValidator(validator)
 
-        self.absRelToggle = ToggleSwitch(thumb_radius=11, track_radius=8)
-        self.absRelToggle.setChecked(True)
+        self.infoLabel = QLabel('(units are microns)')
+        self.infoLabel.setAlignment(Qt.AlignCenter)
+        self.infoLabel.setFont(FONT_BOLD)
+
 
         self.dialogButtons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
@@ -121,18 +136,30 @@ class TargetDialog(QDialog):
         ####
 
         layout = QGridLayout()
-        layout.addWidget(self.infoLabel, 0,0, 1,2)
-        layout.addWidget(self.relativeLabel, 1,0, 1,1)
-        layout.addWidget(self.absRelToggle, 1,1, 1,1)
-        layout.addWidget(self.xlabel, 2,0)
-        layout.addWidget(self.ylabel, 3,0)
-        layout.addWidget(self.zlabel, 4,0)
-        layout.addWidget(self.xedit, 2,1)
-        layout.addWidget(self.yedit, 3,1)
-        layout.addWidget(self.zedit, 4,1)
-        layout.addWidget(self.dialogButtons, 5,0, 1,2)
+        layout.addWidget(self.lastButton, 0,0, 1,2)
+        layout.addWidget(self.randomButton, 1,0, 1,2)
+        layout.addWidget(self.relativeLabel, 2,0, 1,1)
+        layout.addWidget(self.absRelToggle, 2,1, 1,1)
+        layout.addWidget(self.xlabel, 3,0)
+        layout.addWidget(self.ylabel, 4,0)
+        layout.addWidget(self.zlabel, 5,0)
+        layout.addWidget(self.xedit, 3,1)
+        layout.addWidget(self.yedit, 4,1)
+        layout.addWidget(self.zedit, 5,1)
+        layout.addWidget(self.infoLabel, 6,0, 1,2)
+        layout.addWidget(self.dialogButtons, 7,0, 1,2)
         self.setLayout(layout)
         self.setWindowTitle('Set Target Coordinates')
+
+    def populateLast(self):
+        self.xedit.setText('{0:.2f}'.format(self.model.objPoint_last[0]))
+        self.yedit.setText('{0:.2f}'.format(self.model.objPoint_last[1]))
+        self.zedit.setText('{0:.2f}'.format(self.model.objPoint_last[2]))
+
+    def populateRandom(self):
+        self.xedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
+        self.yedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
+        self.zedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
 
     def getParams(self):
         params = {}
@@ -197,4 +224,12 @@ class ScanStageDialog(QDialog):
         z = float(self.zedit.text())
         return x,y,z
 
+if __name__ == '__main__':
+    from PyQt5.QtWidgets import QApplication
+    from Model import Model
+    model = Model()
+    app = QApplication([])
+    dlg = TargetDialog(model)
+    dlg.show()
+    app.exec()
 

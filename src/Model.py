@@ -32,8 +32,11 @@ class Model(QObject):
         self.calibration = None
         self.lcorr, self.rcorr = False, False
 
+        self.objPoint_last = None
+
     def triangulate(self):
         objPoint = self.calibration.triangulate(self.lcorr, self.rcorr)
+        self.objPoint_last = objPoint
         return objPoint # x,y,z
 
     def setCalibration(self, calibration):

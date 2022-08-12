@@ -71,9 +71,6 @@ class ControlPanel(QFrame):
         self.moveTargetButton = QPushButton('Move to Target')
         self.moveTargetButton.clicked.connect(self.moveToTarget)
 
-        self.moveRandomButton = QPushButton('Move Random')
-        self.moveRandomButton.clicked.connect(self.moveRandom)
-
         # layout
         mainLayout = QGridLayout()
         mainLayout.addWidget(self.dropdown, 0,0, 1,3)
@@ -82,7 +79,6 @@ class ControlPanel(QFrame):
         mainLayout.addWidget(self.zcontrol, 1,2, 1,1)
         mainLayout.addWidget(self.zeroButton, 2,0, 1,3)
         mainLayout.addWidget(self.moveTargetButton, 3,0, 1,3)
-        mainLayout.addWidget(self.moveRandomButton, 4,0, 1,3)
         self.setLayout(mainLayout)
 
         # frame border
@@ -110,7 +106,7 @@ class ControlPanel(QFrame):
         self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
 
     def moveToTarget(self):
-        dlg = TargetDialog()
+        dlg = TargetDialog(self.model)
         if dlg.exec_():
             params = dlg.getParams()
             x = params['x']
@@ -124,15 +120,6 @@ class ControlPanel(QFrame):
                     self.stage.moveToTarget3d_abs(x, y, z)
                     self.msgPosted.emit('Moved to absolute position: (%f, %f, %f) um' % (x, y, z))
                 self.updateCoordinates()
-
-    def moveRandom(self):
-        if self.stage:
-            x = np.random.uniform(-2000, 2000)
-            y = np.random.uniform(-2000, 2000)
-            z = np.random.uniform(-2000, 2000)
-            self.stage.moveToTarget3d_rel(x, y, z)
-            self.msgPosted.emit('Moved to relative position: (%f, %f, %f) um' % (x, y, z))
-            self.updateCoordinates()
 
     def jogX(self, forward):
         if self.stage:
