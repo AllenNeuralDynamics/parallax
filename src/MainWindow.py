@@ -74,6 +74,8 @@ class MainWindow(QWidget):
                 e.accept()
         elif e.key() == Qt.Key_C:
             self.model.registerCorrPoints_cal()
+        elif e.key() == Qt.Key_Escape:
+            self.model.haltAllStages()
 
     def takeSnapshot(self):
         self.lscreen.refresh()

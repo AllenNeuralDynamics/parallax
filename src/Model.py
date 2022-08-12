@@ -141,6 +141,11 @@ class Model(QObject):
     def cleanStages(self):
         pass
 
+    def haltAllStages(self):
+        for stage in self.stages.values():
+            stage.halt()
+        self.msgPosted.emit('Halting all stages.')
+
 
 if __name__ == '__main__':
     model = Model()
