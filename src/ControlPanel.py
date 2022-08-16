@@ -95,7 +95,7 @@ class ControlPanel(QFrame):
         self.zcontrol.setValue(za-zo, za)
 
     def handleStageSelection(self, index):
-        socket.setdefaulttimeout(0.100)  # 50 ms timeout
+        socket.setdefaulttimeout(0.05)   # seconds
         ip = self.dropdown.currentText()
         self.setStage(self.model.stages[ip])
         self.updateCoordinates()

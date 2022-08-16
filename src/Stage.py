@@ -9,6 +9,14 @@ AXIS_ORDER_INSERT = ['x','y','z']
 AXIS_ORDER_RETRACT = ['z','y','x']
 
 
+def handleTimeout(func):
+    def inner(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except socket.timeout:
+            print('Socket timed out on Stage %s.' % self.getIP())
+    return inner
+
 class Stage():
 
     def __init__(self, sock):
@@ -17,13 +25,10 @@ class Stage():
         self.initialize()
 
     def initialize(self):
-        try:
-            for axis in AXIS_ORDER_INSERT:
-                self.selectAxis(axis)
-                self.setOrQueryDriveMode('closed')
-                self.activateSoftLimits('deactivate')
-        except socket.timeout:
-            print('Socket timed out on Stage %s. No MPM connected?' % self.getIP())
+        for axis in AXIS_ORDER_INSERT:
+            self.selectAxis(axis)
+            self.setOrQueryDriveMode('closed')
+            self.activateSoftLimits('deactivate')
 
     def close(self):
         self.sock.close()
@@ -38,6 +43,7 @@ class Stage():
     """
 
     # 01
+    @handleTimeout
     def readFirmwareVersion(self):
         """
         This command retrieves the version of the controller firmware.
@@ -52,6 +58,7 @@ class Stage():
         return fw_version
 
     # 03
+    @handleTimeout
     def halt(self):
         """
         This command halts motor motion regardless of where the movement command
@@ -64,6 +71,7 @@ class Stage():
         resp = self.sock.recv(1024) # no response after halt command?
 
     # 04
+    @handleTimeout
     def run(self, direction, duration_ds=None):
         """
         This command runs the motor. The motor will continue to move until command
@@ -84,6 +92,7 @@ class Stage():
         resp = self.sock.recv(1024)
 
     # 05
+    @handleTimeout
     def moveTimedOpenLoopSteps(self, direction, SPT=None):
         """
         This command sends one or more bursts of resonant pulses to the motor at
@@ -108,6 +117,7 @@ class Stage():
         resp = self.sock.recv(1024)
 
     # 06
+    @handleTimeout
     def moveClosedLoopStep(self, direction, stepSize_counts=None):
         """
         This command adds or subtracts the specified step size (in encoder counts)
@@ -129,6 +139,7 @@ class Stage():
         resp = self.sock.recv(1024)
 
     # 07
+    @handleTimeout
     def toggleAbsoluteRelative(self):
         """
         This command toggles the relative or absolute position modes. If the M3
@@ -143,6 +154,7 @@ class Stage():
         resp = self.sock.recv(1024)
 
     # 08
+    @handleTimeout
     def moveToTarget(self, targetValue):
         """
         This command sets a target position and moves the motor to that target
@@ -156,6 +168,7 @@ class Stage():
         resp = self.sock.recv(1024)
 
     # 09
+    @handleTimeout
     def setOpenLoopSpeed(self, speed_255):
         """
         This command sets the open-loop speed of the motor, as a range from 0-255,
@@ -168,6 +181,7 @@ class Stage():
         resp = self.sock.recv(1024)
 
     # 10
+    @handleTimeout
     def viewClosedLoopStatus(self):
         """
         This command is used to view the motor status and position.
@@ -182,6 +196,7 @@ class Stage():
         return SSSSSS, PPPPPPPP, EEEEEEEE
         
     # 19
+    @handleTimeout
     def readMotorFlags(self):
         """
         This command reports internal flags used by the controller to monitor
@@ -194,6 +209,7 @@ class Stage():
         # TODO parse response
         
     # 20
+    @handleTimeout
     def setOrQueryDriveMode(self, mode, interval=None):
         """
         This command sets the drive mode for the M3. The M3 will always default
@@ -227,6 +243,7 @@ class Stage():
     # TODO view and set forward and reverse soft limit values
 
     # 47
+    @handleTimeout
     def activateSoftLimits(self, action='query'):
         """
         This command is used to view, activate and deactivate motor travel limits.
@@ -262,6 +279,7 @@ class Stage():
     # TODO save closed-loop speed parameters to eeprom
 
     # 87
+    @handleTimeout
     def runFrequencyCalibration(self, direction, incremental=False, automatic=True,
                                 frequncy_offset=None, ):
         """
@@ -306,7 +324,7 @@ class Stage():
 
     def wait(self):
         while self.isMoving():
-            time.sleep(0.01)
+            time.sleep(0.1)
 
     def setOrigin(self, x, y, z):
         self.origin = [x,y,z]
