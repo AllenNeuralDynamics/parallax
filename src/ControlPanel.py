@@ -8,6 +8,7 @@ from Dialogs import *
 import time
 import socket
 from StageDropdown import StageDropdown
+from Stage import StageError
 
 JOG_SIZE_STEPS = 1000
 
@@ -113,15 +114,18 @@ class ControlPanel(QFrame):
             y = params['y']
             z = params['z']
             if self.stage:
-                if params['relative']:
-                    self.stage.moveToTarget3d_rel(x, y, z)
-                    self.msgPosted.emit('Moved to relative position: '
-                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                else:
-                    self.stage.moveToTarget3d_abs(x, y, z)
-                    self.msgPosted.emit('Moved to absolute position: '
-                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                self.updateCoordinates()
+                try:
+                    if params['relative']:
+                        self.stage.moveToTarget3d_rel(x, y, z, safe=True)
+                        self.msgPosted.emit('Moved to relative position: '
+                                            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+                    else:
+                        self.stage.moveToTarget3d_abs_safe(x, y, z)
+                        self.msgPosted.emit('Moved to absolute position: '
+                                            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+                    self.updateCoordinates()
+                except StageError:
+                    self.msgPosted.emit('Encountered stage communication error')
 
     def jogX(self, forward):
         if self.stage:

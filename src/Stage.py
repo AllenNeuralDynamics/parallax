@@ -9,12 +9,16 @@ AXIS_ORDER_INSERT = ['x','y','z']
 AXIS_ORDER_RETRACT = ['z','y','x']
 
 
+class StageError(Exception):
+    pass
+
 def handleTimeout(func):
     def inner(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
         except socket.timeout:
             print('Socket timed out on Stage %s.' % self.getIP())
+            raise StageError
     return inner
 
 class Stage():
@@ -372,25 +376,45 @@ class Stage():
         units are microns
         """
 
-        coords = {'x':x, 'y':y, 'z':z}
-
         # determine axis order based on delta-z
         self.selectAxis('z')
         z0 = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
         deltaz = z - z0
         axis_order = AXIS_ORDER_INSERT if (deltaz < 0) else AXIS_ORDER_RETRACT
 
+        coords = {'x':x, 'y':y, 'z':z}
         for axis in axis_order:
             self.selectAxis(axis)
             self.moveToTarget(coords[axis] * STEPS_PER_MICRON)
             self.wait()
 
-    def moveToTarget3d_rel(self, x, y, z):
+    def moveToTarget3d_abs_safe(self, x, y, z, zsafe=11500):
         """
         units are microns
         """
-        self.moveToTarget3d_abs(self.origin[0] + x, self.origin[1] + y,
-                                    self.origin[2] + z)
+
+        # first, retract to the zsafe position
+        self.selectAxis('z')
+        self.moveToTarget(zsafe * STEPS_PER_MICRON)
+        self.wait()
+
+        # then perform an insertion procedure
+        coords = {'x':x, 'y':y, 'z':z}
+        for axis in AXIS_ORDER_INSERT:
+            self.selectAxis(axis)
+            self.moveToTarget(coords[axis] * STEPS_PER_MICRON)
+            self.wait()
+
+    def moveToTarget3d_rel(self, x, y, z, safe=True):
+        """
+        units are microns
+        """
+        if safe:
+            self.moveToTarget3d_abs_safe(self.origin[0] + x, self.origin[1] + y,
+                                        self.origin[2] + z)
+        else:
+            self.moveToTarget3d_abs(self.origin[0] + x, self.origin[1] + y,
+                                        self.origin[2] + z)
 
     def center(self):
         self.moveToTarget_mm3d(0, 0, 0)
