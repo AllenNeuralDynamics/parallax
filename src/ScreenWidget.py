@@ -43,6 +43,7 @@ class ScreenWidget(QLabel):
     def clearSelected(self):
         self.xsel = False
         self.ysel = False
+        self.overlay.fill(qRgba(0,0,0,0))
         self.cleared.emit()
 
     def setData(self, data):
@@ -55,10 +56,6 @@ class ScreenWidget(QLabel):
         self.frame = QImage(rgbData, rgbData.shape[1], rgbData.shape[0],
                                 QImage.Format_RGB32)
 
-        self.xsel = False
-        self.ysel = False
-
-        self.zoom = False
         self.display()
 
     def display(self):

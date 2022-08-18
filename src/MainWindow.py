@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QMenu
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 
 from MessageLog import MessageLog
 from ScreenWidget import ScreenWidget
@@ -43,12 +43,16 @@ class MainWindow(QWidget):
         hlayout.addWidget(self.controlPanel2)
         self.controls.setLayout(hlayout)
 
+        self.refreshTimer = QTimer()
+        self.refreshTimer.timeout.connect(self.refresh)
+        self.refreshTimer.start(250)
+
         # connections
         self.msgLog = MessageLog()
         self.controlPanel1.msgPosted.connect(self.msgLog.post)
         self.controlPanel2.msgPosted.connect(self.msgLog.post)
         self.triPanel.msgPosted.connect(self.msgLog.post)
-        self.model.snapshotRequested.connect(self.takeSnapshot)
+        self.model.snapshotRequested.connect(self.clearSelected)
         self.model.msgPosted.connect(self.msgLog.post)
         self.lscreen.selected.connect(self.model.setLcorr)
         self.lscreen.cleared.connect(self.model.clearLcorr)
@@ -66,9 +70,9 @@ class MainWindow(QWidget):
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
-            self.refresh()
-            self.clearSelected()
-            e.accept()
+            if (e.modifiers() & Qt.ControlModifier):
+                self.clearSelected()
+                e.accept()
         elif e.key() == Qt.Key_S:
             if (e.modifiers() & Qt.ControlModifier):
                 self.saveCameraFrames()
