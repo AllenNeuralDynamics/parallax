@@ -47,6 +47,7 @@ class AxisControl(QWidget):
 
 class ControlPanel(QFrame):
     msgPosted = pyqtSignal(str)
+    targetReached = pyqtSignal()
 
     def __init__(self, model):
         QFrame.__init__(self)
@@ -124,6 +125,7 @@ class ControlPanel(QFrame):
                         self.msgPosted.emit('Moved to absolute position: '
                                             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
                     self.updateCoordinates()
+                    self.targetReached.emit()
                 except StageError:
                     self.msgPosted.emit('Encountered stage communication error')
 

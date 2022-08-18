@@ -20,7 +20,7 @@ class Model(QObject):
     stageScanFinished = pyqtSignal()
     cameraScanFinished = pyqtSignal()
     calFinished = pyqtSignal()
-    snapshotRequested = pyqtSignal()
+    calPointReached = pyqtSignal()
     msgPosted = pyqtSignal(str)
 
     def __init__(self):
@@ -118,7 +118,7 @@ class Model(QObject):
     def handleCalPointReached(self, n, numCal, x,y,z):
         self.msgPosted.emit('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,numCal, x,y,z))
         self.msgPosted.emit('Highlight correspondence points and press C to continue')
-        self.snapshotRequested.emit()
+        self.calPointReached.emit()
 
     def handleCalFinished(self):
         self.calibration = Calibration()

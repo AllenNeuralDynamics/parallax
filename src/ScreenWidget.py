@@ -35,6 +35,12 @@ class ScreenWidget(QLabel):
 
         self.camera = None
 
+    def zoomIn(self):
+        self.zoom = True
+
+    def zoomOut(self):
+        self.zoom = False
+
     def refresh(self):
         if self.camera:
             self.camera.capture()

@@ -51,8 +51,11 @@ class MainWindow(QWidget):
         self.msgLog = MessageLog()
         self.controlPanel1.msgPosted.connect(self.msgLog.post)
         self.controlPanel2.msgPosted.connect(self.msgLog.post)
+        self.controlPanel1.targetReached.connect(self.zoomOut)
+        self.controlPanel2.targetReached.connect(self.zoomOut)
         self.triPanel.msgPosted.connect(self.msgLog.post)
-        self.model.snapshotRequested.connect(self.clearSelected)
+        self.model.calPointReached.connect(self.clearSelected)
+        self.model.calPointReached.connect(self.zoomOut)
         self.model.msgPosted.connect(self.msgLog.post)
         self.lscreen.selected.connect(self.model.setLcorr)
         self.lscreen.cleared.connect(self.model.clearLcorr)
@@ -72,6 +75,7 @@ class MainWindow(QWidget):
         if e.key() == Qt.Key_R:
             if (e.modifiers() & Qt.ControlModifier):
                 self.clearSelected()
+                self.zoomOut()
                 e.accept()
         elif e.key() == Qt.Key_S:
             if (e.modifiers() & Qt.ControlModifier):
@@ -89,6 +93,10 @@ class MainWindow(QWidget):
     def clearSelected(self):
         self.lscreen.clearSelected()
         self.rscreen.clearSelected()
+
+    def zoomOut(self):
+        self.lscreen.zoomOut()
+        self.rscreen.zoomOut()
 
     def saveCameraFrames(self):
         for i,camera in enumerate(self.model.cameras.values()):
