@@ -66,7 +66,8 @@ class MainWindow(QWidget):
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
-            self.takeSnapshot()
+            self.refresh()
+            self.clearSelected()
             e.accept()
         elif e.key() == Qt.Key_S:
             if (e.modifiers() & Qt.ControlModifier):
@@ -77,9 +78,13 @@ class MainWindow(QWidget):
         elif e.key() == Qt.Key_Escape:
             self.model.haltAllStages()
 
-    def takeSnapshot(self):
+    def refresh(self):
         self.lscreen.refresh()
         self.rscreen.refresh()
+
+    def clearSelected(self):
+        self.lscreen.clearSelected()
+        self.rscreen.clearSelected()
 
     def saveCameraFrames(self):
         for i,camera in enumerate(self.model.cameras.values()):

@@ -39,7 +39,6 @@ class ScreenWidget(QLabel):
         if self.camera:
             self.camera.capture()
             self.setData(self.camera.getLastImageData())
-        self.clearSelected()
 
     def clearSelected(self):
         self.xsel = False
@@ -53,7 +52,7 @@ class ScreenWidget(QLabel):
         rgbData = np.zeros((HEIGHT_FRAME,WIDTH_FRAME,4), dtype=np.uint8)
         for i in range(3):
             rgbData[:,:,i] = self.data
-        self.qimage = QImage(rgbData, rgbData.shape[1], rgbData.shape[0],
+        self.frame = QImage(rgbData, rgbData.shape[1], rgbData.shape[0],
                                 QImage.Format_RGB32)
 
         self.xsel = False
@@ -88,8 +87,9 @@ class ScreenWidget(QLabel):
         # ^ this could be faster if we just qfill the known previous pixel
         for i in range(x-8, x+9):
             for j in range(y-8, y+9):
-                if (i==x) or (j==y): # crosshairs
-                    self.overlay.setPixel(i, j, qRgba(255, 0, 0, 255)) # green
+                if ((i>=(x-1)) and (i<=(x+1))) or ((j>=(y-1)) and (j<=(y+1))):
+                    # 3-pix red crosshair
+                    self.overlay.setPixel(i, j, qRgba(255, 0, 0, 255))
         self.display()
 
     def setCamera(self, camera):
