@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QMenu
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QIcon
 
 from MessageLog import MessageLog
 from ScreenWidget import ScreenWidget
@@ -70,6 +71,7 @@ class MainWindow(QWidget):
         self.setLayout(mainLayout)
 
         self.setWindowTitle('MISGUIde')
+        self.setWindowIcon(QIcon('../img/sextant.png'))
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
