@@ -11,12 +11,13 @@ import socket
 from StageDropdown import StageDropdown
 from Stage import StageError
 
-JOG_SIZE_STEPS = 1000
+JOG_STEPS_DEFAULT = 500
+CJOG_STEPS_DEFAULT = 100
 
 
 class AxisControl(QWidget):
-    jogRequested = pyqtSignal(bool)
-    centerRequested = pyqtSignal()
+    jogRequested = pyqtSignal(str, bool, bool)
+    centerRequested = pyqtSignal(str)
 
     def __init__(self, axis):
         QWidget.__init__(self)
@@ -38,12 +39,14 @@ class AxisControl(QWidget):
         self.absLabel.setText('(%0.1f)' % val_abs)
 
     def wheelEvent(self, e):
-        self.jogRequested.emit(e.angleDelta().y() > 0)
+        forward = bool(e.angleDelta().y() > 0)
+        control = bool(e.modifiers() & Qt.ControlModifier)
+        self.jogRequested.emit(self.axis, forward, control)
         e.accept()
 
     def mousePressEvent(self, e):
         if e.button() == Qt.MiddleButton:
-            self.centerRequested.emit()
+            self.centerRequested.emit(self.axis)
             e.accept()
 
 
@@ -69,14 +72,14 @@ class ControlPanel(QFrame):
         self.settingsButton.clicked.connect(self.handleSettings)
 
         self.xcontrol = AxisControl('X')
-        self.xcontrol.jogRequested.connect(self.jogX)
-        self.xcontrol.centerRequested.connect(self.centerX)
+        self.xcontrol.jogRequested.connect(self.jog)
+        self.xcontrol.centerRequested.connect(self.center)
         self.ycontrol = AxisControl('Y')
-        self.ycontrol.jogRequested.connect(self.jogY)
-        self.ycontrol.centerRequested.connect(self.centerY)
+        self.ycontrol.jogRequested.connect(self.jog)
+        self.ycontrol.centerRequested.connect(self.center)
         self.zcontrol = AxisControl('Z')
-        self.zcontrol.jogRequested.connect(self.jogZ)
-        self.zcontrol.centerRequested.connect(self.centerZ)
+        self.zcontrol.jogRequested.connect(self.jog)
+        self.zcontrol.centerRequested.connect(self.center)
 
         self.zeroButton = QPushButton('Zero')
         self.zeroButton.clicked.connect(self.zero)
@@ -101,6 +104,8 @@ class ControlPanel(QFrame):
         self.setLineWidth(2);
 
         self.stage = None
+        self.jog_steps = JOG_STEPS_DEFAULT
+        self.cjog_steps = CJOG_STEPS_DEFAULT
 
     def updateCoordinates(self):
         xa, ya, za = self.stage.getPosition_abs()
@@ -144,56 +149,39 @@ class ControlPanel(QFrame):
 
     def handleSettings(self):
         if self.stage:
-            dlg = StageSettingsDialog(self.stage)
+            dlg = StageSettingsDialog(self.stage, self.jog_steps/2, self.cjog_steps/2)
             if dlg.exec_():
                 if dlg.speedChanged():
                     self.stage.setClosedLoopSpeed(dlg.getSpeed())
                 if dlg.jogChanged():
-                    print('TODO: set jog = ', dlg.getJog())
+                    self.jog_steps = dlg.getJog_um() * 2
+                if dlg.cjogChanged():
+                    self.cjog_steps = dlg.getCjog_um() * 2
         else:
             self.msgPosted.emit('ControlPanel: No stage selected.')
 
-    def jogX(self, forward):
+    def jog(self, axis, forward, control):
         if self.stage:
-            self.stage.selectAxis('x')
+            if axis=='X':
+                self.stage.selectAxis('x')
+            elif axis=='Y':
+                self.stage.selectAxis('y')
+            elif axis=='Z':
+                self.stage.selectAxis('z')
             direction = 'forward' if forward else 'backward'
-            self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
+            nsteps = self.cjog_steps if control else self.jog_steps
+            self.stage.moveClosedLoopStep(direction, nsteps)
             self.stage.wait()
             self.updateCoordinates()
 
-    def jogY(self, forward):
+    def center(self, axis):
         if self.stage:
-            self.stage.selectAxis('y')
-            direction = 'forward' if forward else 'backward'
-            self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
-            self.stage.wait()
-            self.updateCoordinates()
-
-    def jogZ(self, forward):
-        if self.stage:
-            self.stage.selectAxis('z')
-            direction = 'forward' if forward else 'backward'
-            self.stage.moveClosedLoopStep(direction, JOG_SIZE_STEPS)
-            self.stage.wait()
-            self.updateCoordinates()
-
-    def centerX(self):
-        if self.stage:
-            self.stage.selectAxis('x')
-            self.stage.moveToTarget(15000)
-            self.stage.wait()
-            self.updateCoordinates()
-
-    def centerY(self):
-        if self.stage:
-            self.stage.selectAxis('y')
-            self.stage.moveToTarget(15000)
-            self.stage.wait()
-            self.updateCoordinates()
-
-    def centerZ(self):
-        if self.stage:
-            self.stage.selectAxis('z')
+            if axis=='X':
+                self.stage.selectAxis('x')
+            elif axis=='Y':
+                self.stage.selectAxis('y')
+            elif axis=='Z':
+                self.stage.selectAxis('z')
             self.stage.moveToTarget(15000)
             self.stage.wait()
             self.updateCoordinates()

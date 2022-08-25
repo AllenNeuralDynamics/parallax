@@ -18,7 +18,7 @@ from CalibrationWorker import CalibrationWorker as cw
 
 class StageSettingsDialog(QDialog):
 
-    def __init__(self, stage):
+    def __init__(self, stage, jog_um_current, cjog_um_current):
         QDialog.__init__(self)
         self.stage = stage
 
@@ -32,10 +32,15 @@ class StageSettingsDialog(QDialog):
         self.speedCurrent.setEnabled(False)
         self.speedDesired = QLineEdit()
 
-        self.jogLabel = QLabel('Jog Increment')
-        self.jogCurrent = QLineEdit('1000')
+        self.jogLabel = QLabel('Jog Increment (um)')
+        self.jogCurrent = QLineEdit(str(jog_um_current))
         self.jogCurrent.setEnabled(False)
         self.jogDesired = QLineEdit()
+
+        self.cjogLabel = QLabel('Control-Jog Increment (um)')
+        self.cjogCurrent = QLineEdit(str(cjog_um_current))
+        self.cjogCurrent.setEnabled(False)
+        self.cjogDesired = QLineEdit()
 
         self.dialogButtons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
@@ -51,7 +56,10 @@ class StageSettingsDialog(QDialog):
         layout.addWidget(self.jogLabel, 2,0, 1,1)
         layout.addWidget(self.jogCurrent, 2,1, 1,1)
         layout.addWidget(self.jogDesired, 2,2, 1,1)
-        layout.addWidget(self.dialogButtons, 3,0, 1,3)
+        layout.addWidget(self.cjogLabel, 3,0, 1,1)
+        layout.addWidget(self.cjogCurrent, 3,1, 1,1)
+        layout.addWidget(self.cjogDesired, 3,2, 1,1)
+        layout.addWidget(self.dialogButtons, 4,0, 1,3)
         self.setLayout(layout)
 
     def speedChanged(self):
@@ -67,8 +75,17 @@ class StageSettingsDialog(QDialog):
         ctext = self.jogCurrent.text()
         return bool(dtext) and (dtext != ctext)
 
-    def getJog(self):
+    def getJog_um(self):
         return int(self.jogDesired.text())
+
+    def cjogChanged(self):
+        dtext = self.cjogDesired.text()
+        ctext = self.cjogCurrent.text()
+        return bool(dtext) and (dtext != ctext)
+
+    def getCjog_um(self):
+        return int(self.cjogDesired.text())
+
 
 class CalibrationDialog(QDialog):
 
