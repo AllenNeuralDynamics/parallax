@@ -81,7 +81,7 @@ class ControlPanel(QFrame):
         self.zcontrol.jogRequested.connect(self.jog)
         self.zcontrol.centerRequested.connect(self.center)
 
-        self.zeroButton = QPushButton('Zero')
+        self.zeroButton = QPushButton('Set Relative Origin')
         self.zeroButton.clicked.connect(self.zero)
 
         self.moveTargetButton = QPushButton('Move to Target')
@@ -123,7 +123,7 @@ class ControlPanel(QFrame):
     def setStage(self, stage):
         self.stage = stage
         x,y,z = self.stage.origin
-        self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
+        self.zeroButton.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
 
     def moveToTarget(self):
         dlg = TargetDialog(self.model)
