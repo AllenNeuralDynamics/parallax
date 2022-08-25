@@ -5,6 +5,7 @@ from PyQt5.QtGui import QPainter, QPixmap, QImage, QColor, qRgb, qRgba
 from PyQt5.QtCore import Qt, pyqtSignal, QRect
 
 import numpy as np
+import cv2
 
 from Helper import *
 
@@ -14,8 +15,9 @@ class ScreenWidget(QLabel):
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
 
-    def __init__(self, model, parent=None):
+    def __init__(self, filename=None, model=None, parent=None):
         QWidget.__init__(self, parent=parent)
+        self.filename = filename
         self.model = model
 
         self.zoom = False
@@ -29,6 +31,10 @@ class ScreenWidget(QLabel):
         self.frame = QImage(WIDTH_FRAME, HEIGHT_FRAME, QImage.Format_RGB32)
         self.overlay = QImage(WIDTH_FRAME, HEIGHT_FRAME, QImage.Format_ARGB32)
         self.overlay.fill(qRgba(0,0,0,0))
+
+        if self.filename:
+            self.setData(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
+
         self.display()
 
         self.clearSelected()
@@ -114,15 +120,16 @@ class ScreenWidget(QLabel):
             self.selected.emit(self.xsel, self.ysel)
 
         elif e.button() == Qt.RightButton:
-            contextMenu = QMenu(self)
-            actions = []
-            for camera in self.model.cameras.values():
-                actions.append(contextMenu.addAction(camera.name()))
-            chosenAction = contextMenu.exec_(self.mapToGlobal(e.pos()))
-            for i,action in enumerate(actions): # wtf
-                if action is chosenAction:
-                    self.setCamera(self.model.cameras[i])
-            e.accept()
+            if self.model:
+                contextMenu = QMenu(self)
+                actions = []
+                for camera in self.model.cameras.values():
+                    actions.append(contextMenu.addAction(camera.name()))
+                chosenAction = contextMenu.exec_(self.mapToGlobal(e.pos()))
+                for i,action in enumerate(actions):
+                    if action is chosenAction:
+                        self.setCamera(self.model.cameras[i])
+                e.accept()
 
     def wheelEvent(self, e):
         if e.angleDelta().y() > 0:
@@ -144,9 +151,16 @@ class ScreenWidget(QLabel):
 
 if __name__ == '__main__':
 
+    import sys
     from PyQt5.QtWidgets import QApplication
+
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+    else:
+        filename = None
+
     app = QApplication([])
-    screen = ScreenWidget()
+    screen = ScreenWidget(filename=filename)
     window = QWidget()
     layout = QVBoxLayout()
     layout.addWidget(screen)

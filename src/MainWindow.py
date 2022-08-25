@@ -27,8 +27,8 @@ class MainWindow(QWidget):
 
         self.screens = QWidget()
         hlayout = QHBoxLayout()
-        self.lscreen = ScreenWidget(self.model)
-        self.rscreen = ScreenWidget(self.model)
+        self.lscreen = ScreenWidget(model=self.model)
+        self.rscreen = ScreenWidget(model=self.model)
         hlayout.addWidget(self.lscreen)
         hlayout.addWidget(self.rscreen)
         self.screens.setLayout(hlayout)
