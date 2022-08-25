@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QLineEdit, QFrame, QMe
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout 
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
+from PyQt5.QtGui import QIcon
 
 from Helper import *
 from Dialogs import *
@@ -57,6 +58,9 @@ class ControlPanel(QFrame):
         self.dropdown = StageDropdown(self.model)
         self.dropdown.activated.connect(self.handleStageSelection)
 
+        self.settingsButton = QPushButton()
+        self.settingsButton.setIcon(QIcon('../img/gear.png'))
+
         self.xcontrol = AxisControl('X')
         self.xcontrol.jogRequested.connect(self.jogX)
         self.xcontrol.centerRequested.connect(self.centerX)
@@ -75,7 +79,8 @@ class ControlPanel(QFrame):
 
         # layout
         mainLayout = QGridLayout()
-        mainLayout.addWidget(self.dropdown, 0,0, 1,3)
+        mainLayout.addWidget(self.dropdown, 0,0, 1,2)
+        mainLayout.addWidget(self.settingsButton, 0,2, 1,1)
         mainLayout.addWidget(self.xcontrol, 1,0, 1,1)
         mainLayout.addWidget(self.ycontrol, 1,1, 1,1)
         mainLayout.addWidget(self.zcontrol, 1,2, 1,1)
