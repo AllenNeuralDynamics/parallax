@@ -56,6 +56,11 @@ class ControlPanel(QFrame):
         self.model = model
 
         # widgets
+
+        self.mainLabel = QLabel('Stage Control')
+        self.mainLabel.setAlignment(Qt.AlignCenter)
+        self.mainLabel.setFont(FONT_BOLD)
+
         self.dropdown = StageDropdown(self.model)
         self.dropdown.activated.connect(self.handleStageSelection)
 
@@ -81,14 +86,14 @@ class ControlPanel(QFrame):
 
         # layout
         mainLayout = QGridLayout()
-        mainLayout.addWidget(self.dropdown, 0,0, 1,2)
-        mainLayout.addWidget(self.settingsButton, 0,2, 1,1)
-        mainLayout.addWidget(self.xcontrol, 1,0, 1,1)
-        mainLayout.addWidget(self.ycontrol, 1,1, 1,1)
-        mainLayout.addWidget(self.zcontrol, 1,2, 1,1)
-        mainLayout.addWidget(self.zeroButton, 2,0, 1,3)
-        mainLayout.addWidget(self.moveTargetButton, 3,0, 1,3)
-        mainLayout.addWidget(self.settingsButton, 4,0, 1,3)
+        mainLayout.addWidget(self.mainLabel, 0,0, 1,3)
+        mainLayout.addWidget(self.dropdown, 1,0, 1,2)
+        mainLayout.addWidget(self.settingsButton, 1,2, 1,1)
+        mainLayout.addWidget(self.xcontrol, 2,0, 1,1)
+        mainLayout.addWidget(self.ycontrol, 2,1, 1,1)
+        mainLayout.addWidget(self.zcontrol, 2,2, 1,1)
+        mainLayout.addWidget(self.zeroButton, 3,0, 1,3)
+        mainLayout.addWidget(self.moveTargetButton, 4,0, 1,3)
         self.setLayout(mainLayout)
 
         # frame border
