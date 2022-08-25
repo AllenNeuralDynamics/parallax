@@ -9,6 +9,11 @@ import cv2
 
 from Helper import *
 
+WIDTH_SCREEN = WS =  500
+HEIGHT_SCREEN = HS = 375
+
+CONVERSION_PX = WIDTH_FRAME / WIDTH_SCREEN
+
 
 class ScreenWidget(QLabel):
 
@@ -133,13 +138,15 @@ class ScreenWidget(QLabel):
 
     def wheelEvent(self, e):
         if e.angleDelta().y() > 0:
-            self.xc = e.x() * CONVERSION_PX
-            self.yc = e.y() * CONVERSION_PX
-            self.zoom = True
-            self.display()
+            if not self.zoom:
+                self.xc = e.x() * CONVERSION_PX
+                self.yc = e.y() * CONVERSION_PX
+                self.zoom = True
+                self.display()
         else:
-            self.zoom = False
-            self.display()
+            if self.zoom:
+                self.zoom = False
+                self.display()
         e.accept()
 
     def getSelected(self):
