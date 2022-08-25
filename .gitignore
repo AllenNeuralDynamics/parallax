@@ -1,6 +1,6 @@
 *.swp
 __pycache__/
 *.jpg
-*.png
+src/*.png
 *.npy
 *.pkl
