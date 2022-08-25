@@ -46,6 +46,7 @@ class AxisControl(QWidget):
             self.centerRequested.emit()
             e.accept()
 
+
 class ControlPanel(QFrame):
     msgPosted = pyqtSignal(str)
     targetReached = pyqtSignal()
@@ -60,6 +61,7 @@ class ControlPanel(QFrame):
 
         self.settingsButton = QPushButton()
         self.settingsButton.setIcon(QIcon('../img/gear.png'))
+        self.settingsButton.clicked.connect(self.handleSettings)
 
         self.xcontrol = AxisControl('X')
         self.xcontrol.jogRequested.connect(self.jogX)
@@ -86,6 +88,7 @@ class ControlPanel(QFrame):
         mainLayout.addWidget(self.zcontrol, 1,2, 1,1)
         mainLayout.addWidget(self.zeroButton, 2,0, 1,3)
         mainLayout.addWidget(self.moveTargetButton, 3,0, 1,3)
+        mainLayout.addWidget(self.settingsButton, 4,0, 1,3)
         self.setLayout(mainLayout)
 
         # frame border
@@ -133,6 +136,17 @@ class ControlPanel(QFrame):
                     self.targetReached.emit()
                 except StageError:
                     self.msgPosted.emit('Encountered stage communication error')
+
+    def handleSettings(self):
+        if self.stage:
+            dlg = StageSettingsDialog(self.stage)
+            if dlg.exec_():
+                if dlg.speedChanged():
+                    self.stage.setClosedLoopSpeed(dlg.getSpeed())
+                if dlg.jogChanged():
+                    print('TODO: set jog = ', dlg.getJog())
+        else:
+            self.msgPosted.emit('ControlPanel: No stage selected.')
 
     def jogX(self, forward):
         if self.stage:
