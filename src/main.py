@@ -13,4 +13,3 @@ if __name__ == '__main__':
     mainWindow.show()
     app.exec()
     model.clean()
-    mainWindow.exit()

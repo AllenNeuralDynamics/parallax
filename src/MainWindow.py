@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QMenu
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QMenu, QMainWindow, QAction
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 
@@ -12,9 +12,53 @@ from CameraManager import CameraManager
 import time
 
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
 
-    def __init__(self, model, parent=None):
+    def __init__(self, model):
+        QMainWindow.__init__(self)
+
+        self.widget = MainWidget(model)
+        self.setCentralWidget(self.widget)
+
+        # menubar actions
+        self.saveFramesAction = QAction("Save Camera Frames")
+        self.saveFramesAction.triggered.connect(self.widget.saveCameraFrames)
+        self.saveFramesAction.setShortcut("Ctrl+F")
+        self.saveCalAction = QAction("Save Calibration")
+        self.saveCalAction.triggered.connect(self.widget.triPanel.save)
+        self.saveCalAction.setShortcut("Ctrl+S")
+        self.loadCalAction = QAction("Load Calibration")
+        self.loadCalAction.triggered.connect(self.widget.triPanel.load)
+        self.loadCalAction.setShortcut("Ctrl+O")
+        self.editPrefsAction = QAction("Preferences")
+        self.editPrefsAction.setEnabled(False)
+        self.refreshCamerasAction = QAction("Refresh Camera List")
+        self.refreshCamerasAction.setEnabled(False)
+        self.refreshStagesAction = QAction("Refresh Stage List")
+        self.refreshStagesAction.setEnabled(False)
+        self.aboutAction = QAction("About mis-guide")
+
+        # build the menubar
+        self.fileMenu = self.menuBar().addMenu("File")
+        self.fileMenu.addAction(self.saveFramesAction)
+        self.fileMenu.addSeparator()    # not visible on linuxmint?
+        self.fileMenu.addAction(self.saveCalAction)
+        self.fileMenu.addAction(self.loadCalAction)
+
+        self.editMenu = self.menuBar().addMenu("Edit")
+        self.editMenu.addAction(self.editPrefsAction)
+
+        self.deviceMenu = self.menuBar().addMenu("Devices")
+        self.deviceMenu.addAction(self.refreshCamerasAction)
+        self.deviceMenu.addAction(self.refreshStagesAction)
+
+        self.helpMenu = self.menuBar().addMenu("Help")
+        self.helpMenu.addAction(self.aboutAction)
+
+
+class MainWidget(QWidget):
+
+    def __init__(self, model):
         QWidget.__init__(self) 
         self.model = model
 
@@ -79,10 +123,6 @@ class MainWindow(QWidget):
                 self.clearSelected()
                 self.zoomOut()
                 e.accept()
-        elif e.key() == Qt.Key_S:
-            if (e.modifiers() & Qt.ControlModifier):
-                self.saveCameraFrames()
-                e.accept()
         elif e.key() == Qt.Key_C:
             self.model.registerCorrPoints_cal()
         elif e.key() == Qt.Key_Escape:
@@ -106,7 +146,4 @@ class MainWindow(QWidget):
                 filename = 'camera%d_%s.png' % (i, camera.getLastCaptureTime())
                 camera.saveLastImage(filename)
                 self.msgLog.post('Saved camera frame: %s' % filename)
-
-    def exit(self):
-        pass # TODO
 
