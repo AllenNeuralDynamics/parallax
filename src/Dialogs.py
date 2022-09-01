@@ -76,7 +76,7 @@ class StageSettingsDialog(QDialog):
         return bool(dtext) and (dtext != ctext)
 
     def getJog_um(self):
-        return int(self.jogDesired.text())
+        return float(self.jogDesired.text())
 
     def cjogChanged(self):
         dtext = self.cjogDesired.text()
@@ -84,7 +84,7 @@ class StageSettingsDialog(QDialog):
         return bool(dtext) and (dtext != ctext)
 
     def getCjog_um(self):
-        return int(self.cjogDesired.text())
+        return float(self.cjogDesired.text())
 
 
 class CalibrationDialog(QDialog):
