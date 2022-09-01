@@ -43,17 +43,18 @@ class Model(QObject):
         self.calibration = calibration
 
     def saveCalibration(self, filename):
-
         if not self.calibration:
             self.msgPosted.emit('No calibration loaded.')
             return
-
         with open(filename, 'wb') as f:
             pickle.dump(self.calibration, f)
 
     def loadCalibration(self, filename):
         with open(filename, 'rb') as f:
             self.calibration = pickle.load(f)
+        x,y,z = self.calibration.getOrigin()
+        self.msgPosted.emit('Calibration loaded, with origin = '
+                            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
 
     def setLcorr(self, xc, yc):
         self.lcorr = [xc, yc]
@@ -125,7 +126,8 @@ class Model(QObject):
         imgPoints1_cal = np.array([self.imgPoints1_cal], dtype=np.float32)
         imgPoints2_cal = np.array([self.imgPoints2_cal], dtype=np.float32)
         objPoints_cal = self.calWorker.getObjectPoints()
-        self.calibration.calibrate(imgPoints1_cal, imgPoints2_cal, objPoints_cal)
+        origin = self.calWorker.stage.getOrigin()
+        self.calibration.calibrate(imgPoints1_cal, imgPoints2_cal, objPoints_cal, origin)
         self.msgPosted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
                                 (self.calibration.rmse1, self.calibration.rmse2))
         self.calFinished.emit()

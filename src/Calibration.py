@@ -25,6 +25,12 @@ class Calibration:
         pass
         self.setInitialIntrinsics_default()
 
+    def setOrigin(self, origin):
+        self.origin = origin
+
+    def getOrigin(self):
+        return self.origin
+
     def setInitialIntrinsics(self, mtx1, mtx2, dist1, dist2):
 
         self.imtx1 = mtx1
@@ -57,7 +63,9 @@ class Calibration:
 
         return objPoint_reconstructed   # [x,y,z]
 
-    def calibrate(self, imgPoints1, imgPoints2, objPoints):
+    def calibrate(self, imgPoints1, imgPoints2, objPoints, origin):
+
+        self.setOrigin(origin)
 
         # undistort calibration points
         imgPoints1 = lib.undistortImagePoints(imgPoints1, self.imtx1, self.idist1)
