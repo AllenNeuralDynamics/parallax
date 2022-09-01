@@ -295,6 +295,34 @@ class ScanStageDialog(QDialog):
         z = float(self.zedit.text())
         return x,y,z
 
+
+class AboutDialog(QDialog):
+
+    def __init__(self, parent=None):
+        QDialog.__init__(self, parent)
+
+        self.mainLabel = QLabel('mis-guide')
+        self.mainLabel.setAlignment(Qt.AlignCenter)
+        self.mainLabel.setFont(FONT_BOLD)
+        self.versionLabel = QLabel('version x.y.z') # TODO
+        #self.repoLabel = QLabel('github.com/AllenNeuralDynamics/mis-guide')
+        self.repoLabel = QLabel('<a href="https://github.com/AllenNeuralDynamics/mis-guide">'
+                                    'github.com/AllenNeuralDynamics/mis-guide</a>')
+        self.repoLabel.setOpenExternalLinks(True)
+
+        layout = QGridLayout()
+        layout.addWidget(self.mainLabel)
+        layout.addWidget(self.repoLabel)
+        self.setLayout(layout)
+        self.setWindowTitle('About')
+
+    def getParams(self):
+        x = float(self.xedit.text())
+        y = float(self.yedit.text())
+        z = float(self.zedit.text())
+        return x,y,z
+
+
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
     from Model import Model

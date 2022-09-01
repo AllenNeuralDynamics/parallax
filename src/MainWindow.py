@@ -8,6 +8,7 @@ from ControlPanel import ControlPanel
 from TriangulationPanel import TriangulationPanel
 from StageManager import StageManager
 from CameraManager import CameraManager
+from Dialogs import AboutDialog
 
 import time
 
@@ -36,7 +37,8 @@ class MainWindow(QMainWindow):
         self.refreshCamerasAction.setEnabled(False)
         self.refreshStagesAction = QAction("Refresh Stage List")
         self.refreshStagesAction.setEnabled(False)
-        self.aboutAction = QAction("About mis-guide")
+        self.aboutAction = QAction("About")
+        self.aboutAction.triggered.connect(self.launchAbout)
 
         # build the menubar
         self.fileMenu = self.menuBar().addMenu("File")
@@ -54,6 +56,10 @@ class MainWindow(QMainWindow):
 
         self.helpMenu = self.menuBar().addMenu("Help")
         self.helpMenu.addAction(self.aboutAction)
+
+    def launchAbout(self):
+        dlg = AboutDialog()
+        dlg.exec_()
 
 
 class MainWidget(QWidget):
