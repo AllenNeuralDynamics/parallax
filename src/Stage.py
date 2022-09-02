@@ -3,6 +3,7 @@
 from MotorStatus import MotorStatus
 
 import time, socket
+import numpy as np
 
 STEPS_PER_MICRON = 2
 AXIS_ORDER_INSERT = ['x','y','z']
@@ -195,8 +196,8 @@ class Stage():
         self.sock.sendall(cmd_bytes)
         resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
         SSSSSS = int(resp.split()[1], 16)
-        PPPPPPPP = int(resp.split()[2], 16)
-        EEEEEEEE = int(resp.split()[3], 16)
+        PPPPPPPP = np.int32(int(resp.split()[2], 16))
+        EEEEEEEE = np.int32(int(resp.split()[3], 16))
         return SSSSSS, PPPPPPPP, EEEEEEEE
         
     # 19
