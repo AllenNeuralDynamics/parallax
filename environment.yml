@@ -1,0 +1,13 @@
+name: mis-guide
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.8
+  - opencv
+  - scipy
+  - pip:
+    - pyqt5
+    - spinnaker-python
