@@ -241,6 +241,75 @@ class TargetDialog(QDialog):
         return params
 
 
+class CsvDialog(QDialog):
+
+    def __init__(self, model):
+        QDialog.__init__(self)
+        self.model = model
+
+        self.lastLabel = QLabel('Last Reconstructed Point:')
+        self.lastLabel.setAlignment(Qt.AlignCenter)
+
+        if self.model.objPoint_last is None:
+            x,y,z = 1,2,3
+        else:
+            x,y,z = self.model.objPoint_last
+        self.lastCoordsLabel = QLabel('[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+        self.lastCoordsLabel.setAlignment(Qt.AlignCenter)
+
+        self.labCoordsLabel = QLabel('Lab Coordinates:')
+        self.labCoordsLabel.setAlignment(Qt.AlignCenter)
+
+        self.xlabel = QLabel('X = ')
+        self.xlabel.setAlignment(Qt.AlignCenter)
+        self.ylabel = QLabel('Y = ')
+        self.ylabel.setAlignment(Qt.AlignCenter)
+        self.zlabel = QLabel('Z = ')
+        self.zlabel.setAlignment(Qt.AlignCenter)
+        validator = QDoubleValidator(-15000,15000,-1)
+        validator.setNotation(QDoubleValidator.StandardNotation)
+        self.xedit = QLineEdit()
+        self.xedit.setValidator(validator)
+        self.yedit = QLineEdit()
+        self.yedit.setValidator(validator)
+        self.zedit = QLineEdit()
+        self.zedit.setValidator(validator)
+
+        self.infoLabel = QLabel('(units are microns)')
+        self.infoLabel.setAlignment(Qt.AlignCenter)
+        self.infoLabel.setFont(FONT_BOLD)
+
+
+        self.dialogButtons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
+        self.dialogButtons.accepted.connect(self.accept)
+        self.dialogButtons.rejected.connect(self.reject)
+
+        ####
+
+        layout = QGridLayout()
+        layout.addWidget(self.lastLabel, 0,0, 1,2)
+        layout.addWidget(self.lastCoordsLabel, 1,0, 1,2)
+        layout.addWidget(self.labCoordsLabel, 2,0, 1,2)
+        layout.addWidget(self.xlabel, 3,0)
+        layout.addWidget(self.ylabel, 4,0)
+        layout.addWidget(self.zlabel, 5,0)
+        layout.addWidget(self.xedit, 3,1)
+        layout.addWidget(self.yedit, 4,1)
+        layout.addWidget(self.zedit, 5,1)
+        layout.addWidget(self.infoLabel, 6,0, 1,2)
+        layout.addWidget(self.dialogButtons, 7,0, 1,2)
+        self.setLayout(layout)
+        self.setWindowTitle('Set Target Coordinates')
+
+    def getParams(self):
+        params = {}
+        params['x'] = float(self.xedit.text())
+        params['y'] = float(self.yedit.text())
+        params['z'] = float(self.zedit.text())
+        return params
+
+
 class SubnetWidget(QWidget):
 
     def __init__(self):
