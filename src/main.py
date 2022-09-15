@@ -5,6 +5,8 @@ from PyQt5.QtWidgets import QApplication
 from Model import Model
 from MainWindow import MainWindow
 
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 if __name__ == '__main__':
     app = QApplication([])
