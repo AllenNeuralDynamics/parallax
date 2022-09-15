@@ -24,8 +24,6 @@ class TriangulationPanel(QFrame):
         self.mainLabel.setAlignment(Qt.AlignCenter)
         self.mainLabel.setFont(FONT_BOLD)
         self.calButton = QPushButton('Run Calibration Routine')
-        self.loadButton = QPushButton('Load Calibration')
-        self.saveButton = QPushButton('Save Calibration')
         self.goButton = QPushButton('Triangulate Points')
 
         self.statusLabel = QLabel()
@@ -35,16 +33,12 @@ class TriangulationPanel(QFrame):
 
         mainLayout.addWidget(self.mainLabel)
         mainLayout.addWidget(self.calButton)
-        mainLayout.addWidget(self.loadButton)
-        mainLayout.addWidget(self.saveButton)
         mainLayout.addWidget(self.goButton)
         mainLayout.addWidget(self.statusLabel)
         self.setLayout(mainLayout)
 
         # connections
         self.calButton.clicked.connect(self.launchCalibrationDialog)
-        self.loadButton.clicked.connect(self.load)
-        self.saveButton.clicked.connect(self.save)
         self.goButton.clicked.connect(self.triangulate)
 
         # frame border
