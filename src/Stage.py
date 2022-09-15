@@ -22,6 +22,11 @@ def handleTimeout(func):
             raise StageError
     return inner
 
+def sanitizeInt32(value):
+    if value>= 2**31:
+        value -= 2**32
+    return value
+
 class Stage():
 
     def __init__(self, sock):
@@ -196,8 +201,8 @@ class Stage():
         self.sock.sendall(cmd_bytes)
         resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
         SSSSSS = int(resp.split()[1], 16)
-        PPPPPPPP = np.int32(int(resp.split()[2], 16))
-        EEEEEEEE = np.int32(int(resp.split()[3], 16))
+        PPPPPPPP = sanitizeInt32(int(resp.split()[2], 16))
+        EEEEEEEE = sanitizeInt32(int(resp.split()[3], 16))
         return SSSSSS, PPPPPPPP, EEEEEEEE
         
     # 19
