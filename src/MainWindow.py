@@ -6,8 +6,6 @@ from MessageLog import MessageLog
 from ScreenWidget import ScreenWidget
 from ControlPanel import ControlPanel
 from TriangulationPanel import TriangulationPanel
-from StageManager import StageManager
-from CameraManager import CameraManager
 from Dialogs import AboutDialog
 
 import time
@@ -17,6 +15,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, model):
         QMainWindow.__init__(self)
+        self.model = model
 
         self.widget = MainWidget(model)
         self.setCentralWidget(self.widget)
@@ -34,9 +33,9 @@ class MainWindow(QMainWindow):
         self.editPrefsAction = QAction("Preferences")
         self.editPrefsAction.setEnabled(False)
         self.refreshCamerasAction = QAction("Refresh Camera List")
-        self.refreshCamerasAction.setEnabled(False)
+        self.refreshCamerasAction.triggered.connect(self.model.scanForCameras)
         self.refreshStagesAction = QAction("Refresh Stage List")
-        self.refreshStagesAction.setEnabled(False)
+        self.refreshStagesAction.triggered.connect(self.model.scanForStages)
         self.aboutAction = QAction("About")
         self.aboutAction.triggered.connect(self.launchAbout)
 
@@ -67,14 +66,6 @@ class MainWidget(QWidget):
     def __init__(self, model):
         QWidget.__init__(self) 
         self.model = model
-
-        self.deviceManager = QWidget()
-        hlayout = QHBoxLayout()
-        self.cameraManager = CameraManager(self.model)
-        self.stageManager = StageManager(self.model)
-        hlayout.addWidget(self.cameraManager)
-        hlayout.addWidget(self.stageManager)
-        self.deviceManager.setLayout(hlayout)
 
         self.screens = QWidget()
         hlayout = QHBoxLayout()
@@ -114,7 +105,6 @@ class MainWidget(QWidget):
         self.rscreen.cleared.connect(self.model.clearRcorr)
 
         mainLayout = QVBoxLayout()
-        mainLayout.addWidget(self.deviceManager)
         mainLayout.addWidget(self.screens)
         mainLayout.addWidget(self.controls)
         mainLayout.addWidget(self.msgLog)
