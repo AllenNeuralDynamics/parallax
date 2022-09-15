@@ -94,7 +94,9 @@ class TriangulationPanel(QFrame):
 
     def updateStatus(self):
         if self.model.calibration:
-            self.statusLabel.setText('Calibration is loaded.')
+            x,y,z = self.model.calibration.getOrigin()
+            msg = 'Calibration loaded.\nOrigin = [{0:.2f}, {1:.2f}, {2:.2f}]'.format(x,y,z)
+            self.statusLabel.setText(msg)
         else:
             self.statusLabel.setText('No calibration loaded.')
 
