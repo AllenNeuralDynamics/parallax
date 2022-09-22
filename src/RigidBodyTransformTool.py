@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
-from PyQt5.QtWidgets import QPushButton, QLabel, QWidget
+from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QSize
 
 import csv
 
@@ -40,7 +42,9 @@ class RigidBodyTransformTool(QWidget):
         QWidget.__init__(self, parent=None)
         self.model = model
 
-        self.leftWidget = QWidget()
+        self.leftWidget = QFrame()
+        self.leftWidget.setFrameStyle(QFrame.Box | QFrame.Plain);
+        self.leftWidget.setLineWidth(2);
         self.leftLayout = QVBoxLayout()
         self.leftLayout.addWidget(QLabel('Coordinates 1'))
         self.coordsWidget1 = CoordinateWidget()
@@ -60,10 +64,14 @@ class RigidBodyTransformTool(QWidget):
         self.leftWidget.setLayout(self.leftLayout)
         self.leftWidget.setMaximumWidth(300)
 
-        self.addButton = QPushButton('Add')
+        self.addButton = QPushButton()
+        self.addButton.setIcon(QIcon('../img/arrow-right.png'))
+        self.addButton.setIconSize(QSize(50,50))
         self.addButton.clicked.connect(self.addCoordinates)
 
-        self.rightWidget = QWidget()
+        self.rightWidget = QFrame()
+        self.rightWidget.setFrameStyle(QFrame.Box | QFrame.Plain);
+        self.rightWidget.setLineWidth(2);
         self.rightLayout = QVBoxLayout()
         self.listWidget = QListWidget()
         self.rightLayout.addWidget(self.listWidget)
@@ -96,10 +104,13 @@ class RigidBodyTransformTool(QWidget):
             self.coordsWidget2.setCoordinates(self.model.objPoint_last)
 
     def addCoordinates(self):
-        x1, y1, z1 = self.coordsWidget1.getCoordinates()
-        x2, y2, z2 = self.coordsWidget2.getCoordinates()
-        s = '{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}'.format(x1, y1, z1, x2, y2, z2)
-        self.listWidget.addItem(s)
+        try:
+            x1, y1, z1 = self.coordsWidget1.getCoordinates()
+            x2, y2, z2 = self.coordsWidget2.getCoordinates()
+            s = '{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}'.format(x1, y1, z1, x2, y2, z2)
+            self.listWidget.addItem(s)
+        except ValueError:  # handle incomplete coordinate fields
+            pass
 
     def save(self):
         filename = QFileDialog.getSaveFileName(self, 'Save correspondence file', '.',
