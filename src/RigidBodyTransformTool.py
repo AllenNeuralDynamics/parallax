@@ -29,9 +29,9 @@ class CoordinateWidget(QWidget):
         return [x, y, z]
 
     def setCoordinates(self, coords):
-        self.xedit.setText(str(coords[0]))
-        self.yedit.setText(str(coords[1]))
-        self.zedit.setText(str(coords[2]))
+        self.xedit.setText('{0:.2f}'.format(coords[0]))
+        self.yedit.setText('{0:.2f}'.format(coords[1]))
+        self.zedit.setText('{0:.2f}'.format(coords[2]))
 
 
 class RigidBodyTransformTool(QWidget):
@@ -39,8 +39,6 @@ class RigidBodyTransformTool(QWidget):
     def __init__(self, model):
         QWidget.__init__(self, parent=None)
         self.model = model
-
-        self.helloLabel = QLabel("hello world")
 
         self.leftWidget = QWidget()
         self.leftLayout = QVBoxLayout()
