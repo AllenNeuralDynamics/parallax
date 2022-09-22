@@ -8,7 +8,7 @@ import numpy as np
 from Calibration import Calibration
 from lib import *
 from Helper import *
-from Dialogs import CalibrationDialog, CsvDialog
+from Dialogs import CalibrationDialog
 
 
 class TriangulationPanel(QFrame):
@@ -25,7 +25,6 @@ class TriangulationPanel(QFrame):
         self.mainLabel.setFont(FONT_BOLD)
         self.calButton = QPushButton('Run Calibration Routine')
         self.goButton = QPushButton('Triangulate Points')
-        self.csvButton = QPushButton('Write to CSV')
 
         self.statusLabel = QLabel()
         self.statusLabel.setAlignment(Qt.AlignCenter)
@@ -36,28 +35,15 @@ class TriangulationPanel(QFrame):
         mainLayout.addWidget(self.calButton)
         mainLayout.addWidget(self.statusLabel)
         mainLayout.addWidget(self.goButton)
-        mainLayout.addWidget(self.csvButton)
         self.setLayout(mainLayout)
 
         # connections
         self.calButton.clicked.connect(self.launchCalibrationDialog)
         self.goButton.clicked.connect(self.triangulate)
-        self.csvButton.clicked.connect(self.writeToCsv)
 
         # frame border
         self.setFrameStyle(QFrame.Box | QFrame.Plain);
         self.setLineWidth(2);
-
-    def writeToCsv(self):
-        dlg = CsvDialog(self.model)
-        if dlg.exec_():
-            params = dlg.getParams()
-            xs, ys, zs = self.model.objPoint_last
-            xl = params['x']
-            yl = params['y']
-            zl = params['z']
-            print('Stage Coordinates: ', '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(xs,ys,zs))
-            print('Lab Coordinates: ', '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(xl,yl,zl))
 
     def triangulate(self):
 
@@ -114,10 +100,5 @@ class TriangulationPanel(QFrame):
             self.statusLabel.setText(msg)
         else:
             self.statusLabel.setText('No calibration loaded.')
-
-        if self.model.objPoint_last is None:
-            self.csvButton.setEnabled(False)
-        else:
-            self.csvButton.setEnabled(True)
 
 

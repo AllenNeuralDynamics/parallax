@@ -7,6 +7,7 @@ from ScreenWidget import ScreenWidget
 from ControlPanel import ControlPanel
 from TriangulationPanel import TriangulationPanel
 from Dialogs import AboutDialog
+from RigidBodyTransformTool import RigidBodyTransformTool
 
 import time
 
@@ -36,6 +37,8 @@ class MainWindow(QMainWindow):
         self.refreshCamerasAction.triggered.connect(self.model.scanForCameras)
         self.refreshStagesAction = QAction("Refresh Stage List")
         self.refreshStagesAction.triggered.connect(self.model.scanForStages)
+        self.rbtAction = QAction("Rigid Body Transform Tool")
+        self.rbtAction.triggered.connect(self.launchRBT)
         self.aboutAction = QAction("About")
         self.aboutAction.triggered.connect(self.launchAbout)
 
@@ -53,6 +56,9 @@ class MainWindow(QMainWindow):
         self.deviceMenu.addAction(self.refreshCamerasAction)
         self.deviceMenu.addAction(self.refreshStagesAction)
 
+        self.toolsMenu = self.menuBar().addMenu("Tools")
+        self.toolsMenu.addAction(self.rbtAction)
+
         self.helpMenu = self.menuBar().addMenu("Help")
         self.helpMenu.addAction(self.aboutAction)
 
@@ -60,6 +66,9 @@ class MainWindow(QMainWindow):
         dlg = AboutDialog()
         dlg.exec_()
 
+    def launchRBT(self):
+        self.rbt = RigidBodyTransformTool(self.model)
+        self.rbt.show()
 
 class MainWidget(QWidget):
 

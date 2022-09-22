@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QRadioButton, QSpinBox
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout, QListWidget
 from PyQt5.QtWidgets import QFileDialog, QDialog, QCheckBox, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QDoubleValidator, QIcon
@@ -243,8 +243,8 @@ class TargetDialog(QDialog):
 
 class CsvDialog(QDialog):
 
-    def __init__(self, model):
-        QDialog.__init__(self)
+    def __init__(self, model, parent=None):
+        QDialog.__init__(self, parent)
         self.model = model
 
         self.lastLabel = QLabel('Last Reconstructed Point:')
@@ -397,7 +397,7 @@ if __name__ == '__main__':
     from Model import Model
     model = Model()
     app = QApplication([])
-    dlg = StageSettingsDialog(model)
+    dlg = RigidBodyTransformTool(model)
     dlg.show()
     app.exec()
 
