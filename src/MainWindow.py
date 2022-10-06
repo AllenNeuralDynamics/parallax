@@ -8,6 +8,7 @@ from ControlPanel import ControlPanel
 from TriangulationPanel import TriangulationPanel
 from Dialogs import AboutDialog
 from RigidBodyTransformTool import RigidBodyTransformTool
+from StageManager import StageManager
 
 import time
 
@@ -35,8 +36,8 @@ class MainWindow(QMainWindow):
         self.editPrefsAction.setEnabled(False)
         self.refreshCamerasAction = QAction("Refresh Camera List")
         self.refreshCamerasAction.triggered.connect(self.model.scanForCameras)
-        self.refreshStagesAction = QAction("Refresh Stage List")
-        self.refreshStagesAction.triggered.connect(self.model.scanForStages)
+        self.manageStagesAction = QAction("Manage Stages")
+        self.manageStagesAction.triggered.connect(self.launchStageManager)
         self.rbtAction = QAction("Rigid Body Transform Tool")
         self.rbtAction.triggered.connect(self.launchRBT)
         self.aboutAction = QAction("About")
@@ -54,13 +55,17 @@ class MainWindow(QMainWindow):
 
         self.deviceMenu = self.menuBar().addMenu("Devices")
         self.deviceMenu.addAction(self.refreshCamerasAction)
-        self.deviceMenu.addAction(self.refreshStagesAction)
+        self.deviceMenu.addAction(self.manageStagesAction)
 
         self.toolsMenu = self.menuBar().addMenu("Tools")
         self.toolsMenu.addAction(self.rbtAction)
 
         self.helpMenu = self.menuBar().addMenu("Help")
         self.helpMenu.addAction(self.aboutAction)
+
+    def launchStageManager(self):
+        self.stageManager = StageManager(self.model)
+        self.stageManager.show()
 
     def launchAbout(self):
         dlg = AboutDialog()

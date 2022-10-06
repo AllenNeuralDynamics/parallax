@@ -16,40 +16,8 @@ from CalibrationWorker import CalibrationWorker
 from lib import *
 from Helper import *
 
-from Dialogs import ScanStageDialog
-
-
-class ScanStageWorker_new(QObject):
-    finished = pyqtSignal()
-    progressMade = pyqtSignal(str)
-
-    def __init__(self, subnet, parent=None):
-        QObject.__init__(self)
-        """
-        subnet is a tuple: (byte1, byte2, byte3)
-        """
-        self.b1 = subnet[0]
-        self.b2 = subnet[1]
-        self.b3 = subnet[2]
-
-        self.stages = []
-
-    def run(self):
-        self.stages = []
-        socket.setdefaulttimeout(0.020)  # 20 ms timeout
-        for i in range(1,256):
-            ip = '%d.%d.%d.%d' % (self.b1, self.b2, self.b3, i)
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            if (s.connect_ex((ip, PORT_NEWSCALE))): # non-zero return value indicates failure
-                s.close()
-            else:
-                self.stages.append((ip, Stage(s)))
-            self.progressMade.emit(ip)
-        self.finished.emit()
-
 
 class Model(QObject):
-    stageScanFinished = pyqtSignal()
     cameraScanFinished = pyqtSignal()
     calFinished = pyqtSignal()
     calPointReached = pyqtSignal()
@@ -126,29 +94,6 @@ class Model(QObject):
         self.ncameras = self.pyspin_cameras.GetSize()
         for i in range(self.ncameras):
             self.cameras[i] = Camera(self.pyspin_cameras.GetByIndex(i))
-
-    def scanForStages(self):
-        dlg = ScanStageDialog()
-        if dlg.exec_():
-            self.initStages()
-            self.scanThread = QThread()
-            self.scanWorker = ScanStageWorker_new(dlg.subnetWidget.getSubnet())
-            self.scanWorker.moveToThread(self.scanThread)
-            self.scanThread.started.connect(self.scanWorker.run)
-            self.scanWorker.finished.connect(self.scanThread.quit)
-            self.scanWorker.finished.connect(self.scanWorker.deleteLater)
-            self.scanThread.finished.connect(self.scanThread.deleteLater)
-            self.scanThread.finished.connect(self.handleStageScanFinished)
-            self.scanWorker.progressMade.connect(self.reportStageScanProgress)
-            self.scanThread.start()
-
-    def handleStageScanFinished(self):
-        for item in self.scanWorker.stages:
-            ip, stage = item
-            self.addStage(ip, stage)
-
-    def reportStageScanProgress(self, s):
-        print('Scanning: ', s)
 
     def addStage(self, ip, stage):
         self.stages[ip] = stage

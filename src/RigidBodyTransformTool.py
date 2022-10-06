@@ -115,7 +115,6 @@ class RigidBodyTransformTool(QWidget):
     def save(self):
         filename = QFileDialog.getSaveFileName(self, 'Save correspondence file', '.',
                                                 'CSV files (*.csv)')[0]
-        print(filename)
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
             for i in range(self.listWidget.count()):

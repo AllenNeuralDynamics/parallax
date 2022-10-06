@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QRadioButton, QSpinBox
+from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QRadioButton, QSpinBox
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout, QListWidget
 from PyQt5.QtWidgets import QFileDialog, QDialog, QCheckBox, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
@@ -310,61 +310,6 @@ class CsvDialog(QDialog):
         return params
 
 
-class SubnetWidget(QWidget):
-
-    def __init__(self):
-        QWidget.__init__(self)
-
-        self.layout = QHBoxLayout()
-
-        self.label = QLabel('Subnet:')
-        self.lineEdit_byte1 = QLineEdit('10')
-        self.lineEdit_byte2 = QLineEdit('128')
-        self.lineEdit_byte3 = QLineEdit('49')
-        self.lineEdit_byte4 = QLineEdit('*')
-
-        self.layout.addWidget(self.label)
-        self.layout.addWidget(self.lineEdit_byte1)
-        self.layout.addWidget(self.lineEdit_byte2)
-        self.layout.addWidget(self.lineEdit_byte3)
-        self.layout.addWidget(self.lineEdit_byte4)
-
-        self.setLayout(self.layout)
-
-    def getSubnet(self):
-        b1 = int(self.lineEdit_byte1.text())
-        b2 = int(self.lineEdit_byte2.text())
-        b3 = int(self.lineEdit_byte3.text())
-        return (b1,b2,b3)
-
-
-class ScanStageDialog(QDialog):
-
-    def __init__(self, parent=None):
-        QDialog.__init__(self, parent)
-
-        self.subnetWidget = SubnetWidget()
-
-        self.dialogButtons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
-        self.dialogButtons.accepted.connect(self.accept)
-        self.dialogButtons.rejected.connect(self.reject)
-
-        ####
-
-        layout = QGridLayout()
-        layout.addWidget(self.subnetWidget)
-        layout.addWidget(self.dialogButtons, 3,0, 1,2)
-        self.setLayout(layout)
-        self.setWindowTitle('Scan for Stages')
-
-    def getParams(self):
-        x = float(self.xedit.text())
-        y = float(self.yedit.text())
-        z = float(self.zedit.text())
-        return x,y,z
-
-
 class AboutDialog(QDialog):
 
     def __init__(self, parent=None):
@@ -374,7 +319,6 @@ class AboutDialog(QDialog):
         self.mainLabel.setAlignment(Qt.AlignCenter)
         self.mainLabel.setFont(FONT_BOLD)
         self.versionLabel = QLabel('version x.y.z') # TODO
-        #self.repoLabel = QLabel('github.com/AllenNeuralDynamics/mis-guide')
         self.repoLabel = QLabel('<a href="https://github.com/AllenNeuralDynamics/mis-guide">'
                                     'github.com/AllenNeuralDynamics/mis-guide</a>')
         self.repoLabel.setOpenExternalLinks(True)
