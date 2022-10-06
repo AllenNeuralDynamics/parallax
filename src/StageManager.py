@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from PyQt5.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QHBoxLayout, QLabel
-from PyQt5.QtWidgets import QPushButton, QListWidget, QFrame
+from PyQt5.QtWidgets import QPushButton, QListWidget, QFrame, QProgressBar
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
 from PyQt5.QtGui import QDoubleValidator, QIcon
 
@@ -45,7 +45,7 @@ class SubnetWidget(QWidget):
 
 class ScanStageWorker(QObject):
     finished = pyqtSignal()
-    progressMade = pyqtSignal(str)
+    progressMade = pyqtSignal(int)
 
     def __init__(self, subnet, parent=None):
         QObject.__init__(self)
@@ -68,7 +68,7 @@ class ScanStageWorker(QObject):
                 s.close()
             else:
                 self.stages.append((ip, Stage(s)))
-            self.progressMade.emit(ip)
+            self.progressMade.emit(i)
         self.finished.emit()
 
 
@@ -92,11 +92,21 @@ class StageManager(QWidget):
         self.leftWidget.setLayout(self.leftLayout)
         self.leftWidget.setMaximumWidth(300)
 
+        self.topWidget = QWidget()
+        self.topLayout = QHBoxLayout()
+        self.topLayout.addWidget(self.leftWidget)
+        self.topLayout.addWidget(self.listWidget)
+        self.topWidget.setLayout(self.topLayout)
+
+        self.pbar = QProgressBar()
+        self.pbar.setMinimum(0)
+        self.pbar.setMaximum(255)
+
         ####
 
-        layout = QHBoxLayout()
-        layout.addWidget(self.leftWidget)
-        layout.addWidget(self.listWidget)
+        layout = QVBoxLayout()
+        layout.addWidget(self.topWidget)
+        layout.addWidget(self.pbar)
         self.setLayout(layout)
         self.setWindowTitle('Scan for Stages')
 
@@ -104,9 +114,9 @@ class StageManager(QWidget):
 
     def scan(self):
         self.scanForStages(self.subnetWidget.getSubnet())
-        self.updateList()
 
     def updateList(self):
+        self.listWidget.clear()
         for stage in list(self.model.stages.values()):
             self.listWidget.addItem(stage.getIP())
 
@@ -117,7 +127,6 @@ class StageManager(QWidget):
         return x,y,z
 
     def scanForStages(self, subnet):
-        self.model.initStages()
         self.scanThread = QThread()
         self.scanWorker = ScanStageWorker(subnet)
         self.scanWorker.moveToThread(self.scanThread)
@@ -129,10 +138,11 @@ class StageManager(QWidget):
         self.scanWorker.progressMade.connect(self.reportStageScanProgress)
         self.scanThread.start()
 
-    def reportStageScanProgress(self, s):
-        print('Scanning: ', s)
+    def reportStageScanProgress(self, i):
+        self.pbar.setValue(i)
 
     def handleStageScanFinished(self):
+        self.model.initStages()
         for item in self.scanWorker.stages:
             ip, stage = item
             self.model.addStage(ip, stage)
