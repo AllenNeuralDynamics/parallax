@@ -35,6 +35,7 @@ class SubnetWidget(QWidget):
         self.layout.addWidget(self.lineEdit_byte4)
 
         self.setLayout(self.layout)
+        self.setMaximumWidth(300)
 
     def getSubnet(self):
         b1 = int(self.lineEdit_byte1.text())
@@ -78,34 +79,23 @@ class StageManager(QWidget):
         QWidget.__init__(self, parent)
         self.model = model
 
-        self.subnetWidget = SubnetWidget(vertical=True)
+        self.subnetWidget = SubnetWidget()
         self.scanButton = QPushButton('Scan')
         self.scanButton.clicked.connect(self.scan)
         self.listWidget = QListWidget()
-
-        self.leftWidget = QFrame()
-        self.leftWidget.setFrameStyle(QFrame.Box | QFrame.Plain);
-        self.leftWidget.setLineWidth(2);
-        self.leftLayout = QVBoxLayout()
-        self.leftLayout.addWidget(self.subnetWidget)
-        self.leftLayout.addWidget(self.scanButton)
-        self.leftWidget.setLayout(self.leftLayout)
-        self.leftWidget.setMaximumWidth(300)
-
-        self.topWidget = QWidget()
-        self.topLayout = QHBoxLayout()
-        self.topLayout.addWidget(self.leftWidget)
-        self.topLayout.addWidget(self.listWidget)
-        self.topWidget.setLayout(self.topLayout)
-
         self.pbar = QProgressBar()
         self.pbar.setMinimum(0)
         self.pbar.setMaximum(255)
 
-        ####
+        self.midWidget = QWidget()
+        self.midLayout = QHBoxLayout()
+        self.midLayout.addWidget(self.subnetWidget)
+        self.midLayout.addWidget(self.scanButton)
+        self.midWidget.setLayout(self.midLayout)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.topWidget)
+        layout.addWidget(self.listWidget)
+        layout.addWidget(self.midWidget)
         layout.addWidget(self.pbar)
         self.setLayout(layout)
         self.setWindowTitle('Scan for Stages')
@@ -117,8 +107,12 @@ class StageManager(QWidget):
 
     def updateList(self):
         self.listWidget.clear()
-        for stage in list(self.model.stages.values()):
-            self.listWidget.addItem(stage.getIP())
+        stages = list(self.model.stages.values())
+        if len(stages) == 0:
+            self.listWidget.addItem("(no stages available)")
+        else:
+            for stage in stages:
+                self.listWidget.addItem(stage.getIP())
 
     def getParams(self):
         x = float(self.xedit.text())
