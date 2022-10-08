@@ -50,6 +50,14 @@ class AxisControl(QWidget):
             e.accept()
 
 
+def handleStageError(func):
+    def inner(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except StageError:
+            self.msgPosted.emit('Stage communication error: %s' % self.stage.getIP())
+    return inner
+
 class ControlPanel(QFrame):
     msgPosted = pyqtSignal(str)
     targetReached = pyqtSignal()
@@ -107,12 +115,17 @@ class ControlPanel(QFrame):
         self.jog_steps = JOG_STEPS_DEFAULT
         self.cjog_steps = CJOG_STEPS_DEFAULT
 
+    @handleStageError
     def updateCoordinates(self):
         xa, ya, za = self.stage.getPosition_abs()
         xo, yo, zo = self.stage.getOrigin()
         self.xcontrol.setValue(xa-xo, xa)
         self.ycontrol.setValue(ya-yo, ya)
         self.zcontrol.setValue(za-zo, za)
+
+    def updateRelativeOrigin(self):
+        x,y,z = self.stage.origin
+        self.zeroButton.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
 
     def handleStageSelection(self, index):
         socket.setdefaulttimeout(0.05)   # seconds
@@ -122,9 +135,9 @@ class ControlPanel(QFrame):
 
     def setStage(self, stage):
         self.stage = stage
-        x,y,z = self.stage.origin
-        self.zeroButton.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
+        self.updateRelativeOrigin()
 
+    @handleStageError
     def moveToTarget(self):
         dlg = TargetDialog(self.model)
         if dlg.exec_():
@@ -133,20 +146,18 @@ class ControlPanel(QFrame):
             y = params['y']
             z = params['z']
             if self.stage:
-                try:
-                    if params['relative']:
-                        self.stage.moveToTarget3d_rel(x, y, z, safe=True)
-                        self.msgPosted.emit('Moved to relative position: '
-                                            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                    else:
-                        self.stage.moveToTarget3d_abs_safe(x, y, z)
-                        self.msgPosted.emit('Moved to absolute position: '
-                                            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                    self.updateCoordinates()
-                    self.targetReached.emit()
-                except StageError:
-                    self.msgPosted.emit('Encountered stage communication error')
+                if params['relative']:
+                    self.stage.moveToTarget3d_rel(x, y, z, safe=True)
+                    self.msgPosted.emit('Moved to relative position: '
+                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+                else:
+                    self.stage.moveToTarget3d_abs_safe(x, y, z)
+                    self.msgPosted.emit('Moved to absolute position: '
+                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+                self.updateCoordinates()
+                self.targetReached.emit()
 
+    @handleStageError
     def handleSettings(self):
         if self.stage:
             dlg = StageSettingsDialog(self.stage, self.jog_steps/2, self.cjog_steps/2)
@@ -160,6 +171,7 @@ class ControlPanel(QFrame):
         else:
             self.msgPosted.emit('ControlPanel: No stage selected.')
 
+    @handleStageError
     def jog(self, axis, forward, control):
         if self.stage:
             if axis=='X':
@@ -174,6 +186,7 @@ class ControlPanel(QFrame):
             self.stage.wait()
             self.updateCoordinates()
 
+    @handleStageError
     def center(self, axis):
         if self.stage:
             if axis=='X':
@@ -186,12 +199,14 @@ class ControlPanel(QFrame):
             self.stage.wait()
             self.updateCoordinates()
 
+    @handleStageError
     def zero(self):
         if self.stage:
             x, y, z = self.stage.getPosition_abs()
             self.stage.setOrigin(x, y, z)
             self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
             self.updateCoordinates()
+            self.updateRelativeOrigin()
 
     def halt(self):
         # doesn't actually work now because we need threading

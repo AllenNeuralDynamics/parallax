@@ -18,7 +18,7 @@ def handleTimeout(func):
         try:
             return func(self, *args, **kwargs)
         except socket.timeout:
-            print('Socket timed out on Stage %s.' % self.getIP())
+            print('ERROR: Socket timed out on Stage %s.' % self.getIP())
             raise StageError
     return inner
 
@@ -200,6 +200,9 @@ class Stage():
         cmd_bytes = bytes(cmd, 'utf-8')
         self.sock.sendall(cmd_bytes)
         resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
+        if resp == '06':
+            raise StageError
+            return 0,0,0
         SSSSSS = int(resp.split()[1], 16)
         PPPPPPPP = sanitizeInt32(int(resp.split()[2], 16))
         EEEEEEEE = sanitizeInt32(int(resp.split()[3], 16))
@@ -241,6 +244,7 @@ class Stage():
         resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
 
     # 40
+    @handleTimeout
     def setClosedLoopSpeed(self, speed=None):
         """
         This command sets the closed-loop speed of the current axis (motor).
@@ -383,6 +387,7 @@ class Stage():
         x,y,z = self.getPosition_abs()
         return x-self.origin[0], y-self.origin[1], z-self.origin[2]
 
+    @handleTimeout
     def selectAxis(self, axis):
         if (axis=='x') or (axis=='X'):
             cmd = b"TR<A0 01>\r"
@@ -396,6 +401,7 @@ class Stage():
         self.sock.sendall(cmd)
         resp = self.sock.recv(1024)
 
+    @handleTimeout
     def querySelectedAxis(self):
         cmd = b"TR<A0>\r"
         self.sock.sendall(cmd)
