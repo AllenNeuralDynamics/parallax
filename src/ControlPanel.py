@@ -128,7 +128,7 @@ class ControlPanel(QFrame):
         self.zeroButton.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
 
     def handleStageSelection(self, index):
-        socket.setdefaulttimeout(0.05)   # seconds
+        socket.setdefaulttimeout(0.3)   # seconds
         ip = self.dropdown.currentText()
         self.setStage(self.model.stages[ip])
         self.updateCoordinates()
