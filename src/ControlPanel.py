@@ -51,9 +51,9 @@ class AxisControl(QWidget):
 
 
 def handleStageError(func):
-    def inner(self, *args, **kwargs):
+    def inner(*args):
         try:
-            return func(self, *args, **kwargs)
+            return func(*args)
         except StageError:
             self.msgPosted.emit('Stage communication error: %s' % self.stage.getIP())
     return inner
@@ -116,7 +116,7 @@ class ControlPanel(QFrame):
         self.cjog_steps = CJOG_STEPS_DEFAULT
 
     @handleStageError
-    def updateCoordinates(self):
+    def updateCoordinates(self, *args):
         xa, ya, za = self.stage.getPosition_abs()
         xo, yo, zo = self.stage.getOrigin()
         self.xcontrol.setValue(xa-xo, xa)
@@ -138,7 +138,7 @@ class ControlPanel(QFrame):
         self.updateRelativeOrigin()
 
     @handleStageError
-    def moveToTarget(self):
+    def moveToTarget(self, *args):
         dlg = TargetDialog(self.model)
         if dlg.exec_():
             params = dlg.getParams()
@@ -158,7 +158,7 @@ class ControlPanel(QFrame):
                 self.targetReached.emit()
 
     @handleStageError
-    def handleSettings(self):
+    def handleSettings(self, *args):
         if self.stage:
             dlg = StageSettingsDialog(self.stage, self.jog_steps/2, self.cjog_steps/2)
             if dlg.exec_():
@@ -200,7 +200,7 @@ class ControlPanel(QFrame):
             self.updateCoordinates()
 
     @handleStageError
-    def zero(self):
+    def zero(self, *args):
         if self.stage:
             x, y, z = self.stage.getPosition_abs()
             self.stage.setOrigin(x, y, z)
