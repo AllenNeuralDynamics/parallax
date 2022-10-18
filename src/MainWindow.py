@@ -124,7 +124,7 @@ class MainWidget(QWidget):
         mainLayout.addWidget(self.msgLog)
         self.setLayout(mainLayout)
 
-        self.setWindowTitle('MISGUIde')
+        self.setWindowTitle('Parallax')
         self.setWindowIcon(QIcon('../img/sextant.png'))
 
     def keyPressEvent(self, e):

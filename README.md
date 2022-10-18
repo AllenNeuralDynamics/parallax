@@ -1,6 +1,6 @@
-# MISGUIde
+# Parallax
 
-## Modular Insertion System Graphical User Interface and Development Environment
+## GUI software for photogrammetry-assisted probe targeting in electrophysiology
 
 ### Dependencies
 * python3-pyqt5
@@ -11,20 +11,20 @@
 
 ### Installation via `conda`
 
-First, clone the `mis-guide` repository.
+First, clone the this repository.
 
-Then, browse to the top-level `mis-guide` code directory and run:
+Then, browse to the top-level `parallax` code directory and run:
 
 ```bash
 conda env create --file environment.yml
 ```
 
-This will create a new `conda` environment called `mis-guide`.
+This will create a new `conda` environment called `parallax`.
 
 To activate the environment and launch the GUI, run:
 
 ```bash
-conda activate mis-guide
+conda activate parallax
 python src/main.py
 ```
 
