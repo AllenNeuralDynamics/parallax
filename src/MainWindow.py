@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         self.editPrefsAction = QAction("Preferences")
         self.editPrefsAction.setEnabled(False)
         self.refreshCamerasAction = QAction("Refresh Camera List")
-        self.refreshCamerasAction.triggered.connect(self.model.scanForCameras)
+        self.refreshCamerasAction.triggered.connect(self.refreshCameras)
         self.manageStagesAction = QAction("Manage Stages")
         self.manageStagesAction.triggered.connect(self.launchStageManager)
         self.rbtAction = QAction("Rigid Body Transform Tool")
@@ -74,6 +74,20 @@ class MainWindow(QMainWindow):
     def launchRBT(self):
         self.rbt = RigidBodyTransformTool(self.model)
         self.rbt.show()
+
+    def screens(self):
+        return self.widget.lscreen, self.widget.rscreen
+
+    def refreshCameras(self):
+        self.model.scanForCameras()
+        for screen in self.screens():
+            screen.updateCameraMenu()
+
+    def assignCameras(self):
+        self.refreshCameras()
+        for screen, camera in zip(self.screens(), self.model.cameras):
+            screen.setCamera(camera)
+
 
 class MainWidget(QWidget):
 
@@ -156,4 +170,3 @@ class MainWidget(QWidget):
                 filename = 'camera%d_%s.png' % (i, camera.getLastCaptureTime())
                 camera.saveLastImage(filename)
                 self.msgLog.post('Saved camera frame: %s' % filename)
-
