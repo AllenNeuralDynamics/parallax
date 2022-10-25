@@ -1,24 +1,16 @@
 #!/usr/bin/python3
-
-import PySpin
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
-
 import numpy as np
-import os
 import pickle
-import socket
 
-from Camera import Camera
-from Stage import Stage
 from Calibration import Calibration
 from CalibrationWorker import CalibrationWorker
-from lib import *
-from Helper import *
+from Camera import listCameras, closeCameras
+from Stage import Stage
 
 
 class Model(QObject):
-    cameraScanFinished = pyqtSignal()
     calFinished = pyqtSignal()
     calPointReached = pyqtSignal()
     msgPosted = pyqtSignal(str)
@@ -26,13 +18,17 @@ class Model(QObject):
     def __init__(self):
         QObject.__init__(self)
 
-        self.initCameras()
+        self.cameras = []
         self.initStages()
 
         self.calibration = None
         self.lcorr, self.rcorr = False, False
 
         self.objPoint_last = None
+
+    @property
+    def ncameras(self):
+        return len(self.cameras)
 
     def triangulate(self):
         objPoint = self.calibration.triangulate(self.lcorr, self.rcorr)
@@ -78,22 +74,12 @@ class Model(QObject):
         else:
             self.msgPosted.emit('Highlight correspondence points and press C to continue')
 
-    def initCameras(self):
-        self.pyspin_instance = PySpin.System.GetInstance()
-        self.pyspin_cameras = self.pyspin_instance.GetCameras()
-        self.cameras = {}
-        self.ncameras = 0
-
     def initStages(self):
         self.stages = {}
         self.calStage = None
 
     def scanForCameras(self):
-        self.initCameras()
-        self.pyspin_cameras = self.pyspin_instance.GetCameras()
-        self.ncameras = self.pyspin_cameras.GetSize()
-        for i in range(self.ncameras):
-            self.cameras[i] = Camera(self.pyspin_cameras.GetByIndex(i))
+        self.cameras = listCameras()
 
     def addStage(self, ip, stage):
         self.stages[ip] = stage
@@ -133,15 +119,8 @@ class Model(QObject):
         self.calFinished.emit()
 
     def clean(self):
-        self.cleanCameras()
+        closeCameras()
         self.cleanStages()
-
-    def cleanCameras(self):
-        print('cleaning up SpinSDK')
-        for camera in self.cameras.values():
-            camera.clean()
-        self.pyspin_cameras.Clear()
-        self.pyspin_instance.ReleaseInstance()
 
     def cleanStages(self):
         pass

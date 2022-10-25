@@ -1,15 +1,55 @@
 #!/usr/bin/python3
+import logging
+logger = logging.getLogger(__name__)
 
-import PySpin
-
+try:
+    import PySpin
+except ImportError:
+    PySpin = None
+    logger.warn("Could not import PySpin; using mocked cameras.")
+    
 import numpy as np
 import time, datetime
 
 
-class Camera():
+def listCameras():
+    global pyspin_cameras, pyspin_instance
+    if PySpin is not None:
+        cameras = PySpinCamera.listCameras()
+    else:
+        cameras = [MockCamera(), MockCamera()]
+    return cameras
+
+
+def closeCameras():
+    if PySpin is not None:
+        PySpinCamera.closeCameras()
+
+
+class PySpinCamera:
+
+    pyspin_cameras = None
+    pyspin_instance = None
+    cameras = None
+
+    @classmethod
+    def listCameras(cls):
+        if cls.pyspin_instance is None:
+            cls.pyspin_instance = PySpin.System.GetInstance()
+            cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
+            ncameras = cls.pyspin_cameras.GetSize()
+            cls.cameras = [PySpinCamera(pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
+        return cls.cameras
+
+    @classmethod
+    def closeCameras(cls):
+        print('cleaning up SpinSDK')
+        for camera in cls.cameras.values():
+            camera.clean()
+        cls.pyspin_cameras.Clear()
+        cls.pyspin_instance.ReleaseInstance()
 
     def __init__(self, camera_pyspin):
-
         self.camera = camera_pyspin
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
@@ -92,6 +132,28 @@ class Camera():
     def clean(self):
         self.camera.EndAcquisition()
         del self.camera
+
+
+class MockCamera:
+    n_cameras = 0
+
+    def __init__(self):
+        self._name = f"MockCamera{MockCamera.n_cameras}"
+        MockCamera.n_cameras += 1
+        self.data = np.random.randint(0, 255, size=(5, 4000, 3000), dtype='ubyte')
+        self._nextFrame = 0
+
+    def name(self):
+        return self._name
+
+    def capture(self):
+        pass
+
+    def getLastImageData(self):
+        frame = self.data[self._nextFrame]
+        self._nextFrame = (self._nextFrame + 1) % self.data.shape[0]
+        return frame
+
 
 if __name__ == '__main__':
 
