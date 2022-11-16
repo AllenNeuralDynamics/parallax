@@ -7,6 +7,7 @@
 * python3-numpy
 * python3-scipy
 * python3-opencv
+* python-newscale
 * spinnaker-python
 
 ### Installation via `conda`

@@ -9,7 +9,6 @@ from Dialogs import *
 import time
 import socket
 from StageDropdown import StageDropdown
-from Stage import StageError
 
 JOG_STEPS_DEFAULT = 500
 CJOG_STEPS_DEFAULT = 100
@@ -50,14 +49,6 @@ class AxisControl(QWidget):
             e.accept()
 
 
-def handleStageError(func):
-    def inner(*args):
-        try:
-            return func(*args)
-        except StageError:
-            self.msgPosted.emit('Stage communication error: %s' % self.stage.getIP())
-    return inner
-
 class ControlPanel(QFrame):
     msgPosted = pyqtSignal(str)
     targetReached = pyqtSignal()
@@ -79,13 +70,13 @@ class ControlPanel(QFrame):
         self.settingsButton.setIcon(QIcon('../img/gear.png'))
         self.settingsButton.clicked.connect(self.handleSettings)
 
-        self.xcontrol = AxisControl('X')
+        self.xcontrol = AxisControl('x')
         self.xcontrol.jogRequested.connect(self.jog)
         self.xcontrol.centerRequested.connect(self.center)
-        self.ycontrol = AxisControl('Y')
+        self.ycontrol = AxisControl('y')
         self.ycontrol.jogRequested.connect(self.jog)
         self.ycontrol.centerRequested.connect(self.center)
-        self.zcontrol = AxisControl('Z')
+        self.zcontrol = AxisControl('z')
         self.zcontrol.jogRequested.connect(self.jog)
         self.zcontrol.centerRequested.connect(self.center)
 
@@ -115,29 +106,26 @@ class ControlPanel(QFrame):
         self.jog_steps = JOG_STEPS_DEFAULT
         self.cjog_steps = CJOG_STEPS_DEFAULT
 
-    @handleStageError
     def updateCoordinates(self, *args):
-        xa, ya, za = self.stage.getPosition_abs()
+        xa, ya, za = self.stage.getPosition()
         xo, yo, zo = self.stage.getOrigin()
         self.xcontrol.setValue(xa-xo, xa)
         self.ycontrol.setValue(ya-yo, ya)
         self.zcontrol.setValue(za-zo, za)
 
     def updateRelativeOrigin(self):
-        x,y,z = self.stage.origin
+        x,y,z = self.stage.getOrigin()
         self.zeroButton.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
 
     def handleStageSelection(self, index):
-        socket.setdefaulttimeout(0.3)   # seconds
-        ip = self.dropdown.currentText()
-        self.setStage(self.model.stages[ip])
+        stageName = self.dropdown.currentText()
+        self.setStage(self.model.stages[stageName])
         self.updateCoordinates()
 
     def setStage(self, stage):
         self.stage = stage
         self.updateRelativeOrigin()
 
-    @handleStageError
     def moveToTarget(self, *args):
         dlg = TargetDialog(self.model)
         if dlg.exec_():
@@ -146,24 +134,22 @@ class ControlPanel(QFrame):
             y = params['y']
             z = params['z']
             if self.stage:
+                self.stage.moveToTarget_3d(x, y, z, relative=params['relative'], safe=True)
                 if params['relative']:
-                    self.stage.moveToTarget3d_rel(x, y, z, safe=True)
                     self.msgPosted.emit('Moved to relative position: '
                                         '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
                 else:
-                    self.stage.moveToTarget3d_abs_safe(x, y, z)
                     self.msgPosted.emit('Moved to absolute position: '
                                         '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
                 self.updateCoordinates()
                 self.targetReached.emit()
 
-    @handleStageError
     def handleSettings(self, *args):
         if self.stage:
             dlg = StageSettingsDialog(self.stage, self.jog_steps/2, self.cjog_steps/2)
             if dlg.exec_():
                 if dlg.speedChanged():
-                    self.stage.setClosedLoopSpeed(dlg.getSpeed())
+                    self.stage.setSpeed(dlg.getSpeed())
                 if dlg.jogChanged():
                     self.jog_steps = dlg.getJog_um() * 2
                 if dlg.cjogChanged():
@@ -171,38 +157,22 @@ class ControlPanel(QFrame):
         else:
             self.msgPosted.emit('ControlPanel: No stage selected.')
 
-    @handleStageError
     def jog(self, axis, forward, control):
         if self.stage:
-            if axis=='X':
-                self.stage.selectAxis('x')
-            elif axis=='Y':
-                self.stage.selectAxis('y')
-            elif axis=='Z':
-                self.stage.selectAxis('z')
-            direction = 'forward' if forward else 'backward'
-            nsteps = self.cjog_steps if control else self.jog_steps
-            self.stage.moveClosedLoopStep(direction, nsteps)
-            self.stage.wait()
+            distance = 50 if control else 200
+            if not forward:
+                distance = (-1) * distance
+            self.stage.moveDistance_1d(axis, distance)
             self.updateCoordinates()
 
-    @handleStageError
     def center(self, axis):
         if self.stage:
-            if axis=='X':
-                self.stage.selectAxis('x')
-            elif axis=='Y':
-                self.stage.selectAxis('y')
-            elif axis=='Z':
-                self.stage.selectAxis('z')
-            self.stage.moveToTarget(15000)
-            self.stage.wait()
+            self.stage.moveToTarget_1d(axis, 7500)
             self.updateCoordinates()
 
-    @handleStageError
     def zero(self, *args):
         if self.stage:
-            x, y, z = self.stage.getPosition_abs()
+            x, y, z = self.stage.getPosition()
             self.stage.setOrigin(x, y, z)
             self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
             self.updateCoordinates()

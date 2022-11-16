@@ -68,7 +68,9 @@ class ScanStageWorker(QObject):
             if (s.connect_ex((ip, PORT_NEWSCALE))): # non-zero return value indicates failure
                 s.close()
             else:
-                self.stages.append((ip, Stage(s)))
+                print('ip = ', ip)
+                s.close()
+                self.stages.append((ip, Stage(ip=ip)))
             self.progressMade.emit(i)
         self.finished.emit()
 
@@ -81,7 +83,9 @@ class StageManager(QWidget):
 
         self.subnetWidget = SubnetWidget()
         self.scanButton = QPushButton('Scan')
-        self.scanButton.clicked.connect(self.scan)
+        self.scanButton.clicked.connect(self.scanPOE)
+        self.scanUsbButton = QPushButton('Scan USB')
+        self.scanUsbButton.clicked.connect(self.scanUSB)
         self.listWidget = QListWidget()
         self.pbar = QProgressBar()
         self.pbar.setMinimum(0)
@@ -97,13 +101,21 @@ class StageManager(QWidget):
         layout.addWidget(self.listWidget)
         layout.addWidget(self.midWidget)
         layout.addWidget(self.pbar)
+        layout.addWidget(self.scanUsbButton)
         self.setLayout(layout)
         self.setWindowTitle('Scan for Stages')
 
         self.updateList()
 
-    def scan(self):
+    def scanPOE(self):
         self.scanForStages(self.subnetWidget.getSubnet())
+
+    def scanUSB(self):
+        filenames = glob.glob('/dev/ttyUSB*')
+        for filename in filenames:
+            stage = Stage(serial=filename)
+            self.model.addStage(stage)
+        self.updateList()
 
     def updateList(self):
         self.listWidget.clear()
@@ -112,7 +124,7 @@ class StageManager(QWidget):
             self.listWidget.addItem("(no stages available)")
         else:
             for stage in stages:
-                self.listWidget.addItem(stage.getIP())
+                self.listWidget.addItem(stage.getName())
 
     def getParams(self):
         x = float(self.xedit.text())
@@ -139,7 +151,7 @@ class StageManager(QWidget):
         self.model.initStages()
         for item in self.scanWorker.stages:
             ip, stage = item
-            self.model.addStage(ip, stage)
+            self.model.addStage(stage)
         self.updateList()
 
 

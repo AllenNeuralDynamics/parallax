@@ -10,7 +10,6 @@ import pickle
 import socket
 
 from Camera import Camera
-from Stage import Stage
 from Calibration import Calibration
 from CalibrationWorker import CalibrationWorker
 from lib import *
@@ -95,8 +94,8 @@ class Model(QObject):
         for i in range(self.ncameras):
             self.cameras[i] = Camera(self.pyspin_cameras.GetByIndex(i))
 
-    def addStage(self, ip, stage):
-        self.stages[ip] = stage
+    def addStage(self, stage):
+        self.stages[stage.name] = stage
 
     def setCalStage(self, stage):
         self.calStage = stage
