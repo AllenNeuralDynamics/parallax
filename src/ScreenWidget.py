@@ -64,15 +64,12 @@ class ScreenWidget(QLabel):
         self.cleared.emit()
 
     def setData(self, data):
-        # takes a 3000,4000 grayscale image straight from the camera
-
+        # takes a (3000,4000,3) BGR8 image straight from the camera
+        data.setflags(write=1)
+        data[:,:,[0,2]] = data[:,:,[2,0]]   # convert BGR to RGB
         self.data = data
-        rgbData = np.zeros((HEIGHT_FRAME,WIDTH_FRAME,4), dtype=np.uint8)
-        for i in range(3):
-            rgbData[:,:,i] = self.data
-        self.frame = QImage(rgbData, rgbData.shape[1], rgbData.shape[0],
-                                QImage.Format_RGB32)
-
+        self.frame = QImage(self.data, WIDTH_FRAME, HEIGHT_FRAME,
+                                QImage.Format_RGB888)
         self.display()
 
     def display(self):
