@@ -14,10 +14,11 @@ import time, datetime
 
 def listCameras():
     global pyspin_cameras, pyspin_instance
+    cameras = []
     if PySpin is not None:
-        cameras = PySpinCamera.listCameras()
-    else:
-        cameras = [MockCamera(), MockCamera()]
+        cameras.extend(PySpinCamera.listCameras())
+    while len(cameras) < 2:
+        cameras.append(MockCamera())
     return cameras
 
 
@@ -38,13 +39,13 @@ class PySpinCamera:
             cls.pyspin_instance = PySpin.System.GetInstance()
             cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
             ncameras = cls.pyspin_cameras.GetSize()
-            cls.cameras = [PySpinCamera(pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
+            cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
         return cls.cameras
 
     @classmethod
     def closeCameras(cls):
         print('cleaning up SpinSDK')
-        for camera in cls.cameras.values():
+        for camera in cls.cameras:
             camera.clean()
         cls.pyspin_cameras.Clear()
         cls.pyspin_instance.ReleaseInstance()
@@ -131,7 +132,9 @@ class PySpinCamera:
         return self.lastImage
 
     def getLastImageData(self):
-        # returns a (3000,4000,3) BGR8 image as a numpy array
+        """
+        Return last image as numpy array with shape (height, width, 3) for RGB or (height, width) for mono. 
+        """
         return self.lastImage.GetNDArray()
 
     def clean(self):
@@ -145,7 +148,7 @@ class MockCamera:
     def __init__(self):
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
-        self.data = np.random.randint(0, 255, size=(5, 4000, 3000), dtype='ubyte')
+        self.data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype='ubyte')
         self._nextFrame = 0
 
     def name(self):
@@ -155,6 +158,9 @@ class MockCamera:
         pass
 
     def getLastImageData(self):
+        """
+        Return last image as numpy array with shape (height, width, 3) for RGB or (height, width) for mono. 
+        """
         frame = self.data[self._nextFrame]
         self._nextFrame = (self._nextFrame + 1) % self.data.shape[0]
         return frame

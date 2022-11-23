@@ -19,12 +19,13 @@ class ScreenWidget(pg.GraphicsView):
         self.filename = filename
         self.model = model
 
-        self.viewBox = pg.ViewBox()
+        self.viewBox = pg.ViewBox(defaultPadding=0)
         self.setCentralItem(self.viewBox)
         self.viewBox.setAspectLocked()
         self.viewBox.invertY()
 
         self.imageItem = ClickableImage()
+        self.imageItem.axisOrder = 'row-major'
         self.viewBox.addItem(self.imageItem)
         self.imageItem.mouseClicked.connect(self.imageClicked)
 
@@ -70,6 +71,10 @@ class ScreenWidget(pg.GraphicsView):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:            
             self.clickTarget.setPos(event.pos())
             self.clickTarget.setVisible(True)
+            self.selected.emit(*self.getSelected())
+
+    def zoomOut(self):
+        self.viewBox.autoRange()
 
     def setCamera(self, camera):
         self.camera = camera
@@ -84,7 +89,7 @@ class ScreenWidget(pg.GraphicsView):
 
 
 class ClickableImage(pg.ImageItem):
-    mouseClicked = pyqtSignal(object)
+    mouseClicked = pyqtSignal(object)    
     def mouseClickEvent(self, ev):
         super().mouseClickEvent(ev)
         self.mouseClicked.emit(ev)
