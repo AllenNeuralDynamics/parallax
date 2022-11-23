@@ -1,368 +1,27 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
-from MotorStatus import MotorStatus
-
-import time, socket
-import numpy as np
-
-STEPS_PER_MICRON = 2
-AXIS_ORDER_INSERT = ['x','y','z']
-AXIS_ORDER_RETRACT = ['z','y','x']
-
-
-class StageError(Exception):
-    pass
-
-def handleTimeout(func):
-    def inner(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except socket.timeout:
-            print('ERROR: Socket timed out on Stage %s.' % self.getIP())
-            raise StageError
-    return inner
-
-def sanitizeInt32(value):
-    if value>= 2**31:
-        value -= 2**32
-    return value
+from newscale.multistage import USBXYZStage
 
 class Stage():
 
-    def __init__(self, sock):
-        self.sock = sock
-        self.origin = [7500., 7500., 7500.]
+    def __init__(self, ip=None, serial=None):
+
+        if ip is not None:
+            self.ip = ip
+            self.name = ip
+            self.device = PoEXYZStage(ip)
+        elif serial is not None:
+            self.serial = serial
+            self.name = serial
+            self.device = USBXYZStage(serial)
+
         self.initialize()
 
     def initialize(self):
-        for axis in AXIS_ORDER_INSERT:
-            self.selectAxis(axis)
-            self.setOrQueryDriveMode('closed')
-            self.activateSoftLimits('deactivate')
+        self.origin = [7500,7500,7500]
 
-    def close(self):
-        self.sock.close()
-
-    def getIP(self):
-        return self.sock.getpeername()[0]
-
-    #################################
-
-    """
-    all commands list in Section 8 of the Command and Control Reference Guide
-    """
-
-    # 01
-    @handleTimeout
-    def readFirmwareVersion(self):
-        """
-        This command retrieves the version of the controller firmware.
-        """
-        cmd = "TR<01>\r"
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-        version = resp.split()[3]
-        info = resp.split()[4]
-        fw_version = '%s (%s)' % (version, info)
-        return fw_version
-
-    # 03
-    @handleTimeout
-    def halt(self):
-        """
-        This command halts motor motion regardless of where the movement command
-        was issued. If in closed-loop mode, the current position is now the target
-        position.
-        """
-        cmd = "<03>\r"
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024) # no response after halt command?
-
-    # 04
-    @handleTimeout
-    def run(self, direction, duration_ds=None):
-        """
-        This command runs the motor. The motor will continue to move until command
-        <03> is received or until an optional time value elapses. In closed-loop
-        mode the motor will run according to PID, speed and acceleration settings.
-        """
-        if direction == 'forward':
-            D = 1
-        elif direction == 'backward':
-            D = 0
-        else:
-            print('unrecognized direction')
-            return
-        TTTT = '' if duration_ds is None else '{0:04x}'.format(duration_ds)
-        cmd = "<04 {0} {1}>\r".format(D, TTTT)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024)
-
-    # 05
-    @handleTimeout
-    def moveTimedOpenLoopSteps(self, direction, SPT=None):
-        """
-        This command sends one or more bursts of resonant pulses to the motor at
-        100 Hz (10 ms period) or at the period indicated by the PPPP parameter.
-        By default, SPT=None means runs until halt. Otherwise,
-            SPT = [nsteps, period, timeDuration]
-        with period and timeDuration in units of 3.2us, and timeDuration < period
-        """
-        if direction == 'forward':
-            D = 1
-        elif direction == 'backward':
-            D = 0
-        else:
-            print('unrecognized direction')
-            return
-        SSSS = '' if SPT is None else '{0:04x}'.format(SPT[0])
-        PPPP = '' if SPT is None else '{0:04x}'.format(SPT[1])
-        TTTT = '' if SPT is None else '{0:04x}'.format(SPT[2])
-        cmd = "<05 {0} {1} {2} {3}>\r".format(D, SSSS, PPPP, TTTT)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024)
-
-    # 06
-    @handleTimeout
-    def moveClosedLoopStep(self, direction, stepSize_counts=None):
-        """
-        This command adds or subtracts the specified step size (in encoder counts)
-        to the current target position, and then moves the motor to the new target
-        at the previously defined speed.
-        ONLY VALID IN CLOSED LOOP MODE.
-        """
-        if direction == 'forward':
-            D = 1
-        elif direction == 'backward':
-            D = 0
-        else:
-            print('unrecognized direction')
-            return
-        SSSSSSSS = '' if stepSize_counts is None else '{0:08x}'.format(int(stepSize_counts))
-        cmd = "<06 {0} {1}>\r".format(D, SSSSSSSS)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024)
-
-    # 07
-    @handleTimeout
-    def toggleAbsoluteRelative(self):
-        """
-        This command toggles the relative or absolute position modes. If the M3
-        is currently in Absolute position mode, then the current reported position
-        is set to 0.
-        NOTE: is there really no way to do this idempotently? Or for that matter,
-        to query the current status?
-        """
-        cmd = "<07>\r"
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024)
-
-    # 08
-    @handleTimeout
-    def moveToTarget(self, targetValue):
-        """
-        This command sets a target position and moves the motor to that target
-        position at the speed defined by command <40>.
-        ONLY VALID IN CLOSED-LOOP MODE.
-        """
-        targetValue = int(targetValue)
-        cmd = "<08 {0:08x}>\r".format(targetValue)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024)
-
-    # 09
-    @handleTimeout
-    def setOpenLoopSpeed(self, speed_255):
-        """
-        This command sets the open-loop speed of the motor, as a range from 0-255,
-        with 255 representing 100% speed. This value is not saved to internal EEPROM.
-        """
-        speed_255 = int(speed_255)
-        cmd = "<09 {0:02x}>\r".format(speed_255)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024)
-
-    # 10
-    @handleTimeout
-    def viewClosedLoopStatus(self):
-        """
-        This command is used to view the motor status and position.
-        """
-        cmd = "<10>\r"
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-        if resp == '06':
-            raise StageError
-            return 0,0,0
-        SSSSSS = int(resp.split()[1], 16)
-        PPPPPPPP = sanitizeInt32(int(resp.split()[2], 16))
-        EEEEEEEE = sanitizeInt32(int(resp.split()[3], 16))
-        return SSSSSS, PPPPPPPP, EEEEEEEE
-        
-    # 19
-    @handleTimeout
-    def readMotorFlags(self):
-        """
-        This command reports internal flags used by the controller to monitor
-        motor conditions.
-        """
-        cmd = "<19>\r"
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-        # TODO parse response
-        
-    # 20
-    @handleTimeout
-    def setOrQueryDriveMode(self, mode, interval=None):
-        """
-        This command sets the drive mode for the M3. The M3 will always default
-        to closed-loop mode on power up.
-        """
-        if mode == 'open':
-            X = '0'
-        elif mode == 'closed':
-            X = '1'
-        elif mode == 'query':
-            X = 'R'
-        else:
-            print('unrecognized drive mode')
-            return
-        IIII = '' if interval is None else '0:04x'.format(int(interval))
-        cmd = "<20 {0} {1}>\r".format(X, IIII)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-
-    # 40
-    @handleTimeout
-    def setClosedLoopSpeed(self, speed=None):
-        """
-        This command sets the closed-loop speed of the current axis (motor).
-        Note that the controller works in 0.5-micron encoder units. It also
-        works in increments of the closed-loop interval (time between each
-        processing of the current encoder position) rather than in seconds. So,
-        the host must convert the required velocity and acceleration into those
-        units.
-        If <40> is sent with no parameter, it will report the current settings.
-        Default is <40 001000 000014 000029 0001>
-        TODO get/set the other parameters (cutoff, acceleration, interval)
-        """
-        if (speed is None):
-            query = True
-            cmd = "<40>\r"
-        else:
-            query = False
-            SSSSSS = '{0:06x}'.format(int(speed))
-            cmd = "<40 {0} 000014 000029 0001>\r".format(SSSSSS)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-        if query:
-            SSSSSS = int(resp.split()[1], 16)
-            return SSSSSS
-
-    # 41
-    # TODO set the position error thresholds and stall detection
-
-    # 43
-    # TODO view and set closed-loop PID coefficients
-
-    # 46
-    # TODO view and set forward and reverse soft limit values
-
-    # 47
-    @handleTimeout
-    def activateSoftLimits(self, action='query'):
-        """
-        This command is used to view, activate and deactivate motor travel limits.
-        This command can disable the soft limits but the factory limits will remain
-        active in both open- and closed-loop modes at all times. To define travel
-        limits, use command <46...>. These values are saved to internal EEPROM.
-        """
-        if action == 'query':
-            X = ''  # query
-        elif action=='activate':
-            X = ' 1'
-        elif action=='deactivate':
-            X = ' 0'
-        else:
-            print('unrecognized action')
-            return
-        cmd = "<47{0}>\r".format(X)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024).decode('utf-8').strip('<>\r')
-        #TODO parse response for query
-
-    # 52
-    # TODO view time interval units
-
-    # 54
-    # TODO get/set baud rate
-
-    # 58
-    # TODO supress/enable writes to eeprom
-
-    # 74
-    # TODO save closed-loop speed parameters to eeprom
-
-    # 87
-    @handleTimeout
-    def runFrequencyCalibration(self, direction, incremental=False, automatic=True,
-                                frequncy_offset=None, ):
-        """
-        This command is used to optimize the Squiggle motor resonant drive frequency
-        by, on command, sweeping over a range of frequencies, centered at the
-        specified period, and settling on the frequency at which the best motor
-        performance was detected. This command needs to be run at every power-up or
-        more often in environments where the temperature is changing. When issuing
-        an automatic frequency-calibration sweep command, the carriage may typically
-        move 250 microns during the frequency sweep. If in closed-loop mode, the
-        smart stage will return to the current target position automatically.
-        It is best to run this command when system is idle and in the forward
-        direction for the M3-LS-3.4 Linear Smart Stage.
-        """
-        if direction == 'forward':
-            b0 = 1
-        elif direction == 'backward':
-            b0 = 0
-        else:
-            print('unrecognized direction')
-            return
-        b1 = 1 if incremental else 0
-        b2 = 1 if automatic else 0
-        D = (b2 << 2) | (b1 << 1) | (b0 << 0)
-        XX = '' if frequency_offset is None else '0:02x'.format(int(frequency_offset))
-        cmd = "<87 {0} {1}>\r".format(D, XX)
-        cmd_bytes = bytes(cmd, 'utf-8')
-        self.sock.sendall(cmd_bytes)
-        resp = self.sock.recv(1024)
-
-
-    #################################
-
-    """
-    higher-level commands
-    """
-
-    def isMoving(self):
-        SSSSSS, PPPPPPPP, EEEEEEEE = self.viewClosedLoopStatus()
-        motorStatus = MotorStatus(SSSSSS, PPPPPPPP)
-        return motorStatus.isRunning()
-
-    def wait(self):
-        while self.isMoving():
-            time.sleep(0.1)
+    def getName(self):
+        return self.name
 
     def setOrigin(self, x, y, z):
         self.origin = [x,y,z]
@@ -370,102 +29,55 @@ class Stage():
     def getOrigin(self):
         return self.origin
 
-    def getPosition_abs(self):
+    def getPosition(self, relative=False):
+        pos = self.device.get_position('x', 'y', 'z')
+        return pos['x'], pos['y'], pos['z']
 
-        self.selectAxis('x')
-        x = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
-        self.selectAxis('y')
-        y = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
-        self.selectAxis('z')
-        z = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
-        return x, y, z
+    def moveToTarget_1d(self, axis, position, relative=False):
+        self.device.move_absolute(x=x, y=y, z=z)
 
-    def getPosition_rel(self):
-        """
-        This is a software-defined relative positioning system.
-        """
-        x,y,z = self.getPosition_abs()
-        return x-self.origin[0], y-self.origin[1], z-self.origin[2]
+    def moveToTarget_3d(self, x, y, z, relative=False, safe=True):
+        # TODO implement safe parameter
+        if relative:
+            xo,yo,zo = self.getOrigin()
+            x += xo
+            y += yo
+            z += zo
+        self.device.move_absolute(x=x, y=y, z=z)
 
-    @handleTimeout
-    def selectAxis(self, axis):
-        if (axis=='x') or (axis=='X'):
-            cmd = b"TR<A0 01>\r"
-        elif (axis=='y') or (axis=='Y'):
-            cmd = b"TR<A0 02>\r"
-        elif (axis=='z') or (axis=='Z'):
-            cmd = b"TR<A0 03>\r"
-        else:
-            print('Error: axis not recognized')
-            return
-        self.sock.sendall(cmd)
-        resp = self.sock.recv(1024)
+    def moveDistance_1d(self, axis, distance):
+        # TODO re-implement based on move_relative()
+        x,y,z = self.getPosition()
+        if axis == 'x':
+            x += distance
+        elif axis == 'y':
+            y += distance
+        elif axis == 'z':
+            z += distance
+        self.device.move_absolute(x=x, y=y, z=z)
 
-    @handleTimeout
-    def querySelectedAxis(self):
-        cmd = b"TR<A0>\r"
-        self.sock.sendall(cmd)
-        resp = self.sock.recv(1024)
+    def moveDistance_3d(self, x, y, z):
+        pass    # TODO, implement based on move_relative()
 
-    def moveToTarget3d_abs(self, x, y, z):
-        """
-        units are microns
-        """
+    def getSpeed(self):
+        d = self.device.get_closed_loop_speed_and_accel('x')
+        speed = d['x'][0]
+        return speed
 
-        # determine axis order based on delta-z
-        self.selectAxis('z')
-        z0 = float(self.viewClosedLoopStatus()[1] / STEPS_PER_MICRON)
-        deltaz = z - z0
-        axis_order = AXIS_ORDER_INSERT if (deltaz < 0) else AXIS_ORDER_RETRACT
+    def setSpeed(self, speed):
+        accel = self.getAccel()
+        self.device.set_closed_loop_speed_and_accel(global_setting=(speed, accel))
 
-        coords = {'x':x, 'y':y, 'z':z}
-        for axis in axis_order:
-            self.selectAxis(axis)
-            self.moveToTarget(coords[axis] * STEPS_PER_MICRON)
-            self.wait()
+    def getAccel(self):
+        d = self.device.get_closed_loop_speed_and_accel('x')
+        accel = d['x'][1]
+        return accel
 
-    def moveToTarget3d_abs_safe(self, x, y, z, zsafe=11500):
-        """
-        units are microns
-        """
-
-        # first, retract to the zsafe position
-        self.selectAxis('z')
-        self.moveToTarget(zsafe * STEPS_PER_MICRON)
-        self.wait()
-
-        # then perform an insertion procedure
-        coords = {'x':x, 'y':y, 'z':z}
-        for axis in AXIS_ORDER_INSERT:
-            self.selectAxis(axis)
-            self.moveToTarget(coords[axis] * STEPS_PER_MICRON)
-            self.wait()
-
-    def moveToTarget3d_rel(self, x, y, z, safe=True):
-        """
-        units are microns
-        """
-        if safe:
-            self.moveToTarget3d_abs_safe(self.origin[0] + x, self.origin[1] + y,
-                                        self.origin[2] + z)
-        else:
-            self.moveToTarget3d_abs(self.origin[0] + x, self.origin[1] + y,
-                                        self.origin[2] + z)
-
-    def center(self):
-        self.moveToTarget_mm3d(0, 0, 0)
+    def halt(self):
+        pass
 
 
 if __name__ == '__main__':
-
-    import socket
-    IP = '10.128.49.22'
-    PORT = 23
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((IP, PORT))
-    stage = Stage(sock)
-
-    stage.moveTimedOpenLoopSteps('forward', [100, 5, 2])
-
-    stage.close()
-
+    from random import uniform
+    stage = Stage(serial='/dev/ttyUSB0')
+    stage.moveToTarget_3d(x=uniform(0, 15000), y=uniform(0, 15000), z=uniform(0, 15000))

@@ -29,21 +29,19 @@ class CalibrationWorker(QObject):
         self.readyToGo = True
 
     def run(self):
-
         mx =  self.extent_um / 2.
         mn =  (-1) * mx
         n = 0
         for x in np.linspace(mn, mx, self.resolution):
             for y in np.linspace(mn, mx, self.resolution):
                 for z in np.linspace(mn, mx, self.resolution):
-                    self.stage.moveToTarget3d_rel(x,y,z)
+                    self.stage.moveToTarget_3d(x,y,z, relative=True, safe=False)
                     self.calibrationPointReached.emit(n,self.numCal, x,y,z)
                     self.readyToGo = False
                     while not self.readyToGo:
                         time.sleep(0.1)
                     self.objectPoints.append([x,y,z])
                     n += 1
-
         self.finished.emit()
 
     def getObjectPoints(self):

@@ -28,7 +28,7 @@ class StageSettingsDialog(QDialog):
         self.desiredLabel.setAlignment(Qt.AlignCenter)
 
         self.speedLabel = QLabel('Closed-Loop Speed')
-        self.speedCurrent = QLineEdit(str(self.stage.setClosedLoopSpeed()))
+        self.speedCurrent = QLineEdit(str(self.stage.getSpeed()))
         self.speedCurrent.setEnabled(False)
         self.speedDesired = QLineEdit()
 

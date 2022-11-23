@@ -7,7 +7,6 @@ import pickle
 from Calibration import Calibration
 from CalibrationWorker import CalibrationWorker
 from Camera import listCameras, closeCameras
-from Stage import Stage
 
 
 class Model(QObject):
@@ -81,8 +80,8 @@ class Model(QObject):
     def scanForCameras(self):
         self.cameras = listCameras()
 
-    def addStage(self, ip, stage):
-        self.stages[ip] = stage
+    def addStage(self, stage):
+        self.stages[stage.name] = stage
 
     def setCalStage(self, stage):
         self.calStage = stage

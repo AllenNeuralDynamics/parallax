@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -i
 import logging
 logger = logging.getLogger(__name__)
 
@@ -69,12 +69,17 @@ class PySpinCamera:
         node_gain = PySpin.CFloatPtr(self.nodeMap.GetNode("Gain"))
         node_gain.SetValue(25.0)
 
+        # set pixel format
+        node_pixelformat = PySpin.CEnumerationPtr(self.nodeMap.GetNode("PixelFormat"))
+        entry_pixelformat_bgr8 = node_pixelformat.GetEntryByName("BGR8")
+        node_pixelformat.SetIntValue(entry_pixelformat_bgr8.GetValue())
+
         # set exposure time
         node_expauto_mode = PySpin.CEnumerationPtr(self.nodeMap.GetNode("ExposureAuto"))
         node_expauto_mode_off = node_expauto_mode.GetEntryByName("Off")
         node_expauto_mode.SetIntValue(node_expauto_mode_off.GetValue())
         node_exptime = PySpin.CFloatPtr(self.nodeMap.GetNode("ExposureTime"))
-        node_exptime.SetValue(2e5)
+        node_exptime.SetValue(125000)   # 8 fps
 
         # begin acquisition
         self.beginAcquisition()
@@ -106,7 +111,7 @@ class PySpinCamera:
         if self.lastImage:
             try:
                 self.lastImage.Release()
-            except _PySpin.SpinnakerException:
+            except PySpin.SpinnakerException:
                 print("Spinnaker Exception: Could't release last image")
 
         image = self.camera.GetNextImage(1000)
@@ -126,7 +131,7 @@ class PySpinCamera:
         return self.lastImage
 
     def getLastImageData(self):
-        # returns a shape=(3000,4000), type=uint8 grayscale image
+        # returns a (3000,4000,3) BGR8 image as a numpy array
         return self.lastImage.GetNDArray()
 
     def clean(self):
@@ -167,9 +172,11 @@ if __name__ == '__main__':
     if not ncameras:
         sys.exit(0)
 
-    camera = Camera(cameras_pyspin.GetByIndex(0))
+    camera = PySpinCamera(cameras_pyspin.GetByIndex(0))
     camera.capture()
-    print('image size: ', camera.getLastImageData().shape)
+    data = camera.getLastImageData()
+    print('image size: ', data.shape)
+    print('flags:\n', data.flags)
 
     # clean up
     camera.clean()
