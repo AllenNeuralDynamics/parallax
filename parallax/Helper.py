@@ -24,24 +24,6 @@ MTX_GUESS_DEFAULT = np.array(MTX_GUESS_DEFAULT, dtype=np.float32)
 DIST_GUESS_DEFAULT = [[3.02560342e-01, -2.22003970e+01, 9.05172588e-03, 2.94508298e-03, 2.89139557e+02]]
 DIST_GUESS_DEFAULT = np.array(DIST_GUESS_DEFAULT, dtype=np.float32)
 
-def DLT(P1, P2, point1, point2):
-
-    """
-    https://temugeb.github.io/opencv/python/2021/02/02/stereo-camera-calibration-and-triangulation.html
-    """
- 
-    A = [point1[1]*P1[2,:] - P1[1,:],
-         P1[0,:] - point1[0]*P1[2,:],
-         point2[1]*P2[2,:] - P2[1,:],
-         P2[0,:] - point2[0]*P2[2,:]
-        ]
-    A = np.array(A).reshape((4,4))
- 
-    B = A.transpose() @ A
-    U, s, Vh = linalg.svd(B, full_matrices = False)
- 
-    return Vh[3,0:3]/Vh[3,3]
-
 def getIntrinsicsFromCheckerboard(imagePoints):
 
     objectPoints_cb = np.zeros((NCW*NCH, 3), np.float32)

@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 import glob
+import scipy.linalg as linalg
 
 CB_ROWS = 6 #number of checkerboard rows.
 CB_COLS = 9 #number of checkerboard columns.
@@ -118,18 +119,20 @@ def getProjectionMatrix(mtx, r, t):
     return P
 
 def DLT(P1, P2, point1, point2):
+    """
+    https://temugeb.github.io/opencv/python/2021/02/02/stereo-camera-calibration-and-triangulation.html
+    """ 
     A = [point1[1]*P1[2,:] - P1[1,:],
          P1[0,:] - point1[0]*P1[2,:],
          point2[1]*P2[2,:] - P2[1,:],
          P2[0,:] - point2[0]*P2[2,:]
         ]
     A = np.array(A).reshape((4,4))
+ 
     B = A.transpose() @ A
-    from scipy import linalg
     U, s, Vh = linalg.svd(B, full_matrices = False)
     return Vh[3,0:3]/Vh[3,3]
- 
+
 def triangulateFromImagePoints(imgPoint1, imgPoint2, proj1, proj2):
     x,y,z = DLT(proj1, proj2, imgPoint1, imgPoint2)
     return np.array([x,y,z], dtype=np.float32)
- 
