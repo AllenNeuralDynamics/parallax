@@ -1,7 +1,6 @@
 import numpy as np
 import cv2 as cv
 import glob
-import sys
 
 CB_ROWS = 6 #number of checkerboard rows.
 CB_COLS = 9 #number of checkerboard columns.

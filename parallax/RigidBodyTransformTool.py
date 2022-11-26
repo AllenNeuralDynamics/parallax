@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QSize

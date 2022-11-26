@@ -6,8 +6,6 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5 import QtCore
 import pyqtgraph as pg
 
-from Helper import *
-
 
 class ScreenWidget(pg.GraphicsView):
 

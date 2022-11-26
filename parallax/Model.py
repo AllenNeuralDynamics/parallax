@@ -4,9 +4,9 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import numpy as np
 import pickle
 
-from Calibration import Calibration
-from CalibrationWorker import CalibrationWorker
-from Camera import listCameras, closeCameras
+from .Calibration import Calibration
+from .CalibrationWorker import CalibrationWorker
+from .Camera import listCameras, closeCameras
 
 
 class Model(QObject):

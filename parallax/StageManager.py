@@ -1,15 +1,13 @@
 #!/usr/bin/python3
 
 from PyQt5.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QHBoxLayout, QLabel
-from PyQt5.QtWidgets import QPushButton, QListWidget, QFrame, QProgressBar
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
-from PyQt5.QtGui import QDoubleValidator, QIcon
+from PyQt5.QtWidgets import QPushButton, QListWidget, QProgressBar
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
-import socket
+import socket, glob
 
-from Stage import Stage
-from lib import *
-from Helper import *
+from .Stage import Stage
+from .Helper import PORT_NEWSCALE
 
 
 class SubnetWidget(QWidget):

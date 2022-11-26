@@ -1,16 +1,14 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QMenu, QMainWindow, QAction
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QMainWindow, QAction
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 
-from MessageLog import MessageLog
-from ScreenWidget import ScreenWidget
-from ControlPanel import ControlPanel
-from TriangulationPanel import TriangulationPanel
-from Dialogs import AboutDialog
-from RigidBodyTransformTool import RigidBodyTransformTool
-from StageManager import StageManager
-
-import time
+from .MessageLog import MessageLog
+from .ScreenWidget import ScreenWidget
+from .ControlPanel import ControlPanel
+from .TriangulationPanel import TriangulationPanel
+from .Dialogs import AboutDialog
+from .RigidBodyTransformTool import RigidBodyTransformTool
+from .StageManager import StageManager
 
 
 class MainWindow(QMainWindow):

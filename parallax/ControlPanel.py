@@ -1,14 +1,11 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QLineEdit, QFrame, QMenu
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout 
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView, QHeaderView
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
+from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
+from PyQt5.QtWidgets import QVBoxLayout, QGridLayout 
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon
 
-from Helper import *
-from Dialogs import *
-import time
-import socket
-from StageDropdown import StageDropdown
+from .Helper import FONT_BOLD
+from .Dialogs import StageSettingsDialog, TargetDialog
+from .StageDropdown import StageDropdown
 
 JOG_STEPS_DEFAULT = 500
 CJOG_STEPS_DEFAULT = 100

@@ -3,8 +3,8 @@
 from PyQt5.QtWidgets import QApplication
 import os
 
-from Model import Model
-from MainWindow import MainWindow
+from .Model import Model
+from .MainWindow import MainWindow
 
 # allow multiple OpenMP instances
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'

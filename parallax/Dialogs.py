@@ -1,19 +1,16 @@
 #!/usr/bin/python3
+from PyQt5.QtWidgets import QPushButton, QLabel, QRadioButton, QSpinBox
+from PyQt5.QtWidgets import QGridLayout
+from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QDoubleValidator
 
-from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QRadioButton, QSpinBox
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout, QListWidget
-from PyQt5.QtWidgets import QFileDialog, QDialog, QCheckBox, QLineEdit, QDialogButtonBox
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, Qt
-from PyQt5.QtGui import QDoubleValidator, QIcon
-
-import time, datetime, os, sys
 import numpy as np
 
-from ToggleSwitch import ToggleSwitch
-from Helper import *
-from lib import *
-from StageDropdown import StageDropdown
-from CalibrationWorker import CalibrationWorker as cw
+from .ToggleSwitch import ToggleSwitch
+from .Helper import FONT_BOLD
+from .StageDropdown import StageDropdown
+from .CalibrationWorker import CalibrationWorker as cw
 
 
 class StageSettingsDialog(QDialog):
@@ -338,7 +335,9 @@ class AboutDialog(QDialog):
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
-    from Model import Model
+    from parallax.Model import Model
+    from .RigidBodyTransformTool import RigidBodyTransformTool
+
     model = Model()
     app = QApplication([])
     dlg = RigidBodyTransformTool(model)
