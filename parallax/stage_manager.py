@@ -6,8 +6,8 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 import socket, glob
 
-from .Stage import Stage
-from .Helper import PORT_NEWSCALE
+from .stage import Stage
+from .helper import PORT_NEWSCALE
 
 
 class SubnetWidget(QWidget):
@@ -155,7 +155,7 @@ class StageManager(QWidget):
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
-    from Model import Model
+    from parallax.model import Model
     model = Model()
     app = QApplication([])
     stage_manager = StageManager(model)

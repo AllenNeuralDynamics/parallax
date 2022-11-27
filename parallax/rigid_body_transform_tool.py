@@ -127,7 +127,7 @@ class RigidBodyTransformTool(QWidget):
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
-    from Model import Model
+    from parallax.model import Model
     model = Model()
     app = QApplication([])
     rbt = RigidBodyTransformTool(model)

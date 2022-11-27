@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import QLabel, QVBoxLayout, QPushButton, QFrame, QFileDialo
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal, Qt
 
-from .Helper import FONT_BOLD
-from .Dialogs import CalibrationDialog
+from .helper import FONT_BOLD
+from .dialogs import CalibrationDialog
 
 
 class TriangulationPanel(QFrame):

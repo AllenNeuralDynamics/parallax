@@ -7,10 +7,10 @@ from PyQt5.QtGui import QDoubleValidator
 
 import numpy as np
 
-from .ToggleSwitch import ToggleSwitch
-from .Helper import FONT_BOLD
-from .StageDropdown import StageDropdown
-from .CalibrationWorker import CalibrationWorker as cw
+from .toggle_switch import ToggleSwitch
+from .helper import FONT_BOLD
+from .stage_dropdown import StageDropdown
+from .calibration_worker import CalibrationWorker as cw
 
 
 class StageSettingsDialog(QDialog):
@@ -335,8 +335,8 @@ class AboutDialog(QDialog):
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication
-    from parallax.Model import Model
-    from .RigidBodyTransformTool import RigidBodyTransformTool
+    from parallax.model import Model
+    from .rigid_body_transform_tool import RigidBodyTransformTool
 
     model = Model()
     app = QApplication([])

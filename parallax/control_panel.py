@@ -3,9 +3,9 @@ from PyQt5.QtWidgets import QVBoxLayout, QGridLayout
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon
 
-from .Helper import FONT_BOLD
-from .Dialogs import StageSettingsDialog, TargetDialog
-from .StageDropdown import StageDropdown
+from .helper import FONT_BOLD
+from .dialogs import StageSettingsDialog, TargetDialog
+from .stage_dropdown import StageDropdown
 
 JOG_STEPS_DEFAULT = 500
 CJOG_STEPS_DEFAULT = 100

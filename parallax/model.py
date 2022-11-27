@@ -5,8 +5,8 @@ import numpy as np
 import pickle
 
 from .Calibration import Calibration
-from .CalibrationWorker import CalibrationWorker
-from .Camera import list_cameras, close_cameras
+from .calibration_worker import CalibrationWorker
+from .camera import list_cameras, close_cameras
 
 
 class Model(QObject):
