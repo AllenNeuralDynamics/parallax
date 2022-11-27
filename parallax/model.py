@@ -4,7 +4,7 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import numpy as np
 import pickle
 
-from .Calibration import Calibration
+from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
 from .camera import list_cameras, close_cameras
 

@@ -163,8 +163,8 @@ class MainWidget(QWidget):
         self.rscreen.zoom_out()
 
     def save_camera_frames(self):
-        for i,camera in enumerate(self.model.cameras.values()):
-            if camera.lastImage:
-                filename = 'camera%d_%s.png' % (i, camera.getLastCaptureTime())
-                camera.saveLastImage(filename)
+        for i,camera in enumerate(self.model.cameras):
+            if camera.last_image:
+                filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+                camera.save_last_image(filename)
                 self.msg_log.post('Saved camera frame: %s' % filename)

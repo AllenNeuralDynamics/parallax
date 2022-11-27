@@ -23,7 +23,7 @@ class ScreenWidget(pg.GraphicsView):
         self.view_box.invertY()
 
         self.image_item = ClickableImage()
-        self.image_item.axis_order = 'row-major'
+        self.image_item.axisOrder = 'row-major'
         self.view_box.addItem(self.image_item)
         self.image_item.mouse_clicked.connect(self.image_clicked)
 
@@ -45,7 +45,7 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             # takes a 3000,4000 grayscale image straight from the camera
             self.camera.capture()
-            self.set_data(self.camera.getLastImageData())
+            self.set_data(self.camera.get_last_image_data())
 
     def clear_selected(self):
         self.click_target.setVisible(False)
@@ -88,7 +88,7 @@ class ScreenWidget(pg.GraphicsView):
 
 class ClickableImage(pg.ImageItem):
     mouse_clicked = pyqtSignal(object)    
-    def mouse_click_event(self, ev):
+    def mouseClickEvent(self, ev):
         super().mouseClickEvent(ev)
         self.mouse_clicked.emit(ev)
 
