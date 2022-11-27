@@ -43,8 +43,8 @@ class RigidBodyTransformTool(QWidget):
         self.model = model
 
         self.leftWidget = QFrame()
-        self.leftWidget.setFrameStyle(QFrame.Box | QFrame.Plain);
-        self.leftWidget.setLineWidth(2);
+        self.leftWidget.setFrameStyle(QFrame.Box | QFrame.Plain)
+        self.leftWidget.setLineWidth(2)
         self.leftLayout = QVBoxLayout()
         self.leftLayout.addWidget(QLabel('Coordinates 1'))
         self.coordsWidget1 = CoordinateWidget()
@@ -70,8 +70,8 @@ class RigidBodyTransformTool(QWidget):
         self.addButton.clicked.connect(self.addCoordinates)
 
         self.rightWidget = QFrame()
-        self.rightWidget.setFrameStyle(QFrame.Box | QFrame.Plain);
-        self.rightWidget.setLineWidth(2);
+        self.rightWidget.setFrameStyle(QFrame.Box | QFrame.Plain)
+        self.rightWidget.setLineWidth(2)
         self.rightLayout = QVBoxLayout()
         self.listWidget = QListWidget()
         self.rightLayout.addWidget(self.listWidget)

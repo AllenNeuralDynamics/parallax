@@ -37,8 +37,8 @@ class TriangulationPanel(QFrame):
         self.goButton.clicked.connect(self.triangulate)
 
         # frame border
-        self.setFrameStyle(QFrame.Box | QFrame.Plain);
-        self.setLineWidth(2);
+        self.setFrameStyle(QFrame.Box | QFrame.Plain)
+        self.setLineWidth(2)
 
     def triangulate(self):
 

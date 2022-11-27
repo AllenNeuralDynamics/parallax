@@ -96,8 +96,8 @@ class ControlPanel(QFrame):
         self.setLayout(mainLayout)
 
         # frame border
-        self.setFrameStyle(QFrame.Box | QFrame.Plain);
-        self.setLineWidth(2);
+        self.setFrameStyle(QFrame.Box | QFrame.Plain)
+        self.setLineWidth(2)
 
         self.stage = None
         self.jog_steps = JOG_STEPS_DEFAULT
