@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
+# from newscale.multistage import USBXYZStage
 
-from newscale.multistage import USBXYZStage
 
 class Stage():
 
@@ -75,9 +74,3 @@ class Stage():
 
     def halt(self):
         pass
-
-
-if __name__ == '__main__':
-    from random import uniform
-    stage = Stage(serial='/dev/ttyUSB0')
-    stage.move_to_target_3d(x=uniform(0, 15000), y=uniform(0, 15000), z=uniform(0, 15000))

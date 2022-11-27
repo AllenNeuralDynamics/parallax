@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import numpy as np
@@ -128,11 +127,3 @@ class Model(QObject):
         for stage in self.stages.values():
             stage.halt()
         self.msg_posted.emit('Halting all stages.')
-
-
-if __name__ == '__main__':
-    model = Model()
-    model.scanCameras()
-    print('ncameras = ', model.ncameras)
-    model.clean()
-

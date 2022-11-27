@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget
@@ -123,14 +121,3 @@ class RigidBodyTransformTool(QWidget):
 
     def clear(self):
         self.list_widget.clear()
-
-
-if __name__ == '__main__':
-    from PyQt5.QtWidgets import QApplication
-    from parallax.model import Model
-    model = Model()
-    app = QApplication([])
-    rbt = RigidBodyTransformTool(model)
-    rbt.show()
-    app.exec()
-

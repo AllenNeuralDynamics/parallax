@@ -1,4 +1,3 @@
-#!/usr/bin/python3 -i
 import logging
 logger = logging.getLogger(__name__)
 
@@ -164,28 +163,3 @@ class MockCamera:
         frame = self.data[self._next_frame]
         self._next_frame = (self._next_frame + 1) % self.data.shape[0]
         return frame
-
-
-if __name__ == '__main__':
-
-    # test code: captures an image and reports resolution
-
-    import sys
-    instance = py_spin.System.GetInstance()
-    cameras_pyspin = instance.GetCameras()
-    ncameras = cameras_pyspin.GetSize()
-    print('%d camera%s detected' % (ncameras, 's' if ncameras!=1 else ''))
-    if not ncameras:
-        sys.exit(0)
-
-    camera = PySpinCamera(cameras_pyspin.GetByIndex(0))
-    camera.capture()
-    data = camera.get_last_image_data()
-    print('image size: ', data.shape)
-    print('flags:\n', data.flags)
-
-    # clean up
-    camera.clean()
-    cameras_pyspin.Clear()
-    instance.ReleaseInstance()
-

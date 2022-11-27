@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 from PyQt5.QtWidgets import QPushButton, QLabel, QRadioButton, QSpinBox
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
@@ -331,16 +330,3 @@ class AboutDialog(QDialog):
         y = float(self.yedit.text())
         z = float(self.zedit.text())
         return x,y,z
-
-
-if __name__ == '__main__':
-    from PyQt5.QtWidgets import QApplication
-    from parallax.model import Model
-    from .rigid_body_transform_tool import RigidBodyTransformTool
-
-    model = Model()
-    app = QApplication([])
-    dlg = RigidBodyTransformTool(model)
-    dlg.show()
-    app.exec()
-

@@ -95,5 +95,3 @@ class TriangulationPanel(QFrame):
             self.status_label.setText(msg)
         else:
             self.status_label.setText('No calibration loaded.')
-
-

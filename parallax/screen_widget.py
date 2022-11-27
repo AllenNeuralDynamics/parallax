@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import functools
 import cv2
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction
@@ -91,24 +90,3 @@ class ClickableImage(pg.ImageItem):
     def mouseClickEvent(self, ev):
         super().mouseClickEvent(ev)
         self.mouse_clicked.emit(ev)
-
-
-if __name__ == '__main__':
-
-    import sys
-    from PyQt5.QtWidgets import QApplication
-
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
-    else:
-        filename = None
-
-    app = QApplication([])
-    screen = ScreenWidget(filename=filename)
-    window = QWidget()
-    layout = QVBoxLayout()
-    layout.addWidget(screen)
-    window.setLayout(layout)
-    window.show()
-    app.exec()
-

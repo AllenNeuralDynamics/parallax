@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from PyQt5.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QHBoxLayout, QLabel
 from PyQt5.QtWidgets import QPushButton, QListWidget, QProgressBar
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
@@ -151,14 +149,3 @@ class StageManager(QWidget):
             ip, stage = item
             self.model.add_stage(stage)
         self.update_list()
-
-
-if __name__ == '__main__':
-    from PyQt5.QtWidgets import QApplication
-    from parallax.model import Model
-    model = Model()
-    app = QApplication([])
-    stage_manager = StageManager(model)
-    stage_manager.show()
-    app.exec()
-
