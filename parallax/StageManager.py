@@ -21,30 +21,30 @@ class SubnetWidget(QWidget):
             self.layout = QHBoxLayout()
 
         self.label = QLabel('Subnet:')
-        self.lineEdit_byte1 = QLineEdit('10')
-        self.lineEdit_byte2 = QLineEdit('128')
-        self.lineEdit_byte3 = QLineEdit('49')
-        self.lineEdit_byte4 = QLineEdit('*')
+        self.line_edit_byte1 = QLineEdit('10')
+        self.line_edit_byte2 = QLineEdit('128')
+        self.line_edit_byte3 = QLineEdit('49')
+        self.line_edit_byte4 = QLineEdit('*')
 
         self.layout.addWidget(self.label)
-        self.layout.addWidget(self.lineEdit_byte1)
-        self.layout.addWidget(self.lineEdit_byte2)
-        self.layout.addWidget(self.lineEdit_byte3)
-        self.layout.addWidget(self.lineEdit_byte4)
+        self.layout.addWidget(self.line_edit_byte1)
+        self.layout.addWidget(self.line_edit_byte2)
+        self.layout.addWidget(self.line_edit_byte3)
+        self.layout.addWidget(self.line_edit_byte4)
 
         self.setLayout(self.layout)
         self.setMaximumWidth(300)
 
-    def getSubnet(self):
-        b1 = int(self.lineEdit_byte1.text())
-        b2 = int(self.lineEdit_byte2.text())
-        b3 = int(self.lineEdit_byte3.text())
+    def get_subnet(self):
+        b1 = int(self.line_edit_byte1.text())
+        b2 = int(self.line_edit_byte2.text())
+        b3 = int(self.line_edit_byte3.text())
         return (b1,b2,b3)
 
 
 class ScanStageWorker(QObject):
     finished = pyqtSignal()
-    progressMade = pyqtSignal(int)
+    progress_made = pyqtSignal(int)
 
     def __init__(self, subnet, parent=None):
         QObject.__init__(self)
@@ -69,7 +69,7 @@ class ScanStageWorker(QObject):
                 print('ip = ', ip)
                 s.close()
                 self.stages.append((ip, Stage(ip=ip)))
-            self.progressMade.emit(i)
+            self.progress_made.emit(i)
         self.finished.emit()
 
 
@@ -79,78 +79,78 @@ class StageManager(QWidget):
         QWidget.__init__(self, parent)
         self.model = model
 
-        self.subnetWidget = SubnetWidget()
-        self.scanButton = QPushButton('Scan')
-        self.scanButton.clicked.connect(self.scanPOE)
-        self.scanUsbButton = QPushButton('Scan USB')
-        self.scanUsbButton.clicked.connect(self.scanUSB)
-        self.listWidget = QListWidget()
+        self.subnet_widget = SubnetWidget()
+        self.scan_button = QPushButton('Scan')
+        self.scan_button.clicked.connect(self.scan_poe)
+        self.scan_usb_button = QPushButton('Scan USB')
+        self.scan_usb_button.clicked.connect(self.scan_usb)
+        self.list_widget = QListWidget()
         self.pbar = QProgressBar()
         self.pbar.setMinimum(0)
         self.pbar.setMaximum(255)
 
-        self.midWidget = QWidget()
-        self.midLayout = QHBoxLayout()
-        self.midLayout.addWidget(self.subnetWidget)
-        self.midLayout.addWidget(self.scanButton)
-        self.midWidget.setLayout(self.midLayout)
+        self.mid_widget = QWidget()
+        self.mid_layout = QHBoxLayout()
+        self.mid_layout.addWidget(self.subnet_widget)
+        self.mid_layout.addWidget(self.scan_button)
+        self.mid_widget.setLayout(self.mid_layout)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.listWidget)
-        layout.addWidget(self.midWidget)
+        layout.addWidget(self.list_widget)
+        layout.addWidget(self.mid_widget)
         layout.addWidget(self.pbar)
-        layout.addWidget(self.scanUsbButton)
+        layout.addWidget(self.scan_usb_button)
         self.setLayout(layout)
         self.setWindowTitle('Scan for Stages')
 
-        self.updateList()
+        self.update_list()
 
-    def scanPOE(self):
-        self.scanForStages(self.subnetWidget.getSubnet())
+    def scan_poe(self):
+        self.scan_for_stages(self.subnet_widget.get_subnet())
 
-    def scanUSB(self):
+    def scan_usb(self):
         filenames = glob.glob('/dev/ttyUSB*')
         for filename in filenames:
             stage = Stage(serial=filename)
-            self.model.addStage(stage)
-        self.updateList()
+            self.model.add_stage(stage)
+        self.update_list()
 
-    def updateList(self):
-        self.listWidget.clear()
+    def update_list(self):
+        self.list_widget.clear()
         stages = list(self.model.stages.values())
         if len(stages) == 0:
-            self.listWidget.addItem("(no stages available)")
+            self.list_widget.addItem("(no stages available)")
         else:
             for stage in stages:
-                self.listWidget.addItem(stage.getName())
+                self.list_widget.addItem(stage.get_name())
 
-    def getParams(self):
+    def get_params(self):
         x = float(self.xedit.text())
         y = float(self.yedit.text())
         z = float(self.zedit.text())
         return x,y,z
 
-    def scanForStages(self, subnet):
-        self.scanThread = QThread()
-        self.scanWorker = ScanStageWorker(subnet)
-        self.scanWorker.moveToThread(self.scanThread)
-        self.scanThread.started.connect(self.scanWorker.run)
-        self.scanWorker.finished.connect(self.scanThread.quit)
-        self.scanWorker.finished.connect(self.scanWorker.deleteLater)
-        self.scanThread.finished.connect(self.scanThread.deleteLater)
-        self.scanThread.finished.connect(self.handleStageScanFinished)
-        self.scanWorker.progressMade.connect(self.reportStageScanProgress)
-        self.scanThread.start()
+    def scan_for_stages(self, subnet):
+        self.scan_thread = QThread()
+        self.scan_worker = ScanStageWorker(subnet)
+        self.scan_worker.moveToThread(self.scan_thread)
+        self.scan_thread.started.connect(self.scan_worker.run)
+        self.scan_worker.finished.connect(self.scan_thread.quit)
+        self.scan_worker.finished.connect(self.scan_worker.deleteLater)
+        self.scan_thread.finished.connect(self.scan_thread.deleteLater)
+        self.scan_thread.finished.connect(self.handle_stage_scan_finished)
+        self.scan_worker.progress_made.connect(self.report_stage_scan_progress)
+        self.scan_thread.start()
 
-    def reportStageScanProgress(self, i):
+    def report_stage_scan_progress(self, i):
         self.pbar.setValue(i)
 
-    def handleStageScanFinished(self):
-        self.model.initStages()
-        for item in self.scanWorker.stages:
+    def handle_stage_scan_finished(self):
+        self.model.init_stages()
+        for item in self.scan_worker.stages:
             ip, stage = item
-            self.model.addStage(stage)
-        self.updateList()
+            self.model.add_stage(stage)
+        self.update_list()
 
 
 if __name__ == '__main__':
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     from Model import Model
     model = Model()
     app = QApplication([])
-    stageManager = StageManager(model)
-    stageManager.show()
+    stage_manager = StageManager(model)
+    stage_manager.show()
     app.exec()
 

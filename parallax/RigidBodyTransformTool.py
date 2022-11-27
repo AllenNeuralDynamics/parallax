@@ -24,13 +24,13 @@ class CoordinateWidget(QWidget):
         self.layout.addWidget(self.zedit)
         self.setLayout(self.layout)
 
-    def getCoordinates(self):
+    def get_coordinates(self):
         x = float(self.xedit.text())
         y = float(self.yedit.text())
         z = float(self.zedit.text())
         return [x, y, z]
 
-    def setCoordinates(self, coords):
+    def set_coordinates(self, coords):
         self.xedit.setText('{0:.2f}'.format(coords[0]))
         self.yedit.setText('{0:.2f}'.format(coords[1]))
         self.zedit.setText('{0:.2f}'.format(coords[2]))
@@ -42,73 +42,73 @@ class RigidBodyTransformTool(QWidget):
         QWidget.__init__(self, parent=None)
         self.model = model
 
-        self.leftWidget = QFrame()
-        self.leftWidget.setFrameStyle(QFrame.Box | QFrame.Plain)
-        self.leftWidget.setLineWidth(2)
-        self.leftLayout = QVBoxLayout()
-        self.leftLayout.addWidget(QLabel('Coordinates 1'))
-        self.coordsWidget1 = CoordinateWidget()
-        self.leftLayout.addWidget(self.coordsWidget1)
-        self.leftLayout.addWidget(QLabel('Coordinates 2'))
-        self.coordsWidget2 = CoordinateWidget()
-        self.leftLayout.addWidget(self.coordsWidget2)
-        self.leftButtons = QWidget()
-        self.leftButtons.setLayout(QHBoxLayout())
-        self.currentButton = QPushButton('Current Position')
-        self.currentButton.clicked.connect(self.fillCurrent)
-        self.leftButtons.layout().addWidget(self.currentButton)
-        self.lastButton = QPushButton('Last Reconstruction')
-        self.lastButton.clicked.connect(self.fillLast)
-        self.leftButtons.layout().addWidget(self.lastButton)
-        self.leftLayout.addWidget(self.leftButtons)
-        self.leftWidget.setLayout(self.leftLayout)
-        self.leftWidget.setMaximumWidth(300)
+        self.left_widget = QFrame()
+        self.left_widget.setFrameStyle(QFrame.Box | QFrame.Plain)
+        self.left_widget.setLineWidth(2)
+        self.left_layout = QVBoxLayout()
+        self.left_layout.addWidget(QLabel('Coordinates 1'))
+        self.coords_widget1 = CoordinateWidget()
+        self.left_layout.addWidget(self.coords_widget1)
+        self.left_layout.addWidget(QLabel('Coordinates 2'))
+        self.coords_widget2 = CoordinateWidget()
+        self.left_layout.addWidget(self.coords_widget2)
+        self.left_buttons = QWidget()
+        self.left_buttons.setLayout(QHBoxLayout())
+        self.current_button = QPushButton('Current Position')
+        self.current_button.clicked.connect(self.fill_current)
+        self.left_buttons.layout().addWidget(self.current_button)
+        self.last_button = QPushButton('Last Reconstruction')
+        self.last_button.clicked.connect(self.fill_last)
+        self.left_buttons.layout().addWidget(self.last_button)
+        self.left_layout.addWidget(self.left_buttons)
+        self.left_widget.setLayout(self.left_layout)
+        self.left_widget.setMaximumWidth(300)
 
-        self.addButton = QPushButton()
-        self.addButton.setIcon(QIcon('../img/arrow-right.png'))
-        self.addButton.setIconSize(QSize(50,50))
-        self.addButton.clicked.connect(self.addCoordinates)
+        self.add_button = QPushButton()
+        self.add_button.setIcon(QIcon('../img/arrow-right.png'))
+        self.add_button.setIconSize(QSize(50,50))
+        self.add_button.clicked.connect(self.add_coordinates)
 
-        self.rightWidget = QFrame()
-        self.rightWidget.setFrameStyle(QFrame.Box | QFrame.Plain)
-        self.rightWidget.setLineWidth(2)
-        self.rightLayout = QVBoxLayout()
-        self.listWidget = QListWidget()
-        self.rightLayout.addWidget(self.listWidget)
-        self.clearButton = QPushButton('Clear List')
-        self.clearButton.clicked.connect(self.clear)
-        self.saveButton = QPushButton('Save to CSV')
-        self.saveButton.clicked.connect(self.save)
-        self.rightButtons = QWidget()
-        self.rightButtons.setLayout(QHBoxLayout())
-        self.rightButtons.layout().addWidget(self.clearButton)
-        self.rightButtons.layout().addWidget(self.saveButton)
-        self.rightLayout.addWidget(self.rightButtons)
-        self.rightWidget.setLayout(self.rightLayout)
+        self.right_widget = QFrame()
+        self.right_widget.setFrameStyle(QFrame.Box | QFrame.Plain)
+        self.right_widget.setLineWidth(2)
+        self.right_layout = QVBoxLayout()
+        self.list_widget = QListWidget()
+        self.right_layout.addWidget(self.list_widget)
+        self.clear_button = QPushButton('Clear List')
+        self.clear_button.clicked.connect(self.clear)
+        self.save_button = QPushButton('Save to CSV')
+        self.save_button.clicked.connect(self.save)
+        self.right_buttons = QWidget()
+        self.right_buttons.setLayout(QHBoxLayout())
+        self.right_buttons.layout().addWidget(self.clear_button)
+        self.right_buttons.layout().addWidget(self.save_button)
+        self.right_layout.addWidget(self.right_buttons)
+        self.right_widget.setLayout(self.right_layout)
 
         self.layout = QHBoxLayout()
-        self.layout.addWidget(self.leftWidget)
-        self.layout.addWidget(self.addButton)
-        self.layout.addWidget(self.rightWidget)
+        self.layout.addWidget(self.left_widget)
+        self.layout.addWidget(self.add_button)
+        self.layout.addWidget(self.right_widget)
 
         self.setLayout(self.layout)
         self.setWindowTitle('Rigid Body Transform Tool')
 
-    def fillCurrent(self):
+    def fill_current(self):
         if self.model.stages:
             position_rel = list(self.model.stages.values())[0].getPosition_rel()
-            self.coordsWidget2.setCoordinates(position_rel)
+            self.coords_widget2.set_coordinates(position_rel)
 
-    def fillLast(self):
-        if not (self.model.objPoint_last is None):
-            self.coordsWidget2.setCoordinates(self.model.objPoint_last)
+    def fill_last(self):
+        if not (self.model.obj_point_last is None):
+            self.coords_widget2.set_coordinates(self.model.obj_point_last)
 
-    def addCoordinates(self):
+    def add_coordinates(self):
         try:
-            x1, y1, z1 = self.coordsWidget1.getCoordinates()
-            x2, y2, z2 = self.coordsWidget2.getCoordinates()
+            x1, y1, z1 = self.coords_widget1.get_coordinates()
+            x2, y2, z2 = self.coords_widget2.get_coordinates()
             s = '{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}'.format(x1, y1, z1, x2, y2, z2)
-            self.listWidget.addItem(s)
+            self.list_widget.addItem(s)
         except ValueError:  # handle incomplete coordinate fields
             pass
 
@@ -117,12 +117,12 @@ class RigidBodyTransformTool(QWidget):
                                                 'CSV files (*.csv)')[0]
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
-            for i in range(self.listWidget.count()):
-                points = self.listWidget.item(i).text().split(',')
+            for i in range(self.list_widget.count()):
+                points = self.list_widget.item(i).text().split(',')
                 writer.writerow(points)
 
     def clear(self):
-        self.listWidget.clear()
+        self.list_widget.clear()
 
 
 if __name__ == '__main__':

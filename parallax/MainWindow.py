@@ -21,73 +21,73 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.widget)
 
         # menubar actions
-        self.saveFramesAction = QAction("Save Camera Frames")
-        self.saveFramesAction.triggered.connect(self.widget.saveCameraFrames)
-        self.saveFramesAction.setShortcut("Ctrl+F")
-        self.saveCalAction = QAction("Save Calibration")
-        self.saveCalAction.triggered.connect(self.widget.triPanel.save)
-        self.saveCalAction.setShortcut("Ctrl+S")
-        self.loadCalAction = QAction("Load Calibration")
-        self.loadCalAction.triggered.connect(self.widget.triPanel.load)
-        self.loadCalAction.setShortcut("Ctrl+O")
-        self.editPrefsAction = QAction("Preferences")
-        self.editPrefsAction.setEnabled(False)
-        self.refreshCamerasAction = QAction("Refresh Camera List")
-        self.refreshCamerasAction.triggered.connect(self.refreshCameras)
-        self.manageStagesAction = QAction("Manage Stages")
-        self.manageStagesAction.triggered.connect(self.launchStageManager)
-        self.rbtAction = QAction("Rigid Body Transform Tool")
-        self.rbtAction.triggered.connect(self.launchRBT)
-        self.aboutAction = QAction("About")
-        self.aboutAction.triggered.connect(self.launchAbout)
+        self.save_frames_action = QAction("Save Camera Frames")
+        self.save_frames_action.triggered.connect(self.widget.save_camera_frames)
+        self.save_frames_action.setShortcut("Ctrl+F")
+        self.save_cal_action = QAction("Save Calibration")
+        self.save_cal_action.triggered.connect(self.widget.tri_panel.save)
+        self.save_cal_action.setShortcut("Ctrl+S")
+        self.load_cal_action = QAction("Load Calibration")
+        self.load_cal_action.triggered.connect(self.widget.tri_panel.load)
+        self.load_cal_action.setShortcut("Ctrl+O")
+        self.edit_prefs_action = QAction("Preferences")
+        self.edit_prefs_action.setEnabled(False)
+        self.refresh_cameras_action = QAction("Refresh Camera List")
+        self.refresh_cameras_action.triggered.connect(self.refresh_cameras)
+        self.manage_stages_action = QAction("Manage Stages")
+        self.manage_stages_action.triggered.connect(self.launch_stage_manager)
+        self.rbt_action = QAction("Rigid Body Transform Tool")
+        self.rbt_action.triggered.connect(self.launch_rbt)
+        self.about_action = QAction("About")
+        self.about_action.triggered.connect(self.launch_about)
 
         # build the menubar
-        self.fileMenu = self.menuBar().addMenu("File")
-        self.fileMenu.addAction(self.saveFramesAction)
-        self.fileMenu.addSeparator()    # not visible on linuxmint?
-        self.fileMenu.addAction(self.saveCalAction)
-        self.fileMenu.addAction(self.loadCalAction)
+        self.file_menu = self.menuBar().addMenu("File")
+        self.file_menu.addAction(self.save_frames_action)
+        self.file_menu.addSeparator()    # not visible on linuxmint?
+        self.file_menu.addAction(self.save_cal_action)
+        self.file_menu.addAction(self.load_cal_action)
 
-        self.editMenu = self.menuBar().addMenu("Edit")
-        self.editMenu.addAction(self.editPrefsAction)
+        self.edit_menu = self.menuBar().addMenu("Edit")
+        self.edit_menu.addAction(self.edit_prefs_action)
 
-        self.deviceMenu = self.menuBar().addMenu("Devices")
-        self.deviceMenu.addAction(self.refreshCamerasAction)
-        self.deviceMenu.addAction(self.manageStagesAction)
+        self.device_menu = self.menuBar().addMenu("Devices")
+        self.device_menu.addAction(self.refresh_cameras_action)
+        self.device_menu.addAction(self.manage_stages_action)
 
-        self.toolsMenu = self.menuBar().addMenu("Tools")
-        self.toolsMenu.addAction(self.rbtAction)
+        self.tools_menu = self.menuBar().addMenu("Tools")
+        self.tools_menu.addAction(self.rbt_action)
 
-        self.helpMenu = self.menuBar().addMenu("Help")
-        self.helpMenu.addAction(self.aboutAction)
+        self.help_menu = self.menuBar().addMenu("Help")
+        self.help_menu.addAction(self.about_action)
 
         self.setWindowTitle('Parallax')
         self.setWindowIcon(QIcon('../img/sextant.png'))
 
-    def launchStageManager(self):
-        self.stageManager = StageManager(self.model)
-        self.stageManager.show()
+    def launch_stage_manager(self):
+        self.stage_manager = StageManager(self.model)
+        self.stage_manager.show()
 
-    def launchAbout(self):
+    def launch_about(self):
         dlg = AboutDialog()
         dlg.exec_()
 
-    def launchRBT(self):
+    def launch_rbt(self):
         self.rbt = RigidBodyTransformTool(self.model)
         self.rbt.show()
 
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
 
-    def refreshCameras(self):
-        self.model.scanForCameras()
+    def refresh_cameras(self):
+        self.model.scan_for_cameras()
         for screen in self.screens():
-            screen.updateCameraMenu()
+            screen.update_camera_menu()
 
-    def assignCameras(self):
-        self.refreshCameras()
+    def assign_cameras(self):
+        self.refresh_cameras()
         for screen, camera in zip(self.screens(), self.model.cameras):
-            screen.setCamera(camera)
+            screen.set_camera(camera)
 
 
 class MainWidget(QWidget):
@@ -105,66 +105,66 @@ class MainWidget(QWidget):
         self.screens.setLayout(hlayout)
 
         self.controls = QWidget()
-        self.controlPanel1 = ControlPanel(self.model)
-        self.controlPanel2 = ControlPanel(self.model)
-        self.triPanel = TriangulationPanel(self.model)
+        self.control_panel1 = ControlPanel(self.model)
+        self.control_panel2 = ControlPanel(self.model)
+        self.tri_panel = TriangulationPanel(self.model)
         hlayout = QHBoxLayout()
-        hlayout.addWidget(self.controlPanel1)
-        hlayout.addWidget(self.triPanel)
-        hlayout.addWidget(self.controlPanel2)
+        hlayout.addWidget(self.control_panel1)
+        hlayout.addWidget(self.tri_panel)
+        hlayout.addWidget(self.control_panel2)
         self.controls.setLayout(hlayout)
 
-        self.refreshTimer = QTimer()
-        self.refreshTimer.timeout.connect(self.refresh)
-        self.refreshTimer.start(16)
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.refresh)
+        self.refresh_timer.start(16)
 
         # connections
-        self.msgLog = MessageLog()
-        self.controlPanel1.msgPosted.connect(self.msgLog.post)
-        self.controlPanel2.msgPosted.connect(self.msgLog.post)
-        self.controlPanel1.targetReached.connect(self.zoomOut)
-        self.controlPanel2.targetReached.connect(self.zoomOut)
-        self.triPanel.msgPosted.connect(self.msgLog.post)
-        self.model.calPointReached.connect(self.clearSelected)
-        self.model.calPointReached.connect(self.zoomOut)
-        self.model.msgPosted.connect(self.msgLog.post)
-        self.lscreen.selected.connect(self.model.setLcorr)
-        self.lscreen.cleared.connect(self.model.clearLcorr)
-        self.rscreen.selected.connect(self.model.setRcorr)
-        self.rscreen.cleared.connect(self.model.clearRcorr)
+        self.msg_log = MessageLog()
+        self.control_panel1.msg_posted.connect(self.msg_log.post)
+        self.control_panel2.msg_posted.connect(self.msg_log.post)
+        self.control_panel1.target_reached.connect(self.zoom_out)
+        self.control_panel2.target_reached.connect(self.zoom_out)
+        self.tri_panel.msg_posted.connect(self.msg_log.post)
+        self.model.cal_point_reached.connect(self.clear_selected)
+        self.model.cal_point_reached.connect(self.zoom_out)
+        self.model.msg_posted.connect(self.msg_log.post)
+        self.lscreen.selected.connect(self.model.set_lcorr)
+        self.lscreen.cleared.connect(self.model.clear_lcorr)
+        self.rscreen.selected.connect(self.model.set_rcorr)
+        self.rscreen.cleared.connect(self.model.clear_rcorr)
 
-        mainLayout = QVBoxLayout()
-        mainLayout.addWidget(self.screens)
-        mainLayout.addWidget(self.controls)
-        mainLayout.addWidget(self.msgLog)
-        self.setLayout(mainLayout)
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.screens)
+        main_layout.addWidget(self.controls)
+        main_layout.addWidget(self.msg_log)
+        self.setLayout(main_layout)
 
-    def keyPressEvent(self, e):
+    def key_press_event(self, e):
         if e.key() == Qt.Key_R:
             if (e.modifiers() & Qt.ControlModifier):
-                self.clearSelected()
-                self.zoomOut()
+                self.clear_selected()
+                self.zoom_out()
                 e.accept()
         elif e.key() == Qt.Key_C:
-            self.model.registerCorrPoints_cal()
+            self.model.register_corr_points_cal()
         elif e.key() == Qt.Key_Escape:
-            self.model.haltAllStages()
+            self.model.halt_all_stages()
 
     def refresh(self):
         self.lscreen.refresh()
         self.rscreen.refresh()
 
-    def clearSelected(self):
-        self.lscreen.clearSelected()
-        self.rscreen.clearSelected()
+    def clear_selected(self):
+        self.lscreen.clear_selected()
+        self.rscreen.clear_selected()
 
-    def zoomOut(self):
-        self.lscreen.zoomOut()
-        self.rscreen.zoomOut()
+    def zoom_out(self):
+        self.lscreen.zoom_out()
+        self.rscreen.zoom_out()
 
-    def saveCameraFrames(self):
+    def save_camera_frames(self):
         for i,camera in enumerate(self.model.cameras.values()):
             if camera.lastImage:
                 filename = 'camera%d_%s.png' % (i, camera.getLastCaptureTime())
                 camera.saveLastImage(filename)
-                self.msgLog.post('Saved camera frame: %s' % filename)
+                self.msg_log.post('Saved camera frame: %s' % filename)

@@ -12,43 +12,43 @@ CJOG_STEPS_DEFAULT = 100
 
 
 class AxisControl(QWidget):
-    jogRequested = pyqtSignal(str, bool, bool)
-    centerRequested = pyqtSignal(str)
+    jog_requested = pyqtSignal(str, bool, bool)
+    center_requested = pyqtSignal(str)
 
     def __init__(self, axis):
         QWidget.__init__(self)
         self.axis = axis    # e.g. 'X'
 
-        self.relLabel = QLabel(self.axis + 'r')
-        self.relLabel.setAlignment(Qt.AlignCenter)
-        self.relLabel.setFont(FONT_BOLD)
-        self.absLabel = QLabel('(%sa)' % self.axis)
-        self.absLabel.setAlignment(Qt.AlignCenter)
+        self.rel_label = QLabel(self.axis + 'r')
+        self.rel_label.setAlignment(Qt.AlignCenter)
+        self.rel_label.setFont(FONT_BOLD)
+        self.abs_label = QLabel('(%sa)' % self.axis)
+        self.abs_label.setAlignment(Qt.AlignCenter)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.relLabel)
-        layout.addWidget(self.absLabel)
+        layout.addWidget(self.rel_label)
+        layout.addWidget(self.abs_label)
         self.setLayout(layout)
 
-    def setValue(self, val_rel, val_abs):
-        self.relLabel.setText('%sr = %0.1f' % (self.axis, val_rel))
-        self.absLabel.setText('(%0.1f)' % val_abs)
+    def set_value(self, val_rel, val_abs):
+        self.rel_label.setText('%sr = %0.1f' % (self.axis, val_rel))
+        self.abs_label.setText('(%0.1f)' % val_abs)
 
-    def wheelEvent(self, e):
+    def wheel_event(self, e):
         forward = bool(e.angleDelta().y() > 0)
         control = bool(e.modifiers() & Qt.ControlModifier)
-        self.jogRequested.emit(self.axis, forward, control)
+        self.jog_requested.emit(self.axis, forward, control)
         e.accept()
 
-    def mousePressEvent(self, e):
+    def mouse_press_event(self, e):
         if e.button() == Qt.MiddleButton:
-            self.centerRequested.emit(self.axis)
+            self.center_requested.emit(self.axis)
             e.accept()
 
 
 class ControlPanel(QFrame):
-    msgPosted = pyqtSignal(str)
-    targetReached = pyqtSignal()
+    msg_posted = pyqtSignal(str)
+    target_reached = pyqtSignal()
 
     def __init__(self, model):
         QFrame.__init__(self)
@@ -56,44 +56,44 @@ class ControlPanel(QFrame):
 
         # widgets
 
-        self.mainLabel = QLabel('Stage Control')
-        self.mainLabel.setAlignment(Qt.AlignCenter)
-        self.mainLabel.setFont(FONT_BOLD)
+        self.main_label = QLabel('Stage Control')
+        self.main_label.setAlignment(Qt.AlignCenter)
+        self.main_label.setFont(FONT_BOLD)
 
         self.dropdown = StageDropdown(self.model)
-        self.dropdown.activated.connect(self.handleStageSelection)
+        self.dropdown.activated.connect(self.handle_stage_selection)
 
-        self.settingsButton = QPushButton()
-        self.settingsButton.setIcon(QIcon('../img/gear.png'))
-        self.settingsButton.clicked.connect(self.handleSettings)
+        self.settings_button = QPushButton()
+        self.settings_button.setIcon(QIcon('../img/gear.png'))
+        self.settings_button.clicked.connect(self.handle_settings)
 
         self.xcontrol = AxisControl('x')
-        self.xcontrol.jogRequested.connect(self.jog)
-        self.xcontrol.centerRequested.connect(self.center)
+        self.xcontrol.jog_requested.connect(self.jog)
+        self.xcontrol.center_requested.connect(self.center)
         self.ycontrol = AxisControl('y')
-        self.ycontrol.jogRequested.connect(self.jog)
-        self.ycontrol.centerRequested.connect(self.center)
+        self.ycontrol.jog_requested.connect(self.jog)
+        self.ycontrol.center_requested.connect(self.center)
         self.zcontrol = AxisControl('z')
-        self.zcontrol.jogRequested.connect(self.jog)
-        self.zcontrol.centerRequested.connect(self.center)
+        self.zcontrol.jog_requested.connect(self.jog)
+        self.zcontrol.center_requested.connect(self.center)
 
-        self.zeroButton = QPushButton('Set Relative Origin')
-        self.zeroButton.clicked.connect(self.zero)
+        self.zero_button = QPushButton('Set Relative Origin')
+        self.zero_button.clicked.connect(self.zero)
 
-        self.moveTargetButton = QPushButton('Move to Target')
-        self.moveTargetButton.clicked.connect(self.moveToTarget)
+        self.move_target_button = QPushButton('Move to Target')
+        self.move_target_button.clicked.connect(self.move_to_target)
 
         # layout
-        mainLayout = QGridLayout()
-        mainLayout.addWidget(self.mainLabel, 0,0, 1,3)
-        mainLayout.addWidget(self.dropdown, 1,0, 1,2)
-        mainLayout.addWidget(self.settingsButton, 1,2, 1,1)
-        mainLayout.addWidget(self.xcontrol, 2,0, 1,1)
-        mainLayout.addWidget(self.ycontrol, 2,1, 1,1)
-        mainLayout.addWidget(self.zcontrol, 2,2, 1,1)
-        mainLayout.addWidget(self.zeroButton, 3,0, 1,3)
-        mainLayout.addWidget(self.moveTargetButton, 4,0, 1,3)
-        self.setLayout(mainLayout)
+        main_layout = QGridLayout()
+        main_layout.addWidget(self.main_label, 0,0, 1,3)
+        main_layout.addWidget(self.dropdown, 1,0, 1,2)
+        main_layout.addWidget(self.settings_button, 1,2, 1,1)
+        main_layout.addWidget(self.xcontrol, 2,0, 1,1)
+        main_layout.addWidget(self.ycontrol, 2,1, 1,1)
+        main_layout.addWidget(self.zcontrol, 2,2, 1,1)
+        main_layout.addWidget(self.zero_button, 3,0, 1,3)
+        main_layout.addWidget(self.move_target_button, 4,0, 1,3)
+        self.setLayout(main_layout)
 
         # frame border
         self.setFrameStyle(QFrame.Box | QFrame.Plain)
@@ -103,77 +103,77 @@ class ControlPanel(QFrame):
         self.jog_steps = JOG_STEPS_DEFAULT
         self.cjog_steps = CJOG_STEPS_DEFAULT
 
-    def updateCoordinates(self, *args):
-        xa, ya, za = self.stage.getPosition()
-        xo, yo, zo = self.stage.getOrigin()
-        self.xcontrol.setValue(xa-xo, xa)
-        self.ycontrol.setValue(ya-yo, ya)
-        self.zcontrol.setValue(za-zo, za)
+    def update_coordinates(self, *args):
+        xa, ya, za = self.stage.get_position()
+        xo, yo, zo = self.stage.get_origin()
+        self.xcontrol.set_value(xa-xo, xa)
+        self.ycontrol.set_value(ya-yo, ya)
+        self.zcontrol.set_value(za-zo, za)
 
-    def updateRelativeOrigin(self):
-        x,y,z = self.stage.getOrigin()
-        self.zeroButton.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
+    def update_relative_origin(self):
+        x,y,z = self.stage.get_origin()
+        self.zero_button.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
 
-    def handleStageSelection(self, index):
-        stageName = self.dropdown.currentText()
-        self.setStage(self.model.stages[stageName])
-        self.updateCoordinates()
+    def handle_stage_selection(self, index):
+        stage_name = self.dropdown.currentText()
+        self.set_stage(self.model.stages[stage_name])
+        self.update_coordinates()
 
-    def setStage(self, stage):
+    def set_stage(self, stage):
         self.stage = stage
-        self.updateRelativeOrigin()
+        self.update_relative_origin()
 
-    def moveToTarget(self, *args):
+    def move_to_target(self, *args):
         dlg = TargetDialog(self.model)
         if dlg.exec_():
-            params = dlg.getParams()
+            params = dlg.get_params()
             x = params['x']
             y = params['y']
             z = params['z']
             if self.stage:
-                self.stage.moveToTarget_3d(x, y, z, relative=params['relative'], safe=True)
+                self.stage.move_to_target_3d(x, y, z, relative=params['relative'], safe=True)
                 if params['relative']:
-                    self.msgPosted.emit('Moved to relative position: '
+                    self.msg_posted.emit('Moved to relative position: '
                                         '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
                 else:
-                    self.msgPosted.emit('Moved to absolute position: '
+                    self.msg_posted.emit('Moved to absolute position: '
                                         '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                self.updateCoordinates()
-                self.targetReached.emit()
+                self.update_coordinates()
+                self.target_reached.emit()
 
-    def handleSettings(self, *args):
+    def handle_settings(self, *args):
         if self.stage:
             dlg = StageSettingsDialog(self.stage, self.jog_steps/2, self.cjog_steps/2)
             if dlg.exec_():
-                if dlg.speedChanged():
-                    self.stage.setSpeed(dlg.getSpeed())
-                if dlg.jogChanged():
-                    self.jog_steps = dlg.getJog_um() * 2
-                if dlg.cjogChanged():
-                    self.cjog_steps = dlg.getCjog_um() * 2
+                if dlg.speed_changed():
+                    self.stage.set_speed(dlg.get_speed())
+                if dlg.jog_changed():
+                    self.jog_steps = dlg.get_jog_um() * 2
+                if dlg.cjog_changed():
+                    self.cjog_steps = dlg.get_cjog_um() * 2
         else:
-            self.msgPosted.emit('ControlPanel: No stage selected.')
+            self.msg_posted.emit('ControlPanel: No stage selected.')
 
     def jog(self, axis, forward, control):
         if self.stage:
             distance = 50 if control else 200
             if not forward:
                 distance = (-1) * distance
-            self.stage.moveDistance_1d(axis, distance)
-            self.updateCoordinates()
+            self.stage.move_distance_1d(axis, distance)
+            self.update_coordinates()
 
     def center(self, axis):
         if self.stage:
-            self.stage.moveToTarget_1d(axis, 7500)
-            self.updateCoordinates()
+            self.stage.move_to_target_1d(axis, 7500)
+            self.update_coordinates()
 
     def zero(self, *args):
         if self.stage:
-            x, y, z = self.stage.getPosition()
-            self.stage.setOrigin(x, y, z)
-            self.zeroButton.setText('Zero: (%d %d %d)' % (x, y, z))
-            self.updateCoordinates()
-            self.updateRelativeOrigin()
+            x, y, z = self.stage.get_position()
+            self.stage.set_origin(x, y, z)
+            self.zero_button.setText('Zero: (%d %d %d)' % (x, y, z))
+            self.update_coordinates()
+            self.update_relative_origin()
 
     def halt(self):
         # doesn't actually work now because we need threading

@@ -20,34 +20,34 @@ class Stage():
     def initialize(self):
         self.origin = [7500,7500,7500]
 
-    def getName(self):
+    def get_name(self):
         return self.name
 
-    def setOrigin(self, x, y, z):
+    def set_origin(self, x, y, z):
         self.origin = [x,y,z]
 
-    def getOrigin(self):
+    def get_origin(self):
         return self.origin
 
-    def getPosition(self, relative=False):
+    def get_position(self, relative=False):
         pos = self.device.get_position('x', 'y', 'z')
         return pos['x'], pos['y'], pos['z']
 
-    def moveToTarget_1d(self, axis, position, relative=False):
+    def move_to_target_1d(self, axis, position, relative=False):
         self.device.move_absolute(x=x, y=y, z=z)
 
-    def moveToTarget_3d(self, x, y, z, relative=False, safe=True):
+    def move_to_target_3d(self, x, y, z, relative=False, safe=True):
         # TODO implement safe parameter
         if relative:
-            xo,yo,zo = self.getOrigin()
+            xo,yo,zo = self.get_origin()
             x += xo
             y += yo
             z += zo
         self.device.move_absolute(x=x, y=y, z=z)
 
-    def moveDistance_1d(self, axis, distance):
+    def move_distance_1d(self, axis, distance):
         # TODO re-implement based on move_relative()
-        x,y,z = self.getPosition()
+        x,y,z = self.get_position()
         if axis == 'x':
             x += distance
         elif axis == 'y':
@@ -56,19 +56,19 @@ class Stage():
             z += distance
         self.device.move_absolute(x=x, y=y, z=z)
 
-    def moveDistance_3d(self, x, y, z):
+    def move_distance_3d(self, x, y, z):
         pass    # TODO, implement based on move_relative()
 
-    def getSpeed(self):
+    def get_speed(self):
         d = self.device.get_closed_loop_speed_and_accel('x')
         speed = d['x'][0]
         return speed
 
-    def setSpeed(self, speed):
-        accel = self.getAccel()
+    def set_speed(self, speed):
+        accel = self.get_accel()
         self.device.set_closed_loop_speed_and_accel(global_setting=(speed, accel))
 
-    def getAccel(self):
+    def get_accel(self):
         d = self.device.get_closed_loop_speed_and_accel('x')
         accel = d['x'][1]
         return accel
@@ -80,4 +80,4 @@ class Stage():
 if __name__ == '__main__':
     from random import uniform
     stage = Stage(serial='/dev/ttyUSB0')
-    stage.moveToTarget_3d(x=uniform(0, 15000), y=uniform(0, 15000), z=uniform(0, 15000))
+    stage.move_to_target_3d(x=uniform(0, 15000), y=uniform(0, 15000), z=uniform(0, 15000))

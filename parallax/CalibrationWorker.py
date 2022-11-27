@@ -5,7 +5,7 @@ import time
 
 class CalibrationWorker(QObject):
     finished = pyqtSignal()
-    calibrationPointReached = pyqtSignal(int, int, float, float, float)
+    calibration_point_reached = pyqtSignal(int, int, float, float, float)
 
     RESOLUTION_DEFAULT = 3
     EXTENT_UM_DEFAULT = 2000
@@ -20,12 +20,12 @@ class CalibrationWorker(QObject):
         self.resolution = resolution
         self.extent_um = extent_um
 
-        self.readyToGo = False
-        self.objectPoints = []  # units are mm
-        self.numCal = self.resolution**3
+        self.ready_to_go = False
+        self.object_points = []  # units are mm
+        self.num_cal = self.resolution**3
 
-    def carryOn(self):
-        self.readyToGo = True
+    def carry_on(self):
+        self.ready_to_go = True
 
     def run(self):
         mx =  self.extent_um / 2.
@@ -35,14 +35,14 @@ class CalibrationWorker(QObject):
             for y in np.linspace(mn, mx, self.resolution):
                 for z in np.linspace(mn, mx, self.resolution):
                     self.stage.moveToTarget_3d(x,y,z, relative=True, safe=False)
-                    self.calibrationPointReached.emit(n,self.numCal, x,y,z)
-                    self.readyToGo = False
-                    while not self.readyToGo:
+                    self.calibration_point_reached.emit(n,self.num_cal, x,y,z)
+                    self.ready_to_go = False
+                    while not self.ready_to_go:
                         time.sleep(0.1)
-                    self.objectPoints.append([x,y,z])
+                    self.object_points.append([x,y,z])
                     n += 1
         self.finished.emit()
 
-    def getObjectPoints(self):
-        return np.array([self.objectPoints], dtype=np.float32)
+    def get_object_points(self):
+        return np.array([self.object_points], dtype=np.float32)
 

@@ -15,10 +15,10 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 if __name__ == '__main__':
     app = QApplication([])
     model = Model()
-    mainWindow = MainWindow(model)
-    mainWindow.show()
+    main_window = MainWindow(model)
+    main_window.show()
 
-    mainWindow.assignCameras()
+    main_window.assign_cameras()
 
     app.exec()
     model.clean()

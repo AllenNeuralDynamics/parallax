@@ -17,27 +17,27 @@ class ScreenWidget(pg.GraphicsView):
         self.filename = filename
         self.model = model
 
-        self.viewBox = pg.ViewBox(defaultPadding=0)
-        self.setCentralItem(self.viewBox)
-        self.viewBox.setAspectLocked()
-        self.viewBox.invertY()
+        self.view_box = pg.ViewBox(defaultPadding=0)
+        self.setCentralItem(self.view_box)
+        self.view_box.setAspectLocked()
+        self.view_box.invertY()
 
-        self.imageItem = ClickableImage()
-        self.imageItem.axisOrder = 'row-major'
-        self.viewBox.addItem(self.imageItem)
-        self.imageItem.mouseClicked.connect(self.imageClicked)
+        self.image_item = ClickableImage()
+        self.image_item.axis_order = 'row-major'
+        self.view_box.addItem(self.image_item)
+        self.image_item.mouse_clicked.connect(self.image_clicked)
 
-        self.clickTarget = pg.TargetItem()
-        self.viewBox.addItem(self.clickTarget)
-        self.clickTarget.setVisible(False)
+        self.click_target = pg.TargetItem()
+        self.view_box.addItem(self.click_target)
+        self.click_target.setVisible(False)
 
-        self.cameraActions = []
-        self.cameraActionSeparator = self.viewBox.menu.insertSeparator(self.viewBox.menu.actions()[0])
+        self.camera_actions = []
+        self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
 
         if self.filename:
-            self.setData(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
+            self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
-        self.clearSelected()
+        self.clear_selected()
 
         self.camera = None
 
@@ -45,52 +45,52 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             # takes a 3000,4000 grayscale image straight from the camera
             self.camera.capture()
-            self.setData(self.camera.getLastImageData())
+            self.set_data(self.camera.getLastImageData())
 
-    def clearSelected(self):
-        self.clickTarget.setVisible(False)
+    def clear_selected(self):
+        self.click_target.setVisible(False)
         self.cleared.emit()
 
-    def setData(self, data):
-        self.imageItem.setImage(data)
+    def set_data(self, data):
+        self.image_item.setImage(data)
 
-    def updateCameraMenu(self):
-        for act in self.cameraActions:
+    def update_camera_menu(self):
+        for act in self.camera_actions:
             act.triggered.disconnect(act.callback)
-            self.viewBox.menu.removeAction(act)
+            self.view_box.menu.removeAction(act)
         for camera in self.model.cameras:
             act = QAction(camera.name())
-            act.callback = functools.partial(self.setCamera, camera)
+            act.callback = functools.partial(self.set_camera, camera)
             act.triggered.connect(act.callback)
-            self.cameraActions.append(act)
-            self.viewBox.menu.insertAction(self.cameraActionSeparator, act)
+            self.camera_actions.append(act)
+            self.view_box.menu.insertAction(self.camera_action_separator, act)
 
-    def imageClicked(self, event):
+    def image_clicked(self, event):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:            
-            self.clickTarget.setPos(event.pos())
-            self.clickTarget.setVisible(True)
-            self.selected.emit(*self.getSelected())
+            self.click_target.setPos(event.pos())
+            self.click_target.setVisible(True)
+            self.selected.emit(*self.get_selected())
 
-    def zoomOut(self):
-        self.viewBox.autoRange()
+    def zoom_out(self):
+        self.view_box.autoRange()
 
-    def setCamera(self, camera):
+    def set_camera(self, camera):
         self.camera = camera
         self.refresh()
 
-    def getSelected(self):
-        if self.clickTarget.isVisible():
-            pos = self.clickTarget.pos()
+    def get_selected(self):
+        if self.click_target.isVisible():
+            pos = self.click_target.pos()
             return pos.x(), pos.y()
         else:
             return None
 
 
 class ClickableImage(pg.ImageItem):
-    mouseClicked = pyqtSignal(object)    
-    def mouseClickEvent(self, ev):
+    mouse_clicked = pyqtSignal(object)    
+    def mouse_click_event(self, ev):
         super().mouseClickEvent(ev)
-        self.mouseClicked.emit(ev)
+        self.mouse_clicked.emit(ev)
 
 
 if __name__ == '__main__':

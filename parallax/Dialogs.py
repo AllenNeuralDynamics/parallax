@@ -19,69 +19,69 @@ class StageSettingsDialog(QDialog):
         QDialog.__init__(self)
         self.stage = stage
 
-        self.currentLabel = QLabel('Current Value')
-        self.currentLabel.setAlignment(Qt.AlignCenter)
-        self.desiredLabel = QLabel('Desired Value')
-        self.desiredLabel.setAlignment(Qt.AlignCenter)
+        self.current_label = QLabel('Current Value')
+        self.current_label.setAlignment(Qt.AlignCenter)
+        self.desired_label = QLabel('Desired Value')
+        self.desired_label.setAlignment(Qt.AlignCenter)
 
-        self.speedLabel = QLabel('Closed-Loop Speed')
-        self.speedCurrent = QLineEdit(str(self.stage.getSpeed()))
-        self.speedCurrent.setEnabled(False)
-        self.speedDesired = QLineEdit()
+        self.speed_label = QLabel('Closed-Loop Speed')
+        self.speed_current = QLineEdit(str(self.stage.get_speed()))
+        self.speed_current.setEnabled(False)
+        self.speed_desired = QLineEdit()
 
-        self.jogLabel = QLabel('Jog Increment (um)')
-        self.jogCurrent = QLineEdit(str(jog_um_current))
-        self.jogCurrent.setEnabled(False)
-        self.jogDesired = QLineEdit()
+        self.jog_label = QLabel('Jog Increment (um)')
+        self.jog_current = QLineEdit(str(jog_um_current))
+        self.jog_current.setEnabled(False)
+        self.jog_desired = QLineEdit()
 
-        self.cjogLabel = QLabel('Control-Jog Increment (um)')
-        self.cjogCurrent = QLineEdit(str(cjog_um_current))
-        self.cjogCurrent.setEnabled(False)
-        self.cjogDesired = QLineEdit()
+        self.cjog_label = QLabel('Control-Jog Increment (um)')
+        self.cjog_current = QLineEdit(str(cjog_um_current))
+        self.cjog_current.setEnabled(False)
+        self.cjog_desired = QLineEdit()
 
-        self.dialogButtons = QDialogButtonBox(
+        self.dialog_buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
-        self.dialogButtons.accepted.connect(self.accept)
-        self.dialogButtons.rejected.connect(self.reject)
+        self.dialog_buttons.accepted.connect(self.accept)
+        self.dialog_buttons.rejected.connect(self.reject)
 
         layout = QGridLayout()
-        layout.addWidget(self.currentLabel, 0,1, 1,1)
-        layout.addWidget(self.desiredLabel, 0,2, 1,1)
-        layout.addWidget(self.speedLabel, 1,0, 1,1)
-        layout.addWidget(self.speedCurrent, 1,1, 1,1)
-        layout.addWidget(self.speedDesired, 1,2, 1,1)
-        layout.addWidget(self.jogLabel, 2,0, 1,1)
-        layout.addWidget(self.jogCurrent, 2,1, 1,1)
-        layout.addWidget(self.jogDesired, 2,2, 1,1)
-        layout.addWidget(self.cjogLabel, 3,0, 1,1)
-        layout.addWidget(self.cjogCurrent, 3,1, 1,1)
-        layout.addWidget(self.cjogDesired, 3,2, 1,1)
-        layout.addWidget(self.dialogButtons, 4,0, 1,3)
+        layout.addWidget(self.current_label, 0,1, 1,1)
+        layout.addWidget(self.desired_label, 0,2, 1,1)
+        layout.addWidget(self.speed_label, 1,0, 1,1)
+        layout.addWidget(self.speed_current, 1,1, 1,1)
+        layout.addWidget(self.speed_desired, 1,2, 1,1)
+        layout.addWidget(self.jog_label, 2,0, 1,1)
+        layout.addWidget(self.jog_current, 2,1, 1,1)
+        layout.addWidget(self.jog_desired, 2,2, 1,1)
+        layout.addWidget(self.cjog_label, 3,0, 1,1)
+        layout.addWidget(self.cjog_current, 3,1, 1,1)
+        layout.addWidget(self.cjog_desired, 3,2, 1,1)
+        layout.addWidget(self.dialog_buttons, 4,0, 1,3)
         self.setLayout(layout)
 
-    def speedChanged(self):
-        dtext = self.speedDesired.text()
-        ctext = self.speedCurrent.text()
+    def speed_changed(self):
+        dtext = self.speed_desired.text()
+        ctext = self.speed_current.text()
         return bool(dtext) and (dtext != ctext)
 
-    def getSpeed(self):
-        return int(self.speedDesired.text())
+    def get_speed(self):
+        return int(self.speed_desired.text())
 
-    def jogChanged(self):
-        dtext = self.jogDesired.text()
-        ctext = self.jogCurrent.text()
+    def jog_changed(self):
+        dtext = self.jog_desired.text()
+        ctext = self.jog_current.text()
         return bool(dtext) and (dtext != ctext)
 
-    def getJog_um(self):
-        return float(self.jogDesired.text())
+    def get_jog_um(self):
+        return float(self.jog_desired.text())
 
-    def cjogChanged(self):
-        dtext = self.cjogDesired.text()
-        ctext = self.cjogCurrent.text()
+    def cjog_changed(self):
+        dtext = self.cjog_desired.text()
+        ctext = self.cjog_current.text()
         return bool(dtext) and (dtext != ctext)
 
-    def getCjog_um(self):
-        return float(self.cjogDesired.text())
+    def get_cjog_um(self):
+        return float(self.cjog_desired.text())
 
 
 class CalibrationDialog(QDialog):
@@ -90,72 +90,72 @@ class CalibrationDialog(QDialog):
         QDialog.__init__(self, parent)
         self.model = model
 
-        self.intrinsicsDefaultButton = QRadioButton("Use Default Intrinsics")
-        self.intrinsicsDefaultButton.setChecked(True)
-        self.intrinsicsDefaultButton.toggled.connect(self.handleRadio)
+        self.intrinsics_default_button = QRadioButton("Use Default Intrinsics")
+        self.intrinsics_default_button.setChecked(True)
+        self.intrinsics_default_button.toggled.connect(self.handle_radio)
 
-        self.intrinsicsLoadButton = QRadioButton("Load Intrinsics from File")
-        self.intrinsicsLoadButton.toggled.connect(self.handleRadio)
+        self.intrinsics_load_button = QRadioButton("Load Intrinsics from File")
+        self.intrinsics_load_button.toggled.connect(self.handle_radio)
 
-        self.stageLabel = QLabel('Select a Stage:')
-        self.stageLabel.setAlignment(Qt.AlignCenter)
-        self.stageLabel.setFont(FONT_BOLD)
+        self.stage_label = QLabel('Select a Stage:')
+        self.stage_label.setAlignment(Qt.AlignCenter)
+        self.stage_label.setFont(FONT_BOLD)
 
-        self.stageDropdown = StageDropdown(self.model)
-        self.stageDropdown.activated.connect(self.updateStatus)
+        self.stage_dropdown = StageDropdown(self.model)
+        self.stage_dropdown.activated.connect(self.update_status)
 
-        self.resolutionLabel = QLabel('Resolution:')
-        self.resolutionLabel.setAlignment(Qt.AlignCenter)
-        self.resolutionBox = QSpinBox()
-        self.resolutionBox.setMinimum(2)
-        self.resolutionBox.setValue(cw.RESOLUTION_DEFAULT)
+        self.resolution_label = QLabel('Resolution:')
+        self.resolution_label.setAlignment(Qt.AlignCenter)
+        self.resolution_box = QSpinBox()
+        self.resolution_box.setMinimum(2)
+        self.resolution_box.setValue(cw.RESOLUTION_DEFAULT)
 
-        self.extentLabel = QLabel('Extent (um):')
-        self.extentLabel.setAlignment(Qt.AlignCenter)
-        self.extentEdit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
+        self.extent_label = QLabel('Extent (um):')
+        self.extent_label.setAlignment(Qt.AlignCenter)
+        self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
 
-        self.goButton = QPushButton('Start Calibration Routine')
-        self.goButton.setEnabled(False)
-        self.goButton.clicked.connect(self.go)
+        self.go_button = QPushButton('Start Calibration Routine')
+        self.go_button.setEnabled(False)
+        self.go_button.clicked.connect(self.go)
 
         layout = QGridLayout()
-        layout.addWidget(self.intrinsicsDefaultButton, 0,0, 1,2)
-        layout.addWidget(self.intrinsicsLoadButton, 1,0, 1,2)
-        layout.addWidget(self.stageLabel, 2,0, 1,1)
-        layout.addWidget(self.stageDropdown, 2,1, 1,1)
-        layout.addWidget(self.resolutionLabel, 3,0, 1,1)
-        layout.addWidget(self.resolutionBox, 3,1, 1,1)
-        layout.addWidget(self.extentLabel, 4,0, 1,1)
-        layout.addWidget(self.extentEdit, 4,1, 1,1)
-        layout.addWidget(self.goButton, 5,0, 1,2)
+        layout.addWidget(self.intrinsics_default_button, 0,0, 1,2)
+        layout.addWidget(self.intrinsics_load_button, 1,0, 1,2)
+        layout.addWidget(self.stage_label, 2,0, 1,1)
+        layout.addWidget(self.stage_dropdown, 2,1, 1,1)
+        layout.addWidget(self.resolution_label, 3,0, 1,1)
+        layout.addWidget(self.resolution_box, 3,1, 1,1)
+        layout.addWidget(self.extent_label, 4,0, 1,1)
+        layout.addWidget(self.extent_edit, 4,1, 1,1)
+        layout.addWidget(self.go_button, 5,0, 1,2)
         self.setLayout(layout)
 
         self.setWindowTitle("Calibration Routine Parameters")
         self.setMinimumWidth(300)
 
-    def getIntrinsicsLoad(self):
-        return self.intrinsicsLoadButton.isChecked()
+    def get_intrinsics_load(self):
+        return self.intrinsics_load_button.isChecked()
 
-    def getStage(self):
-        ip = self.stageDropdown.currentText()
+    def get_stage(self):
+        ip = self.stage_dropdown.currentText()
         stage = self.model.stages[ip]
         return stage
 
-    def getResolution(self):
-        return self.resolutionBox.value()
+    def get_resolution(self):
+        return self.resolution_box.value()
 
-    def getExtent(self):
-        return float(self.extentEdit.text())
+    def get_extent(self):
+        return float(self.extent_edit.text())
 
     def go(self):
         self.accept()
 
-    def handleRadio(self, button):
+    def handle_radio(self, button):
         print('TODO handleRadio')
 
-    def updateStatus(self):
-        if self.stageDropdown.isSelected():
-            self.goButton.setEnabled(True)
+    def update_status(self):
+        if self.stage_dropdown.is_selected():
+            self.go_button.setEnabled(True)
 
 
 class TargetDialog(QDialog):
@@ -164,17 +164,17 @@ class TargetDialog(QDialog):
         QDialog.__init__(self)
         self.model = model
 
-        self.lastButton = QPushButton('Last Reconstructed Point')
-        self.lastButton.clicked.connect(self.populateLast)
-        if self.model.objPoint_last is None:
-            self.lastButton.setEnabled(False)
+        self.last_button = QPushButton('Last Reconstructed Point')
+        self.last_button.clicked.connect(self.populate_last)
+        if self.model.obj_point_last is None:
+            self.last_button.setEnabled(False)
 
-        self.randomButton = QPushButton('Random Point')
-        self.randomButton.clicked.connect(self.populateRandom)
+        self.random_button = QPushButton('Random Point')
+        self.random_button.clicked.connect(self.populate_random)
 
-        self.relativeLabel = QLabel('Relative Coordinates')
-        self.absRelToggle = ToggleSwitch(thumb_radius=11, track_radius=8)
-        self.absRelToggle.setChecked(True)
+        self.relative_label = QLabel('Relative Coordinates')
+        self.abs_rel_toggle = ToggleSwitch(thumb_radius=11, track_radius=8)
+        self.abs_rel_toggle.set_checked(True)
 
         self.xlabel = QLabel('X = ')
         self.xlabel.setAlignment(Qt.AlignCenter)
@@ -191,50 +191,50 @@ class TargetDialog(QDialog):
         self.zedit = QLineEdit()
         self.zedit.setValidator(validator)
 
-        self.infoLabel = QLabel('(units are microns)')
-        self.infoLabel.setAlignment(Qt.AlignCenter)
-        self.infoLabel.setFont(FONT_BOLD)
+        self.info_label = QLabel('(units are microns)')
+        self.info_label.setAlignment(Qt.AlignCenter)
+        self.info_label.setFont(FONT_BOLD)
 
 
-        self.dialogButtons = QDialogButtonBox(
+        self.dialog_buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
-        self.dialogButtons.accepted.connect(self.accept)
-        self.dialogButtons.rejected.connect(self.reject)
+        self.dialog_buttons.accepted.connect(self.accept)
+        self.dialog_buttons.rejected.connect(self.reject)
 
         ####
 
         layout = QGridLayout()
-        layout.addWidget(self.lastButton, 0,0, 1,2)
-        layout.addWidget(self.randomButton, 1,0, 1,2)
-        layout.addWidget(self.relativeLabel, 2,0, 1,1)
-        layout.addWidget(self.absRelToggle, 2,1, 1,1)
+        layout.addWidget(self.last_button, 0,0, 1,2)
+        layout.addWidget(self.random_button, 1,0, 1,2)
+        layout.addWidget(self.relative_label, 2,0, 1,1)
+        layout.addWidget(self.abs_rel_toggle, 2,1, 1,1)
         layout.addWidget(self.xlabel, 3,0)
         layout.addWidget(self.ylabel, 4,0)
         layout.addWidget(self.zlabel, 5,0)
         layout.addWidget(self.xedit, 3,1)
         layout.addWidget(self.yedit, 4,1)
         layout.addWidget(self.zedit, 5,1)
-        layout.addWidget(self.infoLabel, 6,0, 1,2)
-        layout.addWidget(self.dialogButtons, 7,0, 1,2)
+        layout.addWidget(self.info_label, 6,0, 1,2)
+        layout.addWidget(self.dialog_buttons, 7,0, 1,2)
         self.setLayout(layout)
         self.setWindowTitle('Set Target Coordinates')
 
-    def populateLast(self):
-        self.xedit.setText('{0:.2f}'.format(self.model.objPoint_last[0]))
-        self.yedit.setText('{0:.2f}'.format(self.model.objPoint_last[1]))
-        self.zedit.setText('{0:.2f}'.format(self.model.objPoint_last[2]))
+    def populate_last(self):
+        self.xedit.setText('{0:.2f}'.format(self.model.obj_point_last[0]))
+        self.yedit.setText('{0:.2f}'.format(self.model.obj_point_last[1]))
+        self.zedit.setText('{0:.2f}'.format(self.model.obj_point_last[2]))
 
-    def populateRandom(self):
+    def populate_random(self):
         self.xedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
         self.yedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
         self.zedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
 
-    def getParams(self):
+    def get_params(self):
         params = {}
         params['x'] = float(self.xedit.text())
         params['y'] = float(self.yedit.text())
         params['z'] = float(self.zedit.text())
-        params['relative'] = self.absRelToggle.isChecked()
+        params['relative'] = self.abs_rel_toggle.isChecked()
         return params
 
 
@@ -244,18 +244,18 @@ class CsvDialog(QDialog):
         QDialog.__init__(self, parent)
         self.model = model
 
-        self.lastLabel = QLabel('Last Reconstructed Point:')
-        self.lastLabel.setAlignment(Qt.AlignCenter)
+        self.last_label = QLabel('Last Reconstructed Point:')
+        self.last_label.setAlignment(Qt.AlignCenter)
 
         if self.model.objPoint_last is None:
             x,y,z = 1,2,3
         else:
             x,y,z = self.model.objPoint_last
-        self.lastCoordsLabel = QLabel('[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-        self.lastCoordsLabel.setAlignment(Qt.AlignCenter)
+        self.last_coords_label = QLabel('[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+        self.last_coords_label.setAlignment(Qt.AlignCenter)
 
-        self.labCoordsLabel = QLabel('Lab Coordinates:')
-        self.labCoordsLabel.setAlignment(Qt.AlignCenter)
+        self.lab_coords_label = QLabel('Lab Coordinates:')
+        self.lab_coords_label.setAlignment(Qt.AlignCenter)
 
         self.xlabel = QLabel('X = ')
         self.xlabel.setAlignment(Qt.AlignCenter)
@@ -272,34 +272,34 @@ class CsvDialog(QDialog):
         self.zedit = QLineEdit()
         self.zedit.setValidator(validator)
 
-        self.infoLabel = QLabel('(units are microns)')
-        self.infoLabel.setAlignment(Qt.AlignCenter)
-        self.infoLabel.setFont(FONT_BOLD)
+        self.info_label = QLabel('(units are microns)')
+        self.info_label.setAlignment(Qt.AlignCenter)
+        self.info_label.setFont(FONT_BOLD)
 
 
-        self.dialogButtons = QDialogButtonBox(
+        self.dialog_buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
-        self.dialogButtons.accepted.connect(self.accept)
-        self.dialogButtons.rejected.connect(self.reject)
+        self.dialog_buttons.accepted.connect(self.accept)
+        self.dialog_buttons.rejected.connect(self.reject)
 
         ####
 
         layout = QGridLayout()
-        layout.addWidget(self.lastLabel, 0,0, 1,2)
-        layout.addWidget(self.lastCoordsLabel, 1,0, 1,2)
-        layout.addWidget(self.labCoordsLabel, 2,0, 1,2)
+        layout.addWidget(self.last_label, 0,0, 1,2)
+        layout.addWidget(self.last_coords_label, 1,0, 1,2)
+        layout.addWidget(self.lab_coords_label, 2,0, 1,2)
         layout.addWidget(self.xlabel, 3,0)
         layout.addWidget(self.ylabel, 4,0)
         layout.addWidget(self.zlabel, 5,0)
         layout.addWidget(self.xedit, 3,1)
         layout.addWidget(self.yedit, 4,1)
         layout.addWidget(self.zedit, 5,1)
-        layout.addWidget(self.infoLabel, 6,0, 1,2)
-        layout.addWidget(self.dialogButtons, 7,0, 1,2)
+        layout.addWidget(self.info_label, 6,0, 1,2)
+        layout.addWidget(self.dialog_buttons, 7,0, 1,2)
         self.setLayout(layout)
         self.setWindowTitle('Set Target Coordinates')
 
-    def getParams(self):
+    def get_params(self):
         params = {}
         params['x'] = float(self.xedit.text())
         params['y'] = float(self.yedit.text())
@@ -312,21 +312,21 @@ class AboutDialog(QDialog):
     def __init__(self, parent=None):
         QDialog.__init__(self, parent)
 
-        self.mainLabel = QLabel('Parallax')
-        self.mainLabel.setAlignment(Qt.AlignCenter)
-        self.mainLabel.setFont(FONT_BOLD)
-        self.versionLabel = QLabel('version x.y.z') # TODO
-        self.repoLabel = QLabel('<a href="https://github.com/AllenNeuralDynamics/parallax">'
+        self.main_label = QLabel('Parallax')
+        self.main_label.setAlignment(Qt.AlignCenter)
+        self.main_label.setFont(FONT_BOLD)
+        self.version_label = QLabel('version x.y.z') # TODO
+        self.repo_label = QLabel('<a href="https://github.com/AllenNeuralDynamics/parallax">'
                                     'github.com/AllenNeuralDynamics/parallax</a>')
-        self.repoLabel.setOpenExternalLinks(True)
+        self.repo_label.setOpenExternalLinks(True)
 
         layout = QGridLayout()
-        layout.addWidget(self.mainLabel)
-        layout.addWidget(self.repoLabel)
+        layout.addWidget(self.main_label)
+        layout.addWidget(self.repo_label)
         self.setLayout(layout)
         self.setWindowTitle('About')
 
-    def getParams(self):
+    def get_params(self):
         x = float(self.xedit.text())
         y = float(self.yedit.text())
         z = float(self.zedit.text())

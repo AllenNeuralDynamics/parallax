@@ -23,16 +23,16 @@ MTX_GUESS_DEFAULT = np.array(MTX_GUESS_DEFAULT, dtype=np.float32)
 DIST_GUESS_DEFAULT = [[3.02560342e-01, -2.22003970e+01, 9.05172588e-03, 2.94508298e-03, 2.89139557e+02]]
 DIST_GUESS_DEFAULT = np.array(DIST_GUESS_DEFAULT, dtype=np.float32)
 
-def getIntrinsicsFromCheckerboard(imagePoints):
+def get_intrinsics_from_checkerboard(image_points):
 
-    objectPoints_cb = np.zeros((NCW*NCH, 3), np.float32)
-    objectPoints_cb[:,:2] = np.mgrid[:NCW,:NCH].T.reshape(-1,2)
-    objectPoints_cb = objectPoints_cb * 5   # 5mm per checker
+    object_points_cb = np.zeros((NCW*NCH, 3), np.float32)
+    object_points_cb[:,:2] = np.mgrid[:NCW,:NCH].T.reshape(-1,2)
+    object_points_cb = object_points_cb * 5   # 5mm per checker
 
-    objectPoints_cb = [objectPoints_cb]
-    imagePoints = [imagePoints]
+    object_points_cb = [object_points_cb]
+    image_points = [image_points]
 
-    err, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objectPoints_cb, imagePoints, (WF,HF), None, None)
+    err, mtx, dist, rvecs, tvecs = cv.calibrateCamera(object_points_cb, image_points, (WF,HF), None, None)
 
     return mtx, dist
 

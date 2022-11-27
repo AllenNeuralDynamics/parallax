@@ -81,21 +81,21 @@ class ToggleSwitch(QAbstractButton):
         self._offset = value
         self.update()
 
-    def sizeHint(self):  # pylint: disable=invalid-name
+    def size_hint(self):  # pylint: disable=invalid-name
         return QSize(
             4 * self._track_radius + 2 * self._margin,
             2 * self._track_radius + 2 * self._margin,
         )
 
-    def setChecked(self, checked):
+    def set_checked(self, checked):
         super().setChecked(checked)
         self.offset = self._end_offset[checked]()
 
-    def resizeEvent(self, event):
+    def resize_event(self, event):
         super().resizeEvent(event)
         self.offset = self._end_offset[self.isChecked()]()
 
-    def paintEvent(self, event):  # pylint: disable=invalid-name, unused-argument
+    def paint_event(self, event):  # pylint: disable=invalid-name, unused-argument
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing, True)
         p.setPen(Qt.NoPen)
@@ -146,7 +146,7 @@ class ToggleSwitch(QAbstractButton):
             self._thumb_text[self.isChecked()],
         )
 
-    def mouseReleaseEvent(self, event):  # pylint: disable=invalid-name
+    def mouse_release_event(self, event):  # pylint: disable=invalid-name
         super().mouseReleaseEvent(event)
         if event.button() == Qt.LeftButton:
             anim = QPropertyAnimation(self, b'offset', self)
@@ -155,7 +155,7 @@ class ToggleSwitch(QAbstractButton):
             anim.setEndValue(self._end_offset[self.isChecked()]())
             anim.start()
 
-    def enterEvent(self, event):  # pylint: disable=invalid-name
+    def enter_event(self, event):  # pylint: disable=invalid-name
         self.setCursor(Qt.PointingHandCursor)
         super().enterEvent(event)
 

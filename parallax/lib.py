@@ -24,7 +24,7 @@ DIST_GUESS =  np.array([[0., 0., 0., 0., 0.]], dtype=np.float32)
 INTRINSICS_USE_INITIAL_GUESS = False
 
 
-def getIntrinsicsFromCheckerboards(images_folder):
+def get_intrinsics_from_checkerboards(images_folder):
     images_names = glob.glob(images_folder)
     images = []
     for imname in images_names:
@@ -83,39 +83,39 @@ def getIntrinsicsFromCheckerboards(images_folder):
 
     return mtx, dist
  
-def undistortImagePoints(imgPoints, mtx, dist):
-    imgPoints_corrected_normalized = cv.undistortPoints(imgPoints, mtx, dist)
+def undistort_image_points(img_points, mtx, dist):
+    img_points_corrected_normalized = cv.undistortPoints(img_points, mtx, dist)
     fx = mtx[0,0]
     fy = mtx[1,1]
     cx = mtx[0,2]
     cy = mtx[1,2]
-    imgPoints_corrected = []
-    for imgPoint in imgPoints_corrected_normalized:
-        x,y = imgPoint[0]
+    img_points_corrected = []
+    for img_point in img_points_corrected_normalized:
+        x,y = img_point[0]
         x = x * fx + cx
         y = y * fy + cy
-        imgPoints_corrected.append(np.array([x,y]))
-    return np.array([imgPoints_corrected], dtype=np.float32)
+        img_points_corrected.append(np.array([x,y]))
+    return np.array([img_points_corrected], dtype=np.float32)
 
-def getPointsFromCSV(filename):
+def get_points_from_csv(filename):
     points = np.genfromtxt(filename, delimiter=',')
-    objPoints = []
-    imgPoints1 = []
-    imgPoints2 = []
+    obj_points = []
+    img_points1 = []
+    img_points2 = []
     for point in points:
         ox, oy, oz, x1, y1, x2, y2 = point
-        objPoints.append([ox,oy,oz])
-        imgPoints1.append([x1,y1])
-        imgPoints2.append([x2,y2])
-    objPoints = np.array([objPoints], dtype=np.float32)
-    imgPoints1 = np.array([imgPoints1], dtype=np.float32)
-    imgPoints2 = np.array([imgPoints2], dtype=np.float32)
-    return objPoints, imgPoints1, imgPoints2
+        obj_points.append([ox,oy,oz])
+        img_points1.append([x1,y1])
+        img_points2.append([x2,y2])
+    obj_points = np.array([obj_points], dtype=np.float32)
+    img_points1 = np.array([img_points1], dtype=np.float32)
+    img_points2 = np.array([img_points2], dtype=np.float32)
+    return obj_points, img_points1, img_points2
 
-def getProjectionMatrix(mtx, r, t):
+def get_projection_matrix(mtx, r, t):
     R, jacobian = cv.Rodrigues(r)
-    Rt = np.concatenate([R,t], axis=-1) # [R|t]
-    P = np.matmul(mtx,Rt) # A[R|t]
+    rt = np.concatenate([R,t], axis=-1) # [R|t]
+    P = np.matmul(mtx,rt) # A[R|t]
     return P
 
 def DLT(P1, P2, point1, point2):
@@ -130,9 +130,9 @@ def DLT(P1, P2, point1, point2):
     A = np.array(A).reshape((4,4))
  
     B = A.transpose() @ A
-    U, s, Vh = linalg.svd(B, full_matrices = False)
-    return Vh[3,0:3]/Vh[3,3]
+    U, s, vh = linalg.svd(B, full_matrices = False)
+    return vh[3,0:3]/vh[3,3]
 
-def triangulateFromImagePoints(imgPoint1, imgPoint2, proj1, proj2):
-    x,y,z = DLT(proj1, proj2, imgPoint1, imgPoint2)
+def triangulate_from_image_points(img_point1, img_point2, proj1, proj2):
+    x,y,z = DLT(proj1, proj2, img_point1, img_point2)
     return np.array([x,y,z], dtype=np.float32)
