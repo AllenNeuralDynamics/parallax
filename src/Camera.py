@@ -72,8 +72,8 @@ class PySpinCamera:
 
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.nodeMap.GetNode("PixelFormat"))
-        entry_pixelformat_bgr8 = node_pixelformat.GetEntryByName("BGR8")
-        node_pixelformat.SetIntValue(entry_pixelformat_bgr8.GetValue())
+        entry_pixelformat_rgb8packed = node_pixelformat.GetEntryByName("RGB8Packed")
+        node_pixelformat.SetIntValue(entry_pixelformat_rgb8packed.GetValue())
 
         # set exposure time
         node_expauto_mode = PySpin.CEnumerationPtr(self.nodeMap.GetNode("ExposureAuto"))
