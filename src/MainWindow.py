@@ -66,6 +66,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Parallax')
         self.setWindowIcon(QIcon('../img/sextant.png'))
 
+        self.refreshCameras()
+
     def launchStageManager(self):
         self.stageManager = StageManager(self.model)
         self.stageManager.show()
@@ -85,11 +87,6 @@ class MainWindow(QMainWindow):
         self.model.scanForCameras()
         for screen in self.screens():
             screen.updateCameraMenu()
-
-    def assignCameras(self):
-        self.refreshCameras()
-        for screen, camera in zip(self.screens(), self.model.cameras):
-            screen.setCamera(camera)
 
 
 class MainWidget(QWidget):

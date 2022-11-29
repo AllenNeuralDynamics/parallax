@@ -18,7 +18,5 @@ if __name__ == '__main__':
     mainWindow = MainWindow(model)
     mainWindow.show()
 
-    mainWindow.assignCameras()
-
     app.exec()
     model.clean()
