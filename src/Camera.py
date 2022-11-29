@@ -37,9 +37,9 @@ class PySpinCamera:
     def listCameras(cls):
         if cls.pyspin_instance is None:
             cls.pyspin_instance = PySpin.System.GetInstance()
-            cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
-            ncameras = cls.pyspin_cameras.GetSize()
-            cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
+        cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
+        ncameras = cls.pyspin_cameras.GetSize()
+        cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
         return cls.cameras
 
     @classmethod
