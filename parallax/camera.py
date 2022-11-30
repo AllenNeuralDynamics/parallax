@@ -2,10 +2,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    import py_spin
+    import PySpin
 except ImportError:
-    py_spin = None
-    logger.warn("Could not import py_spin; using mocked cameras.")
+    PySpin = None
+    logger.warn("Could not import PySpin; using mocked cameras.")
     
 import numpy as np
 import time, datetime
@@ -14,7 +14,7 @@ import time, datetime
 def list_cameras():
     global pyspin_cameras, pyspin_instance
     cameras = []
-    if py_spin is not None:
+    if PySpin is not None:
         cameras.extend(PySpinCamera.list_cameras())
     while len(cameras) < 2:
         cameras.append(MockCamera())
@@ -22,7 +22,7 @@ def list_cameras():
 
 
 def close_cameras():
-    if py_spin is not None:
+    if PySpin is not None:
         PySpinCamera.close_cameras()
 
 
@@ -35,10 +35,10 @@ class PySpinCamera:
     @classmethod
     def list_cameras(cls):
         if cls.pyspin_instance is None:
-            cls.pyspin_instance = py_spin.System.GetInstance()
-            cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
-            ncameras = cls.pyspin_cameras.GetSize()
-            cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
+            cls.pyspin_instance = PySpin.System.GetInstance()
+        cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
+        ncameras = cls.pyspin_cameras.GetSize()
+        cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
         return cls.cameras
 
     @classmethod
@@ -57,28 +57,28 @@ class PySpinCamera:
 
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()
-        node_bufferhandling_mode = py_spin.CEnumerationPtr(s_nodemap.GetNode('StreamBufferHandlingMode'))
+        node_bufferhandling_mode = PySpin.CEnumerationPtr(s_nodemap.GetNode('StreamBufferHandlingMode'))
         node_newestonly = node_bufferhandling_mode.GetEntryByName('NewestOnly')
         node_newestonly_mode = node_newestonly.GetValue()
         node_bufferhandling_mode.SetIntValue(node_newestonly_mode)
 
         # set gain
-        node_gainauto_mode = py_spin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
+        node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
         node_gainauto_mode_off = node_gainauto_mode.GetEntryByName("Off")
         node_gainauto_mode.SetIntValue(node_gainauto_mode_off.GetValue())
-        node_gain = py_spin.CFloatPtr(self.node_map.GetNode("Gain"))
+        node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
         node_gain.SetValue(25.0)
 
         # set pixel format
-        node_pixelformat = py_spin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
-        entry_pixelformat_bgr8 = node_pixelformat.GetEntryByName("BGR8")
-        node_pixelformat.SetIntValue(entry_pixelformat_bgr8.GetValue())
+        node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
+        entry_pixelformat_rgb8packed = node_pixelformat.GetEntryByName("RGB8Packed")
+        node_pixelformat.SetIntValue(entry_pixelformat_rgb8packed.GetValue())
 
         # set exposure time
-        node_expauto_mode = py_spin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
+        node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
         node_expauto_mode_off = node_expauto_mode.GetEntryByName("Off")
         node_expauto_mode.SetIntValue(node_expauto_mode_off.GetValue())
-        node_exptime = py_spin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
+        node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
         node_exptime.SetValue(125000)   # 8 fps
 
         # begin acquisition
@@ -94,7 +94,7 @@ class PySpinCamera:
     def begin_acquisition(self):
 
         # set acquisition mode continuous
-        node_acquisition_mode = py_spin.CEnumerationPtr(self.node_map.GetNode('AcquisitionMode'))
+        node_acquisition_mode = PySpin.CEnumerationPtr(self.node_map.GetNode('AcquisitionMode'))
         node_acquisition_mode_continuous = node_acquisition_mode.GetEntryByName('Continuous')
         acquisition_mode_continuous = node_acquisition_mode_continuous.GetValue()
         node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
@@ -111,7 +111,7 @@ class PySpinCamera:
         if self.last_image:
             try:
                 self.last_image.Release()
-            except py_spin.SpinnakerException:
+            except PySpin.SpinnakerException:
                 print("Spinnaker Exception: Could't release last image")
 
         image = self.camera.GetNextImage(1000)
@@ -124,7 +124,7 @@ class PySpinCamera:
         return self.last_capture_time_str
 
     def save_last_image(self, filename):
-        image_converted = self.get_last_image().Convert(py_spin.PixelFormat_Mono8, py_spin.HQ_LINEAR)
+        image_converted = self.get_last_image().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
         image_converted.Save(filename)
 
     def get_last_image(self):
