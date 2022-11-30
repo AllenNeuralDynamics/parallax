@@ -110,7 +110,7 @@ class Model(QObject):
         img_points1_cal = np.array([self.img_points1_cal], dtype=np.float32)
         img_points2_cal = np.array([self.img_points2_cal], dtype=np.float32)
         obj_points_cal = self.cal_worker.get_object_points()
-        origin = self.cal_worker.stage.getOrigin()
+        origin = self.cal_worker.stage.get_origin()
         self.calibration.calibrate(img_points1_cal, img_points2_cal, obj_points_cal, origin)
         self.msg_posted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
                                 (self.calibration.rmse1, self.calibration.rmse2))

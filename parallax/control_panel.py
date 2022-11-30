@@ -34,13 +34,13 @@ class AxisControl(QWidget):
         self.rel_label.setText('%sr = %0.1f' % (self.axis, val_rel))
         self.abs_label.setText('(%0.1f)' % val_abs)
 
-    def wheel_event(self, e):
+    def wheelEvent(self, e):
         forward = bool(e.angleDelta().y() > 0)
         control = bool(e.modifiers() & Qt.ControlModifier)
         self.jog_requested.emit(self.axis, forward, control)
         e.accept()
 
-    def mouse_press_event(self, e):
+    def mousePressEvent(self, e):
         if e.button() == Qt.MiddleButton:
             self.center_requested.emit(self.axis)
             e.accept()

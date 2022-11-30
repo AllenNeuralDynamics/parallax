@@ -136,7 +136,7 @@ class MainWidget(QWidget):
         main_layout.addWidget(self.msg_log)
         self.setLayout(main_layout)
 
-    def key_press_event(self, e):
+    def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
             if (e.modifiers() & Qt.ControlModifier):
                 self.clear_selected()
@@ -165,3 +165,5 @@ class MainWidget(QWidget):
                 filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
                 camera.save_last_image(filename)
                 self.msg_log.post('Saved camera frame: %s' % filename)
+
+

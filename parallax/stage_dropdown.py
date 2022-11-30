@@ -18,7 +18,7 @@ class StageDropdown(QComboBox):
     def is_selected(self):
         return self.selected
 
-    def show_popup(self):
+    def showPopup(self):
         self.populate()
         QComboBox.showPopup(self)
 

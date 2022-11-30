@@ -173,7 +173,7 @@ class TargetDialog(QDialog):
 
         self.relative_label = QLabel('Relative Coordinates')
         self.abs_rel_toggle = ToggleSwitch(thumb_radius=11, track_radius=8)
-        self.abs_rel_toggle.set_checked(True)
+        self.abs_rel_toggle.setChecked(True)
 
         self.xlabel = QLabel('X = ')
         self.xlabel.setAlignment(Qt.AlignCenter)

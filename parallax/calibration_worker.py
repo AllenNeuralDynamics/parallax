@@ -34,7 +34,7 @@ class CalibrationWorker(QObject):
         for x in np.linspace(mn, mx, self.resolution):
             for y in np.linspace(mn, mx, self.resolution):
                 for z in np.linspace(mn, mx, self.resolution):
-                    self.stage.moveToTarget_3d(x,y,z, relative=True, safe=False)
+                    self.stage.move_to_target_3d(x,y,z, relative=True, safe=False)
                     self.calibration_point_reached.emit(n,self.num_cal, x,y,z)
                     self.ready_to_go = False
                     while not self.ready_to_go:
