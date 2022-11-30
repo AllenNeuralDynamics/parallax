@@ -1,4 +1,4 @@
-# from newscale.multistage import USBXYZStage
+from newscale.multistage import USBXYZStage
 
 
 class Stage():
