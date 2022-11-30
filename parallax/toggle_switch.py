@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 """
 from https://stackoverflow.com/a/51825815
 license: CC BY-SA 4.0
@@ -187,8 +185,4 @@ def main():
     w.show()
 
     app.exec()
-
-
-if __name__ == '__main__':
-    main()
 

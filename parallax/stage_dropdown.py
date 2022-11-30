@@ -10,12 +10,12 @@ class StageDropdown(QComboBox):
 
         self.selected = False
         self.setFocusPolicy(Qt.NoFocus)
-        self.activated.connect(self.setSelected)
+        self.activated.connect(self.set_selected)
 
-    def setSelected(self):
+    def set_selected(self):
         self.selected = True
 
-    def isSelected(self):
+    def is_selected(self):
         return self.selected
 
     def showPopup(self):
