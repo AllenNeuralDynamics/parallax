@@ -124,7 +124,7 @@ class PySpinCamera:
         return self.last_capture_time_str
 
     def save_last_image(self, filename):
-        image_converted = self.get_last_image().Convert(PySpin.PixelFormat_Mono8, PySpin.HQ_LINEAR)
+        image_converted = self.get_last_image()
         image_converted.Save(filename)
 
     def get_last_image(self):
