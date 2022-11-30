@@ -1,7 +1,7 @@
 *.swp
 __pycache__/
 *.jpg
-src/*.png
+parallax/*.png
 *.npy
 *.pkl
 *.csv
