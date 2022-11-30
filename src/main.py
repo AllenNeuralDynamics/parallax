@@ -17,5 +17,6 @@ if __name__ == '__main__':
     model = Model()
     mainWindow = MainWindow(model)
     mainWindow.show()
+
     app.exec()
     model.clean()

@@ -1,157 +1,99 @@
 #!/usr/bin/python
-
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QMenu
-from PyQt5.QtGui import QPainter, QPixmap, QImage, QColor, qRgb, qRgba
-from PyQt5.QtCore import Qt, pyqtSignal, QRect
-
-import numpy as np
+import functools
 import cv2
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction
+from PyQt5.QtCore import pyqtSignal
+from PyQt5 import QtCore
+import pyqtgraph as pg
 
 from Helper import *
 
-WIDTH_SCREEN = WS =  500
-HEIGHT_SCREEN = HS = 375
 
-CONVERSION_PX = WIDTH_FRAME / WIDTH_SCREEN
-
-
-class ScreenWidget(QLabel):
+class ScreenWidget(pg.GraphicsView):
 
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
 
     def __init__(self, filename=None, model=None, parent=None):
-        QWidget.__init__(self, parent=parent)
+        super().__init__(parent=parent)
         self.filename = filename
         self.model = model
 
-        self.zoom = False
+        self.viewBox = pg.ViewBox(defaultPadding=0)
+        self.setCentralItem(self.viewBox)
+        self.viewBox.setAspectLocked()
+        self.viewBox.invertY()
 
-        self.setMinimumSize(WIDTH_SCREEN, HEIGHT_SCREEN)
-        self.setMaximumSize(WIDTH_SCREEN, HEIGHT_SCREEN)
+        self.imageItem = ClickableImage()
+        self.imageItem.axisOrder = 'row-major'
+        self.viewBox.addItem(self.imageItem)
+        self.imageItem.mouseClicked.connect(self.imageClicked)
 
-        self.pixmap = QPixmap(WIDTH_SCREEN, HEIGHT_SCREEN)
-        self.painter = QPainter(self.pixmap)
+        self.clickTarget = pg.TargetItem()
+        self.viewBox.addItem(self.clickTarget)
+        self.clickTarget.setVisible(False)
 
-        self.frame = QImage(WIDTH_FRAME, HEIGHT_FRAME, QImage.Format_RGB32)
-        self.overlay = QImage(WIDTH_FRAME, HEIGHT_FRAME, QImage.Format_ARGB32)
-        self.overlay.fill(qRgba(0,0,0,0))
+        self.cameraActions = []
+        self.cameraActionSeparator = self.viewBox.menu.insertSeparator(self.viewBox.menu.actions()[0])
 
         if self.filename:
             self.setData(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
-
-        self.display()
 
         self.clearSelected()
 
         self.camera = None
 
-    def zoomIn(self):
-        self.zoom = True
-
-    def zoomOut(self):
-        self.zoom = False
-
     def refresh(self):
         if self.camera:
+            # takes a 3000,4000 grayscale image straight from the camera
             self.camera.capture()
             self.setData(self.camera.getLastImageData())
 
     def clearSelected(self):
-        self.xsel = False
-        self.ysel = False
-        self.overlay.fill(qRgba(0,0,0,0))
+        self.clickTarget.setVisible(False)
         self.cleared.emit()
 
     def setData(self, data):
-        # takes a (3000,4000,3) BGR8 image straight from the camera
-        data.setflags(write=1)
-        data[:,:,[0,2]] = data[:,:,[2,0]]   # convert BGR to RGB
-        self.data = data
-        self.frame = QImage(self.data, WIDTH_FRAME, HEIGHT_FRAME,
-                                QImage.Format_RGB888)
-        self.display()
+        self.imageItem.setImage(data)
 
-    def display(self):
-        if self.zoom:
-            self.display_zoom()
-        else:
-            self.display_scaled()
+    def updateCameraMenu(self):
+        for act in self.cameraActions:
+            act.triggered.disconnect(act.callback)
+            self.viewBox.menu.removeAction(act)
+        for camera in self.model.cameras:
+            act = QAction(camera.name())
+            act.callback = functools.partial(self.setCamera, camera)
+            act.triggered.connect(act.callback)
+            self.cameraActions.append(act)
+            self.viewBox.menu.insertAction(self.cameraActionSeparator, act)
 
-    def display_scaled(self):
-        self.painter.drawImage(0,0, self.frame.scaled(WS, HS, Qt.IgnoreAspectRatio,
-                                Qt.SmoothTransformation))
-        self.painter.drawImage(0,0, self.overlay.scaled(WS, HS, Qt.IgnoreAspectRatio,
-                                Qt.SmoothTransformation))
-        self.setPixmap(self.pixmap)
-        self.update()
+    def imageClicked(self, event):
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:            
+            self.clickTarget.setPos(event.pos())
+            self.clickTarget.setVisible(True)
+            self.selected.emit(*self.getSelected())
 
-    def display_zoom(self):
-        rect = QRect(int(self.xc-WS/2), int(self.yc-HS/2), WS, HS)
-        self.painter.drawImage(0,0, self.frame.copy(rect))
-        self.painter.drawImage(0,0, self.overlay.copy(rect))
-        self.setPixmap(self.pixmap)
-        self.update()
-
-    def updatePixel(self, x, y): 
-        self.overlay.fill(qRgba(0,0,0,0))
-        # ^ this could be faster if we just qfill the known previous pixel
-        for i in range(x-8, x+9):
-            for j in range(y-8, y+9):
-                if ((i>=(x-1)) and (i<=(x+1))) or ((j>=(y-1)) and (j<=(y+1))):
-                    # 3-pix red crosshair
-                    self.overlay.setPixel(i, j, qRgba(255, 0, 0, 255))
-        self.display()
+    def zoomOut(self):
+        self.viewBox.autoRange()
 
     def setCamera(self, camera):
         self.camera = camera
         self.refresh()
 
-    def mousePressEvent(self, e): 
-
-        if e.button() == Qt.LeftButton:
-            self.xsel = e.x()
-            self.ysel = e.y()
-            if self.zoom:
-                self.xsel = int(e.x() + self.xc - WS/2)
-                self.ysel = int(e.y() + self.yc - HS/2)
-            else:
-                self.xsel = int(e.x() * CONVERSION_PX)
-                self.ysel = int(e.y() * CONVERSION_PX)
-            self.updatePixel(self.xsel, self.ysel)
-            self.selected.emit(self.xsel, self.ysel)
-
-        elif e.button() == Qt.RightButton:
-            if self.model:
-                contextMenu = QMenu(self)
-                actions = []
-                for camera in self.model.cameras.values():
-                    actions.append(contextMenu.addAction(camera.name()))
-                chosenAction = contextMenu.exec_(self.mapToGlobal(e.pos()))
-                for i,action in enumerate(actions):
-                    if action is chosenAction:
-                        self.setCamera(self.model.cameras[i])
-                e.accept()
-
-    def wheelEvent(self, e):
-        if e.angleDelta().y() > 0:
-            if not self.zoom:
-                self.xc = e.x() * CONVERSION_PX
-                self.yc = e.y() * CONVERSION_PX
-                self.zoom = True
-                self.display()
-        else:
-            if self.zoom:
-                self.zoom = False
-                self.display()
-        e.accept()
-
     def getSelected(self):
-        if (self.xsel and self.ysel):
-            return [self.xsel, self.ysel]
+        if self.clickTarget.isVisible():
+            pos = self.clickTarget.pos()
+            return pos.x(), pos.y()
         else:
-            return False
- 
+            return None
+
+
+class ClickableImage(pg.ImageItem):
+    mouseClicked = pyqtSignal(object)    
+    def mouseClickEvent(self, ev):
+        super().mouseClickEvent(ev)
+        self.mouseClicked.emit(ev)
+
 
 if __name__ == '__main__':
 
