@@ -6,9 +6,10 @@ channels:
 
 dependencies:
   - python=3.8
+  - pyqt>=5.15
   - pip
-  - opencv
   - scipy
   - pip:
-    - pyqt5
-    - spinnaker-python
+    - pyqtgraph
+    - opencv-python-headless
+#    - spinnaker-python
