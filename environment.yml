@@ -12,4 +12,4 @@ dependencies:
   - pip:
     - pyqtgraph
     - opencv-python-headless
-#    - spinnaker-python
+    - spinnaker-python
