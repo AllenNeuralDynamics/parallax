@@ -2,14 +2,6 @@
 
 ## GUI software for photogrammetry-assisted probe targeting in electrophysiology
 
-### Dependencies
-* python3-pyqt5
-* python3-numpy
-* python3-scipy
-* python3-opencv
-* python-newscale
-* spinnaker-python
-
 ### Installation via `conda`
 
 First, clone the this repository.
@@ -18,14 +10,24 @@ Then, browse to the top-level `parallax` code directory and run:
 
 ```bash
 conda env create --file environment.yml
+conda activate parallax
 ```
 
-This will create a new `conda` environment called `parallax`.
+You will also need to install
+[python-newscale](https://github.com/AllenNeuralDynamics/python-newscale). Do
+this from within the conda environment you just activated:
 
-To activate the environment and launch the GUI, run:
 
 ```bash
-conda activate parallax
-python src/main.py
+git clone github.com/AllenNeuralDynamics/python-newscale
+cd python-newscale
+pip install -e .
+cd ..
+```
+
+To launch the GUI, run the script at the top-level of this repo:
+
+```bash
+python run-parallax.py
 ```
 
