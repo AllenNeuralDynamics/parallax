@@ -5,6 +5,7 @@ channels:
   - defaults
 
 dependencies:
+  - git
   - python=3.8
   - pyqt>=5.15
   - pip
@@ -13,3 +14,4 @@ dependencies:
     - pyqtgraph
     - opencv-python-headless
     - spinnaker-python
+    - git+https://github.com/AllenNeuralDynamics/python-newscale
