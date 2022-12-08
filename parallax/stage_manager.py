@@ -4,6 +4,9 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 import socket, glob
 
+from serial.tools.list_ports import comports as list_comports
+from serial.serialutil import SerialException
+
 from .stage import Stage
 from .helper import PORT_NEWSCALE
 
@@ -107,10 +110,13 @@ class StageManager(QWidget):
         self.scan_for_stages(self.subnet_widget.get_subnet())
 
     def scan_usb(self):
-        filenames = glob.glob('/dev/ttyUSB*')
-        for filename in filenames:
-            stage = Stage(serial=filename)
-            self.model.add_stage(stage)
+        device_names = [cp.device for cp in list_comports()]
+        for device_name in device_names:
+            try:
+                stage = Stage(serial=device_name)
+                self.model.add_stage(stage)
+            except (SerialException, ValueError):
+                continue
         self.update_list()
 
     def update_list(self):
