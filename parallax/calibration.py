@@ -31,15 +31,7 @@ class Calibration:
     def get_origin(self):
         return self.origin
 
-    def set_initial_intrinsics(self, mtx1, mtx2, dist1, dist2):
-
-        self.imtx1 = mtx1
-        self.imtx2 = mtx2
-        self.idist1 = dist1
-        self.idist2 = dist2
-
     def set_initial_intrinsics_default(self):
-
         self.imtx1 = np.array(imtx1, dtype=np.float32)
         self.imtx2 = np.array(imtx2, dtype=np.float32)
         self.idist1 = np.array(idist1, dtype=np.float32)
