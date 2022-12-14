@@ -19,7 +19,7 @@ class Model(QObject):
         self.init_stages()
 
         self.calibration = None
-        self.lcorr, self.rcorr = False, False
+        self.lcorr, self.rcorr = None, None
 
         self.obj_point_last = None
 
@@ -57,16 +57,16 @@ class Model(QObject):
         self.lcorr = [xc, yc]
 
     def clear_lcorr(self):
-        self.lcorr = False
+        self.lcorr = None
 
     def set_rcorr(self, xc, yc):
         self.rcorr = [xc, yc]
 
     def clear_rcorr(self):
-        self.rcorr = False
+        self.rcorr = None
 
     def register_corr_points_cal(self):
-        if (self.lcorr and self.rcorr):
+        if None not in (self.lcorr, self.rcorr):
             self.cal_worker.register_corr_points_cal(self.lcorr, self.rcorr)
             self.msg_posted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
                                     (self.lcorr[0],self.lcorr[1],self.rcorr[0], self.rcorr[1]))
