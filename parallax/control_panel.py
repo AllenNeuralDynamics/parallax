@@ -7,8 +7,8 @@ from .helper import FONT_BOLD
 from .dialogs import StageSettingsDialog, TargetDialog
 from .stage_dropdown import StageDropdown
 
-JOG_STEPS_DEFAULT = 500
-CJOG_STEPS_DEFAULT = 100
+JOG_UM_DEFAULT = 250
+CJOG_UM_DEFAULT = 50
 
 
 class AxisControl(QWidget):
@@ -100,8 +100,8 @@ class ControlPanel(QFrame):
         self.setLineWidth(2)
 
         self.stage = None
-        self.jog_steps = JOG_STEPS_DEFAULT
-        self.cjog_steps = CJOG_STEPS_DEFAULT
+        self.jog_um = JOG_UM_DEFAULT
+        self.cjog_um = CJOG_UM_DEFAULT
 
     def update_coordinates(self, *args):
         xa, ya, za = self.stage.get_position()
@@ -143,20 +143,23 @@ class ControlPanel(QFrame):
 
     def handle_settings(self, *args):
         if self.stage:
-            dlg = StageSettingsDialog(self.stage, self.jog_steps/2, self.cjog_steps/2)
+            dlg = StageSettingsDialog(self.stage, self.jog_um, self.cjog_um)
             if dlg.exec_():
                 if dlg.speed_changed():
                     self.stage.set_speed(dlg.get_speed())
                 if dlg.jog_changed():
-                    self.jog_steps = dlg.get_jog_um() * 2
+                    self.jog_um = dlg.get_jog_um()
                 if dlg.cjog_changed():
-                    self.cjog_steps = dlg.get_cjog_um() * 2
+                    self.cjog_um = dlg.get_cjog_um() * 2
         else:
             self.msg_posted.emit('ControlPanel: No stage selected.')
 
     def jog(self, axis, forward, control):
         if self.stage:
-            distance = 50 if control else 200
+            if control:
+                distance = self.cjog_um
+            else:
+                distance = self.jog_um
             if not forward:
                 distance = (-1) * distance
             self.stage.move_distance_1d(axis, distance)
