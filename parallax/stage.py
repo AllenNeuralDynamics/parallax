@@ -33,7 +33,12 @@ class Stage():
         return pos['x'], pos['y'], pos['z']
 
     def move_to_target_1d(self, axis, position, relative=False):
-        self.device.move_absolute(x=x, y=y, z=z)
+        if axis == 'x':
+            self.device.move_absolute(x=position)
+        elif axis == 'y':
+            self.device.move_absolute(y=position)
+        elif axis == 'z':
+            self.device.move_absolute(z=position)
 
     def move_to_target_3d(self, x, y, z, relative=False, safe=True):
         # TODO implement safe parameter
