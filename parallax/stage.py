@@ -45,18 +45,15 @@ class Stage():
         self.device.move_absolute(x=x, y=y, z=z)
 
     def move_distance_1d(self, axis, distance):
-        # TODO re-implement based on move_relative()
-        x,y,z = self.get_position()
         if axis == 'x':
-            x += distance
+            self.device.move_relative(x=distance)
         elif axis == 'y':
-            y += distance
+            self.device.move_relative(y=distance)
         elif axis == 'z':
-            z += distance
-        self.device.move_absolute(x=x, y=y, z=z)
+            self.device.move_relative(z=distance)
 
     def move_distance_3d(self, x, y, z):
-        pass    # TODO, implement based on move_relative()
+        self.device.move_relative(x=x, y=y, z=z)
 
     def get_speed(self):
         d = self.device.get_closed_loop_speed_and_accel('x')
