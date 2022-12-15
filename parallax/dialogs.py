@@ -11,6 +11,8 @@ from .helper import FONT_BOLD
 from .stage_dropdown import StageDropdown
 from .calibration_worker import CalibrationWorker as cw
 
+from parallax import __version__ as VERSION
+
 
 class StageSettingsDialog(QDialog):
 
@@ -314,13 +316,15 @@ class AboutDialog(QDialog):
         self.main_label = QLabel('Parallax')
         self.main_label.setAlignment(Qt.AlignCenter)
         self.main_label.setFont(FONT_BOLD)
-        self.version_label = QLabel('version x.y.z') # TODO
+        self.version_label = QLabel('version %s' % VERSION)
+        self.version_label.setAlignment(Qt.AlignCenter)
         self.repo_label = QLabel('<a href="https://github.com/AllenNeuralDynamics/parallax">'
                                     'github.com/AllenNeuralDynamics/parallax</a>')
         self.repo_label.setOpenExternalLinks(True)
 
         layout = QGridLayout()
         layout.addWidget(self.main_label)
+        layout.addWidget(self.version_label)
         layout.addWidget(self.repo_label)
         self.setLayout(layout)
         self.setWindowTitle('About')
