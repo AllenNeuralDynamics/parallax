@@ -22,7 +22,6 @@ idist2 = [[-4.94883798e-01,  1.65465770e+02, -1.61013572e-03,  5.22601960e-03, -
 class Calibration:
 
     def __init__(self):
-        pass
         self.set_initial_intrinsics_default()
 
     def set_origin(self, origin):
