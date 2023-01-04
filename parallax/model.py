@@ -17,7 +17,8 @@ class Model(QObject):
         QObject.__init__(self)
 
         self.cameras = []
-        self.init_stages()
+        self.stages = {}
+        self.cal_stage = None
 
         self.calibration = None
         self.lcorr, self.rcorr = False, False
@@ -71,10 +72,6 @@ class Model(QObject):
             self.cal_worker.carry_on()
         else:
             self.msg_posted.emit('Highlight correspondence points and press C to continue')
-
-    def init_stages(self):
-        self.stages = {}
-        self.cal_stage = None
 
     def scan_for_cameras(self):
         self.cameras = list_cameras()

@@ -12,7 +12,6 @@ import time, datetime
 
 
 def list_cameras():
-    global pyspin_cameras, pyspin_instance
     cameras = []
     if PySpin is not None:
         cameras.extend(PySpinCamera.list_cameras())

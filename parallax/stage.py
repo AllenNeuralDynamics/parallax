@@ -1,10 +1,23 @@
 from newscale.multistage import USBXYZStage
 
 
-class Stage():
+def list_stages():
+    stages = []
+    # todo
+    return stages
+
+
+
+class NewScaleStage:
+
+    stages = None
+
+    @classmethod
+    def scan_for_stages(cls):
+        # todo
 
     def __init__(self, ip=None, serial=None):
-
+        super().__init__()
         if ip is not None:
             self.ip = ip
             self.name = ip
