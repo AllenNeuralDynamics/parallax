@@ -3,9 +3,12 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import numpy as np
 import pickle
 
+from newscale.interfaces import NewScaleSerial
+
 from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
 from .camera import list_cameras, close_cameras
+from .stage import Stage
 
 
 class Model(QObject):
@@ -78,6 +81,13 @@ class Model(QObject):
 
     def scan_for_cameras(self):
         self.cameras = list_cameras()
+
+    def scan_for_usb_stages(self):
+        instances = NewScaleSerial.get_instances()
+        self.init_stages()
+        for instance in instances:
+            stage = Stage(serial=instance)
+            self.add_stage(stage)
 
     def add_stage(self, stage):
         self.stages[stage.name] = stage

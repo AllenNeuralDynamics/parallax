@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon('../img/sextant.png'))
 
         self.refresh_cameras()
+        self.model.scan_for_usb_stages()
 
     def launch_stage_manager(self):
         self.stage_manager = StageManager(self.model)

@@ -1,5 +1,5 @@
 from newscale.multistage import USBXYZStage, PoEXYZStage
-from newscale.interfaces import NewScaleSerial, USBInterface
+from newscale.interfaces import USBInterface
 
 
 class Stage():
