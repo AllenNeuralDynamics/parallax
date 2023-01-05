@@ -2,6 +2,8 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 import numpy as np
 import pickle
+import serial.tools.list_ports
+from mis_focus_controller import FocusController
 
 from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
@@ -17,6 +19,7 @@ class Model(QObject):
         QObject.__init__(self)
 
         self.cameras = []
+        self.focos = []
         self.init_stages()
 
         self.calibration = None
@@ -78,6 +81,16 @@ class Model(QObject):
 
     def scan_for_cameras(self):
         self.cameras = list_cameras()
+
+    def scan_for_focus_controllers(self):
+        self.focos = []
+        ports = serial.tools.list_ports.comports()
+        for port in ports:
+            if (port.vid == 11914) and (port.pid == 10):
+                foco = FocusController(port.device)
+                for chan in range(3):   # only works for first 3 for now?
+                    foco.set_speed(chan, 30)  # this hangs?
+                self.focos.append(foco)
 
     def add_stage(self, stage):
         self.stages[stage.name] = stage
