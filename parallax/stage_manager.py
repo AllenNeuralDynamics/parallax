@@ -2,6 +2,9 @@ from PyQt5.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QHBoxLayout, QLabel
 from PyQt5.QtWidgets import QPushButton, QListWidget, QProgressBar
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
+from newscale.multistage import USBXYZStage, PoEXYZStage
+from newscale.interfaces import NewScaleSerial, USBInterface
+
 import socket, glob
 
 from serial.tools.list_ports import comports as list_comports
@@ -109,7 +112,7 @@ class StageManager(QWidget):
     def scan_poe(self):
         self.scan_for_stages(self.subnet_widget.get_subnet())
 
-    def scan_usb(self):
+    def scan_usb_old(self):
         device_names = [cp.device for cp in list_comports()]
         for device_name in device_names:
             try:
@@ -117,6 +120,16 @@ class StageManager(QWidget):
                 self.model.add_stage(stage)
             except (SerialException, ValueError):
                 continue
+        self.update_list()
+
+    def scan_usb(self):
+        instances = NewScaleSerial.get_instances()
+        print('instances: ', instances)
+        self.model.init_stages()
+        for instance in instances:
+            #stage = USBXYZStage(usb_interface=USBInterface(instance))
+            stage = Stage(serial=instance)
+            self.model.add_stage(stage)
         self.update_list()
 
     def update_list(self):
