@@ -1,5 +1,4 @@
-from newscale.multistage import USBXYZStage, PoEXYZStage
-from newscale.interfaces import NewScaleSerial, USBInterface
+from newscale.multistage import USBXYZStage
 
 
 class Stage():
@@ -12,8 +11,8 @@ class Stage():
             self.device = PoEXYZStage(ip)
         elif serial is not None:
             self.serial = serial
-            self.name = serial.get_serial_number()
-            self.device = USBXYZStage(usb_interface=USBInterface(serial))
+            self.name = serial
+            self.device = USBXYZStage(serial)
 
         self.initialize()
 
