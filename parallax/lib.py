@@ -47,6 +47,7 @@ def get_projection_matrix(mtx, r, t):
 def DLT(P1, P2, point1, point2):
     """
     https://temugeb.github.io/opencv/python/2021/02/02/stereo-camera-calibration-and-triangulation.html
+    https://temugeb.github.io/computer_vision/2021/02/06/direct-linear-transorms.html
     """ 
     A = [point1[1]*P1[2,:] - P1[1,:],
          P1[0,:] - point1[0]*P1[2,:],

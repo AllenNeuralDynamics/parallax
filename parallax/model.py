@@ -1,6 +1,5 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, pyqtSignal
-import numpy as np
 import pickle
 
 from .calibration_worker import CalibrationWorker
