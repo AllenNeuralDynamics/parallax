@@ -36,6 +36,8 @@ class MainWindow(QMainWindow):
         self.refresh_cameras_action.triggered.connect(self.refresh_cameras)
         self.manage_stages_action = QAction("Manage Stages")
         self.manage_stages_action.triggered.connect(self.launch_stage_manager)
+        self.refresh_focos_action = QAction("Refresh Focus Controllers")
+        self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.about_action = QAction("About")
@@ -54,6 +56,7 @@ class MainWindow(QMainWindow):
         self.device_menu = self.menuBar().addMenu("Devices")
         self.device_menu.addAction(self.refresh_cameras_action)
         self.device_menu.addAction(self.manage_stages_action)
+        self.device_menu.addAction(self.refresh_focos_action)
 
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
@@ -65,6 +68,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon('../img/sextant.png'))
 
         self.refresh_cameras()
+        self.refresh_focus_controllers()
 
     def launch_stage_manager(self):
         self.stage_manager = StageManager(self.model)
@@ -85,6 +89,11 @@ class MainWindow(QMainWindow):
         self.model.scan_for_cameras()
         for screen in self.screens():
             screen.update_camera_menu()
+
+    def refresh_focus_controllers(self):
+        self.model.scan_for_focus_controllers()
+        for screen in self.screens():
+            screen.update_focus_control_menu()
 
 
 class MainWidget(QWidget):
