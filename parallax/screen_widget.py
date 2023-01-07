@@ -46,8 +46,9 @@ class ScreenWidget(pg.GraphicsView):
     def refresh(self):
         if self.camera:
             # takes a 3000,4000 grayscale image straight from the camera
-            self.camera.capture()
-            self.set_data(self.camera.get_last_image_data())
+            # self.camera.capture()
+            data = self.camera.get_last_image_data()
+            self.set_data(data)
 
     def clear_selected(self):
         self.click_target.setVisible(False)

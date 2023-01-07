@@ -1,5 +1,6 @@
-import logging
+import logging, time, datetime, threading
 logger = logging.getLogger(__name__)
+import numpy as np
 
 try:
     import PySpin
@@ -7,8 +8,6 @@ except ImportError:
     PySpin = None
     logger.warn("Could not import PySpin; using mocked cameras.")
     
-import numpy as np
-import time, datetime
 
 
 def list_cameras():
@@ -50,6 +49,7 @@ class PySpinCamera:
         cls.pyspin_instance.ReleaseInstance()
 
     def __init__(self, camera_pyspin):
+        self.running = False
         self.camera = camera_pyspin
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
@@ -101,27 +101,32 @@ class PySpinCamera:
 
         self.camera.BeginAcquisition()
 
+        self.running = True
+        self.capture_thread = threading.Thread(target=self.capture_loop, daemon=True)
+        self.capture_thread.start()
+
     def capture(self):
-
         ts = time.time()
-        dt = datetime.datetime.fromtimestamp(ts)
-        self.last_capture_time_str = '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
-                                                                    dt.hour, dt.minute, dt.second)
-
-        if self.last_image:
-            try:
-                self.last_image.Release()
-            except PySpin.SpinnakerException:
-                print("Spinnaker Exception: Could't release last image")
+        self.last_capture_time = ts
 
         image = self.camera.GetNextImage(1000)
         while image.IsIncomplete():
-            print('waiting')
+            time.sleep(0.001)
 
         self.last_image = image
 
+        last_image = self.last_image
+        if last_image:
+            try:
+                last_image.Release()
+            except PySpin.SpinnakerException:
+                print("Spinnaker Exception: Could't release last image")
+
     def get_last_capture_time(self):
-        return self.last_capture_time_str
+        ts = self.last_capture_time
+        dt = datetime.datetime.fromtimestamp(ts)
+        return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
+                                              dt.hour, dt.minute, dt.second)
 
     def save_last_image(self, filename):
         image_converted = self.get_last_image()
@@ -137,8 +142,16 @@ class PySpinCamera:
         return self.last_image.GetNDArray()
 
     def clean(self):
+        if self.running:
+            self.running = False
+            self.capture_thread.join()
         self.camera.EndAcquisition()
         del self.camera
+
+    def capture_loop(self):
+        while self.running:
+            self.capture()
+            
 
 
 class MockCamera:
@@ -152,9 +165,6 @@ class MockCamera:
 
     def name(self):
         return self._name
-
-    def capture(self):
-        pass
 
     def get_last_image_data(self):
         """
