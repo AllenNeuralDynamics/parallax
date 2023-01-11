@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QPushButton, QFrame, QFileDialog
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QFrame, QFileDialog, QWidget
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import pyqtSignal, Qt
 
 from .helper import FONT_BOLD
 from .dialogs import CalibrationDialog
+from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
 
 
 class TriangulationPanel(QFrame):
@@ -26,15 +27,27 @@ class TriangulationPanel(QFrame):
         self.status_label.setFont(FONT_BOLD)
         self.update_status()
 
+        self.generate_transform_button = QPushButton("Generate Transform")
+        self.apply_transform_button = QPushButton("Apply Transform")
+        self.transform_btn_widget = QWidget()
+        self.transform_btn_layout = QHBoxLayout()
+        self.transform_btn_layout.setContentsMargins(0, 0, 0, 0)
+        self.transform_btn_widget.setLayout(self.transform_btn_layout)
+        self.transform_btn_layout.addWidget(self.generate_transform_button)
+        self.transform_btn_layout.addWidget(self.apply_transform_button)
+
         main_layout.addWidget(self.main_label)
         main_layout.addWidget(self.cal_button)
         main_layout.addWidget(self.status_label)
         main_layout.addWidget(self.go_button)
+        main_layout.addWidget(self.transform_btn_widget)
         self.setLayout(main_layout)
 
         # connections
         self.cal_button.clicked.connect(self.launch_calibration_dialog)
         self.go_button.clicked.connect(self.triangulate)
+        self.generate_transform_button.clicked.connect(self.show_rbt_tool)
+        self.apply_transform_button.clicked.connect(self.show_transform_widget)
 
         # frame border
         self.setFrameStyle(QFrame.Box | QFrame.Plain)
@@ -95,3 +108,11 @@ class TriangulationPanel(QFrame):
             self.status_label.setText(msg)
         else:
             self.status_label.setText('No calibration loaded.')
+
+    def show_transform_widget(self):
+        self.transform_widget = PointTransformWidget(self.model)
+        self.transform_widget.show()
+
+    def show_rbt_tool(self):
+        self.rbt_tool = RigidBodyTransformTool(self.model)
+        self.rbt_tool.show()

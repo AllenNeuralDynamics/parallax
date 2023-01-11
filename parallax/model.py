@@ -21,8 +21,9 @@ class Model(QObject):
 
         self.calibration = None
         self.lcorr, self.rcorr = False, False
-
+        
         self.obj_point_last = None
+        self.transforms = {}
 
     @property
     def ncameras(self):
@@ -127,3 +128,9 @@ class Model(QObject):
         for stage in self.stages.values():
             stage.halt()
         self.msg_posted.emit('Halting all stages.')
+
+    def add_transform(self, name, transform):
+        self.transforms[name] = transform
+
+    def get_transform(self, name):
+        return self.transforms[name]

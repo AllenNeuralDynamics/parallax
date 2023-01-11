@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QMainWindow, QAction
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QMainWindow, QAction
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
+import pyqtgraph.console
 
 from .message_log import MessageLog
 from .screen_widget import ScreenWidget
@@ -38,6 +39,8 @@ class MainWindow(QMainWindow):
         self.manage_stages_action.triggered.connect(self.launch_stage_manager)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
+        self.console_action = QAction("Python Console")
+        self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
         self.about_action.triggered.connect(self.launch_about)
 
@@ -57,12 +60,15 @@ class MainWindow(QMainWindow):
 
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
+        self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
         self.help_menu.addAction(self.about_action)
 
         self.setWindowTitle('Parallax')
         self.setWindowIcon(QIcon('../img/sextant.png'))
+
+        self.console = None
 
         self.refresh_cameras()
 
@@ -78,6 +84,9 @@ class MainWindow(QMainWindow):
         self.rbt = RigidBodyTransformTool(self.model)
         self.rbt.show()
 
+    def new_transform(self, name, tr):
+        self.model.add_transform(name, tr)
+
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
 
@@ -85,6 +94,15 @@ class MainWindow(QMainWindow):
         self.model.scan_for_cameras()
         for screen in self.screens():
             screen.update_camera_menu()
+
+    def show_console(self):
+        if self.console is None:
+            self.console = pyqtgraph.console.ConsoleWidget()
+        self.console.show()
+
+    def closeEvent(self, ev):
+        super().closeEvent(ev)
+        QApplication.instance().quit()
 
 
 class MainWidget(QWidget):
