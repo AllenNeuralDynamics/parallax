@@ -136,7 +136,7 @@ class RigidBodyTransformTool(QWidget):
         # just for testing
         if len(p1) == 0 and len(p2) == 0:
             p1 = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            p2 = np.array([[0, 0, 0], [0, 10, 0], [10, 0, 0], [0, 0, 10]])
+            p2 = np.array([[0, 0, 0], [0, 10, 0], [-10, 0, 0], [0, 0, 10]])
 
         transform = coorx.SRT3DTransform()
         transform.set_mapping(p1, p2)
