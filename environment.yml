@@ -1,4 +1,4 @@
-name: parallax
+name: parallax-sal
 
 channels:
   - conda-forge
