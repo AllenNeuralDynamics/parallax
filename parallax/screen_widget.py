@@ -1,7 +1,7 @@
 import functools
 import cv2
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
 import pyqtgraph as pg
 
@@ -33,12 +33,15 @@ class ScreenWidget(pg.GraphicsView):
         self.camera_actions = []
         self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
 
+        self.focochan_actions = []
+
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
         self.clear_selected()
 
         self.camera = None
+        self.focochan = None
 
     def refresh(self):
         if self.camera:
@@ -64,6 +67,17 @@ class ScreenWidget(pg.GraphicsView):
             self.camera_actions.append(act)
             self.view_box.menu.insertAction(self.camera_action_separator, act)
 
+    def update_focus_control_menu(self):
+        for act in self.focochan_actions:
+            self.view_box.menu.removeAction(act)
+        for foco in self.model.focos:
+            for chan in range(3):
+                act = QAction(foco.ser.port + ', channel %d' % chan)
+                act.callback = functools.partial(self.set_focochan, foco, chan)
+                act.triggered.connect(act.callback)
+                self.focochan_actions.append(act)
+                self.view_box.menu.insertAction(self.camera_action_separator, act)
+
     def image_clicked(self, event):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:            
             self.click_target.setPos(event.pos())
@@ -77,12 +91,25 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = camera
         self.refresh()
 
+    def set_focochan(self, foco, chan):
+        self.focochan = (foco, chan)
+
     def get_selected(self):
         if self.click_target.isVisible():
             pos = self.click_target.pos()
             return pos.x(), pos.y()
         else:
             return None
+
+    def wheelEvent(self, e):
+        forward = bool(e.angleDelta().y() > 0)
+        control = bool(e.modifiers() & Qt.ControlModifier)
+        if control:
+            if self.focochan:
+                foco, chan = self.focochan
+                foco.time_move(chan, forward, 100, wait=True)
+        else:
+            super().wheelEvent(e)
 
 
 class ClickableImage(pg.ImageItem):
