@@ -12,14 +12,17 @@ from .stage_dropdown import StageDropdown
 
 class CoordinateWidget(QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, vertical=False):
         QWidget.__init__(self, parent)
 
         self.xedit = QLineEdit()
         self.yedit = QLineEdit()
         self.zedit = QLineEdit()
 
-        self.layout = QHBoxLayout()
+        if vertical:
+            self.layout = QVBoxLayout()
+        else:
+            self.layout = QHBoxLayout()
         self.layout.addWidget(self.xedit)
         self.layout.addWidget(self.yedit)
         self.layout.addWidget(self.zedit)
@@ -174,17 +177,19 @@ class PointTransformWidget(QWidget):
         self.layout.addWidget(self.transform_combo, 0, 1, 1, 2)
         for name in self.model.transforms:
             self.transform_combo.addItem(name)
-        self.cw1 = CoordinateWidget(self)        
+        self.cw1 = CoordinateWidget(self, vertical=True)
         self.layout.addWidget(self.cw1, 1, 0)
         self.inv_btn = QPushButton('< map inverse')
         self.layout.addWidget(self.inv_btn, 1, 1)
         self.fwd_btn = QPushButton('map forward >')
         self.layout.addWidget(self.fwd_btn, 1, 2)
-        self.cw2 = CoordinateWidget(self)        
+        self.cw2 = CoordinateWidget(self, vertical=True)
         self.layout.addWidget(self.cw2, 1, 3)
 
         self.fwd_btn.clicked.connect(self.map_forward)
         self.inv_btn.clicked.connect(self.map_inverse)
+
+        self.setWindowTitle('Apply Coordinate Transform')
         
     def map_forward(self):
         p1 = self.cw1.get_coordinates()
