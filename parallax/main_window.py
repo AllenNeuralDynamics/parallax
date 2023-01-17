@@ -6,7 +6,7 @@ import pyqtgraph.console
 from .message_log import MessageLog
 from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
-from .triangulation_panel import TriangulationPanel
+from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .stage_manager import StageManager
@@ -25,12 +25,6 @@ class MainWindow(QMainWindow):
         self.save_frames_action = QAction("Save Camera Frames")
         self.save_frames_action.triggered.connect(self.widget.save_camera_frames)
         self.save_frames_action.setShortcut("Ctrl+F")
-        self.save_cal_action = QAction("Save Calibration")
-        self.save_cal_action.triggered.connect(self.widget.tri_panel.save)
-        self.save_cal_action.setShortcut("Ctrl+S")
-        self.load_cal_action = QAction("Load Calibration")
-        self.load_cal_action.triggered.connect(self.widget.tri_panel.load)
-        self.load_cal_action.setShortcut("Ctrl+O")
         self.edit_prefs_action = QAction("Preferences")
         self.edit_prefs_action.setEnabled(False)
         self.refresh_cameras_action = QAction("Refresh Camera List")
@@ -50,8 +44,6 @@ class MainWindow(QMainWindow):
         self.file_menu = self.menuBar().addMenu("File")
         self.file_menu.addAction(self.save_frames_action)
         self.file_menu.addSeparator()    # not visible on linuxmint?
-        self.file_menu.addAction(self.save_cal_action)
-        self.file_menu.addAction(self.load_cal_action)
 
         self.edit_menu = self.menuBar().addMenu("Edit")
         self.edit_menu.addAction(self.edit_prefs_action)
@@ -132,10 +124,10 @@ class MainWidget(QWidget):
         self.controls = QWidget()
         self.control_panel1 = ControlPanel(self.model)
         self.control_panel2 = ControlPanel(self.model)
-        self.tri_panel = TriangulationPanel(self.model)
+        self.geo_panel = GeometryPanel(self.model)
         hlayout = QHBoxLayout()
         hlayout.addWidget(self.control_panel1)
-        hlayout.addWidget(self.tri_panel)
+        hlayout.addWidget(self.geo_panel)
         hlayout.addWidget(self.control_panel2)
         self.controls.setLayout(hlayout)
 
@@ -149,9 +141,9 @@ class MainWidget(QWidget):
         self.control_panel2.msg_posted.connect(self.msg_log.post)
         self.control_panel1.target_reached.connect(self.zoom_out)
         self.control_panel2.target_reached.connect(self.zoom_out)
-        self.tri_panel.msg_posted.connect(self.msg_log.post)
-        self.model.cal_point_reached.connect(self.clear_selected)
-        self.model.cal_point_reached.connect(self.zoom_out)
+        self.geo_panel.msg_posted.connect(self.msg_log.post)
+        self.geo_panel.cal_point_reached.connect(self.clear_selected)
+        self.geo_panel.cal_point_reached.connect(self.zoom_out)
         self.model.msg_posted.connect(self.msg_log.post)
         self.lscreen.selected.connect(self.model.set_lcorr)
         self.lscreen.cleared.connect(self.model.clear_lcorr)
@@ -171,7 +163,8 @@ class MainWidget(QWidget):
                 self.zoom_out()
                 e.accept()
         elif e.key() == Qt.Key_C:
-            self.model.register_corr_points_cal()
+            if self.model.cal_in_progress:
+                self.geo_panel.register_corr_points_cal()
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
 

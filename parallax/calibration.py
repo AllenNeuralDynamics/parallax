@@ -21,9 +21,12 @@ idist2 = [[-4.94883798e-01,  1.65465770e+02, -1.61013572e-03,  5.22601960e-03, -
 
 class Calibration:
 
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        self.name = name
         self.set_initial_intrinsics_default()
+
+    def set_name(self, name):
+        self.name = name
 
     def set_origin(self, origin):
         self.origin = origin
@@ -94,5 +97,3 @@ class Calibration:
         self.rmse2 = rmse2
 
 
-if __name__ == '__main__':
-    print('hello world')

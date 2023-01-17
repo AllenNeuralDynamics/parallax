@@ -1,6 +1,10 @@
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QFrame, QWidget, QComboBox, QLabel
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import pyqtSignal, Qt, QThread
+
+import pickle
+import os
 
 from .helper import FONT_BOLD
 from .dialogs import CalibrationDialog
@@ -11,6 +15,7 @@ from .calibration_worker import CalibrationWorker
 
 class GeometryPanel(QFrame):
     msg_posted = pyqtSignal(str)
+    cal_point_reached = pyqtSignal()
 
     def __init__(self, model):
         QFrame.__init__(self)
@@ -55,8 +60,9 @@ class GeometryPanel(QFrame):
         self.setLayout(main_layout)
 
         # connections
-        self.cal_load_button.clicked.connect(self.load_calibration)
-        self.cal_gen_button.clicked.connect(self.launch_calibration_dialog)
+        self.cal_load_button.clicked.connect(self.load_cal)
+        self.cal_save_button.clicked.connect(self.save_cal)
+        self.cal_gen_button.clicked.connect(self.launch_cal_dialog)
         self.cal_apply_button.clicked.connect(self.triangulate)
         self.transforms_gen_button.clicked.connect(self.show_rbt_tool)
         self.transforms_apply_button.clicked.connect(self.show_transform_widget)
@@ -67,16 +73,26 @@ class GeometryPanel(QFrame):
 
     def triangulate(self):
 
-        if not (self.model.calibration and self.model.lcorr and self.model.rcorr):
-            self.msg_posted.emit('Error: please load a calibration, and select '
-                                'correspondence points before attempting triangulation')
+        if (self.cal_combo.currentIndex() < 0):
+            self.msg_posted.emit('No calibration selected.')
             return
+        else:
+            calSelected = self.model.calibrations[self.cal_combo.currentText()]
 
-        x,y,z = self.model.triangulate()
+        if not (self.model.lcorr and self.model.rcorr):
+            self.msg_posted.emit('No correspondence points selected.')
+            return
+        else:
+            lcorr, rcorr = self.model.lcorr, self.model.rcorr
+
+        obj_point = calSelected.triangulate(lcorr, rcorr)
+        self.model.set_last_object_point(obj_point)
+
+        x,y,z = obj_point
         self.msg_posted.emit('Reconstructed object point: '
                             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
 
-    def launch_calibration_dialog(self):
+    def launch_cal_dialog(self):
 
         dlg = CalibrationDialog(self.model)
         if dlg.exec_():
@@ -86,24 +102,17 @@ class GeometryPanel(QFrame):
             extent = dlg.get_extent()
             name = dlg.get_name()
 
-            self.start_calibration_thread(stage, res, extent, name)
-            """
-            self.model.set_cal_stage(stage)
-            self.model.cal_finished.connect(self.update_calibrations)
-            self.model.start_calibration(res, extent)
-            """
+            self.start_cal_thread(stage, res, extent, name)
 
-    def start_calibration_thread(self, stage, res, extent, name):
-        self.img_points1_cal = []
-        self.img_points2_cal = []
+    def start_cal_thread(self, stage, res, extent, name):
+        self.model.cal_in_progress = True
         self.cal_thread = QThread()
-        self.cal_worker = CalibrationWorker(stage, res, extent)
+        self.cal_worker = CalibrationWorker(name, stage, res, extent)
         self.cal_worker.moveToThread(self.cal_thread)
         self.cal_thread.started.connect(self.cal_worker.run)
         self.cal_worker.calibration_point_reached.connect(self.handle_cal_point_reached)
         self.cal_thread.finished.connect(self.handle_cal_finished)
         self.cal_worker.finished.connect(self.cal_thread.quit)
-        self.cal_worker.finished.connect(self.cal_worker.deleteLater)
         self.cal_thread.finished.connect(self.cal_thread.deleteLater)
         self.msg_posted.emit('Starting Calibration...')
         self.cal_thread.start()
@@ -113,25 +122,53 @@ class GeometryPanel(QFrame):
         self.msg_posted.emit('Highlight correspondence points and press C to continue')
         self.cal_point_reached.emit()
 
-    def handle_calibration_finished(self):
-        self.calibration = Calibration()
-        img_points1_cal = np.array([self.img_points1_cal], dtype=np.float32)
-        img_points2_cal = np.array([self.img_points2_cal], dtype=np.float32)
-        obj_points_cal = self.cal_worker.get_object_points()
-        origin = self.cal_worker.stage.get_origin()
-        self.calibration.calibrate(img_points1_cal, img_points2_cal, obj_points_cal, origin)
-        self.msg_posted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
-                                (self.calibration.rmse1, self.calibration.rmse2))
-        self.cal_finished.emit()
+    def register_corr_points_cal(self):
+        lcorr, rcorr = self.model.lcorr, self.model.rcorr
+        if (lcorr and rcorr):
+            self.cal_worker.register_corr_points(lcorr, rcorr)
+            self.msg_posted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
+                                    (lcorr[0],lcorr[1], rcorr[0],rcorr[1]))
+            self.cal_worker.carry_on()
+        else:
+            self.msg_posted.emit('Highlight correspondence points and press C to continue')
 
-    def load_calibration(self):
+    def handle_cal_finished(self):
+        cal = Calibration(self.cal_worker.name)
+        img_points1, img_points2 = self.cal_worker.get_image_points()
+        obj_points = self.cal_worker.get_object_points()
+        origin = self.cal_worker.stage.get_origin()
+        cal.calibrate(img_points1, img_points2, obj_points, origin)
+        self.msg_posted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
+                                (cal.rmse1, cal.rmse2))
+        self.model.add_calibration(cal)
+        self.update_cals()
+        self.model.cal_in_progress = False
+
+    def load_cal(self):
         filename = QFileDialog.getOpenFileName(self, 'Load calibration file', '.',
                                                     'Pickle files (*.pkl)')[0]
         if filename:
             with open(filename, 'rb') as f:
-                calibration = pickle.load(f)
-                self.model.add_calibration(calibration)
-            self.update_calibrations()
+                cal = pickle.load(f)
+                self.model.add_calibration(cal)
+            self.update_cals()
+
+    def save_cal(self, filename):
+
+        if (self.cal_combo.currentIndex() < 0):
+            self.msg_posted.emit('No calibration selected.')
+            return
+        else:
+            calSelected = self.model.calibrations[self.cal_combo.currentText()]
+
+        suggested_filename = os.path.join(os.getcwd(), calSelected.name + '.pkl')
+        filename = QFileDialog.getSaveFileName(self, 'Save calibration file',
+                                                suggested_filename,
+                                                'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'wb') as f:
+                pickle.dump(calSelected, f)
+            self.msg_posted.emit('Saved calibration %s to: %s' % (calSelected.name, filename))
 
     def save(self):
 
@@ -139,16 +176,11 @@ class GeometryPanel(QFrame):
             self.msg_posted.emit('Error: no calibration loaded')
             return
 
-        filename = QFileDialog.getSaveFileName(self, 'Save calibration file', '.',
-                                                'Pickle files (*.pkl)')[0]
-        if filename:
-            self.model.save_calibration(filename)
-            self.msg_posted.emit('Saved calibration to: %s' % filename)
 
-    def update_calibrations(self):
+    def update_cals(self):
         self.cal_combo.clear()
-        for cal in self.model.calibrations:
-            self.cal_combo.addItem(cal.name)
+        for cal in self.model.calibrations.keys():
+            self.cal_combo.addItem(cal)
 
     def show_transform_widget(self):
         self.transform_widget = PointTransformWidget(self.model)
