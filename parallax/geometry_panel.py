@@ -64,6 +64,8 @@ class GeometryPanel(QFrame):
         self.cal_save_button.clicked.connect(self.save_cal)
         self.cal_gen_button.clicked.connect(self.launch_cal_dialog)
         self.cal_apply_button.clicked.connect(self.triangulate)
+        self.transforms_save_button.clicked.connect(self.save_transform)
+        self.transforms_load_button.clicked.connect(self.load_transform)
         self.transforms_gen_button.clicked.connect(self.show_rbt_tool)
         self.transforms_apply_button.clicked.connect(self.show_transform_widget)
 
@@ -77,7 +79,7 @@ class GeometryPanel(QFrame):
             self.msg_posted.emit('No calibration selected.')
             return
         else:
-            calSelected = self.model.calibrations[self.cal_combo.currentText()]
+            cal_selected = self.model.calibrations[self.cal_combo.currentText()]
 
         if not (self.model.lcorr and self.model.rcorr):
             self.msg_posted.emit('No correspondence points selected.')
@@ -85,7 +87,7 @@ class GeometryPanel(QFrame):
         else:
             lcorr, rcorr = self.model.lcorr, self.model.rcorr
 
-        obj_point = calSelected.triangulate(lcorr, rcorr)
+        obj_point = cal_selected.triangulate(lcorr, rcorr)
         self.model.set_last_object_point(obj_point)
 
         x,y,z = obj_point
@@ -153,34 +155,62 @@ class GeometryPanel(QFrame):
                 self.model.add_calibration(cal)
             self.update_cals()
 
-    def save_cal(self, filename):
+    def save_cal(self):
 
         if (self.cal_combo.currentIndex() < 0):
             self.msg_posted.emit('No calibration selected.')
             return
         else:
-            calSelected = self.model.calibrations[self.cal_combo.currentText()]
+            cal_selected = self.model.calibrations[self.cal_combo.currentText()]
 
-        suggested_filename = os.path.join(os.getcwd(), calSelected.name + '.pkl')
+        suggested_filename = os.path.join(os.getcwd(), cal_selected.name + '.pkl')
         filename = QFileDialog.getSaveFileName(self, 'Save calibration file',
                                                 suggested_filename,
                                                 'Pickle files (*.pkl)')[0]
         if filename:
             with open(filename, 'wb') as f:
-                pickle.dump(calSelected, f)
-            self.msg_posted.emit('Saved calibration %s to: %s' % (calSelected.name, filename))
-
-    def save(self):
-
-        if not self.model.calibration:
-            self.msg_posted.emit('Error: no calibration loaded')
-            return
-
+                pickle.dump(cal_selected, f)
+            self.msg_posted.emit('Saved calibration %s to: %s' % (cal_selected.name, filename))
 
     def update_cals(self):
         self.cal_combo.clear()
         for cal in self.model.calibrations.keys():
             self.cal_combo.addItem(cal)
+
+    def save_transform(self):
+
+        if (self.transforms_combo.currentIndex() < 0):
+            self.msg_posted.emit('No transform selected.')
+            return
+        else:
+            name_selected = self.transforms_combo.currentText()
+            tf_selected = self.model.transforms[name_selected]
+
+        suggested_filename = os.path.join(os.getcwd(), name_selected + '.pkl')
+        filename = QFileDialog.getSaveFileName(self, 'Save transform file',
+                                                suggested_filename,
+                                                'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'wb') as f:
+                pickle.dump(tf_selected, f)
+            self.msg_posted.emit('Saved transform %s to: %s' % (name_selected, filename))
+
+    def load_transform(self):
+        filename = QFileDialog.getOpenFileName(self, 'Load transform file', '.',
+                                                    'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'rb') as f:
+                transform = pickle.load(f)
+                # tmp
+                import random, string
+                name = ''.join(random.choices(string.ascii_letters, k=5))
+                self.model.add_transform(name, cal)
+            self.update_transforms()
+
+    def update_transforms(self):
+        self.transforms_combo.clear()
+        for tf in self.model.transforms.keys():
+            self.transforms_combo.addItem(tf)
 
     def show_transform_widget(self):
         self.transform_widget = PointTransformWidget(self.model)
@@ -188,5 +218,7 @@ class GeometryPanel(QFrame):
 
     def show_rbt_tool(self):
         self.rbt_tool = RigidBodyTransformTool(self.model)
+        self.rbt_tool.msg_posted.connect(self.msg_posted)
+        self.rbt_tool.generated.connect(self.update_transforms)
         self.rbt_tool.show()
 

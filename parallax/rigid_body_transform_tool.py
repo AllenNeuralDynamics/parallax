@@ -2,10 +2,12 @@ from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QInputDialog, 
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget, QListWidgetItem
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, pyqtSignal
 import coorx
 import csv
 import numpy as np
+
+from .stage_dropdown import StageDropdown
 
 
 class CoordinateWidget(QWidget):
@@ -36,10 +38,14 @@ class CoordinateWidget(QWidget):
 
 
 class RigidBodyTransformTool(QWidget):
+    msg_posted = pyqtSignal(str)
+    generated = pyqtSignal()
 
     def __init__(self, model):
         QWidget.__init__(self, parent=None)
         self.model = model
+
+        self.stage = False
 
         self.left_widget = QFrame()
         self.left_widget.setFrameStyle(QFrame.Box | QFrame.Plain)
@@ -60,6 +66,9 @@ class RigidBodyTransformTool(QWidget):
         self.last_button.clicked.connect(self.fill_last)
         self.left_buttons.layout().addWidget(self.last_button)
         self.left_layout.addWidget(self.left_buttons)
+        self.stage_dropdown = StageDropdown(self.model)
+        self.stage_dropdown.activated.connect(self.handle_stage_selection)
+        self.left_layout.addWidget(self.stage_dropdown)
         self.left_widget.setLayout(self.left_layout)
         self.left_widget.setMaximumWidth(300)
 
@@ -96,10 +105,16 @@ class RigidBodyTransformTool(QWidget):
         self.setLayout(self.layout)
         self.setWindowTitle('Rigid Body Transform Tool')
 
+    def handle_stage_selection(self, index):
+        stage_name = self.stage_dropdown.currentText()
+        self.stage = self.model.stages[stage_name]
+
     def fill_current(self):
-        if self.model.stages:
-            position_rel = list(self.model.stages.values())[0].getPosition_rel()
-            self.coords_widget2.set_coordinates(position_rel)
+        if self.stage:
+            pos = self.stage.get_position(relative=True)
+            self.coords_widget2.set_coordinates(pos)
+        else:
+            self.msg_posted.emit('Please select a stage to draw current position from')
 
     def fill_last(self):
         if not (self.model.obj_point_last is None):
@@ -144,6 +159,7 @@ class RigidBodyTransformTool(QWidget):
         if not accepted:
             return
         self.model.add_transform(name, transform)
+        self.generated.emit()
 
 
 class PointTransformWidget(QWidget):
