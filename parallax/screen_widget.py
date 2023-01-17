@@ -83,6 +83,8 @@ class ScreenWidget(pg.GraphicsView):
             self.click_target.setPos(event.pos())
             self.click_target.setVisible(True)
             self.selected.emit(*self.get_selected())
+        elif event.button() == QtCore.Qt.MouseButton.MiddleButton:            
+            self.zoom_out()
 
     def zoom_out(self):
         self.view_box.autoRange()
