@@ -166,7 +166,7 @@ class RigidBodyTransformTool(QWidget):
         transform = coorx.SRT3DTransform(from_cs=from_cs, to_cs=to_cs)
         transform.set_mapping(p1, p2)
 
-        name = f"{from_cs} => {to_cs}"
+        name = f"{from_cs}-{to_cs}"
         self.model.add_transform(name, transform)
         self.generated.emit()
 
