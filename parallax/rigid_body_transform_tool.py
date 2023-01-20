@@ -15,6 +15,7 @@ class CoordinateWidget(QWidget):
     def __init__(self, parent=None, vertical=False):
         QWidget.__init__(self, parent)
 
+        
         self.xedit = QLineEdit()
         self.yedit = QLineEdit()
         self.zedit = QLineEdit()
@@ -54,10 +55,14 @@ class RigidBodyTransformTool(QWidget):
         self.left_widget.setFrameStyle(QFrame.Box | QFrame.Plain)
         self.left_widget.setLineWidth(2)
         self.left_layout = QVBoxLayout()
-        self.left_layout.addWidget(QLabel('Coordinates 1'))
+        self.cs1_name_edit = QLineEdit()
+        self.cs1_name_edit.setPlaceholderText("Coordinate system 1")
+        self.left_layout.addWidget(self.cs1_name_edit)
         self.coords_widget1 = CoordinateWidget()
         self.left_layout.addWidget(self.coords_widget1)
-        self.left_layout.addWidget(QLabel('Coordinates 2'))
+        self.cs2_name_edit = QLineEdit()
+        self.cs2_name_edit.setPlaceholderText("Coordinate system 2")
+        self.left_layout.addWidget(self.cs2_name_edit)
         self.coords_widget2 = CoordinateWidget()
         self.left_layout.addWidget(self.coords_widget2)
         self.left_buttons = QWidget()
@@ -156,11 +161,12 @@ class RigidBodyTransformTool(QWidget):
             p1 = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
             p2 = np.array([[0, 0, 0], [0, 10, 0], [-10, 0, 0], [0, 0, 10]])
 
-        transform = coorx.SRT3DTransform()
+        from_cs = self.cs1_name_edit.text()
+        to_cs = self.cs2_name_edit.text()
+        transform = coorx.SRT3DTransform(from_cs=from_cs, to_cs=to_cs)
         transform.set_mapping(p1, p2)
-        name, accepted = QInputDialog.getText(self, "Generate transform", "Enter transform name")
-        if not accepted:
-            return
+
+        name = f"{from_cs} => {to_cs}"
         self.model.add_transform(name, transform)
         self.generated.emit()
 
