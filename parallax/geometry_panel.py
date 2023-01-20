@@ -204,7 +204,7 @@ class GeometryPanel(QFrame):
                 # tmp
                 import random, string
                 name = ''.join(random.choices(string.ascii_letters, k=5))
-                self.model.add_transform(name, cal)
+                self.model.add_transform(name, transform)
             self.update_transforms()
 
     def update_transforms(self):
