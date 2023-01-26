@@ -31,7 +31,12 @@ class Stage():
 
     def get_position(self, relative=False):
         pos = self.device.get_position('x', 'y', 'z')
-        return pos['x'], pos['y'], pos['z']
+        x,y,z = pos['x'], pos['y'], pos['z']
+        if relative:
+            x -= self.origin[0]
+            y -= self.origin[1]
+            z -= self.origin[2]
+        return x,y,z
 
     def move_to_target_1d(self, axis, position, relative=False):
         if axis == 'x':
