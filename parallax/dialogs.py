@@ -47,6 +47,9 @@ class StageSettingsDialog(QDialog):
         self.dialog_buttons.accepted.connect(self.accept)
         self.dialog_buttons.rejected.connect(self.reject)
 
+        self.freqcal_button = QPushButton('Calibrate PID Frequency')
+        self.freqcal_button.clicked.connect(self.calibrate_frequency)
+
         layout = QGridLayout()
         layout.addWidget(self.current_label, 0,1, 1,1)
         layout.addWidget(self.desired_label, 0,2, 1,1)
@@ -60,7 +63,11 @@ class StageSettingsDialog(QDialog):
         layout.addWidget(self.cjog_current, 3,1, 1,1)
         layout.addWidget(self.cjog_desired, 3,2, 1,1)
         layout.addWidget(self.dialog_buttons, 4,0, 1,3)
+        layout.addWidget(self.freqcal_button, 5,0, 1,3)
         self.setLayout(layout)
+
+    def calibrate_frequency(self):
+        self.stage.calibrate_frequency()
 
     def speed_changed(self):
         dtext = self.speed_desired.text()

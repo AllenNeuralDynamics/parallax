@@ -17,6 +17,9 @@ class Stage():
 
         self.initialize()
 
+    def calibrate_frequency(self):
+        self.device.calibrate_all()
+
     def initialize(self):
         self.origin = [7500,7500,7500]
 
