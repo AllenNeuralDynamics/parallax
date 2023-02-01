@@ -9,7 +9,6 @@ except ImportError:
     
 import numpy as np
 import time, datetime
-import atexit
 
 
 def list_cameras():
@@ -25,7 +24,6 @@ def list_cameras():
 def close_cameras():
     if PySpin is not None:
         PySpinCamera.close_cameras()
-atexit.register(close_cameras)
 
 
 class PySpinCamera:
