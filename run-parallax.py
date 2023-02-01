@@ -2,6 +2,7 @@
 from PyQt5.QtWidgets import QApplication
 from parallax.model import Model
 from parallax.main_window import MainWindow
+import atexit
 
 # set up logging to file
 import logging
@@ -16,9 +17,9 @@ logger.addHandler(log_handler)
 app = QApplication([])
 
 model = Model()
+atexit.register(model.clean)
+
 main_window = MainWindow(model)
 main_window.show()
 
 app.exec()
-
-model.clean()
