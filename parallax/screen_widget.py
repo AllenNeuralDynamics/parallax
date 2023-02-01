@@ -5,7 +5,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
 import pyqtgraph as pg
 
-VAL_RANGE = [0,128] # monochrome value range for the image_item, hard-coded for now
+DIGITAL_GAIN = 3
 
 class ScreenWidget(pg.GraphicsView):
 
@@ -44,7 +44,6 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = None
         self.focochan = None
 
-        self.image_item.setLevels([VAL_RANGE, VAL_RANGE, VAL_RANGE])
 
     def refresh(self):
         if self.camera:
@@ -57,7 +56,7 @@ class ScreenWidget(pg.GraphicsView):
         self.cleared.emit()
 
     def set_data(self, data):
-        self.image_item.setImage(data, autoLevels=False)
+        self.image_item.setImage(data*DIGITAL_GAIN, autoLevels=False)
 
     def update_camera_menu(self):
         for act in self.camera_actions:
