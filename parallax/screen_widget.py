@@ -1,11 +1,50 @@
 import functools
 import cv2
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QSlider
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
 import pyqtgraph as pg
 
-DIGITAL_GAIN = 3
+
+class ScreenWidgetControl(QWidget):
+
+    selected = pyqtSignal(int, int)
+    cleared = pyqtSignal()
+
+    def __init__(self, filename=None, model=None, parent=None):
+        QWidget.__init__(self)
+        self.screen_widget = ScreenWidget(filename, model, parent)
+        self.contrast_slider = QSlider(Qt.Horizontal)
+        self.contrast_slider.setValue(50)
+        self.brightness_slider = QSlider(Qt.Horizontal)
+        self.brightness_slider.setValue(0)
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.screen_widget)
+        self.layout.addWidget(self.contrast_slider)
+        self.layout.addWidget(self.brightness_slider)
+        self.setLayout(self.layout)
+
+        # connections
+        self.screen_widget.selected.connect(self.selected)
+        self.screen_widget.cleared.connect(self.cleared)
+        self.contrast_slider.sliderMoved.connect(self.screen_widget.set_alpha)
+        self.brightness_slider.sliderMoved.connect(self.screen_widget.set_beta)
+
+    def update_camera_menu(self):
+        self.screen_widget.update_camera_menu()
+
+    def update_focus_control_menu(self):
+        self.screen_widget.update_focus_control_menu()
+
+    def refresh(self):
+        self.screen_widget.refresh()
+
+    def zoom_out(self):
+        self.screen_widget.zoom_out()
+
+    def clear_selected(self):
+        self.screen_widget.clear_selected()
+
 
 class ScreenWidget(pg.GraphicsView):
 
@@ -44,6 +83,15 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = None
         self.focochan = None
 
+        # gain and contrast
+        self.alpha = 1.0
+        self.beta = 0.0
+
+    def set_alpha(self, value):
+        self.alpha = value / 50
+
+    def set_beta(self, value):
+        self.beta = value
 
     def refresh(self):
         if self.camera:
@@ -56,7 +104,8 @@ class ScreenWidget(pg.GraphicsView):
         self.cleared.emit()
 
     def set_data(self, data):
-        self.image_item.setImage(data*DIGITAL_GAIN, autoLevels=False)
+        data = cv2.convertScaleAbs(data, alpha=self.alpha, beta=self.beta)
+        self.image_item.setImage(data, autoLevels=False)
 
     def update_camera_menu(self):
         for act in self.camera_actions:
