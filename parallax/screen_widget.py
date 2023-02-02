@@ -14,10 +14,15 @@ class ScreenWidgetControl(QWidget):
     def __init__(self, filename=None, model=None, parent=None):
         QWidget.__init__(self)
         self.screen_widget = ScreenWidget(filename, model, parent)
+
         self.contrast_slider = QSlider(Qt.Horizontal)
         self.contrast_slider.setValue(50)
+        self.contrast_slider.setToolTip('Contrast')
+
         self.brightness_slider = QSlider(Qt.Horizontal)
         self.brightness_slider.setValue(0)
+        self.brightness_slider.setToolTip('Brightness')
+
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.screen_widget)
         self.layout.addWidget(self.contrast_slider)
