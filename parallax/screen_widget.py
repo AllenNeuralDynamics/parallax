@@ -1,9 +1,13 @@
 import functools
 import cv2
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QSlider
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QSlider, QMenu
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
 import pyqtgraph as pg
+import inspect
+import importlib
+
+from . import filters
 
 
 class ScreenWidgetControl(QWidget):
@@ -32,8 +36,6 @@ class ScreenWidgetControl(QWidget):
         # connections
         self.screen_widget.selected.connect(self.selected)
         self.screen_widget.cleared.connect(self.cleared)
-        self.contrast_slider.sliderMoved.connect(self.screen_widget.set_alpha)
-        self.brightness_slider.sliderMoved.connect(self.screen_widget.set_beta)
 
     def update_camera_menu(self):
         self.screen_widget.update_camera_menu()
@@ -76,9 +78,11 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target.setVisible(False)
 
         self.camera_actions = []
-        self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
-
         self.focochan_actions = []
+        self.filter_actions = []
+
+        # still needed?
+        self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
 
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
@@ -87,16 +91,16 @@ class ScreenWidget(pg.GraphicsView):
 
         self.camera = None
         self.focochan = None
+        self.filter = filters.NoFilter()
 
-        # gain and contrast
-        self.alpha = 1.0
-        self.beta = 0.0
+        # sub-menus
+        self.parallax_menu = QMenu("Parallax", self.view_box.menu)
+        self.camera_menu = self.parallax_menu.addMenu("Cameras")
+        self.focochan_menu = self.parallax_menu.addMenu("Focus Controllers")
+        self.filter_menu = self.parallax_menu.addMenu("Filters")
+        self.view_box.menu.insertMenu(self.view_box.menu.actions()[0], self.parallax_menu)
 
-    def set_alpha(self, value):
-        self.alpha = value / 50
-
-    def set_beta(self, value):
-        self.beta = value
+        self.update_filter_menu()
 
     def refresh(self):
         if self.camera:
@@ -109,30 +113,38 @@ class ScreenWidget(pg.GraphicsView):
         self.cleared.emit()
 
     def set_data(self, data):
-        data = cv2.convertScaleAbs(data, alpha=self.alpha, beta=self.beta)
+        data = self.filter.process(data)
         self.image_item.setImage(data, autoLevels=False)
 
     def update_camera_menu(self):
         for act in self.camera_actions:
             act.triggered.disconnect(act.callback)
-            self.view_box.menu.removeAction(act)
+            self.camera_menu.removeAction(act)
         for camera in self.model.cameras:
-            act = QAction(camera.name())
+            act = self.camera_menu.addAction(camera.name())
             act.callback = functools.partial(self.set_camera, camera)
             act.triggered.connect(act.callback)
             self.camera_actions.append(act)
-            self.view_box.menu.insertAction(self.camera_action_separator, act)
 
     def update_focus_control_menu(self):
         for act in self.focochan_actions:
-            self.view_box.menu.removeAction(act)
+            self.focochan_menu.removeAction(act)
         for foco in self.model.focos:
-            for chan in range(3):
-                act = QAction(foco.ser.port + ', channel %d' % chan)
+            for chan in range(6):
+                act = self.focochan_menu.addAction(foco.ser.port + ', channel %d' % chan)
                 act.callback = functools.partial(self.set_focochan, foco, chan)
                 act.triggered.connect(act.callback)
                 self.focochan_actions.append(act)
-                self.view_box.menu.insertAction(self.camera_action_separator, act)
+
+    def update_filter_menu(self):
+        for act in self.filter_actions:
+            self.filter_menu.removeAction(act)
+        for name, obj in inspect.getmembers(filters):
+            if inspect.isclass(obj) and (obj.__module__ == 'parallax.filters'):
+                act = self.filter_menu.addAction(obj.name)
+                act.callback = functools.partial(self.set_filter, obj)
+                act.triggered.connect(act.callback)
+                self.filter_actions.append(act)
 
     def image_clicked(self, event):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:            
@@ -151,6 +163,10 @@ class ScreenWidget(pg.GraphicsView):
 
     def set_focochan(self, foco, chan):
         self.focochan = (foco, chan)
+
+    def set_filter(self, filt):
+        self.filter = filt()
+        self.filter.launch_control_panel()
 
     def get_selected(self):
         if self.click_target.isVisible():

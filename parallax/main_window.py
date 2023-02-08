@@ -4,7 +4,7 @@ from PyQt5.QtGui import QIcon
 import pyqtgraph.console
 
 from .message_log import MessageLog
-from .screen_widget import ScreenWidgetControl
+from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
 from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
@@ -115,8 +115,8 @@ class MainWidget(QWidget):
 
         self.screens = QWidget()
         hlayout = QHBoxLayout()
-        self.lscreen = ScreenWidgetControl(model=self.model)
-        self.rscreen = ScreenWidgetControl(model=self.model)
+        self.lscreen = ScreenWidget(model=self.model)
+        self.rscreen = ScreenWidget(model=self.model)
         hlayout.addWidget(self.lscreen)
         hlayout.addWidget(self.rscreen)
         self.screens.setLayout(hlayout)
