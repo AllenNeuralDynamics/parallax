@@ -5,6 +5,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QDoubleValidator
 
 import numpy as np
+import time
+import datetime
 
 from .toggle_switch import ToggleSwitch
 from .helper import FONT_BOLD
@@ -45,6 +47,9 @@ class StageSettingsDialog(QDialog):
         self.dialog_buttons.accepted.connect(self.accept)
         self.dialog_buttons.rejected.connect(self.reject)
 
+        self.freqcal_button = QPushButton('Calibrate PID Frequency')
+        self.freqcal_button.clicked.connect(self.calibrate_frequency)
+
         layout = QGridLayout()
         layout.addWidget(self.current_label, 0,1, 1,1)
         layout.addWidget(self.desired_label, 0,2, 1,1)
@@ -58,7 +63,11 @@ class StageSettingsDialog(QDialog):
         layout.addWidget(self.cjog_current, 3,1, 1,1)
         layout.addWidget(self.cjog_desired, 3,2, 1,1)
         layout.addWidget(self.dialog_buttons, 4,0, 1,3)
+        layout.addWidget(self.freqcal_button, 5,0, 1,3)
         self.setLayout(layout)
+
+    def calibrate_frequency(self):
+        self.stage.calibrate_frequency()
 
     def speed_changed(self):
         dtext = self.speed_desired.text()
@@ -91,13 +100,6 @@ class CalibrationDialog(QDialog):
         QDialog.__init__(self, parent)
         self.model = model
 
-        self.intrinsics_default_button = QRadioButton("Use Default Intrinsics")
-        self.intrinsics_default_button.setChecked(True)
-        self.intrinsics_default_button.toggled.connect(self.handle_radio)
-
-        self.intrinsics_load_button = QRadioButton("Load Intrinsics from File")
-        self.intrinsics_load_button.toggled.connect(self.handle_radio)
-
         self.stage_label = QLabel('Select a Stage:')
         self.stage_label.setAlignment(Qt.AlignCenter)
         self.stage_label.setFont(FONT_BOLD)
@@ -115,27 +117,31 @@ class CalibrationDialog(QDialog):
         self.extent_label.setAlignment(Qt.AlignCenter)
         self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
 
+        self.name_label = QLabel('Name')
+        ts = time.time()
+        dt = datetime.datetime.fromtimestamp(ts)
+        cal_default_name = 'cal_%04d%02d%02d-%02d%02d%02d' % (dt.year,
+                                        dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        self.name_edit = QLineEdit(cal_default_name)
+
         self.go_button = QPushButton('Start Calibration Routine')
         self.go_button.setEnabled(False)
         self.go_button.clicked.connect(self.go)
 
         layout = QGridLayout()
-        layout.addWidget(self.intrinsics_default_button, 0,0, 1,2)
-        layout.addWidget(self.intrinsics_load_button, 1,0, 1,2)
-        layout.addWidget(self.stage_label, 2,0, 1,1)
-        layout.addWidget(self.stage_dropdown, 2,1, 1,1)
-        layout.addWidget(self.resolution_label, 3,0, 1,1)
-        layout.addWidget(self.resolution_box, 3,1, 1,1)
-        layout.addWidget(self.extent_label, 4,0, 1,1)
-        layout.addWidget(self.extent_edit, 4,1, 1,1)
-        layout.addWidget(self.go_button, 5,0, 1,2)
+        layout.addWidget(self.stage_label, 0,0, 1,1)
+        layout.addWidget(self.stage_dropdown, 0,1, 1,1)
+        layout.addWidget(self.resolution_label, 1,0, 1,1)
+        layout.addWidget(self.resolution_box, 1,1, 1,1)
+        layout.addWidget(self.extent_label, 2,0, 1,1)
+        layout.addWidget(self.extent_edit, 2,1, 1,1)
+        layout.addWidget(self.name_label, 3,0, 1,1)
+        layout.addWidget(self.name_edit, 3,1, 1,1)
+        layout.addWidget(self.go_button, 4,0, 1,2)
         self.setLayout(layout)
 
         self.setWindowTitle("Calibration Routine Parameters")
         self.setMinimumWidth(300)
-
-    def get_intrinsics_load(self):
-        return self.intrinsics_load_button.isChecked()
 
     def get_stage(self):
         ip = self.stage_dropdown.currentText()
@@ -147,6 +153,9 @@ class CalibrationDialog(QDialog):
 
     def get_extent(self):
         return float(self.extent_edit.text())
+
+    def get_name(self):
+        return self.name_edit.text()
 
     def go(self):
         self.accept()
