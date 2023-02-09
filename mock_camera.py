@@ -151,10 +151,17 @@ class CameraTransform(coorx.CompositeTransform):
         pts2 = np.array([[0, 0, 0], [0, 0, -1], [1, 0, 0], [0, 1, 0]])
         self._view_mapping_err = self.view.set_mapping(pts1, pts2)
 
-        self.proj.set_perspective(fov, aspect_ratio, look_dist / 100, look_dist * 100)
 
+        near = look_dist / 100
+        far = look_dist * 100
+
+        # set perspective with aspect=1 so that distortion is performed on
+        # isotropic coordinates
+        self.proj.set_perspective(fov, 1.0, near, far)
+
+        # correct for aspect in the screen transform instead
         self.screen.set_mapping(
-            [[-1, -1, -1], [1, 1, 1]],
+            [[-1, -1 / aspect_ratio, -1], [1, 1 / aspect_ratio, 1]],
             [[0, screen_size[1], 0], [screen_size[0], 0, 1]]
         )
 
@@ -353,29 +360,29 @@ def find_checker_corners(img, board_shape, show=False):
     return objp, imgp
 
 
-def generate_calibration_data(view, size):
+def generate_calibration_data(view, n_images, cb_size):
     imgp = []
     objp = []
     cam = view.camera_params.copy()
-    for i in range(size*4):
+    for i in range(n_images*4):
         pitch = np.random.uniform(45, 89)
         yaw = np.random.uniform(0, 360)
         distance = np.random.uniform(5, 15)
         view.set_camera(pitch=pitch, yaw=yaw, dist=distance)
-        op,ip = find_checker_corners(view.get_array(), (4, 4))
+        op,ip = find_checker_corners(view.get_array(), cb_size)
         if op is None:
             continue
         objp.append(op)
         imgp.append(ip)
-        if len(imgp) >= size:
+        if len(imgp) >= n_images:
             break
         app.processEvents()
     view.set_camera(**cam)
     return objp, imgp
 
 
-def calibrate_camera(view, size=40):
-    objp, imgp = generate_calibration_data(view, size=size)
+def calibrate_camera(view, cb_size, n_images=40):
+    objp, imgp = generate_calibration_data(view, n_images=n_images, cb_size=cb_size)
     ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objp, imgp, (view.width(), view.height()), None, None)
     return ret, mtx, dist, rvecs, tvecs
 
@@ -405,10 +412,11 @@ if __name__ == '__main__':
     win.resize(*screen_size)
     win.show()
 
-    win.set_camera(distortion=(-0.03, 0, 0))
+    win.set_camera(distortion=(-0.05, 0, 0))
 
-    checkers = CheckerBoard(win, size=5, colors=[0.1, 0.9])
-    checkers.transform.set_params(offset=[-2.5, -2.5, -1])
+    cb_size = 8
+    checkers = CheckerBoard(win, size=cb_size, colors=[0.1, 0.9])
+    checkers.transform.set_params(offset=[-cb_size/2, -cb_size/2, 0])
     axis = Axis(win)
 
     # s = 0.1
@@ -422,13 +430,15 @@ if __name__ == '__main__':
     #     e.transform.rotate(15 * i, [0, 0, 1])
 
 
-    tr = coorx.AffineTransform(dims=(3, 3))
-    tr.translate([-2.5, -2.5, 0])
-    tr.scale(0.5)
-    tr.rotate(30, [1, 0, 0])
-    tr.rotate(45, [0, 0, 1]) 
+    # tr = coorx.AffineTransform(dims=(3, 3))
+    # tr.translate([-2.5, -2.5, 0])
+    # tr.scale(0.5)
+    # tr.rotate(30, [1, 0, 0])
+    # tr.rotate(45, [0, 0, 1]) 
 
-    def test():
-        ret, mtx, dist, rvecs, tvecs = calibrate_camera(win)
-        print(dist)
+    def test(n_images=10):
+        ret, mtx, dist, rvecs, tvecs = calibrate_camera(win, n_images=n_images, cb_size=(cb_size-1, cb_size-1))
+        # print(f"Distortion coefficients: {dist}")
+        # print(f"Intrinsic matrix: {mtx}")
         pg.image(undistort_image(win.get_array(), mtx, dist))
+        return mtx, dist
