@@ -105,23 +105,50 @@ def frustum(left, right, bottom, top, znear, zfar):
     return M
 
 
-class RadialDistortionTransform(coorx.BaseTransform):
-    def __init__(self, k=(0, 0, 0)):
-        super().__init__(dims=(3, 3))
-        self.k = k
+class LensDistortionTransform(coorx.BaseTransform):
+    """https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html
+    """
+    def __init__(self, coeff=(0, 0, 0, 0, 0)):
+        super().__init__(dims=(2, 2))
+        self.coeff = coeff
 
-    def set_k(self, k):
-        self.k = k
+    def set_coeff(self, coeff):
+        self.coeff = coeff
         self._update()
 
     def _map(self, arr):
+        k1, k2, p1, p2, k3 = self.coeff
+
+        # radial distortion
         r = np.linalg.norm(arr, axis=1)
-        dist = (1 + self.k[0] * r**2 + self.k[1] * r**4 + self.k[2] * r**6)
-        out = np.empty_like(arr)
-        # distort x,y
-        out[:, :2] = arr[:, :2] * dist[:, None]
-        # leave other axes unchanged
-        out[:, 2:] = arr[:, 2:]
+        dist = (1 + k1 * r**2 + k2 * r**4 + k3 * r**6)
+        out = arr * dist[:, None]
+
+        # tangential distortion
+        x = out[:, 0]
+        y = out[:, 1]
+        xy = x * y
+        r2 = r**2
+        out[:, 0] += 2 * p1 * xy + p2 * (r2 + 2 * x**2)
+        out[:, 1] += 2 * p2 * xy + p1 * (r2 + 2 * y**2)
+
+        return out
+
+
+class AxisSelectionEmbeddedTransform(coorx.BaseTransform):
+    def __init__(self, axes, transform, dims):
+        super().__init__(dims=dims)
+        self.axes = axes
+        self.subtr = transform
+
+    def _map(self, arr):
+        out = arr.copy()
+        out[:, self.axes] = self.subtr.map(arr[:, self.axes])
+        return out
+
+    def _imap(self, arr):
+        out = arr.copy()
+        out[:, axes] = self.subtr.imap(arr[:, axes])
         return out
 
 
@@ -129,11 +156,12 @@ class CameraTransform(coorx.CompositeTransform):
     def __init__(self):
         self.view = coorx.SRT3DTransform()
         self.proj = PerspectiveTransform()
-        self.dist = RadialDistortionTransform()
+        self.dist = LensDistortionTransform()
+        self.dist_embed = AxisSelectionEmbeddedTransform(axes=[0, 1], transform=self.dist, dims=(3, 3))
         self.screen = coorx.STTransform(dims=(3, 3))
-        super().__init__([self.view, self.proj, self.dist, self.screen])
+        super().__init__([self.view, self.proj, self.dist_embed, self.screen])
 
-    def set_camera(self, center, look, fov, screen_size, up=(0, 0, 1), distortion=(0, 0, 0)):
+    def set_camera(self, center, look, fov, screen_size, up=(0, 0, 1), distortion=(0, 0, 0, 0, 0)):
         center = np.asarray(center)
         look = np.asarray(look)
         up = np.asarray(up)
@@ -165,7 +193,7 @@ class CameraTransform(coorx.CompositeTransform):
             [[0, screen_size[1], 0], [screen_size[0], 0, 1]]
         )
 
-        self.dist.set_k(distortion)
+        self.dist.set_coeff(distortion)
 
 
 class GraphicsItem:
@@ -291,10 +319,10 @@ class GraphicsView3D(pg.GraphicsView):
     def __init__(self, **kwds):
         self.camera_tr = CameraTransform()
         self.press_event = None
-        self.camera_params = {'look': [0, 0, 0], 'pitch': 30, 'yaw': 0, 'dist': 10, 'fov': 45, 'distortion': (0, 0, 0)}
+        self.camera_params = {'look': [0, 0, 0], 'pitch': 30, 'yaw': 0, 'distance': 10, 'fov': 45, 'distortion': (0, 0, 0, 0, 0)}
         super().__init__(**kwds)
         self.setRenderHint(pg.QtGui.QPainter.Antialiasing)
-        self.set_camera(look=[0, 0, 0], pitch=30, yaw=0, dist=10, fov=45)
+        self.set_camera(look=[0, 0, 0], pitch=30, yaw=0, distance=10, fov=45)
 
     def set_camera(self, **kwds):
         for k,v in kwds.items():
@@ -306,12 +334,12 @@ class GraphicsView3D(pg.GraphicsView):
         p = self.camera_params
         look = np.asarray(p['look'])
         pitch = p['pitch'] * np.pi/180
-        hdist = p['dist'] * np.cos(pitch)
+        hdist = p['distance'] * np.cos(pitch)
         yaw = p['yaw'] * np.pi/180
         cam_pos = look + np.array([
             hdist * np.cos(yaw),
             hdist * np.sin(yaw),
-            p['dist'] * np.sin(pitch)
+            p['distance'] * np.sin(pitch)
         ])
         self.camera_tr.set_camera(center=cam_pos, look=look, fov=p['fov'], screen_size=[self.width(), self.height()], distortion=p['distortion'])
 
@@ -382,7 +410,7 @@ def generate_calibration_data(view, n_images, cb_size):
         pitch = np.random.uniform(45, 89)
         yaw = np.random.uniform(0, 360)
         distance = np.random.uniform(5, 15)
-        view.set_camera(pitch=pitch, yaw=yaw, dist=distance)
+        view.set_camera(pitch=pitch, yaw=yaw, distance=distance)
         op,ip = find_checker_corners(view.get_array(), cb_size)
         if op is None:
             continue
@@ -401,7 +429,7 @@ def calibrate_camera(view, cb_size, n_images=40):
     return ret, mtx, dist, rvecs, tvecs
 
 
-def undistort_image(img, mtx, dist):
+def undistort_image(img, mtx, dist, crop=False):
     h, w = img.shape[:2]
     new_camera_mtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
 
@@ -410,8 +438,9 @@ def undistort_image(img, mtx, dist):
     dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
 
     # crop the image
-    x, y, w, h = roi
-    dst = dst[y:y+h, x:x+w]
+    if crop:
+        x, y, w, h = roi
+        dst = dst[y:y+h, x:x+w]
     return dst
 
 
@@ -431,15 +460,20 @@ class StereoView(pg.QtWidgets.QWidget):
 
 
 if __name__ == '__main__':
-    # pg.dbg()
+    pg.dbg()
 
     app = pg.mkQApp()
     win = StereoView()
     win.resize(1600, 600)
     win.show()
 
-    win.set_camera(0, yaw=-5, distortion=(-0.05, 0, 0))
-    win.set_camera(1, yaw=5, distortion=(-0.05, 0, 0))
+    camera_params = dict(
+        pitch=30,
+        distance=15,
+        distortion=(-0.05, 0, 0, 0, 0),
+    )
+    win.set_camera(0, yaw=-5, **camera_params)
+    win.set_camera(1, yaw=5, **camera_params)
 
     cb_size = 8
     checkers = CheckerBoard(views=win.views, size=cb_size, colors=[0.1, 0.9])
@@ -469,3 +503,29 @@ if __name__ == '__main__':
         # print(f"Intrinsic matrix: {mtx}")
         pg.image(undistort_image(win.get_array(), mtx, dist))
         return mtx, dist
+
+
+    def test2():
+        """Can we invert opencv's undistortion?
+        """
+        ret, mtx, dist, rvecs, tvecs = calibrate_camera(win.views[0], n_images=10, cb_size=(cb_size-1, cb_size-1))
+        print(mtx)
+        print(dist)
+        img = win.views[0].get_array()
+        uimg = undistort_image(img, mtx, dist)
+        v1 = pg.image(img)
+        v2 = pg.image(uimg)
+        tr = coorx.AffineTransform(matrix=mtx[:2, :2], offset=mtx[:2, 2])
+        ltr = LensDistortionTransform(dist[0])
+        ttr = coorx.CompositeTransform([tr.inverse, ltr, tr])
+
+        objp, imgp = find_checker_corners(uimg, board_shape=(cb_size-1, cb_size-1))
+        undistorted_pts = imgp[:, 0, :]
+
+        distorted_pts = ttr.map(undistorted_pts)
+
+        s1 = pg.ScatterPlotItem(x=undistorted_pts[:,1], y=undistorted_pts[:,0])
+        v2.view.addItem(s1)
+
+        s2 = pg.ScatterPlotItem(x=distorted_pts[:,1], y=distorted_pts[:,0])
+        v1.view.addItem(s2)
