@@ -1,13 +1,17 @@
-import logging, time, datetime, threading
-logger = logging.getLogger(__name__)
+import time
+import datetime
+import threading
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 try:
     import PySpin
 except ImportError:
     PySpin = None
     logger.warn("Could not import PySpin; using mocked cameras.")
-    
 
 
 def list_cameras():
@@ -151,7 +155,6 @@ class PySpinCamera:
     def capture_loop(self):
         while self.running:
             self.capture()
-            
 
 
 class MockCamera:
