@@ -169,13 +169,10 @@ class CameraTransform(coorx.CompositeTransform):
 
 
 class GraphicsItem:
-    def __init__(self, view):
-        self.view = view
-        self.full_transform = coorx.CompositeTransform([])
-        self.transform = coorx.SRT3DTransform()
+    def __init__(self, views):
+        self._transform = coorx.SRT3DTransform()
         self.items = []
-        self.scene = view.scene()
-        self.full_transform.add_change_callback(self.transform_changed)
+        self.views = [GraphicsItemView(self, view) for view in views]
 
     @property
     def transform(self):
@@ -184,11 +181,36 @@ class GraphicsItem:
     @transform.setter
     def transform(self, tr):
         self._transform = tr
-        self.full_transform.transforms = [tr, self.view.camera_tr]
+        for view in self.views:
+            view.update_transform()
+
+    def add_items(self, items):
+        self.items.extend(items)
+        self.render()
+
+    def render(self):
+        for view in self.views:
+            view.render()
+
+
+class GraphicsItemView:
+    def __init__(self, item, view):
+        self.item = item
+        self.view = view
+        self.full_transform = coorx.CompositeTransform([])
+        self.update_transform()
+        self.scene = view.scene()
+        self.full_transform.add_change_callback(self.transform_changed)
+
+    def update_transform(self):
+        self.full_transform.transforms = [self.item.transform, self.view.camera_tr]
+
+    def transform_changed(self, event):
+        self.render()
 
     def render(self):
         self.clear_graphics_items()
-        for item in self.items:
+        for item in self.item.items:
             pts = None
             if 'points' in item:
                 pts = self.full_transform.map(item['points'])
@@ -197,46 +219,38 @@ class GraphicsItem:
 
             if item['type'] == 'poly':
                 polygon = pg.QtGui.QPolygonF([pg.QtCore.QPointF(*pt) for pt in pts_xy])
-                polygon_item = pg.QtWidgets.QGraphicsPolygonItem(polygon)
-                item['graphicsItem'] = polygon_item
+                gfx_item = pg.QtWidgets.QGraphicsPolygonItem(polygon)
             elif item['type'] == 'line':
-                line_item = pg.QtWidgets.QGraphicsLineItem(*pts_xy.flatten())
-                item['graphicsItem'] = line_item
+                gfx_item = pg.QtWidgets.QGraphicsLineItem(*pts_xy.flatten())
             elif item['type'] == 'plot':
-                line_item = pg.PlotCurveItem(x=pts_xy[:,0], y=pts_xy[:,1])
-                item['graphicsItem'] = line_item
+                gfx_item = pg.PlotCurveItem(x=pts_xy[:,0], y=pts_xy[:,1])
             else:
                 raise TypeError(item['type'])
 
             if 'pen' in item:
                 pen = pg.mkPen(item['pen'])
-                item['graphicsItem'].setPen(pen)
+                gfx_item.setPen(pen)
 
             if 'brush' in item:
                 brush = pg.mkBrush(item['brush'])
-                item['graphicsItem'].setBrush(brush)
+                gfx_item.setBrush(brush)
 
-            item['graphicsItem'].setZValue(-pts_z.mean())
-
-            self.scene.addItem(item['graphicsItem'])
+            gfx_item.setZValue(-pts_z.mean())
+            item.setdefault('graphicsItems', {})
+            item['graphicsItems'][self] = gfx_item
+            self.scene.addItem(gfx_item)
 
     def clear_graphics_items(self):
-        for item in self.items:
-            gfxitem = item.pop('graphicsItem', None)
+        for item in self.item.items:
+            gfxitems = item.get('graphicsItems', {})
+            gfxitem = gfxitems.pop(self, None)
             if gfxitem is not None:
                 self.scene.removeItem(gfxitem)
 
-    def add_items(self, items):
-        self.items.extend(items)
-        self.render()
-
-    def transform_changed(self, event):
-        self.render()
-
 
 class CheckerBoard(GraphicsItem):
-    def __init__(self, view, size, colors):
-        super().__init__(view)
+    def __init__(self, views, size, colors):
+        super().__init__(views)
 
         for i in range(size):
             for j in range(size):
@@ -250,8 +264,8 @@ class CheckerBoard(GraphicsItem):
 
 
 class Axis(GraphicsItem):
-    def __init__(self, view):
-        super().__init__(view)
+    def __init__(self, views):
+        super().__init__(views)
 
         self.items = [
             {'type': 'line', 'points': [[0, 0, 0], [1, 0, 0]], 'pen': 'r'},
@@ -262,8 +276,8 @@ class Axis(GraphicsItem):
 
 
 class Electrode(GraphicsItem):
-    def __init__(self, view):    
-        super().__init__(view)
+    def __init__(self, views):    
+        super().__init__(views)
 
         self.items = [
             {'type': 'poly', 'pen': None, 'brush': 0.2, 'points': [
@@ -401,23 +415,36 @@ def undistort_image(img, mtx, dist):
     return dst
 
 
+class StereoView(pg.QtWidgets.QWidget):
+    def __init__(self, parent=None, background=(128, 128, 128)):
+        pg.QtWidgets.QWidget.__init__(self, parent)
+        self.layout = pg.QtWidgets.QHBoxLayout()
+        self.setLayout(self.layout)
+        self.views = [GraphicsView3D(parent=self), GraphicsView3D(parent=self)]
+        for v in self.views:
+            self.layout.addWidget(v)
+            v.setBackground(pg.mkColor(background))
+
+    def set_camera(self, cam, **kwds):
+        self.views[cam].set_camera(**kwds)
+
+
+
 if __name__ == '__main__':
     # pg.dbg()
 
-    screen_size = (800, 600)
-
     app = pg.mkQApp()
-    win = GraphicsView3D()
-    win.setBackground(pg.mkColor(128, 128, 128))
-    win.resize(*screen_size)
+    win = StereoView()
+    win.resize(1600, 600)
     win.show()
 
-    win.set_camera(distortion=(-0.05, 0, 0))
+    win.set_camera(0, yaw=-5, distortion=(-0.05, 0, 0))
+    win.set_camera(1, yaw=5, distortion=(-0.05, 0, 0))
 
     cb_size = 8
-    checkers = CheckerBoard(win, size=cb_size, colors=[0.1, 0.9])
+    checkers = CheckerBoard(views=win.views, size=cb_size, colors=[0.1, 0.9])
     checkers.transform.set_params(offset=[-cb_size/2, -cb_size/2, 0])
-    axis = Axis(win)
+    axis = Axis(views=win.views)
 
     # s = 0.1
     # electrodes = []
