@@ -133,7 +133,7 @@ class MainWidget(QWidget):
 
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh)
-        self.refresh_timer.start(250)
+        self.refresh_timer.start(125)
 
         # connections
         self.msg_log = MessageLog()
