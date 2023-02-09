@@ -85,10 +85,11 @@ class PySpinCamera:
         node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
         node_exptime.SetValue(125000)   # 8 fps
 
+        self.last_image = None
+
         # begin acquisition
         self.begin_acquisition()
 
-        self.last_image = None
 
     def name(self):
         sn = self.camera.DeviceSerialNumber()
@@ -117,14 +118,13 @@ class PySpinCamera:
         while image.IsIncomplete():
             time.sleep(0.001)
 
-        self.last_image = image
-
-        last_image = self.last_image
-        if last_image:
+        if self.last_image is not None:
             try:
-                last_image.Release()
+                self.last_image.Release()
             except PySpin.SpinnakerException:
-                print("Spinnaker Exception: Could't release last image")
+                print("Spinnaker Exception: Couldn't release last image")
+
+        self.last_image = image
 
     def get_last_capture_time(self):
         ts = self.last_capture_time
