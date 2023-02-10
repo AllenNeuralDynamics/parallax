@@ -115,8 +115,8 @@ class ControlPanel(QFrame):
         self.zero_button.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
 
     def handle_stage_selection(self, index):
-        stage_name = self.dropdown.currentText()
-        self.set_stage(self.model.stages[stage_name])
+        stage = self.dropdown.current_stage()
+        self.set_stage(stage)
         self.update_coordinates()
 
     def set_stage(self, stage):

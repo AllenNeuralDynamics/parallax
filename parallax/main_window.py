@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         self.console = None
 
         self.refresh_cameras()
-        self.model.scan_for_usb_stages()
+        self.model.scan_for_stages()
         self.refresh_focus_controllers()
 
     def launch_stage_manager(self):

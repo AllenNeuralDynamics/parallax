@@ -4,10 +4,8 @@ import numpy as np
 import serial.tools.list_ports
 from mis_focus_controller import FocusController
 
-from newscale.interfaces import NewScaleSerial
-
 from .camera import list_cameras, close_cameras
-from .stage import Stage
+from .stage import list_stages, close_stages
 
 
 class Model(QObject):
@@ -18,8 +16,7 @@ class Model(QObject):
 
         self.cameras = []
         self.focos = []
-        self.stages = {}
-        self.cal_stage = None
+        self.stages = []
 
         self.calibration = None
         self.calibrations = {}
@@ -58,12 +55,8 @@ class Model(QObject):
     def scan_for_cameras(self):
         self.cameras = list_cameras()
 
-    def scan_for_usb_stages(self):
-        instances = NewScaleSerial.get_instances()
-        self.init_stages()
-        for instance in instances:
-            stage = Stage(serial=instance)
-            self.add_stage(stage)
+    def scan_for_stages(self):
+        self.stages = list_stages()
 
     def scan_for_focus_controllers(self):
         self.focos = []
@@ -80,10 +73,7 @@ class Model(QObject):
 
     def clean(self):
         close_cameras()
-        self.clean_stages()
-
-    def clean_stages(self):
-        pass
+        close_stages()
 
     def halt_all_stages(self):
         for stage in self.stages.values():

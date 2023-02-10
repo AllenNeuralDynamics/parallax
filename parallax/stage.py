@@ -1,21 +1,40 @@
+import time, queue, threading
+import numpy as np
 from newscale.multistage import USBXYZStage, PoEXYZStage
-from newscale.interfaces import USBInterface
+from newscale.interfaces import USBInterface, NewScaleSerial
 
 
 def list_stages():
     stages = []
-    # todo
+    stages.extend(NewScaleStage.scan_for_stages())
+    if len(stages) == 0:
+        stages.extend([MockStage(), MockStage()])
     return stages
 
+
+def close_stages():
+    NewScaleStage.close_stages()
+    MockStage.close_stages()
 
 
 class NewScaleStage:
 
-    stages = None
+    stages = {}
 
     @classmethod
     def scan_for_stages(cls):
-        # todo
+        instances = NewScaleSerial.get_instances()
+        stages = []
+        for serial in instances:
+            if serial not in cls.stages:
+                cls.stages[serial] = NewScaleStage(serial=serial)
+            stages.append(cls.stages[serial])
+        return stages
+
+    @classmethod
+    def close_stages(cls):
+        for stage in cls.stages.values():
+            stage.close()
 
     def __init__(self, ip=None, serial=None):
         super().__init__()
@@ -29,6 +48,9 @@ class NewScaleStage:
             self.device = USBXYZStage(usb_interface=USBInterface(serial))
 
         self.initialize()
+
+    def close(self):
+        pass
 
     def calibrate_frequency(self):
         self.device.calibrate_all()
@@ -98,3 +120,90 @@ class NewScaleStage:
 
     def halt(self):
         pass
+
+
+class MockStage:
+
+    n_mock_stages = 0
+
+    def __init__(self):
+        self.speed = 1000  # um/s
+        self.accel = 5000  # um/s^2
+        self.pos = np.array([0, 0, 0])
+        self.name = f"mock_stage_{MockStage.n_mock_stages}"
+        MockStage.n_mock_stages += 1
+
+        self.move_queue = queue.Queue()
+        self.move_thread = threading.Thread(target=self.thread_loop, daemon=True)
+        self.move_thread.start()
+
+    def get_origin(self):
+        return [0, 0, 0]
+
+    @classmethod
+    def close_stages(self):
+        pass
+
+    def get_name(self):
+        return self.name
+
+    def get_speed(self):
+        return self.speed
+
+    def set_speed(self, speed):
+        self.speed = speed
+
+    def get_accel(self):
+        return self.accel
+
+    def get_position(self):
+        return self.pos.copy()
+
+    def move_to_target_3d(self, x, y, z):
+        move_cmd = {'pos': np.array([x, y, z]), 'speed': self.speed, 'accel': self.accel, 'finished': False, 'interrupted': False}
+        self.move_queue.put(move_cmd)
+
+    def move_distance_1d(self, axis, distance):
+        ax_ind = 'xyz'.index(axis)
+        pos = self.get_position()
+        pos[ax_ind] += distance
+        return self.move_to_target_3d(*pos)
+
+    def thread_loop(self):
+        current_move = None
+        while True:
+            try:
+                next_move = self.move_queue.get(block=False)                
+            except queue.Empty:
+                next_move = None
+    
+            if next_move is not None:
+                if current_move is not None:
+                    current_move['interrupted'] = True
+                    current_move['finished'] = True
+                current_move = next_move
+                last_update = time.perf_counter()
+
+            if current_move is not None:
+                now = time.perf_counter()
+                dt = now = last_update
+                last_update = now
+
+                pos = self.get_position()
+                target = current_move['pos']
+                dx = target - pos
+                dist_to_go = np.linalg.norm(dx)
+                max_dist_per_step = current_move['speed'] * dt
+                if dist_to_go > max_dist_per_step:
+                    # take a step
+                    direction = dx / dist_to_go
+                    dist_this_step = min(dist_to_go, max_dist_per_step)
+                    step = direction * dist_this_step
+                    self.pos = pos + step
+                else:
+                    self.pos = target.copy()
+                    current_move['interrupted'] = False
+                    current_move['finished'] = True
+                    current_move = None
+
+            time.sleep(10e-3)
