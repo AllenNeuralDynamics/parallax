@@ -19,8 +19,11 @@ def list_cameras():
     cameras = []
     if PySpin is not None:
         cameras.extend(PySpinCamera.list_cameras())
-    while len(cameras) < 2:
-        cameras.append(MockCamera())
+    else:
+        cameras.extend([
+            MockCamera(camera_params={'pitch': 60, 'yaw': 0}),
+            MockCamera(camera_params={'pitch': 60, 'yaw': 30}),
+        ])
     return cameras
 
 
@@ -160,21 +163,23 @@ class PySpinCamera:
 class MockCamera:
     n_cameras = 0
 
-    def __init__(self):
-        self._name = f"MockCamera{MockCamera.n_cameras}"
+    def __init__(self, camera_params):
+        self._name = f"mock_camera_{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
-        self.noise = np.random.randint(0, 10, size=(5, 3000, 4000, 3), dtype='ubyte')
+        self.sensor_size = (4000, 3000)
+        self.noise = np.random.randint(0, 15, size=(5, self.sensor_size[1], self.sensor_size[0], 3), dtype='ubyte')
         self._next_frame = 0
 
         self.camera_params = dict(
             pitch=30,
-            distance=15,
+            yaw=0,
+            fov=5,
+            distance=200e3,
             distortion=(-0.1, 0, 0, 0, 0),
         )
-
-
+        self.camera_params.update(camera_params)
         self.sim = MockSim.instance()
-        self.sim.add_camera(self, size=(4000, 3000))
+        self.sim.add_camera(self)
 
     def name(self):
         return self._name

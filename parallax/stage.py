@@ -1,14 +1,25 @@
 import time, queue, threading
 import numpy as np
+import coorx
 from newscale.multistage import USBXYZStage, PoEXYZStage
 from newscale.interfaces import USBInterface, NewScaleSerial
+from .mock_sim import MockSim
 
 
 def list_stages():
     stages = []
     stages.extend(NewScaleStage.scan_for_stages())
     if len(stages) == 0:
-        stages.extend([MockStage(), MockStage()])
+        tr1 = coorx.AffineTransform(dims=(3, 3))
+        tr1.rotate(130, (1, 0, 0))
+        tr1.rotate(30, (0, 0, 1))
+        tr2 = tr1.copy()
+        tr2.rotate(60, (0, 0, 1))
+
+        stages.extend([
+            MockStage(transform=tr1), 
+            MockStage(transform=tr2),
+        ])
     return stages
 
 
@@ -126,16 +137,22 @@ class MockStage:
 
     n_mock_stages = 0
 
-    def __init__(self):
+    def __init__(self, transform):
+        self.transform = transform
         self.speed = 1000  # um/s
         self.accel = 5000  # um/s^2
         self.pos = np.array([0, 0, 0])
         self.name = f"mock_stage_{MockStage.n_mock_stages}"
         MockStage.n_mock_stages += 1
 
+        self.move_callbacks = []
+
         self.move_queue = queue.Queue()
         self.move_thread = threading.Thread(target=self.thread_loop, daemon=True)
         self.move_thread.start()
+
+        self.sim = MockSim.instance()
+        self.sim.add_stage(self)
 
     def get_origin(self):
         return [0, 0, 0]
@@ -205,5 +222,23 @@ class MockStage:
                     current_move['interrupted'] = False
                     current_move['finished'] = True
                     current_move = None
+                
+                for cb in self.move_callbacks[:]:
+                    cb(self)
 
             time.sleep(10e-3)
+
+    def add_move_callback(self, cb):
+        self.move_callbacks.append(cb)
+
+    def orientation(self):
+        p1 = self.transform.map([0, 0, 0])
+        p2 = self.transform.map([0, 0, 1])
+        axis = p1 - p2
+        r = np.linalg.norm(axis[:2])
+        phi = np.arctan2(r, axis[2]) * 180 / np.pi
+        theta = np.arctan2(axis[1], axis[0]) * 180 / np.pi
+        return theta, phi
+
+    def get_tip_position(self):
+        return self.transform.map(self.get_position())

@@ -166,10 +166,11 @@ class Axis(GraphicsItem):
 class Electrode(GraphicsItem):
     def __init__(self, views):    
         super().__init__(views)
-
+        w = 70
+        l = 10e3
         self.items = [
             {'type': 'poly', 'pen': None, 'brush': 0.2, 'points': [
-                [0, 0, 0], [1, 0, 1], [1, 0, 100], [-1, 0, 100], [-1, 0, 1], [0, 0, 0]
+                [0, 0, 0], [w, 0, w], [w, 0, l], [-w, 0, l], [-w, 0, l], [0, 0, 0]
             ]},
         ]
         self.render()
@@ -281,9 +282,11 @@ def undistort_image(img, mtx, dist, optimize=False, crop=False):
     return dst
 
 
-class MockSim:
+class MockSim(pg.QtCore.QObject):
 
     _instance = None
+
+    stage_moved = pg.QtCore.Signal(object)
 
     @classmethod
     def instance(cls):
@@ -292,19 +295,24 @@ class MockSim:
         return cls._instance
 
     def __init__(self):
+        pg.QtCore.QObject.__init__(self)
         self.cameras = {}
-        self.stages = []
+        self.stages = {}
 
         cb_size = 8
-        checkers = CheckerBoard(views=[], size=cb_size, colors=[0.1, 0.9])
-        checkers.transform.set_params(offset=[-cb_size/2, -cb_size/2, 0])
+        checkers = CheckerBoard(views=[], size=cb_size, colors=[0.3, 0.7])
+        s = 1e3
+        checkers.transform.set_params(offset=[-s*cb_size/2, -s*cb_size/2, 0], scale=[s, s, s])
         axis = Axis(views=[])
+        axis.transform.set_params(scale=[s, s, s])
         self.items = [checkers, axis]
+        self.stage_moved.connect(self.update_stage)
     
-    def add_camera(self, cam, size):
-        view = GraphicsView3D()
-        view.resize(*size)
+    def add_camera(self, cam):
+        view = GraphicsView3D(background=(128, 128, 128))
+        view.resize(*cam.sensor_size)
         view.set_camera(**cam.camera_params)
+        view.scene().changed.connect(self.clear_frames)
         self.cameras[cam] = {'view': view, 'frame': None}
 
         for item in self.items:
@@ -321,7 +329,25 @@ class MockSim:
         return self.cameras[cam]['frame']
 
     def add_stage(self, stage):
-        self.stages.append(stage)
+        views = [c['view'] for c in self.cameras.values()]
+        item = Electrode(views=views)
+
+        tr = coorx.AffineTransform(dims=(3, 3))
+        theta, phi = stage.orientation()
+        # s = 1e3
+        # tr.scale([s, s, s])
+        tr.rotate(phi, [1, 0, 0])
+        tr.rotate(theta, [0, 0, 1])
+        item.transform = tr
+
+        self.stages[stage] = {'item': item}
+        stage.add_move_callback(self._stage_moved_cb)
     
+    def _stage_moved_cb(self, stage):
+        # callback is invoked in thread; send to gui thread by signal
+        self.stage_moved.emit(stage)
 
-
+    def update_stage(self, stage):    
+        pos = stage.get_tip_position()
+        item = self.stages[stage]['item']
+        item.transform.offset = pos
