@@ -3,6 +3,7 @@ import datetime
 import threading
 import numpy as np
 import logging
+from .mock_sim import MockSim
 
 logger = logging.getLogger(__name__)
 
@@ -162,8 +163,18 @@ class MockCamera:
     def __init__(self):
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
-        self.data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype='ubyte')
+        self.noise = np.random.randint(0, 10, size=(5, 3000, 4000, 3), dtype='ubyte')
         self._next_frame = 0
+
+        self.camera_params = dict(
+            pitch=30,
+            distance=15,
+            distortion=(-0.1, 0, 0, 0, 0),
+        )
+
+
+        self.sim = MockSim.instance()
+        self.sim.add_camera(self, size=(4000, 3000))
 
     def name(self):
         return self._name
@@ -172,6 +183,8 @@ class MockCamera:
         """
         Return last image as numpy array with shape (height, width, 3) for RGB or (height, width) for mono. 
         """
-        frame = self.data[self._next_frame]
-        self._next_frame = (self._next_frame + 1) % self.data.shape[0]
-        return frame
+        noise = self.noise[self._next_frame]
+        self._next_frame = (self._next_frame + 1) % self.noise.shape[0]
+
+        image = self.sim.get_camera_frame(self) + noise
+        return image

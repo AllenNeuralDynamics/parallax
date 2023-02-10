@@ -54,7 +54,13 @@ class GraphicsItem:
     def __init__(self, views):
         self._transform = coorx.SRT3DTransform()
         self.items = []
-        self.views = [GraphicsItemView(self, view) for view in views]
+        self.item_views = []
+        for view in views:
+            self.add_view(view)
+
+    def add_view(self, view):
+        self.item_views.append(GraphicsItemView(self, view))
+        self.render()
 
     @property
     def transform(self):
@@ -63,7 +69,7 @@ class GraphicsItem:
     @transform.setter
     def transform(self, tr):
         self._transform = tr
-        for view in self.views:
+        for view in self.item_views:
             view.update_transform()
 
     def add_items(self, items):
@@ -71,7 +77,7 @@ class GraphicsItem:
         self.render()
 
     def render(self):
-        for view in self.views:
+        for view in self.item_views:
             view.render()
 
 
@@ -224,7 +230,8 @@ class GraphicsView3D(pg.GraphicsView):
         self.update_camera()
 
     def get_array(self):
-        return pg.imageToArray(pg.QtGui.QImage(self.grab()), copy=True)
+        arr = pg.imageToArray(pg.QtGui.QImage(self.grab()), copy=True, transpose=False)[..., :3]
+        return arr
 
 
 def generate_calibration_data(view, n_images, cb_size):
@@ -272,3 +279,49 @@ def undistort_image(img, mtx, dist, optimize=False, crop=False):
         x, y, w, h = roi
         dst = dst[y:y+h, x:x+w]
     return dst
+
+
+class MockSim:
+
+    _instance = None
+
+    @classmethod
+    def instance(cls):
+        if cls._instance is None:
+            cls._instance = MockSim()
+        return cls._instance
+
+    def __init__(self):
+        self.cameras = {}
+        self.stages = []
+
+        cb_size = 8
+        checkers = CheckerBoard(views=[], size=cb_size, colors=[0.1, 0.9])
+        checkers.transform.set_params(offset=[-cb_size/2, -cb_size/2, 0])
+        axis = Axis(views=[])
+        self.items = [checkers, axis]
+    
+    def add_camera(self, cam, size):
+        view = GraphicsView3D()
+        view.resize(*size)
+        view.set_camera(**cam.camera_params)
+        self.cameras[cam] = {'view': view, 'frame': None}
+
+        for item in self.items:
+            item.add_view(view)
+
+    def clear_frames(self):
+        for v in self.cameras.values():
+            v['frame'] = None
+
+    def get_camera_frame(self, cam):
+        if self.cameras[cam]['frame'] is None:
+            view = self.cameras[cam]['view']
+            self.cameras[cam]['frame'] = view.get_array()
+        return self.cameras[cam]['frame']
+
+    def add_stage(self, stage):
+        self.stages.append(stage)
+    
+
+

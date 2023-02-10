@@ -19,7 +19,7 @@ class StereoView(pg.QtWidgets.QWidget):
 
 
 if __name__ == '__main__':
-    pg.dbg()
+    # pg.dbg()
 
     app = pg.mkQApp()
     win = StereoView()
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         ret, mtx, dist, rvecs, tvecs = calibrate_camera(win, n_images=n_images, cb_size=(cb_size-1, cb_size-1))
         # print(f"Distortion coefficients: {dist}")
         # print(f"Intrinsic matrix: {mtx}")
-        pg.image(undistort_image(win.get_array(), mtx, dist))
+        pg.image(undistort_image(win.get_array().transpose(1, 0, 2), mtx, dist))
         return mtx, dist
 
 
@@ -74,8 +74,8 @@ if __name__ == '__main__':
         print(dist)
         img = win.views[0].get_array()
         uimg = undistort_image(img, mtx, dist)
-        v1 = pg.image(img)
-        v2 = pg.image(uimg)
+        v1 = pg.image(img.transpose(1, 0, 2))
+        v2 = pg.image(uimg.transpose(1, 0, 2))
         tr = coorx.AffineTransform(matrix=mtx[:2, :2], offset=mtx[:2, 2])
         ltr = coorx.nonlinear.LensDistortionTransform(dist[0])
         ttr = coorx.CompositeTransform([tr.inverse, ltr, tr])
@@ -85,8 +85,8 @@ if __name__ == '__main__':
 
         distorted_pts = ttr.map(undistorted_pts)
 
-        s1 = pg.ScatterPlotItem(x=undistorted_pts[:,1], y=undistorted_pts[:,0], brush='r', pen=None)
+        s1 = pg.ScatterPlotItem(x=undistorted_pts[:,0], y=undistorted_pts[:,1], brush='r', pen=None)
         v2.view.addItem(s1)
 
-        s2 = pg.ScatterPlotItem(x=distorted_pts[:,1], y=distorted_pts[:,0], brush='r', pen=None)
+        s2 = pg.ScatterPlotItem(x=distorted_pts[:,0], y=distorted_pts[:,1], brush='r', pen=None)
         v1.view.addItem(s2)
