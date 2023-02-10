@@ -354,7 +354,7 @@ class GraphicsView3D(pg.GraphicsView):
         dif = ev.pos() - self.last_mouse_pos        
         self.last_mouse_pos = ev.pos()
 
-        self.camera_params['pitch'] += dif.y()
+        self.camera_params['pitch'] = np.clip(self.camera_params['pitch'] + dif.y(), -90, 90)
         self.camera_params['yaw'] -= dif.x()
         self.update_camera()
 
@@ -362,7 +362,7 @@ class GraphicsView3D(pg.GraphicsView):
         self.press_event = None
 
     def wheelEvent(self, event):
-        self.camera_params['dist'] *= 1.01**event.angleDelta().y()
+        self.camera_params['distance'] *= 1.01**event.angleDelta().y()
         self.update_camera()
 
     def resizeEvent(self, ev):
@@ -470,7 +470,7 @@ if __name__ == '__main__':
     camera_params = dict(
         pitch=30,
         distance=15,
-        distortion=(-0.05, 0, 0, 0, 0),
+        distortion=(0, 0, 0, 0, 0),
     )
     win.set_camera(0, yaw=-5, **camera_params)
     win.set_camera(1, yaw=5, **camera_params)
@@ -480,15 +480,21 @@ if __name__ == '__main__':
     checkers.transform.set_params(offset=[-cb_size/2, -cb_size/2, 0])
     axis = Axis(views=win.views)
 
-    # s = 0.1
-    # electrodes = []
-    # for i in range(4):
-    #     e = Electrode(win)
-    #     electrodes.append(e)
-    #     e.transform.scale([s, s, s])
-    #     e.transform.translate([0, 0, 5])
-    #     e.transform.rotate(45, [1, 0, 0])
-    #     e.transform.rotate(15 * i, [0, 0, 1])
+    s = 0.1
+    electrodes = []
+    for i in range(4):
+        e = Electrode(win.views)
+        electrodes.append(e)
+        # e.transform.set_scale([s, s, s])
+        # e.transform.set_offset([-5, 0, 5])
+        # e.transform.rotate(45, [1, 0, 0])
+        # e.transform.rotate(15 * i, [0, 0, 1])
+
+        e.transform = coorx.AffineTransform(dims=(3, 3))
+        e.transform.scale([s, s, s])
+        e.transform.rotate(60, [1, 0, 0])
+        e.transform.translate([0, 1, 1])
+        e.transform.rotate(15*i, [0, 0, 1])
 
 
     # tr = coorx.AffineTransform(dims=(3, 3))
