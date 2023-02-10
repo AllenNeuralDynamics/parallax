@@ -110,13 +110,7 @@ class StageManager(QWidget):
         self.scan_for_stages(self.subnet_widget.get_subnet())
 
     def scan_usb(self):
-        device_names = [cp.device for cp in list_comports()]
-        for device_name in device_names:
-            try:
-                stage = Stage(serial=device_name)
-                self.model.add_stage(stage)
-            except (SerialException, ValueError):
-                continue
+        self.model.scan_for_usb_stages()
         self.update_list()
 
     def update_list(self):

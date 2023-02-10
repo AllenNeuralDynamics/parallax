@@ -1,9 +1,54 @@
 import functools
 import cv2
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QSlider
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
 import pyqtgraph as pg
+
+
+class ScreenWidgetControl(QWidget):
+
+    selected = pyqtSignal(int, int)
+    cleared = pyqtSignal()
+
+    def __init__(self, filename=None, model=None, parent=None):
+        QWidget.__init__(self)
+        self.screen_widget = ScreenWidget(filename, model, parent)
+
+        self.contrast_slider = QSlider(Qt.Horizontal)
+        self.contrast_slider.setValue(50)
+        self.contrast_slider.setToolTip('Contrast')
+
+        self.brightness_slider = QSlider(Qt.Horizontal)
+        self.brightness_slider.setValue(0)
+        self.brightness_slider.setToolTip('Brightness')
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.screen_widget)
+        self.layout.addWidget(self.contrast_slider)
+        self.layout.addWidget(self.brightness_slider)
+        self.setLayout(self.layout)
+
+        # connections
+        self.screen_widget.selected.connect(self.selected)
+        self.screen_widget.cleared.connect(self.cleared)
+        self.contrast_slider.sliderMoved.connect(self.screen_widget.set_alpha)
+        self.brightness_slider.sliderMoved.connect(self.screen_widget.set_beta)
+
+    def update_camera_menu(self):
+        self.screen_widget.update_camera_menu()
+
+    def update_focus_control_menu(self):
+        self.screen_widget.update_focus_control_menu()
+
+    def refresh(self):
+        self.screen_widget.refresh()
+
+    def zoom_out(self):
+        self.screen_widget.zoom_out()
+
+    def clear_selected(self):
+        self.screen_widget.clear_selected()
 
 
 class ScreenWidget(pg.GraphicsView):
@@ -33,25 +78,38 @@ class ScreenWidget(pg.GraphicsView):
         self.camera_actions = []
         self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
 
+        self.focochan_actions = []
+
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
         self.clear_selected()
 
         self.camera = None
+        self.focochan = None
+
+        # gain and contrast
+        self.alpha = 1.0
+        self.beta = 0.0
+
+    def set_alpha(self, value):
+        self.alpha = value / 50
+
+    def set_beta(self, value):
+        self.beta = value
 
     def refresh(self):
         if self.camera:
-            # takes a 3000,4000 grayscale image straight from the camera
-            self.camera.capture()
-            self.set_data(self.camera.get_last_image_data())
+            data = self.camera.get_last_image_data()
+            self.set_data(data)
 
     def clear_selected(self):
         self.click_target.setVisible(False)
         self.cleared.emit()
 
     def set_data(self, data):
-        self.image_item.setImage(data)
+        data = cv2.convertScaleAbs(data, alpha=self.alpha, beta=self.beta)
+        self.image_item.setImage(data, autoLevels=False)
 
     def update_camera_menu(self):
         for act in self.camera_actions:
@@ -64,11 +122,24 @@ class ScreenWidget(pg.GraphicsView):
             self.camera_actions.append(act)
             self.view_box.menu.insertAction(self.camera_action_separator, act)
 
+    def update_focus_control_menu(self):
+        for act in self.focochan_actions:
+            self.view_box.menu.removeAction(act)
+        for foco in self.model.focos:
+            for chan in range(3):
+                act = QAction(foco.ser.port + ', channel %d' % chan)
+                act.callback = functools.partial(self.set_focochan, foco, chan)
+                act.triggered.connect(act.callback)
+                self.focochan_actions.append(act)
+                self.view_box.menu.insertAction(self.camera_action_separator, act)
+
     def image_clicked(self, event):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:            
             self.click_target.setPos(event.pos())
             self.click_target.setVisible(True)
             self.selected.emit(*self.get_selected())
+        elif event.button() == QtCore.Qt.MouseButton.MiddleButton:            
+            self.zoom_out()
 
     def zoom_out(self):
         self.view_box.autoRange()
@@ -77,12 +148,25 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = camera
         self.refresh()
 
+    def set_focochan(self, foco, chan):
+        self.focochan = (foco, chan)
+
     def get_selected(self):
         if self.click_target.isVisible():
             pos = self.click_target.pos()
             return pos.x(), pos.y()
         else:
             return None
+
+    def wheelEvent(self, e):
+        forward = bool(e.angleDelta().y() > 0)
+        control = bool(e.modifiers() & Qt.ControlModifier)
+        if control:
+            if self.focochan:
+                foco, chan = self.focochan
+                foco.time_move(chan, forward, 100, wait=True)
+        else:
+            super().wheelEvent(e)
 
 
 class ClickableImage(pg.ImageItem):
