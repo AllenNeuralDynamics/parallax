@@ -6,3 +6,8 @@ parallax/*.log
 *.npy
 *.pkl
 *.csv
+*.json
+.idea
+*.egg-info
+*-workspace
+*.log
