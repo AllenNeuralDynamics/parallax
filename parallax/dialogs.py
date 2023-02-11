@@ -144,9 +144,7 @@ class CalibrationDialog(QDialog):
         self.setMinimumWidth(300)
 
     def get_stage(self):
-        ip = self.stage_dropdown.currentText()
-        stage = self.model.stages[ip]
-        return stage
+        return self.stage_dropdown.current_stage()
 
     def get_resolution(self):
         return self.resolution_box.value()

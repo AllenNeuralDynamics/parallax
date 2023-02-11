@@ -81,7 +81,7 @@ class GeometryPanel(QFrame):
         else:
             cal_selected = self.model.calibrations[self.cal_combo.currentText()]
 
-        if not (self.model.lcorr and self.model.rcorr):
+        if None in (self.model.lcorr, self.model.rcorr):
             self.msg_posted.emit('No correspondence points selected.')
             return
         else:
@@ -126,7 +126,7 @@ class GeometryPanel(QFrame):
 
     def register_corr_points_cal(self):
         lcorr, rcorr = self.model.lcorr, self.model.rcorr
-        if (lcorr and rcorr):
+        if None not in (lcorr, rcorr):
             self.cal_worker.register_corr_points(lcorr, rcorr)
             self.msg_posted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
                                     (lcorr[0],lcorr[1], rcorr[0],rcorr[1]))

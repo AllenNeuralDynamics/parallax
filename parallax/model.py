@@ -22,7 +22,7 @@ class Model(QObject):
         self.calibrations = {}
         self.cal_in_progress = False
 
-        self.lcorr, self.rcorr = False, False
+        self.lcorr, self.rcorr = None, None
         
         self.obj_point_last = None
         self.transforms = {}
@@ -30,6 +30,12 @@ class Model(QObject):
     @property
     def ncameras(self):
         return len(self.cameras)
+
+    def get_camera(self, camera_name):
+        for cam in self.cameras:
+            if cam.name() == camera_name:
+                return cam
+        raise NameError(f"No camera named {camera_name}")
 
     def set_last_object_point(self, obj_point):
         self.obj_point_last = obj_point
@@ -40,17 +46,9 @@ class Model(QObject):
     def set_calibration(self, calibration):
         self.calibration = calibration
 
-    def set_lcorr(self, xc, yc):
-        self.lcorr = [xc, yc]
-
-    def clear_lcorr(self):
-        self.lcorr = False
-
-    def set_rcorr(self, xc, yc):
-        self.rcorr = [xc, yc]
-
-    def clear_rcorr(self):
-        self.rcorr = False
+    def set_correspondence_points(self, pts):
+        self.lcorr = pts[0]
+        self.rcorr = pts[1]
 
     def scan_for_cameras(self):
         self.cameras = list_cameras()

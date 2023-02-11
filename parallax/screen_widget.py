@@ -28,6 +28,7 @@ class ScreenWidgetControl(QWidget):
         self.layout.addWidget(self.contrast_slider)
         self.layout.addWidget(self.brightness_slider)
         self.setLayout(self.layout)
+        self.layout.setContentsMargins(0, 0, 0, 0)
 
         # connections
         self.screen_widget.selected.connect(self.selected)
