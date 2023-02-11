@@ -11,7 +11,7 @@ from .dialogs import CalibrationDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
 from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
-
+from .config import config
 
 class GeometryPanel(QFrame):
     msg_posted = pyqtSignal(str)
@@ -147,7 +147,7 @@ class GeometryPanel(QFrame):
         self.model.cal_in_progress = False
 
     def load_cal(self):
-        filename = QFileDialog.getOpenFileName(self, 'Load calibration file', '.',
+        filename = QFileDialog.getOpenFileName(self, 'Load calibration file', config['calibration_path'],
                                                     'Pickle files (*.pkl)')[0]
         if filename:
             with open(filename, 'rb') as f:
@@ -163,7 +163,7 @@ class GeometryPanel(QFrame):
         else:
             cal_selected = self.model.calibrations[self.cal_combo.currentText()]
 
-        suggested_filename = os.path.join(os.getcwd(), cal_selected.name + '.pkl')
+        suggested_filename = os.path.join(config['calibration_path'], cal_selected.name + '.pkl')
         filename = QFileDialog.getSaveFileName(self, 'Save calibration file',
                                                 suggested_filename,
                                                 'Pickle files (*.pkl)')[0]

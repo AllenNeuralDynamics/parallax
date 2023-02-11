@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+import atexit
 from PyQt5.QtWidgets import QApplication
 from parallax.model import Model
 from parallax.main_window import MainWindow
-import atexit
+import parallax.config
 
 # set up logging to file
 import logging
@@ -21,5 +22,8 @@ atexit.register(model.clean)
 
 main_window = MainWindow(model)
 main_window.show()
+
+args = parallax.config.parse_cli_args()
+parallax.config.init_config(args, model, main_window)
 
 app.exec()

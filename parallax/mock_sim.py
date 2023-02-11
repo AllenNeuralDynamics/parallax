@@ -4,6 +4,7 @@ import numpy as np
 import coorx
 from parallax.calibration import CameraTransform, StereoCameraTransform
 from parallax.lib import find_checker_corners
+from parallax.config import config
 
 
 class CameraTransform(coorx.CompositeTransform):
@@ -299,13 +300,19 @@ class MockSim(pg.QtCore.QObject):
         self.cameras = {}
         self.stages = {}
 
-        cb_size = 8
-        checkers = CheckerBoard(views=[], size=cb_size, colors=[0.3, 0.7])
-        s = 1e3
-        checkers.transform.set_params(offset=[-s*cb_size/2, -s*cb_size/2, 0], scale=[s, s, s])
-        axis = Axis(views=[])
-        axis.transform.set_params(scale=[s, s, s])
-        self.items = [checkers, axis]
+        self.items = []
+        if config['mock_sim']['show_checkers']:
+            cb_size = 8
+            checkers = CheckerBoard(views=[], size=cb_size, colors=[0.4, 0.6])
+            s = 1e3
+            checkers.transform.set_params(offset=[-s*cb_size/2, -s*cb_size/2, -2000], scale=[s, s, s])
+            self.items.append(checkers)
+
+        if config['mock_sim']['show_axes']:
+            axis = Axis(views=[])
+            axis.transform.set_params(scale=[s, s, s])
+            self.items.append(axis)
+
         self.stage_moved.connect(self.update_stage)
     
     def add_camera(self, cam):
