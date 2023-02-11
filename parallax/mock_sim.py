@@ -157,9 +157,9 @@ class Axis(GraphicsItem):
         super().__init__(views)
 
         self.items = [
-            {'type': 'line', 'points': [[0, 0, 0], [1, 0, 0]], 'pen': 'r'},
-            {'type': 'line', 'points': [[0, 0, 0], [0, 1, 0]], 'pen': 'g'},
-            {'type': 'line', 'points': [[0, 0, 0], [0, 0, 1]], 'pen': 'b'},
+            {'type': 'line', 'points': [[0, 0, 0], [1, 0, 0]], 'pen': {'color': 'r', 'width': 5}},
+            {'type': 'line', 'points': [[0, 0, 0], [0, 1, 0]], 'pen': {'color': 'g', 'width': 5}},
+            {'type': 'line', 'points': [[0, 0, 0], [0, 0, 1]], 'pen': {'color': 'b', 'width': 5}},
         ]
         self.render()
 
@@ -171,7 +171,7 @@ class Electrode(GraphicsItem):
         l = 10e3
         self.items = [
             {'type': 'poly', 'pen': None, 'brush': 0.2, 'points': [
-                [0, 0, 0], [w, 0, w], [w, 0, l], [-w, 0, l], [-w, 0, l], [0, 0, 0]
+                [0, 0, 0], [w, 0, w], [w, 0, l], [-w, 0, l], [-w, 0, -w], [0, 0, 0]
             ]},
         ]
         self.render()

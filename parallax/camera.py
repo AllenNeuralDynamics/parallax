@@ -191,5 +191,12 @@ class MockCamera:
         noise = self.noise[self._next_frame]
         self._next_frame = (self._next_frame + 1) % self.noise.shape[0]
 
-        image = self.sim.get_camera_frame(self) + noise
+        image = self.sim.get_camera_frame(self)
+        
+        # # add noise
+        # image = image.copy()
+        # # squeeze to leave room for noise (and prevent overflows)
+        # np.multiply(image, 224/255, out=image, casting='unsafe')
+        # image += noise
+
         return image
