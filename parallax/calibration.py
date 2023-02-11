@@ -21,10 +21,8 @@ idist2 = [[-4.94883798e-01,  1.65465770e+02, -1.61013572e-03,  5.22601960e-03, -
 
 
 class Calibration:
-
     def __init__(self, name):
         self.name = name
-        self.set_initial_intrinsics_default()
 
     def set_name(self, name):
         self.name = name
@@ -35,41 +33,17 @@ class Calibration:
     def get_origin(self):
         return self.origin
 
-    def set_initial_intrinsics(self, mtx1, mtx2, dist1, dist2):
-
-        self.imtx1 = mtx1
-        self.imtx2 = mtx2
-        self.idist1 = dist1
-        self.idist2 = dist2
-
-    def set_initial_intrinsics_default(self):
-
-        self.imtx1 = np.array(imtx1, dtype=np.float32)
-        self.imtx2 = np.array(imtx2, dtype=np.float32)
-        self.idist1 = np.array(idist1, dtype=np.float32)
-        self.idist2 = np.array(idist2, dtype=np.float32)
-
     def triangulate(self, lcorr, rcorr):
         """
         l/rcorr = [xc, yc]
         """
-
-        img_points1_cv = np.array([[lcorr]], dtype=np.float32)
-        img_points2_cv = np.array([[rcorr]], dtype=np.float32)
-
-        # undistort
-        img_points1_cv = lib.undistort_image_points(img_points1_cv, self.mtx1, self.dist1)
-        img_points2_cv = lib.undistort_image_points(img_points2_cv, self.mtx2, self.dist2)
-
-        img_point1 = img_points1_cv[0,0]
-        img_point2 = img_points2_cv[0,0]
-        obj_point_reconstructed = lib.triangulate_from_image_points(img_point1, img_point2, self.proj1, self.proj2)
-
-        return obj_point_reconstructed   # [x,y,z]
+        return self.transform.map(np.concatenate([lcorr, rcorr]))
 
     def calibrate(self, img_points1, img_points2, obj_points, origin):
-
         self.set_origin(origin)
+        self.transform = StereoCameraTransform()
+        self.transform.set_mapping(img_points1, img_points2, obj_points)
+
 
 
 class CameraTransform(coorx.BaseTransform):
@@ -85,7 +59,7 @@ class CameraTransform(coorx.BaseTransform):
         self.dist = dist
 
     def _map(self, pts):
-        return lib.undistort_image_points(pts, self.mtx, self.dist)
+        return lib.undistort_image_points(pts.astype('float32'), self.mtx, self.dist)[0]
 
 
 class StereoCameraTransform(coorx.BaseTransform):
@@ -128,17 +102,26 @@ class StereoCameraTransform(coorx.BaseTransform):
                                                                         (WF, HF), self.imtx2, self.idist2,
                                                                         flags=my_flags)
 
-        # calculate projection matrices
-        proj1 = lib.get_projection_matrix(mtx1, rvecs1[0], tvecs1[0])
-        proj2 = lib.get_projection_matrix(mtx2, rvecs2[0], tvecs2[0])
+        self.camera_tr1.set_coeff(mtx1, dist1)
+        self.camera_tr2.set_coeff(mtx2, dist2)
 
-        self.mtx1 = mtx1
-        self.mtx2 = mtx2
-        self.dist1 = dist1
-        self.dist2 = dist2
-        self.proj1 = proj1
-        self.proj2 = proj2
+        # calculate projection matrices
+        self.proj1 = lib.get_projection_matrix(mtx1, rvecs1[0], tvecs1[0])
+        self.proj2 = lib.get_projection_matrix(mtx2, rvecs2[0], tvecs2[0])
+
         self.rmse1 = rmse1
         self.rmse2 = rmse2
 
+    def triangulate(self, img_point1, img_point2):
+        x,y,z = lib.DLT(self.proj1, self.proj2, img_point1, img_point2)
+        return np.array([x,y,z])
 
+    def _map(self, arr2d):
+        # undistort
+        img_pts1 = self.camera_tr1.map(arr2d[:, 0:2])
+        img_pts2 = self.camera_tr2.map(arr2d[:, 2:4])
+
+        # triangulate
+        n_pts = arr2d.shape[0]
+        obj_points = [self.triangulate(*img_pts) for img_pts in zip(img_pts1, img_pts2)]
+        return np.vstack(obj_points)

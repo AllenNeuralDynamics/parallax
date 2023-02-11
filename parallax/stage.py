@@ -176,7 +176,13 @@ class MockStage:
     def get_position(self):
         return self.pos.copy()
 
-    def move_to_target_3d(self, x, y, z):
+    def move_to_target_3d(self, x, y, z, relative=False, safe=False):
+        if relative:
+            xo,yo,zo = self.get_origin()
+            x += xo
+            y += yo
+            z += zo
+
         move_cmd = {'pos': np.array([x, y, z]), 'speed': self.speed, 'accel': self.accel, 'finished': False, 'interrupted': False}
         self.move_queue.put(move_cmd)
 

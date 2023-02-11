@@ -59,10 +59,6 @@ def DLT(P1, P2, point1, point2):
     U, s, vh = linalg.svd(B, full_matrices = False)
     return vh[3,0:3]/vh[3,3]
 
-def triangulate_from_image_points(img_point1, img_point2, proj1, proj2):
-    x,y,z = DLT(proj1, proj2, img_point1, img_point2)
-    return np.array([x,y,z], dtype=np.float32)
-
 
 def find_checker_corners(img, board_shape, show=False):
     """https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html
