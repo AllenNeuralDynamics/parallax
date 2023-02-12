@@ -53,38 +53,56 @@ class Calibration:
 class CameraTransform(coorx.BaseTransform):
     """Maps from camera sensor pixels to undistorted UV.
     """
-    def __init__(self, mtx=None, dist=None, **kwds):
-        super().__init__(dims=(2, 2), **kwds)
-        self.mtx = mtx
-        self.dist = dist
-
-    def set_coeff(self, mtx, dist):
-        self.mtx = mtx
-        self.dist = dist
-
-    def _map(self, pts):
-        return lib.undistort_image_points(pts, self.mtx, self.dist)
-
-
-class StereoCameraTransform(coorx.BaseTransform):
-    """Maps from dual camera sensor pixels to 3D object space.
-    """
-    imtx1 = np.array([
+    # initial intrinsic / distortion coefficients
+    imtx = np.array([
         [1.81982227e+04, 0.00000000e+00, 2.59310865e+03],
         [0.00000000e+00, 1.89774632e+04, 1.48105977e+03],
         [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
     ])
+    idist = np.array([[ 1.70600649e+00, -9.85797706e+01,  4.53808433e-03, -2.13200143e-02, 1.79088477e+03]])
 
-    imtx2 = np.array([
-        [1.55104298e+04, 0.00000000e+00, 1.95422363e+03],
-        [0.00000000e+00, 1.54250418e+04, 1.64814750e+03],
-        [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
-    ])
+    def __init__(self, mtx=None, dist=None, **kwds):
+        super().__init__(dims=(2, 2), **kwds)
+        self.set_coeff(mtx, dist)
 
-    idist1 = np.array([[ 1.70600649e+00, -9.85797706e+01,  4.53808433e-03, -2.13200143e-02, 1.79088477e+03]])
-    idist2 = np.array([[-4.94883798e-01,  1.65465770e+02, -1.61013572e-03,  5.22601960e-03, -8.73875986e+03]])
+    def set_coeff(self, mtx, dist):
+        self.mtx = mtx
+        self.dist = dist
+        self._inverse_transform = None
 
+    def _map(self, pts):
+        return lib.undistort_image_points(pts, self.mtx, self.dist)
 
+    def _imap(self, pts):
+        if self._inverse_transform is None:
+            atr1 = coorx.AffineTransform(matrix=self.mtx[:2, :2], offset=self.mtx[:2, 2])
+            ltr1 = coorx.nonlinear.LensDistortionTransform(self.dist[0])
+            self._inverse_transform = coorx.CompositeTransform([atr.inverse, ltr, atr])
+        return self._inverse_transform.map(pts)
+
+    def set_mapping(self, img_pts, obj_pts, img_size):
+        # undistort calibration points
+        img_pts_undist = lib.undistort_image_points(img_pts, self.imtx, self.idist)
+
+        # calibrate against correspondence points
+        rmse, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
+            obj_pts.astype('float32')[np.newaxis, ...], 
+            img_pts_undist[np.newaxis, ...],
+            img_size, self.imtx, self.idist,
+            flags=cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT,
+        )
+
+        # calculate projection matrix
+        self.proj_matrix = lib.get_projection_matrix(mtx, rvecs[0], tvecs[0])
+
+        # record results
+        self.set_coeff(mtx, dist)
+        self.calibration_result = {'rmse': rmse, 'mtx': mtx, 'dist': dist, 'rvecs': rvecs, 'tvecs': tvecs}
+        
+
+class StereoCameraTransform(coorx.BaseTransform):
+    """Maps from dual camera sensor pixels to 3D object space.
+    """
     def __init__(self, **kwds):
         super().__init__(dims=(4, 3), **kwds)
         self.camera_tr1 = CameraTransform()
@@ -93,29 +111,14 @@ class StereoCameraTransform(coorx.BaseTransform):
         self.proj2 = None
 
     def set_mapping(self, img_points1, img_points2, obj_points, img_size):
-        # undistort calibration points
-        img_points1_undist = lib.undistort_image_points(img_points1, self.imtx1, self.idist1)
-        img_points2_undist = lib.undistort_image_points(img_points2, self.imtx2, self.idist2)
+        self.camera_tr1.set_mapping(img_points1, obj_points, img_size)
+        self.camera_tr2.set_mapping(img_points2, obj_points, img_size)
 
-        # calibrate each camera against these points
-        obj_points = obj_points.astype('float32')
-        my_flags = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT
-        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv.calibrateCamera(obj_points[np.newaxis, ...], img_points1_undist[np.newaxis, ...],
-                                                                img_size, self.imtx1, self.idist1,
-                                                                flags=my_flags)
-        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv.calibrateCamera(obj_points[np.newaxis, ...], img_points2_undist[np.newaxis, ...],
-                                                                img_size, self.imtx2, self.idist2,
-                                                                flags=my_flags)
+        self.proj1 = self.camera_tr1.proj_matrix
+        self.proj2 = self.camera_tr2.proj_matrix
 
-        self.camera_tr1.set_coeff(mtx1, dist1)
-        self.camera_tr2.set_coeff(mtx2, dist2)
-
-        # calculate projection matrices
-        self.proj1 = lib.get_projection_matrix(mtx1, rvecs1[0], tvecs1[0])
-        self.proj2 = lib.get_projection_matrix(mtx2, rvecs2[0], tvecs2[0])
-
-        self.rmse1 = rmse1
-        self.rmse2 = rmse2
+        self.rmse1 = self.camera_tr1.calibration_result['rmse']
+        self.rmse2 = self.camera_tr2.calibration_result['rmse']
 
     def triangulate(self, img_point1, img_point2):
         x,y,z = lib.DLT(self.proj1, self.proj2, img_point1, img_point2)
@@ -130,3 +133,10 @@ class StereoCameraTransform(coorx.BaseTransform):
         n_pts = arr2d.shape[0]
         obj_points = [self.triangulate(*img_pts) for img_pts in zip(img_pts1, img_pts2)]
         return np.vstack(obj_points)
+
+    def _imap(self, arr2d):
+        itr1, itr2 = self._inverse_transforms
+        ret = np.empty((len(arr2d), 4))
+        ret[:, 0:2] = itr1.map(arr2d)
+        ret[:, 2:4] = itr2.map(arr2d)
+        return ret
