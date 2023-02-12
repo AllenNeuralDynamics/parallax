@@ -130,16 +130,11 @@ class GeometryPanel(QFrame):
             self.cal_worker.register_corr_points(lcorr, rcorr)
             self.msg_posted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
                                     (lcorr[0],lcorr[1], rcorr[0],rcorr[1]))
-            self.cal_worker.carry_on()
         else:
             self.msg_posted.emit('Highlight correspondence points and press C to continue')
 
     def handle_cal_finished(self):
-        cal = Calibration(self.cal_worker.name)
-        img_points1, img_points2 = self.cal_worker.get_image_points()
-        obj_points = self.cal_worker.get_object_points()
-        origin = self.cal_worker.stage.get_origin()
-        cal.calibrate(img_points1, img_points2, obj_points, origin)
+        cal = self.cal_worker.get_calibration()
         self.msg_posted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
                                 (cal.transform.rmse1, cal.transform.rmse2))
         self.model.add_calibration(cal)

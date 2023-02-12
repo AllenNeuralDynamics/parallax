@@ -200,3 +200,9 @@ class MockCamera:
         # image += noise
 
         return image
+
+    @property
+    def camera_tr(self):
+        """Transform mapping from simulated global coordinate system to camera image pixels.
+        """
+        return self.sim.cameras[self]['view'].camera_tr

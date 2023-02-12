@@ -4,7 +4,6 @@ import numpy as np
 import cv2 as cv
 import coorx
 from . import lib
-from .helper import WF, HF
 
 
 imtx1 = [[1.81982227e+04, 0.00000000e+00, 2.59310865e+03],
@@ -21,17 +20,17 @@ idist2 = [[-4.94883798e-01,  1.65465770e+02, -1.61013572e-03,  5.22601960e-03, -
 
 
 class Calibration:
-    def __init__(self, name):
+    def __init__(self, name, img_size):
         self.name = name
+        self.img_size = img_size
+        self.img_points1 = []
+        self.img_points2 = []
+        self.obj_points = []  # units are mm
 
-    def set_name(self, name):
-        self.name = name
-
-    def set_origin(self, origin):
-        self.origin = origin
-
-    def get_origin(self):
-        return self.origin
+    def add_points(self, img_pt1, img_pt2, obj_pt):
+        self.img_points1.append(img_pt1)
+        self.img_points2.append(img_pt2)
+        self.obj_points.append(obj_pt)
 
     def triangulate(self, lcorr, rcorr):
         """
@@ -39,11 +38,16 @@ class Calibration:
         """
         return self.transform.map(np.concatenate([lcorr, rcorr]))
 
-    def calibrate(self, img_points1, img_points2, obj_points, origin):
-        self.set_origin(origin)
-        self.transform = StereoCameraTransform()
-        self.transform.set_mapping(img_points1, img_points2, obj_points)
-
+    def calibrate(self):
+        from_cs = f"{self.img_points1[0].system.name}+{self.img_points2[0].system.name}"
+        to_cs = self.obj_points[0].system.name
+        self.transform = StereoCameraTransform(from_cs=from_cs, to_cs=to_cs)
+        self.transform.set_mapping(
+            np.array(self.img_points1), 
+            np.array(self.img_points2), 
+            np.array(self.obj_points),
+            self.img_size
+        )
 
 
 class CameraTransform(coorx.BaseTransform):
@@ -59,7 +63,7 @@ class CameraTransform(coorx.BaseTransform):
         self.dist = dist
 
     def _map(self, pts):
-        return lib.undistort_image_points(pts.astype('float32'), self.mtx, self.dist)[0]
+        return lib.undistort_image_points(pts, self.mtx, self.dist)
 
 
 class StereoCameraTransform(coorx.BaseTransform):
@@ -88,19 +92,20 @@ class StereoCameraTransform(coorx.BaseTransform):
         self.proj1 = None
         self.proj2 = None
 
-    def set_mapping(self, img_points1, img_points2, obj_points):
+    def set_mapping(self, img_points1, img_points2, obj_points, img_size):
         # undistort calibration points
-        img_points1 = lib.undistort_image_points(img_points1, self.imtx1, self.idist1)
-        img_points2 = lib.undistort_image_points(img_points2, self.imtx2, self.idist2)
+        img_points1_undist = lib.undistort_image_points(img_points1, self.imtx1, self.idist1)
+        img_points2_undist = lib.undistort_image_points(img_points2, self.imtx2, self.idist2)
 
         # calibrate each camera against these points
+        obj_points = obj_points.astype('float32')
         my_flags = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT
-        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv.calibrateCamera(obj_points, img_points1,
-                                                                        (WF, HF), self.imtx1, self.idist1,
-                                                                        flags=my_flags)
-        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv.calibrateCamera(obj_points, img_points2,
-                                                                        (WF, HF), self.imtx2, self.idist2,
-                                                                        flags=my_flags)
+        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv.calibrateCamera(obj_points[np.newaxis, ...], img_points1_undist[np.newaxis, ...],
+                                                                img_size, self.imtx1, self.idist1,
+                                                                flags=my_flags)
+        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv.calibrateCamera(obj_points[np.newaxis, ...], img_points2_undist[np.newaxis, ...],
+                                                                img_size, self.imtx2, self.idist2,
+                                                                flags=my_flags)
 
         self.camera_tr1.set_coeff(mtx1, dist1)
         self.camera_tr2.set_coeff(mtx2, dist2)

@@ -1,6 +1,9 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 import numpy as np
 import time
+import queue
+from .calibration import Calibration
+from .helper import WF, HF
 
 
 class CalibrationWorker(QObject):
@@ -16,24 +19,17 @@ class CalibrationWorker(QObject):
         # (so default value of 3 will yield 3^3 = 27 calibration points)
         # extent_um is the extent in microns for each dimension, centered on zero
         QObject.__init__(self)
-        self.name = name
         self.stage = stage
         self.resolution = resolution
         self.extent_um = extent_um
 
         self.ready_to_go = False
-        self.object_points = []  # units are mm
         self.num_cal = self.resolution**3
-
-        self.img_points1 = []
-        self.img_points2 = []
+        self.calibration = Calibration(name, img_size=(WF, HF))
+        self.corr_point_queue = queue.Queue()
 
     def register_corr_points(self, lcorr, rcorr):
-        self.img_points1.append(lcorr)
-        self.img_points2.append(rcorr)
-
-    def carry_on(self):
-        self.ready_to_go = True
+        self.corr_point_queue.put((lcorr, rcorr))
 
     def run(self):
         mx =  self.extent_um / 2.
@@ -43,18 +39,18 @@ class CalibrationWorker(QObject):
             for y in np.linspace(mn, mx, self.resolution):
                 for z in np.linspace(mn, mx, self.resolution):
                     self.stage.move_to_target_3d(x,y,z, relative=True, safe=False)
-                    self.calibration_point_reached.emit(n,self.num_cal, x,y,z)
-                    self.ready_to_go = False
-                    while not self.ready_to_go:
-                        time.sleep(0.1)
-                    self.object_points.append([x,y,z])
+                    self.calibration_point_reached.emit(n, self.num_cal, x, y, z)
+
+                    # wait for correspondence points to arrive
+                    lcorr, rcorr = self.corr_point_queue.get()
+
+                    # add to calibration
+                    self.calibration.add_points(lcorr, rcorr, self.stage.get_position())
                     n += 1
         self.finished.emit()
 
-    def get_image_points(self):
-        return np.array([self.img_points1], dtype=np.float32),  \
-                np.array([self.img_points2], dtype=np.float32)
+    def get_calibration(self):
+        self.calibration.calibrate()
+        return self.calibration
 
-    def get_object_points(self):
-        return np.array([self.object_points], dtype=np.float32)
 

@@ -1,6 +1,7 @@
 import time, queue, threading
 import numpy as np
 import coorx
+from coorx import Point
 from newscale.multistage import USBXYZStage, PoEXYZStage
 from newscale.interfaces import USBInterface, NewScaleSerial
 from .mock_sim import MockSim
@@ -85,7 +86,9 @@ class NewScaleStage:
             x -= self.origin[0]
             y -= self.origin[1]
             z -= self.origin[2]
-        return x,y,z
+            return Point([x,y,z], self.get_name()+'_rel')
+        else:
+            return Point([x,y,z], self.get_name())
 
     def move_to_target_1d(self, axis, position, relative=False):
         if axis == 'x':
@@ -143,6 +146,7 @@ class MockStage:
         self.accel = 5000  # um/s^2
         self.pos = np.array([0, 0, 0])
         self.name = f"mock_stage_{MockStage.n_mock_stages}"
+        transform.set_systems(self.name, "global")
         MockStage.n_mock_stages += 1
 
         self.move_callbacks = []
@@ -174,21 +178,24 @@ class MockStage:
         return self.accel
 
     def get_position(self):
-        return self.pos.copy()
+        return Point(self.pos.copy(), self.get_name())
 
-    def move_to_target_3d(self, x, y, z, relative=False, safe=False):
+    def move_to_target_3d(self, x, y, z, relative=False, safe=False, block=True):
         if relative:
             xo,yo,zo = self.get_origin()
             x += xo
             y += yo
             z += zo
 
-        move_cmd = {'pos': np.array([x, y, z]), 'speed': self.speed, 'accel': self.accel, 'finished': False, 'interrupted': False}
-        self.move_queue.put(move_cmd)
+        move_cmd = MoveFuture(self, pos=np.array([x, y, z]), speed=self.speed, accel=self.accel)
+        self.move_queue.put(move_cmd)        
+        if block:
+            move_cmd.wait()
+        return move_cmd
 
     def move_distance_1d(self, axis, distance):
         ax_ind = 'xyz'.index(axis)
-        pos = self.get_position()
+        pos = self.get_position().coordinates
         pos[ax_ind] += distance
         return self.move_to_target_3d(*pos)
 
@@ -202,8 +209,7 @@ class MockStage:
     
             if next_move is not None:
                 if current_move is not None:
-                    current_move['interrupted'] = True
-                    current_move['finished'] = True
+                    current_move.finish(interrupted=True)
                 current_move = next_move
                 last_update = time.perf_counter()
 
@@ -213,10 +219,10 @@ class MockStage:
                 last_update = now
 
                 pos = self.get_position()
-                target = current_move['pos']
+                target = current_move.pos
                 dx = target - pos
                 dist_to_go = np.linalg.norm(dx)
-                max_dist_per_step = current_move['speed'] * dt
+                max_dist_per_step = current_move.speed * dt
                 if dist_to_go > max_dist_per_step:
                     # take a step
                     direction = dx / dist_to_go
@@ -225,8 +231,7 @@ class MockStage:
                     self.pos = pos + step
                 else:
                     self.pos = target.copy()
-                    current_move['interrupted'] = False
-                    current_move['finished'] = True
+                    current_move.finish(interrupted=False)
                     current_move = None
                 
                 for cb in self.move_callbacks[:]:
@@ -238,8 +243,8 @@ class MockStage:
         self.move_callbacks.append(cb)
 
     def orientation(self):
-        p1 = self.transform.map([0, 0, 0])
-        p2 = self.transform.map([0, 0, 1])
+        p1 = self.transform.map(Point([0, 0, 0], self.name))
+        p2 = self.transform.map(Point([0, 0, 1], self.name))
         axis = p1 - p2
         r = np.linalg.norm(axis[:2])
         phi = np.arctan2(r, axis[2]) * 180 / np.pi
@@ -248,3 +253,20 @@ class MockStage:
 
     def get_tip_position(self):
         return self.transform.map(self.get_position())
+
+
+class MoveFuture:
+    def __init__(self, stage, pos, speed, accel):
+        self.stage = stage
+        self.pos = pos
+        self.speed = speed
+        self.accel = accel
+        self.finished = threading.Event()
+        self.interrupted = False
+
+    def finish(self, interrupted):
+        self.interrupted = interrupted
+        self.finished.set()
+
+    def wait(self, timeout=None):
+        self.finished.wait(timeout=timeout)

@@ -1,0 +1,66 @@
+-Package maintenance / code quality:
+    - Standardize package structure 
+        root code folder named parallax
+        setup.py
+        relative imports
+    - camelCase vs snake_case?
+        I recommend snake_case (regret using camelCase for acq4)
+    - Unit tests? 
+        don't put tests in __main__
+    - Continuous integration
+    - Avoid `from X import *`
+    - lib and Helper have some overlap (getIntrinsicsFromChecherboard, DLT)
+    - rename / reorg lib and Helper
+
+- Use QtPy?
+   This wraps multiple python-Qt libraries so that we can change versions more easily
+   Otherwise we will need to transition to Qt6 in the near future
+
+- Add error display / logging facilities
+   Users will appreciate this
+   We want good records kept in case the software destroys an electrode / ruins an experiment
+
+- Add console for realtime debugging
+
+- Simple 3D rendering of electrodes in MockCamera
+    so we can test triangulation / calibration
+
+- Put camera polling in a background thread
+    I assume it takes some time to request a frame from the camera, 
+    and that the GIL is unlocked during this time
+
+- Do we want to depend on pyspin for camera access, or write a thin layer to allow adapting other sources later?
+    Possibly acq4 camera devices?
+
+- Device configuration system
+    specify what cameras / stages to look for
+    any relevant physical details that could be modified in the future and require user config
+
+- Coorx for transforms
+    np arrays as standard coordinate object?
+    coordinate system-aware points?
+
+- parallax : project name collisions (python packages, neural dsp, .. )
+
+- What features may eventually be added?
+    - Other device models (cameras, stages)
+    - Other device types (focal / widefield photostim? indicator imaging? behavioral? others?)
+    - Automatic electrode calibration
+    - Animal data tracking (pull MRI and desired electrode coordinates from server)
+    - Automatic electrode delivery
+
+- Things we might import from acq4:
+    stage device infrastructure
+    camera device infrastructure
+    device management
+    imaging pipeline
+    error logging
+    benefits:
+        device abstractions to allow extensibility later (as opposed to pyspin)
+        shared codebase with other allen institute projects
+        device transform graph
+        pre-optimized imaging pipeline
+        device configuration system
+    drawbacks:
+        lots of baggage, but perhaps this can be well hidden
+

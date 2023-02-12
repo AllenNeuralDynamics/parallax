@@ -25,7 +25,7 @@ INTRINSICS_USE_INITIAL_GUESS = False
 
 
 def undistort_image_points(img_points, mtx, dist):
-    img_points_corrected_normalized = cv.undistortPoints(img_points, mtx, dist)
+    img_points_corrected_normalized = cv.undistortPoints(img_points.astype('float32'), mtx, dist)
     fx = mtx[0,0]
     fy = mtx[1,1]
     cx = mtx[0,2]
@@ -35,8 +35,8 @@ def undistort_image_points(img_points, mtx, dist):
         x,y = img_point[0]
         x = x * fx + cx
         y = y * fy + cy
-        img_points_corrected.append(np.array([x,y]))
-    return np.array([img_points_corrected], dtype=np.float32)
+        img_points_corrected.append([x, y])
+    return np.array(img_points_corrected, dtype=np.float32)
 
 def get_projection_matrix(mtx, r, t):
     R, jacobian = cv.Rodrigues(r)
