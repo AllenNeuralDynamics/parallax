@@ -75,11 +75,10 @@ class GeometryPanel(QFrame):
 
     def triangulate(self):
 
-        if (self.cal_combo.currentIndex() < 0):
+        cal_selected = self.selected_calibration()
+        if cal_selected is None:
             self.msg_posted.emit('No calibration selected.')
             return
-        else:
-            cal_selected = self.model.calibrations[self.cal_combo.currentText()]
 
         if None in (self.model.lcorr, self.model.rcorr):
             self.msg_posted.emit('No correspondence points selected.')
@@ -93,6 +92,12 @@ class GeometryPanel(QFrame):
         x,y,z = obj_point
         self.msg_posted.emit('Reconstructed object point: '
                             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+
+    def selected_calibration(self):
+        if (self.cal_combo.currentIndex() < 0):
+            return None
+        else:
+            return self.model.calibrations[self.cal_combo.currentText()]
 
     def launch_cal_dialog(self):
 
