@@ -74,7 +74,7 @@ class Model(QObject):
         close_stages()
 
     def halt_all_stages(self):
-        for stage in self.stages.values():
+        for stage in self.stages:
             stage.halt()
         self.msg_posted.emit('Halting all stages.')
 
