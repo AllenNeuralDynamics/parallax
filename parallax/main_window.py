@@ -10,6 +10,7 @@ from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .stage_manager import StageManager
+from .config import config
 
 
 class MainWindow(QMainWindow):
@@ -98,7 +99,11 @@ class MainWindow(QMainWindow):
 
     def show_console(self):
         if self.console is None:
-            self.console = pyqtgraph.console.ConsoleWidget(namespace={'model': self.model, 'win': self})
+            self.console = pyqtgraph.console.ConsoleWidget(
+                historyFile=config['console_history_file'], 
+                editor=config['console_edit_command'], 
+                namespace={'model': self.model, 'win': self}
+            )
             self.console.catchNextException()
         self.console.show()
 

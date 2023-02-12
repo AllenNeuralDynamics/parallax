@@ -10,6 +10,8 @@ config = {
         'show_axes': True,
     },
     'calibration_path': './calibrations',
+    'console_history_file': './console_history',
+    'console_edit_command': 'code -g {fileName}:{lineNum}',
 }
 
 
