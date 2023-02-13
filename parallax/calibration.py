@@ -1,4 +1,5 @@
 import time
+import pickle
 import numpy as np
 import cv2 as cv
 import coorx
@@ -6,16 +7,29 @@ from . import lib
 
 
 class Calibration:
+
+    date_format = r"%Y-%m-%d-%H-%M-%S"
+    file_regex = r'([^-]+)-([^-]+)-((\d\d\d\d-\d\d-\d\d)-(\d+)-(\d+)-(\d+)).pkl'
+
+    @staticmethod
+    def load(filename):
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+
     def __init__(self, img_size):
         self.img_size = img_size
         self.img_points1 = []
         self.img_points2 = []
         self.obj_points = []
 
+    def save(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
     @property
     def name(self):
-        date = time.strftime("%Y-%m-%d-%H-%M-%S", self.timestamp)
-        return f"{self.camera_names[0]}-{self.camera_names[1]}-{self.stage_name}-{date}"
+        date = time.strftime(self.date_format, self.timestamp)
+        return f"{self.from_cs}-{self.to_cs}-{date}"
 
     def add_points(self, img_pt1, img_pt2, obj_pt):
         self.img_points1.append(img_pt1)
@@ -32,11 +46,15 @@ class Calibration:
         cam1 = self.img_points1[0].system.name
         cam2 = self.img_points2[0].system.name
         stage = self.obj_points[0].system.name
+
+        self.from_cs = f"{cam1}+{cam2}"
+        self.to_cs = stage
         self.camera_names = (cam1, cam2)
         self.stage_name = stage
+
         self.timestamp = time.localtime()
 
-        self.transform = StereoCameraTransform(from_cs=f"{cam1}+{cam2}", to_cs=stage)
+        self.transform = StereoCameraTransform(from_cs=self.from_cs, to_cs=self.to_cs)
         self.transform.set_mapping(
             np.array(self.img_points1), 
             np.array(self.img_points2), 

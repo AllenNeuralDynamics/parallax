@@ -1,4 +1,4 @@
-import os, re, pickle
+import time
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout 
 from PyQt5.QtCore import pyqtSignal, Qt
@@ -8,6 +8,7 @@ import coorx
 from .helper import FONT_BOLD
 from .dialogs import StageSettingsDialog, TargetDialog
 from .stage_dropdown import StageDropdown
+from .calibration import Calibration
 from .config import config
 
 JOG_UM_DEFAULT = 250
@@ -113,6 +114,8 @@ class ControlPanel(QFrame):
         self.jog_um = JOG_UM_DEFAULT
         self.cjog_um = CJOG_UM_DEFAULT
 
+        self.model.calibrations_changed.connect(self.update_calibration)
+
     def update_coordinates(self, *args):
         xa, ya, za = self.stage.get_position()
         xo, yo, zo = self.stage.get_origin()
@@ -204,23 +207,26 @@ class ControlPanel(QFrame):
         self.update_coordinates()
 
     def update_calibration(self):
+        if self.stage is None:
+            return
+
         # search for and load calibration appropriate for the selected stage
-        cal_files = os.listdir(config['calibration_path'])
-        found_cal = None
-        for cf in sorted(cal_files, reverse=True):
-            m = re.match(f'(.*)-{self.stage.get_name()}-(\d\d\d\d-\d\d-\d\d)-(\d+)-(\d+)-(\d+).pkl', cf)
-            if m is None:
-                continue
-            found_cal = cf
-            break
-        if found_cal is None:
+        cals = self.model.list_calibrations()
+        cals = [cal for cal in cals if cal['to_cs'] == self.stage.get_name()]
+        cals = sorted(cals, key=lambda cal: cal['timestamp'])
+
+        if len(cals) == 0:
             self.calibration = None
             self.calibration_label.setText('(no calibration)')
         else:
-            mg = m.groups()
-            with open(os.path.join(config['calibration_path'], found_cal), 'rb') as f:
-                self.calibration = pickle.load(f)
-            self.calibration_label.setText(f'calibrated {mg[1]} {mg[2]}:{mg[3]}:{mg[4]}  for {mg[0]}')
+            cal_spec = cals[-1]
+            if 'calibration' in cal_spec:
+                cal = cal_spec['calibration']
+            else:
+                cal = Calibration.load(cal_spec['file'])
+            self.calibration = cal
+            ts_str = time.strftime(r"%Y-%m-%d %H:%M:%S", cal.timestamp)
+            self.calibration_label.setText(f'calibrated {ts_str}  for {cal.to_cs}')
 
     def move_to_selected(self):
         if self.calibration is None:

@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
-from PyQt5.QtWidgets import QPushButton, QFrame, QWidget, QComboBox, QLabel
+from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
+from PyQt5.QtWidgets import QPushButton, QFrame, QComboBox, QLabel
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import pyqtSignal, Qt, QThread
 
@@ -9,8 +9,8 @@ import os
 from .helper import FONT_BOLD
 from .dialogs import CalibrationDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
-from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
+from .calibration import Calibration
 from .config import config
 
 class GeometryPanel(QFrame):
@@ -148,9 +148,8 @@ class GeometryPanel(QFrame):
         filename = QFileDialog.getOpenFileName(self, 'Load calibration file', config['calibration_path'],
                                                     'Pickle files (*.pkl)')[0]
         if filename:
-            with open(filename, 'rb') as f:
-                cal = pickle.load(f)
-                self.model.add_calibration(cal)
+            cal = Calibration.load(filename)
+            self.model.add_calibration(cal)
             self.update_cals()
 
     def save_cal(self):
@@ -165,8 +164,7 @@ class GeometryPanel(QFrame):
                                                 suggested_filename,
                                                 'Pickle files (*.pkl)')[0]
         if filename:
-            with open(filename, 'wb') as f:
-                pickle.dump(cal_selected, f)
+            cal_selected.save(filename)
             self.msg_posted.emit('Saved calibration %s to: %s' % (cal_selected.name, filename))
 
     def update_cals(self):
