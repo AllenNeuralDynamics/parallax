@@ -1,12 +1,10 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QRadioButton, QSpinBox
+from PyQt5.QtWidgets import QPushButton, QLabel, QSpinBox
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QDoubleValidator
 
 import numpy as np
-import time
-import datetime
 
 from .toggle_switch import ToggleSwitch
 from .helper import FONT_BOLD

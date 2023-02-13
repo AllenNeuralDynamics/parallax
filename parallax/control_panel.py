@@ -2,7 +2,7 @@ import time
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout 
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QGuiApplication
 import pyqtgraph as pg
 import coorx
 
@@ -58,7 +58,7 @@ class ControlPanel(QFrame):
     def __init__(self, model):
         QFrame.__init__(self)
         self.model = model
-
+        self.calibration = None
         # widgets
 
         self.main_label = QLabel('Stage Control')
@@ -73,6 +73,8 @@ class ControlPanel(QFrame):
         self.settings_button.clicked.connect(self.handle_settings)
 
         self.calibration_label = QLabel("")
+        self.cal_pt_btn = QPushButton('')
+        self.cal_pt_btn.clicked.connect(self.copy_cal_pt)
 
         self.xcontrol = AxisControl('x')
         self.xcontrol.jog_requested.connect(self.jog)
@@ -107,7 +109,8 @@ class ControlPanel(QFrame):
         main_layout.addWidget(self.main_label, 0,0, 1,3)
         main_layout.addWidget(self.dropdown, 1,0, 1,2)
         main_layout.addWidget(self.settings_button, 1,2, 1,1)
-        main_layout.addWidget(self.calibration_label, 2,0, 1,3)
+        main_layout.addWidget(self.calibration_label, 2,0, 1,2)
+        main_layout.addWidget(self.cal_pt_btn, 2,2, 1,1)
         main_layout.addWidget(self.xcontrol, 3,0, 1,1)
         main_layout.addWidget(self.ycontrol, 3,1, 1,1)
         main_layout.addWidget(self.zcontrol, 3,2, 1,1)
@@ -130,6 +133,7 @@ class ControlPanel(QFrame):
         self.cjog_um = CJOG_UM_DEFAULT
 
         self.model.calibrations_changed.connect(self.update_calibration)
+        self.model.corr_pts_changed.connect(self.update_cal_pt)
 
     def update_coordinates(self, *args):
         xa, ya, za = self.stage.get_position()
@@ -244,9 +248,13 @@ class ControlPanel(QFrame):
             self.calibration_label.setText(f'calibrated {ts_str}  for {cal.to_cs}')
 
     def get_stage_point(self):
+        if self.stage is None:
+            raise Exception("No stage selected")
         if self.calibration is None:
             raise Exception(f"No calibration loaded for {self.stage.get_name()}")
         img_pt = self.model.get_image_point()
+        if img_pt is None:
+            raise Exception("No correspondence points selected")
         return self.calibration.triangulate(img_pt)
 
     def move_to_selected(self):
@@ -266,3 +274,14 @@ class ControlPanel(QFrame):
         pos.coordinates[2] -= depth
         self.move_to_point(pos, relative=False, speed=speed, block=False)
 
+    def update_cal_pt(self):
+        try:
+            stage_pt = self.get_stage_point()
+            x = stage_pt.coordinates
+            self.cal_pt_btn.setText(f'{x[0]:0.0f}, {x[1]:0.0f}, {x[2]:0.0f}')
+        except Exception:
+            self.cal_pt_btn.setText('')
+
+    def copy_cal_pt(self):
+        cb = QGuiApplication.clipboard()
+        cb.setText(self.cal_pt_btn.text())

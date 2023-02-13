@@ -148,7 +148,7 @@ class MockStage(QtCore.QObject):
         super().__init__()
         self.base_transform = transform
         self.transform = coorx.AffineTransform(dims=(3, 3))
-        self.speed = 1000  # um/s
+        self.speed = 8000  # um/s
         self.accel = 5000  # um/s^2
         self.pos = np.array([0, 0, 0])
         self.name = f"mock_stage_{MockStage.n_mock_stages}"

@@ -15,6 +15,7 @@ from .calibration import Calibration
 class Model(QObject):
     msg_posted = pyqtSignal(str)
     calibrations_changed = pyqtSignal()
+    corr_pts_changed = pyqtSignal()
 
     def __init__(self):
         QObject.__init__(self)
@@ -46,6 +47,8 @@ class Model(QObject):
         self.obj_point_last = obj_point
 
     def get_image_point(self):
+        if None in (self.lcorr, self.rcorr):
+            return None
         concat = np.hstack([self.lcorr, self.rcorr])
         return coorx.Point(concat, f'{self.lcorr.system.name}+{self.rcorr.system.name}')
 
@@ -79,6 +82,7 @@ class Model(QObject):
     def set_correspondence_points(self, pts):
         self.lcorr = pts[0]
         self.rcorr = pts[1]
+        self.corr_pts_changed.emit()
 
     def scan_for_cameras(self):
         self.cameras = list_cameras()

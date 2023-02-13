@@ -185,6 +185,7 @@ class MainWidget(QSplitter):
     def clear_selected(self):
         for screen in self.screens:
             screen.clear_selected()
+        self.model.set_correspondence_points((None, None))
 
     def zoom_out(self):
         for screen in self.screens:
