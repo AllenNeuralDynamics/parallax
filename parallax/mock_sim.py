@@ -86,16 +86,19 @@ class GraphicsItemView:
     def __init__(self, item, view):
         self.item = item
         self.view = view
+        self.rendered = False
         self.full_transform = coorx.CompositeTransform([])
         self.update_transform()
         self.scene = view.scene()
+        view.prepare_for_paint.connect(self.render_if_needed)
         self.full_transform.add_change_callback(self.transform_changed)
 
     def update_transform(self):
         self.full_transform.transforms = [self.item.transform, self.view.camera_tr]
 
     def transform_changed(self, event):
-        self.render()
+        self.rendered = False
+        self.view.update()
 
     def render(self):
         self.clear_graphics_items()
@@ -128,6 +131,11 @@ class GraphicsItemView:
             item.setdefault('graphicsItems', {})
             item['graphicsItems'][self] = gfx_item
             self.scene.addItem(gfx_item)
+        self.rendered = True
+
+    def render_if_needed(self):
+        if not self.rendered:
+            self.render()
 
     def clear_graphics_items(self):
         for item in self.item.items:
@@ -171,14 +179,18 @@ class Electrode(GraphicsItem):
         l = 10e3
         self.items = [
             {'type': 'poly', 'pen': None, 'brush': 0.2, 'points': [
-                [0, 0, 0], [w, 0, w], [w, 0, l], [-w, 0, l], [-w, 0, -w], [0, 0, 0]
+                [0, 0, 0], [w, 0, 2*w], [w, 0, l], [-w, 0, l], [-w, 0, 2*w], [0, 0, 0]
             ]},
         ]
         self.render()
 
 
 class GraphicsView3D(pg.GraphicsView):
+
+    prepare_for_paint = pg.QtCore.Signal()
+
     def __init__(self, **kwds):
+        self.cached_frame = None
         self.camera_tr = CameraTransform()
         self.press_event = None
         self.camera_params = {'look': [0, 0, 0], 'pitch': 30, 'yaw': 0, 'distance': 10, 'fov': 45, 'distortion': (0, 0, 0, 0, 0)}
@@ -231,9 +243,23 @@ class GraphicsView3D(pg.GraphicsView):
         super().resizeEvent(ev)
         self.update_camera()
 
+    def paintEvent(self, ev):
+        self.prepare_for_paint.emit()
+        return super().paintEvent(ev)
+
+    def item_changed(self, item):
+        self.clear_frames()
+        self.update()
+
     def get_array(self):
-        arr = pg.imageToArray(pg.QtGui.QImage(self.grab()), copy=True, transpose=False)[..., :3]
-        return arr
+        if self.cached_frame is None:
+            self.prepare_for_paint.emit()
+            self.cached_frame = pg.imageToArray(pg.QtGui.QImage(self.grab()), copy=True, transpose=False)[..., :3]
+        return self.cached_frame
+
+    def update(self):
+        self.cached_frame = None
+        super().update()
 
 
 def generate_calibration_data(view, n_images, cb_size):
@@ -312,15 +338,13 @@ class MockSim(pg.QtCore.QObject):
             axis = Axis(views=[])
             axis.transform.set_params(scale=[s, s, s])
             self.items.append(axis)
-
-        self.stage_moved.connect(self.update_stage)
     
     def add_camera(self, cam):
         view = GraphicsView3D(background=(128, 128, 128))
         view.resize(*cam.sensor_size)
         view.set_camera(**cam.camera_params)
         view.scene().changed.connect(self.clear_frames)
-        self.cameras[cam] = {'view': view, 'frame': None}
+        self.cameras[cam] = {'view': view}
 
         for item in self.items:
             item.add_view(view)
@@ -330,31 +354,11 @@ class MockSim(pg.QtCore.QObject):
             v['frame'] = None
 
     def get_camera_frame(self, cam):
-        if self.cameras[cam]['frame'] is None:
-            view = self.cameras[cam]['view']
-            self.cameras[cam]['frame'] = view.get_array()
-        return self.cameras[cam]['frame']
+        view = self.cameras[cam]['view']
+        return view.get_array()
 
     def add_stage(self, stage):
         views = [c['view'] for c in self.cameras.values()]
         item = Electrode(views=views)
-
-        tr = coorx.AffineTransform(dims=(3, 3))
-        theta, phi = stage.orientation()
-        # s = 1e3
-        # tr.scale([s, s, s])
-        tr.rotate(phi, [1, 0, 0])
-        tr.rotate(theta, [0, 0, 1])
-        item.transform = tr
-
+        item.transform = stage.transform
         self.stages[stage] = {'item': item}
-        stage.add_move_callback(self._stage_moved_cb)
-    
-    def _stage_moved_cb(self, stage):
-        # callback is invoked in thread; send to gui thread by signal
-        self.stage_moved.emit(stage)
-
-    def update_stage(self, stage):    
-        pos = stage.get_tip_position()
-        item = self.stages[stage]['item']
-        item.transform.offset = pos

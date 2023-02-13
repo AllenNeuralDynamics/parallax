@@ -21,8 +21,8 @@ def list_cameras():
         cameras.extend(PySpinCamera.list_cameras())
     else:
         cameras.extend([
-            MockCamera(camera_params={'pitch': 60, 'yaw': 0}),
-            MockCamera(camera_params={'pitch': 60, 'yaw': 30}),
+            MockCamera(camera_params={'pitch': 70, 'yaw': 120}),
+            MockCamera(camera_params={'pitch': 70, 'yaw': 150}),
         ])
     return cameras
 
@@ -188,12 +188,12 @@ class MockCamera:
         """
         Return last image as numpy array with shape (height, width, 3) for RGB or (height, width) for mono. 
         """
-        noise = self.noise[self._next_frame]
-        self._next_frame = (self._next_frame + 1) % self.noise.shape[0]
 
         image = self.sim.get_camera_frame(self)
         
         # # add noise
+        # noise = self.noise[self._next_frame]
+        # self._next_frame = (self._next_frame + 1) % self.noise.shape[0]
         # image = image.copy()
         # # squeeze to leave room for noise (and prevent overflows)
         # np.multiply(image, 224/255, out=image, casting='unsafe')
