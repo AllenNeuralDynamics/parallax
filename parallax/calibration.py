@@ -1,22 +1,7 @@
-#!/usr/bin/python3
-
 import numpy as np
 import cv2 as cv
 import coorx
 from . import lib
-
-
-imtx1 = [[1.81982227e+04, 0.00000000e+00, 2.59310865e+03],
-            [0.00000000e+00, 1.89774632e+04, 1.48105977e+03],
-            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
-
-imtx2 = [[1.55104298e+04, 0.00000000e+00, 1.95422363e+03],
-            [0.00000000e+00, 1.54250418e+04, 1.64814750e+03],
-            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
-
-idist1 = [[ 1.70600649e+00, -9.85797706e+01,  4.53808433e-03, -2.13200143e-02, 1.79088477e+03]]
-
-idist2 = [[-4.94883798e-01,  1.65465770e+02, -1.61013572e-03,  5.22601960e-03, -8.73875986e+03]]
 
 
 class Calibration:
@@ -25,7 +10,7 @@ class Calibration:
         self.img_size = img_size
         self.img_points1 = []
         self.img_points2 = []
-        self.obj_points = []  # units are mm
+        self.obj_points = []
 
     def add_points(self, img_pt1, img_pt2, obj_pt):
         self.img_points1.append(img_pt1)
@@ -39,9 +24,13 @@ class Calibration:
         return self.transform.map(np.concatenate([lcorr, rcorr]))
 
     def calibrate(self):
-        from_cs = f"{self.img_points1[0].system.name}+{self.img_points2[0].system.name}"
-        to_cs = self.obj_points[0].system.name
-        self.transform = StereoCameraTransform(from_cs=from_cs, to_cs=to_cs)
+        cam1 = self.img_points1[0].system.name
+        cam2 = self.img_points2[0].system.name
+        stage = self.obj_points[0].system.name
+        self.camera_names = (cam1, cam2)
+        self.stage_name = stage
+
+        self.transform = StereoCameraTransform(from_cs=f"{cam1}+{cam2}", to_cs=stage)
         self.transform.set_mapping(
             np.array(self.img_points1), 
             np.array(self.img_points2), 
