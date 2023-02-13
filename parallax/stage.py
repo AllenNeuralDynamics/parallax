@@ -13,10 +13,11 @@ def list_stages():
     stages.extend(NewScaleStage.scan_for_stages())
     if len(stages) == 0:
         tr1 = coorx.AffineTransform(dims=(3, 3))
-        tr1.rotate(90, (1, 0, 0))
+        tr1.translate([0, 0, 500])
+        tr1.rotate(60, (1, 0, 0))
         tr1.rotate(90, (0, 0, 1))
         tr2 = tr1.copy()
-        tr2.rotate(90, (0, 0, 1))
+        tr2.rotate(50, (0, 0, 1))
 
         stages.extend([
             MockStage(transform=tr1), 

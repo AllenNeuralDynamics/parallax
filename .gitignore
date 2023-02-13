@@ -11,3 +11,4 @@ parallax/*.log
 *.egg-info
 *-workspace
 *.log
+console_history
