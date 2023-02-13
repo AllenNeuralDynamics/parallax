@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout 
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon
+import pyqtgraph as pg
 import coorx
 
 from .helper import FONT_BOLD
@@ -92,6 +93,15 @@ class ControlPanel(QFrame):
         self.move_selected_button = QPushButton('Move to Selected')
         self.move_selected_button.clicked.connect(self.move_to_selected)
 
+        self.approach_selected_button = QPushButton('Approach Selected')
+        self.approach_selected_button.clicked.connect(self.approach_selected)
+        self.approach_distance_spin = pg.SpinBox(value=3e-3, suffix='m', siPrefix=True, bounds=[1e-6, 20e-3], dec=True, step=0.5, minStep=1e-6)
+
+        self.move_to_depth_button = QPushButton('Advance Depth')
+        self.move_to_depth_button.clicked.connect(self.move_to_depth)
+        self.depth_spin = pg.SpinBox(value=1e-3, suffix='m', siPrefix=True, bounds=[1e-6, 20e-3], dec=True, step=0.5, minStep=1e-6)
+        self.depth_speed_spin = pg.SpinBox(value=10e-6, suffix='m/s', siPrefix=True, bounds=[1e-6, 1e-3], dec=True, step=0.5, minStep=1e-6)
+
         # layout
         main_layout = QGridLayout()
         main_layout.addWidget(self.main_label, 0,0, 1,3)
@@ -104,6 +114,11 @@ class ControlPanel(QFrame):
         main_layout.addWidget(self.zero_button, 4,0, 1,3)
         main_layout.addWidget(self.move_target_button, 5,0, 1,1)
         main_layout.addWidget(self.move_selected_button, 5,1, 1,2)
+        main_layout.addWidget(self.approach_selected_button, 6,0, 1,1)
+        main_layout.addWidget(self.approach_distance_spin, 6,1, 1,1)
+        main_layout.addWidget(self.move_to_depth_button, 7,0, 1,1)
+        main_layout.addWidget(self.depth_spin, 7,1, 1,1)
+        main_layout.addWidget(self.depth_speed_spin, 7,2, 1,1)
         self.setLayout(main_layout)
 
         # frame border
@@ -150,7 +165,7 @@ class ControlPanel(QFrame):
                 self.update_coordinates()
                 self.target_reached.emit()
 
-    def move_to_point(self, pt, relative):
+    def move_to_point(self, pt, relative, **kwds):
         if isinstance(pt, coorx.Point):
             if pt.system.name != self.stage.get_name():
                 raise Exception(f"Not moving stage {self.stage.get_name()} to coordinate in system {pt.system.name}")
@@ -158,7 +173,7 @@ class ControlPanel(QFrame):
                 raise Exception(f"Not moving to relative point in system {pt.system.name}")
 
         x, y, z = pt
-        self.stage.move_to_target_3d(x, y, z, relative=relative, safe=True)
+        self.stage.move_to_target_3d(x, y, z, relative=relative, safe=True, **kwds)
         absrel = "relative" if relative else "absolute"
         self.msg_posted.emit(f'Moved to {absrel} position: [{x:.2f}, {y:.2f}, {z:.2f}]')
 
@@ -228,9 +243,26 @@ class ControlPanel(QFrame):
             ts_str = time.strftime(r"%Y-%m-%d %H:%M:%S", cal.timestamp)
             self.calibration_label.setText(f'calibrated {ts_str}  for {cal.to_cs}')
 
-    def move_to_selected(self):
+    def get_stage_point(self):
         if self.calibration is None:
             raise Exception(f"No calibration loaded for {self.stage.get_name()}")
         img_pt = self.model.get_image_point()
-        stage_pt = self.calibration.triangulate(img_pt)
+        return self.calibration.triangulate(img_pt)
+
+    def move_to_selected(self):
+        stage_pt = self.get_stage_point()
         self.move_to_point(stage_pt, relative=False)
+
+    def approach_selected(self):
+        stage_pt = self.get_stage_point()
+        depth = self.approach_distance_spin.value() * 1e6
+        stage_pt.coordinates[2] += depth
+        self.move_to_point(stage_pt, relative=False, block=False)
+
+    def move_to_depth(self):
+        pos = self.stage.get_position()
+        depth = self.depth_spin.value() * 1e6
+        speed = self.depth_speed_spin.value() * 1e6
+        pos.coordinates[2] -= depth
+        self.move_to_point(pos, relative=False, speed=speed, block=False)
+

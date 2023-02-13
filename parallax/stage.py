@@ -188,14 +188,15 @@ class MockStage(QtCore.QObject):
     def get_position(self):
         return Point(self.pos.copy(), self.get_name())
 
-    def move_to_target_3d(self, x, y, z, relative=False, safe=False, block=True):
+    def move_to_target_3d(self, x, y, z, relative=False, safe=False, speed=None, block=True):
         if relative:
             xo,yo,zo = self.get_origin()
             x += xo
             y += yo
             z += zo
 
-        move_cmd = MoveFuture(self, pos=np.array([x, y, z]), speed=self.speed, accel=self.accel)
+        speed = speed or self.speed
+        move_cmd = MoveFuture(self, pos=np.array([x, y, z]), speed=speed, accel=self.accel)
         self.move_queue.put(move_cmd)        
         if block:
             move_cmd.wait()
