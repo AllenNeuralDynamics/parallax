@@ -120,7 +120,10 @@ class ControlPanel(QFrame):
         self.update_coordinates()
 
     def set_stage(self, stage):
+        if self.stage is not None:
+            self.stage.position_changed.disconnect(self.stage_position_changed)
         self.stage = stage
+        self.stage.position_changed.connect(self.stage_position_changed)
         self.update_relative_origin()
 
     def move_to_target(self, *args):
@@ -182,4 +185,5 @@ class ControlPanel(QFrame):
         # doesn't actually work now because we need threading
         self.stage.halt()
 
-
+    def stage_position_changed(self, stage, pos):
+        self.update_coordinates()

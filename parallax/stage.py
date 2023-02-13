@@ -1,5 +1,6 @@
 import time, queue, threading
 import numpy as np
+from PyQt5 import QtCore
 import coorx
 from coorx import Point
 from newscale.multistage import USBXYZStage, PoEXYZStage
@@ -12,10 +13,10 @@ def list_stages():
     stages.extend(NewScaleStage.scan_for_stages())
     if len(stages) == 0:
         tr1 = coorx.AffineTransform(dims=(3, 3))
-        tr1.rotate(130, (1, 0, 0))
-        tr1.rotate(30, (0, 0, 1))
+        tr1.rotate(90, (1, 0, 0))
+        tr1.rotate(90, (0, 0, 1))
         tr2 = tr1.copy()
-        tr2.rotate(60, (0, 0, 1))
+        tr2.rotate(90, (0, 0, 1))
 
         stages.extend([
             MockStage(transform=tr1), 
@@ -136,18 +137,24 @@ class NewScaleStage:
         pass
 
 
-class MockStage:
+class MockStage(QtCore.QObject):
 
     n_mock_stages = 0
 
+    position_changed = QtCore.pyqtSignal(object, object)  # self, pos
+
     def __init__(self, transform):
-        self.transform = transform
+        super().__init__()
+        self.base_transform = transform
+        self.transform = coorx.AffineTransform(dims=(3, 3))
         self.speed = 1000  # um/s
         self.accel = 5000  # um/s^2
         self.pos = np.array([0, 0, 0])
         self.name = f"mock_stage_{MockStage.n_mock_stages}"
-        transform.set_systems(self.name, "global")
+        self.transform.set_systems(self.name, "global")
         MockStage.n_mock_stages += 1
+
+        self.update_pos(self.pos)
 
         self.move_callbacks = []
 
@@ -199,6 +206,18 @@ class MockStage:
         pos[ax_ind] += distance
         return self.move_to_target_3d(*pos)
 
+    def update_pos(self, pos):
+        # stage has moved; update and emit
+        self.pos = pos
+
+        # update transform used by mock graphics
+        tr = coorx.AffineTransform(dims=(3, 3))
+        tr.translate(pos)
+        tr2 = self.base_transform * tr
+        self.transform.set_params(matrix=tr2.matrix, offset=tr2.offset)
+
+        self.position_changed.emit(self, pos)
+
     def thread_loop(self):
         current_move = None
         while True:
@@ -209,7 +228,7 @@ class MockStage:
     
             if next_move is not None:
                 if current_move is not None:
-                    current_move.finish(interrupted=True)
+                    current_move.finish(interrupted=True, message="interrupted by another move request")
                 current_move = next_move
                 last_update = time.perf_counter()
 
@@ -228,16 +247,16 @@ class MockStage:
                     direction = dx / dist_to_go
                     dist_this_step = min(dist_to_go, max_dist_per_step)
                     step = direction * dist_this_step
-                    self.pos = pos + step
+                    self.update_pos(pos + step)
                 else:
-                    self.pos = target.copy()
+                    self.update_pos(target.copy())
                     current_move.finish(interrupted=False)
                     current_move = None
                 
                 for cb in self.move_callbacks[:]:
                     cb(self)
 
-            time.sleep(10e-3)
+            time.sleep(100e-3)
 
     def add_move_callback(self, cb):
         self.move_callbacks.append(cb)
@@ -252,7 +271,7 @@ class MockStage:
         return theta, phi
 
     def get_tip_position(self):
-        return self.transform.map(self.get_position())
+        return self.transform.map(Point([0, 0, 0], self.name))
 
 
 class MoveFuture:
@@ -264,9 +283,14 @@ class MoveFuture:
         self.finished = threading.Event()
         self.interrupted = False
 
-    def finish(self, interrupted):
+    def finish(self, interrupted, message=None):
         self.interrupted = interrupted
+        self.message = message
         self.finished.set()
+
+    @property
+    def succeeded(self):
+        return self.finished and not self.interrupted
 
     def wait(self, timeout=None):
         self.finished.wait(timeout=timeout)
