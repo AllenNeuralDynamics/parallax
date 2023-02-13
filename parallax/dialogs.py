@@ -117,13 +117,6 @@ class CalibrationDialog(QDialog):
         self.extent_label.setAlignment(Qt.AlignCenter)
         self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
 
-        self.name_label = QLabel('Name')
-        ts = time.time()
-        dt = datetime.datetime.fromtimestamp(ts)
-        cal_default_name = 'cal_%04d%02d%02d-%02d%02d%02d' % (dt.year,
-                                        dt.month, dt.day, dt.hour, dt.minute, dt.second)
-        self.name_edit = QLineEdit(cal_default_name)
-
         self.go_button = QPushButton('Start Calibration Routine')
         self.go_button.setEnabled(False)
         self.go_button.clicked.connect(self.go)
@@ -135,8 +128,6 @@ class CalibrationDialog(QDialog):
         layout.addWidget(self.resolution_box, 1,1, 1,1)
         layout.addWidget(self.extent_label, 2,0, 1,1)
         layout.addWidget(self.extent_edit, 2,1, 1,1)
-        layout.addWidget(self.name_label, 3,0, 1,1)
-        layout.addWidget(self.name_edit, 3,1, 1,1)
         layout.addWidget(self.go_button, 4,0, 1,2)
         self.setLayout(layout)
 
@@ -151,9 +142,6 @@ class CalibrationDialog(QDialog):
 
     def get_extent(self):
         return float(self.extent_edit.text())
-
-    def get_name(self):
-        return self.name_edit.text()
 
     def go(self):
         self.accept()
@@ -172,6 +160,7 @@ class TargetDialog(QDialog):
         QDialog.__init__(self)
         self.model = model
 
+        self.obj_point = None
         self.last_button = QPushButton('Last Reconstructed Point')
         self.last_button.clicked.connect(self.populate_last)
         if self.model.obj_point_last is None:
@@ -199,10 +188,15 @@ class TargetDialog(QDialog):
         self.zedit = QLineEdit()
         self.zedit.setValidator(validator)
 
-        self.info_label = QLabel('(units are microns)')
+        self.xedit.textEdited.connect(self.input_changed)
+        self.yedit.textEdited.connect(self.input_changed)
+        self.zedit.textEdited.connect(self.input_changed)
+        self.abs_rel_toggle.toggled.connect(self.input_changed)
+
+        self.info_label = QLabel('')
         self.info_label.setAlignment(Qt.AlignCenter)
         self.info_label.setFont(FONT_BOLD)
-
+        self.update_info()
 
         self.dialog_buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
@@ -228,22 +222,40 @@ class TargetDialog(QDialog):
         self.setWindowTitle('Set Target Coordinates')
 
     def populate_last(self):
-        self.xedit.setText('{0:.2f}'.format(self.model.obj_point_last[0]))
-        self.yedit.setText('{0:.2f}'.format(self.model.obj_point_last[1]))
-        self.zedit.setText('{0:.2f}'.format(self.model.obj_point_last[2]))
+        op = self.model.obj_point_last
+        self.xedit.setText('{0:.2f}'.format(op[0]))
+        self.yedit.setText('{0:.2f}'.format(op[1]))
+        self.zedit.setText('{0:.2f}'.format(op[2]))
+        self.abs_rel_toggle.setChecked(False)
+        self.obj_point = op
+        self.update_info()
 
     def populate_random(self):
+        self.obj_point = None
         self.xedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
         self.yedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
         self.zedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
+        self.update_info()
 
     def get_params(self):
         params = {}
-        params['x'] = float(self.xedit.text())
-        params['y'] = float(self.yedit.text())
-        params['z'] = float(self.zedit.text())
-        params['relative'] = self.abs_rel_toggle.isChecked()
+        if self.obj_point is None:
+            params['point'] = np.array([self.xedit.text(), self.yedit.text(), self.zedit.text()])
+            params['relative'] = self.abs_rel_toggle.isChecked()
+        else:
+            params['point'] = self.obj_point
+            params['relative'] = False
         return params
+
+    def update_info(self):
+        info = "(units are μm)"
+        if self.obj_point is not None:
+            info = f'coord sys: {self.obj_point.system.name}\n{info}'
+        self.info_label.setText(info)
+
+    def input_changed(self):
+        self.obj_point = None
+        self.update_info()
 
 
 class CsvDialog(QDialog):

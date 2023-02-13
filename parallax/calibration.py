@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import cv2 as cv
 import coorx
@@ -5,12 +6,16 @@ from . import lib
 
 
 class Calibration:
-    def __init__(self, name, img_size):
-        self.name = name
+    def __init__(self, img_size):
         self.img_size = img_size
         self.img_points1 = []
         self.img_points2 = []
         self.obj_points = []
+
+    @property
+    def name(self):
+        date = time.strftime("%Y-%m-%d-%H-%M-%S", self.timestamp)
+        return f"{self.camera_names[0]}-{self.camera_names[1]}-{self.stage_name}-{date}"
 
     def add_points(self, img_pt1, img_pt2, obj_pt):
         self.img_points1.append(img_pt1)
@@ -21,7 +26,9 @@ class Calibration:
         """
         l/rcorr = [xc, yc]
         """
-        return self.transform.map(np.concatenate([lcorr, rcorr]))
+        concat = np.hstack([lcorr, rcorr])
+        cpt = coorx.Point(concat, f'{lcorr.system.name}+{rcorr.system.name}')
+        return self.transform.map(cpt)
 
     def calibrate(self):
         cam1 = self.img_points1[0].system.name
@@ -29,6 +36,7 @@ class Calibration:
         stage = self.obj_points[0].system.name
         self.camera_names = (cam1, cam2)
         self.stage_name = stage
+        self.timestamp = time.localtime()
 
         self.transform = StereoCameraTransform(from_cs=f"{cam1}+{cam2}", to_cs=stage)
         self.transform.set_mapping(

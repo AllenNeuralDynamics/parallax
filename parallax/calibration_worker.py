@@ -13,7 +13,7 @@ class CalibrationWorker(QObject):
     RESOLUTION_DEFAULT = 3
     EXTENT_UM_DEFAULT = 2000
 
-    def __init__(self, name, stage, resolution=RESOLUTION_DEFAULT, extent_um=EXTENT_UM_DEFAULT,
+    def __init__(self, stage, resolution=RESOLUTION_DEFAULT, extent_um=EXTENT_UM_DEFAULT,
                     parent=None):
         # resolution is number of steps per dimension, for 3 dimensions
         # (so default value of 3 will yield 3^3 = 27 calibration points)
@@ -25,7 +25,7 @@ class CalibrationWorker(QObject):
 
         self.ready_to_go = False
         self.num_cal = self.resolution**3
-        self.calibration = Calibration(name, img_size=(WF, HF))
+        self.calibration = Calibration(img_size=(WF, HF))
         self.corr_point_queue = queue.Queue()
 
     def register_corr_points(self, lcorr, rcorr):

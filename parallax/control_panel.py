@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout 
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon
+import coorx
 
 from .helper import FONT_BOLD
 from .dialogs import StageSettingsDialog, TargetDialog
@@ -130,10 +131,11 @@ class ControlPanel(QFrame):
         dlg = TargetDialog(self.model)
         if dlg.exec_():
             params = dlg.get_params()
-            x = params['x']
-            y = params['y']
-            z = params['z']
+            pt = params['point']
             if self.stage:
+                if isinstance(pt, coorx.Point) and pt.system.name != self.stage.get_name():
+                    raise Exception(f"Not moving stage {self.stage.get_name()} to coordinate in system {pt.system.name}")
+                x, y, z = pt
                 self.stage.move_to_target_3d(x, y, z, relative=params['relative'], safe=True)
                 if params['relative']:
                     self.msg_posted.emit('Moved to relative position: '

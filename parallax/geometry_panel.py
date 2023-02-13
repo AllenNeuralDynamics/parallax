@@ -90,8 +90,9 @@ class GeometryPanel(QFrame):
         self.model.set_last_object_point(obj_point)
 
         x,y,z = obj_point
-        self.msg_posted.emit('Reconstructed object point: '
-                            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+        self.msg_posted.emit(
+            f'Reconstructed object point: [{x:.2f}, {y:.2f}, {z:.2f}] in {obj_point.system.name}'
+        )
 
     def selected_calibration(self):
         if (self.cal_combo.currentIndex() < 0):
@@ -107,14 +108,13 @@ class GeometryPanel(QFrame):
             stage = dlg.get_stage()
             res = dlg.get_resolution()
             extent = dlg.get_extent()
-            name = dlg.get_name()
 
-            self.start_cal_thread(stage, res, extent, name)
+            self.start_cal_thread(stage, res, extent)
 
-    def start_cal_thread(self, stage, res, extent, name):
+    def start_cal_thread(self, stage, res, extent):
         self.model.cal_in_progress = True
         self.cal_thread = QThread()
-        self.cal_worker = CalibrationWorker(name, stage, res, extent)
+        self.cal_worker = CalibrationWorker(stage, res, extent)
         self.cal_worker.moveToThread(self.cal_thread)
         self.cal_thread.started.connect(self.cal_worker.run)
         self.cal_worker.calibration_point_reached.connect(self.handle_cal_point_reached)
@@ -157,11 +157,10 @@ class GeometryPanel(QFrame):
 
     def save_cal(self):
 
-        if (self.cal_combo.currentIndex() < 0):
+        cal_selected = self.selected_calibration()
+        if cal_selected is None:
             self.msg_posted.emit('No calibration selected.')
             return
-        else:
-            cal_selected = self.model.calibrations[self.cal_combo.currentText()]
 
         suggested_filename = os.path.join(config['calibration_path'], cal_selected.name + '.pkl')
         filename = QFileDialog.getSaveFileName(self, 'Save calibration file',
