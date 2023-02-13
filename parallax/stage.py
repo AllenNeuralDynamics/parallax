@@ -208,6 +208,9 @@ class MockStage(QtCore.QObject):
         pos[ax_ind] += distance
         return self.move_to_target_3d(*pos)
 
+    def halt(self):
+        self.move_queue.put('halt')
+
     def update_pos(self, pos):
         # stage has moved; update and emit
         self.pos = pos
@@ -223,23 +226,28 @@ class MockStage(QtCore.QObject):
     def thread_loop(self):
         current_move = None
         while True:
-            try:
-                next_move = self.move_queue.get(block=False)                
-            except queue.Empty:
-                next_move = None
+            next_move = None
+            while not self.move_queue.empty():
+                next_move = self.move_queue.get()
     
             if next_move is not None:
                 if current_move is not None:
-                    current_move.finish(interrupted=True, message="interrupted by another move request")
+                    if next_move == 'halt':
+                        message = 'interrupted by halt request'
+                    else:
+                        message = "interrupted by another move request"
+                    current_move.finish(interrupted=True, message=message)
+                if next_move == 'halt':
+                    next_move = None
                 current_move = next_move
                 last_update = time.perf_counter()
 
             if current_move is not None:
                 now = time.perf_counter()
-                dt = now = last_update
+                dt = now - last_update
                 last_update = now
 
-                pos = self.get_position()
+                pos = self.get_position().coordinates
                 target = current_move.pos
                 dx = target - pos
                 dist_to_go = np.linalg.norm(dx)

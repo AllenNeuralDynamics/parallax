@@ -95,12 +95,12 @@ class ControlPanel(QFrame):
 
         self.approach_selected_button = QPushButton('Approach Selected')
         self.approach_selected_button.clicked.connect(self.approach_selected)
-        self.approach_distance_spin = pg.SpinBox(value=3e-3, suffix='m', siPrefix=True, bounds=[1e-6, 20e-3], dec=True, step=0.5, minStep=1e-6)
+        self.approach_distance_spin = pg.SpinBox(value=3e-3, suffix='m', siPrefix=True, bounds=[1e-6, 20e-3], dec=True, step=0.5, minStep=1e-6, compactHeight=False)
 
         self.move_to_depth_button = QPushButton('Advance Depth')
         self.move_to_depth_button.clicked.connect(self.move_to_depth)
-        self.depth_spin = pg.SpinBox(value=1e-3, suffix='m', siPrefix=True, bounds=[1e-6, 20e-3], dec=True, step=0.5, minStep=1e-6)
-        self.depth_speed_spin = pg.SpinBox(value=10e-6, suffix='m/s', siPrefix=True, bounds=[1e-6, 1e-3], dec=True, step=0.5, minStep=1e-6)
+        self.depth_spin = pg.SpinBox(value=1e-3, suffix='m', siPrefix=True, bounds=[1e-6, 20e-3], dec=True, step=0.5, minStep=1e-6, compactHeight=False)
+        self.depth_speed_spin = pg.SpinBox(value=10e-6, suffix='m/s', siPrefix=True, bounds=[1e-6, 1e-3], dec=True, step=0.5, minStep=1e-6, compactHeight=False)
 
         # layout
         main_layout = QGridLayout()
@@ -251,7 +251,7 @@ class ControlPanel(QFrame):
 
     def move_to_selected(self):
         stage_pt = self.get_stage_point()
-        self.move_to_point(stage_pt, relative=False)
+        self.move_to_point(stage_pt, relative=False, block=False)
 
     def approach_selected(self):
         stage_pt = self.get_stage_point()
