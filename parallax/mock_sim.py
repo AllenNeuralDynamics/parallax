@@ -2,9 +2,10 @@ import pyqtgraph as pg
 import cv2 as cv
 import numpy as np
 import coorx
-from parallax.calibration import CameraTransform, StereoCameraTransform
-from parallax.lib import find_checker_corners
-from parallax.config import config
+from .calibration import CameraTransform, StereoCameraTransform
+from .lib import find_checker_corners
+from .config import config
+from .threadrun import runInGuiThread
 
 
 class CameraTransform(coorx.CompositeTransform):
@@ -254,7 +255,8 @@ class GraphicsView3D(pg.GraphicsView):
     def get_array(self):
         if self.cached_frame is None:
             self.prepare_for_paint.emit()
-            self.cached_frame = pg.imageToArray(pg.QtGui.QImage(self.grab()), copy=True, transpose=False)[..., :3]
+            img_arr = runInGuiThread(self.grab)
+            self.cached_frame = pg.imageToArray(pg.QtGui.QImage(img_arr), copy=True, transpose=False)[..., :3]
         return self.cached_frame
 
     def update(self):
