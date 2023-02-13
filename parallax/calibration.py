@@ -22,13 +22,11 @@ class Calibration:
         self.img_points2.append(img_pt2)
         self.obj_points.append(obj_pt)
 
-    def triangulate(self, lcorr, rcorr):
+    def triangulate(self, img_point):
         """
         l/rcorr = [xc, yc]
         """
-        concat = np.hstack([lcorr, rcorr])
-        cpt = coorx.Point(concat, f'{lcorr.system.name}+{rcorr.system.name}')
-        return self.transform.map(cpt)
+        return self.transform.map(img_point)
 
     def calibrate(self):
         cam1 = self.img_points1[0].system.name

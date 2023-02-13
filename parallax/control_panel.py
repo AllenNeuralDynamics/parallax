@@ -1,3 +1,4 @@
+import os, re, pickle
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout 
 from PyQt5.QtCore import pyqtSignal, Qt
@@ -7,6 +8,7 @@ import coorx
 from .helper import FONT_BOLD
 from .dialogs import StageSettingsDialog, TargetDialog
 from .stage_dropdown import StageDropdown
+from .config import config
 
 JOG_UM_DEFAULT = 250
 CJOG_UM_DEFAULT = 50
@@ -68,6 +70,8 @@ class ControlPanel(QFrame):
         self.settings_button.setIcon(QIcon('../img/gear.png'))
         self.settings_button.clicked.connect(self.handle_settings)
 
+        self.calibration_label = QLabel("")
+
         self.xcontrol = AxisControl('x')
         self.xcontrol.jog_requested.connect(self.jog)
         self.xcontrol.center_requested.connect(self.center)
@@ -81,19 +85,24 @@ class ControlPanel(QFrame):
         self.zero_button = QPushButton('Set Relative Origin')
         self.zero_button.clicked.connect(self.zero)
 
-        self.move_target_button = QPushButton('Move to Target')
+        self.move_target_button = QPushButton('Move to ...')
         self.move_target_button.clicked.connect(self.move_to_target)
+
+        self.move_selected_button = QPushButton('Move to Selected')
+        self.move_selected_button.clicked.connect(self.move_to_selected)
 
         # layout
         main_layout = QGridLayout()
         main_layout.addWidget(self.main_label, 0,0, 1,3)
         main_layout.addWidget(self.dropdown, 1,0, 1,2)
         main_layout.addWidget(self.settings_button, 1,2, 1,1)
-        main_layout.addWidget(self.xcontrol, 2,0, 1,1)
-        main_layout.addWidget(self.ycontrol, 2,1, 1,1)
-        main_layout.addWidget(self.zcontrol, 2,2, 1,1)
-        main_layout.addWidget(self.zero_button, 3,0, 1,3)
-        main_layout.addWidget(self.move_target_button, 4,0, 1,3)
+        main_layout.addWidget(self.calibration_label, 2,0, 1,3)
+        main_layout.addWidget(self.xcontrol, 3,0, 1,1)
+        main_layout.addWidget(self.ycontrol, 3,1, 1,1)
+        main_layout.addWidget(self.zcontrol, 3,2, 1,1)
+        main_layout.addWidget(self.zero_button, 4,0, 1,3)
+        main_layout.addWidget(self.move_target_button, 5,0, 1,1)
+        main_layout.addWidget(self.move_selected_button, 5,1, 1,2)
         self.setLayout(main_layout)
 
         # frame border
@@ -119,6 +128,7 @@ class ControlPanel(QFrame):
         stage = self.dropdown.current_stage()
         self.set_stage(stage)
         self.update_coordinates()
+        self.update_calibration()
 
     def set_stage(self, stage):
         if self.stage is not None:
@@ -133,18 +143,21 @@ class ControlPanel(QFrame):
             params = dlg.get_params()
             pt = params['point']
             if self.stage:
-                if isinstance(pt, coorx.Point) and pt.system.name != self.stage.get_name():
-                    raise Exception(f"Not moving stage {self.stage.get_name()} to coordinate in system {pt.system.name}")
-                x, y, z = pt
-                self.stage.move_to_target_3d(x, y, z, relative=params['relative'], safe=True)
-                if params['relative']:
-                    self.msg_posted.emit('Moved to relative position: '
-                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                else:
-                    self.msg_posted.emit('Moved to absolute position: '
-                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+                self.move_to_point(pt, params['relative'])
                 self.update_coordinates()
                 self.target_reached.emit()
+
+    def move_to_point(self, pt, relative):
+        if isinstance(pt, coorx.Point):
+            if pt.system.name != self.stage.get_name():
+                raise Exception(f"Not moving stage {self.stage.get_name()} to coordinate in system {pt.system.name}")
+            if relative:
+                raise Exception(f"Not moving to relative point in system {pt.system.name}")
+
+        x, y, z = pt
+        self.stage.move_to_target_3d(x, y, z, relative=relative, safe=True)
+        absrel = "relative" if relative else "absolute"
+        self.msg_posted.emit(f'Moved to {absrel} position: [{x:.2f}, {y:.2f}, {z:.2f}]')
 
     def handle_settings(self, *args):
         if self.stage:
@@ -189,3 +202,29 @@ class ControlPanel(QFrame):
 
     def stage_position_changed(self, stage, pos):
         self.update_coordinates()
+
+    def update_calibration(self):
+        # search for and load calibration appropriate for the selected stage
+        cal_files = os.listdir(config['calibration_path'])
+        found_cal = None
+        for cf in sorted(cal_files, reverse=True):
+            m = re.match(f'(.*)-{self.stage.get_name()}-(\d\d\d\d-\d\d-\d\d)-(\d+)-(\d+)-(\d+).pkl', cf)
+            if m is None:
+                continue
+            found_cal = cf
+            break
+        if found_cal is None:
+            self.calibration = None
+            self.calibration_label.setText('(no calibration)')
+        else:
+            mg = m.groups()
+            with open(os.path.join(config['calibration_path'], found_cal), 'rb') as f:
+                self.calibration = pickle.load(f)
+            self.calibration_label.setText(f'calibrated {mg[1]} {mg[2]}:{mg[3]}:{mg[4]}  for {mg[0]}')
+
+    def move_to_selected(self):
+        if self.calibration is None:
+            raise Exception(f"No calibration loaded for {self.stage.get_name()}")
+        img_pt = self.model.get_image_point()
+        stage_pt = self.calibration.triangulate(img_pt)
+        self.move_to_point(stage_pt, relative=False)

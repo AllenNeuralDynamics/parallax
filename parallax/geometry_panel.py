@@ -74,19 +74,17 @@ class GeometryPanel(QFrame):
         self.setLineWidth(2)
 
     def triangulate(self):
-
         cal_selected = self.selected_calibration()
         if cal_selected is None:
             self.msg_posted.emit('No calibration selected.')
             return
 
-        if None in (self.model.lcorr, self.model.rcorr):
+        corr_pt = self.model.get_image_point()
+        if corr_pt is None:
             self.msg_posted.emit('No correspondence points selected.')
             return
-        else:
-            lcorr, rcorr = self.model.lcorr, self.model.rcorr
 
-        obj_point = cal_selected.triangulate(lcorr, rcorr)
+        obj_point = cal_selected.triangulate(corr_pt)
         self.model.set_last_object_point(obj_point)
 
         x,y,z = obj_point

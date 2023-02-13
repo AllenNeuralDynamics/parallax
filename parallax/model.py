@@ -1,6 +1,7 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, pyqtSignal
 import numpy as np
+import coorx
 import serial.tools.list_ports
 from mis_focus_controller import FocusController
 
@@ -39,6 +40,10 @@ class Model(QObject):
 
     def set_last_object_point(self, obj_point):
         self.obj_point_last = obj_point
+
+    def get_image_point(self):
+        concat = np.hstack([self.lcorr, self.rcorr])
+        return coorx.Point(concat, f'{self.lcorr.system.name}+{self.rcorr.system.name}')
 
     def add_calibration(self, cal):
         self.calibrations[cal.name] = cal
