@@ -3,6 +3,7 @@ import datetime
 import threading
 import numpy as np
 import logging
+import pyqtgraph as pg
 from .mock_sim import MockSim
 
 logger = logging.getLogger(__name__)
@@ -200,6 +201,11 @@ class MockCamera:
         # image += noise
 
         return image
+
+    def save_last_image(self, filename):
+        arr = self.get_last_image_data()[..., [2,1,0]]
+        img = pg.makeQImage(arr, alpha=False, transpose=False)
+        img.save(filename)
 
     @property
     def camera_tr(self):
