@@ -230,20 +230,12 @@ class ControlPanel(QFrame):
             return
 
         # search for and load calibration appropriate for the selected stage
-        cals = self.model.list_calibrations()
-        cals = [cal for cal in cals if cal['to_cs'] == self.stage.get_name()]
-        cals = sorted(cals, key=lambda cal: cal['timestamp'])
+        cal = self.model.get_calibration(self.stage)
+        self.calibration = cal
 
-        if len(cals) == 0:
-            self.calibration = None
+        if cal is None:
             self.calibration_label.setText('(no calibration)')
         else:
-            cal_spec = cals[-1]
-            if 'calibration' in cal_spec:
-                cal = cal_spec['calibration']
-            else:
-                cal = Calibration.load(cal_spec['file'])
-            self.calibration = cal
             ts_str = time.strftime(r"%Y-%m-%d %H:%M:%S", cal.timestamp)
             self.calibration_label.setText(f'calibrated {ts_str}  for {cal.to_cs}')
 

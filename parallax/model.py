@@ -17,8 +17,11 @@ class Model(QObject):
     calibrations_changed = pyqtSignal()
     corr_pts_changed = pyqtSignal()
 
+    instance = None
+
     def __init__(self):
         QObject.__init__(self)
+        Model.instance = self
 
         self.cameras = []
         self.focos = []
@@ -75,6 +78,23 @@ class Model(QObject):
 
         assert len(calibrations) > 0
         return calibrations
+
+    def get_calibration(self, stage):
+        """Return the most recent calibration known for this stage
+        """
+        cals = self.list_calibrations()
+        cals = [cal for cal in cals if cal['to_cs'] == stage.get_name()]
+        cals = sorted(cals, key=lambda cal: cal['timestamp'])
+
+        if len(cals) == 0:
+            return None
+        else:
+            cal_spec = cals[-1]
+            if 'calibration' in cal_spec:
+                cal = cal_spec['calibration']
+            else:
+                cal = Calibration.load(cal_spec['file'])
+            return cal
 
     def set_calibration(self, calibration):
         self.calibration = calibration
