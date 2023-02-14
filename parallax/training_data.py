@@ -12,11 +12,15 @@ class TrainingDataCollector(QtCore.QObject):
     def start(self):
         dlg = TrainingDataDialog(self.model)
         dlg.exec_()
+        if dlg.result() != dlg.Accepted:
+            return
 
         self.stage = dlg.get_stage()
         self.img_count = dlg.get_img_count()
         self.extent = dlg.get_extent()
         self.path = QtWidgets.QFileDialog.getExistingDirectory(parent=None, caption="Select Storage Directory")
+        if self.path == '':
+            return
 
         self.start_pos = self.stage.get_position()
         self.stage_cal = self.model.get_calibration(self.stage)
