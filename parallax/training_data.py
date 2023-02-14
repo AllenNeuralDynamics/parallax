@@ -23,7 +23,7 @@ class TrainingDataCollector(QtCore.QObject):
             return
 
         self.start_pos = self.stage.get_position()
-        self.stage_cal = self.model.get_calibration(self.stage)
+        self.stage_cal = list(self.model.calibrations.values())[0]
 
         self.thread = threading.Thread(target=self.thread_run, daemon=True)
         self.thread.start()

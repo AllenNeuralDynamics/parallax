@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QGridLayout, QMainWindow, QAction, QSplitter
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QGridLayout, QMainWindow, QAction, QSplitter
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
