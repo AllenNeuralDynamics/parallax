@@ -329,10 +329,10 @@ class MockSim(pg.QtCore.QObject):
         self.stages = {}
 
         self.items = []
+        s = 1e3
         if config['mock_sim']['show_checkers']:
             cb_size = 8
             checkers = CheckerBoard(views=[], size=cb_size, colors=[0.4, 0.6])
-            s = 1e3
             checkers.transform.set_params(offset=[-s*cb_size/2, -s*cb_size/2, -4000], scale=[s, s, s])
             self.items.append(checkers)
 

@@ -16,9 +16,6 @@ config = {
 }
 
 
-
-
-
 def parse_cli_args():
     parser = argparse.ArgumentParser(prog='parallax')
     parser.add_argument('--config', type=str, default=None, help='configuration file to load at startup')

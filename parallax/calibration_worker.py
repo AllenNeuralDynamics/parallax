@@ -5,6 +5,8 @@ import cv2 as cv
 import queue
 from .calibration import Calibration
 from .helper import WF, HF
+from .model import Model
+from .config import config
 
 
 class CalibrationWorker(QObject):
@@ -44,20 +46,36 @@ class CalibrationWorker(QObject):
         for x in np.linspace(mn, mx, self.resolution):
             for y in np.linspace(mn, mx, self.resolution):
                 for z in np.linspace(mn, mx, self.resolution):
+
+                    # move stage to next point and let the user know we are ready for clicks
                     self.stage.move_to_target_3d(x,y,z, relative=True, safe=False)
                     self.calibration_point_reached.emit(n, self.num_cal, x, y, z)
 
-                    if n > 0:
-                        time.sleep(1.0)  # let camera catch up
-                        self.match_templates()
-                    
-                    # wait for correspondence points to arrive
+                    # If we are using a mock stage, automatically
+                    #  select known correspondence points
+                    if config['mock_sim']['auto_select_corr_points'] and hasattr(self.stage, 'get_tip_position'):
+                        tip_pos = self.stage.get_tip_position()
+                        pts = {}
+                        for screen in Model.instance.main_window.screens():
+                            camera = screen.screen_widget.camera
+                            pos = camera.camera_tr.map(tip_pos.coordinates)
+                            pts[camera.name()] = pos[:2]
+                        self.suggested_corr_points.emit(pts)
+                    else:
+                        # Attempt to select correspondence points based on template match
+                        if n > 0:
+                            time.sleep(0.25)  # let camera catch up
+                            self.match_templates()
+
+                    # wait for user to confirm correspondence points
                     lcorr, rcorr = self.corr_point_queue.get()
 
                     if n == 0:
+                        # Add template images to calibration (maybe this could be a 
+                        # running average instead of one-time?)
                         self.collect_templates([lcorr, rcorr])
 
-                        # add to calibration
+                    # add points to calibration
                     self.calibration.add_points(lcorr, rcorr, self.stage.get_position())
                     n += 1
         self.finished.emit()
