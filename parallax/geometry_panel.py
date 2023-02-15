@@ -112,10 +112,11 @@ class GeometryPanel(QFrame):
     def start_cal_thread(self, stage, res, extent):
         self.model.cal_in_progress = True
         self.cal_thread = QThread()
-        self.cal_worker = CalibrationWorker(stage, res, extent)
+        self.cal_worker = CalibrationWorker(stage, self.model.cameras, res, extent)
         self.cal_worker.moveToThread(self.cal_thread)
         self.cal_thread.started.connect(self.cal_worker.run)
         self.cal_worker.calibration_point_reached.connect(self.handle_cal_point_reached)
+        self.cal_worker.suggested_corr_points.connect(self.show_suggested_corr_points)
         self.cal_thread.finished.connect(self.handle_cal_finished)
         self.cal_worker.finished.connect(self.cal_thread.quit)
         self.cal_thread.finished.connect(self.cal_thread.deleteLater)
@@ -125,6 +126,7 @@ class GeometryPanel(QFrame):
     def handle_cal_point_reached(self, n, num_cal, x,y,z):
         self.msg_posted.emit('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,num_cal, x,y,z))
         self.msg_posted.emit('Highlight correspondence points and press C to continue')
+        self.auto_select_cal_point()
         self.cal_point_reached.emit()
 
     def register_corr_points_cal(self):
@@ -217,3 +219,17 @@ class GeometryPanel(QFrame):
         self.rbt_tool.generated.connect(self.update_transforms)
         self.rbt_tool.show()
 
+    def auto_select_cal_point(self):
+        # auto-calibrate mock stage
+        stage = self.cal_worker.stage
+        if config['mock_sim']['auto_select_corr_points'] and hasattr(stage, 'get_tip_position'):
+            tip_pos = stage.get_tip_position()
+            for screen in self.model.main_window.screens():
+                pos = screen.camera.camera_tr.map(tip_pos.coordinates)
+                screen.set_selected(pos[:2])
+
+    def show_suggested_corr_points(self, pts):
+        screens = {screen.screen_widget.camera.name():screen for screen in self.model.main_window.screens()}
+        for cam_name, pt in pts.items():
+            screens[cam_name].set_selected(pt)
+            

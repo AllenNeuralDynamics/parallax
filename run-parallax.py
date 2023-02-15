@@ -17,13 +17,15 @@ logger.addHandler(log_handler)
 
 app = QApplication([])
 
+args = parallax.config.parse_cli_args()
+parallax.config.init_config(args)
+
 model = Model()
 atexit.register(model.clean)
 
 main_window = MainWindow(model)
 main_window.show()
 
-args = parallax.config.parse_cli_args()
-parallax.config.init_config(args, model, main_window)
+parallax.config.post_init_config(model, main_window)
 
 app.exec()

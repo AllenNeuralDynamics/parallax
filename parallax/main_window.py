@@ -165,7 +165,6 @@ class MainWidget(QSplitter):
         self.geo_panel.msg_posted.connect(self.msg_log.post)
         self.geo_panel.cal_point_reached.connect(self.clear_selected)
         self.geo_panel.cal_point_reached.connect(self.zoom_out)
-        self.geo_panel.cal_point_reached.connect(self.auto_select_cal_point)
         self.model.msg_posted.connect(self.msg_log.post)
 
     def add_screen(self):
@@ -212,13 +211,3 @@ class MainWidget(QSplitter):
         # send correspondence points to model
         pts = [ctrl.screen_widget.get_selected() for ctrl in self.screens]
         self.model.set_correspondence_points(pts)
-
-    def auto_select_cal_point(self):
-        # auto-calibrate mock stage
-        stage = self.geo_panel.cal_worker.stage
-        if hasattr(stage, 'get_tip_position'):
-            tip_pos = stage.get_tip_position()
-            for ctrl in self.model.main_window.screens():
-                screen = ctrl.screen_widget
-                pos = screen.camera.camera_tr.map(tip_pos.coordinates)
-                screen.set_selected(pos[:2])

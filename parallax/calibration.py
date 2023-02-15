@@ -21,6 +21,7 @@ class Calibration:
         self.img_points1 = []
         self.img_points2 = []
         self.obj_points = []
+        self.template_images = {}
 
     def save(self, filename):
         with open(filename, 'wb') as f:

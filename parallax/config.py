@@ -2,16 +2,17 @@ import json, argparse
 
 # global configuration
 config = {
-    'views': [{}, {}],
-    'cameras': [],
-    'stages': [],
-    'mock_sim': {
-        'show_checkers': True,
-        'show_axes': True,
+    "views": [{}, {}],
+    "cameras": [],
+    "stages": [],
+    "mock_sim": {
+        "show_checkers": True,
+        "show_axes": True,
+        "auto_select_corr_points": True,
     },
-    'calibration_path': './calibrations',
-    'console_history_file': './console_history',
-    'console_edit_command': 'code -g {fileName}:{lineNum}',
+    "calibration_path": "./calibrations",
+    "console_history_file": "./console_history",
+    "console_edit_command": "code -g {fileName}:{lineNum}",
 }
 
 
@@ -25,7 +26,7 @@ def parse_cli_args():
     return args
 
 
-def init_config(args, model, main_window):
+def init_config(args):
     global config
     if args.config is not None:
         loaded_config = json.load(open(args.config, 'r'))
@@ -34,6 +35,7 @@ def init_config(args, model, main_window):
                 raise KeyError(f"Invalid config key {k}")
             config[k] = v
 
+def post_init_config(model, main_window):
     for i,view in enumerate(config['views']):
         screen_widget_ctrl = main_window.widget.add_screen()
         if 'default_camera' in view:

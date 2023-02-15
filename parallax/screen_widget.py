@@ -52,6 +52,15 @@ class ScreenWidgetControl(QWidget):
     def clear_selected(self):
         self.screen_widget.clear_selected()
 
+    def get_selected(self):
+        return self.screen_widget.get_selected()
+    
+    def set_selected(self, pos):
+        self.screen_widget.set_selected(pos)
+    
+    def clear_selected(self):
+        self.screen_widget.clear_selected()
+
 
 class ScreenWidget(pg.GraphicsView):
 
@@ -137,9 +146,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def image_clicked(self, event):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:            
-            self.click_target.setPos(event.pos())
-            self.click_target.setVisible(True)
-            self.selected.emit(*self.get_selected())
+            self.set_selected(event.pos())
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:            
             self.zoom_out()
 
