@@ -1,3 +1,4 @@
+import time
 from PyQt5.QtCore import QObject, pyqtSignal
 import numpy as np
 import cv2 as cv
@@ -47,6 +48,7 @@ class CalibrationWorker(QObject):
                     self.calibration_point_reached.emit(n, self.num_cal, x, y, z)
 
                     if n > 0:
+                        time.sleep(1.0)  # let camera catch up
                         self.match_templates()
                     
                     # wait for correspondence points to arrive
@@ -78,12 +80,45 @@ class CalibrationWorker(QObject):
         for cam in self.cameras:
             img = cam.get_last_image_data()
             template = self.calibration.template_images[cam.name()]
-            res = cv.matchTemplate(img, template, method)
-            if method in (cv.TM_SQDIFF, cv.TM_SQDIFF_NORMED):
-                ext = res.argmin()
-            else:
-                ext = res.argmax()
-            mx = np.array(np.unravel_index(ext, res.shape))
+            res, mx = fast_template_match(img, template, method)
             result[cam.name()] = mx[::-1] + self.template_radius
 
         self.suggested_corr_points.emit(result)
+
+
+def template_match(img, template, method):
+    # should we look for min or max in match results
+    ext_method = 'argmax'
+    if method in (cv.TM_SQDIFF, cv.TM_SQDIFF_NORMED):
+        ext_method = 'argmin'
+    res = cv.matchTemplate(img, template, method)
+    ext = getattr(res, ext_method)()
+    mx = np.array(np.unravel_index(ext, res.shape))
+    return res, mx
+
+
+def fast_template_match(img, template, method, downsample=10):
+    """2-stage template match for better performance
+    """
+
+    # first convert to greyscale
+    img = img.mean(axis=2).astype('ubyte')
+    template = template.mean(axis=2).astype('ubyte')
+
+    # do a quick template match on downsampled images
+    img2 = img[::downsample, ::downsample]
+    template2 = template[::downsample, ::downsample]
+
+    res, mx = template_match(img2, template2, method)
+    mx = mx * downsample
+
+    crop = [
+        (max(0, mx[0] - downsample*2), mx[0] + template.shape[0] + downsample*2),
+        (max(0, mx[1] - downsample*2), mx[1] + template.shape[1] + downsample*2),
+    ]
+
+    img3 = img[crop[0][0]:crop[0][1], crop[1][0]:crop[1][1]]
+    res, mx = template_match(img3, template, method)
+    mx = mx + [crop[0][0], crop[1][0]]
+
+    return res, mx

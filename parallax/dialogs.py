@@ -238,7 +238,7 @@ class TargetDialog(QDialog):
     def get_params(self):
         params = {}
         if self.obj_point is None:
-            params['point'] = np.array([self.xedit.text(), self.yedit.text(), self.zedit.text()])
+            params['point'] = np.array([float(self.xedit.text()), float(self.yedit.text()), float(self.zedit.text())])
             params['relative'] = self.abs_rel_toggle.isChecked()
         else:
             params['point'] = self.obj_point
