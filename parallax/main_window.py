@@ -180,7 +180,7 @@ class MainWidget(QWidget):
             x = np.random.uniform(-2000, 2000)
             y = np.random.uniform(-2000, 2000)
             z = np.random.uniform(-2000, 2000)
-            self.control_panlel1.stage.move_to_target_3d(x, y, z,
+            self.control_panel1.stage.move_to_target_3d(x, y, z,
                                     relative=True, safe=True)
             self.msg_log.post('Moved to relative position: '
                                 '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
