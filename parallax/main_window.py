@@ -9,6 +9,7 @@ from .control_panel import ControlPanel
 from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool
+from .template_tool import TemplateTool
 from .stage_manager import StageManager
 
 
@@ -33,6 +34,8 @@ class MainWindow(QMainWindow):
         self.manage_stages_action.triggered.connect(self.launch_stage_manager)
         self.refresh_focos_action = QAction("Refresh Focus Controllers")
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
+        self.tt_action = QAction("Generate Template")
+        self.tt_action.triggered.connect(self.launch_tt)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.console_action = QAction("Python Console")
@@ -55,6 +58,7 @@ class MainWindow(QMainWindow):
 
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
+        self.tools_menu.addAction(self.tt_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -80,6 +84,10 @@ class MainWindow(QMainWindow):
     def launch_rbt(self):
         self.rbt = RigidBodyTransformTool(self.model)
         self.rbt.show()
+
+    def launch_tt(self):
+        self.tt = TemplateTool(self.model)
+        self.tt.show()
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)

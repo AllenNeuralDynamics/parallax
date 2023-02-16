@@ -57,6 +57,7 @@ class RandomWalkDetector():
         self.control_panel.setMinimumWidth(300)
         self.control_panel.show()
 
+
 def template_match(img, template, method):
     res = cv2.matchTemplate(img, template, method)
     if method == cv2.TM_SQDIFF_NORMED:
@@ -66,11 +67,13 @@ def template_match(img, template, method):
     mx = np.array(np.unravel_index(ext, res.shape))
     return res, mx
 
+
 class TemplateMatchDetector():
 
     name = 'Template Match'
 
     scaling = 0.25
+    rad = 100
     method = cv2.TM_CCORR_NORMED
     #interp = cv2.INTER_LINEAR
     interp = cv2.INTER_NEAREST
@@ -89,7 +92,8 @@ class TemplateMatchDetector():
         if self.template_scaled is not None:
             frame_scaled = self.scale(frame)
             res, mx = template_match(frame_scaled, self.template_scaled, self.method)
-            return (mx[1], mx[0])
+            y,x = tuple(mx / self.scaling + self.rad)
+            return (x,y)
         else:
             return (0,0)
 
