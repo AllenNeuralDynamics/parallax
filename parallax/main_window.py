@@ -4,11 +4,12 @@ from PyQt5.QtGui import QIcon
 import pyqtgraph.console
 
 from .message_log import MessageLog
-from .screen_widget import ScreenWidgetControl
+from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
 from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool
+from .template_tool import TemplateTool
 from .stage_manager import StageManager
 
 
@@ -33,6 +34,8 @@ class MainWindow(QMainWindow):
         self.manage_stages_action.triggered.connect(self.launch_stage_manager)
         self.refresh_focos_action = QAction("Refresh Focus Controllers")
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
+        self.tt_action = QAction("Generate Template")
+        self.tt_action.triggered.connect(self.launch_tt)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.console_action = QAction("Python Console")
@@ -55,6 +58,7 @@ class MainWindow(QMainWindow):
 
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
+        self.tools_menu.addAction(self.tt_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -80,6 +84,10 @@ class MainWindow(QMainWindow):
     def launch_rbt(self):
         self.rbt = RigidBodyTransformTool(self.model)
         self.rbt.show()
+
+    def launch_tt(self):
+        self.tt = TemplateTool(self.model)
+        self.tt.show()
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)
@@ -115,8 +123,8 @@ class MainWidget(QWidget):
 
         self.screens = QWidget()
         hlayout = QHBoxLayout()
-        self.lscreen = ScreenWidgetControl(model=self.model)
-        self.rscreen = ScreenWidgetControl(model=self.model)
+        self.lscreen = ScreenWidget(model=self.model)
+        self.rscreen = ScreenWidget(model=self.model)
         hlayout.addWidget(self.lscreen)
         hlayout.addWidget(self.rscreen)
         self.screens.setLayout(hlayout)

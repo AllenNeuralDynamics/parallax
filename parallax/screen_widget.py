@@ -1,54 +1,14 @@
 import functools
 import cv2
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QSlider
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QSlider, QMenu
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
 import pyqtgraph as pg
+import inspect
+import importlib
 
-
-class ScreenWidgetControl(QWidget):
-
-    selected = pyqtSignal(int, int)
-    cleared = pyqtSignal()
-
-    def __init__(self, filename=None, model=None, parent=None):
-        QWidget.__init__(self)
-        self.screen_widget = ScreenWidget(filename, model, parent)
-
-        self.contrast_slider = QSlider(Qt.Horizontal)
-        self.contrast_slider.setValue(50)
-        self.contrast_slider.setToolTip('Contrast')
-
-        self.brightness_slider = QSlider(Qt.Horizontal)
-        self.brightness_slider.setValue(0)
-        self.brightness_slider.setToolTip('Brightness')
-
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.screen_widget)
-        self.layout.addWidget(self.contrast_slider)
-        self.layout.addWidget(self.brightness_slider)
-        self.setLayout(self.layout)
-
-        # connections
-        self.screen_widget.selected.connect(self.selected)
-        self.screen_widget.cleared.connect(self.cleared)
-        self.contrast_slider.sliderMoved.connect(self.screen_widget.set_alpha)
-        self.brightness_slider.sliderMoved.connect(self.screen_widget.set_beta)
-
-    def update_camera_menu(self):
-        self.screen_widget.update_camera_menu()
-
-    def update_focus_control_menu(self):
-        self.screen_widget.update_focus_control_menu()
-
-    def refresh(self):
-        self.screen_widget.refresh()
-
-    def zoom_out(self):
-        self.screen_widget.zoom_out()
-
-    def clear_selected(self):
-        self.screen_widget.clear_selected()
+from . import filters
+from . import detectors
 
 
 class ScreenWidget(pg.GraphicsView):
@@ -76,9 +36,12 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target.setVisible(False)
 
         self.camera_actions = []
-        self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
-
         self.focochan_actions = []
+        self.filter_actions = []
+        self.detector_actions = []
+
+        # still needed?
+        self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
 
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
@@ -87,16 +50,19 @@ class ScreenWidget(pg.GraphicsView):
 
         self.camera = None
         self.focochan = None
+        self.filter = filters.NoFilter()
+        self.detector = detectors.NoDetector()
 
-        # gain and contrast
-        self.alpha = 1.0
-        self.beta = 0.0
+        # sub-menus
+        self.parallax_menu = QMenu("Parallax", self.view_box.menu)
+        self.camera_menu = self.parallax_menu.addMenu("Cameras")
+        self.focochan_menu = self.parallax_menu.addMenu("Focus Controllers")
+        self.filter_menu = self.parallax_menu.addMenu("Filters")
+        self.detector_menu = self.parallax_menu.addMenu("Detectors")
+        self.view_box.menu.insertMenu(self.view_box.menu.actions()[0], self.parallax_menu)
 
-    def set_alpha(self, value):
-        self.alpha = value / 50
-
-    def set_beta(self, value):
-        self.beta = value
+        self.update_filter_menu()
+        self.update_detector_menu()
 
     def refresh(self):
         if self.camera:
@@ -108,38 +74,62 @@ class ScreenWidget(pg.GraphicsView):
         self.cleared.emit()
 
     def set_data(self, data):
-        data = cv2.convertScaleAbs(data, alpha=self.alpha, beta=self.beta)
+        data = self.filter.process(data)
+        pos = self.detector.process(data)
+        if pos is not None:
+            self.select(pos)
         self.image_item.setImage(data, autoLevels=False)
 
     def update_camera_menu(self):
         for act in self.camera_actions:
             act.triggered.disconnect(act.callback)
-            self.view_box.menu.removeAction(act)
+            self.camera_menu.removeAction(act)
         for camera in self.model.cameras:
-            act = QAction(camera.name())
+            act = self.camera_menu.addAction(camera.name())
             act.callback = functools.partial(self.set_camera, camera)
             act.triggered.connect(act.callback)
             self.camera_actions.append(act)
-            self.view_box.menu.insertAction(self.camera_action_separator, act)
 
     def update_focus_control_menu(self):
         for act in self.focochan_actions:
-            self.view_box.menu.removeAction(act)
+            self.focochan_menu.removeAction(act)
         for foco in self.model.focos:
-            for chan in range(3):
-                act = QAction(foco.ser.port + ', channel %d' % chan)
+            for chan in range(6):
+                act = self.focochan_menu.addAction(foco.ser.port + ', channel %d' % chan)
                 act.callback = functools.partial(self.set_focochan, foco, chan)
                 act.triggered.connect(act.callback)
                 self.focochan_actions.append(act)
-                self.view_box.menu.insertAction(self.camera_action_separator, act)
+
+    def update_filter_menu(self):
+        for act in self.filter_actions:
+            self.filter_menu.removeAction(act)
+        for name, obj in inspect.getmembers(filters):
+            if inspect.isclass(obj) and (obj.__module__ == 'parallax.filters'):
+                act = self.filter_menu.addAction(obj.name)
+                act.callback = functools.partial(self.set_filter, obj)
+                act.triggered.connect(act.callback)
+                self.filter_actions.append(act)
+
+    def update_detector_menu(self):
+        for act in self.detector_actions:
+            self.detector_menu.removeAction(act)
+        for name, obj in inspect.getmembers(detectors):
+            if inspect.isclass(obj) and (obj.__module__ == 'parallax.detectors'):
+                act = self.detector_menu.addAction(obj.name)
+                act.callback = functools.partial(self.set_detector, obj)
+                act.triggered.connect(act.callback)
+                self.detector_actions.append(act)
 
     def image_clicked(self, event):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:            
-            self.click_target.setPos(event.pos())
-            self.click_target.setVisible(True)
-            self.selected.emit(*self.get_selected())
+            self.select(event.pos())
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:            
             self.zoom_out()
+
+    def select(self, pos):
+        self.click_target.setPos(pos)
+        self.click_target.setVisible(True)
+        self.selected.emit(*self.get_selected())
 
     def zoom_out(self):
         self.view_box.autoRange()
@@ -150,6 +140,14 @@ class ScreenWidget(pg.GraphicsView):
 
     def set_focochan(self, foco, chan):
         self.focochan = (foco, chan)
+
+    def set_filter(self, filt):
+        self.filter = filt()
+        self.filter.launch_control_panel()
+
+    def set_detector(self, detector):
+        self.detector = detector()
+        self.detector.launch_control_panel()
 
     def get_selected(self):
         if self.click_target.isVisible():
