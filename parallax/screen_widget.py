@@ -43,9 +43,6 @@ class ScreenWidget(pg.GraphicsView):
         # still needed?
         self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
 
-        if self.filename:
-            self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
-
         self.clear_selected()
 
         self.camera = None
@@ -63,6 +60,9 @@ class ScreenWidget(pg.GraphicsView):
 
         self.update_filter_menu()
         self.update_detector_menu()
+
+        if self.filename:
+            self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
     def refresh(self):
         if self.camera:
