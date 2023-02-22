@@ -10,7 +10,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 
 from .helper import FONT_BOLD
 
-class NoDetector():
+class NoDetector:
 
     name = "None"
 
@@ -23,7 +23,7 @@ class NoDetector():
         pass
 
 
-class RandomWalkDetector():
+class RandomWalkDetector:
 
     name = 'Random Walk'
 
@@ -71,7 +71,7 @@ def template_match(img, template, method):
     return res, mx
 
 
-class TemplateMatchDetector():
+class TemplateMatchDetector:
 
     name = 'Template Match'
 

@@ -4,7 +4,7 @@ import numpy as np
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider
 from PyQt5.QtCore import pyqtSignal, Qt
 
-class NoFilter():
+class NoFilter:
 
     name = "None"
 
@@ -17,7 +17,7 @@ class NoFilter():
     def launch_control_panel(self):
         pass
 
-class AlphaBetaFilter():
+class AlphaBetaFilter:
 
     name = 'Brightness and Contrast'
 
@@ -52,7 +52,7 @@ class AlphaBetaFilter():
         self.control_panel.setMinimumWidth(300)
         self.control_panel.show()
 
-class DifferenceFilter():
+class DifferenceFilter:
 
     name = 'Difference'
 

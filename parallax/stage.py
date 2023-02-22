@@ -2,7 +2,7 @@ from newscale.multistage import USBXYZStage, PoEXYZStage
 from newscale.interfaces import USBInterface
 
 
-class Stage():
+class Stage:
 
     def __init__(self, ip=None, serial=None):
 
