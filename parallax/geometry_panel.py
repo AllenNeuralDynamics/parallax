@@ -31,14 +31,14 @@ class GeometryPanel(QFrame):
         self.cal_apply_button = QPushButton('Apply')
         self.cal_load_button = QPushButton('Load')
         self.cal_save_button = QPushButton('Save')
-        self.cal_gen_button = QPushButton('Generate')
+        self.cal_start_stop_button = QPushButton('Start')
         cal_layout = QGridLayout()
         cal_layout.addWidget(self.cal_label, 0,0,1,3)
         cal_layout.addWidget(self.cal_combo, 1,0,1,2)
         cal_layout.addWidget(self.cal_apply_button, 1,2,1,1)
         cal_layout.addWidget(self.cal_load_button, 2,0,2,1)
         cal_layout.addWidget(self.cal_save_button, 2,1,2,1)
-        cal_layout.addWidget(self.cal_gen_button, 2,2,2,1)
+        cal_layout.addWidget(self.cal_start_stop_button, 2,2,2,1)
         #   transforms layout
         self.transforms_label = QLabel('Transforms')
         self.transforms_label.setAlignment(Qt.AlignCenter)
@@ -62,7 +62,7 @@ class GeometryPanel(QFrame):
         # connections
         self.cal_load_button.clicked.connect(self.load_cal)
         self.cal_save_button.clicked.connect(self.save_cal)
-        self.cal_gen_button.clicked.connect(self.launch_cal_dialog)
+        self.cal_start_stop_button.clicked.connect(self.cal_start_stop)
         self.cal_apply_button.clicked.connect(self.triangulate)
         self.transforms_save_button.clicked.connect(self.save_transform)
         self.transforms_load_button.clicked.connect(self.load_transform)
@@ -94,17 +94,17 @@ class GeometryPanel(QFrame):
         self.msg_posted.emit('Reconstructed object point: '
                             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
 
-    def launch_cal_dialog(self):
-
-        dlg = CalibrationDialog(self.model)
-        if dlg.exec_():
-
-            stage = dlg.get_stage()
-            res = dlg.get_resolution()
-            extent = dlg.get_extent()
-            name = dlg.get_name()
-
-            self.start_cal_thread(stage, res, extent, name)
+    def cal_start_stop(self):
+        if self.cal_start_stop_button.text() == 'Start':
+            dlg = CalibrationDialog(self.model)
+            if dlg.exec_():
+                stage = dlg.get_stage()
+                res = dlg.get_resolution()
+                extent = dlg.get_extent()
+                name = dlg.get_name()
+                self.start_cal_thread(stage, res, extent, name)
+        elif self.cal_start_stop_button.text() == 'Stop':
+            self.stop_cal_thread()
 
     def start_cal_thread(self, stage, res, extent, name):
         self.model.cal_in_progress = True
@@ -118,6 +118,11 @@ class GeometryPanel(QFrame):
         self.cal_thread.finished.connect(self.cal_thread.deleteLater)
         self.msg_posted.emit('Starting Calibration...')
         self.cal_thread.start()
+        self.cal_start_stop_button.setText('Stop')
+
+    def stop_cal_thread(self):
+        self.cal_worker.stop()
+        self.cal_start_stop_button.setText('Start')
 
     def handle_cal_point_reached(self, n, num_cal, x,y,z):
         self.msg_posted.emit('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,num_cal, x,y,z))
@@ -135,16 +140,20 @@ class GeometryPanel(QFrame):
             self.msg_posted.emit('Highlight correspondence points and press C to continue')
 
     def handle_cal_finished(self):
-        cal = Calibration(self.cal_worker.name)
-        img_points1, img_points2 = self.cal_worker.get_image_points()
-        obj_points = self.cal_worker.get_object_points()
-        origin = self.cal_worker.stage.get_origin()
-        cal.calibrate(img_points1, img_points2, obj_points, origin)
-        self.msg_posted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
-                                (cal.rmse1, cal.rmse2))
-        self.model.add_calibration(cal)
-        self.update_cals()
+        if self.cal_worker.complete:
+            cal = Calibration(self.cal_worker.name)
+            img_points1, img_points2 = self.cal_worker.get_image_points()
+            obj_points = self.cal_worker.get_object_points()
+            origin = self.cal_worker.stage.get_origin()
+            cal.calibrate(img_points1, img_points2, obj_points, origin)
+            self.msg_posted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
+                                    (cal.rmse1, cal.rmse2))
+            self.model.add_calibration(cal)
+            self.update_cals()
+        else:
+            self.msg_posted.emit('Calibration aborted.')
         self.model.cal_in_progress = False
+        self.cal_start_stop_button.setText('Start')
 
     def load_cal(self):
         filename = QFileDialog.getOpenFileName(self, 'Load calibration file', '.',

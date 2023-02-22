@@ -21,12 +21,14 @@ class CalibrationWorker(QObject):
         self.resolution = resolution
         self.extent_um = extent_um
 
-        self.ready_to_go = False
         self.object_points = []  # units are mm
         self.num_cal = self.resolution**3
 
         self.img_points1 = []
         self.img_points2 = []
+
+        self.complete = False
+        self.alive = True
 
     def register_corr_points(self, lcorr, rcorr):
         self.img_points1.append(lcorr)
@@ -34,6 +36,9 @@ class CalibrationWorker(QObject):
 
     def carry_on(self):
         self.ready_to_go = True
+
+    def stop(self):
+        self.alive = False
 
     def run(self):
         mx =  self.extent_um / 2.
@@ -45,10 +50,20 @@ class CalibrationWorker(QObject):
                     self.stage.move_to_target_3d(x,y,z, relative=True, safe=False)
                     self.calibration_point_reached.emit(n,self.num_cal, x,y,z)
                     self.ready_to_go = False
-                    while not self.ready_to_go:
+                    while self.alive and not self.ready_to_go:
                         time.sleep(0.1)
+                    if not self.alive:
+                        break
                     self.object_points.append([x,y,z])
                     n += 1
+                else:
+                    continue
+                break
+            else:
+                continue
+            break
+        else:
+            self.complete = True
         self.finished.emit()
 
     def get_image_points(self):
