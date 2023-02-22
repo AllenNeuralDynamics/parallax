@@ -10,6 +10,7 @@ dependencies:
   - pyqt>=5.15
   - pip
   - scipy
+  - pyserial
   - pip:
     - pyqtgraph
     - opencv-python-headless
