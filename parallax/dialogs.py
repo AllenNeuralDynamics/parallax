@@ -1,12 +1,10 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QRadioButton, QSpinBox
+from PyQt5.QtWidgets import QPushButton, QLabel, QSpinBox
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QDoubleValidator
-
+import pyqtgraph as pg
 import numpy as np
-import time
-import datetime
 
 from .toggle_switch import ToggleSwitch
 from .helper import FONT_BOLD
@@ -362,3 +360,61 @@ class AboutDialog(QDialog):
         y = float(self.yedit.text())
         z = float(self.zedit.text())
         return x,y,z
+
+
+class TrainingDataDialog(QDialog):
+
+    def __init__(self, model):
+        QDialog.__init__(self)
+        self.model = model
+
+        self.setWindowTitle('Training Data Generator')
+
+        self.stage_label = QLabel('Select a Stage:')
+        self.stage_label.setAlignment(Qt.AlignCenter)
+        self.stage_label.setFont(FONT_BOLD)
+
+        self.stage_dropdown = StageDropdown(self.model)
+        self.stage_dropdown.activated.connect(self.update_status)
+
+        self.img_count_label = QLabel('Image Count:')
+        self.img_count_label.setAlignment(Qt.AlignCenter)
+        self.img_count_box = QSpinBox()
+        self.img_count_box.setMinimum(1)
+        self.img_count_box.setValue(100)
+
+        self.extent_label = QLabel('Extent:')
+        self.extent_label.setAlignment(Qt.AlignCenter)
+        self.extent_spin = pg.SpinBox(value=4e-3, suffix='m', siPrefix=True, bounds=[0.1e-3, 20e-3], dec=True, step=0.5, minStep=1e-6, compactHeight=False)
+
+        self.go_button = QPushButton('Start Data Collection')
+        self.go_button.setEnabled(False)
+        self.go_button.clicked.connect(self.go)
+
+        layout = QGridLayout()
+        layout.addWidget(self.stage_label, 0,0, 1,1)
+        layout.addWidget(self.stage_dropdown, 0,1, 1,1)
+        layout.addWidget(self.img_count_label, 1,0, 1,1)
+        layout.addWidget(self.img_count_box, 1,1, 1,1)
+        layout.addWidget(self.extent_label, 2,0, 1,1)
+        layout.addWidget(self.extent_spin, 2,1, 1,1)
+        layout.addWidget(self.go_button, 4,0, 1,2)
+        self.setLayout(layout)
+
+        self.setMinimumWidth(300)
+
+    def get_stage(self):
+        return self.stage_dropdown.current_stage()
+
+    def get_img_count(self):
+        return self.img_count_box.value()
+
+    def get_extent(self):
+        return self.extent_spin.value() * 1e6
+
+    def go(self):
+        self.accept()
+
+    def update_status(self):
+        if self.stage_dropdown.is_selected():
+            self.go_button.setEnabled(True)

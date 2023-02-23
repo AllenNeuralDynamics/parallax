@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QMainWindow, QAction
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QVBoxLayout, QGridLayout, QMainWindow, QAction, QSplitter
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
@@ -11,6 +11,7 @@ from .dialogs import AboutDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
 from .stage_manager import StageManager
+from .training_data import TrainingDataCollector
 
 
 class MainWindow(QMainWindow):
@@ -18,6 +19,11 @@ class MainWindow(QMainWindow):
     def __init__(self, model):
         QMainWindow.__init__(self)
         self.model = model
+
+        # allow main window to be accessed globally
+        model.main_window = self
+
+        self.data_collector = None
 
         self.widget = MainWidget(model)
         self.setCentralWidget(self.widget)
@@ -40,6 +46,8 @@ class MainWindow(QMainWindow):
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
+        self.training_data_action = QAction("Collect Training Data")
+        self.training_data_action.triggered.connect(self.collect_training_data)
         self.about_action = QAction("About")
         self.about_action.triggered.connect(self.launch_about)
 
@@ -60,6 +68,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.tt_action)
         self.tools_menu.addAction(self.console_action)
+        self.tools_menu.addAction(self.training_data_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
         self.help_menu.addAction(self.about_action)
@@ -114,6 +123,9 @@ class MainWindow(QMainWindow):
         for screen in self.screens():
             screen.update_focus_control_menu()
 
+    def collect_training_data(self):
+        self.data_collector = TrainingDataCollector(self.model)
+        self.data_collector.start()
 
 class MainWidget(QWidget):
 
