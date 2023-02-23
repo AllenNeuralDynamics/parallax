@@ -9,9 +9,10 @@ from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
 from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
+from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
-from .stage_manager import StageManager
+from .accuracy_testing_tool import AccuracyTestingTool
 
 
 class MainWindow(QMainWindow):
@@ -39,6 +40,8 @@ class MainWindow(QMainWindow):
         self.tt_action.triggered.connect(self.launch_tt)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
+        self.accutest_action = QAction("Accuracy Testing Tool")
+        self.accutest_action.triggered.connect(self.launch_accutest)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -60,6 +63,7 @@ class MainWindow(QMainWindow):
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.tt_action)
+        self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -89,6 +93,10 @@ class MainWindow(QMainWindow):
     def launch_tt(self):
         self.tt = TemplateTool(self.model)
         self.tt.show()
+
+    def launch_accutest(self):
+        self.accutest = AccuracyTestingTool(self.model)
+        self.accutest.show()
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)
