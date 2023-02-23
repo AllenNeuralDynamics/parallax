@@ -140,6 +140,8 @@ class ControlPanel(QFrame):
                                         '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
                 self.update_coordinates()
                 self.target_reached.emit()
+            else:
+                self.msg_posted.emit('Move to target: no stage selected.')
 
     def handle_settings(self, *args):
         if self.stage:
