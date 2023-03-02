@@ -1,13 +1,15 @@
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, QThread
+
 import numpy as np
 import serial.tools.list_ports
-from mis_focus_controller import FocusController
 
+from mis_focus_controller import FocusController
 from newscale.interfaces import NewScaleSerial
 
 from .camera import list_cameras, close_cameras
 from .stage import Stage
+from .accuracy_test import AccuracyTestWorker
 
 
 class Model(QObject):
@@ -22,7 +24,9 @@ class Model(QObject):
 
         self.calibration = None
         self.calibrations = {}
+    
         self.cal_in_progress = False
+        self.accutest_in_progress = False
 
         self.lcorr, self.rcorr = False, False
         
@@ -97,3 +101,39 @@ class Model(QObject):
 
     def get_transform(self, name):
         return self.transforms[name]
+
+    def handle_accutest_point_reached(self, i, npoints):
+        self.msg_posted.emit('Accuracy test point %d (of %d) reached.' % (i+1,npoints))
+        self.clear_lcorr()
+        self.clear_rcorr()
+        self.msg_posted.emit('Highlight correspondence points and press C to continue')
+
+    def register_corr_points_accutest(self):
+        lcorr, rcorr = self.lcorr, self.rcorr
+        if (lcorr and rcorr):
+            self.accutest_worker.register_corr_points(lcorr, rcorr)
+            self.msg_posted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
+                                    (lcorr[0],lcorr[1], rcorr[0],rcorr[1]))
+            self.accutest_worker.carry_on()
+        else:
+            self.msg_posted.emit('Highlight correspondence points and press C to continue')
+
+    def handle_accutest_finished(self):
+        self.accutest_in_progress = False
+
+    def start_accuracy_test(self, params):
+        self.accutest_thread = QThread()
+        self.accutest_worker = AccuracyTestWorker(params)
+        self.accutest_worker.moveToThread(self.accutest_thread)
+        self.accutest_thread.started.connect(self.accutest_worker.run)
+        self.accutest_worker.point_reached.connect(self.handle_accutest_point_reached)
+        self.accutest_thread.finished.connect(self.handle_accutest_finished)
+        self.accutest_worker.finished.connect(self.accutest_thread.quit)
+        self.accutest_thread.finished.connect(self.accutest_thread.deleteLater)
+        self.msg_posted.emit('Starting accuracy test...')
+        self.accutest_in_progress = True
+        self.accutest_thread.start()
+
+    def cancel_accuracy_test(self):
+        self.accutest_in_progress = False
+

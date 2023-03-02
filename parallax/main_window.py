@@ -12,7 +12,7 @@ from .dialogs import AboutDialog
 from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
-from .accuracy_testing_tool import AccuracyTestingTool
+from .accuracy_test import AccuracyTestDialog
 
 
 class MainWindow(QMainWindow):
@@ -95,8 +95,10 @@ class MainWindow(QMainWindow):
         self.tt.show()
 
     def launch_accutest(self):
-        self.accutest = AccuracyTestingTool(self.model)
-        self.accutest.show()
+        dlg = AccuracyTestDialog(self.model)
+        if dlg.exec_():
+            params = dlg.get_params()
+            self.model.start_accuracy_test(params)
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)
@@ -182,6 +184,8 @@ class MainWidget(QWidget):
         elif e.key() == Qt.Key_C:
             if self.model.cal_in_progress:
                 self.geo_panel.register_corr_points_cal()
+            if self.model.accutest_in_progress:
+                self.model.register_corr_points_accutest()
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
         elif e.key() == Qt.Key_T:
