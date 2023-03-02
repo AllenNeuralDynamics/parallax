@@ -102,7 +102,7 @@ class AccuracyTestWorker(QObject):
 
     def register_corr_points(self, lcorr, rcorr):
         xyz_recon = self.cal.triangulate(lcorr, rcorr)
-        self.results.append([self.last_stage_point + xyz_recon.tolist()])
+        self.results.append(self.last_stage_point + xyz_recon.tolist())
 
     def carry_on(self):
         self.ready_to_go = True
