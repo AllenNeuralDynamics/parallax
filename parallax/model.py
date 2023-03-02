@@ -127,6 +127,7 @@ class Model(QObject):
         self.accutest_worker.moveToThread(self.accutest_thread)
         self.accutest_thread.started.connect(self.accutest_worker.run)
         self.accutest_worker.point_reached.connect(self.handle_accutest_point_reached)
+        self.accutest_worker.msg_posted.connect(self.msg_posted)
         self.accutest_thread.finished.connect(self.handle_accutest_finished)
         self.accutest_worker.finished.connect(self.accutest_thread.quit)
         self.accutest_thread.finished.connect(self.accutest_thread.deleteLater)
