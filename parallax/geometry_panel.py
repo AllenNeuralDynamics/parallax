@@ -28,7 +28,7 @@ class GeometryPanel(QFrame):
         self.cal_label.setAlignment(Qt.AlignCenter)
         self.cal_label.setFont(FONT_BOLD)
         self.cal_combo = QComboBox()
-        self.cal_apply_button = QPushButton('Apply')
+        self.cal_apply_button = QPushButton('Triangulate')
         self.cal_load_button = QPushButton('Load')
         self.cal_save_button = QPushButton('Save')
         self.cal_start_stop_button = QPushButton('Start')

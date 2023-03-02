@@ -2,15 +2,17 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QMa
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
+import numpy as np
 
 from .message_log import MessageLog
 from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
 from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
+from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
-from .stage_manager import StageManager
+from .accuracy_test import AccuracyTestDialog
 
 
 class MainWindow(QMainWindow):
@@ -38,6 +40,8 @@ class MainWindow(QMainWindow):
         self.tt_action.triggered.connect(self.launch_tt)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
+        self.accutest_action = QAction("Accuracy Testing Tool")
+        self.accutest_action.triggered.connect(self.launch_accutest)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -59,6 +63,7 @@ class MainWindow(QMainWindow):
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.tt_action)
+        self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -88,6 +93,12 @@ class MainWindow(QMainWindow):
     def launch_tt(self):
         self.tt = TemplateTool(self.model)
         self.tt.show()
+
+    def launch_accutest(self):
+        dlg = AccuracyTestDialog(self.model)
+        if dlg.exec_():
+            params = dlg.get_params()
+            self.model.start_accuracy_test(params)
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)
@@ -173,8 +184,12 @@ class MainWidget(QWidget):
         elif e.key() == Qt.Key_C:
             if self.model.cal_in_progress:
                 self.geo_panel.register_corr_points_cal()
+            if self.model.accutest_in_progress:
+                self.model.register_corr_points_accutest()
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
+        elif e.key() == Qt.Key_T:
+            self.geo_panel.triangulate()
 
     def refresh(self):
         self.lscreen.refresh()
