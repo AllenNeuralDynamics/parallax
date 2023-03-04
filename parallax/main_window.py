@@ -12,7 +12,7 @@ from .dialogs import AboutDialog
 from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
-from .accuracy_test import AccuracyTestDialog
+from .accuracy_test import AccuracyTestTool
 
 
 class MainWindow(QMainWindow):
@@ -95,10 +95,8 @@ class MainWindow(QMainWindow):
         self.tt.show()
 
     def launch_accutest(self):
-        dlg = AccuracyTestDialog(self.model)
-        if dlg.exec_():
-            params = dlg.get_params()
-            self.model.start_accuracy_test(params)
+        self.accutest_tool = AccuracyTestTool(self.model)
+        self.accutest_tool.show()
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)

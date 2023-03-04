@@ -1,8 +1,12 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QDialog
-from PyQt5.QtWidgets import QGridLayout, QLineEdit, QComboBox
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QLineEdit, QComboBox
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QTabWidget
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSignal, Qt, QObject
 
 import numpy as np
+import pyqtgraph as pg
+import pyqtgraph.opengl as gl
 import time
 import datetime
 
@@ -11,13 +15,33 @@ from .stage_dropdown import StageDropdown
 from .helper import FONT_BOLD
 
 
-class AccuracyTestDialog(QDialog):
+class AccuracyTestTool(QWidget):
+    msg_posted = pyqtSignal(str)
+
+    def __init__(self, model):
+        QWidget.__init__(self, parent=None)
+        self.model = model
+
+        self.run_tab = AccuracyTestRunTab(self.model)
+        self.analyze_tab = AccuracyTestAnalyzeTab(self.model)
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(self.run_tab, 'Run')
+        self.tab_widget.addTab(self.analyze_tab, 'Analyze')
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.tab_widget)
+        self.setLayout(self.layout)
+
+        self.setWindowTitle('Accuracy Testing Tool')
+        self.setWindowIcon(QIcon('../img/sextant.png'))
+
+class AccuracyTestRunTab(QWidget):
     msg_posted = pyqtSignal(str)
 
     EXTENT_UM_DEFAULT = 4000
 
-    def __init__(self, model):
-        QDialog.__init__(self, parent=None)
+    def __init__(self, model, parent=None):
+        QWidget.__init__(self, parent=parent)
         self.model = model
 
         self.stage_label = QLabel('Select stage:')
@@ -45,10 +69,10 @@ class AccuracyTestDialog(QDialog):
 
         self.run_button = QPushButton('Run')
         self.run_button.setFont(FONT_BOLD)
-        self.run_button.clicked.connect(self.accept)
+        self.run_button.clicked.connect(self.start_accuracy_test)
 
         self.cancel_button = QPushButton('Cancel')
-        self.cancel_button.clicked.connect(self.reject)
+        self.cancel_button.clicked.connect(self.close)
 
         self.layout = QGridLayout()
         self.layout.addWidget(self.stage_label, 0,0, 1,1)
@@ -68,6 +92,9 @@ class AccuracyTestDialog(QDialog):
         self.setWindowTitle('Accuracy Testing Tool')
         self.setMinimumWidth(300)
 
+    def start_accuracy_test(self):
+        print('TODO: start_accuracy_test')
+
     def get_params(self):
         params = {}
         params['stage'] = self.stage_dropdown.get_current_stage()
@@ -80,7 +107,110 @@ class AccuracyTestDialog(QDialog):
 
     def keyPressEvent(self, ev):
         if ev.key() == Qt.Key_Enter or ev.key() == Qt.Key_Return:
-            self.accept()   # TODO set focus on Run button
+            self.run_button.animateClick()   # TODO set focus on Run button
+
+
+class AccuracyTestAnalyzeTab(QWidget):
+
+    def __init__(self, model, parent=None):
+        QWidget.__init__(self, parent=parent)
+        self.model = model
+
+        # File Load
+        self.file_label = QLabel('(no data file loaded)')
+        self.load_button = QPushButton('Load')
+        self.load_button.clicked.connect(self.handle_load)
+
+        self.histo_widget = self.create_histogram_widget()
+        self.scatter_widget = self.create_scatter_widget()
+
+        self.layout = QGridLayout()
+        self.layout.addWidget(self.file_label, 0,0, 1,2)
+        self.layout.addWidget(self.load_button, 0,2, 1,1)
+        self.layout.addWidget(self.histo_widget, 1,0, 2,3)
+        self.layout.addWidget(self.scatter_widget, 3,0, 2,3)
+        self.setLayout(self.layout)
+
+    def create_histogram_widget(self):
+        histo_widget = pg.GraphicsLayoutWidget()
+        pi_x = histo_widget.addPlot(row=0, col=0)
+        pi_x.setLabel('bottom', 'dx (um)')
+        pi_y = histo_widget.addPlot(row=0, col=1)
+        pi_y.setLabel('bottom', 'dy (um)')
+        pi_z = histo_widget.addPlot(row=0, col=2)
+        pi_z.setLabel('bottom', 'dz (um)')
+        return histo_widget
+
+    def update_histograms(self, dx, dy, dz, ds):
+        xhist, xbins = np.histogram(dx, bins=20)
+        yhist, ybins = np.histogram(dy, bins=20)
+        zhist, zbins = np.histogram(dz, bins=20)
+        shist, sbins = np.histogram(ds, bins=20)
+        bargraph_x = pg.BarGraphItem(x0=xbins[:-1], x1=xbins[1:], height=xhist, brush ='r')
+        bargraph_y = pg.BarGraphItem(x0=ybins[:-1], x1=ybins[1:], height=yhist, brush ='g')
+        bargraph_z = pg.BarGraphItem(x0=zbins[:-1], x1=zbins[1:], height=zhist, brush ='b')
+        bargraph_s = pg.BarGraphItem(x0=zbins[:-1], x1=sbins[1:], height=shist, brush ='y')
+        self.histo_widget.getItem(0,0).addItem(bargraph_x)
+        self.histo_widget.getItem(0,1).addItem(bargraph_y)
+        self.histo_widget.getItem(0,2).addItem(bargraph_z)
+        
+    def create_scatter_widget(self):
+        # create a common set of axes
+        coord = gl.GLAxisItem()
+        coord.setSize(15000, 15000, 15000)
+        # create the GL View Widgets
+        self.view_x = gl.GLViewWidget()
+        self.view_x.addItem(coord)
+        self.view_y = gl.GLViewWidget()
+        self.view_y.addItem(coord)
+        self.view_z = gl.GLViewWidget()
+        self.view_z.addItem(coord)
+        # create the hbox QWidget
+        scatter_widget = QWidget()
+        layout = QHBoxLayout()
+        layout.addWidget(self.view_x)
+        layout.addWidget(self.view_y)
+        layout.addWidget(self.view_z)
+        scatter_widget.setLayout(layout)
+        scatter_widget.setMinimumHeight(200)
+        return scatter_widget
+
+    def update_scatter_plots(self, dx, dy, dz, ds, coords_stage):
+        cmap = pg.colormap.get('coolwarm', source='matplotlib')
+        cmap.pos = np.linspace(-100,100,33) # how to set different number of stops?
+        # dx
+        colors4_dx = cmap.map(dx)
+        scatter_dx = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dx/255)
+        self.view_x.addItem(scatter_dx)
+        # dy
+        colors4_dy = cmap.map(dy)
+        scatter_dy = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dy/255)
+        self.view_y.addItem(scatter_dy)
+        # dz
+        colors4_dz = cmap.map(dz)
+        scatter_dz = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dz/255)
+        self.view_z.addItem(scatter_dz)
+
+    def handle_load(self):
+        filename = QFileDialog.getOpenFileName(self, 'Load Accuracy Test file', '.',
+                                                    'Numpy files (*.npy)')[0]
+        if filename:
+            data = np.load(filename)
+            self.update_data(data)
+
+    def update_data(self, data):
+        # calculate deltas
+        npts = data.shape[0]
+        coords_stage = data[:,:3]
+        coords_recon = data[:,3:]
+        delta = coords_recon - coords_stage
+        dx = delta[:,0]
+        dy = delta[:,1]
+        dz = delta[:,2]
+        ds = np.sqrt(dx**2 + dy**2 + dz**2)
+        # Update graphs
+        self.update_histograms(dx, dy, dz, ds)
+        self.update_scatter_plots(dx, dy, dz, ds, coords_stage)
 
 
 class AccuracyTestWorker(QObject):
@@ -135,4 +265,5 @@ class AccuracyTestWorker(QObject):
         np.save(accutest_filename, results_np)
         self.msg_posted.emit('Accuracy test results saved to: %s.' % accutest_filename)
         self.finished.emit()
+
 
