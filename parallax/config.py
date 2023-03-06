@@ -34,7 +34,7 @@ def init_config(args):
 
 def post_init_config(model, main_window):
     for i,view in enumerate(config['views']):
-        screen_widget_ctrl = main_window.widget.add_screen()
+        screen_widget = main_window.widget.add_screen()
         if 'default_camera' in view:
             camera = model.get_camera(view['default_camera'])
-            screen_widget_ctrl.screen_widget.set_camera(camera)
+            screen_widget.set_camera(camera)
