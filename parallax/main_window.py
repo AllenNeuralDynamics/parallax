@@ -2,16 +2,19 @@ from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QGridLayout, QMa
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
+import numpy as np
 
 from .message_log import MessageLog
-from .screen_widget import ScreenWidgetControl
+from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
 from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
-from .rigid_body_transform_tool import RigidBodyTransformTool
 from .stage_manager import StageManager
 from .config import config
 from .training_data import TrainingDataCollector
+from .rigid_body_transform_tool import RigidBodyTransformTool
+from .template_tool import TemplateTool
+from .accuracy_test import AccuracyTestTool
 
 
 class MainWindow(QMainWindow):
@@ -41,8 +44,12 @@ class MainWindow(QMainWindow):
         self.manage_stages_action.triggered.connect(self.launch_stage_manager)
         self.refresh_focos_action = QAction("Refresh Focus Controllers")
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
+        self.tt_action = QAction("Generate Template")
+        self.tt_action.triggered.connect(self.launch_tt)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
+        self.accutest_action = QAction("Accuracy Testing Tool")
+        self.accutest_action.triggered.connect(self.launch_accutest)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.training_data_action = QAction("Collect Training Data")
@@ -65,6 +72,8 @@ class MainWindow(QMainWindow):
 
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
+        self.tools_menu.addAction(self.tt_action)
+        self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.console_action)
         self.tools_menu.addAction(self.training_data_action)
 
@@ -91,6 +100,14 @@ class MainWindow(QMainWindow):
     def launch_rbt(self):
         self.rbt = RigidBodyTransformTool(self.model)
         self.rbt.show()
+
+    def launch_tt(self):
+        self.tt = TemplateTool(self.model)
+        self.tt.show()
+
+    def launch_accutest(self):
+        self.accutest_tool = AccuracyTestTool(self.model)
+        self.accutest_tool.show()
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)
@@ -168,7 +185,7 @@ class MainWidget(QSplitter):
         self.model.msg_posted.connect(self.msg_log.post)
 
     def add_screen(self):
-        screen = ScreenWidgetControl(model=self.model)
+        screen = ScreenWidget(model=self.model)
         self.screens_layout.addWidget(screen)
         self.screens.append(screen)
         screen.selected.connect(self.update_corr)
@@ -184,8 +201,12 @@ class MainWidget(QSplitter):
         elif e.key() == Qt.Key_C:
             if self.model.cal_in_progress:
                 self.geo_panel.register_corr_points_cal()
+            if self.model.accutest_in_progress:
+                self.model.register_corr_points_accutest()
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
+        elif e.key() == Qt.Key_T:
+            self.geo_panel.triangulate()
 
     def refresh(self):
         for screen in self.screens:

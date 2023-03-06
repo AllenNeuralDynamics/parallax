@@ -10,6 +10,7 @@ dependencies:
   - pyqt>=5.15
   - pip
   - scipy
+  - pyserial
   - pip:
     - pyqtgraph
     - opencv-python-headless
@@ -17,5 +18,4 @@ dependencies:
     - git+https://github.com/campagnola/coorx
     - git+https://github.com/AllenNeuralDynamics/python-newscale@calibration
     - git+https://github.com/AllenNeuralDynamics/mis-focus-controller-sw
-    - git+https://github.com/campagnola/coorx
 

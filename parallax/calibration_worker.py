@@ -31,13 +31,18 @@ class CalibrationWorker(QObject):
         self.resolution = resolution
         self.extent_um = extent_um
 
-        self.ready_to_go = False
         self.num_cal = self.resolution**3
         self.calibration = Calibration(img_size=(WF, HF))
         self.corr_point_queue = queue.Queue()
 
+        self.complete = False
+        self.alive = True
+
     def register_corr_points(self, lcorr, rcorr):
         self.corr_point_queue.put((lcorr, rcorr))
+
+    def stop(self):
+        self.alive = False
 
     def run(self):
         mx =  self.extent_um / 2.
@@ -78,6 +83,14 @@ class CalibrationWorker(QObject):
                     # add points to calibration
                     self.calibration.add_points(lcorr, rcorr, self.stage.get_position())
                     n += 1
+                else:
+                    continue
+                break
+            else:
+                continue
+            break
+        else:
+            self.complete = True
         self.finished.emit()
 
     def get_calibration(self):

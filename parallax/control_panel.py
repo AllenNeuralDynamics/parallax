@@ -168,6 +168,8 @@ class ControlPanel(QFrame):
                 self.move_to_point(pt, params['relative'])
                 self.update_coordinates()
                 self.target_reached.emit()
+            else:
+                self.msg_posted.emit('Move to target: no stage selected.')
 
     def move_to_point(self, pt, relative, **kwds):
         if isinstance(pt, coorx.Point):

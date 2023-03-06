@@ -1,8 +1,6 @@
 import os 
 
-
-__version__ = "0.5.1"
-
+__version__ = "0.8.0"
 
 # allow multiple OpenMP instances
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'

@@ -177,14 +177,20 @@ class TargetDialog(QDialog):
         self.ylabel.setAlignment(Qt.AlignCenter)
         self.zlabel = QLabel('Z = ')
         self.zlabel.setAlignment(Qt.AlignCenter)
-        validator = QDoubleValidator(-15000,15000,-1)
-        validator.setNotation(QDoubleValidator.StandardNotation)
+
         self.xedit = QLineEdit()
-        self.xedit.setValidator(validator)
         self.yedit = QLineEdit()
-        self.yedit.setValidator(validator)
         self.zedit = QLineEdit()
-        self.zedit.setValidator(validator)
+
+        self.validator = QDoubleValidator(-15000,15000,-1)
+        self.validator.setNotation(QDoubleValidator.StandardNotation)
+        self.xedit.setValidator(self.validator)
+        self.yedit.setValidator(self.validator)
+        self.zedit.setValidator(self.validator)
+
+        self.xedit.textChanged.connect(self.validate)
+        self.yedit.textChanged.connect(self.validate)
+        self.zedit.textChanged.connect(self.validate)
 
         self.xedit.textEdited.connect(self.input_changed)
         self.yedit.textEdited.connect(self.input_changed)
@@ -194,12 +200,20 @@ class TargetDialog(QDialog):
         self.info_label = QLabel('')
         self.info_label.setAlignment(Qt.AlignCenter)
         self.info_label.setFont(FONT_BOLD)
+
         self.update_info()
 
-        self.dialog_buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
-        self.dialog_buttons.accepted.connect(self.accept)
-        self.dialog_buttons.rejected.connect(self.reject)
+        self.cancel_button = QPushButton('Cancel')
+        self.cancel_button.clicked.connect(self.reject)
+
+        self.ok_button = QPushButton('Move')
+        self.ok_button.setFont(FONT_BOLD)
+        self.ok_button.setEnabled(False)
+        self.ok_button.clicked.connect(self.accept)
+
+        self.xedit.returnPressed.connect(self.ok_button.animateClick)
+        self.yedit.returnPressed.connect(self.ok_button.animateClick)
+        self.zedit.returnPressed.connect(self.ok_button.animateClick)
 
         ####
 
@@ -215,9 +229,16 @@ class TargetDialog(QDialog):
         layout.addWidget(self.yedit, 4,1)
         layout.addWidget(self.zedit, 5,1)
         layout.addWidget(self.info_label, 6,0, 1,2)
-        layout.addWidget(self.dialog_buttons, 7,0, 1,2)
+        layout.addWidget(self.cancel_button, 7,0, 1,1)
+        layout.addWidget(self.ok_button, 7,1, 1,1)
         self.setLayout(layout)
         self.setWindowTitle('Set Target Coordinates')
+
+    def validate(self):
+        valid =     self.xedit.hasAcceptableInput() \
+                and self.yedit.hasAcceptableInput() \
+                and self.zedit.hasAcceptableInput()
+        self.ok_button.setEnabled(valid)
 
     def populate_last(self):
         op = self.model.obj_point_last

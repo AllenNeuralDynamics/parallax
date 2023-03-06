@@ -26,10 +26,11 @@ class StageDropdown(QComboBox):
         self.populate()
         QComboBox.showPopup(self)
 
+    def get_current_stage(self):
+        return self.model.stages[self.currentText()]
+
     def populate(self):
         self.clear()
         self.stages = self.model.stages[:] 
         for stage in self.stages:
             self.addItem(stage.get_name())
-
-
