@@ -10,8 +10,8 @@ config = {
         "show_axes": True,
         "auto_select_corr_points": True,
     },
-    "calibration_path": "./calibrations",
-    "console_history_file": "./console_history",
+    "calibration_path": "./",
+    "console_history_file": "./",
     "console_edit_command": "code -g {fileName}:{lineNum}",
 }
 
