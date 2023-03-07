@@ -18,13 +18,12 @@ except ImportError:
 
 def list_cameras():
     cameras = []
+    cameras.extend([
+        MockCamera(camera_params={'pitch': 70, 'yaw': 120}),
+        MockCamera(camera_params={'pitch': 70, 'yaw': 150}),
+    ])
     if PySpin is not None:
         cameras.extend(PySpinCamera.list_cameras())
-    else:
-        cameras.extend([
-            MockCamera(camera_params={'pitch': 70, 'yaw': 120}),
-            MockCamera(camera_params={'pitch': 70, 'yaw': 150}),
-        ])
     return cameras
 
 
