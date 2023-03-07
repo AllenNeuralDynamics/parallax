@@ -79,7 +79,6 @@ class Model(QObject):
         for cal in self.calibrations.values():
             calibrations.append({'calibration': cal, 'from_cs': cal.from_cs, 'to_cs': cal.to_cs, 'timestamp': cal.timestamp})
 
-        assert len(calibrations) > 0
         return calibrations
 
     def get_calibration(self, stage):
