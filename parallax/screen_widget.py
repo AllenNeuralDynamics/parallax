@@ -57,6 +57,8 @@ class ScreenWidget(pg.GraphicsView):
         self.detector_menu = self.parallax_menu.addMenu("Detectors")
         self.view_box.menu.insertMenu(self.view_box.menu.actions()[0], self.parallax_menu)
 
+        self.update_camera_menu()
+        self.update_focus_control_menu()
         self.update_filter_menu()
         self.update_detector_menu()
 
