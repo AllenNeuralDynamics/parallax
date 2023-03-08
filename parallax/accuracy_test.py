@@ -93,7 +93,7 @@ class AccuracyTestRunTab(QWidget):
         self.setMinimumWidth(300)
 
     def start_accuracy_test(self):
-        print('TODO: start_accuracy_test')
+        self.model.start_accuracy_test(self.get_params())
 
     def get_params(self):
         params = {}
