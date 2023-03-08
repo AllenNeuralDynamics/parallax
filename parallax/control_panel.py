@@ -69,11 +69,11 @@ class ControlPanel(QFrame):
         self.dropdown.activated.connect(self.handle_stage_selection)
 
         self.settings_button = QPushButton()
-        self.settings_button.setIcon(QIcon('../img/gear.png'))
+        self.settings_button.setIcon(QIcon('./img/gear.png'))
         self.settings_button.clicked.connect(self.handle_settings)
 
         self.calibration_label = QLabel("")
-        self.cal_pt_btn = QPushButton('')
+        self.cal_pt_btn = QPushButton('Copy Calibration Point')
         self.cal_pt_btn.clicked.connect(self.copy_cal_pt)
 
         self.xcontrol = AxisControl('x')
