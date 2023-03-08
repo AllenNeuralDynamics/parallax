@@ -228,7 +228,7 @@ class GeometryPanel(QFrame):
         self.rbt_tool.show()
 
     def show_suggested_corr_points(self, pts):
-        screens = {screen.screen_widget.camera.name():screen for screen in self.model.main_window.screens()}
+        screens = {screen.camera.name():screen for screen in self.model.main_window.screens()}
         for cam_name, pt in pts.items():
             screens[cam_name].set_selected(pt)
             

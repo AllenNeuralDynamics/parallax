@@ -62,7 +62,7 @@ class CalibrationWorker(QObject):
                         tip_pos = self.stage.get_tip_position()
                         pts = {}
                         for screen in Model.instance.main_window.screens():
-                            camera = screen.screen_widget.camera
+                            camera = screen.camera
                             pos = camera.camera_tr.map(tip_pos.coordinates)
                             pts[camera.name()] = pos[:2]
                         self.suggested_corr_points.emit(pts)

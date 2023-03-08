@@ -230,5 +230,6 @@ class MainWidget(QSplitter):
 
     def update_corr(self):
         # send correspondence points to model
-        pts = [ctrl.screen_widget.get_selected() for ctrl in self.screens]
+        pts = [ctrl.get_selected() for ctrl in self.screens]
         self.model.set_correspondence_points(pts)
+
