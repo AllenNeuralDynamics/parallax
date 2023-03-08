@@ -105,8 +105,7 @@ class GeometryPanel(QFrame):
                 stage = dlg.get_stage()
                 res = dlg.get_resolution()
                 extent = dlg.get_extent()
-                name = dlg.get_name()
-                self.start_cal_thread(stage, res, extent, name)
+                self.start_cal_thread(stage, res, extent)
         elif self.cal_start_stop_button.text() == 'Stop':
             self.stop_cal_thread()
 
