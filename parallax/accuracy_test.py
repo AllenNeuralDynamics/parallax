@@ -97,7 +97,7 @@ class AccuracyTestRunTab(QWidget):
 
     def get_params(self):
         params = {}
-        params['stage'] = self.stage_dropdown.get_current_stage()
+        params['stage'] = self.stage_dropdown.current_stage()
         params['cal'] = self.model.calibrations[self.cal_dropdown.currentText()]
         params['npoints'] = int(self.npoints_edit.text())
         params['extent_um'] = float(self.extent_edit.text())
