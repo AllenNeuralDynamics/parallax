@@ -140,6 +140,18 @@ class Model(QObject):
     def get_transform(self, name):
         return self.transforms[name]
 
+    def set_lcorr(self, xc, yc):
+        self.lcorr = [xc, yc] 
+
+    def clear_lcorr(self):
+        self.lcorr = False
+
+    def set_rcorr(self, xc, yc):
+        self.rcorr = [xc, yc] 
+
+    def clear_rcorr(self):
+        self.rcorr = False
+
     def handle_accutest_point_reached(self, i, npoints):
         self.msg_posted.emit('Accuracy test point %d (of %d) reached.' % (i+1,npoints))
         self.clear_lcorr()
