@@ -28,3 +28,5 @@ class ZaberStage:
     def home(self):
         self.conn.get_axis(1).home()
     
+    def list_devices(self):
+        return self.conn.detect_devices()
