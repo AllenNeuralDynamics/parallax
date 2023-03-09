@@ -159,11 +159,10 @@ class Model(QObject):
         self.msg_posted.emit('Highlight correspondence points and press C to continue')
 
     def register_corr_points_accutest(self):
-        lcorr, rcorr = self.lcorr, self.rcorr
-        if (lcorr and rcorr):
-            self.accutest_worker.register_corr_points(lcorr, rcorr)
-            self.msg_posted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
-                                    (lcorr[0],lcorr[1], rcorr[0],rcorr[1]))
+        corr_pt = self.get_image_point()
+        if corr_pt is not None:
+            self.accutest_worker.register_corr_points(corr_pt)
+            self.msg_posted.emit('Correspondence points registered.')
             self.accutest_worker.carry_on()
         else:
             self.msg_posted.emit('Highlight correspondence points and press C to continue')
