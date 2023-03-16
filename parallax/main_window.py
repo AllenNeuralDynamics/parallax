@@ -104,6 +104,7 @@ class MainWindow(QMainWindow):
 
     def launch_elevator(self):
         self.elevator_tool = ElevatorControlTool(self.model)
+        self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
         self.elevator_tool.show()
 
     def new_transform(self, name, tr):

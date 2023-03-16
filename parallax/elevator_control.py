@@ -2,10 +2,15 @@
 
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QComboBox, QLineEdit
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QTabWidget
-from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QMenu
+from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QMenu, QFileDialog
 from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
 from PyQt5.QtGui import QIcon, QContextMenuEvent
 from PyQt5.QtCore import Qt, QEvent, pyqtSignal
+
+import time
+import datetime
+import os
+import pickle
 
 
 class SetpointDialog(QDialog):
@@ -69,6 +74,7 @@ class SetpointItem(QListWidgetItem):
 class SetpointsTab(QWidget):
 
     moved = pyqtSignal()
+    msg_posted = pyqtSignal(str)
 
     def __init__(self, model, parent=None):
         QWidget.__init__(self, parent=parent)
@@ -136,14 +142,51 @@ class SetpointsTab(QWidget):
                 menu = QMenu()
                 add_action = menu.addAction('Add setpoint')
                 add_action.triggered.connect(self.add_setpoint)
+                load_action = menu.addAction('Load from file')
+                load_action.triggered.connect(self.load)
+                save_action = menu.addAction('Save to file')
+                save_action.triggered.connect(self.save)
                 menu.exec_(e.globalPos())
             return True
         return super().eventFilter(src, e)
+
+    def load(self):
+        filename = QFileDialog.getOpenFileName(self, 'Load setpoints file', '.',
+                                                    'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'rb') as f:
+                setpoints = pickle.load(f)
+                for sp in setpoints:
+                    name, pos = sp
+                    self.list_widget.addItem(SetpointItem(name, pos))
+        
+    def save(self):
+        setpoints = []
+        for i in range(self.list_widget.count()):
+            sp = self.list_widget.item(i)
+            name = sp.name
+            pos = sp.pos
+            setpoints.append((name, pos))
+        
+        ts = time.time()
+        dt = datetime.datetime.fromtimestamp(ts)
+        suggested_basename = 'setpoints_%04d%02d%02d-%02d%02d%02d.pkl' % (dt.year,
+                                        dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        suggested_filename = os.path.join(os.getcwd(), suggested_basename)
+        filename = QFileDialog.getSaveFileName(self, 'Save setpoints',
+                                                suggested_filename,
+                                                'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'wb') as f:
+                pickle.dump(setpoints, f)
+            self.msg_posted.emit('Saved setpoints to: %s' % (filename))
+        
         
 
 class AdvancedTab(QWidget):
 
     moved = pyqtSignal()
+    msg_posted = pyqtSignal(str)
 
     def __init__(self, model, parent=None):
         QWidget.__init__(self, parent=parent)
@@ -178,6 +221,8 @@ class AdvancedTab(QWidget):
 
 class ElevatorControlTool(QWidget):
 
+    msg_posted = pyqtSignal(str)
+
     def __init__(self, model):
         QWidget.__init__(self, parent=None)
         self.model = model
@@ -188,8 +233,10 @@ class ElevatorControlTool(QWidget):
 
         self.setpoints_tab = SetpointsTab(self.model, parent=self)
         self.setpoints_tab.moved.connect(self.update_gui)
+        self.setpoints_tab.msg_posted.connect(self.msg_posted)
         self.advanced_tab = AdvancedTab(self.model, parent=self)
         self.advanced_tab.moved.connect(self.update_gui)
+        self.advanced_tab.msg_posted.connect(self.msg_posted)
 
         self.dropdown.currentTextChanged.connect(self.handleSelection)
 
@@ -211,6 +258,7 @@ class ElevatorControlTool(QWidget):
         self.setMinimumWidth(300)
 
         self.populate_dropdown()
+
 
     def populate_dropdown(self):
         for name in self.model.elevators.keys():
