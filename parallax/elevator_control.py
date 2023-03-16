@@ -94,7 +94,7 @@ class SetpointsTab(QWidget):
         if self.elevator is not None:
             setpoints = self.list_widget.selectedItems()
             if setpoints:
-                setpoint = selected[0]
+                setpoint = setpoints[0]
                 pos = setpoint.pos
                 self.elevator.move_absolute(pos)
 
@@ -172,7 +172,7 @@ class AdvancedTab(QWidget):
 
     def move_down(self):
         if self.elevator is not None:
-            self.elevator.move_relative(10000)
+            self.elevator.move_relative(-10000)
             self.moved.emit()
 
 
@@ -213,7 +213,6 @@ class ElevatorControlTool(QWidget):
         self.populate_dropdown()
 
     def populate_dropdown(self):
-        self.model.update_elevators()
         for name in self.model.elevators.keys():
             self.dropdown.addItem(name)
 

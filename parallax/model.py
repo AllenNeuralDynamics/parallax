@@ -143,6 +143,7 @@ class Model(QObject):
         self.accutest_in_progress = False
 
     def update_elevators(self):
+        # TODO delete/clean/disconnect the old list of elevators
         self.elevators = {}
         elevator_list = list_elevators()
         for elevator in elevator_list:
