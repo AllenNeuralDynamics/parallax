@@ -15,6 +15,7 @@ dependencies:
     - pyqtgraph
     - opencv-python-headless
     - spinnaker-python
+    - PyOpenGL
     - git+https://github.com/campagnola/coorx
     - git+https://github.com/AllenNeuralDynamics/python-newscale@calibration
     - git+https://github.com/AllenNeuralDynamics/mis-focus-controller-sw
