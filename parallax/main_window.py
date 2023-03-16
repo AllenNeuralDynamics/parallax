@@ -13,7 +13,7 @@ from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
 from .accuracy_test import AccuracyTestTool
-from .elevator_control_tool import ElevatorControlTool
+from .elevator_control import ElevatorControlTool
 
 
 class MainWindow(QMainWindow):
