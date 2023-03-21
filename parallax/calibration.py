@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import numpy as np
-import cv2 as cv
+import cv2
 from . import lib
 from .helper import WF, HF
 
@@ -17,6 +17,12 @@ imtx2 = [[1.55104298e+04, 0.00000000e+00, 1.95422363e+03],
 idist1 = [[ 1.70600649e+00, -9.85797706e+01,  4.53808433e-03, -2.13200143e-02, 1.79088477e+03]]
 
 idist2 = [[-4.94883798e-01,  1.65465770e+02, -1.61013572e-03,  5.22601960e-03, -8.73875986e+03]]
+
+imtx_simple = [[1.5e+04, 0.00000000e+00, 2e+03],
+            [0.00000000e+00, 1.5e+04, 1.5e+03],
+            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+
+idist_simple = [[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]]
 
 
 class Calibration:
@@ -75,12 +81,46 @@ class Calibration:
         img_points2 = lib.undistort_image_points(img_points2, self.imtx2, self.idist2)
 
         # calibrate each camera against these points
-        my_flags = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT
-        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv.calibrateCamera(obj_points, img_points1,
+        my_flags = cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT
+        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
                                                                         (WF, HF), self.imtx1, self.idist1,
                                                                         flags=my_flags)
-        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv.calibrateCamera(obj_points, img_points2,
+        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv2.calibrateCamera(obj_points, img_points2,
                                                                         (WF, HF), self.imtx2, self.idist2,
+                                                                        flags=my_flags)
+
+        # calculate projection matrices
+        proj1 = lib.get_projection_matrix(mtx1, rvecs1[0], tvecs1[0])
+        proj2 = lib.get_projection_matrix(mtx2, rvecs2[0], tvecs2[0])
+
+        self.mtx1 = mtx1
+        self.mtx2 = mtx2
+        self.dist1 = dist1
+        self.dist2 = dist2
+        self.proj1 = proj1
+        self.proj2 = proj2
+        self.rmse1 = rmse1
+        self.rmse2 = rmse2
+
+
+    def calibrate_simple(self, img_points1, img_points2, obj_points, origin):
+
+        # no undistort, use "simple" initial intrinsics, same for both cameras
+        # DON'T fix principal point
+
+        self.set_origin(origin)
+
+        # calibrate each camera against these points
+        my_flags = cv2.CALIB_USE_INTRINSIC_GUESS
+        #my_flags = cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT # necessary?
+
+        imtx = np.array(imtx_simple, dtype=np.float32)
+        idist = np.array(idist_simple, dtype=np.float32)
+        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
+                                                                        (WF, HF), imtx, idist,
+                                                                        flags=my_flags)
+        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv2.calibrateCamera(obj_points, img_points2,
+                                                                        (WF, HF), imtx, idist,
                                                                         flags=my_flags)
 
         # calculate projection matrices

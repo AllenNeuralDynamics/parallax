@@ -6,4 +6,4 @@ __version__ = "0.8.1"
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # change workdir to package root
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
+#os.chdir(os.path.dirname(os.path.realpath(__file__)))
