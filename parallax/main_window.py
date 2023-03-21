@@ -12,6 +12,7 @@ from .dialogs import AboutDialog
 from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
+from .checkerboard_tool import CheckerboardTool
 from .accuracy_test import AccuracyTestTool
 
 
@@ -38,6 +39,8 @@ class MainWindow(QMainWindow):
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
         self.tt_action = QAction("Generate Template")
         self.tt_action.triggered.connect(self.launch_tt)
+        self.cb_action = QAction("Launch Checkerboard Tool")
+        self.cb_action.triggered.connect(self.launch_cb)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.accutest_action = QAction("Accuracy Testing Tool")
@@ -63,6 +66,7 @@ class MainWindow(QMainWindow):
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.tt_action)
+        self.tools_menu.addAction(self.cb_action)
         self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.console_action)
 
@@ -93,6 +97,10 @@ class MainWindow(QMainWindow):
     def launch_tt(self):
         self.tt = TemplateTool(self.model)
         self.tt.show()
+
+    def launch_cb(self):
+        self.cb = CheckerboardTool(self.model)
+        self.cb.show()
 
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
