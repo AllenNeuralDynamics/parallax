@@ -65,6 +65,7 @@ class CalibrationDataTool(QWidget):
         self.stage = self.model.stages[stage_name]
         self.random_button.setEnabled(True)
         self.grab_button.setEnabled(True)
+        self.initial_pos = self.stage.get_position(relative=False)
 
     def clear(self):
         self.list_widget.clear()
@@ -75,7 +76,7 @@ class CalibrationDataTool(QWidget):
         dx = np.random.uniform(-2000, 2000)
         dy = np.random.uniform(-2000, 2000)
         dz = np.random.uniform(-2000, 2000)
-        x,y,z = self.stage.get_position()
+        x,y,z = self.initial_pos
         self.stage.move_to_target_3d(x+dx, y+dy, z+dz, relative=False, safe=False)
 
     def grab(self):
