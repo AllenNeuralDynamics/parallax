@@ -99,7 +99,7 @@ class GraphicsItemView:
 
     def transform_changed(self, event):
         self.rendered = False
-        self.view.update()
+        runInGuiThread(self.view.update)
 
     def render(self):
         self.clear_graphics_items()
