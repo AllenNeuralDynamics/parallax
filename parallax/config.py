@@ -1,4 +1,6 @@
-import json, argparse
+import os, json, argparse
+
+package_path = os.path.split(os.path.dirname(__file__))[0]
 
 # global configuration
 config = {
@@ -11,7 +13,7 @@ config = {
         "auto_select_corr_points": True,
     },
     "calibration_path": "./",
-    "console_history_file": "./",
+    "console_history_file": os.path.join(package_path, 'console.log'),
     "console_edit_command": "code -g {fileName}:{lineNum}",
 }
 
