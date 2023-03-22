@@ -104,7 +104,7 @@ class MainWindow(QMainWindow):
 
     def launch_caldata(self):
         self.caldata_tool = CalibrationDataTool(self.model, self.screens())
-        self.caldata_tool.msg_posted.connect(self.msg_log.post)
+        self.caldata_tool.msg_posted.connect(self.widget.msg_log.post)
         self.caldata_tool.show()
 
     def new_transform(self, name, tr):
