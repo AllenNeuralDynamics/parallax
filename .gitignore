@@ -7,3 +7,9 @@ parallax/*.png
 *.npz
 *.pkl
 *.csv
+*.json
+.idea
+*.egg-info
+*-workspace
+*.log
+console_history

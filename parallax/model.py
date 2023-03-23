@@ -1,27 +1,33 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
-
+import os, re, time
 import numpy as np
+import coorx
 import serial.tools.list_ports
-
 from mis_focus_controller import FocusController
-from newscale.interfaces import NewScaleSerial
 
 from .camera import list_cameras, close_cameras
-from .stage import Stage
+from .stage import list_stages, close_stages
+from .config import config
+from .calibration import Calibration
 from .accuracy_test import AccuracyTestWorker
 from .elevator import list_elevators
 
 
 class Model(QObject):
     msg_posted = pyqtSignal(str)
+    calibrations_changed = pyqtSignal()
+    corr_pts_changed = pyqtSignal()
+
+    instance = None
 
     def __init__(self):
         QObject.__init__(self)
+        Model.instance = self
 
         self.cameras = []
         self.focos = []
-        self.init_stages()
+        self.stages = []
 
         self.elevators = {}
         self.update_elevators()
@@ -32,7 +38,7 @@ class Model(QObject):
         self.cal_in_progress = False
         self.accutest_in_progress = False
 
-        self.lcorr, self.rcorr = False, False
+        self.lcorr, self.rcorr = None, None
         
         self.obj_point_last = None
         self.transforms = {}
@@ -41,39 +47,74 @@ class Model(QObject):
     def ncameras(self):
         return len(self.cameras)
 
+    def get_camera(self, camera_name):
+        for cam in self.cameras:
+            if cam.name() == camera_name:
+                return cam
+        raise NameError(f"No camera named {camera_name}")
+
     def set_last_object_point(self, obj_point):
         self.obj_point_last = obj_point
 
+    def get_image_point(self):
+        if None in (self.lcorr, self.rcorr):
+            return None
+        concat = np.hstack([self.lcorr, self.rcorr])
+        return coorx.Point(concat, f'{self.lcorr.system.name}+{self.rcorr.system.name}')
+
     def add_calibration(self, cal):
         self.calibrations[cal.name] = cal
+        self.calibrations_changed.emit()
+
+    def list_calibrations(self):
+        """List all known calibrations, including those loaded in memory and 
+        those stored in a standard location / filename.
+        """
+        cal_path = config['calibration_path']
+        cal_files = os.listdir(cal_path)
+        calibrations = []
+        for cf in sorted(cal_files, reverse=True):
+            m = re.match(Calibration.file_regex, cf)
+            if m is None:
+                continue
+            mg = m.groups()
+            ts = time.strptime(mg[2], Calibration.date_format)
+            calibrations.append({'file': os.path.join(cal_path, cf), 'from_cs': mg[0], 'to_cs': mg[1], 'timestamp': ts})
+        for cal in self.calibrations.values():
+            calibrations.append({'calibration': cal, 'from_cs': cal.from_cs, 'to_cs': cal.to_cs, 'timestamp': cal.timestamp})
+
+        return calibrations
+
+    def get_calibration(self, stage):
+        """Return the most recent calibration known for this stage
+        """
+        cals = self.list_calibrations()
+        cals = [cal for cal in cals if cal['to_cs'] == stage.get_name()]
+        cals = sorted(cals, key=lambda cal: cal['timestamp'])
+
+        if len(cals) == 0:
+            return None
+        else:
+            cal_spec = cals[-1]
+            if 'calibration' in cal_spec:
+                cal = cal_spec['calibration']
+            else:
+                cal = Calibration.load(cal_spec['file'])
+            return cal
 
     def set_calibration(self, calibration):
         self.calibration = calibration
 
-    def set_lcorr(self, xc, yc):
-        self.lcorr = [xc, yc]
-
-    def clear_lcorr(self):
-        self.lcorr = False
-
-    def set_rcorr(self, xc, yc):
-        self.rcorr = [xc, yc]
-
-    def clear_rcorr(self):
-        self.rcorr = False
-
-    def init_stages(self):
-        self.stages = {}
+    def set_correspondence_points(self, pts):
+        self.lcorr = pts[0]
+        self.rcorr = pts[1]
+        self.corr_pts_changed.emit()
 
     def scan_for_cameras(self):
         self.cameras = list_cameras()
 
-    def scan_for_usb_stages(self):
-        instances = NewScaleSerial.get_instances()
-        self.init_stages()
-        for instance in instances:
-            stage = Stage(serial=instance)
-            self.add_stage(stage)
+    def scan_for_stages(self):
+        self.stages = list_stages()
 
     def scan_for_focus_controllers(self):
         self.focos = []
@@ -90,13 +131,10 @@ class Model(QObject):
 
     def clean(self):
         close_cameras()
-        self.clean_stages()
-
-    def clean_stages(self):
-        pass
+        close_stages()
 
     def halt_all_stages(self):
-        for stage in self.stages.values():
+        for stage in self.stages:
             stage.halt()
         self.msg_posted.emit('Halting all stages.')
 
@@ -106,6 +144,18 @@ class Model(QObject):
     def get_transform(self, name):
         return self.transforms[name]
 
+    def set_lcorr(self, xc, yc):
+        self.lcorr = [xc, yc] 
+
+    def clear_lcorr(self):
+        self.lcorr = False
+
+    def set_rcorr(self, xc, yc):
+        self.rcorr = [xc, yc] 
+
+    def clear_rcorr(self):
+        self.rcorr = False
+
     def handle_accutest_point_reached(self, i, npoints):
         self.msg_posted.emit('Accuracy test point %d (of %d) reached.' % (i+1,npoints))
         self.clear_lcorr()
@@ -113,11 +163,10 @@ class Model(QObject):
         self.msg_posted.emit('Highlight correspondence points and press C to continue')
 
     def register_corr_points_accutest(self):
-        lcorr, rcorr = self.lcorr, self.rcorr
-        if (lcorr and rcorr):
-            self.accutest_worker.register_corr_points(lcorr, rcorr)
-            self.msg_posted.emit('Correspondence points registered: (%d,%d) and (%d,%d)' % \
-                                    (lcorr[0],lcorr[1], rcorr[0],rcorr[1]))
+        corr_pt = self.get_image_point()
+        if corr_pt is not None:
+            self.accutest_worker.register_corr_points(corr_pt)
+            self.msg_posted.emit('Correspondence points registered.')
             self.accutest_worker.carry_on()
         else:
             self.msg_posted.emit('Highlight correspondence points and press C to continue')

@@ -3,6 +3,8 @@ import datetime
 import threading
 import numpy as np
 import logging
+import pyqtgraph as pg
+from .mock_sim import MockSim
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +17,13 @@ except ImportError:
 
 
 def list_cameras():
-    global pyspin_cameras, pyspin_instance
     cameras = []
+    cameras.extend([
+        MockCamera(camera_params={'pitch': 70, 'yaw': 120}),
+        MockCamera(camera_params={'pitch': 70, 'yaw': 150}),
+    ])
     if PySpin is not None:
         cameras.extend(PySpinCamera.list_cameras())
-    while len(cameras) < 2:
-        cameras.append(MockCamera())
     return cameras
 
 
@@ -160,11 +163,23 @@ class PySpinCamera:
 class MockCamera:
     n_cameras = 0
 
-    def __init__(self):
-        self._name = f"MockCamera{MockCamera.n_cameras}"
+    def __init__(self, camera_params):
+        self._name = f"mock_camera_{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
-        self.data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype='ubyte')
+        self.sensor_size = (4000, 3000)
+        self.noise = np.random.randint(0, 15, size=(5, self.sensor_size[1], self.sensor_size[0], 3), dtype='ubyte')
         self._next_frame = 0
+
+        self.camera_params = dict(
+            pitch=30,
+            yaw=0,
+            fov=5,
+            distance=200e3,
+            distortion=(-0.1, 0, 0, 0, 0),
+        )
+        self.camera_params.update(camera_params)
+        self.sim = MockSim.instance()
+        self.sim.add_camera(self)
 
     def name(self):
         return self._name
@@ -173,6 +188,26 @@ class MockCamera:
         """
         Return last image as numpy array with shape (height, width, 3) for RGB or (height, width) for mono. 
         """
-        frame = self.data[self._next_frame]
-        self._next_frame = (self._next_frame + 1) % self.data.shape[0]
-        return frame
+
+        image = self.sim.get_camera_frame(self)
+        
+        # # add noise
+        # noise = self.noise[self._next_frame]
+        # self._next_frame = (self._next_frame + 1) % self.noise.shape[0]
+        # image = image.copy()
+        # # squeeze to leave room for noise (and prevent overflows)
+        # np.multiply(image, 224/255, out=image, casting='unsafe')
+        # image += noise
+
+        return image
+
+    def save_last_image(self, filename):
+        arr = self.get_last_image_data()[..., [2,1,0]]
+        img = pg.makeQImage(arr, alpha=False, transpose=False)
+        img.save(filename)
+
+    @property
+    def camera_tr(self):
+        """Transform mapping from simulated global coordinate system to camera image pixels.
+        """
+        return self.sim.cameras[self]['view'].camera_tr

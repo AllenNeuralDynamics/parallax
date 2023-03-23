@@ -4,9 +4,8 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QSlider, QMenu
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
 import pyqtgraph as pg
+import coorx
 import inspect
-import importlib
-
 from . import filters
 from . import detectors
 
@@ -58,6 +57,8 @@ class ScreenWidget(pg.GraphicsView):
         self.detector_menu = self.parallax_menu.addMenu("Detectors")
         self.view_box.menu.insertMenu(self.view_box.menu.actions()[0], self.parallax_menu)
 
+        self.update_camera_menu()
+        self.update_focus_control_menu()
         self.update_filter_menu()
         self.update_detector_menu()
 
@@ -152,9 +153,14 @@ class ScreenWidget(pg.GraphicsView):
     def get_selected(self):
         if self.click_target.isVisible():
             pos = self.click_target.pos()
-            return pos.x(), pos.y()
+            return coorx.Point([pos.x(), pos.y()], self.camera.name())
         else:
             return None
+
+    def set_selected(self, pos):
+        self.click_target.setPos(pos)
+        self.click_target.setVisible(True)
+        self.selected.emit(*self.get_selected())
 
     def wheelEvent(self, e):
         forward = bool(e.angleDelta().y() > 0)

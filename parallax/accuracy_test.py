@@ -97,7 +97,7 @@ class AccuracyTestRunTab(QWidget):
 
     def get_params(self):
         params = {}
-        params['stage'] = self.stage_dropdown.get_current_stage()
+        params['stage'] = self.stage_dropdown.current_stage()
         params['cal'] = self.model.calibrations[self.cal_dropdown.currentText()]
         params['npoints'] = int(self.npoints_edit.text())
         params['extent_um'] = float(self.extent_edit.text())
@@ -230,9 +230,9 @@ class AccuracyTestWorker(QObject):
 
         self.ready_to_go = False
 
-    def register_corr_points(self, lcorr, rcorr):
-        xyz_recon = self.cal.triangulate(lcorr, rcorr)
-        self.results.append(self.last_stage_point + xyz_recon.tolist())
+    def register_corr_points(self, corr_pt):
+        xyz_recon = self.cal.triangulate(corr_pt)
+        self.results.append(self.last_stage_point + xyz_recon.coordinates.tolist())
 
     def carry_on(self):
         self.ready_to_go = True

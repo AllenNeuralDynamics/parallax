@@ -1,12 +1,10 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QRadioButton, QSpinBox
+from PyQt5.QtWidgets import QPushButton, QLabel, QSpinBox
 from PyQt5.QtWidgets import QGridLayout
 from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QDoubleValidator
-
+import pyqtgraph as pg
 import numpy as np
-import time
-import datetime
 
 from .toggle_switch import ToggleSwitch
 from .helper import FONT_BOLD
@@ -117,13 +115,6 @@ class CalibrationDialog(QDialog):
         self.extent_label.setAlignment(Qt.AlignCenter)
         self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
 
-        self.name_label = QLabel('Name')
-        ts = time.time()
-        dt = datetime.datetime.fromtimestamp(ts)
-        cal_default_name = 'cal_%04d%02d%02d-%02d%02d%02d' % (dt.year,
-                                        dt.month, dt.day, dt.hour, dt.minute, dt.second)
-        self.name_edit = QLineEdit(cal_default_name)
-
         self.go_button = QPushButton('Start Calibration Routine')
         self.go_button.setEnabled(False)
         self.go_button.clicked.connect(self.go)
@@ -135,8 +126,6 @@ class CalibrationDialog(QDialog):
         layout.addWidget(self.resolution_box, 1,1, 1,1)
         layout.addWidget(self.extent_label, 2,0, 1,1)
         layout.addWidget(self.extent_edit, 2,1, 1,1)
-        layout.addWidget(self.name_label, 3,0, 1,1)
-        layout.addWidget(self.name_edit, 3,1, 1,1)
         layout.addWidget(self.go_button, 4,0, 1,2)
         self.setLayout(layout)
 
@@ -144,18 +133,13 @@ class CalibrationDialog(QDialog):
         self.setMinimumWidth(300)
 
     def get_stage(self):
-        ip = self.stage_dropdown.currentText()
-        stage = self.model.stages[ip]
-        return stage
+        return self.stage_dropdown.current_stage()
 
     def get_resolution(self):
         return self.resolution_box.value()
 
     def get_extent(self):
         return float(self.extent_edit.text())
-
-    def get_name(self):
-        return self.name_edit.text()
 
     def go(self):
         self.accept()
@@ -174,6 +158,7 @@ class TargetDialog(QDialog):
         QDialog.__init__(self)
         self.model = model
 
+        self.obj_point = None
         self.last_button = QPushButton('Last Reconstructed Point')
         self.last_button.clicked.connect(self.populate_last)
         if self.model.obj_point_last is None:
@@ -207,9 +192,16 @@ class TargetDialog(QDialog):
         self.yedit.textChanged.connect(self.validate)
         self.zedit.textChanged.connect(self.validate)
 
-        self.info_label = QLabel('(units are microns)')
+        self.xedit.textEdited.connect(self.input_changed)
+        self.yedit.textEdited.connect(self.input_changed)
+        self.zedit.textEdited.connect(self.input_changed)
+        self.abs_rel_toggle.toggled.connect(self.input_changed)
+
+        self.info_label = QLabel('')
         self.info_label.setAlignment(Qt.AlignCenter)
         self.info_label.setFont(FONT_BOLD)
+
+        self.update_info()
 
         self.cancel_button = QPushButton('Cancel')
         self.cancel_button.clicked.connect(self.reject)
@@ -249,22 +241,40 @@ class TargetDialog(QDialog):
         self.ok_button.setEnabled(valid)
 
     def populate_last(self):
-        self.xedit.setText('{0:.2f}'.format(self.model.obj_point_last[0]))
-        self.yedit.setText('{0:.2f}'.format(self.model.obj_point_last[1]))
-        self.zedit.setText('{0:.2f}'.format(self.model.obj_point_last[2]))
+        op = self.model.obj_point_last
+        self.xedit.setText('{0:.2f}'.format(op[0]))
+        self.yedit.setText('{0:.2f}'.format(op[1]))
+        self.zedit.setText('{0:.2f}'.format(op[2]))
+        self.abs_rel_toggle.setChecked(False)
+        self.obj_point = op
+        self.update_info()
 
     def populate_random(self):
+        self.obj_point = None
         self.xedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
         self.yedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
         self.zedit.setText('{0:.2f}'.format(np.random.uniform(-2000, 2000)))
+        self.update_info()
 
     def get_params(self):
         params = {}
-        params['x'] = float(self.xedit.text())
-        params['y'] = float(self.yedit.text())
-        params['z'] = float(self.zedit.text())
-        params['relative'] = self.abs_rel_toggle.isChecked()
+        if self.obj_point is None:
+            params['point'] = np.array([float(self.xedit.text()), float(self.yedit.text()), float(self.zedit.text())])
+            params['relative'] = self.abs_rel_toggle.isChecked()
+        else:
+            params['point'] = self.obj_point
+            params['relative'] = False
         return params
+
+    def update_info(self):
+        info = "(units are μm)"
+        if self.obj_point is not None:
+            info = f'coord sys: {self.obj_point.system.name}\n{info}'
+        self.info_label.setText(info)
+
+    def input_changed(self):
+        self.obj_point = None
+        self.update_info()
 
 
 class CsvDialog(QDialog):
@@ -362,3 +372,61 @@ class AboutDialog(QDialog):
         y = float(self.yedit.text())
         z = float(self.zedit.text())
         return x,y,z
+
+
+class TrainingDataDialog(QDialog):
+
+    def __init__(self, model):
+        QDialog.__init__(self)
+        self.model = model
+
+        self.setWindowTitle('Training Data Generator')
+
+        self.stage_label = QLabel('Select a Stage:')
+        self.stage_label.setAlignment(Qt.AlignCenter)
+        self.stage_label.setFont(FONT_BOLD)
+
+        self.stage_dropdown = StageDropdown(self.model)
+        self.stage_dropdown.activated.connect(self.update_status)
+
+        self.img_count_label = QLabel('Image Count:')
+        self.img_count_label.setAlignment(Qt.AlignCenter)
+        self.img_count_box = QSpinBox()
+        self.img_count_box.setMinimum(1)
+        self.img_count_box.setValue(100)
+
+        self.extent_label = QLabel('Extent:')
+        self.extent_label.setAlignment(Qt.AlignCenter)
+        self.extent_spin = pg.SpinBox(value=4e-3, suffix='m', siPrefix=True, bounds=[0.1e-3, 20e-3], dec=True, step=0.5, minStep=1e-6, compactHeight=False)
+
+        self.go_button = QPushButton('Start Data Collection')
+        self.go_button.setEnabled(False)
+        self.go_button.clicked.connect(self.go)
+
+        layout = QGridLayout()
+        layout.addWidget(self.stage_label, 0,0, 1,1)
+        layout.addWidget(self.stage_dropdown, 0,1, 1,1)
+        layout.addWidget(self.img_count_label, 1,0, 1,1)
+        layout.addWidget(self.img_count_box, 1,1, 1,1)
+        layout.addWidget(self.extent_label, 2,0, 1,1)
+        layout.addWidget(self.extent_spin, 2,1, 1,1)
+        layout.addWidget(self.go_button, 4,0, 1,2)
+        self.setLayout(layout)
+
+        self.setMinimumWidth(300)
+
+    def get_stage(self):
+        return self.stage_dropdown.current_stage()
+
+    def get_img_count(self):
+        return self.img_count_box.value()
+
+    def get_extent(self):
+        return self.extent_spin.value() * 1e6
+
+    def go(self):
+        self.accept()
+
+    def update_status(self):
+        if self.stage_dropdown.is_selected():
+            self.go_button.setEnabled(True)

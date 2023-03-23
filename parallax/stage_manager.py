@@ -7,7 +7,7 @@ import socket, glob
 from serial.tools.list_ports import comports as list_comports
 from serial.serialutil import SerialException
 
-from .stage import Stage
+from .stage import NewScaleStage
 from .helper import PORT_NEWSCALE
 
 
@@ -69,7 +69,7 @@ class ScanStageWorker(QObject):
             else:
                 print('ip = ', ip)
                 s.close()
-                self.stages.append((ip, Stage(ip=ip)))
+                self.stages.append((ip, NewScaleStage(ip=ip)))
             self.progress_made.emit(i)
         self.finished.emit()
 

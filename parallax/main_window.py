@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QMainWindow, QAction
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QGridLayout, QMainWindow, QAction, QSplitter
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
@@ -10,6 +10,8 @@ from .control_panel import ControlPanel
 from .geometry_panel import GeometryPanel
 from .dialogs import AboutDialog
 from .stage_manager import StageManager
+from .config import config
+from .training_data import TrainingDataCollector
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
 from .accuracy_test import AccuracyTestTool
@@ -22,8 +24,14 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
         self.model = model
 
+        # allow main window to be accessed globally
+        model.main_window = self
+
+        self.data_collector = None
+
         self.widget = MainWidget(model)
         self.setCentralWidget(self.widget)
+        self.resize(1280, 900)
 
         # menubar actions
         self.save_frames_action = QAction("Save Camera Frames")
@@ -47,6 +55,8 @@ class MainWindow(QMainWindow):
         self.elevator_action.triggered.connect(self.launch_elevator)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
+        self.training_data_action = QAction("Collect Training Data")
+        self.training_data_action.triggered.connect(self.collect_training_data)
         self.about_action = QAction("About")
         self.about_action.triggered.connect(self.launch_about)
 
@@ -69,6 +79,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.elevator_action)
         self.tools_menu.addAction(self.console_action)
+        self.tools_menu.addAction(self.training_data_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
         self.help_menu.addAction(self.about_action)
@@ -79,7 +90,7 @@ class MainWindow(QMainWindow):
         self.console = None
 
         self.refresh_cameras()
-        self.model.scan_for_usb_stages()
+        self.model.scan_for_stages()
         self.refresh_focus_controllers()
 
     def launch_stage_manager(self):
@@ -111,7 +122,7 @@ class MainWindow(QMainWindow):
         self.model.add_transform(name, tr)
 
     def screens(self):
-        return self.widget.lscreen, self.widget.rscreen
+        return self.widget.screens[:]
 
     def refresh_cameras(self):
         self.model.scan_for_cameras()
@@ -120,7 +131,12 @@ class MainWindow(QMainWindow):
 
     def show_console(self):
         if self.console is None:
-            self.console = pyqtgraph.console.ConsoleWidget()
+            self.console = pyqtgraph.console.ConsoleWidget(
+                historyFile=config['console_history_file'], 
+                editor=config['console_edit_command'], 
+                namespace={'model': self.model, 'win': self}
+            )
+            self.console.catchNextException()
         self.console.show()
 
     def closeEvent(self, ev):
@@ -132,37 +148,42 @@ class MainWindow(QMainWindow):
         for screen in self.screens():
             screen.update_focus_control_menu()
 
+    def collect_training_data(self):
+        self.data_collector = TrainingDataCollector(self.model)
+        self.data_collector.start()
 
-class MainWidget(QWidget):
 
+class MainWidget(QSplitter):
     def __init__(self, model):
-        QWidget.__init__(self) 
+        QSplitter.__init__(self, Qt.Vertical) 
         self.model = model
 
-        self.screens = QWidget()
-        hlayout = QHBoxLayout()
-        self.lscreen = ScreenWidget(model=self.model)
-        self.rscreen = ScreenWidget(model=self.model)
-        hlayout.addWidget(self.lscreen)
-        hlayout.addWidget(self.rscreen)
-        self.screens.setLayout(hlayout)
+        self.screens_widget = QWidget()
+        self.screens_layout = QHBoxLayout()
+        self.screens_widget.setLayout(self.screens_layout)
+        self.screens = []  # screens are added by init config
+        self.addWidget(self.screens_widget)
 
         self.controls = QWidget()
         self.control_panel1 = ControlPanel(self.model)
         self.control_panel2 = ControlPanel(self.model)
         self.geo_panel = GeometryPanel(self.model)
-        hlayout = QHBoxLayout()
-        hlayout.addWidget(self.control_panel1)
-        hlayout.addWidget(self.geo_panel)
-        hlayout.addWidget(self.control_panel2)
-        self.controls.setLayout(hlayout)
+        self.msg_log = MessageLog()
+        self.controls_layout = QGridLayout()
+        self.controls_layout.addWidget(self.control_panel1, 0, 0)
+        self.controls_layout.addWidget(self.geo_panel, 0, 1)
+        self.controls_layout.addWidget(self.control_panel2, 0, 2)
+        self.controls_layout.addWidget(self.msg_log, 1, 0, 1, 3)
+        self.controls.setLayout(self.controls_layout)
+        self.addWidget(self.controls)
+
+        self.setSizes([550, 350])
 
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh)
         self.refresh_timer.start(125)
 
         # connections
-        self.msg_log = MessageLog()
         self.control_panel1.msg_posted.connect(self.msg_log.post)
         self.control_panel2.msg_posted.connect(self.msg_log.post)
         self.control_panel1.target_reached.connect(self.zoom_out)
@@ -171,16 +192,14 @@ class MainWidget(QWidget):
         self.geo_panel.cal_point_reached.connect(self.clear_selected)
         self.geo_panel.cal_point_reached.connect(self.zoom_out)
         self.model.msg_posted.connect(self.msg_log.post)
-        self.lscreen.selected.connect(self.model.set_lcorr)
-        self.lscreen.cleared.connect(self.model.clear_lcorr)
-        self.rscreen.selected.connect(self.model.set_rcorr)
-        self.rscreen.cleared.connect(self.model.clear_rcorr)
 
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(self.screens)
-        main_layout.addWidget(self.controls)
-        main_layout.addWidget(self.msg_log)
-        self.setLayout(main_layout)
+    def add_screen(self):
+        screen = ScreenWidget(model=self.model)
+        self.screens_layout.addWidget(screen)
+        self.screens.append(screen)
+        screen.selected.connect(self.update_corr)
+        screen.cleared.connect(self.update_corr)
+        return screen
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
@@ -199,16 +218,17 @@ class MainWidget(QWidget):
             self.geo_panel.triangulate()
 
     def refresh(self):
-        self.lscreen.refresh()
-        self.rscreen.refresh()
+        for screen in self.screens:
+            screen.refresh()
 
     def clear_selected(self):
-        self.lscreen.clear_selected()
-        self.rscreen.clear_selected()
+        for screen in self.screens:
+            screen.clear_selected()
+        self.model.set_correspondence_points((None, None))
 
     def zoom_out(self):
-        self.lscreen.zoom_out()
-        self.rscreen.zoom_out()
+        for screen in self.screens:
+            screen.zoom_out()
 
     def save_camera_frames(self):
         for i,camera in enumerate(self.model.cameras):
@@ -217,4 +237,8 @@ class MainWidget(QWidget):
                 camera.save_last_image(filename)
                 self.msg_log.post('Saved camera frame: %s' % filename)
 
+    def update_corr(self):
+        # send correspondence points to model
+        pts = [ctrl.get_selected() for ctrl in self.screens]
+        self.model.set_correspondence_points(pts)
 

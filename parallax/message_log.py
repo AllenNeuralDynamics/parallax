@@ -15,6 +15,7 @@ class MessageLog(QWidget):
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.message_log)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(main_layout)
 
     def post(self, message, **kwargs):

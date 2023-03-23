@@ -25,7 +25,7 @@ INTRINSICS_USE_INITIAL_GUESS = False
 
 
 def undistort_image_points(img_points, mtx, dist):
-    img_points_corrected_normalized = cv.undistortPoints(img_points, mtx, dist)
+    img_points_corrected_normalized = cv.undistortPoints(img_points.astype('float32'), mtx, dist)
     fx = mtx[0,0]
     fy = mtx[1,1]
     cx = mtx[0,2]
@@ -35,8 +35,8 @@ def undistort_image_points(img_points, mtx, dist):
         x,y = img_point[0]
         x = x * fx + cx
         y = y * fy + cy
-        img_points_corrected.append(np.array([x,y]))
-    return np.array([img_points_corrected], dtype=np.float32)
+        img_points_corrected.append([x, y])
+    return np.array(img_points_corrected, dtype=np.float32)
 
 def get_projection_matrix(mtx, r, t):
     R, jacobian = cv.Rodrigues(r)
@@ -59,6 +59,31 @@ def DLT(P1, P2, point1, point2):
     U, s, vh = linalg.svd(B, full_matrices = False)
     return vh[3,0:3]/vh[3,3]
 
-def triangulate_from_image_points(img_point1, img_point2, proj1, proj2):
-    x,y,z = DLT(proj1, proj2, img_point1, img_point2)
-    return np.array([x,y,z], dtype=np.float32)
+
+def find_checker_corners(img, board_shape, show=False):
+    """https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html
+    """
+    if show:
+        view = pg.image(img)
+
+    criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
+    # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+    objp = np.zeros((board_shape[0] * board_shape[1], 3), dtype='float32')
+    objp[:, :2] = np.mgrid[0:board_shape[0], 0:board_shape[1]].T.reshape(-1, 2)
+
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+    # Find the chess board corners
+    ret, corners = cv.findChessboardCorners(gray, board_shape, None)
+    if not ret:
+        return None, None
+
+    # If found, add object points, image points (after refining them)
+    imgp = cv.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
+
+    if show:
+        plt = pg.ScatterPlotItem(x=imgp[:, 0, 1], y=imgp[:, 0, 0])
+        view.view.addItem(plt)
+
+    return objp, imgp
