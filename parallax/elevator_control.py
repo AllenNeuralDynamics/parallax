@@ -112,6 +112,15 @@ class SetpointsTab(QWidget):
             item = SetpointItem(name, pos)
             self.list_widget.addItem(item)
 
+    def grab_setpoint(self):
+        pos = self.elevator.get_position()
+        dlg = SetpointDialog(pos=pos)
+        if dlg.exec_():
+            name = dlg.get_name()
+            pos = dlg.get_pos()
+            item = SetpointItem(name, pos)
+            self.list_widget.addItem(item)
+
     def delete_setpoint(self):
         i = self.list_widget.row(self.item_selected)
         self.list_widget.takeItem(i)
@@ -140,8 +149,13 @@ class SetpointsTab(QWidget):
                 menu.exec_(e.globalPos())
             else:
                 menu = QMenu()
-                add_action = menu.addAction('Add setpoint')
+                add_setpoint_menu = QMenu('Add setpoint', menu)
+                grab_action = add_setpoint_menu.addAction('Grab current location')
+                grab_action.triggered.connect(self.grab_setpoint)
+                grab_action.setEnabled(self.elevator is not None)
+                add_action = add_setpoint_menu.addAction('Add manually')
                 add_action.triggered.connect(self.add_setpoint)
+                menu.addMenu(add_setpoint_menu)
                 load_action = menu.addAction('Load from file')
                 load_action.triggered.connect(self.load)
                 save_action = menu.addAction('Save to file')
