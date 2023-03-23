@@ -29,7 +29,8 @@ if __name__ == '__main__':
     camera_params = dict(
         pitch=30,
         distance=15,
-        distortion=(-0.1, 0, 0, 0, 0),
+        distortion=(-0.1, 0.01, -0.001, 0, 0),
+        # distortion=(2.49765866e-02, -1.10638222e+01, -1.22811774e-04, 4.89346001e-03, -3.28053580e-01),
     )
     win.set_camera(0, yaw=-5, **camera_params)
     win.set_camera(1, yaw=5, **camera_params)
@@ -59,10 +60,11 @@ if __name__ == '__main__':
     # tr.rotate(45, [0, 0, 1]) 
 
     def test(n_images=10):
-        ret, mtx, dist, rvecs, tvecs = calibrate_camera(win, n_images=n_images, cb_size=(cb_size-1, cb_size-1))
-        # print(f"Distortion coefficients: {dist}")
-        # print(f"Intrinsic matrix: {mtx}")
-        pg.image(undistort_image(win.get_array().transpose(1, 0, 2), mtx, dist))
+        view = win.views[0]
+        ret, mtx, dist, rvecs, tvecs = calibrate_camera(view, n_images=n_images, cb_size=(cb_size-1, cb_size-1))
+        print(f"Distortion coefficients: {dist}")
+        print(f"Intrinsic matrix: {mtx}")
+        pg.image(undistort_image(view.get_array().transpose(1, 0, 2), mtx, dist))
         return mtx, dist
 
 
