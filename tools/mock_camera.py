@@ -64,14 +64,14 @@ if __name__ == '__main__':
         ret, mtx, dist, rvecs, tvecs = calibrate_camera(view, n_images=n_images, cb_size=(cb_size-1, cb_size-1))
         print(f"Distortion coefficients: {dist}")
         print(f"Intrinsic matrix: {mtx}")
-        pg.image(undistort_image(view.get_array().transpose(1, 0, 2), mtx, dist))
+        pg.image(undistort_image(view.get_array(), mtx, dist).transpose(1, 0, 2))
         return mtx, dist
 
 
-    def test2():
+    def test2(n_images=10):
         """Can we invert opencv's undistortion?
         """
-        ret, mtx, dist, rvecs, tvecs = calibrate_camera(win.views[0], n_images=10, cb_size=(cb_size-1, cb_size-1))
+        ret, mtx, dist, rvecs, tvecs = calibrate_camera(win.views[0], n_images=n_images, cb_size=(cb_size-1, cb_size-1))
         print(mtx)
         print(dist)
         img = win.views[0].get_array()
