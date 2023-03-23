@@ -29,7 +29,6 @@ class CheckerboardTool(QWidget):
         self.model = model
 
         self.screen = ScreenWidget(model=self.model)
-        self.screen.update_camera_menu()
         self.save_button = QPushButton('Save Corners')
         self.save_button.clicked.connect(self.saveCorners)
         self.export_button = QPushButton('Export Corners (None)')
