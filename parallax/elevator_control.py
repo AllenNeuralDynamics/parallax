@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QComboBox, QLineEdit
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QTabWidget
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QMenu, QFileDialog
 from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
+from PyQt5.QtWidgets import QAbstractItemView
 from PyQt5.QtGui import QIcon, QContextMenuEvent
 from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 
@@ -82,6 +83,7 @@ class SetpointsTab(QWidget):
 
         self.list_widget = QListWidget()
         self.list_widget.installEventFilter(self)
+        self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
 
         self.add_button = QPushButton('Go to selected')
         self.add_button.clicked.connect(self.go)
