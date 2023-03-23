@@ -185,14 +185,17 @@ class AccuracyTestAnalyzeTab(QWidget):
         colors4_dx = cmap.map(dx)
         scatter_dx = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dx/255)
         self.view_x.addItem(scatter_dx)
+        self.view_x.setCameraPosition(distance=10000)
         # dy
         colors4_dy = cmap.map(dy)
         scatter_dy = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dy/255)
         self.view_y.addItem(scatter_dy)
+        self.view_y.setCameraPosition(distance=10000)
         # dz
         colors4_dz = cmap.map(dz)
         scatter_dz = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dz/255)
         self.view_z.addItem(scatter_dz)
+        self.view_z.setCameraPosition(distance=10000)
 
     def handle_load(self):
         filename = QFileDialog.getOpenFileName(self, 'Load Accuracy Test file', '.',
