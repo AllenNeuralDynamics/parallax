@@ -13,6 +13,7 @@ from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
 from .accuracy_test import AccuracyTestTool
+from .elevator_control import ElevatorControlTool
 
 
 class MainWindow(QMainWindow):
@@ -42,6 +43,8 @@ class MainWindow(QMainWindow):
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.accutest_action = QAction("Accuracy Testing Tool")
         self.accutest_action.triggered.connect(self.launch_accutest)
+        self.elevator_action = QAction("Elevator Control Tool")
+        self.elevator_action.triggered.connect(self.launch_elevator)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -64,6 +67,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.tt_action)
         self.tools_menu.addAction(self.accutest_action)
+        self.tools_menu.addAction(self.elevator_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -97,6 +101,11 @@ class MainWindow(QMainWindow):
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
         self.accutest_tool.show()
+
+    def launch_elevator(self):
+        self.elevator_tool = ElevatorControlTool(self.model)
+        self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
+        self.elevator_tool.show()
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)
