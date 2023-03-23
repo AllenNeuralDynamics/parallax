@@ -69,11 +69,12 @@ class CameraTransform(coorx.BaseTransform):
     """
     # initial intrinsic / distortion coefficients
     imtx = np.array([
-        [1.81982227e+04, 0.00000000e+00, 2.59310865e+03],
-        [0.00000000e+00, 1.89774632e+04, 1.48105977e+03],
-        [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
-    ])
-    idist = np.array([[ 1.70600649e+00, -9.85797706e+01,  4.53808433e-03, -2.13200143e-02, 1.79088477e+03]])
+        [4.44851950e+04, 0.00000000e+00, 2.59310865e+03],
+        [0.00000000e+00, 4.44738925e+04, 1.48105977e+03],
+        [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]],
+        dtype='float32'
+    )
+    idist = np.array([[0., 0., 0., 0., 0.]], dtype='float32')
 
     def __init__(self, mtx=None, dist=None, **kwds):
         super().__init__(dims=(2, 2), **kwds)
@@ -102,7 +103,8 @@ class CameraTransform(coorx.BaseTransform):
         rmse, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
             obj_pts.astype('float32')[np.newaxis, ...], 
             img_pts_undist[np.newaxis, ...],
-            img_size, self.imtx, self.idist,
+            img_size, 
+            self.imtx, self.idist,
             flags=cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT,
         )
 
