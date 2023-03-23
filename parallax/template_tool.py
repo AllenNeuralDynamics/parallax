@@ -20,7 +20,6 @@ class TemplateTool(QWidget):
         self.model = model
 
         self.screen = ScreenWidget(model=self.model)
-        self.screen.update_camera_menu()
         self.save_button = QPushButton('Save Template')
         self.save_button.clicked.connect(self.save)
 

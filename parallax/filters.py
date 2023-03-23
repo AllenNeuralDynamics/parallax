@@ -4,6 +4,7 @@ import numpy as np
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider
 from PyQt5.QtCore import pyqtSignal, Qt
 
+
 class NoFilter:
 
     name = "None"
@@ -98,4 +99,30 @@ class DifferenceFilter:
         self.control_panel.setMinimumWidth(300)
         self.control_panel.show()
 
+
+class CheckerboardFilter:
+
+    name = 'Checkerboard'
+    CB_ROWS = 6
+    CB_COLS = 9
+
+    def __init__(self):
+        self.patternSize = (self.CB_ROWS, self.CB_COLS)
+        self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        self.corners = None
+
+    def process(self, frame):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray_scaled = cv2.pyrDown(gray)    # 1/2
+        gray_scaled = cv2.pyrDown(gray_scaled)    # 1/4
+        ret, corners_scaled = cv2.findChessboardCorners(gray_scaled, self.patternSize, None)
+        if ret:
+            self.corners = corners_scaled * 4
+            conv_size = (11, 11)    # Convolution size, don't make this too large.
+            self.corners = cv2.cornerSubPix(gray, self.corners, conv_size, (-1, -1), self.criteria)
+            cv2.drawChessboardCorners(frame, self.patternSize, self.corners, ret)
+        return frame
+
+    def launch_control_panel(self):
+        pass
 
