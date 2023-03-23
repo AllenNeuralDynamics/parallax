@@ -176,7 +176,7 @@ class AccuracyTestAnalyzeTab(QWidget):
         return scatter_widget
 
     def update_scatter_plots(self, dx, dy, dz, ds, coords_stage):
-        cmap = pg.colormap.get('coolwarm', source='matplotlib')
+        cmap = pg.colormap.get('CET-D1A')
         cmap.pos = np.linspace(-100,100,33) # how to set different number of stops?
         # dx
         colors4_dx = cmap.map(dx)
