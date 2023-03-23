@@ -118,6 +118,7 @@ class AccuracyTestAnalyzeTab(QWidget):
 
         # File Load
         self.file_label = QLabel('(no data file loaded)')
+        self.mds_label = QLabel('<ds>')
         self.load_button = QPushButton('Load')
         self.load_button.clicked.connect(self.handle_load)
 
@@ -125,7 +126,8 @@ class AccuracyTestAnalyzeTab(QWidget):
         self.scatter_widget = self.create_scatter_widget()
 
         self.layout = QGridLayout()
-        self.layout.addWidget(self.file_label, 0,0, 1,2)
+        self.layout.addWidget(self.file_label, 0,0, 1,1)
+        self.layout.addWidget(self.mds_label, 0,1, 1,1)
         self.layout.addWidget(self.load_button, 0,2, 1,1)
         self.layout.addWidget(self.histo_widget, 1,0, 2,3)
         self.layout.addWidget(self.scatter_widget, 3,0, 2,3)
@@ -217,7 +219,8 @@ class AccuracyTestAnalyzeTab(QWidget):
         dz = delta[:,2]
         ds = np.sqrt(dx**2 + dy**2 + dz**2)
         self.extremeVal = np.abs(np.concatenate((dx,dy,dz))).max()
-        # Update graphs
+        # Update GUI
+        self.mds_label.setText('<ds> = %.2f um' % np.mean(ds))
         self.update_histograms(dx, dy, dz, ds)
         self.update_scatter_plots(dx, dy, dz, ds, coords_stage)
 
