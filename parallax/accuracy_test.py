@@ -177,7 +177,8 @@ class AccuracyTestAnalyzeTab(QWidget):
 
     def update_scatter_plots(self, dx, dy, dz, ds, coords_stage):
         cmap = pg.colormap.get('CET-D1A')
-        cmap.pos = np.linspace(-100,100,33) # how to set different number of stops?
+        extreme = np.abs(np.concatenate((dx,dy,dz,ds))).max()
+        cmap.pos = np.linspace((-1)*extreme, extreme, len(cmap.pos))
         # dx
         colors4_dx = cmap.map(dx)
         scatter_dx = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dx/255)
