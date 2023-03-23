@@ -198,6 +198,8 @@ class AccuracyTestAnalyzeTab(QWidget):
         if filename:
             data = np.load(filename)
             self.update_data(data)
+            self.file_label.setText(filename)
+            self.file_label.setFont(FONT_BOLD)
 
     def update_data(self, data):
         # calculate deltas
