@@ -4,5 +4,6 @@ __pycache__/
 parallax/*.png
 *.log
 *.npy
+*.npz
 *.pkl
 *.csv
