@@ -162,6 +162,8 @@ class SetpointsTab(QWidget):
                 load_action.triggered.connect(self.load)
                 save_action = menu.addAction('Save to file')
                 save_action.triggered.connect(self.save)
+                clear_action = menu.addAction('Clear items')
+                clear_action.triggered.connect(self.clear)
                 menu.exec_(e.globalPos())
             return True
         return super().eventFilter(src, e)
@@ -196,7 +198,9 @@ class SetpointsTab(QWidget):
             with open(filename, 'wb') as f:
                 pickle.dump(setpoints, f)
             self.msg_posted.emit('Saved setpoints to: %s' % (filename))
-        
+
+    def clear(self):
+        self.list_widget.clear()
         
 
 class AdvancedTab(QWidget):
