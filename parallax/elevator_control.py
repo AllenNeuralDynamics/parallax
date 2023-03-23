@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QMenu, QFileDialog
 from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
 from PyQt5.QtWidgets import QAbstractItemView
 from PyQt5.QtGui import QIcon, QContextMenuEvent
-from PyQt5.QtCore import Qt, QEvent, pyqtSignal
+from PyQt5.QtCore import Qt, QEvent, pyqtSignal, QTimer
 
 import time
 import datetime
@@ -74,7 +74,6 @@ class SetpointItem(QListWidgetItem):
 
 class SetpointsTab(QWidget):
 
-    moved = pyqtSignal()
     msg_posted = pyqtSignal(str)
 
     def __init__(self, model, parent=None):
@@ -205,7 +204,6 @@ class SetpointsTab(QWidget):
 
 class AdvancedTab(QWidget):
 
-    moved = pyqtSignal()
     msg_posted = pyqtSignal(str)
 
     def __init__(self, model, parent=None):
@@ -231,12 +229,10 @@ class AdvancedTab(QWidget):
     def move_up(self):
         if self.elevator is not None:
             self.elevator.move_relative(10000)
-            self.moved.emit()
 
     def move_down(self):
         if self.elevator is not None:
             self.elevator.move_relative(-10000)
-            self.moved.emit()
 
 
 class ElevatorControlTool(QWidget):
@@ -252,10 +248,8 @@ class ElevatorControlTool(QWidget):
         self.dropdown = QComboBox()
 
         self.setpoints_tab = SetpointsTab(self.model, parent=self)
-        self.setpoints_tab.moved.connect(self.update_gui)
         self.setpoints_tab.msg_posted.connect(self.msg_posted)
         self.advanced_tab = AdvancedTab(self.model, parent=self)
-        self.advanced_tab.moved.connect(self.update_gui)
         self.advanced_tab.msg_posted.connect(self.msg_posted)
 
         self.dropdown.currentTextChanged.connect(self.handleSelection)
@@ -279,6 +273,9 @@ class ElevatorControlTool(QWidget):
 
         self.populate_dropdown()
 
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.update_pos)
+        self.refresh_timer.start(500)
 
     def populate_dropdown(self):
         for name in self.model.elevators.keys():
@@ -288,10 +285,10 @@ class ElevatorControlTool(QWidget):
         self.elevator = self.model.elevators[name]
         self.setpoints_tab.set_elevator(self.elevator)
         self.advanced_tab.set_elevator(self.elevator)
-        self.update_gui()
+        self.update_pos()
 
-    def update_gui(self):
+    def update_pos(self):
         if self.elevator is not None:
             pos = self.elevator.get_position()
-            self.pos_label.setText('Current Position: %.1f' % pos)
+            self.pos_label.setText('Current Position: %.1f um' % pos)
 
