@@ -8,8 +8,9 @@ from serial.tools.list_ports import comports as list_comports
 def list_elevators():
     elevators = []
     for comport in list_comports():
-        if comport.description == 'X-MCC2':
-            elevators.append(ZaberXMCC2Elevator(comport))
+        if (comport.vid == ZaberXMCC2Elevator.VID):
+            if (comport.pid == ZaberXMCC2Elevator.PID):
+                elevators.append(ZaberXMCC2Elevator(comport))
     return elevators
 
 
@@ -39,6 +40,9 @@ class Elevator:
     
 
 class ZaberXMCC2Elevator(Elevator):
+
+    VID = 10553
+    PID = 18882
 
     def __init__(self, comport):
         """
