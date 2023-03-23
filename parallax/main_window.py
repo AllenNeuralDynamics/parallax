@@ -12,8 +12,10 @@ from .dialogs import AboutDialog
 from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
+from .checkerboard_tool import CheckerboardTool
 from .accuracy_test import AccuracyTestTool
 from .calibration_data_tool import CalibrationDataTool
+from .elevator_control import ElevatorControlTool
 
 
 class MainWindow(QMainWindow):
@@ -39,12 +41,16 @@ class MainWindow(QMainWindow):
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
         self.tt_action = QAction("Generate Template")
         self.tt_action.triggered.connect(self.launch_tt)
+        self.cb_action = QAction("Launch Checkerboard Tool")
+        self.cb_action.triggered.connect(self.launch_cb)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.accutest_action = QAction("Accuracy Testing Tool")
         self.accutest_action.triggered.connect(self.launch_accutest)
         self.caldata_action = QAction("Collect Calibation Data")
         self.caldata_action.triggered.connect(self.launch_caldata)
+        self.elevator_action = QAction("Elevator Control Tool")
+        self.elevator_action.triggered.connect(self.launch_elevator)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -66,8 +72,10 @@ class MainWindow(QMainWindow):
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.tt_action)
+        self.tools_menu.addAction(self.cb_action)
         self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.caldata_action)
+        self.tools_menu.addAction(self.elevator_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -98,6 +106,10 @@ class MainWindow(QMainWindow):
         self.tt = TemplateTool(self.model)
         self.tt.show()
 
+    def launch_cb(self):
+        self.cb = CheckerboardTool(self.model)
+        self.cb.show()
+
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
         self.accutest_tool.show()
@@ -106,6 +118,10 @@ class MainWindow(QMainWindow):
         self.caldata_tool = CalibrationDataTool(self.model, self.screens())
         self.caldata_tool.msg_posted.connect(self.widget.msg_log.post)
         self.caldata_tool.show()
+    def launch_elevator(self):
+        self.elevator_tool = ElevatorControlTool(self.model)
+        self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
+        self.elevator_tool.show()
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)

@@ -10,6 +10,7 @@ from newscale.interfaces import NewScaleSerial
 from .camera import list_cameras, close_cameras
 from .stage import Stage
 from .accuracy_test import AccuracyTestWorker
+from .elevator import list_elevators
 
 
 class Model(QObject):
@@ -21,6 +22,9 @@ class Model(QObject):
         self.cameras = []
         self.focos = []
         self.init_stages()
+
+        self.elevators = {}
+        self.update_elevators()
 
         self.calibration = None
         self.calibrations = {}
@@ -137,4 +141,11 @@ class Model(QObject):
 
     def cancel_accuracy_test(self):
         self.accutest_in_progress = False
+
+    def update_elevators(self):
+        # TODO delete/clean/disconnect the old list of elevators
+        self.elevators = {}
+        elevator_list = list_elevators()
+        for elevator in elevator_list:
+            self.elevators[elevator.name] = elevator
 

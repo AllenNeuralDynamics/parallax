@@ -118,6 +118,7 @@ class AccuracyTestAnalyzeTab(QWidget):
 
         # File Load
         self.file_label = QLabel('(no data file loaded)')
+        self.mds_label = QLabel('<ds>')
         self.load_button = QPushButton('Load')
         self.load_button.clicked.connect(self.handle_load)
 
@@ -125,11 +126,14 @@ class AccuracyTestAnalyzeTab(QWidget):
         self.scatter_widget = self.create_scatter_widget()
 
         self.layout = QGridLayout()
-        self.layout.addWidget(self.file_label, 0,0, 1,2)
+        self.layout.addWidget(self.file_label, 0,0, 1,1)
+        self.layout.addWidget(self.mds_label, 0,1, 1,1)
         self.layout.addWidget(self.load_button, 0,2, 1,1)
         self.layout.addWidget(self.histo_widget, 1,0, 2,3)
         self.layout.addWidget(self.scatter_widget, 3,0, 2,3)
         self.setLayout(self.layout)
+
+        self.extremeVal = 100.
 
     def create_histogram_widget(self):
         histo_widget = pg.GraphicsLayoutWidget()
@@ -150,9 +154,10 @@ class AccuracyTestAnalyzeTab(QWidget):
         bargraph_y = pg.BarGraphItem(x0=ybins[:-1], x1=ybins[1:], height=yhist, brush ='g')
         bargraph_z = pg.BarGraphItem(x0=zbins[:-1], x1=zbins[1:], height=zhist, brush ='b')
         bargraph_s = pg.BarGraphItem(x0=zbins[:-1], x1=sbins[1:], height=shist, brush ='y')
-        self.histo_widget.getItem(0,0).addItem(bargraph_x)
-        self.histo_widget.getItem(0,1).addItem(bargraph_y)
-        self.histo_widget.getItem(0,2).addItem(bargraph_z)
+        for i,bg in enumerate([bargraph_x, bargraph_y, bargraph_z]):
+            pi = self.histo_widget.getItem(0,i)
+            pi.setXRange((-1)*self.extremeVal, self.extremeVal)
+            pi.addItem(bg)
         
     def create_scatter_widget(self):
         # create a common set of axes
@@ -176,20 +181,23 @@ class AccuracyTestAnalyzeTab(QWidget):
         return scatter_widget
 
     def update_scatter_plots(self, dx, dy, dz, ds, coords_stage):
-        cmap = pg.colormap.get('coolwarm', source='matplotlib')
-        cmap.pos = np.linspace(-100,100,33) # how to set different number of stops?
+        cmap = pg.colormap.get('CET-D1A')
+        cmap.pos = np.linspace((-1)*self.extremeVal, self.extremeVal, len(cmap.pos))
         # dx
         colors4_dx = cmap.map(dx)
         scatter_dx = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dx/255)
         self.view_x.addItem(scatter_dx)
+        self.view_x.setCameraPosition(distance=10000)
         # dy
         colors4_dy = cmap.map(dy)
         scatter_dy = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dy/255)
         self.view_y.addItem(scatter_dy)
+        self.view_y.setCameraPosition(distance=10000)
         # dz
         colors4_dz = cmap.map(dz)
         scatter_dz = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dz/255)
         self.view_z.addItem(scatter_dz)
+        self.view_z.setCameraPosition(distance=10000)
 
     def handle_load(self):
         filename = QFileDialog.getOpenFileName(self, 'Load Accuracy Test file', '.',
@@ -197,6 +205,8 @@ class AccuracyTestAnalyzeTab(QWidget):
         if filename:
             data = np.load(filename)
             self.update_data(data)
+            self.file_label.setText(filename)
+            self.file_label.setFont(FONT_BOLD)
 
     def update_data(self, data):
         # calculate deltas
@@ -208,7 +218,9 @@ class AccuracyTestAnalyzeTab(QWidget):
         dy = delta[:,1]
         dz = delta[:,2]
         ds = np.sqrt(dx**2 + dy**2 + dz**2)
-        # Update graphs
+        self.extremeVal = np.abs(np.concatenate((dx,dy,dz))).max()
+        # Update GUI
+        self.mds_label.setText('<ds> = %.2f um' % np.mean(ds))
         self.update_histograms(dx, dy, dz, ds)
         self.update_scatter_plots(dx, dy, dz, ds, coords_stage)
 

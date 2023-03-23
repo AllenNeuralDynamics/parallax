@@ -1,22 +1,18 @@
 #!/usr/bin/python3
 
 import numpy as np
-import cv2 as cv
+import cv2
 from . import lib
 from .helper import WF, HF
 
 
-imtx1 = [[1.81982227e+04, 0.00000000e+00, 2.59310865e+03],
-            [0.00000000e+00, 1.89774632e+04, 1.48105977e+03],
-            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+imtx = np.array([[1.5e+04, 0.00000000e+00, 2e+03],
+            [0.00000000e+00, 1.5e+04, 1.5e+03],
+            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]],
+                dtype=np.float32)
 
-imtx2 = [[1.55104298e+04, 0.00000000e+00, 1.95422363e+03],
-            [0.00000000e+00, 1.54250418e+04, 1.64814750e+03],
-            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
-
-idist1 = [[ 1.70600649e+00, -9.85797706e+01,  4.53808433e-03, -2.13200143e-02, 1.79088477e+03]]
-
-idist2 = [[-4.94883798e-01,  1.65465770e+02, -1.61013572e-03,  5.22601960e-03, -8.73875986e+03]]
+idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
+                    dtype=np.float32)
 
 
 class Calibration:
@@ -43,10 +39,10 @@ class Calibration:
 
     def set_initial_intrinsics_default(self):
 
-        self.imtx1 = np.array(imtx1, dtype=np.float32)
-        self.imtx2 = np.array(imtx2, dtype=np.float32)
-        self.idist1 = np.array(idist1, dtype=np.float32)
-        self.idist2 = np.array(idist2, dtype=np.float32)
+        self.imtx1 = imtx
+        self.imtx2 = imtx
+        self.idist1 = idist
+        self.idist2 = idist
 
     def triangulate(self, lcorr, rcorr):
         """
@@ -68,19 +64,21 @@ class Calibration:
 
     def calibrate(self, img_points1, img_points2, obj_points, origin):
 
+        # don't undistort img_points, use "simple" initial intrinsics, same for both cameras
+        # don't fix principal point
+
         self.set_origin(origin)
 
-        # undistort calibration points
-        img_points1 = lib.undistort_image_points(img_points1, self.imtx1, self.idist1)
-        img_points2 = lib.undistort_image_points(img_points2, self.imtx2, self.idist2)
-
         # calibrate each camera against these points
-        my_flags = cv.CALIB_USE_INTRINSIC_GUESS + cv.CALIB_FIX_PRINCIPAL_POINT
-        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv.calibrateCamera(obj_points, img_points1,
-                                                                        (WF, HF), self.imtx1, self.idist1,
+        my_flags = cv2.CALIB_USE_INTRINSIC_GUESS
+
+        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
+                                                                        (WF, HF),
+                                                                        self.imtx1, self.idist1,
                                                                         flags=my_flags)
-        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv.calibrateCamera(obj_points, img_points2,
-                                                                        (WF, HF), self.imtx2, self.idist2,
+        rmse2, mtx2, dist2, rvecs2, tvecs2 = cv2.calibrateCamera(obj_points, img_points2,
+                                                                        (WF, HF),
+                                                                        self.imtx2, self.idist2,
                                                                         flags=my_flags)
 
         # calculate projection matrices
