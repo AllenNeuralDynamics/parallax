@@ -261,6 +261,7 @@ class GraphicsView3D(pg.GraphicsView):
 
     def update(self):
         self.cached_frame = None
+        self.scene().update()
         super().update()
 
 
