@@ -93,5 +93,5 @@ class ZaberXMCC2Elevator(Elevator):
         return speed    # float
 
     def set_speed(self, speed):
-        speed = axis_settings.get('maxspeed', speed)
+        self.axis_settings.set('maxspeed', speed)
 
