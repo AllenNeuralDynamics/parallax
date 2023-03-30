@@ -10,6 +10,7 @@ import time
 import datetime
 import os
 
+from . import get_image_file
 from .toggle_switch import ToggleSwitch
 from .stage_dropdown import StageDropdown
 from .helper import FONT_BOLD
@@ -54,7 +55,7 @@ class CalibrationDataTool(QWidget):
 
         self.setMinimumWidth(600)
         self.setWindowTitle('Collect Calibration Data')
-        self.setWindowIcon(QIcon('../img/sextant.png'))
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
         self.setFocusPolicy(Qt.StrongFocus)
 
     def update_npoints(self):

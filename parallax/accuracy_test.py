@@ -10,6 +10,7 @@ import pyqtgraph.opengl as gl
 import time
 import datetime
 
+from . import get_image_file
 from .toggle_switch import ToggleSwitch
 from .stage_dropdown import StageDropdown
 from .helper import FONT_BOLD
@@ -33,7 +34,7 @@ class AccuracyTestTool(QWidget):
         self.setLayout(self.layout)
 
         self.setWindowTitle('Accuracy Testing Tool')
-        self.setWindowIcon(QIcon('../img/sextant.png'))
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
 class AccuracyTestRunTab(QWidget):
     msg_posted = pyqtSignal(str)

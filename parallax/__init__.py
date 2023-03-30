@@ -1,9 +1,13 @@
-import os 
+import os
 
 __version__ = "0.11.0"
 
 # allow multiple OpenMP instances
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-# change workdir to package root
-#os.chdir(os.path.dirname(os.path.realpath(__file__)))
+# set package directories
+package_dir = os.path.dirname(__file__)
+image_dir = os.path.join(os.path.dirname(package_dir), 'img')
+
+def get_image_file(basename):
+    return os.path.join(image_dir, basename)

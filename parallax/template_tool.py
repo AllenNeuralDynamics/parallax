@@ -1,12 +1,14 @@
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget
 from PyQt5.QtWidgets import QVBoxLayout, QFileDialog
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt
+from PyQt5.QtGui import QIcon
 
 import numpy as np
 import time
 import datetime
 import os
 
+from . import get_image_file
 from .screen_widget import ScreenWidget
 
 RAD = 100
@@ -29,6 +31,7 @@ class TemplateTool(QWidget):
         self.setLayout(self.layout)
 
         self.setWindowTitle('Generate Template Tool')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.screen.refresh)

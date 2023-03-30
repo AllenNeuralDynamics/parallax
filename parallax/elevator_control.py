@@ -13,6 +13,7 @@ import datetime
 import os
 import pickle
 
+from . import get_image_file
 
 class SetpointDialog(QDialog):
 
@@ -268,7 +269,7 @@ class ElevatorControlTool(QWidget):
         self.setLayout(self.layout)
 
         self.setWindowTitle('Elevator Control Tool')
-        self.setWindowIcon(QIcon('../img/sextant.png'))
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
         self.setMinimumWidth(300)
 
         self.populate_dropdown()

@@ -4,6 +4,7 @@ from PyQt5.QtGui import QIcon
 import pyqtgraph.console
 import numpy as np
 
+from . import get_image_file
 from .message_log import MessageLog
 from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
@@ -82,7 +83,7 @@ class MainWindow(QMainWindow):
         self.help_menu.addAction(self.about_action)
 
         self.setWindowTitle('Parallax')
-        self.setWindowIcon(QIcon('../img/sextant.png'))
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
         self.console = None
 

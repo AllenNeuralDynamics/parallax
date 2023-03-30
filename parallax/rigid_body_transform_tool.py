@@ -7,6 +7,7 @@ import coorx
 import csv
 import numpy as np
 
+from . import get_image_file
 from .stage_dropdown import StageDropdown
 
 
@@ -81,7 +82,7 @@ class RigidBodyTransformTool(QWidget):
         self.left_widget.setMaximumWidth(300)
 
         self.add_button = QPushButton()
-        self.add_button.setIcon(QIcon('../img/arrow-right.png'))
+        self.add_button.setIcon(QIcon(get_image_file('arrow-right.png')))
         self.add_button.setIconSize(QSize(50,50))
         self.add_button.clicked.connect(self.add_coordinates)
 
@@ -112,6 +113,7 @@ class RigidBodyTransformTool(QWidget):
 
         self.setLayout(self.layout)
         self.setWindowTitle('Rigid Body Transform Tool')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
     def handle_stage_selection(self, index):
         stage_name = self.stage_dropdown.currentText()

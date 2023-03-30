@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QGridLayout
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon
 
+from . import get_image_file
 from .helper import FONT_BOLD
 from .dialogs import StageSettingsDialog, TargetDialog
 from .stage_dropdown import StageDropdown
@@ -64,7 +65,7 @@ class ControlPanel(QFrame):
         self.dropdown.activated.connect(self.handle_stage_selection)
 
         self.settings_button = QPushButton()
-        self.settings_button.setIcon(QIcon('../img/gear.png'))
+        self.settings_button.setIcon(QIcon(get_image_file('gear.png')))
         self.settings_button.clicked.connect(self.handle_settings)
 
         self.xcontrol = AxisControl('x')
