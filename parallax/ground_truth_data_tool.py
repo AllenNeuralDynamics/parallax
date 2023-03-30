@@ -16,7 +16,7 @@ from .stage_dropdown import StageDropdown
 from .helper import FONT_BOLD
 
 
-class CalibrationDataTool(QWidget):
+class GroundTruthDataTool(QWidget):
     msg_posted = pyqtSignal(str)
 
     def __init__(self, model, screens):
@@ -54,7 +54,7 @@ class CalibrationDataTool(QWidget):
         self.setLayout(self.layout)
 
         self.setMinimumWidth(600)
-        self.setWindowTitle('Collect Calibration Data')
+        self.setWindowTitle('Ground Truth Data Tool')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
         self.setFocusPolicy(Qt.StrongFocus)
 
@@ -84,10 +84,10 @@ class CalibrationDataTool(QWidget):
         pos = self.stage.get_position()
         x1, y1 = self.lscreen.get_selected()
         x2, y2 = self.rscreen.get_selected()
-        caldata = pos + (x1, y1, x2, y2)
-        s = 'opt = %.2f, %.2f, %.2f / ipt1 = %.2f, %.2f / ipt2 = %.2f, %.2f' % caldata
+        data = pos + (x1, y1, x2, y2)
+        s = 'opt = %.2f, %.2f, %.2f / ipt1 = %.2f, %.2f / ipt2 = %.2f, %.2f' % data
         item = QListWidgetItem(s)
-        item.caldata = caldata
+        item.data = data
         self.list_widget.addItem(item)
         self.npoints += 1
         self.update_npoints()
@@ -95,20 +95,20 @@ class CalibrationDataTool(QWidget):
     def save(self):
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
-        suggested_basename = 'caldata_%04d%02d%02d-%02d%02d%02d.npy' % (dt.year,
+        suggested_basename = 'ground_truth_data_%04d%02d%02d-%02d%02d%02d.npy' % (dt.year,
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
         suggested_filename = os.path.join(data_dir, suggested_basename)
-        filename = QFileDialog.getSaveFileName(self, 'Save calibration data',
+        filename = QFileDialog.getSaveFileName(self, 'Save Ground Truth data',
                                                 suggested_filename,
                                                 'Numpy files (*.npy)')[0]
         if filename:
             datapoints = []
             for i in range(self.list_widget.count()):
                 item = self.list_widget.item(i)
-                datapoints.append(item.caldata)
+                datapoints.append(item.data)
             data = np.array(datapoints, dtype=np.float32)
             np.save(filename, data)
-            self.msg_posted.emit('Saved calibration data to %s' % filename)
+            self.msg_posted.emit('Saved Ground Truth data to %s' % filename)
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
