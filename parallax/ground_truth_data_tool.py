@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QFileDialog
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QFileDialog, QTabWidget
 from PyQt5.QtWidgets import QVBoxLayout, QListWidget, QListWidgetItem
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSignal, Qt, QObject
@@ -117,10 +117,12 @@ class GroundTruthDataTool(QWidget):
                                                 'CSV files (*.csv)')[0]
         if filename:
             with open(filename, 'w', newline='') as f:
-                writer = csv.writer(f, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                writer = csv.writer(f)
                 for i in range(self.list_widget.count()):
                     item = self.list_widget.item(i)
-                    writer.writerow(item.data)
+                    data = item.data
+                    data = [x if type(x) is str else format(x,'.2f') for x in data]
+                    writer.writerow(data)
             self.msg_posted.emit('Saved Ground Truth data to %s' % filename)
 
     def keyPressEvent(self, e):
