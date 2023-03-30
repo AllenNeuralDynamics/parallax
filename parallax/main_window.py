@@ -3,8 +3,9 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
 import numpy as np
+import os
 
-from . import get_image_file
+from . import get_image_file, data_dir
 from .message_log import MessageLog
 from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
@@ -15,7 +16,7 @@ from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
 from .checkerboard_tool import CheckerboardTool
 from .accuracy_test import AccuracyTestTool
-from .calibration_data_tool import CalibrationDataTool
+from .ground_truth_data_tool import GroundTruthDataTool
 from .elevator_control import ElevatorControlTool
 
 
@@ -48,8 +49,8 @@ class MainWindow(QMainWindow):
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.accutest_action = QAction("Accuracy Testing Tool")
         self.accutest_action.triggered.connect(self.launch_accutest)
-        self.caldata_action = QAction("Collect Calibation Data")
-        self.caldata_action.triggered.connect(self.launch_caldata)
+        self.gtd_action = QAction("Ground Truth Data Collector")
+        self.gtd_action.triggered.connect(self.launch_gtd)
         self.elevator_action = QAction("Elevator Control Tool")
         self.elevator_action.triggered.connect(self.launch_elevator)
         self.console_action = QAction("Python Console")
@@ -75,7 +76,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.tt_action)
         self.tools_menu.addAction(self.cb_action)
         self.tools_menu.addAction(self.accutest_action)
-        self.tools_menu.addAction(self.caldata_action)
+        self.tools_menu.addAction(self.gtd_action)
         self.tools_menu.addAction(self.elevator_action)
         self.tools_menu.addAction(self.console_action)
 
@@ -115,10 +116,10 @@ class MainWindow(QMainWindow):
         self.accutest_tool = AccuracyTestTool(self.model)
         self.accutest_tool.show()
 
-    def launch_caldata(self):
-        self.caldata_tool = CalibrationDataTool(self.model, self.screens())
-        self.caldata_tool.msg_posted.connect(self.widget.msg_log.post)
-        self.caldata_tool.show()
+    def launch_gtd(self):
+        self.gtd_tool = GroundTruthDataTool(self.model, self.screens())
+        self.gtd_tool.msg_posted.connect(self.widget.msg_log.post)
+        self.gtd_tool.show()
     def launch_elevator(self):
         self.elevator_tool = ElevatorControlTool(self.model)
         self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
@@ -230,7 +231,8 @@ class MainWidget(QWidget):
     def save_camera_frames(self):
         for i,camera in enumerate(self.model.cameras):
             if camera.last_image:
-                filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+                basename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+                filename = os.path.join(data_dir, basename)
                 camera.save_last_image(filename)
                 self.msg_log.post('Saved camera frame: %s' % filename)
 

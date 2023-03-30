@@ -149,3 +149,10 @@ class Model(QObject):
         for elevator in elevator_list:
             self.elevators[elevator.name] = elevator
 
+    def save_all_camera_frames(self):
+        for i,camera in enumerate(self.cameras):
+            if camera.last_image:
+                filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+                camera.save_last_image(filename)
+                self.msg_log.post('Saved camera frame: %s' % filename)
+
