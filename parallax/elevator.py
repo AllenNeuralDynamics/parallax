@@ -60,8 +60,11 @@ class ZaberXMCC2Elevator(Elevator):
         self.device = self.conn.detect_devices()[0]
         self.lockstep = self.device.get_lockstep(1)
         self.primary_axis = self.device.get_axis(self.lockstep.get_axis_numbers()[0])
+        self.axis_settings = self.primary_axis.settings
 
         self._name = 'Zaber X-MCC2 Lockstep (%s)' % self.comport.device
+
+        self.get_speed()
 
     @property
     def name(self):
@@ -84,3 +87,11 @@ class ZaberXMCC2Elevator(Elevator):
     def set_firmware_setpoint(self, number, pos):
         resp = self.conn.generic_command('tools storepos %d %d' % (number, pos),
                                             device=1)
+
+    def get_speed(self):
+        speed = self.axis_settings.get('maxspeed')
+        return speed    # float
+
+    def set_speed(self, speed):
+        speed = axis_settings.get('maxspeed', speed)
+

@@ -3,7 +3,7 @@
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QComboBox, QLineEdit
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QTabWidget
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QMenu, QFileDialog
-from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
+from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox, QInputDialog
 from PyQt5.QtWidgets import QAbstractItemView
 from PyQt5.QtGui import QIcon, QContextMenuEvent
 from PyQt5.QtCore import Qt, QEvent, pyqtSignal, QTimer
@@ -71,28 +71,6 @@ class SetpointItem(QListWidgetItem):
 
     def update_text(self):
         self.setText('%s (position = %.1f)' % (self.name, self.pos))
-
-
-class SetpointItem2D(QListWidgetItem):
-
-    def __init__(self, name, p1, p2):
-        QListWidgetItem.__init__(self)
-        self.name = name
-        self.p1 = p1
-        self.p2 = p2
-        self.update_text()
-
-    def set_name(self, name):
-        self.name = name
-        self.update_text()
-
-    def set_pos(self, p1, p2):
-        self.p1 = p1
-        self.p2 = p2
-        self.update_text()
-
-    def update_text(self):
-        self.setText('%s (%d, %d)' % (self.name, self.p1, self.p2))
 
 
 class FirmwareSetpointsTab(QWidget):
@@ -317,16 +295,30 @@ class AdvancedTab(QWidget):
         self.down_button = QPushButton('Move Down')
         self.down_button.clicked.connect(self.move_down)
 
+        self.speed_button = QPushButton('Speed')
+        self.speed_button.clicked.connect(self.set_speed)
+
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.up_button)
         self.layout.addWidget(self.down_button)
+        self.layout.addWidget(self.speed_button)
         self.setLayout(self.layout)
         
-        self.elevator = None
+        self.set_elevator(None)
 
     def set_elevator(self, elevator):
         self.elevator = elevator
+        self.update_gui()
         
+    def update_gui(self):
+        enable = self.elevator is not None
+        self.up_button.setEnabled(enable)
+        self.down_button.setEnabled(enable)
+        self.speed_button.setEnabled(enable)
+        if self.elevator:
+            speed = self.elevator.get_speed()
+            self.speed_button.setText('Speed = %.2f' % speed)
+
     def move_up(self):
         if self.elevator is not None:
             self.elevator.move_relative(10000)
@@ -334,6 +326,12 @@ class AdvancedTab(QWidget):
     def move_down(self):
         if self.elevator is not None:
             self.elevator.move_relative(-10000)
+
+    def set_speed(self):
+        speed, ok = QInputDialog.getDouble(self, 'Set Speed', 'Speed')
+        if ok:
+            self.elevator.set_speed(speed)
+            self.update_gui()
 
 
 class ElevatorControlTool(QWidget):
