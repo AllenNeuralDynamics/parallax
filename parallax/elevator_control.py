@@ -3,7 +3,7 @@
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QComboBox, QLineEdit
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QTabWidget
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QMenu, QFileDialog
-from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox
+from PyQt5.QtWidgets import QDialog, QLineEdit, QDialogButtonBox, QInputDialog
 from PyQt5.QtWidgets import QAbstractItemView
 from PyQt5.QtGui import QIcon, QContextMenuEvent
 from PyQt5.QtCore import Qt, QEvent, pyqtSignal, QTimer
@@ -17,7 +17,7 @@ from . import get_image_file, data_dir
 
 class SetpointDialog(QDialog):
 
-    def __init__(self, name=None, pos=None):
+    def __init__(self, name=None, pos=None, edit_name=True):
         QDialog.__init__(self)
 
         self.name_label = QLabel('Name:')
@@ -25,6 +25,7 @@ class SetpointDialog(QDialog):
         if name:
             self.name_edit.setText(name)
         self.name_edit.setFocus()
+        self.name_edit.setEnabled(edit_name)
 
         self.pos_label = QLabel('Position:')
         self.pos_edit = QLineEdit()
@@ -70,20 +71,18 @@ class SetpointItem(QListWidgetItem):
         self.update_text()
 
     def update_text(self):
-        self.setText('%s (position = %.1f um)' % (self.name, self.pos))
+        self.setText('%s (position = %.1f)' % (self.name, self.pos))
 
 
-class SetpointsTab(QWidget):
+class FirmwareSetpointsTab(QWidget):
 
     msg_posted = pyqtSignal(str)
 
-    def __init__(self, model, parent=None):
+    def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
-        self.model = model
 
         self.list_widget = QListWidget()
         self.list_widget.installEventFilter(self)
-        self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
 
         self.add_button = QPushButton('Go to selected')
         self.add_button.clicked.connect(self.go)
@@ -91,6 +90,86 @@ class SetpointsTab(QWidget):
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.list_widget)
         self.layout.addWidget(self.add_button)
+        self.setLayout(self.layout)
+
+        self.elevator = None
+
+    def set_elevator(self, elevator):
+        self.elevator = elevator
+        self.update_list()
+
+    def update_list(self):
+        self.clear()
+        for num in range(1,17):
+            pos = self.elevator.get_firmware_setpoint(num)
+            item = SetpointItem('FW#%d' % num, pos)
+            self.list_widget.addItem(item)
+
+    def clear(self):
+        self.list_widget.clear()
+
+    def go(self):
+        if self.elevator is not None:
+            setpoints = self.list_widget.selectedItems()
+            if setpoints:
+                setpoint = setpoints[0]
+                pos = setpoint.pos
+                self.elevator.move_absolute(pos)
+
+    def grab_setpoint(self):
+        pos = self.elevator.get_position()
+        num = self.list_widget.indexFromItem(self.item_selected).row() + 1
+        self.elevator.set_firmware_setpoint(num, pos)
+        self.update_list()
+
+    def edit_setpoint(self):
+        name = self.item_selected.name
+        pos = self.item_selected.pos
+        num = self.list_widget.indexFromItem(self.item_selected).row() + 1
+        dlg = SetpointDialog(name, pos, edit_name=False)
+        if dlg.exec_():
+            pos = dlg.get_pos()
+            self.elevator.set_firmware_setpoint(num, pos)
+            self.update_list()
+
+    def reset_setpoint(self):
+        num = self.list_widget.indexFromItem(self.item_selected).row() + 1
+        self.elevator.set_firmware_setpoint(num, 0)
+        self.update_list()
+
+    def eventFilter(self, src, e):
+        if (src is self.list_widget) and (e.type() == QEvent.ContextMenu):
+            self.item_selected = src.itemAt(e.pos())
+            if self.item_selected:
+                menu = QMenu()
+                edit_action = menu.addAction('Edit')
+                edit_action.triggered.connect(self.edit_setpoint)
+                grab_action = menu.addAction('Grab Current Location')
+                grab_action.triggered.connect(self.grab_setpoint)
+                reset_action = menu.addAction('Reset')
+                reset_action.triggered.connect(self.reset_setpoint)
+                menu.exec_(e.globalPos())
+            return True
+        return super().eventFilter(src, e)
+
+
+class SoftwareSetpointsTab(QWidget):
+
+    msg_posted = pyqtSignal(str)
+
+    def __init__(self, parent=None):
+        QWidget.__init__(self, parent=parent)
+
+        self.list_widget = QListWidget()
+        self.list_widget.installEventFilter(self)
+        self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
+
+        self.go_button = QPushButton('Go to selected')
+        self.go_button.clicked.connect(self.go)
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.list_widget)
+        self.layout.addWidget(self.go_button)
         self.setLayout(self.layout)
 
         self.elevator = None
@@ -203,30 +282,34 @@ class SetpointsTab(QWidget):
         self.list_widget.clear()
         
 
+
 class AdvancedTab(QWidget):
 
     msg_posted = pyqtSignal(str)
 
-    def __init__(self, model, parent=None):
+    def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
-        self.model = model
 
-        self.up_button = QPushButton('Move Up')
-        self.up_button.clicked.connect(self.move_up)
-
-        self.down_button = QPushButton('Move Down')
-        self.down_button.clicked.connect(self.move_down)
+        self.speed_button = QPushButton('Speed')
+        self.speed_button.clicked.connect(self.set_speed)
 
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.up_button)
-        self.layout.addWidget(self.down_button)
+        self.layout.addWidget(self.speed_button)
         self.setLayout(self.layout)
         
-        self.elevator = None
+        self.set_elevator(None)
 
     def set_elevator(self, elevator):
         self.elevator = elevator
+        self.update_gui()
         
+    def update_gui(self):
+        enable = self.elevator is not None
+        self.speed_button.setEnabled(enable)
+        if self.elevator:
+            speed = self.elevator.get_speed()
+            self.speed_button.setText('Speed = %.2f' % speed)
+
     def move_up(self):
         if self.elevator is not None:
             self.elevator.move_relative(10000)
@@ -234,6 +317,12 @@ class AdvancedTab(QWidget):
     def move_down(self):
         if self.elevator is not None:
             self.elevator.move_relative(-10000)
+
+    def set_speed(self):
+        speed, ok = QInputDialog.getDouble(self, 'Set Speed', 'Speed')
+        if ok:
+            self.elevator.set_speed(speed)
+            self.update_gui()
 
 
 class ElevatorControlTool(QWidget):
@@ -248,15 +337,18 @@ class ElevatorControlTool(QWidget):
 
         self.dropdown = QComboBox()
 
-        self.setpoints_tab = SetpointsTab(self.model, parent=self)
-        self.setpoints_tab.msg_posted.connect(self.msg_posted)
-        self.advanced_tab = AdvancedTab(self.model, parent=self)
+        self.fw_setpoints_tab = FirmwareSetpointsTab(parent=self)
+        self.fw_setpoints_tab.msg_posted.connect(self.msg_posted)
+        self.sw_setpoints_tab = SoftwareSetpointsTab(parent=self)
+        self.sw_setpoints_tab.msg_posted.connect(self.msg_posted)
+        self.advanced_tab = AdvancedTab(parent=self)
         self.advanced_tab.msg_posted.connect(self.msg_posted)
 
         self.dropdown.currentTextChanged.connect(self.handleSelection)
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self.setpoints_tab, 'Setpoints')
+        self.tabs.addTab(self.fw_setpoints_tab, 'Firmware Setpoints')
+        self.tabs.addTab(self.sw_setpoints_tab, 'Software Setpoints')
         self.tabs.addTab(self.advanced_tab, 'Advanced')
 
         self.pos_label = QLabel('Current Position: (none)')
@@ -284,12 +376,13 @@ class ElevatorControlTool(QWidget):
 
     def handleSelection(self, name):
         self.elevator = self.model.elevators[name]
-        self.setpoints_tab.set_elevator(self.elevator)
+        self.fw_setpoints_tab.set_elevator(self.elevator)
+        self.sw_setpoints_tab.set_elevator(self.elevator)
         self.advanced_tab.set_elevator(self.elevator)
         self.update_pos()
 
     def update_pos(self):
         if self.elevator is not None:
             pos = self.elevator.get_position()
-            self.pos_label.setText('Current Position: %.1f um' % pos)
+            self.pos_label.setText('Current Position: %.1f' % pos)
 

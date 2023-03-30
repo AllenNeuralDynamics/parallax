@@ -38,6 +38,12 @@ class Elevator:
     def home(self):
         raise NotImplementedError
     
+    def get_firmware_setpoint(self, number):
+        raise NotImplementedError
+
+    def set_firmware_setpoint(self, number, pos):
+        raise NotImplementedError
+
 
 class ZaberXMCC2Elevator(Elevator):
 
@@ -50,12 +56,15 @@ class ZaberXMCC2Elevator(Elevator):
         """
         self.comport = comport
 
-        connection = ZaberConnection.open_serial_port(self.comport.device)
-        self.device = connection.detect_devices()[0]
+        self.conn = ZaberConnection.open_serial_port(self.comport.device)
+        self.device = self.conn.detect_devices()[0]
         self.lockstep = self.device.get_lockstep(1)
         self.primary_axis = self.device.get_axis(self.lockstep.get_axis_numbers()[0])
+        self.axis_settings = self.primary_axis.settings
 
         self._name = 'Zaber X-MCC2 Lockstep (%s)' % self.comport.device
+
+        self.get_speed()
 
     @property
     def name(self):
@@ -71,6 +80,18 @@ class ZaberXMCC2Elevator(Elevator):
     def move_absolute(self, pos):
         self.lockstep.move_absolute(pos)
 
-    def home(self):
-        self.conn.get_axis(1).home()
-    
+    def get_firmware_setpoint(self, number):
+        resp = self.conn.generic_command('tools storepos %d' % number, device=1)
+        return int(resp.data.split()[0])    # use first axis only
+
+    def set_firmware_setpoint(self, number, pos):
+        resp = self.conn.generic_command('tools storepos %d %d' % (number, pos),
+                                            device=1)
+
+    def get_speed(self):
+        speed = self.axis_settings.get('maxspeed')
+        return speed    # float
+
+    def set_speed(self, speed):
+        self.axis_settings.set('maxspeed', speed)
+
