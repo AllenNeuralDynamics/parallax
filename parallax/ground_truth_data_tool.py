@@ -84,6 +84,10 @@ class GroundTruthDataTool(QWidget):
         pos = self.stage.get_position()
         x1, y1 = self.lscreen.get_selected()
         x2, y2 = self.rscreen.get_selected()
+        if not all([x1, y1, x2, y2]):
+            msg = 'Ground Truth Data Tool: Select correspondence points'
+            self.msg_posted.emit(msg)
+            return
         data = pos + (x1, y1, x2, y2)
         s = 'opt = %.2f, %.2f, %.2f / ipt1 = %.2f, %.2f / ipt2 = %.2f, %.2f' % data
         item = QListWidgetItem(s)

@@ -156,7 +156,7 @@ class ScreenWidget(pg.GraphicsView):
             pos = self.click_target.pos()
             return pos.x(), pos.y()
         else:
-            return None
+            return None, None
 
     def wheelEvent(self, e):
         forward = bool(e.angleDelta().y() > 0)
