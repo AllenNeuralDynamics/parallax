@@ -7,3 +7,4 @@ parallax/*.png
 *.npz
 *.pkl
 *.csv
+data/*

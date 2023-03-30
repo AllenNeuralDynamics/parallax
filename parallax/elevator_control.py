@@ -13,7 +13,7 @@ import datetime
 import os
 import pickle
 
-from . import get_image_file
+from . import get_image_file, data_dir
 
 class SetpointDialog(QDialog):
 
@@ -169,8 +169,8 @@ class SetpointsTab(QWidget):
         return super().eventFilter(src, e)
 
     def load(self):
-        filename = QFileDialog.getOpenFileName(self, 'Load setpoints file', '.',
-                                                    'Pickle files (*.pkl)')[0]
+        filename = QFileDialog.getOpenFileName(self, 'Load setpoints file',
+                                        data_dir, 'Pickle files (*.pkl)')[0]
         if filename:
             with open(filename, 'rb') as f:
                 setpoints = pickle.load(f)
@@ -190,7 +190,7 @@ class SetpointsTab(QWidget):
         dt = datetime.datetime.fromtimestamp(ts)
         suggested_basename = 'setpoints_%04d%02d%02d-%02d%02d%02d.pkl' % (dt.year,
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
-        suggested_filename = os.path.join(os.getcwd(), suggested_basename)
+        suggested_filename = os.path.join(data_dir, suggested_basename)
         filename = QFileDialog.getSaveFileName(self, 'Save setpoints',
                                                 suggested_filename,
                                                 'Pickle files (*.pkl)')[0]

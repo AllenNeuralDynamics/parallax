@@ -6,6 +6,7 @@ from PyQt5.QtCore import pyqtSignal, Qt, QThread
 import pickle
 import os
 
+from . import data_dir
 from .helper import FONT_BOLD
 from .dialogs import CalibrationDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
@@ -156,7 +157,7 @@ class GeometryPanel(QFrame):
         self.cal_start_stop_button.setText('Start')
 
     def load_cal(self):
-        filename = QFileDialog.getOpenFileName(self, 'Load calibration file', '.',
+        filename = QFileDialog.getOpenFileName(self, 'Load calibration file', data_dir,
                                                     'Pickle files (*.pkl)')[0]
         if filename:
             with open(filename, 'rb') as f:
@@ -172,7 +173,7 @@ class GeometryPanel(QFrame):
         else:
             cal_selected = self.model.calibrations[self.cal_combo.currentText()]
 
-        suggested_filename = os.path.join(os.getcwd(), cal_selected.name + '.pkl')
+        suggested_filename = os.path.join(data_dir, cal_selected.name + '.pkl')
         filename = QFileDialog.getSaveFileName(self, 'Save calibration file',
                                                 suggested_filename,
                                                 'Pickle files (*.pkl)')[0]
@@ -195,7 +196,7 @@ class GeometryPanel(QFrame):
             name_selected = self.transforms_combo.currentText()
             tf_selected = self.model.transforms[name_selected]
 
-        suggested_filename = os.path.join(os.getcwd(), name_selected + '.pkl')
+        suggested_filename = os.path.join(data_dir, name_selected + '.pkl')
         filename = QFileDialog.getSaveFileName(self, 'Save transform file',
                                                 suggested_filename,
                                                 'Pickle files (*.pkl)')[0]
@@ -205,7 +206,7 @@ class GeometryPanel(QFrame):
             self.msg_posted.emit('Saved transform %s to: %s' % (name_selected, filename))
 
     def load_transform(self):
-        filename = QFileDialog.getOpenFileName(self, 'Load transform file', '.',
+        filename = QFileDialog.getOpenFileName(self, 'Load transform file', data_dir,
                                                     'Pickle files (*.pkl)')[0]
         if filename:
             with open(filename, 'rb') as f:

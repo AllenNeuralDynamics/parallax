@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PyQt5.QtCore import pyqtSignal, Qt
 
+from . import data_dir
 from .helper import FONT_BOLD
 
 class NoDetector:
@@ -116,8 +117,8 @@ class TemplateMatchDetector:
         self.control_panel.show()
 
     def load(self):
-        filename = QFileDialog.getOpenFileName(self.control_panel, 'Load template file', '.',
-                                                    'Numpy files (*.npy)')[0]
+        filename = QFileDialog.getOpenFileName(self.control_panel, 'Load template file',
+                                                data_dir, 'Numpy files (*.npy)')[0]
         if filename:
             self.template = np.load(filename)
             self.offset = np.array(self.template.shape[:2]) // 2

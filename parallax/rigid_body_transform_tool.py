@@ -7,7 +7,7 @@ import coorx
 import csv
 import numpy as np
 
-from . import get_image_file
+from . import get_image_file, data_dir
 from .stage_dropdown import StageDropdown
 
 
@@ -142,8 +142,8 @@ class RigidBodyTransformTool(QWidget):
             pass
 
     def save(self):
-        filename = QFileDialog.getSaveFileName(self, 'Save correspondence file', '.',
-                                                'CSV files (*.csv)')[0]
+        filename = QFileDialog.getSaveFileName(self, 'Save correspondence file',
+                                                data_dir, 'CSV files (*.csv)')[0]
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
             for i in range(self.list_widget.count()):

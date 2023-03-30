@@ -10,7 +10,7 @@ import pyqtgraph.opengl as gl
 import time
 import datetime
 
-from . import get_image_file
+from . import get_image_file, data_dir
 from .toggle_switch import ToggleSwitch
 from .stage_dropdown import StageDropdown
 from .helper import FONT_BOLD
@@ -201,8 +201,8 @@ class AccuracyTestAnalyzeTab(QWidget):
         self.view_z.setCameraPosition(distance=10000)
 
     def handle_load(self):
-        filename = QFileDialog.getOpenFileName(self, 'Load Accuracy Test file', '.',
-                                                    'Numpy files (*.npy)')[0]
+        filename = QFileDialog.getOpenFileName(self, 'Load Accuracy Test file',
+                                                data_dir, 'Numpy files (*.npy)')[0]
         if filename:
             data = np.load(filename)
             self.update_data(data)

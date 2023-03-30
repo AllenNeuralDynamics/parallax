@@ -10,7 +10,7 @@ import time
 import datetime
 import os
 
-from . import get_image_file
+from . import get_image_file, data_dir
 from .toggle_switch import ToggleSwitch
 from .stage_dropdown import StageDropdown
 from .helper import FONT_BOLD
@@ -97,7 +97,7 @@ class CalibrationDataTool(QWidget):
         dt = datetime.datetime.fromtimestamp(ts)
         suggested_basename = 'caldata_%04d%02d%02d-%02d%02d%02d.npy' % (dt.year,
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
-        suggested_filename = os.path.join(os.getcwd(), suggested_basename)
+        suggested_filename = os.path.join(data_dir, suggested_basename)
         filename = QFileDialog.getSaveFileName(self, 'Save calibration data',
                                                 suggested_filename,
                                                 'Numpy files (*.npy)')[0]

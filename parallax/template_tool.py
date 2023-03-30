@@ -8,7 +8,7 @@ import time
 import datetime
 import os
 
-from . import get_image_file
+from . import get_image_file, data_dir
 from .screen_widget import ScreenWidget
 
 RAD = 100
@@ -43,7 +43,7 @@ class TemplateTool(QWidget):
             dt = datetime.datetime.fromtimestamp(ts)
             suggested_basename = 'template_%04d%02d%02d-%02d%02d%02d.npy' % (dt.year,
                                             dt.month, dt.day, dt.hour, dt.minute, dt.second)
-            suggested_filename = os.path.join(os.getcwd(), suggested_basename)
+            suggested_filename = os.path.join(data_dir, suggested_basename)
             filename = QFileDialog.getSaveFileName(self, 'Save template',
                                                     suggested_filename,
                                                     'Numpy files (*.npy)')[0]
