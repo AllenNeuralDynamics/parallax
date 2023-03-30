@@ -9,6 +9,7 @@ import pyqtgraph.opengl as gl
 import time
 import datetime
 import os
+import csv
 
 from . import get_image_file, data_dir
 from .toggle_switch import ToggleSwitch
@@ -54,7 +55,7 @@ class GroundTruthDataTool(QWidget):
         self.setLayout(self.layout)
 
         self.setMinimumWidth(600)
-        self.setWindowTitle('Ground Truth Data Tool')
+        self.setWindowTitle('Ground Truth Data Collector')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
         self.setFocusPolicy(Qt.StrongFocus)
 
@@ -88,8 +89,15 @@ class GroundTruthDataTool(QWidget):
             msg = 'Ground Truth Data Tool: Select correspondence points'
             self.msg_posted.emit(msg)
             return
-        data = pos + (x1, y1, x2, y2)
-        s = 'opt = %.2f, %.2f, %.2f / ipt1 = %.2f, %.2f / ipt2 = %.2f, %.2f' % data
+        basenames = []
+        for i,screen in enumerate([self.lscreen, self.rscreen]):
+            camera = screen.camera
+            basename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+            filename = os.path.join(data_dir, basename)
+            camera.save_last_image(filename)
+            basenames.append(basename)
+        data = pos + (x1, y1, x2, y2) + tuple(basenames)
+        s = 'opt = %.2f, %.2f, %.2f / ipt1 = %.2f, %.2f / ipt2 = %.2f, %.2f' % data[:7]
         item = QListWidgetItem(s)
         item.data = data
         self.list_widget.addItem(item)
@@ -99,19 +107,18 @@ class GroundTruthDataTool(QWidget):
     def save(self):
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
-        suggested_basename = 'ground_truth_data_%04d%02d%02d-%02d%02d%02d.npy' % (dt.year,
+        suggested_basename = 'ground_truth_data_%04d%02d%02d-%02d%02d%02d.csv' % (dt.year,
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
         suggested_filename = os.path.join(data_dir, suggested_basename)
         filename = QFileDialog.getSaveFileName(self, 'Save Ground Truth data',
                                                 suggested_filename,
-                                                'Numpy files (*.npy)')[0]
+                                                'CSV files (*.csv)')[0]
         if filename:
-            datapoints = []
-            for i in range(self.list_widget.count()):
-                item = self.list_widget.item(i)
-                datapoints.append(item.data)
-            data = np.array(datapoints, dtype=np.float32)
-            np.save(filename, data)
+            with open(filename, 'w', newline='') as f:
+                writer = csv.writer(f, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                for i in range(self.list_widget.count()):
+                    item = self.list_widget.item(i)
+                    writer.writerow(item.data)
             self.msg_posted.emit('Saved Ground Truth data to %s' % filename)
 
     def keyPressEvent(self, e):

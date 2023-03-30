@@ -3,8 +3,9 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
 import numpy as np
+import os
 
-from . import get_image_file
+from . import get_image_file, data_dir
 from .message_log import MessageLog
 from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
@@ -48,7 +49,7 @@ class MainWindow(QMainWindow):
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.accutest_action = QAction("Accuracy Testing Tool")
         self.accutest_action.triggered.connect(self.launch_accutest)
-        self.gtd_action = QAction("Collect Ground Truth Data")
+        self.gtd_action = QAction("Ground Truth Data Collector")
         self.gtd_action.triggered.connect(self.launch_gtd)
         self.elevator_action = QAction("Elevator Control Tool")
         self.elevator_action.triggered.connect(self.launch_elevator)
@@ -230,7 +231,8 @@ class MainWidget(QWidget):
     def save_camera_frames(self):
         for i,camera in enumerate(self.model.cameras):
             if camera.last_image:
-                filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+                basename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+                filename = os.path.join(data_dir, basename)
                 camera.save_last_image(filename)
                 self.msg_log.post('Saved camera frame: %s' % filename)
 
