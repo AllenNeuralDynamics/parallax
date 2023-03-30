@@ -54,7 +54,7 @@ class GroundTruthDataTool(QWidget):
         self.layout.addWidget(self.save_button)
         self.setLayout(self.layout)
 
-        self.setMinimumWidth(600)
+        self.setMinimumWidth(550)
         self.setWindowTitle('Ground Truth Data Collector')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
         self.setFocusPolicy(Qt.StrongFocus)
@@ -80,6 +80,8 @@ class GroundTruthDataTool(QWidget):
         dz = np.random.uniform(-2000, 2000)
         x,y,z = self.initial_pos
         self.stage.move_to_target_3d(x+dx, y+dy, z+dz, relative=False, safe=False)
+        self.lscreen.zoom_out()
+        self.rscreen.zoom_out()
 
     def grab(self):
         pos = self.stage.get_position()
