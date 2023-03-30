@@ -383,5 +383,5 @@ class ElevatorControlTool(QWidget):
     def update_pos(self):
         if self.elevator is not None:
             pos = self.elevator.get_position()
-            self.pos_label.setText('Current Position: %.1f um' % pos)
+            self.pos_label.setText('Current Position: %.1f' % pos)
 
