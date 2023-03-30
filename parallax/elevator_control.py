@@ -289,18 +289,10 @@ class AdvancedTab(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent=parent)
 
-        self.up_button = QPushButton('Move Up')
-        self.up_button.clicked.connect(self.move_up)
-
-        self.down_button = QPushButton('Move Down')
-        self.down_button.clicked.connect(self.move_down)
-
         self.speed_button = QPushButton('Speed')
         self.speed_button.clicked.connect(self.set_speed)
 
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.up_button)
-        self.layout.addWidget(self.down_button)
         self.layout.addWidget(self.speed_button)
         self.setLayout(self.layout)
         
@@ -312,8 +304,6 @@ class AdvancedTab(QWidget):
         
     def update_gui(self):
         enable = self.elevator is not None
-        self.up_button.setEnabled(enable)
-        self.down_button.setEnabled(enable)
         self.speed_button.setEnabled(enable)
         if self.elevator:
             speed = self.elevator.get_speed()
