@@ -261,6 +261,5 @@ class SettingsTab(QWidget):
     def get_extent(self):
         x1, y1, z1 = self.grab_initial_widget.get_coords()
         x2, y2, z2 = self.grab_final_widget.get_coords()
-        return 0, 0, 0, 15000, 15000, 15000
         return x1, y1, z1, x2, y2, z2
 
