@@ -105,7 +105,12 @@ class CollectTab(QWidget):
                 return
             stage.move_to_target_3d(x, y, z, relative=False, safe=False)
             self.lscreen.zoom_out()
+            self.lscreen.clear_selected()
             self.rscreen.zoom_out()
+            self.rscreen.clear_selected()
+            self.msg_posted.emit('Ground Truth point reached: [%f, %f, %f]' \
+                                    % (x,y,z))
+            self.msg_posted.emit('Highlight correspondence points and press C to continue')
         else:
             self.msg_posted.emit('Ground Truth Collector: select stage in Settings')
 
