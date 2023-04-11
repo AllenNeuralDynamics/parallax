@@ -96,10 +96,10 @@ class ControlPanel(QFrame):
         self.cjog_um = CJOG_UM_DEFAULT
 
     def update_coordinates(self, *args):
-        xa, ya, za = self.stage.get_position()
-        self.xcontrol.set_value(xa-xo, xa)
-        self.ycontrol.set_value(ya-yo, ya)
-        self.zcontrol.set_value(za-zo, za)
+        x, y, z = self.stage.get_position()
+        self.xcontrol.set_value(x)
+        self.ycontrol.set_value(y)
+        self.zcontrol.set_value(z)
 
     def handle_stage_selection(self, index):
         stage_name = self.dropdown.currentText()

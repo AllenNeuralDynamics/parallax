@@ -238,6 +238,7 @@ class AccuracyTestWorker(QObject):
         self.cal = params['cal']
         self.npoints  = params['npoints']
         self.extent_um = params['extent_um']
+        self.origin = [7500., 7500., 7500.] # hard-wired for now
 
         self.results = []
 
@@ -250,17 +251,17 @@ class AccuracyTestWorker(QObject):
     def carry_on(self):
         self.ready_to_go = True
 
-    def get_random_point(self, extent_um):
-        x = np.random.uniform((-1)*extent_um/2, extent_um/2)
-        y = np.random.uniform((-1)*extent_um/2, extent_um/2)
-        z = np.random.uniform((-1)*extent_um/2, extent_um/2)
+    def get_random_point(self, origin, extent_um):
+        x = np.random.uniform(origin[0]-extent_um/2, origin[0]+extent_um/2)
+        y = np.random.uniform(origin[1]-extent_um/2, origin[1]+extent_um/2)
+        z = np.random.uniform(origin[2]-extent_um/2, origin[2]+extent_um/2)
         return x,y,z
 
     def run(self):
         self.ts = time.time()
         self.results = []
         for i in range(self.npoints):
-            x,y,z = self.get_random_point(self.extent_um)
+            x,y,z = self.get_random_point(self.origin, self.extent_um)
             self.stage.move_to_target_3d(x,y,z)
             self.last_stage_point = [x,y,z]
             self.point_reached.emit(i,self.npoints)

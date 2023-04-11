@@ -30,6 +30,8 @@ class CalibrationWorker(QObject):
         self.complete = False
         self.alive = True
 
+        self.origin = [7500., 7500., 7500.]
+
     def register_corr_points(self, lcorr, rcorr):
         self.img_points1.append(lcorr)
         self.img_points2.append(rcorr)
@@ -41,12 +43,13 @@ class CalibrationWorker(QObject):
         self.alive = False
 
     def run(self):
-        mx =  self.extent_um / 2.
-        mn =  (-1) * mx
+        x1, x2 = self.origin[0]-self.extent_um/2., self.origin[0]+self.extent_um/2.
+        y1, y2 = self.origin[1]-self.extent_um/2., self.origin[1]+self.extent_um/2.
+        z1, z2 = self.origin[2]-self.extent_um/2., self.origin[2]+self.extent_um/2.
         n = 0
-        for x in np.linspace(mn, mx, self.resolution):
-            for y in np.linspace(mn, mx, self.resolution):
-                for z in np.linspace(mn, mx, self.resolution):
+        for x in np.linspace(x1, x2, self.resolution):
+            for y in np.linspace(y1, y2, self.resolution):
+                for z in np.linspace(z1, z2, self.resolution):
                     self.stage.move_to_target_3d(x,y,z, safe=False)
                     self.calibration_point_reached.emit(n,self.num_cal, x,y,z)
                     self.ready_to_go = False

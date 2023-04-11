@@ -15,8 +15,6 @@ class Stage:
             self.name = serial.get_serial_number()
             self.device = USBXYZStage(usb_interface=USBInterface(serial))
 
-        self.initialize()
-
     def calibrate_frequency(self):
         self.device.calibrate_all()
 
