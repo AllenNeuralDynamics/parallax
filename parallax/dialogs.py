@@ -182,10 +182,6 @@ class TargetDialog(QDialog):
         self.random_button = QPushButton('Random Point')
         self.random_button.clicked.connect(self.populate_random)
 
-        self.relative_label = QLabel('Relative Coordinates')
-        self.abs_rel_toggle = ToggleSwitch(thumb_radius=11, track_radius=8)
-        self.abs_rel_toggle.setChecked(True)
-
         self.xlabel = QLabel('X = ')
         self.xlabel.setAlignment(Qt.AlignCenter)
         self.ylabel = QLabel('Y = ')
@@ -228,8 +224,6 @@ class TargetDialog(QDialog):
         layout = QGridLayout()
         layout.addWidget(self.last_button, 0,0, 1,2)
         layout.addWidget(self.random_button, 1,0, 1,2)
-        layout.addWidget(self.relative_label, 2,0, 1,1)
-        layout.addWidget(self.abs_rel_toggle, 2,1, 1,1)
         layout.addWidget(self.xlabel, 3,0)
         layout.addWidget(self.ylabel, 4,0)
         layout.addWidget(self.zlabel, 5,0)
@@ -263,7 +257,6 @@ class TargetDialog(QDialog):
         params['x'] = float(self.xedit.text())
         params['y'] = float(self.yedit.text())
         params['z'] = float(self.zedit.text())
-        params['relative'] = self.abs_rel_toggle.isChecked()
         return params
 
 

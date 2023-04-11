@@ -24,12 +24,6 @@ class Calibration:
     def set_name(self, name):
         self.name = name
 
-    def set_origin(self, origin):
-        self.origin = origin
-
-    def get_origin(self):
-        return self.origin
-
     def set_initial_intrinsics(self, mtx1, mtx2, dist1, dist2):
 
         self.imtx1 = mtx1
@@ -62,12 +56,10 @@ class Calibration:
 
         return obj_point_reconstructed   # [x,y,z]
 
-    def calibrate(self, img_points1, img_points2, obj_points, origin):
+    def calibrate(self, img_points1, img_points2, obj_points):
 
         # don't undistort img_points, use "simple" initial intrinsics, same for both cameras
         # don't fix principal point
-
-        self.set_origin(origin)
 
         # calibrate each camera against these points
         my_flags = cv2.CALIB_USE_INTRINSIC_GUESS

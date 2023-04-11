@@ -145,8 +145,6 @@ class GeometryPanel(QFrame):
             cal = Calibration(self.cal_worker.name)
             img_points1, img_points2 = self.cal_worker.get_image_points()
             obj_points = self.cal_worker.get_object_points()
-            origin = self.cal_worker.stage.get_origin()
-            cal.calibrate(img_points1, img_points2, obj_points, origin)
             self.msg_posted.emit('Calibration finished. RMSE1 = %f, RMSE2 = %f' % \
                                     (cal.rmse1, cal.rmse2))
             self.model.add_calibration(cal)

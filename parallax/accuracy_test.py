@@ -261,7 +261,7 @@ class AccuracyTestWorker(QObject):
         self.results = []
         for i in range(self.npoints):
             x,y,z = self.get_random_point(self.extent_um)
-            self.stage.move_to_target_3d(x,y,z, relative=True)
+            self.stage.move_to_target_3d(x,y,z)
             self.last_stage_point = [x,y,z]
             self.point_reached.emit(i,self.npoints)
             self.ready_to_go = False

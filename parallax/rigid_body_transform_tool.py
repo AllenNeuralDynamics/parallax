@@ -121,7 +121,7 @@ class RigidBodyTransformTool(QWidget):
 
     def fill_current(self):
         if self.stage:
-            pos = self.stage.get_position(relative=True)
+            pos = self.stage.get_position()
             self.coords_widget2.set_coordinates(pos)
         else:
             self.msg_posted.emit('Please select a stage to draw current position from')

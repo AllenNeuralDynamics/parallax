@@ -20,28 +20,15 @@ class Stage:
     def calibrate_frequency(self):
         self.device.calibrate_all()
 
-    def initialize(self):
-        self.origin = [7500,7500,7500]
-
     def get_name(self):
         return self.name
 
-    def set_origin(self, x, y, z):
-        self.origin = [x,y,z]
-
-    def get_origin(self):
-        return self.origin
-
-    def get_position(self, relative=False):
+    def get_position(self):
         pos = self.device.get_position('x', 'y', 'z')
         x,y,z = pos['x'], pos['y'], pos['z']
-        if relative:
-            x -= self.origin[0]
-            y -= self.origin[1]
-            z -= self.origin[2]
         return x,y,z
 
-    def move_to_target_1d(self, axis, position, relative=False):
+    def move_to_target_1d(self, axis, position):
         if axis == 'x':
             self.device.move_absolute(x=position)
         elif axis == 'y':
@@ -49,13 +36,8 @@ class Stage:
         elif axis == 'z':
             self.device.move_absolute(z=position)
 
-    def move_to_target_3d(self, x, y, z, relative=False, safe=True):
+    def move_to_target_3d(self, x, y, z, safe=True):
         # TODO implement safe parameter
-        if relative:
-            xo,yo,zo = self.get_origin()
-            x += xo
-            y += yo
-            z += zo
         self.device.move_absolute(x=x, y=y, z=z)
 
     def move_distance_1d(self, axis, distance):

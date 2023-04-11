@@ -20,19 +20,14 @@ class AxisControl(QWidget):
         QWidget.__init__(self)
         self.axis = axis    # e.g. 'X'
 
-        self.rel_label = QLabel(self.axis + 'r')
-        self.rel_label.setAlignment(Qt.AlignCenter)
-        self.rel_label.setFont(FONT_BOLD)
         self.abs_label = QLabel('(%sa)' % self.axis)
         self.abs_label.setAlignment(Qt.AlignCenter)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.rel_label)
         layout.addWidget(self.abs_label)
         self.setLayout(layout)
 
-    def set_value(self, val_rel, val_abs):
-        self.rel_label.setText('%sr = %0.1f' % (self.axis, val_rel))
+    def set_value(self, val_abs):
         self.abs_label.setText('(%0.1f)' % val_abs)
 
     def wheelEvent(self, e):
@@ -78,9 +73,6 @@ class ControlPanel(QFrame):
         self.zcontrol.jog_requested.connect(self.jog)
         self.zcontrol.center_requested.connect(self.center)
 
-        self.zero_button = QPushButton('Set Relative Origin')
-        self.zero_button.clicked.connect(self.zero)
-
         self.move_target_button = QPushButton('Move to Target')
         self.move_target_button.clicked.connect(self.move_to_target)
 
@@ -92,7 +84,6 @@ class ControlPanel(QFrame):
         main_layout.addWidget(self.xcontrol, 2,0, 1,1)
         main_layout.addWidget(self.ycontrol, 2,1, 1,1)
         main_layout.addWidget(self.zcontrol, 2,2, 1,1)
-        main_layout.addWidget(self.zero_button, 3,0, 1,3)
         main_layout.addWidget(self.move_target_button, 4,0, 1,3)
         self.setLayout(main_layout)
 
@@ -106,14 +97,9 @@ class ControlPanel(QFrame):
 
     def update_coordinates(self, *args):
         xa, ya, za = self.stage.get_position()
-        xo, yo, zo = self.stage.get_origin()
         self.xcontrol.set_value(xa-xo, xa)
         self.ycontrol.set_value(ya-yo, ya)
         self.zcontrol.set_value(za-zo, za)
-
-    def update_relative_origin(self):
-        x,y,z = self.stage.get_origin()
-        self.zero_button.setText('Set Relative Origin: (%d %d %d)' % (x, y, z))
 
     def handle_stage_selection(self, index):
         stage_name = self.dropdown.currentText()
@@ -122,7 +108,6 @@ class ControlPanel(QFrame):
 
     def set_stage(self, stage):
         self.stage = stage
-        self.update_relative_origin()
 
     def move_to_target(self, *args):
         dlg = TargetDialog(self.model)
@@ -132,13 +117,9 @@ class ControlPanel(QFrame):
             y = params['y']
             z = params['z']
             if self.stage:
-                self.stage.move_to_target_3d(x, y, z, relative=params['relative'], safe=True)
-                if params['relative']:
-                    self.msg_posted.emit('Moved to relative position: '
-                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                else:
-                    self.msg_posted.emit('Moved to absolute position: '
-                                        '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+                self.stage.move_to_target_3d(x, y, z, safe=True)
+                self.msg_posted.emit('Moved to stage position: '
+                                    '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
                 self.update_coordinates()
                 self.target_reached.emit()
             else:
@@ -172,14 +153,6 @@ class ControlPanel(QFrame):
         if self.stage:
             self.stage.move_to_target_1d(axis, 7500)
             self.update_coordinates()
-
-    def zero(self, *args):
-        if self.stage:
-            x, y, z = self.stage.get_position()
-            self.stage.set_origin(x, y, z)
-            self.zero_button.setText('Zero: (%d %d %d)' % (x, y, z))
-            self.update_coordinates()
-            self.update_relative_origin()
 
     def halt(self):
         # doesn't actually work now because we need threading
