@@ -18,6 +18,7 @@ from .checkerboard_tool import CheckerboardTool
 from .accuracy_test import AccuracyTestTool
 from .ground_truth_data_tool import GroundTruthDataTool
 from .elevator_control import ElevatorControlTool
+from .point_bank import PointBank
 
 
 class MainWindow(QMainWindow):
@@ -53,6 +54,8 @@ class MainWindow(QMainWindow):
         self.gtd_action.triggered.connect(self.launch_gtd)
         self.elevator_action = QAction("Elevator Control Tool")
         self.elevator_action.triggered.connect(self.launch_elevator)
+        self.pb_action = QAction("Point Bank")
+        self.pb_action.triggered.connect(self.launch_pb)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -78,6 +81,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.gtd_action)
         self.tools_menu.addAction(self.elevator_action)
+        self.tools_menu.addAction(self.pb_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -120,10 +124,16 @@ class MainWindow(QMainWindow):
         self.gtd_tool = GroundTruthDataTool(self.model, self.screens())
         self.gtd_tool.msg_posted.connect(self.widget.msg_log.post)
         self.gtd_tool.show()
+
     def launch_elevator(self):
         self.elevator_tool = ElevatorControlTool(self.model)
         self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
         self.elevator_tool.show()
+
+    def launch_pb(self):
+        self.pb = PointBank(self.model)
+        self.pb.msg_posted.connect(self.widget.msg_log.post)
+        self.pb.show()
 
     def new_transform(self, name, tr):
         self.model.add_transform(name, tr)
