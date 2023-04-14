@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLineEdit
-from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex
-from PyQt5.QtGui import QIcon, QDoubleValidator, QPixmap, QStandardItemModel
+from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex, QMimeData
+from PyQt5.QtGui import QIcon, QDoubleValidator, QPixmap, QStandardItemModel, QDrag
 
 import numpy as np
 
@@ -83,7 +83,7 @@ class ControlPanel(QFrame):
 
         # layout
         main_layout = QGridLayout()
-        main_layout.addWidget(self.main_label, 0,0, 1,3)
+        main_layout.addWidget(self.main_label, 0,0, 1,4)
         main_layout.addWidget(self.dropdown, 1,0, 1,2)
         main_layout.addWidget(self.settings_button, 1,2, 1,1)
         main_layout.addWidget(self.target_button, 1,3, 1,1)
@@ -99,6 +99,8 @@ class ControlPanel(QFrame):
         self.stage = None
         self.jog_um = JOG_UM_DEFAULT
         self.cjog_um = CJOG_UM_DEFAULT
+
+        self.dragHold = False
 
     def update_coordinates(self, *args):
         x, y, z = self.stage.get_position()
@@ -134,7 +136,6 @@ class ControlPanel(QFrame):
         if self.stage:
             self.target_dialog = TargetDialog(self.model, self.stage)
             self.target_dialog.show()
-            # TODO connect signals
             self.target_dialog.msg_posted.connect(self.msg_posted)
             self.target_dialog.target_reached.connect(self.target_reached)
         else:
@@ -172,6 +173,23 @@ class ControlPanel(QFrame):
     def halt(self):
         # doesn't actually work now because we need threading
         self.stage.halt()
+
+    def mousePressEvent(self, e):
+        self.dragHold = True
+
+    def mouseReleaseEvent(self, e):
+        self.dragHold = False
+
+    def mouseMoveEvent(self, e):
+        if self.dragHold:
+            self.dragHold = False
+            if self.stage:
+                x,y,z = self.stage.get_position()
+                md = QMimeData()
+                md.setText('%.6f,%.6f,%.6f' % (x, y, z))
+                drag = QDrag(self)
+                drag.setMimeData(md)
+                drag.exec()
 
 
 class TargetDialog(QWidget):
@@ -319,4 +337,5 @@ class PointDrop(QLabel):
         md = e.mimeData()
         x,y,z = (float(e) for e in md.text().split(','))
         self.point_received.emit(x,y,z)
+        e.accept()
 

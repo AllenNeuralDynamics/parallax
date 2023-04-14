@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QGridLayout, QMenu, QFileDialog
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox
 from PyQt5.QtGui import QIcon, QKeySequence
-from PyQt5.QtCore import pyqtSignal, Qt, QEvent, QMimeData
+from PyQt5.QtCore import pyqtSignal, Qt, QEvent 
 
 import time
 import datetime
@@ -62,6 +62,8 @@ class PointBank(QFrame):
         self.setWindowTitle('Point Bank')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
+        self.setAcceptDrops(True)
+
         if frame:
             self.setFrameStyle(QFrame.Box | QFrame.Plain)
             self.setLineWidth(2)
@@ -69,8 +71,8 @@ class PointBank(QFrame):
     def clear(self):
         self.list_widget.clear()
 
-    def new_point(self):
-        dlg = EditPointDialog()
+    def new_point(self, point=None):
+        dlg = EditPointDialog(point)
         if dlg.exec_():
             item = PointBankItem(dlg.point)
             self.list_widget.addItem(item)
@@ -139,6 +141,24 @@ class PointBank(QFrame):
                     clear_action.triggered.connect(lambda _: self.clear())
                     menu.exec_(e.globalPos())
         return super().eventFilter(src, e)
+
+    def dragEnterEvent(self, e):
+        md = e.mimeData()
+        """
+        if md.hasFormat('data/point'):
+            e.accept()
+        """
+        # for now.. good enough
+        if md.hasText():
+            e.accept()
+
+    def dropEvent(self, e):
+        md = e.mimeData()
+        x,y,z = (float(e) for e in md.text().split(','))
+        e.accept()
+        point = Point3D()
+        point.set_coordinates(x,y,z)
+        self.new_point(point)
 
 
 class Point3D:
