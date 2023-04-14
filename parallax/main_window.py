@@ -226,7 +226,7 @@ class MainWidget(QWidget):
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
         elif e.key() == Qt.Key_T:
-            self.geo_panel.triangulate()
+            self.cal_panel.triangulate()
 
     def refresh(self):
         self.lscreen.refresh()
