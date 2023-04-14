@@ -306,6 +306,7 @@ class TargetDialog(QWidget):
         y = float(self.yedit.text())
         z = float(self.zedit.text())
         self.stage.move_to_target_3d(x, y, z, safe=True)
+        self.target_reached.emit()
         self.msg_posted.emit('Moved to stage position: '
                             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
 
