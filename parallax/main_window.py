@@ -10,7 +10,10 @@ from . import get_image_file, data_dir
 from .message_log import MessageLog
 from .screen_widget import ScreenWidget
 from .control_panel import ControlPanel
-from .geometry_panel import GeometryPanel
+
+from .calibration_panel import CalibrationPanel
+from .transform_panel import TransformPanel
+
 from .dialogs import AboutDialog
 from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
@@ -171,13 +174,15 @@ class MainWidget(QWidget):
         self.controls = QWidget()
         self.control_panel1 = ControlPanel(self.model)
         self.control_panel2 = ControlPanel(self.model)
-        self.geo_panel = GeometryPanel(self.model)
+        self.cal_panel = CalibrationPanel(self.model)
+        self.trans_panel = TransformPanel(self.model)
         self.point_bank = PointBank(self.model, frame=True)
         glayout = QGridLayout()
         glayout.addWidget(self.control_panel1, 0,0, 1,1)
         glayout.addWidget(self.control_panel2, 1,0, 1,1)
-        glayout.addWidget(self.geo_panel, 0,1, 2,1)
-        glayout.addWidget(self.point_bank, 0,2, 2,1)
+        glayout.addWidget(self.point_bank, 0,1, 2,1)
+        glayout.addWidget(self.cal_panel, 0,2, 1,1)
+        glayout.addWidget(self.trans_panel, 1,2, 1,1)
         self.controls.setLayout(glayout)
 
         self.refresh_timer = QTimer()
@@ -190,9 +195,10 @@ class MainWidget(QWidget):
         self.control_panel2.msg_posted.connect(self.msg_log.post)
         self.control_panel1.target_reached.connect(self.zoom_out)
         self.control_panel2.target_reached.connect(self.zoom_out)
-        self.geo_panel.msg_posted.connect(self.msg_log.post)
-        self.geo_panel.cal_point_reached.connect(self.clear_selected)
-        self.geo_panel.cal_point_reached.connect(self.zoom_out)
+        self.cal_panel.msg_posted.connect(self.msg_log.post)
+        self.cal_panel.cal_point_reached.connect(self.clear_selected)
+        self.cal_panel.cal_point_reached.connect(self.zoom_out)
+        self.trans_panel.msg_posted.connect(self.msg_log.post)
         self.point_bank.msg_posted.connect(self.msg_log.post)
         self.model.msg_posted.connect(self.msg_log.post)
         self.lscreen.selected.connect(self.model.set_lcorr)
@@ -214,7 +220,7 @@ class MainWidget(QWidget):
                 e.accept()
         elif e.key() == Qt.Key_C:
             if self.model.cal_in_progress:
-                self.geo_panel.register_corr_points_cal()
+                self.cal_panel.register_corr_points_cal()
             if self.model.accutest_in_progress:
                 self.model.register_corr_points_accutest()
         elif e.key() == Qt.Key_Escape:
