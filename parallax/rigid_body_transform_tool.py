@@ -21,6 +21,9 @@ class CoordinateWidget(QWidget):
         self.yedit = QLineEdit()
         self.zedit = QLineEdit()
 
+        for e in (self.xedit, self.yedit, self.zedit):
+            e.setAcceptDrops(False)
+
         if vertical:
             self.layout = QVBoxLayout()
         else:
@@ -29,6 +32,8 @@ class CoordinateWidget(QWidget):
         self.layout.addWidget(self.yedit)
         self.layout.addWidget(self.zedit)
         self.setLayout(self.layout)
+
+        self.setAcceptDrops(True)
 
     def get_coordinates(self):
         x = float(self.xedit.text())
@@ -40,6 +45,22 @@ class CoordinateWidget(QWidget):
         self.xedit.setText('{0:.2f}'.format(coords[0]))
         self.yedit.setText('{0:.2f}'.format(coords[1]))
         self.zedit.setText('{0:.2f}'.format(coords[2]))
+
+    def dragEnterEvent(self, e):
+        md = e.mimeData()
+        """
+        if md.hasFormat('data/point'):
+            e.accept()
+        """
+        # for now.. good enough
+        if md.hasText():
+            e.accept()
+
+    def dropEvent(self, e):
+        md = e.mimeData()
+        coords = (float(e) for e in md.text().split(','))
+        e.accept()
+        self.set_coordinates(tuple(coords))
 
 
 class RigidBodyTransformTool(QWidget):
