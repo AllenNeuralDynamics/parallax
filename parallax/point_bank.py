@@ -1,46 +1,61 @@
 import random
 import string
 
-from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QLabel
-from PyQt5.QtWidgets import QGridLayout
+from PyQt5.QtWidgets import QFrame, QPushButton, QLineEdit, QLabel
+from PyQt5.QtWidgets import QGridLayout, QMenu, QFileDialog
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox
 from PyQt5.QtGui import QIcon, QKeySequence
 from PyQt5.QtCore import pyqtSignal, Qt, QEvent
 
+import time
+import datetime
+import os
+import pickle
+
 from . import get_image_file, data_dir
+from .helper import FONT_BOLD
 
 
-class PointBank(QWidget):
+class PointBank(QFrame):
     msg_posted = pyqtSignal(str)
 
-    def __init__(self, model, parent=None):
-        QWidget.__init__(self, parent=parent)
+    def __init__(self, model, parent=None, frame=False):
+        QFrame.__init__(self, parent=parent)
         self.model = model
 
         self.npoints = 0
+
+        self.main_label = QLabel('Point Bank')
+        self.main_label.setAlignment(Qt.AlignCenter)
+        self.main_label.setFont(FONT_BOLD)
 
         self.list_widget = QListWidget()
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
         self.list_widget.itemDoubleClicked.connect(self.edit_point)
         self.list_widget.installEventFilter(self)
 
-        self.clear_button = QPushButton('Clear')
-        self.clear_button.clicked.connect(self.clear)
-        self.new_button = QPushButton('New')
-        self.new_button.clicked.connect(self.new_point)
+        self.load_button = QPushButton('Load')
+        self.load_button.clicked.connect(self.load)
+        self.save_button = QPushButton('Save')
+        self.save_button.clicked.connect(self.save)
 
         self.layout = QGridLayout()
-        self.layout.addWidget(self.list_widget, 0,0, 5,2)
-        self.layout.addWidget(self.clear_button, 5,0, 1,1)
-        self.layout.addWidget(self.new_button, 5,1, 1,1)
+        self.layout.addWidget(self.main_label, 0,0, 1,2)
+        self.layout.addWidget(self.list_widget, 1,0, 5,2)
+        self.layout.addWidget(self.load_button, 6,0, 1,1)
+        self.layout.addWidget(self.save_button, 6,1, 1,1)
 
         self.setLayout(self.layout)
         self.setWindowTitle('Point Bank')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
+        if frame:
+            self.setFrameStyle(QFrame.Box | QFrame.Plain)
+            self.setLineWidth(2)
+
     def clear(self):
-        print('TODO: clear')
+        self.list_widget.clear()
 
     def new_point(self):
         dlg = EditPointDialog()
@@ -48,16 +63,69 @@ class PointBank(QWidget):
             item = PointBankItem(dlg.point)
             self.list_widget.addItem(item)
 
-    def edit_point(self, item):
-        dlg = EditPointDialog(item.point)
+    def edit_point(self, point_item):
+        dlg = EditPointDialog(point_item.point)
         if dlg.exec_():
-            item.set_point(dlg.get_point())
+            point_item.set_point(dlg.get_point())
+
+    def delete_point(self, point_item):
+        row = self.list_widget.row(point_item)
+        self.list_widget.takeItem(row)
+        del point_item
+
+    def load(self):
+        filename = QFileDialog.getOpenFileName(self, 'Load points file',
+                                        data_dir, 'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'rb') as f:
+                points = pickle.load(f)
+                for point in points:
+                    self.list_widget.addItem(PointBankItem(point))
+
+    def save(self):
+        points = []
+        for i in range(self.list_widget.count()):
+            point_item = self.list_widget.item(i)
+            point = point_item.point
+            points.append(point)
+        
+        ts = time.time()
+        dt = datetime.datetime.fromtimestamp(ts)
+        suggested_basename = 'points_%04d%02d%02d-%02d%02d%02d.pkl' % (dt.year,
+                                        dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        suggested_filename = os.path.join(data_dir, suggested_basename)
+        filename = QFileDialog.getSaveFileName(self, 'Save points',
+                                                suggested_filename,
+                                                'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'wb') as f:
+                pickle.dump(points, f)
+            self.msg_posted.emit('Saved points to: %s' % (filename))
 
     def eventFilter(self, src, e):
-        if e.type() == QEvent.KeyPress and \
-           e.matches(QKeySequence.InsertParagraphSeparator):
-           item = self.list_widget.currentItem()
-           self.edit_point(item)
+        if src is self.list_widget:
+            if e.type() == QEvent.KeyPress and \
+                e.matches(QKeySequence.InsertParagraphSeparator):
+                item = self.list_widget.currentItem()
+                self.edit_point(item)
+            elif e.type() == QEvent.ContextMenu:
+                item = src.itemAt(e.pos())
+                if item:
+                    menu = QMenu()
+                    edit_action = menu.addAction('Edit')
+                    edit_action.triggered.connect(lambda _: self.edit_point(item))
+                    delete_action = menu.addAction('Delete')
+                    delete_action.triggered.connect(lambda _: self.delete_point(item))
+                    new_action = menu.addAction('New')
+                    new_action.triggered.connect(lambda _: self.new_point())
+                    menu.exec_(e.globalPos())
+                else:
+                    menu = QMenu()
+                    new_action = menu.addAction('New')
+                    new_action.triggered.connect(lambda _: self.new_point())
+                    clear_action = menu.addAction('Clear')
+                    clear_action.triggered.connect(lambda _: self.clear())
+                    menu.exec_(e.globalPos())
         return super().eventFilter(src, e)
 
 class Point3D:
