@@ -28,6 +28,15 @@ class PointListWidget(QListWidget):
         md.setText('%.6f,%.6f,%.6f' % (p.x, p.y, p.z))
         return md
 
+    def dragMoveEvent(self, e):
+        # from https://forum.qt.io/post/752196
+        if (self.row(self.itemAt(e.pos())) == self.currentRow() + 1) \
+            or (self.currentRow() == self.count() - 1) \
+            and (self.row(self.itemAt(e.pos())) == -1):
+            e.ignore()
+        else:
+            QListWidget.dragMoveEvent(self, e)
+
 
 class PointBank(QFrame):
     msg_posted = pyqtSignal(str)
