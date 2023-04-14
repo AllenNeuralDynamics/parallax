@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLineEdit
 from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex, QMimeData
-from PyQt5.QtGui import QIcon, QDoubleValidator, QPixmap, QStandardItemModel, QDrag
+from PyQt5.QtGui import QIcon, QDoubleValidator, QPixmap, QDrag
 
 import numpy as np
 

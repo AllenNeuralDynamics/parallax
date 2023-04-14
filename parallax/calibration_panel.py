@@ -1,7 +1,8 @@
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QFrame, QWidget, QComboBox, QLabel
 from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtCore import pyqtSignal, Qt, QThread
+from PyQt5.QtCore import pyqtSignal, Qt, QThread, QMimeData
+from PyQt5.QtGui import QDrag
 
 import pickle
 import os
@@ -49,6 +50,8 @@ class CalibrationPanel(QFrame):
         # frame border
         self.setFrameStyle(QFrame.Box | QFrame.Plain)
         self.setLineWidth(2)
+
+        self.dragHold = False
 
     def triangulate(self):
 
@@ -161,4 +164,21 @@ class CalibrationPanel(QFrame):
         self.cal_combo.clear()
         for cal in self.model.calibrations.keys():
             self.cal_combo.addItem(cal)
+
+    def mousePressEvent(self, e):
+        self.dragHold = True
+
+    def mouseReleaseEvent(self, e):
+        self.dragHold = False
+
+    def mouseMoveEvent(self, e):
+        if self.dragHold:
+            self.dragHold = False
+            if self.model.obj_point_last is not None:
+                x,y,z = self.model.obj_point_last
+                md = QMimeData()
+                md.setText('%.6f,%.6f,%.6f' % (x, y, z))
+                drag = QDrag(self)
+                drag.setMimeData(md)
+                drag.exec()
 
