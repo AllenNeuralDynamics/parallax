@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QGridLayout, QMenu, QFileDialog
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox
 from PyQt5.QtGui import QIcon, QKeySequence
-from PyQt5.QtCore import pyqtSignal, Qt, QEvent
+from PyQt5.QtCore import pyqtSignal, Qt, QEvent, QMimeData
 
 import time
 import datetime
@@ -15,6 +15,18 @@ import pickle
 
 from . import get_image_file, data_dir
 from .helper import FONT_BOLD
+
+
+class PointListWidget(QListWidget):
+
+    def __init__(self):
+        QListWidget.__init__(self)
+
+    def mimeData(self, items):
+        md = QListWidget.mimeData(self, items)
+        p = items[0].point  # one point at a time for now
+        md.setText('%.6f,%.6f,%.6f' % (p.x, p.y, p.z))
+        return md
 
 
 class PointBank(QFrame):
@@ -30,7 +42,7 @@ class PointBank(QFrame):
         self.main_label.setAlignment(Qt.AlignCenter)
         self.main_label.setFont(FONT_BOLD)
 
-        self.list_widget = QListWidget()
+        self.list_widget = PointListWidget()
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
         self.list_widget.itemDoubleClicked.connect(self.edit_point)
         self.list_widget.installEventFilter(self)
@@ -128,6 +140,7 @@ class PointBank(QFrame):
                     menu.exec_(e.globalPos())
         return super().eventFilter(src, e)
 
+
 class Point3D:
 
     def __init__(self):
@@ -221,4 +234,5 @@ class EditPointDialog(QDialog):
 
     def get_point(self):
         return self.point
+
 
