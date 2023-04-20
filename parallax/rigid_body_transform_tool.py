@@ -1,8 +1,9 @@
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QInputDialog, QComboBox
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
-from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QMenu
+from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize, pyqtSignal
+from PyQt5.QtCore import QSize, pyqtSignal, QEvent
+
 import coorx
 import csv
 import numpy as np
@@ -112,16 +113,18 @@ class RigidBodyTransformTool(QWidget):
         self.right_widget.setLineWidth(2)
         self.right_layout = QVBoxLayout()
         self.list_widget = QListWidget()
+        self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
+        self.list_widget.installEventFilter(self)
         self.right_layout.addWidget(self.list_widget)
-        self.clear_button = QPushButton('Clear List')
-        self.clear_button.clicked.connect(self.clear)
-        self.save_button = QPushButton('Save to CSV')
+        self.load_button = QPushButton('Load')
+        self.load_button.clicked.connect(self.load)
+        self.save_button = QPushButton('Save')
         self.save_button.clicked.connect(self.save)
         self.generate_button = QPushButton('Generate Transform')
         self.generate_button.clicked.connect(self.generate)
         self.right_buttons = QWidget()
         self.right_buttons.setLayout(QHBoxLayout())
-        self.right_buttons.layout().addWidget(self.clear_button)
+        self.right_buttons.layout().addWidget(self.load_button)
         self.right_buttons.layout().addWidget(self.save_button)
         self.right_buttons.layout().addWidget(self.generate_button)
         self.right_layout.addWidget(self.right_buttons)
@@ -135,6 +138,24 @@ class RigidBodyTransformTool(QWidget):
         self.setLayout(self.layout)
         self.setWindowTitle('Rigid Body Transform Tool')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
+
+    def eventFilter(self, src, e):
+        if src is self.list_widget:
+            if e.type() == QEvent.ContextMenu:
+                item = src.itemAt(e.pos())
+                menu = QMenu()
+                if item:
+                    delete_action = menu.addAction('Delete')
+                    delete_action.triggered.connect(lambda _: self.delete_corr_point(item))
+                clear_action = menu.addAction('Clear')
+                clear_action.triggered.connect(lambda _: self.clear())
+                menu.exec_(e.globalPos())
+        return super().eventFilter(src, e)
+
+    def delete_corr_point(self, item):
+        row = self.list_widget.row(item)
+        self.list_widget.takeItem(row)
+        del item
 
     def handle_stage_selection(self, index):
         stage_name = self.stage_dropdown.currentText()
@@ -151,16 +172,36 @@ class RigidBodyTransformTool(QWidget):
         if not (self.model.obj_point_last is None):
             self.coords_widget2.set_coordinates(self.model.obj_point_last)
 
-    def add_coordinates(self):
-        try:
-            p1 = self.coords_widget1.get_coordinates()
-            p2 = self.coords_widget2.get_coordinates()
+    def add_coordinates(self, coords=None):
+        # if !coords, then pull from the CoordinateWidgets
+        if coords:
+            p1 = coords[:3]
+            p2 = coords[3:]
             s = '{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}'.format(*(p1+p2))
-            item = QListWidgetItem(s)
-            self.list_widget.addItem(item)
-            item.points = p1, p2
-        except ValueError:  # handle incomplete coordinate fields
-            pass
+        else:
+            try:
+                p1 = self.coords_widget1.get_coordinates()
+                p2 = self.coords_widget2.get_coordinates()
+                s = '{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}'.format(*(p1+p2))
+            except ValueError:  # handle incomplete coordinate fields
+                return
+        item = QListWidgetItem(s)
+        item.points = p1, p2
+        self.list_widget.addItem(item)
+
+    def load(self):
+        filename = QFileDialog.getOpenFileName(self, 'Load correspondence points',
+                                        data_dir, 'CSV files (*.csv)')[0]
+        if filename:
+            with open(filename, 'r') as f:
+                reader = csv.reader(f, delimiter=',')
+                for row in reader:
+                    self.add_coordinates(coords=[float(e) for e in row])
+                    """
+                    points = pickle.load(f)
+                    for point in points:
+                        self.list_widget.addItem(PointBankItem(point))
+                    """
 
     def save(self):
         filename = QFileDialog.getSaveFileName(self, 'Save correspondence file',
