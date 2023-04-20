@@ -131,9 +131,6 @@ class MainWindow(QMainWindow):
         self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
         self.elevator_tool.show()
 
-    def new_transform(self, name, tr):
-        self.model.add_transform(name, tr)
-
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
 

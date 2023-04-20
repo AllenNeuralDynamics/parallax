@@ -1,18 +1,22 @@
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QInputDialog, QComboBox
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QMenu
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QCheckBox
+from PyQt5.QtWidgets import QTabWidget 
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget, QListWidgetItem, QAbstractItemView
-from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QSize, pyqtSignal, QEvent
+from PyQt5.QtGui import QIcon, QDrag
+from PyQt5.QtCore import QSize, pyqtSignal, QEvent, Qt, QMimeData
 
-import coorx
 import csv
 import numpy as np
 
 from . import get_image_file, data_dir
+from .helper import FONT_BOLD
 from .stage_dropdown import StageDropdown
+from .transform import Transform
 
 
 class CoordinateWidget(QWidget):
+
+    returnPressed = pyqtSignal()
 
     def __init__(self, parent=None, vertical=False):
         QWidget.__init__(self, parent)
@@ -21,6 +25,9 @@ class CoordinateWidget(QWidget):
         self.xedit = QLineEdit()
         self.yedit = QLineEdit()
         self.zedit = QLineEdit()
+
+        for e in (self.xedit, self.yedit, self.zedit):
+            e.returnPressed.connect(self.returnPressed)
 
         for e in (self.xedit, self.yedit, self.zedit):
             e.setAcceptDrops(False)
@@ -35,6 +42,24 @@ class CoordinateWidget(QWidget):
         self.setLayout(self.layout)
 
         self.setAcceptDrops(True)
+
+        self.dragHold = False
+
+    def mousePressEvent(self, e):
+        self.dragHold = True
+
+    def mouseReleaseEvent(self, e):
+        self.dragHold = False
+
+    def mouseMoveEvent(self, e):
+        if self.dragHold:
+            self.dragHold = False
+            x,y,z = self.get_coordinates()
+            md = QMimeData()
+            md.setText('%.6f,%.6f,%.6f' % (x, y, z))
+            drag = QDrag(self)
+            drag.setMimeData(md)
+            drag.exec()
 
     def get_coordinates(self):
         x = float(self.xedit.text())
@@ -65,6 +90,107 @@ class CoordinateWidget(QWidget):
 
 
 class RigidBodyTransformTool(QWidget):
+    msg_posted = pyqtSignal(str)
+    generated = pyqtSignal()
+
+    def __init__(self, model):
+        QWidget.__init__(self, parent=None)
+        self.model = model
+
+        self.corr_tab = CorrespondencePointsTab(self.model)
+        self.corr_tab.msg_posted.connect(self.msg_posted)
+        self.corr_tab.generated.connect(self.generated)
+
+        self.comp_tab = CompositionTab(self.model)
+        self.comp_tab.msg_posted.connect(self.msg_posted)
+        self.comp_tab.generated.connect(self.generated)
+
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(self.corr_tab, 'From Correspondence')
+        self.tab_widget.addTab(self.comp_tab, 'From Composition')
+
+        self.layout = QVBoxLayout()
+        self.layout.addWidget(self.tab_widget)
+        self.setLayout(self.layout)
+
+        self.setWindowTitle('Rigid Body Transform Tool')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
+
+
+class TransformListItem(QListWidgetItem):
+
+    def __init__(self, transform):
+        desc = f"{transform.name} from {transform.from_cs} to {transform.to_cs}"
+        QListWidgetItem.__init__(self, desc)
+        self.transform = transform
+
+
+class CompositionTab(QWidget):
+    msg_posted = pyqtSignal(str)
+    generated = pyqtSignal()
+
+    def __init__(self, model):
+        QWidget.__init__(self, parent=None)
+        self.model = model
+
+        self.transforms_combo = QComboBox()
+        self.invert_checkbox = QCheckBox('Invert')
+        self.add_button = QPushButton('Add')
+        self.add_button.clicked.connect(self.add)
+
+        self.list_widget = QListWidget()
+        self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
+
+        self.name_edit = QLineEdit()
+        self.name_edit.setPlaceholderText('Transform Name')
+
+        self.generate_button = QPushButton('Generate')
+        self.generate_button.clicked.connect(self.generate)
+
+        layout = QGridLayout()
+        layout.addWidget(self.transforms_combo, 0,0, 1,1)
+        layout.addWidget(self.invert_checkbox, 0,1, 1,1)
+        layout.addWidget(self.add_button, 0,2, 1,1)
+        layout.addWidget(self.list_widget, 1,0, 5,3)
+        layout.addWidget(self.name_edit, 6,0, 1,3)
+        layout.addWidget(self.generate_button, 7,0, 1,3)
+        self.setLayout(layout)
+
+        self.update_transforms()
+
+    def update_transforms(self):
+        self.transforms_combo.clear()
+        for t in self.model.transforms.values():
+            name = t.name
+            self.transforms_combo.addItem(name)
+
+    def add(self):
+        name = self.transforms_combo.currentText()
+        transform = self.model.get_transform(name)
+        if self.invert_checkbox.isChecked():
+            print('TODO invert')
+            return
+        self.list_widget.addItem(TransformListItem(transform))
+
+    def generate(self):
+        transforms = []
+        for row in range(self.list_widget.count()):
+            transforms.append(self.list_widget.item(row).transform)
+        # check to make sure coordinates systems match
+        for i in range(len(transforms) - 1):
+            t = transforms[i]
+            tnext = transforms[i+1]
+            assert tnext.from_cs == t.to_cs, 'Coordinates systems do not match'
+        name = self.name_edit.text()
+        from_cs = transforms[0].from_cs
+        to_cs = transforms[-1].to_cs
+        new_transform = Transform(name, from_cs, to_cs)
+        new_transform.compute_from_composition(transforms)
+        self.model.add_transform(new_transform)
+        self.generated.emit()
+
+
+class CorrespondencePointsTab(QWidget):
     msg_posted = pyqtSignal(str)
     generated = pyqtSignal()
 
@@ -116,6 +242,9 @@ class RigidBodyTransformTool(QWidget):
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
         self.list_widget.installEventFilter(self)
         self.right_layout.addWidget(self.list_widget)
+        self.name_edit = QLineEdit()
+        self.name_edit.setPlaceholderText('Transform Name')
+        self.right_layout.addWidget(self.name_edit)
         self.load_button = QPushButton('Load')
         self.load_button.clicked.connect(self.load)
         self.save_button = QPushButton('Save')
@@ -136,8 +265,6 @@ class RigidBodyTransformTool(QWidget):
         self.layout.addWidget(self.right_widget)
 
         self.setLayout(self.layout)
-        self.setWindowTitle('Rigid Body Transform Tool')
-        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
     def eventFilter(self, src, e):
         if src is self.list_widget:
@@ -225,28 +352,31 @@ class RigidBodyTransformTool(QWidget):
             p1 = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
             p2 = np.array([[0, 0, 0], [0, 10, 0], [-10, 0, 0], [0, 0, 10]])
 
+        name = self.name_edit.text()
         from_cs = self.cs1_name_edit.text()
         to_cs = self.cs2_name_edit.text()
-        transform = coorx.SRT3DTransform(from_cs=from_cs, to_cs=to_cs)
-        transform.set_mapping(p1, p2)
 
-        name = f"{from_cs}-{to_cs}"
-        self.model.add_transform(name, transform)
+        transform = Transform(name, from_cs, to_cs)
+        transform.compute_from_correspondence(p1, p2)
+
+        self.model.add_transform(transform)
         self.generated.emit()
 
 
 class PointTransformWidget(QWidget):
 
-    def __init__(self, model, parent=None):
+    def __init__(self, transform, parent=None):
         QWidget.__init__(self, parent)
-        self.model = model
+        self.transform = transform
 
         self.layout = QGridLayout()
         self.setLayout(self.layout)
-        self.transform_combo = QComboBox()
-        self.layout.addWidget(self.transform_combo, 0, 1, 1, 2)
-        for name in self.model.transforms:
-            self.transform_combo.addItem(name)
+
+        self.transform_label = QLabel(f"{self.transform.name} from {self.transform.from_cs} to {self.transform.to_cs}")
+        self.transform_label.setAlignment(Qt.AlignCenter)
+        self.transform_label.setFont(FONT_BOLD)
+        self.layout.addWidget(self.transform_label, 0,1, 1,2)
+
         self.cw1 = CoordinateWidget(self, vertical=True)
         self.layout.addWidget(self.cw1, 1, 0)
         self.inv_btn = QPushButton('< map inverse')
@@ -256,6 +386,9 @@ class PointTransformWidget(QWidget):
         self.cw2 = CoordinateWidget(self, vertical=True)
         self.layout.addWidget(self.cw2, 1, 3)
 
+        self.cw1.returnPressed.connect(self.fwd_btn.animateClick)
+        self.cw2.returnPressed.connect(self.inv_btn.animateClick)
+
         self.fwd_btn.clicked.connect(self.map_forward)
         self.inv_btn.clicked.connect(self.map_inverse)
 
@@ -263,15 +396,11 @@ class PointTransformWidget(QWidget):
         
     def map_forward(self):
         p1 = self.cw1.get_coordinates()
-        tr = self.get_selected_transform()
-        p2 = tr.map(p1)
+        p2 = self.transform.map(p1)
         self.cw2.set_coordinates(p2)
 
     def map_inverse(self):
         p2 = self.cw2.get_coordinates()
-        tr = self.get_selected_transform()
-        p1 = tr.inverse.map(p2)
+        p1 = self.transform.inverse_map(p2)
         self.cw1.set_coordinates(p1)
 
-    def get_selected_transform(self):
-        return self.model.get_transform(self.transform_combo.currentText())

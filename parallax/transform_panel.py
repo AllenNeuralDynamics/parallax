@@ -68,16 +68,13 @@ class TransformPanel(QFrame):
             self.msg_posted.emit('Saved transform %s to: %s' % (name_selected, filename))
 
     def load_transform(self):
-        filename = QFileDialog.getOpenFileName(self, 'Load transform file', data_dir,
+        filenames = QFileDialog.getOpenFileNames(self, 'Load transform file', data_dir,
                                                     'Pickle files (*.pkl)')[0]
-        if filename:
+        for filename in filenames:
             with open(filename, 'rb') as f:
                 transform = pickle.load(f)
-                # tmp
-                import random, string
-                name = ''.join(random.choices(string.ascii_letters, k=5))
-                self.model.add_transform(name, transform)
-            self.update_transforms()
+                self.model.add_transform(transform)
+        self.update_transforms()
 
     def update_transforms(self):
         self.transforms_combo.clear()
@@ -85,7 +82,9 @@ class TransformPanel(QFrame):
             self.transforms_combo.addItem(tf)
 
     def show_transform_widget(self):
-        self.transform_widget = PointTransformWidget(self.model)
+        name_selected = self.transforms_combo.currentText()
+        transform = self.model.transforms[name_selected]
+        self.transform_widget = PointTransformWidget(transform)
         self.transform_widget.show()
 
     def show_rbt_tool(self):

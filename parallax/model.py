@@ -100,7 +100,8 @@ class Model(QObject):
             stage.halt()
         self.msg_posted.emit('Halting all stages.')
 
-    def add_transform(self, name, transform):
+    def add_transform(self, transform):
+        name = transform.name
         self.transforms[name] = transform
 
     def get_transform(self, name):

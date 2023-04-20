@@ -17,7 +17,7 @@ dependencies:
     - spinnaker-python
     - PyOpenGL
     - zaber-motion
-    - git+https://github.com/campagnola/coorx
+    - git+https://github.com/chronopoulos/coorx
     - git+https://github.com/AllenNeuralDynamics/python-newscale@calibration
     - git+https://github.com/AllenNeuralDynamics/mis-focus-controller-sw
 
