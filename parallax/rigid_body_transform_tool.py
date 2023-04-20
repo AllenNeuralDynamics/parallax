@@ -168,8 +168,7 @@ class CompositionTab(QWidget):
         name = self.transforms_combo.currentText()
         transform = self.model.get_transform(name)
         if self.invert_checkbox.isChecked():
-            print('TODO invert')
-            return
+            transform = transform.get_inverse()
         self.list_widget.addItem(TransformListItem(transform))
 
     def generate(self):
