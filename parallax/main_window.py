@@ -58,6 +58,8 @@ class MainWindow(QMainWindow):
         self.gtd_action.triggered.connect(self.launch_gtd)
         self.elevator_action = QAction("Elevator Control Tool")
         self.elevator_action.triggered.connect(self.launch_elevator)
+        self.pb_action = QAction("Point Bank")
+        self.pb_action.triggered.connect(self.launch_pb)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -83,6 +85,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.gtd_action)
         self.tools_menu.addAction(self.elevator_action)
+        self.tools_menu.addAction(self.pb_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -131,6 +134,11 @@ class MainWindow(QMainWindow):
         self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
         self.elevator_tool.show()
 
+    def launch_pb(self):
+        self.pb = PointBank()
+        self.pb.msg_posted.connect(self.widget.msg_log.post)
+        self.pb.show()
+
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
 
@@ -171,15 +179,17 @@ class MainWidget(QWidget):
         self.controls = QWidget()
         self.control_panel1 = ControlPanel(self.model)
         self.control_panel2 = ControlPanel(self.model)
+        self.control_panel3 = ControlPanel(self.model)
+        self.control_panel4 = ControlPanel(self.model)
         self.cal_panel = CalibrationPanel(self.model)
         self.trans_panel = TransformPanel(self.model)
-        self.point_bank = PointBank(self.model, frame=True)
         glayout = QGridLayout()
         glayout.addWidget(self.control_panel1, 0,0, 1,1)
         glayout.addWidget(self.control_panel2, 1,0, 1,1)
-        glayout.addWidget(self.point_bank, 0,1, 2,1)
-        glayout.addWidget(self.cal_panel, 0,2, 1,1)
-        glayout.addWidget(self.trans_panel, 1,2, 1,1)
+        glayout.addWidget(self.cal_panel, 0,1, 1,1)
+        glayout.addWidget(self.trans_panel, 1,1, 1,1)
+        glayout.addWidget(self.control_panel3, 0,2, 1,1)
+        glayout.addWidget(self.control_panel4, 1,2, 1,1)
         self.controls.setLayout(glayout)
 
         self.refresh_timer = QTimer()
@@ -196,7 +206,6 @@ class MainWidget(QWidget):
         self.cal_panel.cal_point_reached.connect(self.clear_selected)
         self.cal_panel.cal_point_reached.connect(self.zoom_out)
         self.trans_panel.msg_posted.connect(self.msg_log.post)
-        self.point_bank.msg_posted.connect(self.msg_log.post)
         self.model.msg_posted.connect(self.msg_log.post)
         self.lscreen.selected.connect(self.model.set_lcorr)
         self.lscreen.cleared.connect(self.model.clear_lcorr)
