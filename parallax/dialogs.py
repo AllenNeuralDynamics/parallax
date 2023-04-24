@@ -113,6 +113,10 @@ class CalibrationDialog(QDialog):
         self.resolution_box.setMinimum(2)
         self.resolution_box.setValue(cw.RESOLUTION_DEFAULT)
 
+        self.origin_label = QLabel('Origin:')
+        self.origin_value = QLabel()
+        self.set_origin((7500., 7500., 7500.))
+
         self.extent_label = QLabel('Extent (um):')
         self.extent_label.setAlignment(Qt.AlignCenter)
         self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
@@ -124,9 +128,14 @@ class CalibrationDialog(QDialog):
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
         self.name_edit = QLineEdit(cal_default_name)
 
-        self.go_button = QPushButton('Start Calibration Routine')
-        self.go_button.setEnabled(False)
-        self.go_button.clicked.connect(self.go)
+        self.start_button = QPushButton('Start Calibration Routine')
+        self.start_button.setFont(FONT_BOLD)
+        self.start_button.setEnabled(False)
+        self.start_button.clicked.connect(self.go)
+
+        self.origin_button = QPushButton('Set current position as origin')
+        self.origin_button.setEnabled(False)
+        self.origin_button.clicked.connect(self.grab_stage_position_as_origin)
 
         layout = QGridLayout()
         layout.addWidget(self.stage_label, 0,0, 1,1)
@@ -135,13 +144,28 @@ class CalibrationDialog(QDialog):
         layout.addWidget(self.resolution_box, 1,1, 1,1)
         layout.addWidget(self.extent_label, 2,0, 1,1)
         layout.addWidget(self.extent_edit, 2,1, 1,1)
-        layout.addWidget(self.name_label, 3,0, 1,1)
-        layout.addWidget(self.name_edit, 3,1, 1,1)
-        layout.addWidget(self.go_button, 4,0, 1,2)
+        layout.addWidget(self.origin_label, 3,0, 1,1)
+        layout.addWidget(self.origin_value, 3,1, 1,1)
+        layout.addWidget(self.name_label, 4,0, 1,1)
+        layout.addWidget(self.name_edit, 4,1, 1,1)
+        layout.addWidget(self.origin_button, 5,0, 1,2)
+        layout.addWidget(self.start_button, 6,0, 1,2)
         self.setLayout(layout)
 
         self.setWindowTitle("Calibration Routine Parameters")
         self.setMinimumWidth(300)
+
+    def set_origin(self, pos):
+        self.origin_value.setText('[%.1f, %.1f, %.1f]' % pos)
+        self.origin = pos
+
+    def grab_stage_position_as_origin(self):
+        stage = self.get_stage()
+        pos = stage.get_position()
+        self.set_origin(pos)
+
+    def get_origin(self):
+        return self.origin
 
     def get_stage(self):
         ip = self.stage_dropdown.currentText()
@@ -165,7 +189,8 @@ class CalibrationDialog(QDialog):
 
     def update_status(self):
         if self.stage_dropdown.is_selected():
-            self.go_button.setEnabled(True)
+            self.start_button.setEnabled(True)
+            self.origin_button.setEnabled(True)
 
 
 class CsvDialog(QDialog):

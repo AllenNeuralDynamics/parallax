@@ -81,15 +81,16 @@ class CalibrationPanel(QFrame):
                 stage = dlg.get_stage()
                 res = dlg.get_resolution()
                 extent = dlg.get_extent()
+                origin = dlg.get_origin()
                 name = dlg.get_name()
-                self.start_cal_thread(stage, res, extent, name)
+                self.start_cal_thread(stage, res, extent, origin, name)
         elif self.cal_start_stop_button.text() == 'Stop':
             self.stop_cal_thread()
 
-    def start_cal_thread(self, stage, res, extent, name):
+    def start_cal_thread(self, stage, res, extent, origin, name):
         self.model.cal_in_progress = True
         self.cal_thread = QThread()
-        self.cal_worker = CalibrationWorker(name, stage, res, extent)
+        self.cal_worker = CalibrationWorker(name, stage, res, extent, origin)
         self.cal_worker.moveToThread(self.cal_thread)
         self.cal_thread.started.connect(self.cal_worker.run)
         self.cal_worker.calibration_point_reached.connect(self.handle_cal_point_reached)
