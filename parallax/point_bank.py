@@ -41,9 +41,8 @@ class PointListWidget(QListWidget):
 class PointBank(QFrame):
     msg_posted = pyqtSignal(str)
 
-    def __init__(self, model, parent=None, frame=False):
+    def __init__(self, parent=None, frame=False):
         QFrame.__init__(self, parent=parent)
-        self.model = model
 
         self.npoints = 0
 
