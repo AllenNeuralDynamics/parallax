@@ -27,6 +27,6 @@ class Transform:
         return self.tx.imap(p)
 
     def get_inverse(self):
-        new_transform = Transform(f"{self.name}-inv", to_cs, from_cs)
-        new_transform.tx = self.tx.inverse()
+        new_transform = Transform(f"{self.name}-inv", self.to_cs, self.from_cs)
+        new_transform.tx = self.tx.inverse
         return new_transform
