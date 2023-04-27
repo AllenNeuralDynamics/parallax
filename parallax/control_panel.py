@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLineEdit
-from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex, QMimeData
+from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex, QMimeData, QTimer
 from PyQt5.QtGui import QIcon, QDoubleValidator, QPixmap, QDrag
 
 import numpy as np
@@ -108,11 +108,16 @@ class ControlPanel(QFrame):
 
         self.dragHold = False
 
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.update_coordinates)
+        self.refresh_timer.start(500)
+
     def update_coordinates(self, *args):
-        x, y, z = self.stage.get_position()
-        self.xcontrol.set_value(x)
-        self.ycontrol.set_value(y)
-        self.zcontrol.set_value(z)
+        if self.stage is not None:
+            x, y, z = self.stage.get_position()
+            self.xcontrol.set_value(x)
+            self.ycontrol.set_value(y)
+            self.zcontrol.set_value(z)
 
     def handle_stage_selection(self, index):
         stage_name = self.dropdown.currentText()
