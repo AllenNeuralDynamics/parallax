@@ -18,6 +18,6 @@ dependencies:
     - PyOpenGL
     - zaber-motion
     - git+https://github.com/chronopoulos/coorx
-    - git+https://github.com/AllenNeuralDynamics/python-newscale@calibration
+    - git+https://github.com/AllenNeuralDynamics/python-newscale@axes-on-target
     - git+https://github.com/AllenNeuralDynamics/mis-focus-controller-sw
 
