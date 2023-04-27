@@ -22,7 +22,7 @@ class AxisControl(QWidget):
         QWidget.__init__(self)
         self.axis = axis    # e.g. 'X'
 
-        self.abs_label = QLabel('(%sa)' % self.axis)
+        self.abs_label = QLabel('(%s)' % self.axis)
         self.abs_label.setAlignment(Qt.AlignCenter)
 
         layout = QVBoxLayout()
@@ -122,7 +122,6 @@ class ControlPanel(QFrame):
     def handle_stage_selection(self, index):
         stage_name = self.dropdown.currentText()
         self.set_stage(self.model.stages[stage_name])
-        self.update_coordinates()
 
     def set_stage(self, stage):
         self.stage = stage
@@ -158,12 +157,10 @@ class ControlPanel(QFrame):
             if not forward:
                 distance = (-1) * distance
             self.stage.move_relative_1d(axis, distance)
-            self.update_coordinates()
 
     def center(self, axis):
         if self.stage:
             self.stage.move_absolute_1d(axis, 7500)
-            self.update_coordinates()
 
     def halt(self):
         self.stage.halt()
