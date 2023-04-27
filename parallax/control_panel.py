@@ -122,22 +122,6 @@ class ControlPanel(QFrame):
     def set_stage(self, stage):
         self.stage = stage
 
-    def move_to_target(self, *args):
-        dlg = TargetDialog(self.model)
-        if dlg.exec_():
-            params = dlg.get_params()
-            x = params['x']
-            y = params['y']
-            z = params['z']
-            if self.stage:
-                self.stage.move_absolute_3d(x, y, z, safe=True)
-                self.msg_posted.emit('Moved to stage position: '
-                                    '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                self.update_coordinates()
-                self.target_reached.emit()
-            else:
-                self.msg_posted.emit('Move to target: no stage selected.')
-
     def launch_target_dialog(self):
         if self.stage:
             self.target_dialog = TargetDialog(self.model, self.stage)
