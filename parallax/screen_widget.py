@@ -161,10 +161,12 @@ class ScreenWidget(pg.GraphicsView):
     def wheelEvent(self, e):
         forward = bool(e.angleDelta().y() > 0)
         control = bool(e.modifiers() & Qt.ControlModifier)
+        shift = bool(e.modifiers() & Qt.ShiftModifier)
         if control:
             if self.focochan:
                 foco, chan = self.focochan
-                foco.time_move(chan, forward, 100, wait=True)
+                dist = 20 if shift else 100
+                foco.time_move(chan, forward, dist, wait=True)
         else:
             super().wheelEvent(e)
 
