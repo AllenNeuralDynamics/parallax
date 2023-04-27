@@ -195,11 +195,6 @@ class TargetDialog(QWidget):
         self.stage_label.setAlignment(Qt.AlignCenter)
         self.stage_label.setFont(FONT_BOLD)
 
-        self.last_button = QPushButton('Last Reconstructed Point')
-        self.last_button.clicked.connect(self.populate_last)
-        if self.model.obj_point_last is None:
-            self.last_button.setEnabled(False)
-
         self.random_button = QPushButton('Random Point')
         self.random_button.clicked.connect(self.populate_random)
 
@@ -252,18 +247,17 @@ class TargetDialog(QWidget):
 
         layout = QGridLayout()
         layout.addWidget(self.stage_label, 0,0, 1,2)
-        layout.addWidget(self.last_button, 1,0, 1,2)
-        layout.addWidget(self.random_button, 2,0, 1,2)
-        layout.addWidget(self.point_drop, 3,0, 1,2)
-        layout.addWidget(self.xlabel, 4,0)
-        layout.addWidget(self.ylabel, 5,0)
-        layout.addWidget(self.zlabel, 6,0)
-        layout.addWidget(self.xedit, 4,1)
-        layout.addWidget(self.yedit, 5,1)
-        layout.addWidget(self.zedit, 6,1)
-        layout.addWidget(self.info_label, 7,0, 1,2)
-        layout.addWidget(self.move_button, 8,0, 1,2)
-        layout.addWidget(self.halt_button, 9,0, 1,2)
+        layout.addWidget(self.random_button, 1,0, 1,2)
+        layout.addWidget(self.point_drop, 2,0, 1,2)
+        layout.addWidget(self.xlabel, 3,0)
+        layout.addWidget(self.ylabel, 4,0)
+        layout.addWidget(self.zlabel, 5,0)
+        layout.addWidget(self.xedit, 3,1)
+        layout.addWidget(self.yedit, 4,1)
+        layout.addWidget(self.zedit, 5,1)
+        layout.addWidget(self.info_label, 6,0, 1,2)
+        layout.addWidget(self.move_button, 7,0, 1,2)
+        layout.addWidget(self.halt_button, 8,0, 1,2)
 
         self.setLayout(layout)
         self.setWindowTitle('Move to Target')
@@ -284,10 +278,6 @@ class TargetDialog(QWidget):
         self.xedit.setText('{0:.2f}'.format(x))
         self.yedit.setText('{0:.2f}'.format(y))
         self.zedit.setText('{0:.2f}'.format(z))
-
-    def populate_last(self):
-        x,y,z  = self.model.obj_point_last
-        self.populate(x,y,z)
 
     def populate_random(self):
         x,y,z = (np.random.uniform(0, 15000) for i in range(3))
