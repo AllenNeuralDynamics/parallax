@@ -6,7 +6,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from newscale.multistage import USBXYZStage, PoEXYZStage
 from newscale.interfaces import USBInterface
 
-import io_commands as io
+from . import io_commands as io
 
 TIME_SLEEP = 0.03
 
