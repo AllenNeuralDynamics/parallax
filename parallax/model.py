@@ -15,6 +15,7 @@ from .elevator import list_elevators
 
 class Model(QObject):
     msg_posted = pyqtSignal(str)
+    accutest_point_reached = pyqtSignal()
 
     def __init__(self):
         QObject.__init__(self)
@@ -112,6 +113,7 @@ class Model(QObject):
         self.clear_lcorr()
         self.clear_rcorr()
         self.msg_posted.emit('Highlight correspondence points and press C to continue')
+        self.accutest_point_reached.emit()
 
     def register_corr_points_accutest(self):
         lcorr, rcorr = self.lcorr, self.rcorr
