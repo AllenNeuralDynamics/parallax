@@ -351,18 +351,26 @@ class ElevatorControlTool(QWidget):
         self.tabs.addTab(self.sw_setpoints_tab, 'Software Setpoints')
         self.tabs.addTab(self.advanced_tab, 'Advanced')
 
-        self.pos_label = QLabel('Current Position: (none)')
+        self.pos_label = QLabel()
         self.pos_label.setAlignment(Qt.AlignCenter)
+
+        self.offset_label = QLabel()
+        self.offset_label.setAlignment(Qt.AlignCenter)
+
+        self.twist_label = QLabel()
+        self.twist_label.setAlignment(Qt.AlignCenter)
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.dropdown)
         self.layout.addWidget(self.tabs)
         self.layout.addWidget(self.pos_label)
+        self.layout.addWidget(self.offset_label)
+        self.layout.addWidget(self.twist_label)
         self.setLayout(self.layout)
 
         self.setWindowTitle('Elevator Control Tool')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(450)
 
         self.populate_dropdown()
 
@@ -385,4 +393,14 @@ class ElevatorControlTool(QWidget):
         if self.elevator is not None:
             pos = self.elevator.get_position()
             self.pos_label.setText('Current Position: %.1f' % pos)
+
+    def update_offset(self):
+        if self.elevator is not None:
+            offset = self.elevator.get_offset()
+            self.offset_label.setText('Current Offset: %.1f' % offset)
+
+    def update_twist(self):
+        if self.elevator is not None:
+            twist = self.elevator.get_twist()
+            self.twist_label.setText('Current Twist: %.1f' % twist)
 

@@ -1,4 +1,5 @@
 from zaber_motion import Library as ZaberLibrary
+from zaber_motion import Units as ZaberUnits
 from zaber_motion.ascii import Connection as ZaberConnection
 ZaberLibrary.enable_device_db_store() # initialize the zaber library
 
@@ -73,6 +74,18 @@ class ZaberXMCC2Elevator(Elevator):
     def get_position(self):
         return self.primary_axis.get_position()
 
+    def get_speed(self):
+        speed = self.axis_settings.get('maxspeed')
+        return speed    # float
+
+    def get_twist(self):
+        twists = self.lockstep.get_twists(ZaberUnits.LENGTH_MILLIMETRES)
+        return twists[0]
+
+    def get_offset(self):
+        offsets = self.lockstep.get_offsets(ZaberUnits.LENGTH_MILLIMETRES)
+        return offsets[0]
+
     def move_relative(self, delta):
         delta *= (-1)   # zaber stages are inverted so up is down
         self.lockstep.move_relative(delta)
@@ -88,10 +101,7 @@ class ZaberXMCC2Elevator(Elevator):
         resp = self.conn.generic_command('tools storepos %d %d' % (number, pos),
                                             device=1)
 
-    def get_speed(self):
-        speed = self.axis_settings.get('maxspeed')
-        return speed    # float
-
     def set_speed(self, speed):
         self.axis_settings.set('maxspeed', speed)
+
 
