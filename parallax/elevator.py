@@ -45,6 +45,9 @@ class Elevator:
     def set_firmware_setpoint(self, number, pos):
         raise NotImplementedError
 
+    def halt(self):
+        raise NotImplementedError
+
 
 class ZaberXMCC2Elevator(Elevator):
 
@@ -88,10 +91,13 @@ class ZaberXMCC2Elevator(Elevator):
 
     def move_relative(self, delta):
         delta *= (-1)   # zaber stages are inverted so up is down
-        self.lockstep.move_relative(delta)
+        self.lockstep.move_relative(delta, wait_until_idle=False)
 
     def move_absolute(self, pos):
-        self.lockstep.move_absolute(pos)
+        self.lockstep.move_absolute(pos, wait_until_idle=False)
+
+    def halt(self):
+        self.lockstep.stop()
 
     def get_firmware_setpoint(self, number):
         resp = self.conn.generic_command('tools storepos %d' % number, device=1)

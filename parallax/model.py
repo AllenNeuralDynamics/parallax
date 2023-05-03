@@ -98,7 +98,9 @@ class Model(QObject):
     def halt_all_stages(self):
         for stage in self.stages.values():
             stage.halt()
-        self.msg_posted.emit('Halting all stages.')
+        for elevator in self.elevators.values():
+            elevator.halt()
+        self.msg_posted.emit('Halting all stages and elevators.')
 
     def add_transform(self, transform):
         name = transform.name

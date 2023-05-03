@@ -375,7 +375,7 @@ class ElevatorControlTool(QWidget):
         self.populate_dropdown()
 
         self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.update_pos)
+        self.refresh_timer.timeout.connect(self.update_gui)
         self.refresh_timer.start(500)
 
     def populate_dropdown(self):
@@ -387,20 +387,14 @@ class ElevatorControlTool(QWidget):
         self.fw_setpoints_tab.set_elevator(self.elevator)
         self.sw_setpoints_tab.set_elevator(self.elevator)
         self.advanced_tab.set_elevator(self.elevator)
-        self.update_pos()
+        self.update_gui()
 
-    def update_pos(self):
+    def update_gui(self):
         if self.elevator is not None:
             pos = self.elevator.get_position()
             self.pos_label.setText('Current Position: %.1f' % pos)
-
-    def update_offset(self):
-        if self.elevator is not None:
             offset = self.elevator.get_offset()
             self.offset_label.setText('Current Offset: %.1f' % offset)
-
-    def update_twist(self):
-        if self.elevator is not None:
             twist = self.elevator.get_twist()
             self.twist_label.setText('Current Twist: %.1f' % twist)
 
