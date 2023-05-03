@@ -335,6 +335,7 @@ class ElevatorControlTool(QWidget):
 
         self.elevator = None
 
+        self.select_elevator_label = QLabel('Select elevator:')
         self.dropdown = QComboBox()
 
         self.fw_setpoints_tab = FirmwareSetpointsTab(parent=self)
@@ -361,6 +362,7 @@ class ElevatorControlTool(QWidget):
         self.twist_label.setAlignment(Qt.AlignCenter)
 
         self.layout = QVBoxLayout()
+        self.layout.addWidget(self.select_elevator_label)
         self.layout.addWidget(self.dropdown)
         self.layout.addWidget(self.tabs)
         self.layout.addWidget(self.pos_label)
