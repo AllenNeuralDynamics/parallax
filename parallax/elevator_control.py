@@ -398,3 +398,8 @@ class ElevatorControlTool(QWidget):
             twist = self.elevator.get_twist()
             self.twist_label.setText('Current Twist: %.1f' % twist)
 
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Escape:
+            if self.elevator:
+                self.elevator.halt()
+
