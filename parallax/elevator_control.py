@@ -355,9 +355,6 @@ class ElevatorControlTool(QWidget):
         self.pos_label = QLabel()
         self.pos_label.setAlignment(Qt.AlignCenter)
 
-        self.offset_label = QLabel()
-        self.offset_label.setAlignment(Qt.AlignCenter)
-
         self.twist_label = QLabel()
         self.twist_label.setAlignment(Qt.AlignCenter)
 
@@ -366,7 +363,6 @@ class ElevatorControlTool(QWidget):
         self.layout.addWidget(self.dropdown)
         self.layout.addWidget(self.tabs)
         self.layout.addWidget(self.pos_label)
-        self.layout.addWidget(self.offset_label)
         self.layout.addWidget(self.twist_label)
         self.setLayout(self.layout)
 
@@ -395,9 +391,6 @@ class ElevatorControlTool(QWidget):
         if self.elevator is not None:
             pos = self.elevator.get_position()
             self.pos_label.setText('Current Position: %.1f' % pos)
-            offset = self.elevator.get_offset()
-            self.offset_label.setText('Current Offset: %.1f' % offset)
-            twist = self.elevator.get_twist()
             self.twist_label.setText('Current Twist: %.1f' % twist)
 
     def keyPressEvent(self, e):
