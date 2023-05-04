@@ -75,18 +75,18 @@ class ZaberXMCC2Elevator(Elevator):
         return self._name
 
     def get_position(self):
-        return self.primary_axis.get_position()
+        return self.primary_axis.get_position(ZaberUnits.LENGTH_METRES)
 
     def get_speed(self):
         speed = self.axis_settings.get('maxspeed')
         return speed    # float
 
     def get_twist(self):
-        twists = self.lockstep.get_twists(ZaberUnits.LENGTH_MILLIMETRES)
+        twists = self.lockstep.get_twists(ZaberUnits.LENGTH_METRES)
         return twists[0]
 
     def get_offset(self):
-        offsets = self.lockstep.get_offsets(ZaberUnits.LENGTH_MILLIMETRES)
+        offsets = self.lockstep.get_offsets(ZaberUnits.LENGTH_METRES)
         return offsets[0]
 
     def move_relative(self, delta):
