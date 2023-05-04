@@ -1,9 +1,11 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLineEdit
 from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex, QMimeData, QTimer
+from PyQt5.QtCore import QThread, QObject
 from PyQt5.QtGui import QIcon, QDoubleValidator, QPixmap, QDrag
 
 import numpy as np
+import time
 
 from . import get_image_file
 from .helper import FONT_BOLD
@@ -42,6 +44,23 @@ class AxisControl(QWidget):
         if e.button() == Qt.MiddleButton:
             self.center_requested.emit(self.axis)
             e.accept()
+
+class PositionWorker(QObject):
+    finished = pyqtSignal()
+
+    def __init__(self):
+        QObject.__init__(self)
+        self.stage = None
+        self.pos_cached = None
+
+    def set_stage(self, stage):
+        self.stage = stage
+
+    def run(self):
+        while True:
+            self.pos_cached = self.stage.get_position()
+            time.sleep(0.5)
+        self.finished.emit()
 
 
 class ControlPanel(QFrame):
@@ -110,14 +129,24 @@ class ControlPanel(QFrame):
 
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.update_coordinates)
-        self.refresh_timer.start(500)
+        self.refresh_timer.start(100)
+
+        # position worker and thread
+        self.pos_thread = QThread()
+        self.pos_worker = PositionWorker()
+        self.pos_worker.moveToThread(self.pos_thread)
+        self.pos_thread.started.connect(self.pos_worker.run)
+        self.pos_worker.finished.connect(self.pos_thread.quit)
+        self.pos_worker.finished.connect(self.pos_worker.deleteLater)
+        self.pos_thread.finished.connect(self.pos_thread.deleteLater)
 
     def update_coordinates(self, *args):
         if self.stage is not None:
-            x, y, z = self.stage.get_position()
-            self.xcontrol.set_value(x)
-            self.ycontrol.set_value(y)
-            self.zcontrol.set_value(z)
+            if self.pos_worker.pos_cached is not None:
+                x, y, z = self.pos_worker.pos_cached
+                self.xcontrol.set_value(x)
+                self.ycontrol.set_value(y)
+                self.zcontrol.set_value(z)
 
     def handle_stage_selection(self, index):
         stage_name = self.dropdown.currentText()
@@ -125,6 +154,8 @@ class ControlPanel(QFrame):
 
     def set_stage(self, stage):
         self.stage = stage
+        self.pos_worker.set_stage(self.stage)
+        self.pos_thread.start()
 
     def launch_target_dialog(self):
         if self.stage:
