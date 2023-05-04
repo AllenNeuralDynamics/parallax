@@ -391,7 +391,7 @@ class ElevatorControlTool(QWidget):
         if self.elevator is not None:
             pos = self.elevator.get_position()
             self.pos_label.setText('Current Position (mm): %.1f' % (pos * 1e3))
-            twist = self.elevator.get_position()
+            twist = self.elevator.get_twist()
             self.twist_label.setText('Current Twist (um): %.1f' % (twist * 1e6))
 
     def keyPressEvent(self, e):
