@@ -248,6 +248,9 @@ class TargetDialog(QWidget):
         self.yedit = QLineEdit()
         self.zedit = QLineEdit()
 
+        x,y,z = self.stage.get_position()
+        self.populate(x,y,z)
+
         self.validator = QDoubleValidator(0,15000,-1)
         self.validator.setNotation(QDoubleValidator.StandardNotation)
         self.xedit.setValidator(self.validator)
