@@ -72,6 +72,10 @@ class CoordinateWidget(QWidget):
         self.yedit.setText('{0:.2f}'.format(coords[1]))
         self.zedit.setText('{0:.2f}'.format(coords[2]))
 
+    def clear_coordinates(self):
+        for e in self.xedit, self.yedit, self.zedit:
+            e.clear()
+
     def dragEnterEvent(self, e):
         md = e.mimeData()
         """
@@ -314,6 +318,8 @@ class CorrespondencePointsTab(QWidget):
         item = QListWidgetItem(s)
         item.points = p1, p2
         self.list_widget.addItem(item)
+        self.coords_widget1.clear_coordinates()
+        self.coords_widget2.clear_coordinates()
 
     def load(self):
         filename = QFileDialog.getOpenFileName(self, 'Load correspondence points',
