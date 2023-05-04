@@ -27,10 +27,10 @@ class SetpointDialog(QDialog):
         self.name_edit.setFocus()
         self.name_edit.setEnabled(edit_name)
 
-        self.pos_label = QLabel('Position:')
+        self.pos_label = QLabel('Position (mm):')
         self.pos_edit = QLineEdit()
         if pos:
-            self.pos_edit.setText(str(pos))
+            self.pos_edit.setText(str(pos * 1e3))
 
         self.buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
@@ -51,7 +51,7 @@ class SetpointDialog(QDialog):
         return self.name_edit.text()
 
     def get_pos(self):
-        return float(self.pos_edit.text())
+        return float(self.pos_edit.text()) / 1e3
 
 
 class SetpointItem(QListWidgetItem):
@@ -71,7 +71,7 @@ class SetpointItem(QListWidgetItem):
         self.update_text()
 
     def update_text(self):
-        self.setText('%s (position = %.1f)' % (self.name, self.pos))
+        self.setText('%s [position (mm) = %.1f]' % (self.name, self.pos * 1e3))
 
 
 class FirmwareSetpointsTab(QWidget):
@@ -102,7 +102,7 @@ class FirmwareSetpointsTab(QWidget):
         self.clear()
         for num in range(1,17):
             pos = self.elevator.get_firmware_setpoint(num)
-            item = SetpointItem('FW#%d' % num, pos)
+            item = SetpointItem('FW#%d' % num, pos) 
             self.list_widget.addItem(item)
 
     def clear(self):

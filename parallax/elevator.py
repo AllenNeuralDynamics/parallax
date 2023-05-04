@@ -53,6 +53,7 @@ class ZaberXMCC2Elevator(Elevator):
 
     VID = 10553
     PID = 18882
+    MICROSTEP_SIZE = 0.1953125e-6
 
     def __init__(self, comport):
         """
@@ -94,17 +95,17 @@ class ZaberXMCC2Elevator(Elevator):
         self.lockstep.move_relative(delta, wait_until_idle=False)
 
     def move_absolute(self, pos):
-        self.lockstep.move_absolute(pos, wait_until_idle=False)
+        self.lockstep.move_absolute(pos / self.MICROSTEP_SIZE, wait_until_idle=False)
 
     def halt(self):
         self.lockstep.stop()
 
     def get_firmware_setpoint(self, number):
         resp = self.conn.generic_command('tools storepos %d' % number, device=1)
-        return int(resp.data.split()[0])    # use first axis only
+        return int(resp.data.split()[0]) * self.MICROSTEP_SIZE    # use first axis only
 
     def set_firmware_setpoint(self, number, pos):
-        resp = self.conn.generic_command('tools storepos %d %d' % (number, pos),
+        resp = self.conn.generic_command('tools storepos %d %d' % (number, (pos / self.MICROSTEP_SIZE)),
                                             device=1)
 
     def set_speed(self, speed):
