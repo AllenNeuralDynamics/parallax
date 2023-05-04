@@ -103,7 +103,7 @@ class CollectTab(QWidget):
             else:
                 self.msg_posted.emit('Ground Truth Collector: mode not implemented')
                 return
-            stage.move_to_target_3d(x, y, z, safe=False)
+            stage.move_absolute_3d(x, y, z, safe=False)
             self.lscreen.zoom_out()
             self.lscreen.clear_selected()
             self.rscreen.zoom_out()

@@ -1,9 +1,11 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QPushButton, QFrame
 from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLineEdit
-from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex, QMimeData
+from PyQt5.QtCore import pyqtSignal, Qt, QModelIndex, QMimeData, QTimer
+from PyQt5.QtCore import QThread, QObject
 from PyQt5.QtGui import QIcon, QDoubleValidator, QPixmap, QDrag
 
 import numpy as np
+import time
 
 from . import get_image_file
 from .helper import FONT_BOLD
@@ -22,7 +24,7 @@ class AxisControl(QWidget):
         QWidget.__init__(self)
         self.axis = axis    # e.g. 'X'
 
-        self.abs_label = QLabel('(%sa)' % self.axis)
+        self.abs_label = QLabel('(%s)' % self.axis)
         self.abs_label.setAlignment(Qt.AlignCenter)
 
         layout = QVBoxLayout()
@@ -42,6 +44,23 @@ class AxisControl(QWidget):
         if e.button() == Qt.MiddleButton:
             self.center_requested.emit(self.axis)
             e.accept()
+
+class PositionWorker(QObject):
+    finished = pyqtSignal()
+
+    def __init__(self):
+        QObject.__init__(self)
+        self.stage = None
+        self.pos_cached = None
+
+    def set_stage(self, stage):
+        self.stage = stage
+
+    def run(self):
+        while True:
+            self.pos_cached = self.stage.get_position()
+            time.sleep(0.5)
+        self.finished.emit()
 
 
 class ControlPanel(QFrame):
@@ -81,12 +100,18 @@ class ControlPanel(QFrame):
         self.target_button.setToolTip('Launch Target Dialog')
         self.target_button.clicked.connect(self.launch_target_dialog)
 
+        self.halt_button = QPushButton()
+        self.halt_button.setIcon(QIcon(get_image_file('stop-sign.png')))
+        self.halt_button.setToolTip('Halt This Stage')
+        self.halt_button.clicked.connect(self.halt)
+
         # layout
         main_layout = QGridLayout()
         main_layout.addWidget(self.main_label, 0,0, 1,4)
-        main_layout.addWidget(self.dropdown, 1,0, 1,2)
+        main_layout.addWidget(self.dropdown, 1,0, 1,1)
+        main_layout.addWidget(self.target_button, 1,1, 1,1)
         main_layout.addWidget(self.settings_button, 1,2, 1,1)
-        main_layout.addWidget(self.target_button, 1,3, 1,1)
+        main_layout.addWidget(self.halt_button, 1,3, 1,1)
         main_layout.addWidget(self.xcontrol, 2,0, 1,1)
         main_layout.addWidget(self.ycontrol, 2,1, 1,1)
         main_layout.addWidget(self.zcontrol, 2,2, 1,1)
@@ -102,35 +127,35 @@ class ControlPanel(QFrame):
 
         self.dragHold = False
 
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.update_coordinates)
+        self.refresh_timer.start(100)
+
+        # position worker and thread
+        self.pos_thread = QThread()
+        self.pos_worker = PositionWorker()
+        self.pos_worker.moveToThread(self.pos_thread)
+        self.pos_thread.started.connect(self.pos_worker.run)
+        self.pos_worker.finished.connect(self.pos_thread.quit)
+        self.pos_worker.finished.connect(self.pos_worker.deleteLater)
+        self.pos_thread.finished.connect(self.pos_thread.deleteLater)
+
     def update_coordinates(self, *args):
-        x, y, z = self.stage.get_position()
-        self.xcontrol.set_value(x)
-        self.ycontrol.set_value(y)
-        self.zcontrol.set_value(z)
+        if self.stage is not None:
+            if self.pos_worker.pos_cached is not None:
+                x, y, z = self.pos_worker.pos_cached
+                self.xcontrol.set_value(x)
+                self.ycontrol.set_value(y)
+                self.zcontrol.set_value(z)
 
     def handle_stage_selection(self, index):
         stage_name = self.dropdown.currentText()
         self.set_stage(self.model.stages[stage_name])
-        self.update_coordinates()
 
     def set_stage(self, stage):
         self.stage = stage
-
-    def move_to_target(self, *args):
-        dlg = TargetDialog(self.model)
-        if dlg.exec_():
-            params = dlg.get_params()
-            x = params['x']
-            y = params['y']
-            z = params['z']
-            if self.stage:
-                self.stage.move_to_target_3d(x, y, z, safe=True)
-                self.msg_posted.emit('Moved to stage position: '
-                                    '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
-                self.update_coordinates()
-                self.target_reached.emit()
-            else:
-                self.msg_posted.emit('Move to target: no stage selected.')
+        self.pos_worker.set_stage(self.stage)
+        self.pos_thread.start()
 
     def launch_target_dialog(self):
         if self.stage:
@@ -162,16 +187,13 @@ class ControlPanel(QFrame):
                 distance = self.jog_um
             if not forward:
                 distance = (-1) * distance
-            self.stage.move_distance_1d(axis, distance)
-            self.update_coordinates()
+            self.stage.move_relative_1d(axis, distance)
 
     def center(self, axis):
         if self.stage:
-            self.stage.move_to_target_1d(axis, 7500)
-            self.update_coordinates()
+            self.stage.move_absolute_1d(axis, 7500)
 
     def halt(self):
-        # doesn't actually work now because we need threading
         self.stage.halt()
 
     def mousePressEvent(self, e):
@@ -205,11 +227,6 @@ class TargetDialog(QWidget):
         self.stage_label = QLabel('Stage: %s' % self.stage.name)
         self.stage_label.setAlignment(Qt.AlignCenter)
         self.stage_label.setFont(FONT_BOLD)
-
-        self.last_button = QPushButton('Last Reconstructed Point')
-        self.last_button.clicked.connect(self.populate_last)
-        if self.model.obj_point_last is None:
-            self.last_button.setEnabled(False)
 
         self.random_button = QPushButton('Random Point')
         self.random_button.clicked.connect(self.populate_random)
@@ -250,6 +267,11 @@ class TargetDialog(QWidget):
         self.move_button.setEnabled(False)
         self.move_button.clicked.connect(self.move_to_target)
 
+        self.halt_button = QPushButton()
+        self.halt_button.setIcon(QIcon(get_image_file('stop-sign.png')))
+        self.halt_button.setToolTip('Halt This Stage')
+        self.halt_button.clicked.connect(self.halt)
+
         self.xedit.returnPressed.connect(self.move_button.animateClick)
         self.yedit.returnPressed.connect(self.move_button.animateClick)
         self.zedit.returnPressed.connect(self.move_button.animateClick)
@@ -258,22 +280,26 @@ class TargetDialog(QWidget):
 
         layout = QGridLayout()
         layout.addWidget(self.stage_label, 0,0, 1,2)
-        layout.addWidget(self.last_button, 1,0, 1,2)
-        layout.addWidget(self.random_button, 2,0, 1,2)
-        layout.addWidget(self.point_drop, 3,0, 1,2)
-        layout.addWidget(self.xlabel, 4,0)
-        layout.addWidget(self.ylabel, 5,0)
-        layout.addWidget(self.zlabel, 6,0)
-        layout.addWidget(self.xedit, 4,1)
-        layout.addWidget(self.yedit, 5,1)
-        layout.addWidget(self.zedit, 6,1)
-        layout.addWidget(self.info_label, 7,0, 1,2)
-        layout.addWidget(self.move_button, 8,0, 1,2)
+        layout.addWidget(self.random_button, 1,0, 1,2)
+        layout.addWidget(self.point_drop, 2,0, 1,2)
+        layout.addWidget(self.xlabel, 3,0)
+        layout.addWidget(self.ylabel, 4,0)
+        layout.addWidget(self.zlabel, 5,0)
+        layout.addWidget(self.xedit, 3,1)
+        layout.addWidget(self.yedit, 4,1)
+        layout.addWidget(self.zedit, 5,1)
+        layout.addWidget(self.info_label, 6,0, 1,2)
+        layout.addWidget(self.move_button, 7,0, 1,2)
+        layout.addWidget(self.halt_button, 8,0, 1,2)
 
         self.setLayout(layout)
         self.setWindowTitle('Move to Target')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
         self.setMinimumWidth(250)
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Escape:
+            self.model.halt_all_stages()
 
     def validate(self):
         valid =     self.xedit.hasAcceptableInput() \
@@ -285,10 +311,6 @@ class TargetDialog(QWidget):
         self.xedit.setText('{0:.2f}'.format(x))
         self.yedit.setText('{0:.2f}'.format(y))
         self.zedit.setText('{0:.2f}'.format(z))
-
-    def populate_last(self):
-        x,y,z  = self.model.obj_point_last
-        self.populate(x,y,z)
 
     def populate_random(self):
         x,y,z = (np.random.uniform(0, 15000) for i in range(3))
@@ -305,10 +327,13 @@ class TargetDialog(QWidget):
         x = float(self.xedit.text())
         y = float(self.yedit.text())
         z = float(self.zedit.text())
-        self.stage.move_to_target_3d(x, y, z, safe=True)
+        self.stage.move_absolute_3d(x, y, z, safe=True)
         self.target_reached.emit()
         self.msg_posted.emit('Moved to stage position: '
                             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
+
+    def halt(self):
+        self.stage.halt()
 
 
 class PointDrop(QLabel):

@@ -9,6 +9,7 @@ import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import time
 import datetime
+import os
 
 from . import get_image_file, data_dir
 from .toggle_switch import ToggleSwitch
@@ -262,7 +263,7 @@ class AccuracyTestWorker(QObject):
         self.results = []
         for i in range(self.npoints):
             x,y,z = self.get_random_point(self.origin, self.extent_um)
-            self.stage.move_to_target_3d(x,y,z)
+            self.stage.move_absolute_3d(x,y,z)
             self.last_stage_point = [x,y,z]
             self.point_reached.emit(i,self.npoints)
             self.ready_to_go = False
@@ -274,10 +275,11 @@ class AccuracyTestWorker(QObject):
     def wrap_up(self):
         results_np = np.array(self.results, dtype=np.float32)
         dt = datetime.datetime.fromtimestamp(self.ts)
-        accutest_filename = 'accutest_%04d%02d%02d-%02d%02d%02d.npy' % (dt.year,
+        basename = 'accutest_%04d%02d%02d-%02d%02d%02d.npy' % (dt.year,
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
-        np.save(accutest_filename, results_np)
-        self.msg_posted.emit('Accuracy test results saved to: %s.' % accutest_filename)
+        filename = os.path.join(data_dir, basename)
+        np.save(filename, results_np)
+        self.msg_posted.emit('Accuracy test results saved to: %s.' % filename)
         self.finished.emit()
 
 
