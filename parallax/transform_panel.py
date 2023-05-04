@@ -58,7 +58,7 @@ class TransformPanel(QFrame):
             name_selected = self.transforms_combo.currentText()
             tf_selected = self.model.transforms[name_selected]
 
-        suggested_filename = os.path.join(data_dir, name_selected + '.pkl')
+        suggested_filename = os.path.join(data_dir, 'transform_' + name_selected + '.pkl')
         filename = QFileDialog.getSaveFileName(self, 'Save transform file',
                                                 suggested_filename,
                                                 'Pickle files (*.pkl)')[0]
