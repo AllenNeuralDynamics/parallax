@@ -150,6 +150,7 @@ class PySpinCamera:
             self.running = False
             self.capture_thread.join()
         self.camera.EndAcquisition()
+        del self.camera
 
     def capture_loop(self):
         while self.running:

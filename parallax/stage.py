@@ -113,7 +113,7 @@ class Stage:
 
     def move_absolute_1d(self, axis, position):
         if axis == 'z':
-            position = 15000 - z
+            position = 15000 - position
         cmd = io.MoveAbsolute1dCommand(self.device, axis, position)
         self.worker.queue_command(cmd)
 
