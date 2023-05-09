@@ -104,7 +104,7 @@ class GetPositionCommand(IOCommand):
 
     def execute(self):
         pos = self.device.get_position('x', 'y', 'z')
-        self._result = (pos['x'], pos['y'], pos['z'])
+        self._result = (pos['x'], pos['y'], 15000 - pos['z'])
         self._done = True
 
     def done(self):
