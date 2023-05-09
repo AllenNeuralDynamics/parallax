@@ -106,19 +106,25 @@ class Stage:
         self.worker.queue_command(cmd)
 
     def move_absolute_3d(self, x, y, z, safe=False):
+        z = 15000 - z
         pos = (x,y,z)
         cmd = io.MoveAbsolute3dCommand(self.device, pos)
         self.worker.queue_command(cmd)
 
     def move_absolute_1d(self, axis, position):
+        if axis == 'z':
+            position = 15000 - position
         cmd = io.MoveAbsolute1dCommand(self.device, axis, position)
         self.worker.queue_command(cmd)
 
     def move_relative_3d(self, dx, dy, dz):
+        dz = (-1) * dz
         cmd = io.MoveRelative3dCommand(self.device, (dx,dy,dz))
         self.worker.queue_command(cmd)
 
     def move_relative_1d(self, axis, distance):
+        if axis == 'z':
+            distance = (-1) * distance
         cmd = io.MoveRelative1dCommand(self.device, axis, distance)
         self.worker.queue_command(cmd)
 
