@@ -12,6 +12,8 @@ class StageDropdown(QComboBox):
         self.setFocusPolicy(Qt.NoFocus)
         self.activated.connect(self.set_selected)
 
+        self.setToolTip('Select a stage')
+
     def set_selected(self):
         self.selected = True
 
