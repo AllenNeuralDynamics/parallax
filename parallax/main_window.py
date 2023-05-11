@@ -27,9 +27,10 @@ from .point_bank import PointBank
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, model):
+    def __init__(self, model, dummy=False):
         QMainWindow.__init__(self)
         self.model = model
+        self.dummy = dummy
 
         self.widget = MainWidget(model)
         self.setCentralWidget(self.widget)
@@ -97,8 +98,9 @@ class MainWindow(QMainWindow):
         self.console = None
 
         self.refresh_cameras()
-        self.model.scan_for_usb_stages()
         self.refresh_focus_controllers()
+        if not self.dummy:
+            self.model.scan_for_usb_stages()
 
     def launch_stage_manager(self):
         self.stage_manager = StageManager(self.model)
@@ -145,7 +147,9 @@ class MainWindow(QMainWindow):
         return self.widget.lscreen, self.widget.rscreen
 
     def refresh_cameras(self):
-        self.model.scan_for_cameras()
+        self.model.add_mock_cameras()
+        if not self.dummy:
+            self.model.scan_for_cameras()
         for screen in self.screens():
             screen.update_camera_menu()
 
@@ -159,7 +163,8 @@ class MainWindow(QMainWindow):
         QApplication.instance().quit()
 
     def refresh_focus_controllers(self):
-        self.model.scan_for_focus_controllers()
+        if not self.dummy:
+            self.model.scan_for_focus_controllers()
         for screen in self.screens():
             screen.update_focus_control_menu()
 

@@ -11,16 +11,15 @@ try:
     import PySpin
 except ImportError:
     PySpin = None
-    logger.warn("Could not import PySpin; using mocked cameras.")
+    logger.warn("Could not import PySpin.")
 
 
-def list_cameras():
+def list_cameras(dummy=False):
     global pyspin_cameras, pyspin_instance
     cameras = []
-    if PySpin is not None:
-        cameras.extend(PySpinCamera.list_cameras())
-    while len(cameras) < 2:
-        cameras.append(MockCamera())
+    if not dummy:
+        if PySpin is not None:
+            cameras.extend(PySpinCamera.list_cameras())
     return cameras
 
 
@@ -33,7 +32,7 @@ class PySpinCamera:
 
     pyspin_cameras = None
     pyspin_instance = None
-    cameras = None
+    cameras = []
 
     @classmethod
     def list_cameras(cls):
@@ -49,8 +48,10 @@ class PySpinCamera:
         print('cleaning up SpinSDK')
         for camera in cls.cameras:
             camera.clean()
-        cls.pyspin_cameras.Clear()
-        cls.pyspin_instance.ReleaseInstance()
+        if cls.pyspin_cameras is not None:
+            cls.pyspin_cameras.Clear()
+        if cls.pyspin_instance is not None:
+            cls.pyspin_instance.ReleaseInstance()
 
     def __init__(self, camera_pyspin):
         self.running = False
