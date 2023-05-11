@@ -6,18 +6,23 @@ from PyQt5.QtGui import QIcon, QDoubleValidator, QPixmap, QDrag
 
 import numpy as np
 import time
+from enum import Enum
 
 from . import get_image_file
 from .helper import FONT_BOLD
 from .dialogs import StageSettingsDialog
 from .stage_dropdown import StageDropdown
 
-JOG_UM_DEFAULT = 250
-CJOG_UM_DEFAULT = 50
+
+class JogMode(Enum):
+    DEFAULT = 0
+    FINE = 1
+    COARSE = 2
+    GIANT = 3
 
 
 class AxisControl(QWidget):
-    jog_requested = pyqtSignal(str, bool, bool)
+    jog_requested = pyqtSignal(str, bool, JogMode)
     center_requested = pyqtSignal(str)
 
     def __init__(self, axis):
@@ -31,19 +36,29 @@ class AxisControl(QWidget):
         layout.addWidget(self.abs_label)
         self.setLayout(layout)
 
+        self.setToolTip('Scroll to jog\nControl-scroll for fine jog\nShift-scroll for coarse jog')
+
     def set_value(self, val_abs):
         self.abs_label.setText('(%0.1f)' % val_abs)
 
     def wheelEvent(self, e):
         forward = bool(e.angleDelta().y() > 0)
         control = bool(e.modifiers() & Qt.ControlModifier)
-        self.jog_requested.emit(self.axis, forward, control)
+        shift = bool(e.modifiers() & Qt.ShiftModifier)
+        if control:
+            jog_mode = JogMode.FINE
+        elif shift:
+            jog_mode = JogMode.COARSE
+        else:
+            jog_mode = JogMode.DEFAULT
+        self.jog_requested.emit(self.axis, forward, jog_mode)
         e.accept()
 
     def mousePressEvent(self, e):
         if e.button() == Qt.MiddleButton:
             self.center_requested.emit(self.axis)
             e.accept()
+
 
 class PositionWorker(QObject):
     finished = pyqtSignal()
@@ -122,8 +137,9 @@ class ControlPanel(QFrame):
         self.setLineWidth(2)
 
         self.stage = None
-        self.jog_um = JOG_UM_DEFAULT
-        self.cjog_um = CJOG_UM_DEFAULT
+        self.jog_default = 50e-6
+        self.jog_fine = 10e-6
+        self.jog_coarse = 250e-6
 
         self.dragHold = False
 
@@ -168,26 +184,30 @@ class ControlPanel(QFrame):
 
     def handle_settings(self, *args):
         if self.stage:
-            dlg = StageSettingsDialog(self.stage, self.jog_um, self.cjog_um)
+            dlg = StageSettingsDialog(self.stage, self.jog_default, self.jog_fine, self.jog_coarse)
             if dlg.exec_():
                 if dlg.speed_changed():
                     self.stage.set_speed(dlg.get_speed())
-                if dlg.jog_changed():
-                    self.jog_um = dlg.get_jog_um()
-                if dlg.cjog_changed():
-                    self.cjog_um = dlg.get_cjog_um() * 2
+                if dlg.jog_default_changed():
+                    self.jog_default = dlg.get_jog_default()
+                if dlg.jog_fine_changed():
+                    self.jog_fine = dlg.get_jog_fine()
+                if dlg.jog_coarse_changed():
+                    self.jog_coarse = dlg.get_jog_coarse()
         else:
             self.msg_posted.emit('ControlPanel: No stage selected.')
 
-    def jog(self, axis, forward, control):
+    def jog(self, axis, forward, jog_mode):
         if self.stage:
-            if control:
-                distance = self.cjog_um
+            if jog_mode == JogMode.FINE:
+                distance = self.jog_fine
+            elif jog_mode == JogMode.COARSE:
+                distance = self.jog_coarse
             else:
-                distance = self.jog_um
+                distance = self.jog_default
             if not forward:
                 distance = (-1) * distance
-            self.stage.move_relative_1d(axis, distance)
+            self.stage.move_relative_1d(axis, distance*1e6)
 
     def center(self, axis):
         if self.stage:

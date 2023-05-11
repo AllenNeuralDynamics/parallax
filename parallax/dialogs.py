@@ -18,7 +18,7 @@ from parallax import __version__ as VERSION
 
 class StageSettingsDialog(QDialog):
 
-    def __init__(self, stage, jog_um_current, cjog_um_current):
+    def __init__(self, stage, jog_default, jog_fine, jog_coarse):
         QDialog.__init__(self)
         self.stage = stage
 
@@ -32,15 +32,20 @@ class StageSettingsDialog(QDialog):
         self.speed_current.setEnabled(False)
         self.speed_desired = QLineEdit()
 
-        self.jog_label = QLabel('Jog Increment (um)')
-        self.jog_current = QLineEdit(str(jog_um_current))
-        self.jog_current.setEnabled(False)
-        self.jog_desired = QLineEdit()
+        self.jog_default_label = QLabel('Default Jog Increment (um)')
+        self.jog_default_current = QLineEdit(str(jog_default*1e6))
+        self.jog_default_current.setEnabled(False)
+        self.jog_default_desired = QLineEdit()
 
-        self.cjog_label = QLabel('Control-Jog Increment (um)')
-        self.cjog_current = QLineEdit(str(cjog_um_current))
-        self.cjog_current.setEnabled(False)
-        self.cjog_desired = QLineEdit()
+        self.jog_fine_label = QLabel('Control-Jog Increment (um)')
+        self.jog_fine_current = QLineEdit(str(jog_fine*1e6))
+        self.jog_fine_current.setEnabled(False)
+        self.jog_fine_desired = QLineEdit()
+
+        self.jog_coarse_label = QLabel('Shift-Jog Increment (um)')
+        self.jog_coarse_current = QLineEdit(str(jog_coarse*1e6))
+        self.jog_coarse_current.setEnabled(False)
+        self.jog_coarse_desired = QLineEdit()
 
         self.dialog_buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
@@ -56,15 +61,20 @@ class StageSettingsDialog(QDialog):
         layout.addWidget(self.speed_label, 1,0, 1,1)
         layout.addWidget(self.speed_current, 1,1, 1,1)
         layout.addWidget(self.speed_desired, 1,2, 1,1)
-        layout.addWidget(self.jog_label, 2,0, 1,1)
-        layout.addWidget(self.jog_current, 2,1, 1,1)
-        layout.addWidget(self.jog_desired, 2,2, 1,1)
-        layout.addWidget(self.cjog_label, 3,0, 1,1)
-        layout.addWidget(self.cjog_current, 3,1, 1,1)
-        layout.addWidget(self.cjog_desired, 3,2, 1,1)
-        layout.addWidget(self.dialog_buttons, 4,0, 1,3)
-        layout.addWidget(self.freqcal_button, 5,0, 1,3)
+        layout.addWidget(self.jog_default_label, 2,0, 1,1)
+        layout.addWidget(self.jog_default_current, 2,1, 1,1)
+        layout.addWidget(self.jog_default_desired, 2,2, 1,1)
+        layout.addWidget(self.jog_fine_label, 3,0, 1,1)
+        layout.addWidget(self.jog_fine_current, 3,1, 1,1)
+        layout.addWidget(self.jog_fine_desired, 3,2, 1,1)
+        layout.addWidget(self.jog_coarse_label, 4,0, 1,1)
+        layout.addWidget(self.jog_coarse_current, 4,1, 1,1)
+        layout.addWidget(self.jog_coarse_desired, 4,2, 1,1)
+        layout.addWidget(self.dialog_buttons, 5,0, 1,3)
+        layout.addWidget(self.freqcal_button, 6,0, 1,3)
         self.setLayout(layout)
+
+        self.setMinimumWidth(500)
 
     def calibrate_frequency(self):
         self.stage.calibrate_frequency()
@@ -77,21 +87,29 @@ class StageSettingsDialog(QDialog):
     def get_speed(self):
         return int(self.speed_desired.text())
 
-    def jog_changed(self):
-        dtext = self.jog_desired.text()
-        ctext = self.jog_current.text()
+    def get_jog_default(self):
+        return float(self.jog_default_desired.text())*1e-6
+
+    def get_jog_fine(self):
+        return float(self.jog_fine_desired.text())*1e-6
+
+    def get_jog_coarse(self):
+        return float(self.jog_coarse_desired.text())*1e-6
+
+    def jog_default_changed(self):
+        dtext = self.jog_default_desired.text()
+        ctext = self.jog_default_current.text()
         return bool(dtext) and (dtext != ctext)
 
-    def get_jog_um(self):
-        return float(self.jog_desired.text())
-
-    def cjog_changed(self):
-        dtext = self.cjog_desired.text()
-        ctext = self.cjog_current.text()
+    def jog_fine_changed(self):
+        dtext = self.jog_fine_desired.text()
+        ctext = self.jog_fine_current.text()
         return bool(dtext) and (dtext != ctext)
 
-    def get_cjog_um(self):
-        return float(self.cjog_desired.text())
+    def jog_coarse_changed(self):
+        dtext = self.jog_coarse_desired.text()
+        ctext = self.jog_coarse_current.text()
+        return bool(dtext) and (dtext != ctext)
 
 
 class CalibrationDialog(QDialog):
