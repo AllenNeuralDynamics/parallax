@@ -61,6 +61,14 @@ class AccuracyTestRunTab(QWidget):
         self.extent_label.setAlignment(Qt.AlignCenter)
         self.extent_edit = QLineEdit(str(self.EXTENT_UM_DEFAULT))
 
+        self.origin = (7500., 7500., 7500.) # default
+        self.origin_label = QLabel('Origin:')
+        self.origin_value = QLabel()
+        self.set_origin(self.origin)
+
+        self.origin_button = QPushButton('Set current position as origin')
+        self.origin_button.clicked.connect(self.grab_stage_position_as_origin)
+
         self.apd_label = QLabel('Automatic Probe Detection')
         self.apd_toggle = ToggleSwitch(thumb_radius=11, track_radius=8)
         self.apd_toggle.setChecked(False)
@@ -85,14 +93,31 @@ class AccuracyTestRunTab(QWidget):
         self.layout.addWidget(self.npoints_edit, 2,1, 1,1)
         self.layout.addWidget(self.extent_label, 3,0, 1,1)
         self.layout.addWidget(self.extent_edit, 3,1, 1,1)
-        self.layout.addWidget(self.apd_label, 4,0, 1,1)
-        self.layout.addWidget(self.apd_toggle, 4,1, 1,1)
-        self.layout.addWidget(self.cancel_button, 5,0, 1,1)
-        self.layout.addWidget(self.run_button, 5,1, 1,1)
+        self.layout.addWidget(self.origin_label, 4,0, 1,1)
+        self.layout.addWidget(self.origin_value, 4,1, 1,1)
+        self.layout.addWidget(self.origin_button, 5,0, 1,2)
+        self.layout.addWidget(self.apd_label, 6,0, 1,1)
+        self.layout.addWidget(self.apd_toggle, 6,1, 1,1)
+        self.layout.addWidget(self.cancel_button, 7,0, 1,1)
+        self.layout.addWidget(self.run_button, 7,1, 1,1)
         self.setLayout(self.layout)
 
         self.setWindowTitle('Accuracy Testing Tool')
         self.setMinimumWidth(300)
+
+    def grab_stage_position_as_origin(self):
+        stage = self.get_stage()
+        pos = stage.get_position()
+        self.set_origin(pos)
+
+    def set_origin(self, pos):
+        self.origin_value.setText('[%.1f, %.1f, %.1f]' % pos)
+        self.origin = pos
+
+    def get_stage(self):
+        name = self.stage_dropdown.currentText()
+        stage = self.model.stages[name]
+        return stage
 
     def start_accuracy_test(self):
         self.model.start_accuracy_test(self.get_params())
@@ -105,6 +130,7 @@ class AccuracyTestRunTab(QWidget):
         params['extent_um'] = float(self.extent_edit.text())
         params['apd'] = self.apd_toggle.isChecked()
         params['regular'] = self.regular_toggle.isChecked()
+        params['origin'] = self.origin
         return params
 
     def keyPressEvent(self, ev):
@@ -240,6 +266,7 @@ class AccuracyTestWorker(QObject):
         self.npoints  = params['npoints']
         self.extent_um = params['extent_um']
         self.origin = [7500., 7500., 7500.] # hard-wired for now
+        self.origin = params['origin']
 
         self.results = []
 
