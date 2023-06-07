@@ -10,7 +10,8 @@ import logging
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--dummy', action='store_true', help='dummy mode')
 args = parser.parse_args()
-print(args.dummy)
+if args.dummy:
+    print('\nRunning in dummy mode; hardware devices will be inaccessible.')
 
 # set up logging to file
 logger = logging.getLogger()
