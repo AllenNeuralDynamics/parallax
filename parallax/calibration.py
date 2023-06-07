@@ -54,7 +54,9 @@ class Calibration:
         img_point2 = img_points2_cv[0,0]
         obj_point_reconstructed = lib.triangulate_from_image_points(img_point1, img_point2, self.proj1, self.proj2)
 
-        return obj_point_reconstructed   # [x,y,z]
+        offset = np.array([0, -10, -10], dtype=np.float32)
+
+        return obj_point_reconstructed + offset   # [x,y,z]
 
     def calibrate(self, img_points1, img_points2, obj_points):
 

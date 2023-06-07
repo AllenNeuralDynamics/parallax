@@ -107,9 +107,19 @@ class Stage:
 
     def move_absolute_3d(self, x, y, z, safe=False):
         z = 15000 - z
-        pos = (x,y,z)
-        cmd = io.MoveAbsolute3dCommand(self.device, pos)
-        self.worker.queue_command(cmd)
+        if safe:
+            cmd = io.MoveAbsolute1dCommand(self.device, 'z', 7000)
+            self.worker.queue_command(cmd)
+            cmd = io.MoveAbsolute1dCommand(self.device, 'x', x)
+            self.worker.queue_command(cmd)
+            cmd = io.MoveAbsolute1dCommand(self.device, 'y', y)
+            self.worker.queue_command(cmd)
+            cmd = io.MoveAbsolute1dCommand(self.device, 'z', z)
+            self.worker.queue_command(cmd)
+        else:
+            pos = (x,y,z)
+            cmd = io.MoveAbsolute3dCommand(self.device, pos)
+            self.worker.queue_command(cmd)
 
     def move_absolute_1d(self, axis, position):
         if axis == 'z':
