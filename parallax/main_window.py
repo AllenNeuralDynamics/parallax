@@ -101,6 +101,7 @@ class MainWindow(QMainWindow):
         self.refresh_focus_controllers()
         if not self.dummy:
             self.model.scan_for_usb_stages()
+            self.model.update_elevators()
 
     def launch_stage_manager(self):
         self.stage_manager = StageManager(self.model)

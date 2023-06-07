@@ -25,7 +25,6 @@ class Model(QObject):
         self.init_stages()
 
         self.elevators = {}
-        self.update_elevators()
 
         self.calibration = None
         self.calibrations = {}
