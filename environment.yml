@@ -1,4 +1,4 @@
-name: parallax
+name: parallax-sleap-pip
 
 channels:
   - conda-forge
@@ -7,11 +7,11 @@ channels:
 dependencies:
   - git
   - python=3.8
-  - pyqt>=5.15
   - pip
   - scipy
   - pyserial
   - pip:
+    - PyQt5>=5.15
     - pyqtgraph
     - opencv-python-headless
     - spinnaker-python
@@ -20,4 +20,5 @@ dependencies:
     - git+https://github.com/chronopoulos/coorx
     - git+https://github.com/AllenNeuralDynamics/python-newscale@axes-on-target
     - git+https://github.com/AllenNeuralDynamics/mis-focus-controller-sw
+    - sleap
 
