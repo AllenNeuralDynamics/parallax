@@ -4,6 +4,9 @@ import random
 import time
 import os
 
+import sleap
+from time import perf_counter
+
 from PyQt5.QtWidgets import QWidget, QLabel, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PyQt5.QtCore import pyqtSignal, Qt
@@ -30,14 +33,32 @@ class SleapDetector:
     name = 'SLEAP'
 
     def __init__(self):
-        self.predictor = None
+        #self.predictor = None
+        centroid_dir = os.path.join(data_dir, 'sleap_centroid')
+        centered_instance_dir = os.path.join(data_dir, 'sleap_centered_instance')
+        self.predictor = sleap.load_model([centroid_dir, centered_instance_dir],
+                            batch_size=1)
+
+    def infer(self, frame, report=False):
+        t0 = perf_counter()
+        labeled_frames = self.predictor.predict(frame)        
+        dt = perf_counter() - t0
+        labeled_frame = labeled_frames[0]
+        tip_positions = []
+        for i, instance in enumerate(labeled_frame.instances):
+            point = instance.points[0]
+            tip_positions.append((point.x, point.y))
+        if report:
+            print('\tinference time = ', dt)
+        return tip_positions
 
     def process(self, frame):
         if self.predictor is not None:
-            x,y = self.predictor.predict(frame)
-            return x,y
-        else:
-            return 0,0
+            frames = np.array([frame])
+            tip_positions = self.infer(frames, report=True)
+            if len(tip_positions) >= 1:
+                return tip_positions[0]
+        return 0,0
 
     def launch_control_panel(self):
         pass
