@@ -78,8 +78,8 @@ class ScreenWidget(pg.GraphicsView):
     def set_data(self, data):
         data = self.filter.process(data)
         pos = self.detector.process(data)
-        if pos is not None:
-            self.select(pos)
+        #if not hasattr(self.detector, "tracked"):
+        #    self.select(pos)
         self.image_item.setImage(data, autoLevels=False)
 
     def update_camera_menu(self):
@@ -150,6 +150,8 @@ class ScreenWidget(pg.GraphicsView):
     def set_detector(self, detector):
         self.detector = detector()
         self.detector.launch_control_panel()
+        if hasattr(self.detector, "tracked"):
+            self.detector.tracked.connect(self.select)
 
     def get_selected(self):
         if self.click_target.isVisible():

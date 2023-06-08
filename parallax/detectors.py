@@ -9,7 +9,7 @@ from time import perf_counter
 
 from PyQt5.QtWidgets import QWidget, QLabel, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QThread, QObject
 
 from . import data_dir
 from .helper import FONT_BOLD
@@ -28,37 +28,79 @@ class NoDetector:
         pass
 
 
-class SleapDetector:
+class SleapDetector(QObject):
 
     name = 'SLEAP'
 
+    tracked = pyqtSignal(tuple)
+
+    class SleapWorker(QObject):
+
+        finished = pyqtSignal()
+        tracked = pyqtSignal(tuple)
+        status_updated = pyqtSignal(bool, float)
+
+        def __init__(self, predictor):
+            QObject.__init__(self)
+            self.predictor = predictor
+            self.running = True
+
+        def update_frame(self, frame):
+            self.frame = frame
+            self.new = True
+
+        def process(self, frame, report=True):
+            frame = np.array([frame])
+            t0 = perf_counter()
+            labeled_frames = self.predictor.predict(frame)        
+            dt = perf_counter() - t0
+            labeled_frame = labeled_frames[0]
+            tip_positions = []
+            for i, instance in enumerate(labeled_frame.instances):
+                point = instance.points[0]
+                tip_positions.append((point.x, point.y))
+            if report:
+                print('\tinference time = ', dt)
+            if len(tip_positions) >= 1:
+                self.tracked.emit(tip_positions[0])
+            else:
+                print('No probe tips detected')
+
+        def run(self):
+            while self.running:
+                if self.new:
+                    self.process(self.frame)
+                    self.new = False
+                time.sleep(0.001)
+            self.finished.emit()
+
     def __init__(self):
-        #self.predictor = None
+        QObject.__init__(self)
+
         centroid_dir = os.path.join(data_dir, 'sleap_centroid')
         centered_instance_dir = os.path.join(data_dir, 'sleap_centered_instance')
-        self.predictor = sleap.load_model([centroid_dir, centered_instance_dir],
+        predictor = sleap.load_model([centroid_dir, centered_instance_dir],
                             batch_size=1)
 
-    def infer(self, frame, report=False):
-        t0 = perf_counter()
-        labeled_frames = self.predictor.predict(frame)        
-        dt = perf_counter() - t0
-        labeled_frame = labeled_frames[0]
-        tip_positions = []
-        for i, instance in enumerate(labeled_frame.instances):
-            point = instance.points[0]
-            tip_positions.append((point.x, point.y))
-        if report:
-            print('\tinference time = ', dt)
-        return tip_positions
+        # CV worker and thread
+        self.cv_thread = QThread()
+        self.cv_worker = self.SleapWorker(predictor)
+        self.cv_worker.moveToThread(self.cv_thread)
+        self.cv_thread.started.connect(self.cv_worker.run)
+        self.cv_worker.finished.connect(self.cv_thread.quit, Qt.DirectConnection)
+        self.cv_worker.finished.connect(self.cv_worker.deleteLater)
+        self.cv_thread.finished.connect(self.cv_thread.deleteLater)
+        #self.cv_worker.tracked.connect(self.handle_tracked)
+        self.cv_worker.tracked.connect(self.tracked)
+        #self.cv_worker.status_updated.connect(self.update_status)
+        self.cv_thread.start()
 
     def process(self, frame):
-        if self.predictor is not None:
-            frames = np.array([frame])
-            tip_positions = self.infer(frames, report=True)
-            if len(tip_positions) >= 1:
-                return tip_positions[0]
+        self.cv_worker.update_frame(frame)
         return 0,0
+
+    def handle_tracked(self, pos):
+        print('HANDLE TRACKED: ', pos)
 
     def launch_control_panel(self):
         pass
