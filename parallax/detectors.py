@@ -11,6 +11,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from . import data_dir
 from .helper import FONT_BOLD
 
+
 class NoDetector:
 
     name = "None"
@@ -19,6 +20,24 @@ class NoDetector:
         pass
 
     def process(self, frame): return None
+
+    def launch_control_panel(self):
+        pass
+
+
+class SleapDetector:
+
+    name = 'SLEAP'
+
+    def __init__(self):
+        self.predictor = None
+
+    def process(self, frame):
+        if self.predictor is not None:
+            x,y = self.predictor.predict(frame)
+            return x,y
+        else:
+            return 0,0
 
     def launch_control_panel(self):
         pass
