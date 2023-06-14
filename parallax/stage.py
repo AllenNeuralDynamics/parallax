@@ -6,10 +6,6 @@ from PyQt5.QtCore import QObject, pyqtSignal, QThread
 from newscale.multistage import USBXYZStage, PoEXYZStage
 from newscale.interfaces import USBInterface
 
-import logging
-logger = logging.getLogger()
-logger.setLevel(logging.NOTSET)
-
 from . import io_commands as io
 
 TIME_SLEEP = 0.03
