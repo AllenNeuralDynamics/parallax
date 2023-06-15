@@ -280,7 +280,8 @@ class AccuracyTestWorker(QObject):
 
     def register_corr_points(self, lcorr, rcorr):
         xyz_recon = self.cal.triangulate(lcorr, rcorr)
-        self.results.append(self.last_stage_point + xyz_recon.tolist())
+        pos = self.stage.get_position()
+        self.results.append(list(pos) + xyz_recon.tolist())
 
     def carry_on(self):
         self.ready_to_go = True
@@ -297,7 +298,6 @@ class AccuracyTestWorker(QObject):
         for i in range(self.npoints):
             x,y,z = self.get_random_point(self.origin, self.extent_um)
             self.stage.move_absolute_3d(x,y,z)
-            self.last_stage_point = [x,y,z]
             self.point_reached.emit(i,self.npoints)
             self.ready_to_go = False
             while not self.ready_to_go:
