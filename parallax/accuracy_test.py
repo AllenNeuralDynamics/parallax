@@ -25,7 +25,9 @@ class AccuracyTestTool(QWidget):
         self.model = model
 
         self.run_tab = AccuracyTestRunTab(self.model)
+        self.run_tab.msg_posted.connect(self.msg_posted)
         self.analyze_tab = AccuracyTestAnalyzeTab(self.model)
+        self.analyze_tab.msg_posted.connect(self.msg_posted)
         self.tab_widget = QTabWidget()
         self.tab_widget.addTab(self.run_tab, 'Run')
         self.tab_widget.addTab(self.analyze_tab, 'Analyze')
@@ -120,7 +122,10 @@ class AccuracyTestRunTab(QWidget):
         return stage
 
     def start_accuracy_test(self):
-        self.model.start_accuracy_test(self.get_params())
+        if self.stage_dropdown.is_selected() and bool(self.cal_dropdown.currentText()):
+            self.model.start_accuracy_test(self.get_params())
+        else:
+            self.msg_posted.emit('Accuracy Run Tab: select a stage and calibation')
 
     def get_params(self):
         params = {}
@@ -139,6 +144,7 @@ class AccuracyTestRunTab(QWidget):
 
 
 class AccuracyTestAnalyzeTab(QWidget):
+    msg_posted = pyqtSignal(str)
 
     def __init__(self, model, parent=None):
         QWidget.__init__(self, parent=parent)

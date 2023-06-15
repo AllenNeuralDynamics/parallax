@@ -125,6 +125,7 @@ class MainWindow(QMainWindow):
 
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
+        self.accutest_tool.msg_posted.connect(self.widget.msg_log.post)
         self.model.accutest_point_reached.connect(self.widget.clear_selected)
         self.model.accutest_point_reached.connect(self.widget.zoom_out)
         self.accutest_tool.show()
