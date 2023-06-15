@@ -23,6 +23,8 @@ class Ruler(QWidget):
         self.p1_widget = CoordinateWidget(vertical=True)
         self.p2_widget = CoordinateWidget(vertical=True)
         self.p3_widget = CoordinateWidget(vertical=True)
+        self.linear_label = QLabel('<linear distance>')
+        self.linear_label.setAlignment(Qt.AlignCenter)
         self.button = QPushButton('Calculate')
         self.button.clicked.connect(self.calculate)
 
@@ -33,7 +35,8 @@ class Ruler(QWidget):
         layout.addWidget(self.p1_widget, 1,0, 1,1)
         layout.addWidget(self.p2_widget, 1,1, 1,1)
         layout.addWidget(self.p3_widget, 1,2, 1,1)
-        layout.addWidget(self.button, 2,0, 1,3)
+        layout.addWidget(self.linear_label, 2,0, 1,3)
+        layout.addWidget(self.button, 3,0, 1,3)
         self.setLayout(layout)
 
         self.setWindowTitle('Ruler')
@@ -42,7 +45,9 @@ class Ruler(QWidget):
     def calculate(self):
         p1 = np.asarray(self.p1_widget.get_coordinates())
         p2 = np.asarray(self.p2_widget.get_coordinates())
-        p3 = p2 - p1
-        self.p3_widget.set_coordinates(p3)
+        diff = p2 - p1
+        self.p3_widget.set_coordinates(diff)
+        self.linear_label.setText('Linear Distance:  %.2f' % np.linalg.norm(diff))
+        self.linear_label.setFont(FONT_BOLD)
 
 
