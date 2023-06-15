@@ -13,7 +13,6 @@ from .dialogs import CalibrationDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
 from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
-from .rigid_body_transform_tool import CoordinateWidget
 
 
 class CalibrationPanel(QFrame):
@@ -32,19 +31,14 @@ class CalibrationPanel(QFrame):
         self.cal_apply_button = QPushButton('Triangulate')
         self.cal_load_button = QPushButton('Load')
         self.cal_save_button = QPushButton('Save')
-        self.cal_start_stop_button = QPushButton('Generate')
-        self.offset_label = QLabel('Offset:')
-        self.offset_widget = CoordinateWidget()
-        self.offset_widget.set_coordinates([0,0,0])
+        self.cal_start_stop_button = QPushButton('Start')
         cal_layout = QGridLayout()
-        cal_layout.addWidget(self.cal_label, 0,0,1,4)
+        cal_layout.addWidget(self.cal_label, 0,0,1,3)
         cal_layout.addWidget(self.cal_combo, 1,0,1,2)
-        cal_layout.addWidget(self.cal_apply_button, 1,2,1,2)
-        cal_layout.addWidget(self.cal_load_button, 2,0,1,1)
-        cal_layout.addWidget(self.cal_save_button, 2,1,1,1)
-        cal_layout.addWidget(self.cal_start_stop_button, 2,2,1,2)
-        cal_layout.addWidget(self.offset_label, 3,0,1,1)
-        cal_layout.addWidget(self.offset_widget, 3,1,1,3)
+        cal_layout.addWidget(self.cal_apply_button, 1,2,1,1)
+        cal_layout.addWidget(self.cal_load_button, 2,0,2,1)
+        cal_layout.addWidget(self.cal_save_button, 2,1,2,1)
+        cal_layout.addWidget(self.cal_start_stop_button, 2,2,2,1)
         self.setLayout(cal_layout)
 
         # connections
@@ -73,9 +67,7 @@ class CalibrationPanel(QFrame):
         else:
             lcorr, rcorr = self.model.lcorr, self.model.rcorr
 
-        obj_point = np.asarray(cal_selected.triangulate(lcorr, rcorr))
-        offset = np.asarray(self.offset_widget.get_coordinates())
-        obj_point = (obj_point + offset).tolist()
+        obj_point = cal_selected.triangulate(lcorr, rcorr)
         self.model.set_last_object_point(obj_point)
 
         x,y,z = obj_point
@@ -83,7 +75,7 @@ class CalibrationPanel(QFrame):
                             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
 
     def cal_start_stop(self):
-        if self.cal_start_stop_button.text() == 'Generate':
+        if self.cal_start_stop_button.text() == 'Start':
             dlg = CalibrationDialog(self.model)
             if dlg.exec_():
                 stage = dlg.get_stage()
