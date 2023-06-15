@@ -44,6 +44,7 @@ class SleapDetector(QObject):
             QObject.__init__(self)
             self.predictor = predictor
             self.running = True
+            self.new = False
 
         def update_frame(self, frame):
             self.frame = frame
