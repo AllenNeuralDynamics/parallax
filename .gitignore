@@ -8,3 +8,4 @@ parallax/*.png
 *.pkl
 *.csv
 data/*
+env/*
