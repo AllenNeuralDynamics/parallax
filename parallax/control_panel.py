@@ -194,6 +194,8 @@ class ControlPanel(QFrame):
                     self.jog_fine = dlg.get_jog_fine()
                 if dlg.jog_coarse_changed():
                     self.jog_coarse = dlg.get_jog_coarse()
+                if dlg.z_safe_changed():
+                    self.stage.z_safe = dlg.get_z_safe()
         else:
             self.msg_posted.emit('ControlPanel: No stage selected.')
 
@@ -420,6 +422,11 @@ class StageSettingsDialog(QDialog):
         self.jog_coarse_current.setEnabled(False)
         self.jog_coarse_desired = QLineEdit()
 
+        self.z_safe_label = QLabel('Z-safe Position (um)')
+        self.z_safe_current = QLineEdit(str(self.stage.z_safe))
+        self.z_safe_current.setEnabled(False)
+        self.z_safe_desired = QLineEdit()
+
         self.dialog_buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
         self.dialog_buttons.accepted.connect(self.accept)
@@ -443,8 +450,11 @@ class StageSettingsDialog(QDialog):
         layout.addWidget(self.jog_coarse_label, 4,0, 1,1)
         layout.addWidget(self.jog_coarse_current, 4,1, 1,1)
         layout.addWidget(self.jog_coarse_desired, 4,2, 1,1)
-        layout.addWidget(self.dialog_buttons, 5,0, 1,3)
-        layout.addWidget(self.freqcal_button, 6,0, 1,3)
+        layout.addWidget(self.z_safe_label, 5,0, 1,1)
+        layout.addWidget(self.z_safe_current, 5,1, 1,1)
+        layout.addWidget(self.z_safe_desired, 5,2, 1,1)
+        layout.addWidget(self.dialog_buttons, 6,0, 1,3)
+        layout.addWidget(self.freqcal_button, 7,0, 1,3)
         self.setLayout(layout)
 
         self.setMinimumWidth(500)
@@ -469,6 +479,9 @@ class StageSettingsDialog(QDialog):
     def get_jog_coarse(self):
         return float(self.jog_coarse_desired.text())*1e-6
 
+    def get_z_safe(self):
+        return float(self.z_safe_desired.text())
+
     def jog_default_changed(self):
         dtext = self.jog_default_desired.text()
         ctext = self.jog_default_current.text()
@@ -482,6 +495,11 @@ class StageSettingsDialog(QDialog):
     def jog_coarse_changed(self):
         dtext = self.jog_coarse_desired.text()
         ctext = self.jog_coarse_current.text()
+        return bool(dtext) and (dtext != ctext)
+
+    def z_safe_changed(self):
+        dtext = self.z_safe_desired.text()
+        ctext = self.z_safe_current.text()
         return bool(dtext) and (dtext != ctext)
 
 
