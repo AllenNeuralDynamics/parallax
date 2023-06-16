@@ -1,13 +1,14 @@
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QFrame, QWidget, QComboBox, QLabel
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QDialog, QLineEdit, QDialogButtonBox
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, QMimeData
-from PyQt5.QtGui import QDrag
+from PyQt5.QtGui import QDrag, QIcon
 
 import pickle
 import os
 
 from . import data_dir
+from . import get_image_file
 from .helper import FONT_BOLD
 from .dialogs import CalibrationDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
@@ -27,25 +28,30 @@ class CalibrationPanel(QFrame):
         self.cal_label = QLabel('Calibrations')
         self.cal_label.setAlignment(Qt.AlignCenter)
         self.cal_label.setFont(FONT_BOLD)
-        self.cal_combo = QComboBox()
-        self.cal_apply_button = QPushButton('Triangulate')
-        self.cal_load_button = QPushButton('Load')
-        self.cal_save_button = QPushButton('Save')
-        self.cal_start_stop_button = QPushButton('Start')
+        self.combo = QComboBox()
+        self.apply_button = QPushButton('Triangulate')
+        self.settings_button = QPushButton()
+        self.settings_button.setIcon(QIcon(get_image_file('gear.png')))
+        self.settings_button.setToolTip('Calibration Settings')
+        self.load_button = QPushButton('Load')
+        self.save_button = QPushButton('Save')
+        self.start_stop_button = QPushButton('Start')
         cal_layout = QGridLayout()
         cal_layout.addWidget(self.cal_label, 0,0,1,3)
-        cal_layout.addWidget(self.cal_combo, 1,0,1,2)
-        cal_layout.addWidget(self.cal_apply_button, 1,2,1,1)
-        cal_layout.addWidget(self.cal_load_button, 2,0,2,1)
-        cal_layout.addWidget(self.cal_save_button, 2,1,2,1)
-        cal_layout.addWidget(self.cal_start_stop_button, 2,2,2,1)
+        cal_layout.addWidget(self.combo, 1,0,1,1)
+        cal_layout.addWidget(self.settings_button, 1,1,1,1)
+        cal_layout.addWidget(self.apply_button, 1,2,1,1)
+        cal_layout.addWidget(self.load_button, 2,0,2,1)
+        cal_layout.addWidget(self.save_button, 2,1,2,1)
+        cal_layout.addWidget(self.start_stop_button, 2,2,2,1)
         self.setLayout(cal_layout)
 
         # connections
-        self.cal_load_button.clicked.connect(self.load_cal)
-        self.cal_save_button.clicked.connect(self.save_cal)
-        self.cal_start_stop_button.clicked.connect(self.cal_start_stop)
-        self.cal_apply_button.clicked.connect(self.triangulate)
+        self.load_button.clicked.connect(self.load_cal)
+        self.save_button.clicked.connect(self.save_cal)
+        self.start_stop_button.clicked.connect(self.cal_start_stop)
+        self.apply_button.clicked.connect(self.triangulate)
+        self.settings_button.clicked.connect(self.launch_settings)
 
         # frame border
         self.setFrameStyle(QFrame.Box | QFrame.Plain)
@@ -53,13 +59,25 @@ class CalibrationPanel(QFrame):
 
         self.dragHold = False
 
+    def launch_settings(self):
+        cal = self.get_cal()
+        if cal is None:
+            return
+        dlg = CalibrationSettingsDialog(cal)
+        dlg.exec_()
+
+    def get_cal(self):
+        if (self.combo.currentIndex() < 0):
+            self.msg_posted.emit('No calibration selected.')
+            return None
+        else:
+            return self.model.calibrations[self.combo.currentText()]
+
     def triangulate(self):
 
-        if (self.cal_combo.currentIndex() < 0):
-            self.msg_posted.emit('No calibration selected.')
+        cal_selected = self.get_cal()
+        if cal_selected is None:
             return
-        else:
-            cal_selected = self.model.calibrations[self.cal_combo.currentText()]
 
         if not (self.model.lcorr and self.model.rcorr):
             self.msg_posted.emit('No correspondence points selected.')
@@ -75,7 +93,7 @@ class CalibrationPanel(QFrame):
                             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(x, y, z))
 
     def cal_start_stop(self):
-        if self.cal_start_stop_button.text() == 'Start':
+        if self.start_stop_button.text() == 'Start':
             dlg = CalibrationDialog(self.model)
             if dlg.exec_():
                 stage = dlg.get_stage()
@@ -84,7 +102,7 @@ class CalibrationPanel(QFrame):
                 origin = dlg.get_origin()
                 name = dlg.get_name()
                 self.start_cal_thread(stage, res, extent, origin, name)
-        elif self.cal_start_stop_button.text() == 'Stop':
+        elif self.start_stop_button.text() == 'Stop':
             self.stop_cal_thread()
 
     def start_cal_thread(self, stage, res, extent, origin, name):
@@ -99,11 +117,11 @@ class CalibrationPanel(QFrame):
         self.cal_thread.finished.connect(self.cal_thread.deleteLater)
         self.msg_posted.emit('Starting Calibration...')
         self.cal_thread.start()
-        self.cal_start_stop_button.setText('Stop')
+        self.start_stop_button.setText('Stop')
 
     def stop_cal_thread(self):
         self.cal_worker.stop()
-        self.cal_start_stop_button.setText('Start')
+        self.start_stop_button.setText('Start')
 
     def handle_cal_point_reached(self, n, num_cal, x,y,z):
         self.msg_posted.emit('Calibration point %d (of %d) reached: [%f, %f, %f]' % (n+1,num_cal, x,y,z))
@@ -132,7 +150,7 @@ class CalibrationPanel(QFrame):
         else:
             self.msg_posted.emit('Calibration aborted.')
         self.model.cal_in_progress = False
-        self.cal_start_stop_button.setText('Start')
+        self.start_stop_button.setText('Start')
 
     def load_cal(self):
         filename = QFileDialog.getOpenFileName(self, 'Load calibration file', data_dir,
@@ -145,11 +163,11 @@ class CalibrationPanel(QFrame):
 
     def save_cal(self):
 
-        if (self.cal_combo.currentIndex() < 0):
+        if (self.combo.currentIndex() < 0):
             self.msg_posted.emit('No calibration selected.')
             return
         else:
-            cal_selected = self.model.calibrations[self.cal_combo.currentText()]
+            cal_selected = self.model.calibrations[self.combo.currentText()]
 
         suggested_filename = os.path.join(data_dir, cal_selected.name + '.pkl')
         filename = QFileDialog.getSaveFileName(self, 'Save calibration file',
@@ -161,9 +179,9 @@ class CalibrationPanel(QFrame):
             self.msg_posted.emit('Saved calibration %s to: %s' % (cal_selected.name, filename))
 
     def update_cals(self):
-        self.cal_combo.clear()
+        self.combo.clear()
         for cal in self.model.calibrations.keys():
-            self.cal_combo.addItem(cal)
+            self.combo.addItem(cal)
 
     def mousePressEvent(self, e):
         self.dragHold = True
@@ -181,4 +199,57 @@ class CalibrationPanel(QFrame):
                 drag = QDrag(self)
                 drag.setMimeData(md)
                 drag.exec()
+
+class CalibrationSettingsDialog(QDialog):
+
+    def __init__(self, cal):
+        QDialog.__init__(self)
+        self.cal = cal
+
+        self.name_label = QLabel('Name:')
+        self.name_value = QLabel(cal.name)
+
+        self.npts_label = QLabel('N points:')
+        self.npts_value = QLabel(str(len(cal.obj_points)))
+
+        self.mean_error_label = QLabel('Mean Error:')
+        self.mean_error_value = QLabel( \
+            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(*tuple(cal.mean_error)))
+
+        self.std_error_label = QLabel('StDev Error:')
+        self.std_error_value = QLabel( \
+            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(*tuple(cal.std_error)))
+
+        self.rmse_tri_label = QLabel('RMSE:')
+        self.rmse_tri_value = QLabel( \
+            '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(*tuple(cal.rmse_tri)))
+
+        self.rmse_norm_label = QLabel('norm(RMSE):')
+        self.rmse_norm_value = QLineEdit(str(cal.rmse_tri_norm) + ' (um)')
+
+        self.dialog_buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
+        self.dialog_buttons.accepted.connect(self.accept)
+        self.dialog_buttons.rejected.connect(self.reject)
+
+        layout = QGridLayout()
+        layout.addWidget(self.name_label, 0,0, 1,1)
+        layout.addWidget(self.name_value, 0,1, 1,1)
+        layout.addWidget(self.npts_label, 1,0, 1,1)
+        layout.addWidget(self.npts_value, 1,1, 1,1)
+        layout.addWidget(self.mean_error_label, 2,0, 1,1)
+        layout.addWidget(self.mean_error_value, 2,1, 1,1)
+        layout.addWidget(self.std_error_label, 3,0, 1,1)
+        layout.addWidget(self.std_error_value, 3,1, 1,1)
+        layout.addWidget(self.rmse_tri_label, 4,0, 1,1)
+        layout.addWidget(self.rmse_tri_value, 4,1, 1,1)
+        layout.addWidget(self.rmse_norm_label, 5,0, 1,1)
+        layout.addWidget(self.rmse_norm_value, 5,1, 1,1)
+        layout.addWidget(self.dialog_buttons, 6,0, 1,2)
+        self.setLayout(layout)
+
+        self.setMinimumWidth(300)
+        self.setMinimumHeight(200)
+        self.setWindowTitle('Calibration Settings')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
