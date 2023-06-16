@@ -84,7 +84,6 @@ class ScreenWidget(pg.GraphicsView):
 
     def update_camera_menu(self):
         for act in self.camera_actions:
-            act.triggered.disconnect(act.callback)
             self.camera_menu.removeAction(act)
         for camera in self.model.cameras:
             act = self.camera_menu.addAction(camera.name())

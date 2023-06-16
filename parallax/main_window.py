@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QAction
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
@@ -24,6 +25,7 @@ from .ground_truth_data_tool import GroundTruthDataTool
 from .elevator_control import ElevatorControlTool
 from .point_bank import PointBank
 from .ruler import Ruler
+from .camera import VideoSource
 
 
 class MainWindow(QMainWindow):
@@ -48,6 +50,8 @@ class MainWindow(QMainWindow):
         self.manage_stages_action.triggered.connect(self.launch_stage_manager)
         self.refresh_focos_action = QAction("Refresh Focus Controllers")
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
+        self.video_source_action = QAction("Add video source as camera")
+        self.video_source_action.triggered.connect(self.launch_video_source_dialog)
         self.tt_action = QAction("Generate Template")
         self.tt_action.triggered.connect(self.launch_tt)
         self.cb_action = QAction("Launch Checkerboard Tool")
@@ -81,6 +85,7 @@ class MainWindow(QMainWindow):
         self.device_menu.addAction(self.refresh_cameras_action)
         self.device_menu.addAction(self.manage_stages_action)
         self.device_menu.addAction(self.refresh_focos_action)
+        self.device_menu.addAction(self.video_source_action)
 
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
@@ -152,6 +157,14 @@ class MainWindow(QMainWindow):
     def launch_ruler(self):
         self.ruler = Ruler()
         self.ruler.show()
+
+    def launch_video_source_dialog(self):
+        filename = QFileDialog.getOpenFileNames(self, 'Select video file', data_dir,
+                                                    'Video files (*.avi)')[0]
+        if filename:
+            self.model.add_video_source(VideoSource(filename[0]))
+            for screen in self.screens():
+                screen.update_camera_menu()
 
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen

@@ -3,6 +3,8 @@ import datetime
 import threading
 import numpy as np
 import logging
+import os
+import cv2
 
 logger = logging.getLogger(__name__)
 
@@ -177,3 +179,22 @@ class MockCamera:
         frame = self.data[self._next_frame]
         self._next_frame = (self._next_frame + 1) % self.data.shape[0]
         return frame
+
+class VideoSource:
+
+    def __init__(self, filename):
+        self.filename = filename
+        self._name = os.path.basename(self.filename)
+        self.cap = cv2.VideoCapture(self.filename)
+
+    def name(self):
+        return self._name
+
+    def get_last_image_data(self):
+        ret, frame = self.cap.read()
+        if ret:
+            return frame
+        else:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            return np.random.randint(0, 255, size=(3000, 4000), dtype='ubyte')
+
