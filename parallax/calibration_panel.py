@@ -6,6 +6,7 @@ from PyQt5.QtGui import QDrag, QIcon
 
 import pickle
 import os
+import numpy as np
 
 from . import data_dir
 from . import get_image_file
@@ -14,6 +15,7 @@ from .dialogs import CalibrationDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
 from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
+from .rigid_body_transform_tool import CoordinateWidget
 
 
 class CalibrationPanel(QFrame):
@@ -64,7 +66,8 @@ class CalibrationPanel(QFrame):
         if cal is None:
             return
         dlg = CalibrationSettingsDialog(cal)
-        dlg.exec_()
+        if dlg.exec_():
+            cal.offset = np.array(dlg.offset_value.get_coordinates(), dtype=np.float32)
 
     def get_cal(self):
         if (self.combo.currentIndex() < 0):
@@ -225,7 +228,11 @@ class CalibrationSettingsDialog(QDialog):
             '[{0:.2f}, {1:.2f}, {2:.2f}]'.format(*tuple(cal.rmse_tri)))
 
         self.rmse_norm_label = QLabel('norm(RMSE):')
-        self.rmse_norm_value = QLineEdit(str(cal.rmse_tri_norm) + ' (um)')
+        self.rmse_norm_value = QLabel(str(cal.rmse_tri_norm) + ' (um)')
+
+        self.offset_label = QLabel('Offset:')
+        self.offset_value = CoordinateWidget(vertical=True)
+        self.offset_value.set_coordinates(self.cal.offset)
 
         self.dialog_buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
@@ -245,7 +252,9 @@ class CalibrationSettingsDialog(QDialog):
         layout.addWidget(self.rmse_tri_value, 4,1, 1,1)
         layout.addWidget(self.rmse_norm_label, 5,0, 1,1)
         layout.addWidget(self.rmse_norm_value, 5,1, 1,1)
-        layout.addWidget(self.dialog_buttons, 6,0, 1,2)
+        layout.addWidget(self.offset_label, 6,0, 1,1)
+        layout.addWidget(self.offset_value, 6,1, 1,1)
+        layout.addWidget(self.dialog_buttons, 7,0, 1,2)
         self.setLayout(layout)
 
         self.setMinimumWidth(300)
