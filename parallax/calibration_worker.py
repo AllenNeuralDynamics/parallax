@@ -57,7 +57,8 @@ class CalibrationWorker(QObject):
                         time.sleep(0.1)
                     if not self.alive:
                         break
-                    self.object_points.append([x,y,z])
+                    pos = self.stage.get_position()
+                    self.object_points.append(list(pos))
                     n += 1
                 else:
                     continue

@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QAction
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 import pyqtgraph.console
@@ -23,6 +24,8 @@ from .accuracy_test import AccuracyTestTool
 from .ground_truth_data_tool import GroundTruthDataTool
 from .elevator_control import ElevatorControlTool
 from .point_bank import PointBank
+from .ruler import Ruler
+from .camera import VideoSource
 
 
 class MainWindow(QMainWindow):
@@ -47,6 +50,8 @@ class MainWindow(QMainWindow):
         self.manage_stages_action.triggered.connect(self.launch_stage_manager)
         self.refresh_focos_action = QAction("Refresh Focus Controllers")
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
+        self.video_source_action = QAction("Add video source as camera")
+        self.video_source_action.triggered.connect(self.launch_video_source_dialog)
         self.tt_action = QAction("Generate Template")
         self.tt_action.triggered.connect(self.launch_tt)
         self.cb_action = QAction("Launch Checkerboard Tool")
@@ -61,6 +66,8 @@ class MainWindow(QMainWindow):
         self.elevator_action.triggered.connect(self.launch_elevator)
         self.pb_action = QAction("Point Bank")
         self.pb_action.triggered.connect(self.launch_pb)
+        self.ruler_action = QAction("Ruler")
+        self.ruler_action.triggered.connect(self.launch_ruler)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -78,6 +85,7 @@ class MainWindow(QMainWindow):
         self.device_menu.addAction(self.refresh_cameras_action)
         self.device_menu.addAction(self.manage_stages_action)
         self.device_menu.addAction(self.refresh_focos_action)
+        self.device_menu.addAction(self.video_source_action)
 
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
@@ -87,6 +95,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.gtd_action)
         self.tools_menu.addAction(self.elevator_action)
         self.tools_menu.addAction(self.pb_action)
+        self.tools_menu.addAction(self.ruler_action)
         self.tools_menu.addAction(self.console_action)
 
         self.help_menu = self.menuBar().addMenu("Help")
@@ -125,6 +134,7 @@ class MainWindow(QMainWindow):
 
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
+        self.accutest_tool.msg_posted.connect(self.widget.msg_log.post)
         self.model.accutest_point_reached.connect(self.widget.clear_selected)
         self.model.accutest_point_reached.connect(self.widget.zoom_out)
         self.accutest_tool.show()
@@ -143,6 +153,18 @@ class MainWindow(QMainWindow):
         self.pb = PointBank()
         self.pb.msg_posted.connect(self.widget.msg_log.post)
         self.pb.show()
+
+    def launch_ruler(self):
+        self.ruler = Ruler()
+        self.ruler.show()
+
+    def launch_video_source_dialog(self):
+        filename = QFileDialog.getOpenFileNames(self, 'Select video file', data_dir,
+                                                    'Video files (*.avi)')[0]
+        if filename:
+            self.model.add_video_source(VideoSource(filename[0]))
+            for screen in self.screens():
+                screen.update_camera_menu()
 
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen

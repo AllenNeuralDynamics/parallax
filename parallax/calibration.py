@@ -20,6 +20,7 @@ class Calibration:
     def __init__(self, name):
         self.name = name
         self.set_initial_intrinsics_default()
+        self.offset = np.array([0,0,0], dtype=np.float32)
 
     def set_name(self, name):
         self.name = name
@@ -32,11 +33,7 @@ class Calibration:
         self.idist2 = dist2
 
     def set_initial_intrinsics_default(self):
-
-        self.imtx1 = imtx
-        self.imtx2 = imtx
-        self.idist1 = idist
-        self.idist2 = idist
+        self.set_initial_intrinsics(imtx, imtx, idist, idist)
 
     def triangulate(self, lcorr, rcorr):
         """
@@ -54,7 +51,7 @@ class Calibration:
         img_point2 = img_points2_cv[0,0]
         obj_point_reconstructed = lib.triangulate_from_image_points(img_point1, img_point2, self.proj1, self.proj2)
 
-        return obj_point_reconstructed   # [x,y,z]
+        return obj_point_reconstructed + self.offset # np.array([x,y,z])
 
     def calibrate(self, img_points1, img_points2, obj_points):
 
@@ -83,7 +80,25 @@ class Calibration:
         self.dist2 = dist2
         self.proj1 = proj1
         self.proj2 = proj2
-        self.rmse1 = rmse1
-        self.rmse2 = rmse2
+        self.rmse_reproj_1 = rmse1  # RMS error from reprojection (in pixels)
+        self.rmse_reproj_2 = rmse2
 
+        # save calibration points
+        self.obj_points = obj_points[0]
+        self.img_points1 = img_points1[0]
+        self.img_points2 = img_points2[0]
+
+        # compute error stastistics
+        diffs = []
+        for op, ip1, ip2 in zip(self.obj_points, self.img_points1, self.img_points2):
+            op = np.array(op, dtype=np.float32)
+            op_recon = self.triangulate(ip1,ip2)
+            diff = op - op_recon
+            diffs.append(diff)
+        self.diffs = np.array(diffs, dtype=np.float32)
+        self.mean_error = np.mean(self.diffs, axis=0)
+        self.std_error = np.std(self.diffs, axis=0)
+        self.rmse_tri = np.sqrt(np.mean(self.diffs * self.diffs, axis=0))
+        # RMS error from triangulation (in um)
+        self.rmse_tri_norm = np.linalg.norm(self.rmse_tri)
 

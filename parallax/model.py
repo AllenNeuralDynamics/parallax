@@ -7,7 +7,7 @@ import serial.tools.list_ports
 from mis_focus_controller import FocusController
 from newscale.interfaces import NewScaleSerial
 
-from .camera import list_cameras, close_cameras, MockCamera
+from .camera import list_cameras, close_cameras, MockCamera 
 from .stage import Stage
 from .accuracy_test import AccuracyTestWorker
 from .elevator import list_elevators
@@ -64,6 +64,9 @@ class Model(QObject):
 
     def init_stages(self):
         self.stages = {}
+
+    def add_video_source(self, video_source):
+        self.cameras.append(video_source)
 
     def add_mock_cameras(self, n=1):
         for i in range(n):

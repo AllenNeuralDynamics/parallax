@@ -80,6 +80,8 @@ class Stage:
         self.thread.finished.connect(self.thread.deleteLater)
         self.thread.start()
 
+        self.z_safe = 0.
+
     def get_name(self):
         return self.name
 
@@ -106,35 +108,37 @@ class Stage:
         self.worker.queue_command(cmd)
 
     def move_absolute_3d(self, x, y, z, safe=False):
-        z = 15000 - z
-        if safe:
-            cmd = io.MoveAbsolute1dCommand(self.device, 'z', 7000)
+        z_newscale = 15000 - z # invert z for newscale
+        xi, yi, zi = self.get_position()
+        if safe and ((z > self.z_safe) or (zi > self.z_safe)):
+            z_safe_newscale = 15000 - self.z_safe
+            cmd = io.MoveAbsolute1dCommand(self.device, 'z', z_safe_newscale)
             self.worker.queue_command(cmd)
             cmd = io.MoveAbsolute1dCommand(self.device, 'x', x)
             self.worker.queue_command(cmd)
             cmd = io.MoveAbsolute1dCommand(self.device, 'y', y)
             self.worker.queue_command(cmd)
-            cmd = io.MoveAbsolute1dCommand(self.device, 'z', z)
+            cmd = io.MoveAbsolute1dCommand(self.device, 'z', z_newscale)
             self.worker.queue_command(cmd)
         else:
-            pos = (x,y,z)
+            pos = (x,y,z_newscale)
             cmd = io.MoveAbsolute3dCommand(self.device, pos)
             self.worker.queue_command(cmd)
 
     def move_absolute_1d(self, axis, position):
         if axis == 'z':
-            position = 15000 - position
+            position = 15000 - position # invert z for newscale
         cmd = io.MoveAbsolute1dCommand(self.device, axis, position)
         self.worker.queue_command(cmd)
 
     def move_relative_3d(self, dx, dy, dz):
-        dz = (-1) * dz
+        dz = (-1) * dz  # invert z for newscale
         cmd = io.MoveRelative3dCommand(self.device, (dx,dy,dz))
         self.worker.queue_command(cmd)
 
     def move_relative_1d(self, axis, distance):
         if axis == 'z':
-            distance = (-1) * distance
+            distance = (-1) * distance  # invert z for newscale
         cmd = io.MoveRelative1dCommand(self.device, axis, distance)
         self.worker.queue_command(cmd)
 
