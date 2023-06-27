@@ -195,6 +195,6 @@ class VideoSource:
         if ret:
             return frame
         else:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             return np.random.randint(0, 255, size=(3000, 4000), dtype='ubyte')
 
