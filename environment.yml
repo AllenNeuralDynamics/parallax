@@ -10,6 +10,7 @@ dependencies:
   - pip
   - scipy
   - pyserial
+  - cudnn=8.2.1
   - pip:
     - PyQt5>=5.15
     - pyqtgraph
