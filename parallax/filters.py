@@ -103,8 +103,8 @@ class DifferenceFilter:
 class CheckerboardFilter:
 
     name = 'Checkerboard'
-    CB_ROWS = 6
-    CB_COLS = 9
+    CB_ROWS = 19
+    CB_COLS = 19
 
     def __init__(self):
         self.patternSize = (self.CB_ROWS, self.CB_COLS)

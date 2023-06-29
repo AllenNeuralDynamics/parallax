@@ -12,9 +12,9 @@ import os
 from . import get_image_file, data_dir
 from .screen_widget import ScreenWidget
 
-CB_ROWS = 6 #number of checkerboard rows.
-CB_COLS = 9 #number of checkerboard columns.
-WORLD_SCALE = 4.72 # 4.72 mm per square
+CB_ROWS = 19 #number of checkerboard rows.
+CB_COLS = 19 #number of checkerboard columns.
+WORLD_SCALE = 500 # 500 um per square
 
 #coordinates of squares in the checkerboard world space
 OBJPOINTS_CB = np.zeros((CB_ROWS*CB_COLS,3), np.float32)
