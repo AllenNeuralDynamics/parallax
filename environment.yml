@@ -1,4 +1,4 @@
-name: parallax-sleap-pip
+name: parallax
 
 channels:
   - conda-forge
