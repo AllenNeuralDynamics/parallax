@@ -30,7 +30,6 @@ class NoDetector:
     def clean(self):
         pass
 
-
 class SleapDetector(QObject):
 
     name = 'SLEAP'
@@ -41,13 +40,17 @@ class SleapDetector(QObject):
 
         finished = pyqtSignal()
         tracked = pyqtSignal(tuple)
-        status_updated = pyqtSignal(bool, float)
+        fps_updated = pyqtSignal(float)
+        ninstances_updated = pyqtSignal(int)
 
-        def __init__(self, predictor):
+        def __init__(self):
             QObject.__init__(self)
-            self.predictor = predictor
-            self.running = True
+            self.predictor = None
+            self.running = False
             self.new = False
+
+        def set_predictor(self, predictor):
+            self.predictor = predictor
 
         def update_frame(self, frame):
             self.frame = frame
@@ -58,18 +61,22 @@ class SleapDetector(QObject):
             t0 = perf_counter()
             labeled_frames = self.predictor.predict(frame)        
             self.dt = perf_counter() - t0
+            self.fps_updated.emit(1./self.dt)
             labeled_frame = labeled_frames[0]
             tip_positions = []
             for i, instance in enumerate(labeled_frame.instances):
                 point = instance.points[0]
                 tip_positions.append((point.x, point.y))
-            if len(tip_positions) >= 1:
+            self.ninstances = len(tip_positions)
+            self.ninstances_updated.emit(self.ninstances)
+            if self.ninstances >= 1:
                 self.tracked.emit(tip_positions[0])
-            else:
-                pass # no probes detected
 
         def stop_running(self):
             self.running = False
+
+        def start_running(self):
+            self.running = True
 
         def run(self):
             while self.running:
@@ -79,38 +86,101 @@ class SleapDetector(QObject):
                 time.sleep(0.001)
             self.finished.emit()
 
+    class ControlPanel(QWidget):
+
+        model_selected = pyqtSignal(str, str)
+
+        class ClickLabel(QLabel):
+            clicked = pyqtSignal()
+            def __init__(self, text):
+                QLabel.__init__(self,text)
+            def mousePressEvent(self, ev):
+                self.clicked.emit()
+
+        def __init__(self):
+            QWidget.__init__(self)
+            self.centroid_label = self.ClickLabel('(click to select centroid directory)')
+            self.centroid_label.setAlignment(Qt.AlignCenter)
+            self.centroid_label.clicked.connect(self.select_centroid_dir)
+            self.instance_label = self.ClickLabel('(click to select instance directory)')
+            self.instance_label.setAlignment(Qt.AlignCenter)
+            self.instance_label.clicked.connect(self.select_instance_dir)
+            self.load_button = QPushButton('Load Model')
+            self.load_button.clicked.connect(self.load)
+            self.fps_label = QLabel('(fps)')
+            self.fps_label.setAlignment(Qt.AlignCenter)
+            self.ninstances_label = QLabel('(ninstances)')
+            self.ninstances_label.setAlignment(Qt.AlignCenter)
+            layout = QVBoxLayout()
+            layout.addWidget(self.centroid_label)
+            layout.addWidget(self.instance_label)
+            layout.addWidget(self.load_button)
+            layout.addWidget(self.fps_label)
+            layout.addWidget(self.ninstances_label)
+            self.setLayout(layout)
+            self.setWindowTitle('Sleap Detector')
+            self.setMinimumWidth(500)
+            self.centroid_dir = None
+            self.instance_dir = None
+
+        def select_centroid_dir(self):
+            centroid_dir = QFileDialog.getExistingDirectory(self, 'Select Centroid Directory',
+                                                    data_dir, QFileDialog.ShowDirsOnly)
+            if centroid_dir:
+                self.centroid_label.setText(centroid_dir)
+                self.centroid_dir = centroid_dir
+
+        def select_instance_dir(self):
+            instance_dir = QFileDialog.getExistingDirectory(self, 'Select Instance Directory',
+                                                    data_dir, QFileDialog.ShowDirsOnly)
+            if instance_dir:
+                self.instance_label.setText(instance_dir)
+                self.instance_dir = instance_dir
+
+        def load(self):
+            #print('TODO load model, set predictor, start thread')
+            if self.centroid_dir and self.instance_dir:
+                self.model_selected.emit(self.centroid_dir, self.instance_dir)
+                
+
+        def update_fps(self, fps):
+            self.fps_label.setText('%.2f FPS' % fps)
+
+        def update_ninstances(self, ninstances):
+            self.ninstances_label.setText('%d instances found' % ninstances)
+
     def __init__(self):
         QObject.__init__(self)
 
-        centroid_dir = os.path.join(data_dir, 'sleap_centroid')
-        centered_instance_dir = os.path.join(data_dir, 'sleap_centered_instance')
-        predictor = sleap.load_model([centroid_dir, centered_instance_dir],
-                            batch_size=1)
-        predictor.verbosity = None  # necessary for multiple instances
-
         # CV worker and thread
         self.cv_thread = QThread()
-        self.cv_worker = self.SleapWorker(predictor)
+        self.cv_worker = self.SleapWorker()
         self.cv_worker.moveToThread(self.cv_thread)
         self.cv_thread.started.connect(self.cv_worker.run)
         self.cv_worker.finished.connect(self.cv_thread.quit, Qt.DirectConnection)
-        self.cv_worker.finished.connect(self.cv_worker.deleteLater)
-        self.cv_thread.finished.connect(self.cv_thread.deleteLater)
         self.cv_worker.tracked.connect(self.tracked)
+        self.cv_thread.start()
+
+        self.control_panel = self.ControlPanel()
+        self.control_panel.model_selected.connect(self.load_model)
+        self.cv_worker.fps_updated.connect(self.control_panel.update_fps)
+        self.cv_worker.ninstances_updated.connect(self.control_panel.update_ninstances)
+
+    def load_model(self, centroid_dir, instance_dir):
+        predictor = sleap.load_model([centroid_dir, instance_dir], batch_size=1)
+        predictor.verbosity = None  # NECESSARY for multiple detector instances
+        self.cv_worker.set_predictor(predictor)
+        self.cv_worker.start_running()
         self.cv_thread.start()
 
     def process(self, frame):
         self.cv_worker.update_frame(frame)
         return 0,0
 
-    def handle_tracked(self, pos):
-        print('HANDLE TRACKED: ', pos)
-
     def launch_control_panel(self):
-        pass
+        self.control_panel.show()
 
     def clean(self):
-        print('stopping sleap detector thread')
         self.cv_worker.stop_running()
         self.cv_thread.wait()
 
