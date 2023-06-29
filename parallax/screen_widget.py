@@ -63,6 +63,8 @@ class ScreenWidget(pg.GraphicsView):
         self.update_filter_menu()
         self.update_detector_menu()
 
+        self.detector_graveyard = []
+
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
@@ -78,8 +80,8 @@ class ScreenWidget(pg.GraphicsView):
     def set_data(self, data):
         data = self.filter.process(data)
         pos = self.detector.process(data)
-        if pos is not None:
-            self.select(pos)
+        #if not hasattr(self.detector, "tracked"):
+        #    self.select(pos)
         self.image_item.setImage(data, autoLevels=False)
 
     def update_camera_menu(self):
@@ -147,8 +149,11 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.launch_control_panel()
 
     def set_detector(self, detector):
+        self.detector.clean()   # kill thread before garbage collection
         self.detector = detector()
         self.detector.launch_control_panel()
+        if hasattr(self.detector, "tracked"):
+            self.detector.tracked.connect(self.select)
 
     def get_selected(self):
         if self.click_target.isVisible():

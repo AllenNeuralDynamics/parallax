@@ -15,6 +15,7 @@ if args.dummy:
 
 # set up logging to file
 logger = logging.getLogger()
+logger.handlers.clear()
 logger.setLevel(logging.DEBUG)
 log_handler = logging.FileHandler('parallax_debug.log')
 log_handler.setLevel(logging.DEBUG)
