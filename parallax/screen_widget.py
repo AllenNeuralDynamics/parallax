@@ -63,6 +63,8 @@ class ScreenWidget(pg.GraphicsView):
         self.update_filter_menu()
         self.update_detector_menu()
 
+        self.detector_graveyard = []
+
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
@@ -147,6 +149,7 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.launch_control_panel()
 
     def set_detector(self, detector):
+        self.detector.clean()   # kill thread before garbage collection
         self.detector = detector()
         self.detector.launch_control_panel()
         if hasattr(self.detector, "tracked"):

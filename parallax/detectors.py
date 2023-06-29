@@ -27,6 +27,9 @@ class NoDetector:
     def launch_control_panel(self):
         pass
 
+    def clean(self):
+        pass
+
 
 class SleapDetector(QObject):
 
@@ -50,22 +53,23 @@ class SleapDetector(QObject):
             self.frame = frame
             self.new = True
 
-        def process(self, frame, report=True):
+        def process(self, frame):
             frame = np.array([frame])
             t0 = perf_counter()
             labeled_frames = self.predictor.predict(frame)        
-            dt = perf_counter() - t0
+            self.dt = perf_counter() - t0
             labeled_frame = labeled_frames[0]
             tip_positions = []
             for i, instance in enumerate(labeled_frame.instances):
                 point = instance.points[0]
                 tip_positions.append((point.x, point.y))
-            if report:
-                print('\tinference time = ', dt)
             if len(tip_positions) >= 1:
                 self.tracked.emit(tip_positions[0])
             else:
-                print('No probe tips detected')
+                pass # no probes detected
+
+        def stop_running(self):
+            self.running = False
 
         def run(self):
             while self.running:
@@ -82,6 +86,7 @@ class SleapDetector(QObject):
         centered_instance_dir = os.path.join(data_dir, 'sleap_centered_instance')
         predictor = sleap.load_model([centroid_dir, centered_instance_dir],
                             batch_size=1)
+        predictor.verbosity = None  # necessary for multiple instances
 
         # CV worker and thread
         self.cv_thread = QThread()
@@ -91,9 +96,7 @@ class SleapDetector(QObject):
         self.cv_worker.finished.connect(self.cv_thread.quit, Qt.DirectConnection)
         self.cv_worker.finished.connect(self.cv_worker.deleteLater)
         self.cv_thread.finished.connect(self.cv_thread.deleteLater)
-        #self.cv_worker.tracked.connect(self.handle_tracked)
         self.cv_worker.tracked.connect(self.tracked)
-        #self.cv_worker.status_updated.connect(self.update_status)
         self.cv_thread.start()
 
     def process(self, frame):
@@ -105,6 +108,11 @@ class SleapDetector(QObject):
 
     def launch_control_panel(self):
         pass
+
+    def clean(self):
+        print('stopping sleap detector thread')
+        self.cv_worker.stop_running()
+        self.cv_thread.wait()
 
 
 class RandomWalkDetector:
@@ -143,6 +151,9 @@ class RandomWalkDetector:
         self.control_panel.setWindowTitle('Random Walk Detector')
         self.control_panel.setMinimumWidth(300)
         self.control_panel.show()
+
+    def clean(self):
+        pass
 
 
 def template_match(img, template, method):
@@ -207,5 +218,8 @@ class TemplateMatchDetector:
             self.offset = np.array(self.template.shape[:2]) // 2
             self.scale_template()
             self.template_label.setText(os.path.relpath(filename))
+
+    def clean(self):
+        pass
 
     
