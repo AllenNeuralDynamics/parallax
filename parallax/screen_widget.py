@@ -48,6 +48,7 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = None
         self.focochan = None
         self.filter = filters.NoFilter()
+        self.filter.frame_processed.connect(self.set_image_item_from_data)
         self.detector = detectors.NoDetector()
 
         # sub-menus
@@ -78,10 +79,10 @@ class ScreenWidget(pg.GraphicsView):
         self.cleared.emit()
 
     def set_data(self, data):
-        data = self.filter.process(data)
-        pos = self.detector.process(data)
-        #if not hasattr(self.detector, "tracked"):
-        #    self.select(pos)
+        self.filter.process(data)
+        self.detector.process(data)
+
+    def set_image_item_from_data(self, data):
         self.image_item.setImage(data, autoLevels=False)
 
     def update_camera_menu(self):
@@ -145,7 +146,9 @@ class ScreenWidget(pg.GraphicsView):
         self.focochan = (foco, chan)
 
     def set_filter(self, filt):
+        self.filter.clean()   # kill thread before garbage collection
         self.filter = filt()
+        self.filter.frame_processed.connect(self.set_image_item_from_data)
         self.filter.launch_control_panel()
 
     def set_detector(self, detector):
