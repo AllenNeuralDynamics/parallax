@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget
-from PyQt5.QtWidgets import QVBoxLayout, QFileDialog
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt
 from PyQt5.QtGui import QIcon
 
@@ -11,6 +11,7 @@ import os
 
 from . import get_image_file, data_dir
 from .screen_widget import ScreenWidget
+from .filters import CheckerboardFilter
 
 CB_ROWS = 19 #number of checkerboard rows.
 CB_COLS = 19 #number of checkerboard columns.
@@ -30,14 +31,19 @@ class CheckerboardTool(QWidget):
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.model = model
 
-        self.screen = ScreenWidget(model=self.model)
+        self.lscreen = ScreenWidget(model=self.model)
+        self.rscreen = ScreenWidget(model=self.model)
         self.save_button = QPushButton('Save Corners')
         self.save_button.clicked.connect(self.saveCorners)
         self.export_button = QPushButton('Export Corners (None)')
         self.export_button.clicked.connect(self.exportCorners)
 
+        self.screens_layout = QHBoxLayout()
+        self.screens_layout.addWidget(self.lscreen)
+        self.screens_layout.addWidget(self.rscreen)
+
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.screen)
+        self.layout.addLayout(self.screens_layout)
         self.layout.addWidget(self.save_button)
         self.layout.addWidget(self.export_button)
         self.setLayout(self.layout)
@@ -46,18 +52,24 @@ class CheckerboardTool(QWidget):
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
         self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.screen.refresh)
+        self.refresh_timer.timeout.connect(self.lscreen.refresh)
+        self.refresh_timer.timeout.connect(self.rscreen.refresh)
         self.refresh_timer.start(250)
 
-        self.opts = []
-        self.ipts = []
+        self.opts = []  # object points
+        self.lipts = [] # left image points
+        self.ripts = [] # right image points
 
     def saveCorners(self):
-        corners = self.screen.filter.corners
-        if corners is not None:
-            self.ipts.append(corners)
-            self.opts.append(OBJPOINTS_CB)
-            self.export_button.setText('Export Corners (%d)' % len(self.ipts))
+        lfilter = self.lscreen.filter
+        rfilter = self.rscreen.filter
+        if isinstance(lfilter, CheckerboardFilter) and \
+            isinstance(rfilter, CheckerboardFilter):
+            if (lfilter.worker.corners is not None) and (rfilter.worker.corners is not None):
+                self.lipts.append(lfilter.worker.corners)
+                self.ripts.append(rfilter.worker.corners)
+                self.opts.append(OBJPOINTS_CB)
+                self.export_button.setText('Export Corners (%d)' % len(self.opts))
 
     def exportCorners(self):
         ts = time.time()
@@ -69,6 +81,6 @@ class CheckerboardTool(QWidget):
                                                 suggested_filename,
                                                 'Numpy files (*.npz)')[0]
         if filename:
-            np.savez(filename, opts=self.opts, ipts=self.ipts)
+            np.savez(filename, opts=self.opts, lipts=self.lipts, ripts=self.ripts)
             self.msg_posted.emit('Exported corners to %s' % filename)
 
