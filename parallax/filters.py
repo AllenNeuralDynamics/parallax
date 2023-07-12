@@ -96,7 +96,8 @@ class CheckerboardFilter(NoFilter):
             if ret:
                 self.corners = corners_scaled * 4
                 conv_size = (11, 11)    # Convolution size, don't make this too large.
-                self.corners = cv2.cornerSubPix(gray, self.corners, conv_size, (-1, -1), self.CRITERIA)
+                corners = cv2.cornerSubPix(gray, self.corners, conv_size, (-1, -1), self.CRITERIA)
+                self.corners = corners.squeeze()
                 cv2.drawChessboardCorners(frame, self.patternSize, self.corners, ret)
             self.frame_processed.emit(frame)
 
