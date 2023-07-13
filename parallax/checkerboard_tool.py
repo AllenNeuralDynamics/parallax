@@ -96,7 +96,7 @@ class CheckerboardTool(QWidget):
             self.msg_posted.emit('Exported corners to %s' % filename)
 
     def generate(self):
-        cal = Calibration('checkerCal') # temp
+        cal = Calibration('checkerCal', 'checkerboard') # temp
         opts = np.array(self.opts, dtype=np.float32)
         lipts = np.array(self.lipts, dtype=np.float32).squeeze()
         ripts = np.array(self.ripts, dtype=np.float32).squeeze()

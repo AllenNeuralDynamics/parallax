@@ -43,12 +43,15 @@ class CalibrationDialog(QDialog):
         self.extent_label.setAlignment(Qt.AlignCenter)
         self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
 
-        self.name_label = QLabel('Name')
+        self.name_label = QLabel('Name:')
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
         cal_default_name = 'cal_%04d%02d%02d-%02d%02d%02d' % (dt.year,
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
         self.name_edit = QLineEdit(cal_default_name)
+
+        self.cs_label = QLabel('Coord System:')
+        self.cs_edit = QLineEdit('')
 
         self.start_button = QPushButton('Start Calibration Routine')
         self.start_button.setFont(FONT_BOLD)
@@ -70,8 +73,10 @@ class CalibrationDialog(QDialog):
         layout.addWidget(self.origin_value, 3,1, 1,1)
         layout.addWidget(self.name_label, 4,0, 1,1)
         layout.addWidget(self.name_edit, 4,1, 1,1)
-        layout.addWidget(self.origin_button, 5,0, 1,2)
-        layout.addWidget(self.start_button, 6,0, 1,2)
+        layout.addWidget(self.cs_label, 5,0, 1,1)
+        layout.addWidget(self.cs_edit, 5,1, 1,1)
+        layout.addWidget(self.origin_button, 6,0, 1,2)
+        layout.addWidget(self.start_button, 7,0, 1,2)
         self.setLayout(layout)
 
         self.setWindowTitle("Calibration Routine Parameters")
@@ -113,6 +118,7 @@ class CalibrationDialog(QDialog):
         if self.stage_dropdown.is_selected():
             self.start_button.setEnabled(True)
             self.origin_button.setEnabled(True)
+            self.cs_edit.setText(self.stage_dropdown.currentText())
 
 
 class CsvDialog(QDialog):

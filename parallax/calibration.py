@@ -17,13 +17,17 @@ idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
 
 class Calibration:
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, name, cs):
+        self.set_name(name)
+        self.set_cs(cs)
         self.set_initial_intrinsics_default()
         self.offset = np.array([0,0,0], dtype=np.float32)
 
     def set_name(self, name):
         self.name = name
+
+    def set_cs(self, cs):
+        self.cs = cs
 
     def set_initial_intrinsics(self, mtx1, mtx2, dist1, dist2):
 
