@@ -12,6 +12,7 @@ import os
 from . import get_image_file, data_dir
 from .screen_widget import ScreenWidget
 from .filters import CheckerboardFilter
+from .calibration import Calibration
 
 CB_ROWS = 19 #number of checkerboard rows.
 CB_COLS = 19 #number of checkerboard columns.
@@ -25,6 +26,7 @@ OBJPOINTS_CB = WORLD_SCALE * OBJPOINTS_CB
 
 class CheckerboardTool(QWidget):
     msg_posted = pyqtSignal(str)
+    cal_generated = pyqtSignal()
 
     def __init__(self, model):
         QWidget.__init__(self, parent=None)
@@ -37,6 +39,10 @@ class CheckerboardTool(QWidget):
         self.save_button.clicked.connect(self.saveCorners)
         self.export_button = QPushButton('Export Corners (None)')
         self.export_button.clicked.connect(self.exportCorners)
+        self.import_button = QPushButton('Import Corners')
+        self.import_button.clicked.connect(self.import_corners)
+        self.generate_button = QPushButton('Generate Calibration from Corners')
+        self.generate_button.clicked.connect(self.generate)
 
         self.screens_layout = QHBoxLayout()
         self.screens_layout.addWidget(self.lscreen)
@@ -46,6 +52,8 @@ class CheckerboardTool(QWidget):
         self.layout.addLayout(self.screens_layout)
         self.layout.addWidget(self.save_button)
         self.layout.addWidget(self.export_button)
+        self.layout.addWidget(self.import_button)
+        self.layout.addWidget(self.generate_button)
         self.setLayout(self.layout)
 
         self.setWindowTitle('Checkerboard Calibration Tool')
@@ -69,7 +77,10 @@ class CheckerboardTool(QWidget):
                 self.lipts.append(lfilter.worker.corners)
                 self.ripts.append(rfilter.worker.corners)
                 self.opts.append(OBJPOINTS_CB)
-                self.export_button.setText('Export Corners (%d)' % len(self.opts))
+                self.update_text()
+
+    def update_text(self):
+        self.export_button.setText('Export Corners (%d)' % len(self.opts))
 
     def exportCorners(self):
         ts = time.time()
@@ -83,4 +94,23 @@ class CheckerboardTool(QWidget):
         if filename:
             np.savez(filename, opts=self.opts, lipts=self.lipts, ripts=self.ripts)
             self.msg_posted.emit('Exported corners to %s' % filename)
+
+    def generate(self):
+        cal = Calibration('checkerCal') # temp
+        opts = np.array(self.opts, dtype=np.float32)
+        lipts = np.array(self.lipts, dtype=np.float32).squeeze()
+        ripts = np.array(self.ripts, dtype=np.float32).squeeze()
+        cal.calibrate(lipts, ripts, opts)
+        self.model.add_calibration(cal)
+        self.msg_posted.emit('Added calibration "%s"' % cal.name)
+        self.cal_generated.emit()
+
+    def import_corners(self):
+        filename = QFileDialog.getOpenFileName(self, 'Load corners file', data_dir,
+                                                    'Numpy files (*.npz)')[0]
+        corners = np.load(filename)
+        self.opts = corners['opts']
+        self.lipts = corners['lipts'].squeeze() # temp for legacy file
+        self.ripts = corners['ripts'].squeeze() # temp for legacy file
+        self.update_text()
 

@@ -130,6 +130,8 @@ class MainWindow(QMainWindow):
 
     def launch_cb(self):
         self.cb = CheckerboardTool(self.model)
+        self.cb.msg_posted.connect(self.widget.msg_log.post)
+        self.cb.cal_generated.connect(self.widget.cal_panel.update_cals)
         self.cb.show()
 
     def launch_accutest(self):
