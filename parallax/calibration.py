@@ -40,9 +40,10 @@ class Calibration:
         self.set_initial_intrinsics(imtx, imtx, idist, idist)
 
     def triangulate(self, lcorr, rcorr):
-        """
-        l/rcorr = [xc, yc]
-        """
+        self.triangulate_proj(lcorr, rcorr, self.projs1[0], self.projs2[0])
+        
+
+    def triangulate_proj(self, lcorr, rcorr, proj1, proj2):
 
         img_points1_cv = np.array([[lcorr]], dtype=np.float32)
         img_points2_cv = np.array([[rcorr]], dtype=np.float32)
@@ -53,7 +54,8 @@ class Calibration:
 
         img_point1 = img_points1_cv[0,0]
         img_point2 = img_points2_cv[0,0]
-        obj_point_reconstructed = lib.triangulate_from_image_points(img_point1, img_point2, self.proj1, self.proj2)
+        obj_point_reconstructed = lib.triangulate_from_image_points(img_point1, img_point2,
+                                    proj1, proj2)
 
         return obj_point_reconstructed + self.offset # np.array([x,y,z])
 
@@ -62,6 +64,8 @@ class Calibration:
         # img_points have dims (npose, npts, 2)
         # obj_points have dims (npose, npts, 3)
 
+        self.npose = obj_points.shape[0]
+        self.npts = obj_points.shape[1]
 
         # calibrate each camera against these points
         # don't undistort img_points, use "simple" initial intrinsics, same for both cameras
@@ -83,30 +87,35 @@ class Calibration:
         self.tvec2 = tvecs2[0]
 
         # calculate projection matrices
-        proj1 = lib.get_projection_matrix(mtx1, self.rvec1, self.tvec1)
-        proj2 = lib.get_projection_matrix(mtx2, self.rvec2, self.tvec2)
+        self.projs1 = []
+        self.projs2 = []
+        for r1,t1,r2,t2 in zip(rvecs1, tvecs1, rvecs2, tvecs2):
+            self.projs1.append(lib.get_projection_matrix(mtx1, r1, t1))
+            self.projs2.append(lib.get_projection_matrix(mtx2, r2, t2))
 
         self.mtx1 = mtx1
         self.mtx2 = mtx2
         self.dist1 = dist1
         self.dist2 = dist2
-        self.proj1 = proj1
-        self.proj2 = proj2
         self.rmse_reproj_1 = rmse1  # RMS error from reprojection (in pixels)
         self.rmse_reproj_2 = rmse2
 
         # save calibration points
-        self.obj_points = obj_points[0]
-        self.img_points1 = img_points1[0]
-        self.img_points2 = img_points2[0]
+        self.obj_points = obj_points
+        self.img_points1 = img_points1
+        self.img_points2 = img_points2
 
         # compute error stastistics
         diffs = []
-        for op, ip1, ip2 in zip(self.obj_points, self.img_points1, self.img_points2):
-            op = np.array(op, dtype=np.float32)
-            op_recon = self.triangulate(ip1,ip2)
-            diff = op - op_recon
-            diffs.append(diff)
+
+        for i in range(self.npose):
+            for j in range(self.npts):
+                op = self.obj_points[i,j,:]
+                ip1 = self.img_points1[i,j,:]
+                ip2 = self.img_points2[i,j,:]
+                op_recon = self.triangulate_proj(ip1,ip2,self.projs1[i], self.projs2[i])
+                diff = op - op_recon
+                diffs.append(diff)
         self.diffs = np.array(diffs, dtype=np.float32)
         self.mean_error = np.mean(self.diffs, axis=0)
         self.std_error = np.std(self.diffs, axis=0)

@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self.video_source_action.triggered.connect(self.launch_video_source_dialog)
         self.tt_action = QAction("Generate Template")
         self.tt_action.triggered.connect(self.launch_tt)
-        self.cb_action = QAction("Launch Checkerboard Tool")
+        self.cb_action = QAction("Checkerboard Tool")
         self.cb_action.triggered.connect(self.launch_cb)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
