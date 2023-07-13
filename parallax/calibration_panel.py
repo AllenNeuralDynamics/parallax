@@ -1,6 +1,8 @@
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout, QTabWidget
 from PyQt5.QtWidgets import QPushButton, QFrame, QWidget, QComboBox, QLabel
 from PyQt5.QtWidgets import QFileDialog, QDialog, QLineEdit, QDialogButtonBox
+from PyQt5.QtWidgets import QLineEdit, QTextEdit
+
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, QMimeData
 from PyQt5.QtGui import QDrag, QIcon
 
@@ -239,23 +241,43 @@ class CalibrationSettingsDialog(QDialog):
         self.dialog_buttons.accepted.connect(self.accept)
         self.dialog_buttons.rejected.connect(self.reject)
 
-        layout = QGridLayout()
-        layout.addWidget(self.name_label, 0,0, 1,1)
-        layout.addWidget(self.name_value, 0,1, 1,1)
-        layout.addWidget(self.npts_label, 1,0, 1,1)
-        layout.addWidget(self.npts_value, 1,1, 1,1)
-        layout.addWidget(self.mean_error_label, 2,0, 1,1)
-        layout.addWidget(self.mean_error_value, 2,1, 1,1)
-        layout.addWidget(self.std_error_label, 3,0, 1,1)
-        layout.addWidget(self.std_error_value, 3,1, 1,1)
-        layout.addWidget(self.rmse_tri_label, 4,0, 1,1)
-        layout.addWidget(self.rmse_tri_value, 4,1, 1,1)
-        layout.addWidget(self.rmse_norm_label, 5,0, 1,1)
-        layout.addWidget(self.rmse_norm_value, 5,1, 1,1)
-        layout.addWidget(self.offset_label, 6,0, 1,1)
-        layout.addWidget(self.offset_value, 6,1, 1,1)
-        layout.addWidget(self.dialog_buttons, 7,0, 1,2)
-        self.setLayout(layout)
+        self.general_tab = QWidget()
+        self.general_layout = QGridLayout()
+        self.general_layout.addWidget(self.name_label, 0,0, 1,1)
+        self.general_layout.addWidget(self.name_value, 0,1, 1,1)
+        self.general_layout.addWidget(self.npts_label, 1,0, 1,1)
+        self.general_layout.addWidget(self.npts_value, 1,1, 1,1)
+        self.general_layout.addWidget(self.mean_error_label, 2,0, 1,1)
+        self.general_layout.addWidget(self.mean_error_value, 2,1, 1,1)
+        self.general_layout.addWidget(self.std_error_label, 3,0, 1,1)
+        self.general_layout.addWidget(self.std_error_value, 3,1, 1,1)
+        self.general_layout.addWidget(self.rmse_tri_label, 4,0, 1,1)
+        self.general_layout.addWidget(self.rmse_tri_value, 4,1, 1,1)
+        self.general_layout.addWidget(self.rmse_norm_label, 5,0, 1,1)
+        self.general_layout.addWidget(self.rmse_norm_value, 5,1, 1,1)
+        self.general_layout.addWidget(self.offset_label, 6,0, 1,1)
+        self.general_layout.addWidget(self.offset_value, 6,1, 1,1)
+        self.general_tab.setLayout(self.general_layout)
+
+        self.params_tab = QWidget()
+        self.label_mtx1 = QLabel('Intrinsics Left:')
+        self.edit_mtx1 = QTextEdit(np.array2string(self.cal.mtx1))
+        self.label_mtx2 = QLabel('Intrinsics Right:')
+        self.edit_mtx2 = QTextEdit(np.array2string(self.cal.mtx2))
+        self.params_layout = QVBoxLayout()
+        self.params_layout.addWidget(self.label_mtx1)
+        self.params_layout.addWidget(self.edit_mtx1)
+        self.params_layout.addWidget(self.label_mtx2)
+        self.params_layout.addWidget(self.edit_mtx2)
+        self.params_tab.setLayout(self.params_layout)
+
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.general_tab, 'General')
+        self.tabs.addTab(self.params_tab, 'Parameters')
+        self.main_layout = QVBoxLayout()
+        self.main_layout.addWidget(self.tabs)
+        self.main_layout.addWidget(self.dialog_buttons)
+        self.setLayout(self.main_layout)
 
         self.setMinimumWidth(300)
         self.setMinimumHeight(200)
