@@ -40,7 +40,7 @@ class Calibration:
         self.set_initial_intrinsics(imtx, imtx, idist, idist)
 
     def triangulate(self, lcorr, rcorr):
-        self.triangulate_proj(lcorr, rcorr, self.projs1[0], self.projs2[0])
+        return self.triangulate_proj(lcorr, rcorr, self.projs1[0], self.projs2[0])
         
 
     def triangulate_proj(self, lcorr, rcorr, proj1, proj2):
