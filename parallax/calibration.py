@@ -55,12 +55,14 @@ class Calibration:
 
     def calibrate(self, img_points1, img_points2, obj_points):
 
-        # don't undistort img_points, use "simple" initial intrinsics, same for both cameras
-        # don't fix principal point
+        # img_points have dims (npose, npts, 2)
+        # obj_points have dims (npose, npts, 3)
+
 
         # calibrate each camera against these points
+        # don't undistort img_points, use "simple" initial intrinsics, same for both cameras
+        # don't fix principal point
         my_flags = cv2.CALIB_USE_INTRINSIC_GUESS
-
         rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
                                                                         (WF, HF),
                                                                         self.imtx1, self.idist1,
@@ -70,9 +72,15 @@ class Calibration:
                                                                         self.imtx2, self.idist2,
                                                                         flags=my_flags)
 
+        # select first extrinsics for project matrices
+        self.rvec1 = rvecs1[0]
+        self.tvec1 = tvecs1[0]
+        self.rvec2 = rvecs2[0]
+        self.tvec2 = tvecs2[0]
+
         # calculate projection matrices
-        proj1 = lib.get_projection_matrix(mtx1, rvecs1[0], tvecs1[0])
-        proj2 = lib.get_projection_matrix(mtx2, rvecs2[0], tvecs2[0])
+        proj1 = lib.get_projection_matrix(mtx1, self.rvec1, self.tvec1)
+        proj2 = lib.get_projection_matrix(mtx2, self.rvec2, self.tvec2)
 
         self.mtx1 = mtx1
         self.mtx2 = mtx2
