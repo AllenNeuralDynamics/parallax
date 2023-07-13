@@ -106,14 +106,15 @@ class CalibrationPanel(QFrame):
                 extent = dlg.get_extent()
                 origin = dlg.get_origin()
                 name = dlg.get_name()
-                self.start_cal_thread(stage, res, extent, origin, name)
+                cs = dlg.get_cs()
+                self.start_cal_thread(stage, res, extent, origin, name, cs)
         elif self.start_stop_button.text() == 'Stop':
             self.stop_cal_thread()
 
-    def start_cal_thread(self, stage, res, extent, origin, name):
+    def start_cal_thread(self, stage, res, extent, origin, name, cs):
         self.model.cal_in_progress = True
         self.cal_thread = QThread()
-        self.cal_worker = CalibrationWorker(name, stage, res, extent, origin)
+        self.cal_worker = CalibrationWorker(name, cs, stage, res, extent, origin)
         self.cal_worker.moveToThread(self.cal_thread)
         self.cal_thread.started.connect(self.cal_worker.run)
         self.cal_worker.calibration_point_reached.connect(self.handle_cal_point_reached)
@@ -145,7 +146,7 @@ class CalibrationPanel(QFrame):
 
     def handle_cal_finished(self):
         if self.cal_worker.complete:
-            cal = Calibration(self.cal_worker.name)
+            cal = Calibration(self.cal_worker.name, self.cal_worker.cs)
             img_points1, img_points2 = self.cal_worker.get_image_points()
             obj_points = self.cal_worker.get_object_points()
             cal.calibrate(img_points1, img_points2, obj_points)

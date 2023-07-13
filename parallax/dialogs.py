@@ -108,6 +108,9 @@ class CalibrationDialog(QDialog):
     def get_name(self):
         return self.name_edit.text()
 
+    def get_cs(self):
+        return self.cs_edit.text()
+
     def go(self):
         self.accept()
 
