@@ -73,11 +73,15 @@ class CheckerboardTool(QWidget):
         rfilter = self.rscreen.filter
         if isinstance(lfilter, CheckerboardFilter) and \
             isinstance(rfilter, CheckerboardFilter):
+            lfilter.lock()
+            rfilter.lock()
             if (lfilter.worker.corners is not None) and (rfilter.worker.corners is not None):
                 self.lipts.append(lfilter.worker.corners)
                 self.ripts.append(rfilter.worker.corners)
                 self.opts.append(OBJPOINTS_CB)
                 self.update_text()
+            lfilter.unlock()
+            rfilter.unlock()
 
     def update_text(self):
         self.export_button.setText('Export Corners (%d)' % len(self.opts))

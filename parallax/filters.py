@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider
-from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread
+from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread, QMutex
 
 
 class NoFilter(QObject):
@@ -82,9 +82,10 @@ class CheckerboardFilter(NoFilter):
 
         def __init__(self):
             NoFilter.Worker.__init__(self)
+            self.mtx_corners = QMutex()
+            self.corners = None
 
         def process(self, frame):
-            self.corners = None
             if frame.ndim > 2:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
@@ -94,11 +95,18 @@ class CheckerboardFilter(NoFilter):
             ret, corners_scaled = cv2.findChessboardCornersSB(gray_scaled, self.patternSize,
                                                                 self.FLAGS)
             if ret:
-                self.corners = corners_scaled * 4
+                corners = corners_scaled * 4
                 conv_size = (11, 11)    # Convolution size, don't make this too large.
-                corners = cv2.cornerSubPix(gray, self.corners, conv_size, (-1, -1), self.CRITERIA)
+                corners = cv2.cornerSubPix(gray, corners, conv_size, (-1, -1), self.CRITERIA)
+                self.mtx_corners.lock()
                 self.corners = corners.squeeze()
+                self.mtx_corners.unlock()
                 cv2.drawChessboardCorners(frame, self.patternSize, self.corners, ret)
+            else:
+                self.mtx_corners.lock()
+                self.corners = None
+                self.mtx_corners.unlock()
+
             self.frame_processed.emit(frame)
 
         def set_pattern_size(self, rows, cols):
@@ -110,6 +118,13 @@ class CheckerboardFilter(NoFilter):
 
     def launch_control_panel(self):
         pass
+
+    def lock(self):
+        self.worker.mtx_corners.lock()
+
+    def unlock(self):
+        self.worker.mtx_corners.unlock()
+
 
 
 class AlphaBetaFilter:
