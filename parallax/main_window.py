@@ -19,7 +19,7 @@ from .dialogs import AboutDialog
 from .stage_manager import StageManager
 from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
-from .checkerboard_tool import CheckerboardTool
+from .checkerboard_tool import CheckerboardToolMono, CheckerboardToolStereo
 from .accuracy_test import AccuracyTestTool
 from .ground_truth_data_tool import GroundTruthDataTool
 from .elevator_control import ElevatorControlTool
@@ -54,8 +54,10 @@ class MainWindow(QMainWindow):
         self.video_source_action.triggered.connect(self.launch_video_source_dialog)
         self.tt_action = QAction("Generate Template")
         self.tt_action.triggered.connect(self.launch_tt)
-        self.cb_action = QAction("Checkerboard Tool")
-        self.cb_action.triggered.connect(self.launch_cb)
+        self.cbm_action = QAction("Checkerboard Tool (mono)")
+        self.cbm_action.triggered.connect(self.launch_cbm)
+        self.cbs_action = QAction("Checkerboard Tool (stereo)")
+        self.cbs_action.triggered.connect(self.launch_cbs)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.accutest_action = QAction("Accuracy Testing Tool")
@@ -90,7 +92,8 @@ class MainWindow(QMainWindow):
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.tt_action)
-        self.tools_menu.addAction(self.cb_action)
+        self.tools_menu.addAction(self.cbm_action)
+        self.tools_menu.addAction(self.cbs_action)
         self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.gtd_action)
         self.tools_menu.addAction(self.elevator_action)
@@ -128,11 +131,17 @@ class MainWindow(QMainWindow):
         self.tt = TemplateTool(self.model)
         self.tt.show()
 
-    def launch_cb(self):
-        self.cb = CheckerboardTool(self.model)
-        self.cb.msg_posted.connect(self.widget.msg_log.post)
-        self.cb.cal_generated.connect(self.widget.cal_panel.update_cals)
-        self.cb.show()
+    def launch_cbm(self):
+        self.cbm = CheckerboardToolMono(self.model)
+        self.cbm.msg_posted.connect(self.widget.msg_log.post)
+        self.cbm.cal_generated.connect(self.widget.cal_panel.update_cals)
+        self.cbm.show()
+
+    def launch_cbs(self):
+        self.cbs = CheckerboardToolStereo(self.model)
+        self.cbs.msg_posted.connect(self.widget.msg_log.post)
+        self.cbs.cal_generated.connect(self.widget.cal_panel.update_cals)
+        self.cbs.show()
 
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
