@@ -481,8 +481,8 @@ class CalibrationDialog(QDialog):
 
     def get_intrinsics(self):
         if self.intrinsics_check.checkState():
-            cal1 = self.model.calibrations(self.cal1.currentText())
-            cal2 = self.model.calibrations(self.cal2.currentText())
+            cal1 = self.model.calibrations[self.cal1_drop.currentText()]
+            cal2 = self.model.calibrations[self.cal2_drop.currentText()]
             return cal1, cal2
         else:
             return None
