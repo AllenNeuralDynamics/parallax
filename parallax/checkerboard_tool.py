@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QWidget
+from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QInputDialog
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PyQt5.QtCore import pyqtSignal, QTimer, Qt
 from PyQt5.QtGui import QIcon
@@ -74,6 +74,11 @@ class CheckerboardToolMono(QWidget):
 
     def save_cal(self):
         if (self.last_cal is not None):
+            name, ret = QInputDialog.getText(self, 'Calibration Name', 'Name:')
+            if ret:
+                self.last_cal.set_name(name)
+            else:
+                return
             self.model.add_calibration(self.last_cal)
             self.cal_generated.emit()
             suggested_filename = os.path.join(data_dir, self.last_cal.name + '.pkl')
