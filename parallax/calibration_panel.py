@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout, QTabWidget
 from PyQt5.QtWidgets import QPushButton, QFrame, QWidget, QComboBox, QLabel
 from PyQt5.QtWidgets import QFileDialog, QDialog, QLineEdit, QDialogButtonBox
-from PyQt5.QtWidgets import QLineEdit, QPlainTextEdit
+from PyQt5.QtWidgets import QLineEdit, QPlainTextEdit, QSpinBox, QCheckBox
 
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, QMimeData
 from PyQt5.QtGui import QDrag, QIcon
@@ -9,15 +9,18 @@ from PyQt5.QtGui import QDrag, QIcon
 import pickle
 import os
 import numpy as np
+import time
+import datetime
 
 from . import data_dir
 from . import get_image_file
 from .helper import FONT_BOLD
-from .dialogs import CalibrationDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
 from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
 from .rigid_body_transform_tool import CoordinateWidget
+from .stage_dropdown import StageDropdown
+from .calibration_worker import CalibrationWorker as cw
 
 
 class CalibrationPanel(QFrame):
@@ -107,14 +110,15 @@ class CalibrationPanel(QFrame):
                 origin = dlg.get_origin()
                 name = dlg.get_name()
                 cs = dlg.get_cs()
-                self.start_cal_thread(stage, res, extent, origin, name, cs)
+                intrinsics = dlg.get_intrinsics()
+                self.start_cal_thread(stage, res, extent, origin, name, cs, intrinsics)
         elif self.start_stop_button.text() == 'Stop':
             self.stop_cal_thread()
 
-    def start_cal_thread(self, stage, res, extent, origin, name, cs):
+    def start_cal_thread(self, stage, res, extent, origin, name, cs, intrinsics):
         self.model.cal_in_progress = True
         self.cal_thread = QThread()
-        self.cal_worker = CalibrationWorker(name, cs, stage, res, extent, origin)
+        self.cal_worker = CalibrationWorker(name, cs, stage, intrinsics, res, extent, origin)
         self.cal_worker.moveToThread(self.cal_thread)
         self.cal_thread.started.connect(self.cal_worker.run)
         self.cal_worker.calibration_point_reached.connect(self.handle_cal_point_reached)
@@ -147,6 +151,9 @@ class CalibrationPanel(QFrame):
     def handle_cal_finished(self):
         if self.cal_worker.complete:
             cal = Calibration(self.cal_worker.name, self.cal_worker.cs)
+            if (self.cal_worker.intrinsics is not None):
+                cal1, cal2 = self.cal_worker.intrinsics
+                cal.set_initial_intrinsics(cal1.mtx1, cal2.mtx1, cal1.dist1, cal2.dist1)
             img_points1, img_points2 = self.cal_worker.get_image_points()
             obj_points = self.cal_worker.get_object_points()
             cal.calibrate(img_points1, img_points2, obj_points)
@@ -349,4 +356,147 @@ class CalibrationSettingsDialog(QDialog):
         self.setMinimumHeight(200)
         self.setWindowTitle('Calibration Settings')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
+
+
+class CalibrationDialog(QDialog):
+
+    def __init__(self, model, parent=None):
+        QDialog.__init__(self, parent)
+        self.model = model
+
+        self.stage_label = QLabel('Select a Stage:')
+        self.stage_label.setAlignment(Qt.AlignCenter)
+        self.stage_label.setFont(FONT_BOLD)
+
+        self.stage_dropdown = StageDropdown(self.model)
+        self.stage_dropdown.activated.connect(self.update_status)
+
+        self.resolution_label = QLabel('Resolution:')
+        self.resolution_label.setAlignment(Qt.AlignCenter)
+        self.resolution_box = QSpinBox()
+        self.resolution_box.setMinimum(2)
+        self.resolution_box.setValue(cw.RESOLUTION_DEFAULT)
+
+        self.origin_label = QLabel('Origin:')
+        self.origin_value = QLabel()
+        self.set_origin((7500., 7500., 7500.))
+
+        self.extent_label = QLabel('Extent (um):')
+        self.extent_label.setAlignment(Qt.AlignCenter)
+        self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
+
+        self.name_label = QLabel('Name:')
+        ts = time.time()
+        dt = datetime.datetime.fromtimestamp(ts)
+        cal_default_name = 'cal_%04d%02d%02d-%02d%02d%02d' % (dt.year,
+                                        dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        self.name_edit = QLineEdit(cal_default_name)
+
+        self.cs_label = QLabel('Coord System:')
+        self.cs_edit = QLineEdit('')
+
+        self.intrinsics_label = QLabel('Provide Intrinsics')
+        self.intrinsics_check = QCheckBox()
+        self.intrinsics_check.stateChanged.connect(self.handle_check)
+
+        self.cal1_label = QLabel('Cal 1')
+        self.cal1_drop = QComboBox()
+        for cal in self.model.calibrations.keys():
+            self.cal1_drop.addItem(cal)
+        self.cal1_drop.setEnabled(False)
+
+        self.cal2_label = QLabel('Cal 2')
+        self.cal2_drop = QComboBox()
+        for cal in self.model.calibrations.keys():
+            self.cal2_drop.addItem(cal)
+        self.cal2_drop.setEnabled(False)
+
+        self.start_button = QPushButton('Start Calibration Routine')
+        self.start_button.setFont(FONT_BOLD)
+        self.start_button.setEnabled(False)
+        self.start_button.clicked.connect(self.go)
+
+        self.origin_button = QPushButton('Set current position as origin')
+        self.origin_button.setEnabled(False)
+        self.origin_button.clicked.connect(self.grab_stage_position_as_origin)
+
+        layout = QGridLayout()
+        layout.addWidget(self.stage_label, 0,0, 1,1)
+        layout.addWidget(self.stage_dropdown, 0,1, 1,1)
+        layout.addWidget(self.resolution_label, 1,0, 1,1)
+        layout.addWidget(self.resolution_box, 1,1, 1,1)
+        layout.addWidget(self.extent_label, 2,0, 1,1)
+        layout.addWidget(self.extent_edit, 2,1, 1,1)
+        layout.addWidget(self.origin_label, 3,0, 1,1)
+        layout.addWidget(self.origin_value, 3,1, 1,1)
+        layout.addWidget(self.name_label, 4,0, 1,1)
+        layout.addWidget(self.name_edit, 4,1, 1,1)
+        layout.addWidget(self.cs_label, 5,0, 1,1)
+        layout.addWidget(self.cs_edit, 5,1, 1,1)
+        layout.addWidget(self.intrinsics_label, 6,0, 1,1)
+        layout.addWidget(self.intrinsics_check, 6,1, 1,1)
+        layout.addWidget(self.cal1_label, 7,0, 1,1)
+        layout.addWidget(self.cal1_drop, 7,1, 1,1)
+        layout.addWidget(self.cal2_label, 8,0, 1,1)
+        layout.addWidget(self.cal2_drop, 8,1, 1,1)
+        layout.addWidget(self.origin_button, 9,0, 1,2)
+        layout.addWidget(self.start_button, 10,0, 1,2)
+        self.setLayout(layout)
+
+        self.setWindowTitle("Calibration Routine Parameters")
+        self.setMinimumWidth(300)
+
+    def handle_check(self):
+        self.cal1_drop.setEnabled(self.intrinsics_check.checkState())
+        self.cal2_drop.setEnabled(self.intrinsics_check.checkState())
+
+    def set_origin(self, pos):
+        self.origin_value.setText('[%.1f, %.1f, %.1f]' % pos)
+        self.origin = pos
+
+    def grab_stage_position_as_origin(self):
+        stage = self.get_stage()
+        pos = stage.get_position()
+        self.set_origin(pos)
+
+    def get_origin(self):
+        return self.origin
+
+    def get_stage(self):
+        ip = self.stage_dropdown.currentText()
+        stage = self.model.stages[ip]
+        return stage
+
+    def get_resolution(self):
+        return self.resolution_box.value()
+
+    def get_extent(self):
+        return float(self.extent_edit.text())
+
+    def get_name(self):
+        return self.name_edit.text()
+
+    def get_cs(self):
+        return self.cs_edit.text()
+
+    def get_intrinsics(self):
+        if self.intrinsics_check.checkState():
+            cal1 = self.model.calibrations(self.cal1.currentText())
+            cal2 = self.model.calibrations(self.cal2.currentText())
+            return cal1, cal2
+        else:
+            return None
+
+    def go(self):
+        self.accept()
+
+    def handle_radio(self, button):
+        print('TODO handleRadio')
+
+    def update_status(self):
+        if self.stage_dropdown.is_selected():
+            self.start_button.setEnabled(True)
+            self.origin_button.setEnabled(True)
+            self.cs_edit.setText(self.stage_dropdown.currentText())
+
 

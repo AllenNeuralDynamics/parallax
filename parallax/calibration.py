@@ -20,6 +20,8 @@ class Calibration:
         self.set_cs(cs)
         self.set_initial_intrinsics_default()
         self.offset = np.array([0,0,0], dtype=np.float32)
+        self.cal_type = 'stereo'
+        self.intrinsics_fixed = False
 
     def set_name(self, name):
         self.name = name
@@ -27,19 +29,20 @@ class Calibration:
     def set_cs(self, cs):
         self.cs = cs
 
-    def set_initial_intrinsics(self, mtx1, mtx2, dist1, dist2):
+    def set_initial_intrinsics(self, mtx1, mtx2, dist1, dist2, fixed=False):
 
         self.imtx1 = mtx1
         self.imtx2 = mtx2
         self.idist1 = dist1
         self.idist2 = dist2
 
+        self.intrinsics_fixed = fixed
+
     def set_initial_intrinsics_default(self):
         self.set_initial_intrinsics(imtx, imtx, idist, idist)
 
     def triangulate(self, lcorr, rcorr):
         return self.triangulate_proj(lcorr, rcorr, self.projs1[0], self.projs2[0])
-        
 
     def triangulate_proj(self, lcorr, rcorr, proj1, proj2):
 
@@ -69,6 +72,14 @@ class Calibration:
         # don't undistort img_points, use "simple" initial intrinsics, same for both cameras
         # don't fix principal point
         my_flags = cv2.CALIB_USE_INTRINSIC_GUESS
+        if self.intrinsics_fixed:
+            my_flags += cv2.CALIB_FIX_PRINCIPAL_POINT
+            my_flags += cv2.CALIB_FIX_FOCAL_LENGTH
+            my_flags += cv2.CALIB_FIX_K1
+            my_flags += cv2.CALIB_FIX_K2
+            my_flags += cv2.CALIB_FIX_K3
+            my_flags += cv2.CALIB_FIX_TAUX_TAUY
+            
         rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
                                                                         (WF, HF),
                                                                         self.imtx1, self.idist1,
@@ -129,6 +140,7 @@ class CalibrationMono:
         self.set_cs(cs)
         self.set_initial_intrinsics_default()
         self.offset = np.array([0,0,0], dtype=np.float32)
+        self.cal_type = 'mono'
 
     def set_name(self, name):
         self.name = name

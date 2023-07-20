@@ -8,7 +8,6 @@ import os
 
 from . import data_dir
 from .helper import FONT_BOLD
-from .dialogs import CalibrationDialog
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
 from .calibration import Calibration
 from .calibration_worker import CalibrationWorker
