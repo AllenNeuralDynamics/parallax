@@ -166,12 +166,13 @@ class CalibrationPanel(QFrame):
         self.start_stop_button.setText('Start')
 
     def load_cal(self):
-        filename = QFileDialog.getOpenFileName(self, 'Load calibration file', data_dir,
+        filenames = QFileDialog.getOpenFileNames(self, 'Load calibration file', data_dir,
                                                     'Pickle files (*.pkl)')[0]
-        if filename:
-            with open(filename, 'rb') as f:
-                cal = pickle.load(f)
-                self.model.add_calibration(cal)
+        if filenames:
+            for filename in filenames:
+                with open(filename, 'rb') as f:
+                    cal = pickle.load(f)
+                    self.model.add_calibration(cal)
             self.update_cals()
 
     def save_cal(self):
