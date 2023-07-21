@@ -153,7 +153,7 @@ class CalibrationPanel(QFrame):
             cal = Calibration(self.cal_worker.name, self.cal_worker.cs)
             if (self.cal_worker.intrinsics is not None):
                 cal1, cal2 = self.cal_worker.intrinsics
-                cal.set_initial_intrinsics(cal1.mtx1, cal2.mtx1, cal1.dist1, cal2.dist1)
+                cal.set_initial_intrinsics(cal1.mtx1, cal2.mtx1, cal1.dist1, cal2.dist1, fixed=True)
             img_points1, img_points2 = self.cal_worker.get_image_points()
             obj_points = self.cal_worker.get_object_points()
             cal.calibrate(img_points1, img_points2, obj_points)
