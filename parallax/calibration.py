@@ -78,7 +78,7 @@ class Calibration:
             my_flags += cv2.CALIB_FIX_K1
             my_flags += cv2.CALIB_FIX_K2
             my_flags += cv2.CALIB_FIX_K3
-            my_flags += cv2.CALIB_FIX_TAUX_TAUY
+            my_flags += cv2.CALIB_FIX_TANGENT_DIST
             
         rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
                                                                         (WF, HF),
