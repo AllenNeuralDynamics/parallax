@@ -97,12 +97,12 @@ class CheckerboardToolMono(QWidget):
             if (lfilter.worker.corners is not None):
                 self.lipts.append(lfilter.worker.corners)
                 self.opts.append(OBJPOINTS_CB)
-                if len(self.opts) >= 2:
-                    self.calibrate_button.setEnabled(True)
-                self.update_text()
+                self.update_gui()
 
-    def update_text(self):
-        self.save_corners_button.setText('Export Corners (%d)' % len(self.opts))
+    def update_gui(self):
+        self.save_corners_button.setText('Save Corners (%d)' % len(self.opts))
+        if len(self.opts) >= 2:
+            self.calibrate_button.setEnabled(True)
 
     def save_corners(self):
         ts = time.time()
@@ -147,7 +147,7 @@ class CheckerboardToolMono(QWidget):
         corners = np.load(filename)
         self.opts = corners['opts']
         self.lipts = corners['lipts'].squeeze() # temp for legacy file
-        self.update_text()
+        self.update_gui()
 
 
 class CheckerboardToolStereo(QWidget):
@@ -163,9 +163,9 @@ class CheckerboardToolStereo(QWidget):
         self.rscreen = ScreenWidget(model=self.model)
         self.save_button = QPushButton('Save Corners')
         self.save_button.clicked.connect(self.save_corners)
-        self.export_button = QPushButton('Export Corners (None)')
+        self.export_button = QPushButton('Save Corners (None)')
         self.export_button.clicked.connect(self.exportCorners)
-        self.import_button = QPushButton('Import Corners')
+        self.import_button = QPushButton('Load Corners')
         self.import_button.clicked.connect(self.import_corners)
         self.generate_button = QPushButton('Generate Calibration from Corners')
         self.generate_button.clicked.connect(self.generate)
@@ -210,7 +210,7 @@ class CheckerboardToolStereo(QWidget):
             rfilter.unlock()
 
     def update_text(self):
-        self.export_button.setText('Export Corners (%d)' % len(self.opts))
+        self.export_button.setText('Save Corners (%d)' % len(self.opts))
 
     def exportCorners(self):
         ts = time.time()
