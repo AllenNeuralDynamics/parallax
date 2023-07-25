@@ -72,8 +72,6 @@ class CheckerboardToolMono(QWidget):
 
     def update_gui(self):
         self.save_corners_button.setText('Save Corners (%d)' % len(self.opts))
-        if len(self.opts) >= 2:
-            self.calibrate_button.setEnabled(True)
 
     def save_corners(self):
         ts = time.time()

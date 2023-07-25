@@ -454,6 +454,7 @@ class CalibrationDialog(QDialog):
         if filename:
             with open(filename, 'rb') as f:
                 self.int1 = pickle.load(f)
+            self.int1_button.setText(os.path.basename(self.int1.name))
 
     def load_int2(self):
         filename = QFileDialog.getOpenFileName(self, 'Load intrinsics file', data_dir,
@@ -461,6 +462,7 @@ class CalibrationDialog(QDialog):
         if filename:
             with open(filename, 'rb') as f:
                 self.int2 = pickle.load(f)
+            self.int2_button.setText(os.path.basename(self.int2.name))
 
     def handle_check(self):
         self.int1_button.setEnabled(self.intrinsics_check.checkState())

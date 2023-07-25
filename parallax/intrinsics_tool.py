@@ -8,9 +8,13 @@ from PyQt5.QtCore import QSize, pyqtSignal, Qt
 import numpy as np
 import time
 import datetime
+import cv2
+import os
+import pickle
 
 from . import get_image_file, data_dir
-from .helper import FONT_BOLD
+from .helper import FONT_BOLD, WF, HF
+from .calibration import imtx, idist
 
 class IntrinsicParameters:
 
@@ -46,7 +50,7 @@ class IntrinsicParameters:
 
         self.mtx = mtx
         self.dist = dist
-        self.rmse_reproj = rmse  # RMS error from reprojection (in pixels)
+        self.rmse = rmse  # RMS error from reprojection (in pixels)
 
         # save calibration points
         self.obj_points = obj_points
@@ -90,6 +94,7 @@ class IntrinsicsTool(QWidget):
         layout.addWidget(self.initial_check)
         layout.addWidget(self.name_edit)
         layout.addWidget(self.generate_button)
+        layout.addWidget(self.save_button)
 
         self.setLayout(layout)
         self.setMinimumWidth(350)
@@ -107,7 +112,7 @@ class IntrinsicsTool(QWidget):
             self.update_gui()
 
     def update_gui(self):
-        if self.opts:
+        if self.opts is not None:
             self.npts_label.setText('%d points loaded' % self.opts.shape[0])
             self.generate_button.setEnabled(True)
 
@@ -116,6 +121,10 @@ class IntrinsicsTool(QWidget):
         self.intrinsics = IntrinsicParameters(name)
         self.intrinsics.calibrate(self.ipts, self.opts,
                                     use_initial_guess=self.initial_check.checkState())
+        self.msg_posted.emit('Generated %s' % self.intrinsics.name)
+        self.msg_posted.emit('mtx = %s' % np.array2string(self.intrinsics.mtx))
+        self.msg_posted.emit('dist = %s' % np.array2string(self.intrinsics.dist))
+        self.msg_posted.emit('RMSE = %.2f' % self.intrinsics.rmse)
         self.save_button.setEnabled(True)
 
     def save_intrinsics(self):
