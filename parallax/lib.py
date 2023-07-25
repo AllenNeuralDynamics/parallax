@@ -3,25 +3,8 @@ import cv2 as cv
 import glob
 import scipy.linalg as linalg
 
-CB_ROWS = 6 #number of checkerboard rows.
-CB_COLS = 9 #number of checkerboard columns.
-WORLD_SCALE = 1.2 # 1.20 mm per square
-
-#coordinates of squares in the checkerboard world space
-OBJPOINTS_CB = np.zeros((CB_ROWS*CB_COLS,3), np.float32)
-OBJPOINTS_CB[:,:2] = np.mgrid[0:CB_ROWS,0:CB_COLS].T.reshape(-1,2)
-OBJPOINTS_CB = WORLD_SCALE * OBJPOINTS_CB
-
 IMG_WIDTH = 4000
 IMG_HEIGHT = 3000
-
-# define reasonable guesses for intrinsic parameters
-MTX_GUESS =  np.array([[1.75e4, 0., 2000.],
-                    [0., 1.75e4, 1500.],
-                    [0., 0., 1.]], dtype=np.float32)
-DIST_GUESS =  np.array([[0., 0., 0., 0., 0.]], dtype=np.float32)
-
-INTRINSICS_USE_INITIAL_GUESS = False
 
 
 def undistort_image_points(img_points, mtx, dist):
