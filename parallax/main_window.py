@@ -134,13 +134,11 @@ class MainWindow(QMainWindow):
     def launch_cbm(self):
         self.cbm = CheckerboardToolMono(self.model)
         self.cbm.msg_posted.connect(self.widget.msg_log.post)
-        self.cbm.cal_generated.connect(self.widget.cal_panel.update_cals)
         self.cbm.show()
 
     def launch_cbs(self):
         self.cbs = CheckerboardToolStereo(self.model)
         self.cbs.msg_posted.connect(self.widget.msg_log.post)
-        self.cbs.cal_generated.connect(self.widget.cal_panel.update_cals)
         self.cbs.show()
 
     def launch_accutest(self):
