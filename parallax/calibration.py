@@ -20,7 +20,6 @@ class Calibration:
         self.set_cs(cs)
         self.set_initial_intrinsics_default()
         self.offset = np.array([0,0,0], dtype=np.float32)
-        self.cal_type = 'stereo'
         self.intrinsics_fixed = False
 
     def set_name(self, name):
@@ -132,61 +131,4 @@ class Calibration:
         # RMS error from triangulation (in um)
         self.rmse_tri_norm = np.linalg.norm(self.rmse_tri)
 
-
-class CalibrationMono:
-
-    def __init__(self, name, cs):
-        self.set_name(name)
-        self.set_cs(cs)
-        self.set_initial_intrinsics_default()
-        self.offset = np.array([0,0,0], dtype=np.float32)
-        self.cal_type = 'mono'
-
-    def set_name(self, name):
-        self.name = name
-
-    def set_cs(self, cs):
-        self.cs = cs
-
-    def set_initial_intrinsics(self, mtx1, dist1):
-
-        self.imtx1 = mtx1
-        self.idist1 = dist1
-
-    def set_initial_intrinsics_default(self):
-        self.set_initial_intrinsics(imtx, idist)
-
-    def calibrate(self, img_points1, obj_points):
-
-        # img_points have dims (npose, npts, 2)
-        # obj_points have dims (npose, npts, 3)
-
-        self.npose = obj_points.shape[0]
-        self.npts = obj_points.shape[1]
-
-        # calibrate the camera against these points
-        # don't undistort img_points, use "simple" initial intrinsics
-        # don't fix principal point
-        my_flags = cv2.CALIB_USE_INTRINSIC_GUESS
-        rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
-                                                                        (WF, HF),
-                                                                        self.imtx1, self.idist1,
-                                                                        flags=my_flags)
-
-        # select first extrinsics for project matrices
-        self.rvec1 = rvecs1[0]
-        self.tvec1 = tvecs1[0]
-
-        # calculate projection matrices
-        self.projs1 = []
-        for r1,t1 in zip(rvecs1, tvecs1):
-            self.projs1.append(lib.get_projection_matrix(mtx1, r1, t1))
-
-        self.mtx1 = mtx1
-        self.dist1 = dist1
-        self.rmse_reproj_1 = rmse1  # RMS error from reprojection (in pixels)
-
-        # save calibration points
-        self.obj_points = obj_points
-        self.img_points1 = img_points1
 

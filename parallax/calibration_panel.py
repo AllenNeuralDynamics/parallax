@@ -152,8 +152,8 @@ class CalibrationPanel(QFrame):
         if self.cal_worker.complete:
             cal = Calibration(self.cal_worker.name, self.cal_worker.cs)
             if (self.cal_worker.intrinsics is not None):
-                cal1, cal2 = self.cal_worker.intrinsics
-                cal.set_initial_intrinsics(cal1.mtx1, cal2.mtx1, cal1.dist1, cal2.dist1, fixed=True)
+                int1, int2 = self.cal_worker.intrinsics
+                cal.set_initial_intrinsics(int1.mtx, int2.mtx, int1.dist, int2.dist, fixed=True)
             img_points1, img_points2 = self.cal_worker.get_image_points()
             obj_points = self.cal_worker.get_object_points()
             cal.calibrate(img_points1, img_points2, obj_points)
@@ -400,17 +400,15 @@ class CalibrationDialog(QDialog):
         self.intrinsics_check = QCheckBox()
         self.intrinsics_check.stateChanged.connect(self.handle_check)
 
-        self.cal1_label = QLabel('Cal 1')
-        self.cal1_drop = QComboBox()
-        for cal in self.model.calibrations.keys():
-            self.cal1_drop.addItem(cal)
-        self.cal1_drop.setEnabled(False)
-
-        self.cal2_label = QLabel('Cal 2')
-        self.cal2_drop = QComboBox()
-        for cal in self.model.calibrations.keys():
-            self.cal2_drop.addItem(cal)
-        self.cal2_drop.setEnabled(False)
+        self.int1_label = QLabel('Left:')
+        self.int1_button = QPushButton('Load')
+        self.int1_button.setEnabled(False)
+        self.int1_button.clicked.connect(self.load_int1)
+    
+        self.int2_label = QLabel('Right:')
+        self.int2_button = QPushButton('Load')
+        self.int2_button.setEnabled(False)
+        self.int2_button.clicked.connect(self.load_int2)
 
         self.start_button = QPushButton('Start Calibration Routine')
         self.start_button.setFont(FONT_BOLD)
@@ -436,10 +434,10 @@ class CalibrationDialog(QDialog):
         layout.addWidget(self.cs_edit, 5,1, 1,1)
         layout.addWidget(self.intrinsics_label, 6,0, 1,1)
         layout.addWidget(self.intrinsics_check, 6,1, 1,1)
-        layout.addWidget(self.cal1_label, 7,0, 1,1)
-        layout.addWidget(self.cal1_drop, 7,1, 1,1)
-        layout.addWidget(self.cal2_label, 8,0, 1,1)
-        layout.addWidget(self.cal2_drop, 8,1, 1,1)
+        layout.addWidget(self.int1_label, 7,0, 1,1)
+        layout.addWidget(self.int1_button, 7,1, 1,1)
+        layout.addWidget(self.int2_label, 8,0, 1,1)
+        layout.addWidget(self.int2_button, 8,1, 1,1)
         layout.addWidget(self.origin_button, 9,0, 1,2)
         layout.addWidget(self.start_button, 10,0, 1,2)
         self.setLayout(layout)
@@ -447,9 +445,26 @@ class CalibrationDialog(QDialog):
         self.setWindowTitle("Calibration Routine Parameters")
         self.setMinimumWidth(300)
 
+        self.int1 = None
+        self.int2 = None
+
+    def load_int1(self):
+        filename = QFileDialog.getOpenFileName(self, 'Load intrinsics file', data_dir,
+                                                    'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'rb') as f:
+                self.int1 = pickle.load(f)
+
+    def load_int2(self):
+        filename = QFileDialog.getOpenFileName(self, 'Load intrinsics file', data_dir,
+                                                    'Pickle files (*.pkl)')[0]
+        if filename:
+            with open(filename, 'rb') as f:
+                self.int2 = pickle.load(f)
+
     def handle_check(self):
-        self.cal1_drop.setEnabled(self.intrinsics_check.checkState())
-        self.cal2_drop.setEnabled(self.intrinsics_check.checkState())
+        self.int1_button.setEnabled(self.intrinsics_check.checkState())
+        self.int2_button.setEnabled(self.intrinsics_check.checkState())
 
     def set_origin(self, pos):
         self.origin_value.setText('[%.1f, %.1f, %.1f]' % pos)
@@ -482,9 +497,7 @@ class CalibrationDialog(QDialog):
 
     def get_intrinsics(self):
         if self.intrinsics_check.checkState():
-            cal1 = self.model.calibrations[self.cal1_drop.currentText()]
-            cal2 = self.model.calibrations[self.cal2_drop.currentText()]
-            return cal1, cal2
+            return self.int1, self.int2
         else:
             return None
 
