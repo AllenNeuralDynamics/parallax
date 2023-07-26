@@ -9,7 +9,7 @@ class Preferences:
 
     def __init__(self):
         self.train_c = True
-        self.train_t = True
+        self.train_t = False
         self.train_left = True
         self.train_right = True
 
