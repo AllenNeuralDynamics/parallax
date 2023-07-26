@@ -295,12 +295,12 @@ class MainWidget(QWidget):
 
     def save_training_data(self):
         if self.model.prefs.train_left:
-            if self.lscreen.camera is not None:
+            if (self.lscreen.camera is not None) and (not self.lscreen.is_detecting()):
                 frame = self.lscreen.camera.get_last_image_data()
                 tag = 'left_%s_%s' % (self.lscreen.camera.name(), uid8())
                 self.model.save_training_data(self.model.lcorr, frame, tag)
         if self.model.prefs.train_right:
-            if self.rscreen.camera is not None:
+            if (self.rscreen.camera is not None) and (not self.rscreen.is_detecting()):
                 frame = self.rscreen.camera.get_last_image_data()
                 tag = 'right_%s_%s' % (self.rscreen.camera.name(), uid8())
                 self.model.save_training_data(self.model.rcorr, frame, tag)
