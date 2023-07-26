@@ -11,6 +11,7 @@ from .camera import list_cameras, close_cameras, MockCamera
 from .stage import Stage
 from .accuracy_test import AccuracyTestWorker
 from .elevator import list_elevators
+from .preferences import Preferences
 
 
 class Model(QObject):
@@ -36,6 +37,8 @@ class Model(QObject):
         
         self.obj_point_last = None
         self.transforms = {}
+
+        #self.prefs = Preferences()
 
     @property
     def ncameras(self):

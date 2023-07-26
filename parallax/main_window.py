@@ -27,6 +27,7 @@ from .elevator_control import ElevatorControlTool
 from .point_bank import PointBank
 from .ruler import Ruler
 from .camera import VideoSource
+from .preferences import PreferencesWindow
 
 
 class MainWindow(QMainWindow):
@@ -44,7 +45,8 @@ class MainWindow(QMainWindow):
         self.save_frames_action.triggered.connect(self.widget.save_camera_frames)
         self.save_frames_action.setShortcut("Ctrl+F")
         self.edit_prefs_action = QAction("Preferences")
-        self.edit_prefs_action.setEnabled(False)
+        self.edit_prefs_action.triggered.connect(self.launch_preferences)
+        self.edit_prefs_action.setShortcut("Ctrl+P")
         self.refresh_cameras_action = QAction("Refresh Camera List")
         self.refresh_cameras_action.triggered.connect(self.refresh_cameras)
         self.manage_stages_action = QAction("Manage Stages")
@@ -118,6 +120,10 @@ class MainWindow(QMainWindow):
         if not self.dummy:
             self.model.scan_for_usb_stages()
             self.model.update_elevators()
+
+    def launch_preferences(self):
+        self.prefs = PreferencesWindow(self.model)
+        self.prefs.show()
 
     def launch_stage_manager(self):
         self.stage_manager = StageManager(self.model)
