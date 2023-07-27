@@ -12,6 +12,7 @@ imtx = np.array([[1.5e+04, 0.00000000e+00, 2e+03],
 idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
                     dtype=np.float32)
 
+CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-8)
 
 class Calibration:
 
@@ -82,11 +83,13 @@ class Calibration:
         rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
                                                                         (WF, HF),
                                                                         self.imtx1, self.idist1,
-                                                                        flags=my_flags)
+                                                                        flags=my_flags,
+                                                                        criteria=CRIT)
         rmse2, mtx2, dist2, rvecs2, tvecs2 = cv2.calibrateCamera(obj_points, img_points2,
                                                                         (WF, HF),
                                                                         self.imtx2, self.idist2,
-                                                                        flags=my_flags)
+                                                                        flags=my_flags,
+                                                                        criteria=CRIT)
 
         # select first extrinsics for project matrices
         self.rvec1 = rvecs1[0]

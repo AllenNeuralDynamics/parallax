@@ -16,6 +16,8 @@ from . import get_image_file, data_dir
 from .helper import FONT_BOLD, WF, HF
 from .calibration import imtx, idist
 
+CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-8)
+
 class IntrinsicParameters:
 
     def __init__(self, name):
@@ -46,7 +48,8 @@ class IntrinsicParameters:
         rmse, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points,
                                                                         (WF, HF),
                                                                         self.imtx, self.idist,
-                                                                        flags=my_flags)
+                                                                        flags=my_flags,
+                                                                        criteria=CRIT)
 
         self.mtx = mtx
         self.dist = dist
