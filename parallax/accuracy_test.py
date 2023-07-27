@@ -51,11 +51,6 @@ class AccuracyTestRunTab(QWidget):
         self.stage_label = QLabel('Select stage:')
         self.stage_dropdown = StageDropdown(self.model)
 
-        self.cal_label = QLabel('Select calibration:')
-        self.cal_dropdown = QComboBox()
-        for cal in self.model.calibrations.keys():
-            self.cal_dropdown.addItem(cal)
-
         self.npoints_label = QLabel('Number of Points:')
         self.npoints_edit = QLineEdit(str(100))
 
@@ -71,10 +66,6 @@ class AccuracyTestRunTab(QWidget):
         self.origin_button = QPushButton('Set current position as origin')
         self.origin_button.clicked.connect(self.grab_stage_position_as_origin)
 
-        self.apd_label = QLabel('Automatic Probe Detection')
-        self.apd_toggle = ToggleSwitch(thumb_radius=11, track_radius=8)
-        self.apd_toggle.setChecked(False)
-
         self.random_regular_label = QLabel('Random/Regular')
         self.regular_toggle = ToggleSwitch(thumb_radius=11, track_radius=8)
         self.regular_toggle.setChecked(False)
@@ -89,19 +80,15 @@ class AccuracyTestRunTab(QWidget):
         self.layout = QGridLayout()
         self.layout.addWidget(self.stage_label, 0,0, 1,1)
         self.layout.addWidget(self.stage_dropdown, 0,1, 1,1)
-        self.layout.addWidget(self.cal_label, 1,0, 1,1)
-        self.layout.addWidget(self.cal_dropdown, 1,1, 1,1)
-        self.layout.addWidget(self.npoints_label, 2,0, 1,1)
-        self.layout.addWidget(self.npoints_edit, 2,1, 1,1)
-        self.layout.addWidget(self.extent_label, 3,0, 1,1)
-        self.layout.addWidget(self.extent_edit, 3,1, 1,1)
-        self.layout.addWidget(self.origin_label, 4,0, 1,1)
-        self.layout.addWidget(self.origin_value, 4,1, 1,1)
-        self.layout.addWidget(self.origin_button, 5,0, 1,2)
-        self.layout.addWidget(self.apd_label, 6,0, 1,1)
-        self.layout.addWidget(self.apd_toggle, 6,1, 1,1)
-        self.layout.addWidget(self.cancel_button, 7,0, 1,1)
-        self.layout.addWidget(self.run_button, 7,1, 1,1)
+        self.layout.addWidget(self.npoints_label, 1,0, 1,1)
+        self.layout.addWidget(self.npoints_edit, 1,1, 1,1)
+        self.layout.addWidget(self.extent_label, 2,0, 1,1)
+        self.layout.addWidget(self.extent_edit, 2,1, 1,1)
+        self.layout.addWidget(self.origin_label, 3,0, 1,1)
+        self.layout.addWidget(self.origin_value, 3,1, 1,1)
+        self.layout.addWidget(self.origin_button, 4,0, 1,2)
+        self.layout.addWidget(self.cancel_button, 5,0, 1,1)
+        self.layout.addWidget(self.run_button, 5,1, 1,1)
         self.setLayout(self.layout)
 
         self.setWindowTitle('Accuracy Testing Tool')
@@ -122,19 +109,16 @@ class AccuracyTestRunTab(QWidget):
         return stage
 
     def start_accuracy_test(self):
-        if self.stage_dropdown.is_selected() and bool(self.cal_dropdown.currentText()):
+        if self.stage_dropdown.is_selected():
             self.model.start_accuracy_test(self.get_params())
         else:
-            self.msg_posted.emit('Accuracy Run Tab: select a stage and calibation')
+            self.msg_posted.emit('Accuracy Run Tab: select a stage')
 
     def get_params(self):
         params = {}
         params['stage'] = self.stage_dropdown.get_current_stage()
-        params['cal'] = self.model.calibrations[self.cal_dropdown.currentText()]
         params['npoints'] = int(self.npoints_edit.text())
         params['extent_um'] = float(self.extent_edit.text())
-        params['apd'] = self.apd_toggle.isChecked()
-        params['regular'] = self.regular_toggle.isChecked()
         params['origin'] = self.origin
         return params
 
@@ -156,18 +140,37 @@ class AccuracyTestAnalyzeTab(QWidget):
         self.load_button = QPushButton('Load')
         self.load_button.clicked.connect(self.handle_load)
 
+        self.update_button = QPushButton('Update')
+        self.update_button.clicked.connect(self.update_plots)
+
+        self.cal_dropdown = QComboBox()
+        for cal in self.model.calibrations.keys():
+            self.cal_dropdown.addItem(cal)
+        self.cal_dropdown.activated.connect(self.handle_cal_selected)
+
         self.histo_widget = self.create_histogram_widget()
         self.scatter_widget = self.create_scatter_widget()
 
         self.layout = QGridLayout()
-        self.layout.addWidget(self.file_label, 0,0, 1,1)
-        self.layout.addWidget(self.mds_label, 0,1, 1,1)
-        self.layout.addWidget(self.load_button, 0,2, 1,1)
-        self.layout.addWidget(self.histo_widget, 1,0, 2,3)
-        self.layout.addWidget(self.scatter_widget, 3,0, 2,3)
+        self.layout.addWidget(self.load_button, 0,0, 1,1)
+        self.layout.addWidget(self.file_label, 0,1, 1,1)
+        self.layout.addWidget(self.cal_dropdown, 0,2, 1,1)
+        self.layout.addWidget(self.update_button, 0,3, 1,1)
+        self.layout.addWidget(self.mds_label, 0,4, 1,1)
+        self.layout.addWidget(self.histo_widget, 1,0, 2,5)
+        self.layout.addWidget(self.scatter_widget, 3,0, 2,5)
         self.setLayout(self.layout)
 
         self.extremeVal = 100.
+
+        self.cal = None
+        self.handle_cal_selected()
+        self.data = None
+
+    def handle_cal_selected(self):
+        cal_name = self.cal_dropdown.currentText()
+        if cal_name:
+            self.cal = self.model.calibrations[cal_name]
 
     def create_histogram_widget(self):
         histo_widget = pg.GraphicsLayoutWidget()
@@ -237,26 +240,30 @@ class AccuracyTestAnalyzeTab(QWidget):
         filename = QFileDialog.getOpenFileName(self, 'Load Accuracy Test file',
                                                 data_dir, 'Numpy files (*.npy)')[0]
         if filename:
-            data = np.load(filename)
-            self.update_data(data)
+            self.data = np.load(filename)
             self.file_label.setText(filename)
             self.file_label.setFont(FONT_BOLD)
 
-    def update_data(self, data):
-        # calculate deltas
-        npts = data.shape[0]
-        coords_stage = data[:,:3]
-        coords_recon = data[:,3:]
-        delta = coords_recon - coords_stage
-        dx = delta[:,0]
-        dy = delta[:,1]
-        dz = delta[:,2]
-        ds = np.sqrt(dx**2 + dy**2 + dz**2)
-        self.extremeVal = np.abs(np.concatenate((dx,dy,dz))).max()
-        # Update GUI
-        self.mds_label.setText('<ds> = %.2f um' % np.mean(ds))
-        self.update_histograms(dx, dy, dz, ds)
-        self.update_scatter_plots(dx, dy, dz, ds, coords_stage)
+    def update_plots(self):
+        if (self.data is not None) and (self.cal is not None):
+            # calculate deltas
+            npts = self.data.shape[0]
+            coords_stage = self.data[:,:3]
+            lipts = self.data[:,3:5]
+            ripts = self.data[:,5:]
+            coords_recon = np.zeros((npts,3))
+            for i in range(npts):
+                coords_recon[i,:] = np.array(self.cal.triangulate(lipts[i,:], ripts[i,:]))
+            delta = coords_recon - coords_stage
+            dx = delta[:,0]
+            dy = delta[:,1]
+            dz = delta[:,2]
+            ds = np.sqrt(dx**2 + dy**2 + dz**2)
+            self.extremeVal = np.abs(np.concatenate((dx,dy,dz))).max()
+            # Update GUI
+            self.mds_label.setText('<ds> = %.2f um' % np.mean(ds))
+            self.update_histograms(dx, dy, dz, ds)
+            self.update_scatter_plots(dx, dy, dz, ds, coords_stage)
 
 
 class AccuracyTestWorker(QObject):
@@ -268,7 +275,7 @@ class AccuracyTestWorker(QObject):
         QObject.__init__(self)
 
         self.stage = params['stage']
-        self.cal = params['cal']
+        #self.cal = params['cal']
         self.npoints  = params['npoints']
         self.extent_um = params['extent_um']
         self.origin = [7500., 7500., 7500.] # hard-wired for now
@@ -279,9 +286,8 @@ class AccuracyTestWorker(QObject):
         self.ready_to_go = False
 
     def register_corr_points(self, lcorr, rcorr):
-        xyz_recon = self.cal.triangulate(lcorr, rcorr)
         pos = self.stage.get_position()
-        self.results.append(list(pos) + xyz_recon.tolist())
+        self.results.append(list(pos) + list(lcorr) + list(rcorr))
 
     def carry_on(self):
         self.ready_to_go = True
