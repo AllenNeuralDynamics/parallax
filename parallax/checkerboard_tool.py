@@ -159,7 +159,7 @@ class CheckerboardToolStereo(QWidget):
     def save_corners(self):
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
-        suggested_basename = 'corners_%04d%02d%02d-%02d%02d%02d.npz' % (dt.year,
+        suggested_basename = 'corners_stereo_%04d%02d%02d-%02d%02d%02d.npz' % (dt.year,
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
         suggested_filename = os.path.join(data_dir, suggested_basename)
         filename = QFileDialog.getSaveFileName(self, 'Save corners',
