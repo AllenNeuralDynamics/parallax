@@ -160,7 +160,7 @@ class AccuracyTestAnalyzeTab(QWidget):
         self.histo_widget = self.create_histogram_widget()
         self.scatter_widget = self.create_scatter_widget()
 
-        self.stats_label = QLabel('<ds>')
+        self.stats_label = QLabel('(error statistics)')
         self.stats_label.setAlignment(Qt.AlignCenter)
 
         self.layout = QGridLayout()
@@ -172,8 +172,8 @@ class AccuracyTestAnalyzeTab(QWidget):
         self.layout.addWidget(self.transform_dropdown, 2,1, 1,1)
         self.layout.addWidget(self.update_button, 3,0, 1,2)
         self.layout.addWidget(self.histo_widget, 4,0, 2,2)
-        self.layout.addWidget(self.scatter_widget, 6,0, 2,2)
-        self.layout.addWidget(self.stats_label, 8,0, 1,2)
+        self.layout.addWidget(self.scatter_widget, 6,0, 3,2)
+        self.layout.addWidget(self.stats_label, 9,0, 1,2)
         self.setLayout(self.layout)
 
         self.extremeVal = 100.
@@ -238,7 +238,7 @@ class AccuracyTestAnalyzeTab(QWidget):
         layout.addWidget(self.view_y)
         layout.addWidget(self.view_z)
         scatter_widget.setLayout(layout)
-        scatter_widget.setMinimumHeight(200)
+        scatter_widget.setMinimumHeight(300)
         return scatter_widget
 
     def update_scatter_plots(self, dx, dy, dz, ds, coords_stage):
@@ -294,7 +294,7 @@ class AccuracyTestAnalyzeTab(QWidget):
             ds = np.sqrt(dx**2 + dy**2 + dz**2)
             self.extremeVal = np.abs(np.concatenate((dx,dy,dz))).max()
             # Update GUI
-            self.stats_label.setText('<ds> = %.2f um' % np.mean(ds))
+            self.stats_label.setText('rms(ds) = %.2f,   max(ds) = %.2f (um)' % (np.mean(ds), ds.max()))
             self.update_histograms(dx, dy, dz, ds)
             self.update_scatter_plots(dx, dy, dz, ds, coords_stage)
 
@@ -308,7 +308,6 @@ class AccuracyTestWorker(QObject):
         QObject.__init__(self)
 
         self.stage = params['stage']
-        #self.cal = params['cal']
         self.npoints  = params['npoints']
         self.extent_um = params['extent_um']
         self.origin = [7500., 7500., 7500.] # hard-wired for now

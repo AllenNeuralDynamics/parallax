@@ -61,10 +61,6 @@ class CalibrateStereoCornersTool(QWidget):
         self.generate_button.clicked.connect(self.generate_calibration)
         self.generate_button.setEnabled(False)
 
-        self.save_button = QPushButton('Save Calibration')
-        self.save_button.clicked.connect(self.save_calibration)
-        self.save_button.setEnabled(False)
-
         layout = QGridLayout()
         layout.addWidget(self.load_corners_button, 0,0, 1,2)
         layout.addWidget(self.npts_label, 1,0, 1,2)
@@ -77,7 +73,6 @@ class CalibrateStereoCornersTool(QWidget):
         layout.addWidget(self.int2_label, 5,0, 1,1)
         layout.addWidget(self.int2_button, 5,1, 1,1)
         layout.addWidget(self.generate_button, 6,0, 1,2)
-        layout.addWidget(self.save_button, 7,0, 1,2)
 
         self.setLayout(layout)
         self.setMinimumWidth(350)
@@ -128,18 +123,7 @@ class CalibrateStereoCornersTool(QWidget):
                                             self.int1.dist, self.int2.dist, fixed=True)
         self.cal.calibrate(self.lipts, self.ripts, self.opts)
         self.msg_posted.emit('Generated %s' % self.cal.name)
-        self.msg_posted.emit('RMSE = %.2f' % self.cal.rmse_tri_norm)
+        self.msg_posted.emit('RMSE = %.2f um' % self.cal.rmse_tri_norm)
         self.model.add_calibration(self.cal)
         self.cal_generated.emit()
-        self.save_button.setEnabled(True)
-
-    def save_calibration(self):
-        suggested_filename = os.path.join(data_dir, self.cal.name + '.pkl')
-        filename = QFileDialog.getSaveFileName(self, 'Save calibration',
-                                                suggested_filename,
-                                                'Pickle files (*.pkl)')[0]
-        if filename:
-            with open(filename, 'wb') as f:
-                pickle.dump(self.cal, f)
-            self.msg_posted.emit('Saved calibration to: %s' % filename)
 
