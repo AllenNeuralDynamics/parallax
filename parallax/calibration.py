@@ -12,7 +12,7 @@ imtx = np.array([[1.5e+04, 0.00000000e+00, 2e+03],
 idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
                     dtype=np.float32)
 
-CRIT = (cv.TERM_CRITERIA_EPS, 0, 1e-8)
+CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-8)
 
 class Calibration:
 
