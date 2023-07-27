@@ -74,6 +74,9 @@ class ScreenWidget(pg.GraphicsView):
             data = self.camera.get_last_image_data()
             self.set_data(data)
 
+    def is_detecting(self):
+        return not isinstance(self.detector, detectors.NoDetector)
+
     def clear_selected(self):
         self.click_target.setVisible(False)
         self.cleared.emit()

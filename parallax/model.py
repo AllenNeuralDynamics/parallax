@@ -3,14 +3,21 @@ from PyQt5.QtCore import QObject, pyqtSignal, QThread
 
 import numpy as np
 import serial.tools.list_ports
+import time
+import cv2
+import os
+import queue
+import csv
 
 from mis_focus_controller import FocusController
 from newscale.interfaces import NewScaleSerial
 
+from . import training_dir, training_file
 from .camera import list_cameras, close_cameras, MockCamera 
 from .stage import Stage
 from .accuracy_test import AccuracyTestWorker
 from .elevator import list_elevators
+from .preferences import Preferences
 
 
 class Model(QObject):
@@ -36,6 +43,23 @@ class Model(QObject):
         
         self.obj_point_last = None
         self.transforms = {}
+
+        self.prefs = Preferences()
+
+        # training thread
+        self.training_thread = QThread()
+        self.training_worker = TrainingWorker()
+        self.training_worker.moveToThread(self.training_thread)
+        self.training_thread.started.connect(self.training_worker.run)
+        self.training_worker.finished.connect(self.training_thread.quit)
+        self.training_worker.finished.connect(self.training_worker.deleteLater)
+        self.training_thread.finished.connect(self.training_thread.deleteLater)
+        self.training_thread.start()
+        self.training_worker.start_running()
+
+
+    def save_training_data(self, ipt, frame, tag):
+        self.training_worker.submit_data(ipt, frame, tag)
 
     @property
     def ncameras(self):
@@ -166,4 +190,40 @@ class Model(QObject):
                 filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
                 camera.save_last_image(filename)
                 self.msg_log.post('Saved camera frame: %s' % filename)
+
+class TrainingWorker(QObject):
+    finished = pyqtSignal()
+
+    def __init__(self):
+        QObject.__init__(self)
+        self.running = False
+        self.q = queue.Queue()
+
+    def process(self, data):
+        ipt, frame, tag = data
+        filename_png = os.path.join(training_dir, tag+'.png')
+        cv2.imwrite(filename_png, frame)
+        with open(training_file, 'a', newline='') as f:
+            w = csv.writer(f, delimiter = ',')
+            row = [os.path.basename(filename_png), ipt[0], ipt[1]]
+            w.writerow(row)
+
+    def stop_running(self):
+        self.running = False
+
+    def start_running(self):
+        self.running = True
+
+    def run(self):
+        while True:
+            while not self.q.empty() and self.running:
+                data = self.q.get()
+                self.process(data)
+            time.sleep(0.001)
+        self.finished.emit()
+
+    def submit_data(self, ipt, frame, tag):
+        data = (ipt, frame, tag)
+        self.q.put(data)
+
 

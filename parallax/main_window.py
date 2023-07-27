@@ -27,6 +27,8 @@ from .elevator_control import ElevatorControlTool
 from .point_bank import PointBank
 from .ruler import Ruler
 from .camera import VideoSource
+from .preferences import PreferencesWindow
+from .helper import uid8
 
 
 class MainWindow(QMainWindow):
@@ -44,7 +46,8 @@ class MainWindow(QMainWindow):
         self.save_frames_action.triggered.connect(self.widget.save_camera_frames)
         self.save_frames_action.setShortcut("Ctrl+F")
         self.edit_prefs_action = QAction("Preferences")
-        self.edit_prefs_action.setEnabled(False)
+        self.edit_prefs_action.triggered.connect(self.launch_preferences)
+        self.edit_prefs_action.setShortcut("Ctrl+P")
         self.refresh_cameras_action = QAction("Refresh Camera List")
         self.refresh_cameras_action.triggered.connect(self.refresh_cameras)
         self.manage_stages_action = QAction("Manage Stages")
@@ -118,6 +121,10 @@ class MainWindow(QMainWindow):
         if not self.dummy:
             self.model.scan_for_usb_stages()
             self.model.update_elevators()
+
+    def launch_preferences(self):
+        self.prefs = PreferencesWindow(self.model)
+        self.prefs.show()
 
     def launch_stage_manager(self):
         self.stage_manager = StageManager(self.model)
@@ -277,10 +284,26 @@ class MainWidget(QWidget):
                 self.cal_panel.register_corr_points_cal()
             if self.model.accutest_in_progress:
                 self.model.register_corr_points_accutest()
+            if self.model.prefs.train_c:
+                self.save_training_data()
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
         elif e.key() == Qt.Key_T:
             self.cal_panel.triangulate()
+            if self.model.prefs.train_t:
+                self.save_training_data()
+
+    def save_training_data(self):
+        if self.model.prefs.train_left:
+            if (self.lscreen.camera is not None) and (not self.lscreen.is_detecting()):
+                frame = self.lscreen.camera.get_last_image_data()
+                tag = 'left_%s_%s' % (self.lscreen.camera.name(), uid8())
+                self.model.save_training_data(self.model.lcorr, frame, tag)
+        if self.model.prefs.train_right:
+            if (self.rscreen.camera is not None) and (not self.rscreen.is_detecting()):
+                frame = self.rscreen.camera.get_last_image_data()
+                tag = 'right_%s_%s' % (self.rscreen.camera.name(), uid8())
+                self.model.save_training_data(self.model.rcorr, frame, tag)
 
     def refresh(self):
         self.lscreen.refresh()
