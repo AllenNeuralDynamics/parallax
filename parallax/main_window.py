@@ -164,6 +164,7 @@ class MainWindow(QMainWindow):
     def launch_csc(self):
         self.csc = CalibrateStereoCornersTool(self.model)
         self.csc.msg_posted.connect(self.widget.msg_log.post)
+        self.csc.cal_generated.connect(self.widget.cal_panel.update_cals)
         self.csc.show()
 
     def launch_accutest(self):
