@@ -150,14 +150,13 @@ class CheckerboardMagicFilter(NoFilter):
         def process(self, frame):
             sz_roll = 8
             sz_conv = 32
-            patternSize = (19,19)
             if frame.ndim > 2:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
                 gray = frame
             gray_scaled = cv2.pyrDown(gray)    # 1/2
             gray_scaled = cv2.pyrDown(gray_scaled)    # 1/4
-            ret, corners_scaled = cv2.findChessboardCornersSB(gray_scaled, patternSize,
+            ret, corners_scaled = cv2.findChessboardCornersSB(gray_scaled, self.patternSize,
                                                                 self.FLAGS)
             corners_ave = None
             self.mtx_corners.lock()
@@ -178,6 +177,7 @@ class CheckerboardMagicFilter(NoFilter):
                     self.mtx_corners.unlock()
                     self.buf = self.buf[1:]
                     self.buf.append(corners)
+                    cv2.drawChessboardCorners(frame, self.patternSize, self.corners, ret)
 
             self.frame_processed.emit(frame)
 
