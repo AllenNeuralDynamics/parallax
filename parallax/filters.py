@@ -67,7 +67,7 @@ class NoFilter(QObject):
 
 class CheckerboardFilter(NoFilter):
 
-    name = "Checkerboard"
+    name = "Checkerboard (fast)"
     CB_ROWS_DEFAULT = 19
     CB_COLS_DEFAULT = 19
 
