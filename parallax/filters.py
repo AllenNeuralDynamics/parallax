@@ -126,6 +126,78 @@ class CheckerboardFilter(NoFilter):
         self.worker.mtx_corners.unlock()
 
 
+class CheckerboardMagicFilter(NoFilter):
+
+    name = "Checkerboard (magic)"
+    CB_ROWS_DEFAULT = 19
+    CB_COLS_DEFAULT = 19
+
+    frame_processed = pyqtSignal(object)
+
+    class Worker(NoFilter.Worker):
+
+        CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        FLAGS = cv2.CALIB_CB_ADAPTIVE_THRESH \
+                + cv2.CALIB_CB_NORMALIZE_IMAGE \
+                + cv2.CALIB_CB_FAST_CHECK
+
+        def __init__(self):
+            NoFilter.Worker.__init__(self)
+            self.mtx_corners = QMutex()
+            self.corners = None
+            self.buf = []
+
+        def process(self, frame):
+            sz_roll = 8
+            sz_conv = 32
+            patternSize = (19,19)
+            if frame.ndim > 2:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = frame
+            gray_scaled = cv2.pyrDown(gray)    # 1/2
+            gray_scaled = cv2.pyrDown(gray_scaled)    # 1/4
+            ret, corners_scaled = cv2.findChessboardCornersSB(gray_scaled, patternSize,
+                                                                self.FLAGS)
+            corners_ave = None
+            self.mtx_corners.lock()
+            self.corners = None
+            self.mtx_corners.unlock()
+            if ret:
+                corners = corners_scaled * 4
+                conv_size = (sz_conv, sz_conv)
+                corners = cv2.cornerSubPix(gray, corners, conv_size, (-1, -1), self.CRITERIA)
+                corners = corners.squeeze()
+                if len(self.buf) < sz_roll:
+                    self.buf.append(corners)
+                else:
+                    buf_np = np.array(self.buf)
+                    corners_ave = np.mean(buf_np, axis=0)
+                    self.mtx_corners.lock()
+                    self.corners = corners_ave
+                    self.mtx_corners.unlock()
+                    self.buf = self.buf[1:]
+                    self.buf.append(corners)
+
+            self.frame_processed.emit(frame)
+
+
+        def set_pattern_size(self, rows, cols):
+            self.patternSize = (rows, cols)
+
+    def __init__(self):
+        NoFilter.__init__(self)
+        self.worker.set_pattern_size(self.CB_ROWS_DEFAULT, self.CB_COLS_DEFAULT)
+
+    def launch_control_panel(self):
+        pass
+
+    def lock(self):
+        self.worker.mtx_corners.lock()
+
+    def unlock(self):
+        self.worker.mtx_corners.unlock()
+
 
 class AlphaBetaFilter:
 
