@@ -193,20 +193,21 @@ class AccuracyTestAnalyzeTab(QWidget):
         bargraph_s = pg.BarGraphItem(x0=zbins[:-1], x1=sbins[1:], height=shist, brush ='y')
         for i,bg in enumerate([bargraph_x, bargraph_y, bargraph_z]):
             pi = self.histo_widget.getItem(0,i)
+            pi.clear()
             pi.setXRange((-1)*self.extremeVal, self.extremeVal)
             pi.addItem(bg)
         
     def create_scatter_widget(self):
         # create a common set of axes
-        coord = gl.GLAxisItem()
-        coord.setSize(15000, 15000, 15000)
+        self.axis_item = gl.GLAxisItem()
+        self.axis_item.setSize(15000, 15000, 15000)
         # create the GL View Widgets
         self.view_x = gl.GLViewWidget()
-        self.view_x.addItem(coord)
+        self.view_x.addItem(self.axis_item)
         self.view_y = gl.GLViewWidget()
-        self.view_y.addItem(coord)
+        self.view_y.addItem(self.axis_item)
         self.view_z = gl.GLViewWidget()
-        self.view_z.addItem(coord)
+        self.view_z.addItem(self.axis_item)
         # create the hbox QWidget
         scatter_widget = QWidget()
         layout = QHBoxLayout()
@@ -223,18 +224,24 @@ class AccuracyTestAnalyzeTab(QWidget):
         # dx
         colors4_dx = cmap.map(dx)
         scatter_dx = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dx/255)
+        self.view_x.clear()
+        self.view_x.addItem(self.axis_item)
         self.view_x.addItem(scatter_dx)
-        self.view_x.setCameraPosition(distance=10000)
+        self.view_x.setCameraPosition(distance=30000)
         # dy
         colors4_dy = cmap.map(dy)
         scatter_dy = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dy/255)
+        self.view_y.clear()
+        self.view_y.addItem(self.axis_item)
         self.view_y.addItem(scatter_dy)
-        self.view_y.setCameraPosition(distance=10000)
+        self.view_y.setCameraPosition(distance=30000)
         # dz
         colors4_dz = cmap.map(dz)
         scatter_dz = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dz/255)
+        self.view_z.clear()
+        self.view_z.addItem(self.axis_item)
         self.view_z.addItem(scatter_dz)
-        self.view_z.setCameraPosition(distance=10000)
+        self.view_z.setCameraPosition(distance=30000)
 
     def handle_load(self):
         filename = QFileDialog.getOpenFileName(self, 'Load Accuracy Test file',
