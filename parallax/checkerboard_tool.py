@@ -12,7 +12,7 @@ import pickle
 
 from . import get_image_file, data_dir
 from .screen_widget import ScreenWidget
-from .filters import CheckerboardFilter, CheckerboardMagicFilter
+from .filters import CheckerboardFilter, CheckerboardSmoothFilter
 
 CB_ROWS = 19 #number of checkerboard rows.
 CB_COLS = 19 #number of checkerboard columns.
@@ -64,8 +64,7 @@ class CheckerboardToolMono(QWidget):
 
     def grab_corners(self):
         lfilter = self.lscreen.filter
-        if isinstance(lfilter, CheckerboardFilter) or \
-            isinstance(lfilter, CheckerboardMagicFilter):
+        if isinstance(lfilter, (CheckerboardFilter, CheckerboardSmoothFilter)):
             if (lfilter.worker.corners is not None):
                 self.ipts.append(lfilter.worker.corners)
                 self.opts.append(OBJPOINTS_CB)
@@ -140,8 +139,8 @@ class CheckerboardToolStereo(QWidget):
     def grab_corners(self):
         lfilter = self.lscreen.filter
         rfilter = self.rscreen.filter
-        if isinstance(lfilter, CheckerboardFilter) and \
-            isinstance(rfilter, CheckerboardFilter):
+        if isinstance(lfilter, (CheckerboardFilter, CheckerboardSmoothFilter)) and \
+            isinstance(rfilter, (CheckerboardFilter, CheckerboardSmoothFilter)):
             lfilter.lock()
             rfilter.lock()
             if (lfilter.worker.corners is not None) and (rfilter.worker.corners is not None):

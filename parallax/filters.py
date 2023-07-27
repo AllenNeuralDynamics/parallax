@@ -96,7 +96,7 @@ class CheckerboardFilter(NoFilter):
                                                                 self.FLAGS)
             if ret:
                 corners = corners_scaled * 4
-                conv_size = (11, 11)    # Convolution size, don't make this too large.
+                conv_size = (32, 32)
                 corners = cv2.cornerSubPix(gray, corners, conv_size, (-1, -1), self.CRITERIA)
                 self.mtx_corners.lock()
                 self.corners = corners.squeeze()
@@ -126,9 +126,9 @@ class CheckerboardFilter(NoFilter):
         self.worker.mtx_corners.unlock()
 
 
-class CheckerboardMagicFilter(NoFilter):
+class CheckerboardSmoothFilter(NoFilter):
 
-    name = "Checkerboard (magic)"
+    name = "Checkerboard (smooth)"
     CB_ROWS_DEFAULT = 19
     CB_COLS_DEFAULT = 19
 
