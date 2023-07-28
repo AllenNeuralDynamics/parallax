@@ -91,11 +91,11 @@ class Calibration:
                                                                         flags=my_flags,
                                                                         criteria=CRIT)
 
-        # select first extrinsics for project matrices
-        self.rvec1 = rvecs1[0]
-        self.tvec1 = tvecs1[0]
-        self.rvec2 = rvecs2[0]
-        self.tvec2 = tvecs2[0]
+        # select LAST extrinsics for projection matrices
+        self.rvec1 = rvecs1[-1]
+        self.tvec1 = tvecs1[-1]
+        self.rvec2 = rvecs2[-1]
+        self.tvec2 = tvecs2[-1]
 
         # calculate projection matrices
         self.projs1 = []

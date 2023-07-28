@@ -33,15 +33,14 @@ class CheckerboardToolMono(QWidget):
         self.model = model
 
         self.lscreen = ScreenWidget(model=self.model)
+        self.lscreen.set_filter(CheckerboardFilter)
+
         self.grab_button = QPushButton('Grab Corners')
         self.grab_button.clicked.connect(self.grab_corners)
         self.save_corners_button = QPushButton('Save Corners (None)')
         self.save_corners_button.clicked.connect(self.save_corners)
         self.load_corners_button = QPushButton('Load Corners')
         self.load_corners_button.clicked.connect(self.load_corners)
-
-        self.screens_layout = QHBoxLayout()
-        self.screens_layout.addWidget(self.lscreen)
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.lscreen)
@@ -105,7 +104,10 @@ class CheckerboardToolStereo(QWidget):
         self.model = model
 
         self.lscreen = ScreenWidget(model=self.model)
+        self.lscreen.set_filter(CheckerboardFilter)
         self.rscreen = ScreenWidget(model=self.model)
+        self.rscreen.set_filter(CheckerboardFilter)
+
         self.grab_button = QPushButton('Grab Corners')
         self.grab_button.clicked.connect(self.grab_corners)
         self.save_button = QPushButton('Save Corners (None)')
@@ -152,12 +154,12 @@ class CheckerboardToolStereo(QWidget):
             rfilter.unlock()
 
     def update_text(self):
-        self.export_button.setText('Save Corners (%d)' % len(self.opts))
+        self.save_button.setText('Save Corners (%d)' % len(self.opts))
 
     def save_corners(self):
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
-        suggested_basename = 'corners_%04d%02d%02d-%02d%02d%02d.npz' % (dt.year,
+        suggested_basename = 'corners_stereo_%04d%02d%02d-%02d%02d%02d.npz' % (dt.year,
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
         suggested_filename = os.path.join(data_dir, suggested_basename)
         filename = QFileDialog.getSaveFileName(self, 'Save corners',

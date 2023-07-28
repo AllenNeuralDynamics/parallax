@@ -29,8 +29,8 @@ class AccuracyTestTool(QWidget):
         self.analyze_tab = AccuracyTestAnalyzeTab(self.model)
         self.analyze_tab.msg_posted.connect(self.msg_posted)
         self.tab_widget = QTabWidget()
-        self.tab_widget.addTab(self.run_tab, 'Run')
         self.tab_widget.addTab(self.analyze_tab, 'Analyze')
+        self.tab_widget.addTab(self.run_tab, 'Run')
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.tab_widget)
@@ -135,42 +135,65 @@ class AccuracyTestAnalyzeTab(QWidget):
         self.model = model
 
         # File Load
-        self.file_label = QLabel('(no data file loaded)')
-        self.mds_label = QLabel('<ds>')
+        self.file_label = QLabel('Data File:')
+        self.file_label.setAlignment(Qt.AlignCenter)
         self.load_button = QPushButton('Load')
         self.load_button.clicked.connect(self.handle_load)
 
-        self.update_button = QPushButton('Update')
-        self.update_button.clicked.connect(self.update_plots)
-
+        self.cal_label = QLabel('Calibration:')
+        self.cal_label.setAlignment(Qt.AlignCenter)
         self.cal_dropdown = QComboBox()
         for cal in self.model.calibrations.keys():
             self.cal_dropdown.addItem(cal)
         self.cal_dropdown.activated.connect(self.handle_cal_selected)
 
+        self.transform_label = QLabel('Transform:')
+        self.transform_label.setAlignment(Qt.AlignCenter)
+        self.transform_dropdown = QComboBox()
+        for t in self.model.transforms.keys():
+            self.transform_dropdown.addItem(t)
+        self.transform_dropdown.activated.connect(self.handle_transform_selected)
+
+        self.update_button = QPushButton('Update')
+        self.update_button.clicked.connect(self.update_plots)
+
         self.histo_widget = self.create_histogram_widget()
         self.scatter_widget = self.create_scatter_widget()
 
+        self.stats_label = QLabel('(error statistics)')
+        self.stats_label.setAlignment(Qt.AlignCenter)
+
         self.layout = QGridLayout()
-        self.layout.addWidget(self.load_button, 0,0, 1,1)
-        self.layout.addWidget(self.file_label, 0,1, 1,1)
-        self.layout.addWidget(self.cal_dropdown, 0,2, 1,1)
-        self.layout.addWidget(self.update_button, 0,3, 1,1)
-        self.layout.addWidget(self.mds_label, 0,4, 1,1)
-        self.layout.addWidget(self.histo_widget, 1,0, 2,5)
-        self.layout.addWidget(self.scatter_widget, 3,0, 2,5)
+        self.layout.addWidget(self.file_label, 0,0, 1,1)
+        self.layout.addWidget(self.load_button, 0,1, 1,1)
+        self.layout.addWidget(self.cal_label, 1,0, 1,1)
+        self.layout.addWidget(self.cal_dropdown, 1,1, 1,1)
+        self.layout.addWidget(self.transform_label, 2,0, 1,1)
+        self.layout.addWidget(self.transform_dropdown, 2,1, 1,1)
+        self.layout.addWidget(self.update_button, 3,0, 1,2)
+        self.layout.addWidget(self.histo_widget, 4,0, 2,2)
+        self.layout.addWidget(self.scatter_widget, 6,0, 3,2)
+        self.layout.addWidget(self.stats_label, 9,0, 1,2)
         self.setLayout(self.layout)
 
         self.extremeVal = 100.
 
-        self.cal = None
-        self.handle_cal_selected()
         self.data = None
+        self.cal = None
+        self.transform = None
+
+        self.handle_cal_selected()
+        self.handle_transform_selected()
 
     def handle_cal_selected(self):
         cal_name = self.cal_dropdown.currentText()
         if cal_name:
             self.cal = self.model.calibrations[cal_name]
+
+    def handle_transform_selected(self):
+        transform_name = self.transform_dropdown.currentText()
+        if transform_name:
+            self.transform = self.model.transforms[transform_name]
 
     def create_histogram_widget(self):
         histo_widget = pg.GraphicsLayoutWidget()
@@ -193,20 +216,21 @@ class AccuracyTestAnalyzeTab(QWidget):
         bargraph_s = pg.BarGraphItem(x0=zbins[:-1], x1=sbins[1:], height=shist, brush ='y')
         for i,bg in enumerate([bargraph_x, bargraph_y, bargraph_z]):
             pi = self.histo_widget.getItem(0,i)
+            pi.clear()
             pi.setXRange((-1)*self.extremeVal, self.extremeVal)
             pi.addItem(bg)
         
     def create_scatter_widget(self):
         # create a common set of axes
-        coord = gl.GLAxisItem()
-        coord.setSize(15000, 15000, 15000)
+        self.axis_item = gl.GLAxisItem()
+        self.axis_item.setSize(15000, 15000, 15000)
         # create the GL View Widgets
         self.view_x = gl.GLViewWidget()
-        self.view_x.addItem(coord)
+        self.view_x.addItem(self.axis_item)
         self.view_y = gl.GLViewWidget()
-        self.view_y.addItem(coord)
+        self.view_y.addItem(self.axis_item)
         self.view_z = gl.GLViewWidget()
-        self.view_z.addItem(coord)
+        self.view_z.addItem(self.axis_item)
         # create the hbox QWidget
         scatter_widget = QWidget()
         layout = QHBoxLayout()
@@ -214,7 +238,7 @@ class AccuracyTestAnalyzeTab(QWidget):
         layout.addWidget(self.view_y)
         layout.addWidget(self.view_z)
         scatter_widget.setLayout(layout)
-        scatter_widget.setMinimumHeight(200)
+        scatter_widget.setMinimumHeight(300)
         return scatter_widget
 
     def update_scatter_plots(self, dx, dy, dz, ds, coords_stage):
@@ -223,26 +247,32 @@ class AccuracyTestAnalyzeTab(QWidget):
         # dx
         colors4_dx = cmap.map(dx)
         scatter_dx = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dx/255)
+        self.view_x.clear()
+        self.view_x.addItem(self.axis_item)
         self.view_x.addItem(scatter_dx)
-        self.view_x.setCameraPosition(distance=10000)
+        self.view_x.setCameraPosition(distance=30000)
         # dy
         colors4_dy = cmap.map(dy)
         scatter_dy = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dy/255)
+        self.view_y.clear()
+        self.view_y.addItem(self.axis_item)
         self.view_y.addItem(scatter_dy)
-        self.view_y.setCameraPosition(distance=10000)
+        self.view_y.setCameraPosition(distance=30000)
         # dz
         colors4_dz = cmap.map(dz)
         scatter_dz = gl.GLScatterPlotItem(pos=coords_stage, size=10, color=colors4_dz/255)
+        self.view_z.clear()
+        self.view_z.addItem(self.axis_item)
         self.view_z.addItem(scatter_dz)
-        self.view_z.setCameraPosition(distance=10000)
+        self.view_z.setCameraPosition(distance=30000)
 
     def handle_load(self):
         filename = QFileDialog.getOpenFileName(self, 'Load Accuracy Test file',
                                                 data_dir, 'Numpy files (*.npy)')[0]
         if filename:
             self.data = np.load(filename)
-            self.file_label.setText(filename)
-            self.file_label.setFont(FONT_BOLD)
+            self.load_button.setText(os.path.basename(filename))
+            self.load_button.setFont(FONT_BOLD)
 
     def update_plots(self):
         if (self.data is not None) and (self.cal is not None):
@@ -253,7 +283,10 @@ class AccuracyTestAnalyzeTab(QWidget):
             ripts = self.data[:,5:]
             coords_recon = np.zeros((npts,3))
             for i in range(npts):
-                coords_recon[i,:] = np.array(self.cal.triangulate(lipts[i,:], ripts[i,:]))
+                coords = self.cal.triangulate(lipts[i,:], ripts[i,:])
+                if self.transform is not None:
+                    coords = self.transform.map(coords)
+                coords_recon[i,:] = coords
             delta = coords_recon - coords_stage
             dx = delta[:,0]
             dy = delta[:,1]
@@ -261,7 +294,7 @@ class AccuracyTestAnalyzeTab(QWidget):
             ds = np.sqrt(dx**2 + dy**2 + dz**2)
             self.extremeVal = np.abs(np.concatenate((dx,dy,dz))).max()
             # Update GUI
-            self.mds_label.setText('<ds> = %.2f um' % np.mean(ds))
+            self.stats_label.setText('rms(ds) = %.2f,   max(ds) = %.2f (um)' % (np.mean(ds), ds.max()))
             self.update_histograms(dx, dy, dz, ds)
             self.update_scatter_plots(dx, dy, dz, ds, coords_stage)
 
@@ -275,7 +308,6 @@ class AccuracyTestWorker(QObject):
         QObject.__init__(self)
 
         self.stage = params['stage']
-        #self.cal = params['cal']
         self.npoints  = params['npoints']
         self.extent_um = params['extent_um']
         self.origin = [7500., 7500., 7500.] # hard-wired for now

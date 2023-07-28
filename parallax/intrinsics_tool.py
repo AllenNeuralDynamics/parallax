@@ -71,7 +71,7 @@ class IntrinsicsTool(QWidget):
 
         self.opts = None
         self.ipts = None
-        self.npts_label = QLabel('0 points loaded')
+        self.npts_label = QLabel('0 poses loaded')
         self.npts_label.setAlignment(Qt.AlignCenter)
         self.npts_label.setFont(FONT_BOLD)
 

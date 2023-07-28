@@ -21,6 +21,7 @@ from .rigid_body_transform_tool import RigidBodyTransformTool
 from .template_tool import TemplateTool
 from .checkerboard_tool import CheckerboardToolMono, CheckerboardToolStereo
 from .intrinsics_tool import IntrinsicsTool
+from .cal_stereo_corners import CalibrateStereoCornersTool
 from .accuracy_test import AccuracyTestTool
 from .ground_truth_data_tool import GroundTruthDataTool
 from .elevator_control import ElevatorControlTool
@@ -64,6 +65,8 @@ class MainWindow(QMainWindow):
         self.cbs_action.triggered.connect(self.launch_cbs)
         self.it_action = QAction("Intrinsics Tool")
         self.it_action.triggered.connect(self.launch_it)
+        self.csc_action = QAction("Calibration from Stereo Corners")
+        self.csc_action.triggered.connect(self.launch_csc)
         self.rbt_action = QAction("Rigid Body Transform Tool")
         self.rbt_action.triggered.connect(self.launch_rbt)
         self.accutest_action = QAction("Accuracy Testing Tool")
@@ -101,6 +104,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.cbm_action)
         self.tools_menu.addAction(self.cbs_action)
         self.tools_menu.addAction(self.it_action)
+        self.tools_menu.addAction(self.csc_action)
         self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.gtd_action)
         self.tools_menu.addAction(self.elevator_action)
@@ -156,6 +160,12 @@ class MainWindow(QMainWindow):
         self.it = IntrinsicsTool()
         self.it.msg_posted.connect(self.widget.msg_log.post)
         self.it.show()
+
+    def launch_csc(self):
+        self.csc = CalibrateStereoCornersTool(self.model)
+        self.csc.msg_posted.connect(self.widget.msg_log.post)
+        self.csc.cal_generated.connect(self.widget.cal_panel.update_cals)
+        self.csc.show()
 
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
