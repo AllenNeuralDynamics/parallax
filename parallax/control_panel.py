@@ -260,15 +260,10 @@ class TargetDialog(QWidget):
         self.stage_label.setAlignment(Qt.AlignCenter)
         self.stage_label.setFont(FONT_BOLD)
 
-        self.random_button = QPushButton('Random Point')
-        self.random_button.clicked.connect(self.populate_random)
-
         self.point_drop = PointDrop()
         self.point_drop.setToolTip('Drag and Drop Point')
         self.point_drop.point_received.connect(self.populate)
         
-        self.random_button.clicked.connect(self.populate_random)
-
         self.xlabel = QLabel('X = ')
         self.xlabel.setAlignment(Qt.AlignCenter)
         self.ylabel = QLabel('Y = ')
@@ -282,6 +277,11 @@ class TargetDialog(QWidget):
 
         x,y,z = self.stage.get_position()
         self.populate(x,y,z)
+
+        self.random_button = QPushButton('Randomize')
+        self.random_button.setToolTip('Choose target coordinates randomly from '
+                                        'a 1x1 mm cube centered at the current position')
+        self.random_button.clicked.connect(self.populate_random)
 
         self.validator = QDoubleValidator(0,15000,-1)
         self.validator.setNotation(QDoubleValidator.StandardNotation)
@@ -315,15 +315,15 @@ class TargetDialog(QWidget):
 
         layout = QGridLayout()
         layout.addWidget(self.stage_label, 0,0, 1,2)
-        layout.addWidget(self.random_button, 1,0, 1,2)
-        layout.addWidget(self.point_drop, 2,0, 1,2)
-        layout.addWidget(self.xlabel, 3,0)
-        layout.addWidget(self.ylabel, 4,0)
-        layout.addWidget(self.zlabel, 5,0)
-        layout.addWidget(self.xedit, 3,1)
-        layout.addWidget(self.yedit, 4,1)
-        layout.addWidget(self.zedit, 5,1)
-        layout.addWidget(self.info_label, 6,0, 1,2)
+        layout.addWidget(self.point_drop, 1,0, 1,2)
+        layout.addWidget(self.xlabel, 2,0)
+        layout.addWidget(self.ylabel, 3,0)
+        layout.addWidget(self.zlabel, 4,0)
+        layout.addWidget(self.xedit, 2,1)
+        layout.addWidget(self.yedit, 3,1)
+        layout.addWidget(self.zedit, 4,1)
+        layout.addWidget(self.info_label, 5,0, 1,2)
+        layout.addWidget(self.random_button, 6,0, 1,2)
         layout.addWidget(self.move_button, 7,0, 1,2)
         layout.addWidget(self.halt_button, 8,0, 1,2)
 
@@ -348,7 +348,11 @@ class TargetDialog(QWidget):
         self.zedit.setText('{0:.2f}'.format(z))
 
     def populate_random(self):
-        x,y,z = (np.random.uniform(0, 15000) for i in range(3))
+        x,y,z = self.stage.get_position()
+        dx,dy,dz = (np.random.uniform(-500, 500) for i in range(3))
+        x = np.clip(x + dx, 0, 15000)
+        y = np.clip(y + dy, 0, 15000)
+        z = np.clip(z + dz, 0, 15000)
         self.populate(x,y,z)
 
     def get_params(self):
