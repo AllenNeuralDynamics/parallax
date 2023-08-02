@@ -103,12 +103,12 @@ class Calibration:
             my_flags += cv2.CALIB_FIX_TANGENT_DIST
             rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
                                                                             (WF, HF),
-                                                                            imtx1, idist1,
+                                                                            mtx1, dist1,
                                                                             flags=my_flags,
                                                                             criteria=CRIT)
             rmse2, mtx2, dist2, rvecs2, tvecs2 = cv2.calibrateCamera(obj_points, img_points2,
                                                                             (WF, HF),
-                                                                            imtx2, idist2,
+                                                                            mtx2, dist2,
                                                                             flags=my_flags,
                                                                             criteria=CRIT)
 
