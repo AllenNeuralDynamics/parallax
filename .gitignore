@@ -7,6 +7,6 @@ parallax/*.png
 *.npz
 *.pkl
 *.csv
-data/*
-training/*
-env/*
+data
+training
+env
