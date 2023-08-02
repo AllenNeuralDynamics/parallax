@@ -120,6 +120,10 @@ class ControlPanel(QFrame):
         self.halt_button.setToolTip('Halt This Stage')
         self.halt_button.clicked.connect(self.halt)
 
+        self.retract_button = QPushButton('Retract')
+        self.retract_button.setToolTip('Retract to z=0')
+        self.retract_button.clicked.connect(self.retract)
+
         # layout
         main_layout = QGridLayout()
         main_layout.addWidget(self.main_label, 0,0, 1,4)
@@ -130,6 +134,7 @@ class ControlPanel(QFrame):
         main_layout.addWidget(self.xcontrol, 2,0, 1,1)
         main_layout.addWidget(self.ycontrol, 2,1, 1,1)
         main_layout.addWidget(self.zcontrol, 2,2, 1,1)
+        main_layout.addWidget(self.retract_button, 2,3, 1,1)
         self.setLayout(main_layout)
 
         # frame border
@@ -216,7 +221,12 @@ class ControlPanel(QFrame):
             self.stage.move_absolute_1d(axis, 7500)
 
     def halt(self):
-        self.stage.halt()
+        if self.stage:
+            self.stage.halt()
+
+    def retract(self):
+        if self.stage:
+            self.stage.move_absolute_1d('z', 0)
 
     def mousePressEvent(self, e):
         self.dragHold = True
