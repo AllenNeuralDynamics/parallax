@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout, QTabWidget
 from PyQt5.QtWidgets import QPushButton, QFrame, QWidget, QComboBox, QLabel
 from PyQt5.QtWidgets import QFileDialog, QDialog, QLineEdit, QDialogButtonBox
 from PyQt5.QtWidgets import QLineEdit, QPlainTextEdit, QSpinBox, QCheckBox
+from PyQt5.QtWidgets import QButtonGroup
 
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, QMimeData
 from PyQt5.QtGui import QDrag, QIcon
@@ -111,14 +112,17 @@ class CalibrationPanel(QFrame):
                 name = dlg.get_name()
                 cs = dlg.get_cs()
                 intrinsics = dlg.get_intrinsics()
-                self.start_cal_thread(stage, res, extent, origin, name, cs, intrinsics)
+                recurse = dlg.get_recurse()
+                self.start_cal_thread(stage, res, extent, origin, name, cs,
+                                        intrinsics, recurse)
         elif self.start_stop_button.text() == 'Stop':
             self.stop_cal_thread()
 
-    def start_cal_thread(self, stage, res, extent, origin, name, cs, intrinsics):
+    def start_cal_thread(self, stage, res, extent, origin, name, cs, intrinsics, recurse):
         self.model.cal_in_progress = True
         self.cal_thread = QThread()
-        self.cal_worker = CalibrationWorker(name, cs, stage, intrinsics, res, extent, origin)
+        self.cal_worker = CalibrationWorker(name, cs, stage, intrinsics, res,
+                                            extent, origin, recurse=recurse)
         self.cal_worker.moveToThread(self.cal_thread)
         self.cal_thread.started.connect(self.cal_worker.run)
         self.cal_worker.calibration_point_reached.connect(self.handle_cal_point_reached)
@@ -156,7 +160,7 @@ class CalibrationPanel(QFrame):
                 cal.set_initial_intrinsics(int1.mtx, int2.mtx, int1.dist, int2.dist, fixed=True)
             img_points1, img_points2 = self.cal_worker.get_image_points()
             obj_points = self.cal_worker.get_object_points()
-            cal.calibrate(img_points1, img_points2, obj_points)
+            cal.calibrate(img_points1, img_points2, obj_points, recurse=self.cal_worker.recurse)
             self.msg_posted.emit('Calibration finished. RMSE = %f um' % cal.rmse_tri_norm)
             self.model.add_calibration(cal)
             self.update_cals()
@@ -399,10 +403,21 @@ class CalibrationDialog(QDialog):
         self.cs_label.setAlignment(Qt.AlignCenter)
         self.cs_edit = QLineEdit('')
 
+        self.optimize_label = QLabel('Optimize Intrinsics')
+        self.optimize_label.setAlignment(Qt.AlignCenter)
+        self.optimize_check = QCheckBox()
+        self.optimize_check.setChecked(True)
+        self.recurse_label = QLabel('Recurse on Intrinsics')
+        self.recurse_label.setAlignment(Qt.AlignCenter)
+        self.recurse_check = QCheckBox()
         self.intrinsics_label = QLabel('Provide Intrinsics')
         self.intrinsics_label.setAlignment(Qt.AlignCenter)
         self.intrinsics_check = QCheckBox()
         self.intrinsics_check.stateChanged.connect(self.handle_check)
+        self.button_group = QButtonGroup()
+        self.button_group.addButton(self.optimize_check)
+        self.button_group.addButton(self.recurse_check)
+        self.button_group.addButton(self.intrinsics_check)
 
         self.int1_label = QLabel('Left:')
         self.int1_label.setAlignment(Qt.AlignRight)
@@ -439,13 +454,17 @@ class CalibrationDialog(QDialog):
         layout.addWidget(self.name_edit, 5,1, 1,1)
         layout.addWidget(self.cs_label, 6,0, 1,1)
         layout.addWidget(self.cs_edit, 6,1, 1,1)
-        layout.addWidget(self.intrinsics_label, 7,0, 1,1)
-        layout.addWidget(self.intrinsics_check, 7,1, 1,1)
-        layout.addWidget(self.int1_label, 8,0, 1,1)
-        layout.addWidget(self.int1_button, 8,1, 1,1)
-        layout.addWidget(self.int2_label, 9,0, 1,1)
-        layout.addWidget(self.int2_button, 9,1, 1,1)
-        layout.addWidget(self.start_button, 10,0, 1,2)
+        layout.addWidget(self.optimize_label, 7,0, 1,1)
+        layout.addWidget(self.optimize_check, 7,1, 1,1)
+        layout.addWidget(self.recurse_label, 8,0, 1,1)
+        layout.addWidget(self.recurse_check, 8,1, 1,1)
+        layout.addWidget(self.intrinsics_label, 9,0, 1,1)
+        layout.addWidget(self.intrinsics_check, 9,1, 1,1)
+        layout.addWidget(self.int1_label, 10,0, 1,1)
+        layout.addWidget(self.int1_button, 10,1, 1,1)
+        layout.addWidget(self.int2_label, 11,0, 1,1)
+        layout.addWidget(self.int2_button, 11,1, 1,1)
+        layout.addWidget(self.start_button, 12,0, 1,2)
         self.setLayout(layout)
 
         self.setWindowTitle("Calibration Routine Parameters")
@@ -508,6 +527,9 @@ class CalibrationDialog(QDialog):
             return self.int1, self.int2
         else:
             return None
+
+    def get_recurse(self):
+        return self.recurse_check.isChecked()
 
     def go(self):
         self.accept()
