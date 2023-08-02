@@ -60,7 +60,7 @@ class Calibration:
 
         return obj_point_reconstructed + self.offset # np.array([x,y,z])
 
-    def calibrate(self, img_points1, img_points2, obj_points, recurse=False):
+    def calibrate(self, img_points1, img_points2, obj_points):
 
         # img_points have dims (npose, npts, 2)
         # obj_points have dims (npose, npts, 3)
@@ -90,28 +90,6 @@ class Calibration:
                                                                         self.imtx2, self.idist2,
                                                                         flags=my_flags,
                                                                         criteria=CRIT)
-
-        # optional, recurse on intrinsics
-        if recurse:
-            # fix intrinsics
-            my_flags = cv2.CALIB_USE_INTRINSIC_GUESS
-            my_flags += cv2.CALIB_FIX_PRINCIPAL_POINT
-            my_flags += cv2.CALIB_FIX_FOCAL_LENGTH
-            my_flags += cv2.CALIB_FIX_K1
-            my_flags += cv2.CALIB_FIX_K2
-            my_flags += cv2.CALIB_FIX_K3
-            my_flags += cv2.CALIB_FIX_TANGENT_DIST
-            rmse1, mtx1, dist1, rvecs1, tvecs1 = cv2.calibrateCamera(obj_points, img_points1,
-                                                                            (WF, HF),
-                                                                            mtx1, dist1,
-                                                                            flags=my_flags,
-                                                                            criteria=CRIT)
-            rmse2, mtx2, dist2, rvecs2, tvecs2 = cv2.calibrateCamera(obj_points, img_points2,
-                                                                            (WF, HF),
-                                                                            mtx2, dist2,
-                                                                            flags=my_flags,
-                                                                            criteria=CRIT)
-
 
         # select LAST extrinsics for projection matrices
         self.rvec1 = rvecs1[-1]

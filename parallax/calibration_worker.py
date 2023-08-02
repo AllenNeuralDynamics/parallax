@@ -12,8 +12,7 @@ class CalibrationWorker(QObject):
     ORIGIN_DEFAULT = (7500., 7500., 7500.)
 
     def __init__(self, name, cs, stage, intrinsics, resolution=RESOLUTION_DEFAULT,
-                    extent_um=EXTENT_UM_DEFAULT, origin=ORIGIN_DEFAULT, recurse=False,
-                    parent=None):
+                    extent_um=EXTENT_UM_DEFAULT, origin=ORIGIN_DEFAULT, parent=None):
         # resolution is number of steps per dimension, for 3 dimensions
         # (so default value of 3 will yield 3^3 = 27 calibration points)
         # extent_um is the extent in microns for each dimension, centered on zero
@@ -25,7 +24,6 @@ class CalibrationWorker(QObject):
         self.resolution = resolution
         self.extent_um = extent_um
         self.origin = origin
-        self.recurse = recurse
 
         self.object_points = []  # units are mm
         self.num_cal = self.resolution**3

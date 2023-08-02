@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QInputDialog, QComboBox
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QCheckBox
-from PyQt5.QtWidgets import QTabWidget, QButtonGroup
+from PyQt5.QtWidgets import QTabWidget 
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt5.QtGui import QIcon, QDrag
 from PyQt5.QtCore import QSize, pyqtSignal, Qt 
@@ -42,22 +42,10 @@ class CalibrateStereoCornersTool(QWidget):
                                         dt.month, dt.day, dt.hour, dt.minute, dt.second)
         self.name_edit = QLineEdit(suggested_name)
 
-        self.optimize_label = QLabel('Optimize Intrinsics')
-        self.optimize_label.setAlignment(Qt.AlignCenter)
-        self.optimize_check = QCheckBox()
-        self.optimize_check.setChecked(True)
-        self.recurse_label = QLabel('Recurse on Intrinsics')
-        self.recurse_label.setAlignment(Qt.AlignCenter)
-        self.recurse_check = QCheckBox()
         self.intrinsics_label = QLabel('Provide Intrinsics')
         self.intrinsics_label.setAlignment(Qt.AlignCenter)
         self.intrinsics_check = QCheckBox()
         self.intrinsics_check.stateChanged.connect(self.handle_check)
-        self.button_group = QButtonGroup()
-        self.button_group.addButton(self.optimize_check)
-        self.button_group.addButton(self.recurse_check)
-        self.button_group.addButton(self.intrinsics_check)
-
         self.int1_label = QLabel('Left:')
         self.int1_label.setAlignment(Qt.AlignRight)
         self.int1_button = QPushButton('Load')
@@ -78,17 +66,13 @@ class CalibrateStereoCornersTool(QWidget):
         layout.addWidget(self.npts_label, 1,0, 1,2)
         layout.addWidget(self.name_label, 2,0, 1,1)
         layout.addWidget(self.name_edit, 2,1, 1,1)
-        layout.addWidget(self.optimize_label, 3,0, 1,1)
-        layout.addWidget(self.optimize_check, 3,1, 1,1)
-        layout.addWidget(self.recurse_label, 4,0, 1,1)
-        layout.addWidget(self.recurse_check, 4,1, 1,1)
-        layout.addWidget(self.intrinsics_label, 5,0, 1,1)
-        layout.addWidget(self.intrinsics_check, 5,1, 1,1)
-        layout.addWidget(self.int1_label, 6,0, 1,1)
-        layout.addWidget(self.int1_button, 6,1, 1,1)
-        layout.addWidget(self.int2_label, 7,0, 1,1)
-        layout.addWidget(self.int2_button, 7,1, 1,1)
-        layout.addWidget(self.generate_button, 8,0, 1,2)
+        layout.addWidget(self.intrinsics_label, 3,0, 1,1)
+        layout.addWidget(self.intrinsics_check, 3,1, 1,1)
+        layout.addWidget(self.int1_label, 4,0, 1,1)
+        layout.addWidget(self.int1_button, 4,1, 1,1)
+        layout.addWidget(self.int2_label, 5,0, 1,1)
+        layout.addWidget(self.int2_button, 5,1, 1,1)
+        layout.addWidget(self.generate_button, 6,0, 1,2)
 
         self.setLayout(layout)
         self.setMinimumWidth(350)
@@ -137,8 +121,7 @@ class CalibrateStereoCornersTool(QWidget):
         if self.intrinsics_check.isChecked():
             self.cal.set_initial_intrinsics(self.int1.mtx, self.int2.mtx,
                                             self.int1.dist, self.int2.dist, fixed=True)
-        self.cal.calibrate(self.lipts, self.ripts, self.opts,
-                            recurse=self.recurse_check.isChecked())
+        self.cal.calibrate(self.lipts, self.ripts, self.opts)
         self.msg_posted.emit('Generated %s' % self.cal.name)
         self.msg_posted.emit('RMSE = %.2f um' % self.cal.rmse_tri_norm)
         self.model.add_calibration(self.cal)
