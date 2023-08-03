@@ -329,20 +329,16 @@ class CorrespondencePointsTab(QWidget):
                 reader = csv.reader(f, delimiter=',')
                 for row in reader:
                     self.add_coordinates(coords=[float(e) for e in row])
-                    """
-                    points = pickle.load(f)
-                    for point in points:
-                        self.list_widget.addItem(PointBankItem(point))
-                    """
 
     def save(self):
         filename = QFileDialog.getSaveFileName(self, 'Save correspondence file',
                                                 data_dir, 'CSV files (*.csv)')[0]
-        with open(filename, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',')
-            for i in range(self.list_widget.count()):
-                points = self.list_widget.item(i).text().split(',')
-                writer.writerow(points)
+        if filename:
+            with open(filename, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile, delimiter=',')
+                for i in range(self.list_widget.count()):
+                    points = self.list_widget.item(i).text().split(',')
+                    writer.writerow(points)
 
     def clear(self):
         self.list_widget.clear()
