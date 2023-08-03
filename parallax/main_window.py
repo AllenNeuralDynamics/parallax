@@ -140,6 +140,8 @@ class MainWindow(QMainWindow):
 
     def launch_rbt(self):
         self.rbt = RigidBodyTransformTool(self.model)
+        self.rbt.msg_posted.connect(self.widget.msg_log.post)
+        self.rbt.generated.connect(self.widget.trans_panel.update_transforms)
         self.rbt.show()
 
     def launch_tt(self):
