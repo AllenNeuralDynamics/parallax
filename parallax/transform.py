@@ -11,35 +11,45 @@ class Transform:
         self.name = name
         self.from_cs = from_cs
         self.to_cs = to_cs
-        self.params = None
+        self.params = {}
         self.rmse = None
-        self.confidence = None
+        self.convergence = None
 
     def compute_from_correspondence(self, from_points, to_points):
         raise NotImplementedError
 
     def compute_rmse(self):
-        npts = self.from_points.shape[0]
-        diffs = np.zeros(npts, dtype=np.float32)
-        for i in range(npts):
-            gt = self.to_points[i,:]
-            tt = self.map(self.from_points[i,:])
-            diffs[i] = np.linalg.norm(tt - gt)
-        self.rmse = np.mean(diffs)
+        if all(a is not None for a in (self.from_points, self.to_points)):
+            npts = self.from_points.shape[0]
+            delta = np.zeros((npts,3), dtype=np.float32)
+            for i in range(npts):
+                gt = self.to_points[i,:]
+                tt = self.map(self.from_points[i,:])
+                delta[i,:] = np.linalg.norm(tt - gt)
+            self.rmse = np.sqrt(np.mean(delta*delta))
 
-    def compute_confidence(self, cls_tx):
-        npts = self.from_points.shape[0]
-        self.diffs_txm1 = np.zeros((npts,npts-1,3), dtype=np.float32)
-        for i in range(npts):
-            indices = np.concatenate((np.arange(i), np.arange(i+1,npts)))
-            txm1 = cls_tx('dummy', 'dummy', 'dummy')
-            txm1.compute_from_correspondence(self.from_points[indices,:],
-                                            self.to_points[indices,:], confidence=False)
-            for j,index in enumerate(indices):
-                p = self.map(self.from_points[index,:])
-                pm1 = txm1.map(self.from_points[index,:])
-                self.diffs_txm1[i,j,:] = p - pm1
-        self.confidence = np.mean(np.linalg.norm(self.diffs_txm1, axis=2))
+    def compute_convergence(self, cls_tx):
+        """
+        Convergence is defined as the RMS difference between the points projected
+        by the transform, and the points projected by each of the N transforms
+        created by removing one of the N correspondence points.
+        """
+        if all(a is not None for a in (self.from_points, self.to_points)):
+            npts = self.from_points.shape[0]
+            delta = np.zeros((npts,npts,3), dtype=np.float32)
+            for ir in range(npts):  # removed index
+                indices = np.concatenate((np.arange(ir), np.arange(ir+1,npts)))
+                txm1 = cls_tx('dummy', 'dummy', 'dummy')
+                txm1.compute_from_correspondence(self.from_points[indices,:],
+                                                self.to_points[indices,:], convergence=False)
+                for j in range(npts):
+                    p = self.map(self.from_points[j,:])
+                    pm1 = txm1.map(self.from_points[j,:])
+                    delta[ir,j,:] = p - pm1
+            self.convergence = np.sqrt(np.mean(delta*delta))
+        
+    def compute_variance(self, cls_tx):
+        raise NotImplementedError
         
     def compute_from_composition(self, transforms):
         raise NotImplementedError
@@ -67,16 +77,16 @@ class TransformRT(Transform):
         Transform.__init__(self, name, from_cs, to_cs)
         self.tx = coorx.RT3DTransform(from_cs=from_cs, to_cs=to_cs)
 
-    def compute_from_correspondence(self, from_points, to_points, confidence=True):
+    def compute_from_correspondence(self, from_points, to_points, convergence=True):
         self.from_points = from_points
         self.to_points = to_points
         self.tx.set_mapping(from_points, to_points)
         self.compute_rmse()
-        if confidence:
-            self.compute_confidence()
+        if convergence:
+            self.compute_convergence()
 
-    def compute_confidence(self):
-        Transform.compute_confidence(self, TransformSRT)
+    def compute_convergence(self):
+        Transform.compute_convergence(self, TransformSRT)
 
     def compute_from_composition(self, transforms):
         txs = [transform.tx for transform in transforms]
@@ -104,16 +114,16 @@ class TransformSRT(Transform):
         Transform.__init__(self, name, from_cs, to_cs)
         self.tx = coorx.SRT3DTransform(from_cs=from_cs, to_cs=to_cs)
 
-    def compute_from_correspondence(self, from_points, to_points, confidence=True):
+    def compute_from_correspondence(self, from_points, to_points, convergence=True):
         self.from_points = from_points
         self.to_points = to_points
         self.tx.set_mapping(from_points, to_points)
         self.compute_rmse()
-        if confidence:
-            self.compute_confidence()
+        if convergence:
+            self.compute_convergence()
 
-    def compute_confidence(self):
-        Transform.compute_confidence(self, TransformSRT)
+    def compute_convergence(self):
+        Transform.compute_convergence(self, TransformSRT)
 
     def compute_from_composition(self, transforms):
         txs = [transform.tx for transform in transforms]
