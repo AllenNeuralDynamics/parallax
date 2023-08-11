@@ -471,7 +471,9 @@ class StageSettingsDialog(QDialog):
         layout.addWidget(self.freqcal_button, 7,0, 1,3)
         self.setLayout(layout)
 
-        self.setMinimumWidth(500)
+        self.setMinimumWidth(600)
+        self.setWindowTitle('Stage Settings Dialog')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
     def calibrate_frequency(self):
         self.stage.calibrate_frequency()
