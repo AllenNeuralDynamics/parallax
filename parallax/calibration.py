@@ -166,11 +166,11 @@ class Calibration:
                                                                         flags=my_flags,
                                                                         criteria=CRIT)
 
-        # select LAST extrinsics for projection matrices
-        self.rvec1 = rvecs1[-1]
-        self.tvec1 = tvecs1[-1]
-        self.rvec2 = rvecs2[-1]
-        self.tvec2 = tvecs2[-1]
+        # save all the extrinsics for reconstruction later
+        self.rvecs1 = rvecs1
+        self.tvecs1 = tvecs1
+        self.rvecs2 = rvecs2
+        self.tvecs2 = tvecs2
 
         stereocalibration_flags = cv2.CALIB_FIX_INTRINSIC
         rmse_stereo, _, _, _, _, R, T, E, F = cv2.stereoCalibrate(obj_points, img_points1, 
@@ -178,23 +178,20 @@ class Calibration:
                                                                      mtx2, dist2, (WF, HF),
                                                                     criteria = CRIT,
                                                                     flags = stereocalibration_flags)
-        print('R = ', R)
-        print('T = ', T)
-        print('E = ', E)
-        print('F = ', F)
         self.R = R
         self.T = T
         self.E = E
         self.F = F
 
 
+        """ Don't actually need these
         #RT matrix for C1 is identity.
         RT1 = np.concatenate([np.eye(3), [[0],[0],[0]]], axis = -1)
         self.P1 = mtx1 @ RT1 #projection matrix for C1
-     
         #RT matrix for C2 is the R and T obtained from stereo calibration.
         RT2 = np.concatenate([R, T], axis = -1)
         self.P2 = mtx2 @ RT2 #projection matrix for C2
+        """
 
         # calculate projection matrices
         """
@@ -209,27 +206,23 @@ class Calibration:
         self.mtx2 = mtx2
         self.dist1 = dist1
         self.dist2 = dist2
-        """
         self.rmse_reproj_1 = rmse1  # RMS error from reprojection (in pixels)
         self.rmse_reproj_2 = rmse2
-        """
 
         # save calibration points
-        """
         self.obj_points = obj_points
         self.img_points1 = img_points1
         self.img_points2 = img_points2
-        """
 
         # compute error stastistics
-        """
         diffs = []
         for i in range(self.npose):
             for j in range(self.npts):
                 op = self.obj_points[i,j,:]
                 ip1 = self.img_points1[i,j,:]
                 ip2 = self.img_points2[i,j,:]
-                op_recon = self.triangulate_proj(ip1,ip2,self.projs1[i], self.projs2[i])
+                #op_recon = self.triangulate_proj(ip1,ip2,self.projs1[i], self.projs2[i])
+                op_recon = self.triangulate_stereo_pose(ip1,ip2, i)
                 diff = op - op_recon
                 diffs.append(diff)
         self.diffs = np.array(diffs, dtype=np.float32)
@@ -238,7 +231,6 @@ class Calibration:
         self.rmse_tri = np.sqrt(np.mean(self.diffs * self.diffs, axis=0))
         # RMS error from triangulation (in um)
         self.rmse_tri_norm = np.linalg.norm(self.rmse_tri)
-        """
 
         print('rmse1 = ', rmse1)
         print('rmse2 = ', rmse2)
@@ -246,6 +238,14 @@ class Calibration:
 
 
     def triangulate_stereo(self, lcorr, rcorr):
+        return self.triangulate_stereo_pose(lcorr, rcorr, -1)
+
+
+    def triangulate_stereo_pose(self, lcorr, rcorr, pose_index):
+        # idea, switch to rvec/tvec 2 if the rmse is lower there?
+
+        rvec1 = self.rvecs1[pose_index]
+        tvec1 = self.tvecs1[pose_index]
 
         img_points1_cv = np.array([[lcorr]], dtype=np.float32)
         img_points2_cv = np.array([[rcorr]], dtype=np.float32)
@@ -257,16 +257,12 @@ class Calibration:
         img_point1 = img_points1_cv[0,0]
         img_point2 = img_points2_cv[0,0]
 
-        # ok so
-        pp1 = lib.get_projection_matrix(self.mtx1, self.rvec1, self.tvec1)
-        # but check this out
-        R1, _ = cv2.Rodrigues(self.rvec1)
-        t1 = self.tvec1
-        # then
+        pp1 = lib.get_projection_matrix(self.mtx1, rvec1, tvec1)
+        R1, _ = cv2.Rodrigues(rvec1)
+        t1 = tvec1
         Rf = np.matmul(self.R, R1)
-        tf = t1 + np.matmul(R1.T, self.T)
+        tf = np.matmul(self.R, t1) + self.T
         Rtf = np.concatenate([Rf,tf], axis=-1) # [R|t]
-        # so
         pp2 = np.matmul(self.mtx2, Rtf)
 
         obj_point_reconstructed = lib.triangulate_from_image_points(img_point1, img_point2,
