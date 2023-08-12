@@ -95,9 +95,13 @@ class AccuracyTestRunTab(QWidget):
         self.setMinimumWidth(300)
 
     def grab_stage_position_as_origin(self):
-        stage = self.get_stage()
-        pos = stage.get_position()
-        self.set_origin(pos)
+        if self.stage_dropdown.is_selected():
+            name = self.stage_dropdown.currentText()
+            stage = self.model.stages[name]
+            pos = stage.get_position()
+            self.set_origin(pos)
+        else:
+            self.msg_posted.emit('Accuracy Run Tab: select a stage')
 
     def set_origin(self, pos):
         self.origin_value.setText('[%.1f, %.1f, %.1f]' % pos)
@@ -105,8 +109,10 @@ class AccuracyTestRunTab(QWidget):
 
     def get_stage(self):
         name = self.stage_dropdown.currentText()
-        stage = self.model.stages[name]
-        return stage
+        if name:
+            return self.model.stages[name]
+        else:
+            return None
 
     def start_accuracy_test(self):
         if self.stage_dropdown.is_selected():
