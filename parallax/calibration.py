@@ -6,8 +6,10 @@ from . import lib
 from .helper import WF, HF
 
 
-imtx = np.array([[1.5e+04, 0.00000000e+00, 2e+03],
-            [0.00000000e+00, 1.5e+04, 1.5e+03], [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float32)
+imtx = np.array([[1.5e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.5e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
 
 idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
                     dtype=np.float32)
