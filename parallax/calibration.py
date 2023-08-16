@@ -46,8 +46,8 @@ class Calibration:
 
     def triangulate_proj(self, lcorr, rcorr, proj1, proj2):
 
-        img_points1_cv = np.array([[lcorr]], dtype=np.float32)
-        img_points2_cv = np.array([[rcorr]], dtype=np.float32)
+        img_points1_cv = np.array([lcorr], dtype=np.float32)
+        img_points2_cv = np.array([rcorr], dtype=np.float32)
 
         # undistort
         img_points1_cv = lib.undistort_image_points(img_points1_cv, self.mtx1, self.dist1)
