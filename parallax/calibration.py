@@ -128,9 +128,8 @@ class Calibration:
                 err[i,j,:] = op - op_recon
         self.mean_error = np.mean(err, axis=(0,1))
         self.std_error = np.std(err, axis=(0,1))
-        # this the RMS re-triangulation error, using the same formula as
-        #   OpenCV's RMSE for re-projection
-        self.rmse = np.sqrt(np.mean(np.linalg.norm(err, axis=2)**2))
+        # this the RMS re-triangulation error
+        self.rmse = np.sqrt(np.mean(err*err))
         self.err = err
 
 
