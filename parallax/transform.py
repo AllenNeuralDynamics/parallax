@@ -14,7 +14,7 @@ class Transform:
         self.to_cs = to_cs
         self.params = None
         self.rmse = None
-        self.dproj = None # rename to dproj?
+        self.dproj = None
         self.dparams = None
 
     def compute_from_correspondence(self, from_points, to_points):
@@ -23,12 +23,12 @@ class Transform:
     def compute_rmse(self):
         if all(a is not None for a in (self.from_points, self.to_points)):
             npts = self.from_points.shape[0]
-            delta = np.zeros((npts,3), dtype=np.float32)
+            err = np.zeros((npts,3), dtype=np.float32)
             for i in range(npts):
                 gt = self.to_points[i,:]
                 tt = self.map(self.from_points[i,:])
-                delta[i,:] = np.linalg.norm(tt - gt)
-            self.rmse = np.sqrt(np.mean(delta*delta))
+                err[i,:] = tt - gt
+            self.rmse = np.sqrt(np.mean(err*err))
 
     def compute_dproj(self):
         """
@@ -257,6 +257,7 @@ class TransformNP(Transform):
             ori = ori + np.dot(rot, t.ori)
             rot = np.dot(rot, t.rot)
         self.set_from_rot_ori(rot, ori)
+        self.component_transforms = transforms
         if recurse:
             self.compute_variances_composition(transforms)
 
@@ -274,15 +275,15 @@ class TransformNP(Transform):
         delta = np.zeros((n1,n2,n1,3), dtype=np.float32)
         lparams = np.zeros((n1,n2,len(self.params)), dtype=np.float32)
         for ir in range(n1):
+            ix1= np.concatenate((np.arange(ir), np.arange(ir+1,n1)))
+            t1l = TransformNP('', '', '')
+            t1l.compute_from_correspondence(t1.from_points[ix1],
+                                            t1.to_points[ix1], recurse=False)
             for jr in range(n2):
-                ix1= np.concatenate((np.arange(ir), np.arange(ir+1,n1)))
-                t1l = TransformNP('', '', '')
-                t1l.compute_from_correspondence(t1.from_points[ix1],
-                                                t1.to_points[ix1])
                 ix2= np.concatenate((np.arange(jr), np.arange(jr+1,n2)))
                 t2l = TransformNP('', '', '')
                 t2l.compute_from_correspondence(t2.from_points[ix2],
-                                                t2.to_points[ix2])
+                                                t2.to_points[ix2], recurse=False)
                 tl = TransformNP('', '', '')
                 tl.compute_from_composition([t1l, t2l], recurse=False)
                 for k in range(n1):
@@ -359,6 +360,7 @@ class TransformNPS(Transform):
             rot = np.dot(rot, t.rot)
             s = t.s * s
         self.set_from_rot_ori_scale(rot, ori, s)
+        self.component_transforms = transforms
         if recurse:
             self.compute_variances_composition(transforms)
 
@@ -376,15 +378,15 @@ class TransformNPS(Transform):
         delta = np.zeros((n1,n2,n1,3), dtype=np.float32)
         lparams = np.zeros((n1,n2,len(self.params)), dtype=np.float32)
         for ir in range(n1):
+            ix1= np.concatenate((np.arange(ir), np.arange(ir+1,n1)))
+            t1l = TransformNPS('', '', '')
+            t1l.compute_from_correspondence(t1.from_points[ix1],
+                                            t1.to_points[ix1], recurse=False)
             for jr in range(n2):
-                ix1= np.concatenate((np.arange(ir), np.arange(ir+1,n1)))
-                t1l = TransformNPS('', '', '')
-                t1l.compute_from_correspondence(t1.from_points[ix1],
-                                                t1.to_points[ix1])
                 ix2= np.concatenate((np.arange(jr), np.arange(jr+1,n2)))
                 t2l = TransformNPS('', '', '')
                 t2l.compute_from_correspondence(t2.from_points[ix2],
-                                                t2.to_points[ix2])
+                                                t2.to_points[ix2], recurse=False)
                 tl = TransformNPS('', '', '')
                 tl.compute_from_composition([t1l, t2l], recurse=False)
                 for k in range(n1):
@@ -394,7 +396,6 @@ class TransformNPS(Transform):
                 lparams[ir,jr,:] = tl.params
         self.dproj = np.sqrt(np.mean(delta*delta))
         self.dparams = np.std(lparams, axis=(0,1))
-                    
 
     def map(self, p):
         return self.s * np.dot(p + self.ori, self.rot)

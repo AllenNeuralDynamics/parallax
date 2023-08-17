@@ -11,7 +11,7 @@ import numpy as np
 from . import get_image_file, data_dir
 from .helper import FONT_BOLD
 from .stage_dropdown import StageDropdown
-from .transform import Transform
+from .transform import TransformNP
 
 
 class CoordinateWidget(QWidget):
@@ -187,7 +187,7 @@ class CompositionTab(QWidget):
         name = self.name_edit.text()
         from_cs = transforms[0].from_cs
         to_cs = transforms[-1].to_cs
-        new_transform = Transform(name, from_cs, to_cs)
+        new_transform = TransformNP(name, from_cs, to_cs)
         new_transform.compute_from_composition(transforms)
         self.model.add_transform(new_transform)
         self.generated.emit()
@@ -344,20 +344,21 @@ class CorrespondencePointsTab(QWidget):
         self.list_widget.clear()
 
     def generate(self):
-        items = [self.list_widget.item(i) for i in range(self.list_widget.count())]
+        ncorr = self.list_widget.count()
+        if ncorr < 4:
+            self.msg_posted.emit('Rigid Body Transform: need at least 4 '
+                                    'correspondence points to compute')
+            return
+
+        items = [self.list_widget.item(i) for i in range(ncorr)]
         p1 = np.array([item.points[0] for item in items])
         p2 = np.array([item.points[1] for item in items])
-
-        # just for testing
-        if len(p1) == 0 and len(p2) == 0:
-            p1 = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            p2 = np.array([[0, 0, 0], [0, 10, 0], [-10, 0, 0], [0, 0, 10]])
 
         name = self.name_edit.text()
         from_cs = self.cs1_name_edit.text()
         to_cs = self.cs2_name_edit.text()
 
-        transform = Transform(name, from_cs, to_cs)
+        transform = TransformNP(name, from_cs, to_cs)
         transform.compute_from_correspondence(p1, p2)
 
         self.model.add_transform(transform)

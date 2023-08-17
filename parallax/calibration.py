@@ -6,8 +6,10 @@ from . import lib
 from .helper import WF, HF
 
 
-imtx = np.array([[1.5e+04, 0.00000000e+00, 2e+03],
-            [0.00000000e+00, 1.5e+04, 1.5e+03], [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float32)
+imtx = np.array([[1.5e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.5e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
 
 idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
                     dtype=np.float32)
@@ -42,12 +44,13 @@ class Calibration:
         self.set_initial_intrinsics(imtx, imtx, idist, idist)
 
     def triangulate(self, lcorr, rcorr):
-        return self.triangulate_proj(lcorr, rcorr, self.projs1[-1], self.projs2[-1])
+        # use final pose extrinsics by default
+        return self.triangulate_pose(lcorr, rcorr, -1)
 
-    def triangulate_proj(self, lcorr, rcorr, proj1, proj2):
+    def triangulate_pose(self, lcorr, rcorr, pose_index):
 
-        img_points1_cv = np.array([[lcorr]], dtype=np.float32)
-        img_points2_cv = np.array([[rcorr]], dtype=np.float32)
+        img_points1_cv = np.array([lcorr], dtype=np.float32)
+        img_points2_cv = np.array([rcorr], dtype=np.float32)
 
         # undistort
         img_points1_cv = lib.undistort_image_points(img_points1_cv, self.mtx1, self.dist1)
@@ -55,10 +58,16 @@ class Calibration:
 
         img_point1 = img_points1_cv[0,0]
         img_point2 = img_points2_cv[0,0]
-        obj_point_reconstructed = lib.triangulate_from_image_points(img_point1, img_point2,
-                                    proj1, proj2)
 
-        return obj_point_reconstructed + self.offset # np.array([x,y,z])
+        p1 = lib.get_projection_matrix(self.mtx1, self.rvecs1[pose_index],
+                                        self.tvecs1[pose_index])
+        p2 = lib.get_projection_matrix(self.mtx2, self.rvecs2[pose_index],
+                                        self.tvecs2[pose_index])
+
+        op_recon = lib.triangulate_from_image_points(img_point1, img_point2,
+                                    p1, p2)
+
+        return op_recon + self.offset # np.array([x,y,z])
 
     def calibrate(self, img_points1, img_points2, obj_points):
 
@@ -91,19 +100,11 @@ class Calibration:
                                                                         flags=my_flags,
                                                                         criteria=CRIT)
 
-        # select LAST extrinsics for projection matrices
-        self.rvec1 = rvecs1[-1]
-        self.tvec1 = tvecs1[-1]
-        self.rvec2 = rvecs2[-1]
-        self.tvec2 = tvecs2[-1]
-
-        # calculate projection matrices
-        self.projs1 = []
-        self.projs2 = []
-        for r1,t1,r2,t2 in zip(rvecs1, tvecs1, rvecs2, tvecs2):
-            self.projs1.append(lib.get_projection_matrix(mtx1, r1, t1))
-            self.projs2.append(lib.get_projection_matrix(mtx2, r2, t2))
-
+        # save all calibration parameters
+        self.rvecs1 = rvecs1
+        self.tvecs1 = tvecs1
+        self.rvecs2 = rvecs2
+        self.tvecs2 = tvecs2
         self.mtx1 = mtx1
         self.mtx2 = mtx2
         self.dist1 = dist1
@@ -117,21 +118,18 @@ class Calibration:
         self.img_points2 = img_points2
 
         # compute error stastistics
-        diffs = []
-
+        err = np.zeros(self.obj_points.shape, dtype=np.float32)
         for i in range(self.npose):
             for j in range(self.npts):
                 op = self.obj_points[i,j,:]
                 ip1 = self.img_points1[i,j,:]
                 ip2 = self.img_points2[i,j,:]
-                op_recon = self.triangulate_proj(ip1,ip2,self.projs1[i], self.projs2[i])
-                diff = op - op_recon
-                diffs.append(diff)
-        self.diffs = np.array(diffs, dtype=np.float32)
-        self.mean_error = np.mean(self.diffs, axis=0)
-        self.std_error = np.std(self.diffs, axis=0)
-        self.rmse_tri = np.sqrt(np.mean(self.diffs * self.diffs, axis=0))
-        # RMS error from triangulation (in um)
-        self.rmse_tri_norm = np.linalg.norm(self.rmse_tri)
+                op_recon = self.triangulate_pose(ip1, ip2, i)
+                err[i,j,:] = op - op_recon
+        self.mean_error = np.mean(err, axis=(0,1))
+        self.std_error = np.std(err, axis=(0,1))
+        # this the RMS re-triangulation error
+        self.rmse = np.sqrt(np.mean(err*err))
+        self.err = err
 
 

@@ -123,7 +123,7 @@ class CalibrateStereoCornersTool(QWidget):
                                             self.int1.dist, self.int2.dist, fixed=True)
         self.cal.calibrate(self.lipts, self.ripts, self.opts)
         self.msg_posted.emit('Generated %s' % self.cal.name)
-        self.msg_posted.emit('RMSE = %.2f um' % self.cal.rmse_tri_norm)
+        self.msg_posted.emit('RMSE = %.2f um' % self.cal.rmse)
         self.model.add_calibration(self.cal)
         self.cal_generated.emit()
 
