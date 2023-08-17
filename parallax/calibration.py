@@ -125,7 +125,6 @@ class Calibration:
                 ip1 = self.img_points1[i,j,:]
                 ip2 = self.img_points2[i,j,:]
                 op_recon = self.triangulate_pose(ip1, ip2, i)
-                #delta.append(op - op_recon)
                 err[i,j,:] = op - op_recon
         self.mean_error = np.mean(err, axis=(0,1))
         self.std_error = np.std(err, axis=(0,1))

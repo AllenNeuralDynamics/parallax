@@ -23,12 +23,12 @@ class Transform:
     def compute_rmse(self):
         if all(a is not None for a in (self.from_points, self.to_points)):
             npts = self.from_points.shape[0]
-            delta = np.zeros((npts,3), dtype=np.float32)
+            err = np.zeros((npts,3), dtype=np.float32)
             for i in range(npts):
                 gt = self.to_points[i,:]
                 tt = self.map(self.from_points[i,:])
-                delta[i,:] = np.linalg.norm(tt - gt)
-            self.rmse = np.sqrt(np.mean(delta*delta))
+                err[i,:] = np.linalg.norm(tt - gt)
+            self.rmse = np.sqrt(np.mean(np.linalg.norm(err, axis=1)**2))
 
     def compute_dproj(self):
         """
@@ -51,7 +51,7 @@ class Transform:
                     p = self.map(self.from_points[j,:])
                     pm1 = txm1.map(self.from_points[j,:])
                     delta[ir,j,:] = p - pm1
-            self.dproj = np.sqrt(np.mean(delta*delta))
+            self.dproj = np.sqrt(np.mean(np.linalg.norm(delta, axis=2)**2))
         
     def compute_dparams(self):
         """
@@ -290,7 +290,7 @@ class TransformNP(Transform):
                     pl = tl.map(t1.from_points[k,:])
                     delta[ir,jr,k,:] = p - pl
                 lparams[ir,jr,:] = tl.params
-        self.dproj = np.sqrt(np.mean(delta*delta))
+        self.dproj = np.sqrt(np.mean(np.linalg.norm(delta, axis=3)**2))
         self.dparams = np.std(lparams, axis=(0,1))
                     
     def set_from_rot_ori(self, rot, ori):
@@ -392,9 +392,8 @@ class TransformNPS(Transform):
                     pl = tl.map(t1.from_points[k,:])
                     delta[ir,jr,k,:] = p - pl
                 lparams[ir,jr,:] = tl.params
-        self.dproj = np.sqrt(np.mean(delta*delta))
+        self.dproj = np.sqrt(np.mean(np.linalg.norm(delta, axis=3)**2))
         self.dparams = np.std(lparams, axis=(0,1))
-                    
 
     def map(self, p):
         return self.s * np.dot(p + self.ori, self.rot)
