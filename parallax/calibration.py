@@ -127,10 +127,8 @@ class Calibration:
         self.diffs = np.array(diffs, dtype=np.float32)
         self.mean_error = np.mean(self.diffs, axis=0)
         self.std_error = np.std(self.diffs, axis=0)
-        #self.rmse_tri = np.sqrt(np.mean(self.diffs * self.diffs, axis=0))
-        self.rmse_tri = np.sqrt(np.mean(self.diffs * self.diffs))
         # RMS error from triangulation (in um)
-        #self.rmse_tri_norm = np.linalg.norm(self.rmse_tri)
+        self.rmse = np.sqrt(np.mean(self.diffs * self.diffs))
 
 
     def calibrate_stereo(self, img_points1, img_points2, obj_points):
@@ -206,7 +204,7 @@ class Calibration:
         self.diffs = np.array(diffs, dtype=np.float32)
         self.mean_error = np.mean(self.diffs, axis=0)
         self.std_error = np.std(self.diffs, axis=0)
-        self.rmse_tri = np.sqrt(np.mean(self.diffs * self.diffs))
+        self.rmse = np.sqrt(np.mean(self.diffs * self.diffs))
 
 
     def triangulate_stereo(self, lcorr, rcorr):
