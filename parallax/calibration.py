@@ -118,19 +118,20 @@ class Calibration:
         self.img_points2 = img_points2
 
         # compute error stastistics
-        delta = []
+        err = np.zeros(self.obj_points.shape, dtype=np.float32)
         for i in range(self.npose):
             for j in range(self.npts):
                 op = self.obj_points[i,j,:]
                 ip1 = self.img_points1[i,j,:]
                 ip2 = self.img_points2[i,j,:]
                 op_recon = self.triangulate_pose(ip1, ip2, i)
-                delta.append(op - op_recon)
-        self.delta = np.array(delta, dtype=np.float32)
-        self.mean_error = np.mean(self.delta, axis=0)
-        self.std_error = np.std(self.delta, axis=0)
-        self.rmse_tri = np.sqrt(np.mean(self.delta * self.delta, axis=0))
-        # RMS error from triangulation (in um)
-        self.rmse_tri_norm = np.linalg.norm(self.rmse_tri)
+                #delta.append(op - op_recon)
+                err[i,j,:] = op - op_recon
+        self.mean_error = np.mean(err, axis=(0,1))
+        self.std_error = np.std(err, axis=(0,1))
+        # this the RMS re-triangulation error, using the same formula as
+        #   OpenCV's RMSE for re-projection
+        self.rmse = np.sqrt(np.mean(np.linalg.norm(err, axis=2)**2))
+        self.err = err
 
 
