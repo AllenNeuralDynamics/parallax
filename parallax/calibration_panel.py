@@ -157,7 +157,7 @@ class CalibrationPanel(QFrame):
             img_points1, img_points2 = self.cal_worker.get_image_points()
             obj_points = self.cal_worker.get_object_points()
             cal.calibrate(img_points1, img_points2, obj_points)
-            self.msg_posted.emit('Calibration finished. RMSE = %f um' % cal.rmse_tri_norm)
+            self.msg_posted.emit('Calibration finished. RMSE = %f um' % cal.rmse)
             self.model.add_calibration(cal)
             self.update_cals()
         else:
