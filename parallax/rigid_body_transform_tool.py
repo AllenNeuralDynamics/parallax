@@ -45,6 +45,8 @@ class CoordinateWidget(QWidget):
 
         self.dragHold = False
 
+        self.img_point = (-1,-1,-1,-1)
+
     def mousePressEvent(self, e):
         self.dragHold = True
 
@@ -72,6 +74,12 @@ class CoordinateWidget(QWidget):
         self.yedit.setText('{0:.2f}'.format(coords[1]))
         self.zedit.setText('{0:.2f}'.format(coords[2]))
 
+    def set_img_point(self, img_point):
+        self.img_point = img_point
+
+    def get_img_point(self):
+        return self.img_point
+
     def clear_coordinates(self):
         for e in self.xedit, self.yedit, self.zedit:
             e.clear()
@@ -89,8 +97,8 @@ class CoordinateWidget(QWidget):
     def dropEvent(self, e):
         md = e.mimeData()
         coords = (float(e) for e in md.text().split(','))
+        self.set_img_point(coords[3:])
         e.accept()
-        self.set_coordinates(tuple(coords))
 
 
 class RigidBodyTransformTool(QWidget):
@@ -315,6 +323,12 @@ class CorrespondencePointsTab(QWidget):
                 s = '{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}'.format(*(p1+p2))
             except ValueError:  # handle incomplete coordinate fields
                 return
+        # save img points
+        i1 = self.coords_widget1.get_img_point()
+        i2 = self.coords_widget2.get_img_point()
+        self.img_points.append(i1 + i2)
+        print('self.img_points = ', self.img_points)
+        ###
         item = QListWidgetItem(s)
         item.points = p1, p2
         self.list_widget.addItem(item)
