@@ -11,7 +11,7 @@ import numpy as np
 from . import get_image_file, data_dir
 from .helper import FONT_BOLD
 from .stage_dropdown import StageDropdown
-from .transform import Transform
+from .transform import TransformNP
 
 
 class CoordinateWidget(QWidget):
@@ -187,7 +187,7 @@ class CompositionTab(QWidget):
         name = self.name_edit.text()
         from_cs = transforms[0].from_cs
         to_cs = transforms[-1].to_cs
-        new_transform = Transform(name, from_cs, to_cs)
+        new_transform = TransformNP(name, from_cs, to_cs)
         new_transform.compute_from_composition(transforms)
         self.model.add_transform(new_transform)
         self.generated.emit()
@@ -358,7 +358,7 @@ class CorrespondencePointsTab(QWidget):
         from_cs = self.cs1_name_edit.text()
         to_cs = self.cs2_name_edit.text()
 
-        transform = Transform(name, from_cs, to_cs)
+        transform = TransformNP(name, from_cs, to_cs)
         transform.compute_from_correspondence(p1, p2)
 
         self.model.add_transform(transform)
