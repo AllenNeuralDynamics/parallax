@@ -344,14 +344,15 @@ class CorrespondencePointsTab(QWidget):
         self.list_widget.clear()
 
     def generate(self):
-        items = [self.list_widget.item(i) for i in range(self.list_widget.count())]
+        ncorr = self.list_widget.count()
+        if ncorr < 4:
+            self.msg_posted.emit('Rigid Body Transform: need at least 4 '
+                                    'correspondence points to compute')
+            return
+
+        items = [self.list_widget.item(i) for i in range(ncorr)]
         p1 = np.array([item.points[0] for item in items])
         p2 = np.array([item.points[1] for item in items])
-
-        # just for testing
-        if len(p1) == 0 and len(p2) == 0:
-            p1 = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]])
-            p2 = np.array([[0, 0, 0], [0, 10, 0], [-10, 0, 0], [0, 0, 10]])
 
         name = self.name_edit.text()
         from_cs = self.cs1_name_edit.text()
