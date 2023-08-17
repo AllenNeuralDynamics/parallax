@@ -95,7 +95,7 @@ class CalibrationPanel(QFrame):
 
         obj_point = cal_selected.triangulate(lcorr, rcorr)
         self.model.set_last_object_point(obj_point)
-        self.model.set_last_image_points(lcorr, rcorr)
+        self.model.set_last_image_point(lcorr, rcorr)
 
         x,y,z = obj_point
         self.msg_posted.emit('Reconstructed object point: '

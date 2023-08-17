@@ -96,7 +96,8 @@ class CoordinateWidget(QWidget):
 
     def dropEvent(self, e):
         md = e.mimeData()
-        coords = (float(e) for e in md.text().split(','))
+        coords = tuple((float(e) for e in md.text().split(',')))
+        self.set_coordinates(coords[:3])
         self.set_img_point(coords[3:])
         e.accept()
 
@@ -276,6 +277,8 @@ class CorrespondencePointsTab(QWidget):
         self.layout.addWidget(self.right_widget)
 
         self.setLayout(self.layout)
+
+        self.img_points = []
 
     def eventFilter(self, src, e):
         if src is self.list_widget:
