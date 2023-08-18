@@ -241,3 +241,20 @@ class Calibration:
         return obj_point_reconstructed + self.offset # np.array([x,y,z])
 
 
+    def triangulate_cv(self, lcorr, rcorr):
+
+        img_points1_cv = np.array([[lcorr]], dtype=np.float32)
+        img_points2_cv = np.array([[rcorr]], dtype=np.float32)
+
+        # undistort
+        img_points1_cv = lib.undistort_image_points(img_points1_cv, self.mtx1, self.dist1)
+        img_points2_cv = lib.undistort_image_points(img_points2_cv, self.mtx2, self.dist2)
+
+        p1 = lib.get_projection_matrix(self.mtx1, self.rvecs1[-1], self.tvecs1[-1])
+        p2 = lib.get_projection_matrix(self.mtx2, self.rvecs2[-1], self.tvecs2[-1])
+
+        op_recon4 = cv2.triangulatePoints(p1, p2, img_points1_cv, img_points2_cv)
+        op_recon3 = op_recon4[:3] / op_recon4[3]
+
+        return op_recon3.flatten() + self.offset # np.array([x,y,z])
+
