@@ -27,6 +27,18 @@ def get_projection_matrix(mtx, r, t):
     P = np.matmul(mtx,rt) # A[R|t]
     return P
 
+def get_rt_matrix(r, t):
+    R, jacobian = cv.Rodrigues(r)
+    rt = np.concatenate([R,t], axis=-1) # [R|t]
+    return rt
+
+def get_inverse_rt_matrix(r, t):
+    R, jacobian = cv.Rodrigues(r)
+    Ri = R.T
+    ti = (-1) * np.matmul(R,t)
+    rt = np.concatenate([R,ti], axis=-1) # [R|t]
+    return rt
+
 def DLT(P1, P2, point1, point2):
     """
     https://temugeb.github.io/opencv/python/2021/02/02/stereo-camera-calibration-and-triangulation.html
