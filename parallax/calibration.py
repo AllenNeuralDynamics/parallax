@@ -130,8 +130,52 @@ class Calibration:
         # RMS error from triangulation (in um)
         self.rmse = np.sqrt(np.mean(self.diffs * self.diffs))
 
+    def triangulate_cv(self, lcorr, rcorr):
 
-    def calibrate_stereo(self, img_points1, img_points2, obj_points):
+        img_points1_cv = np.array([[lcorr]], dtype=np.float32)
+        img_points2_cv = np.array([[rcorr]], dtype=np.float32)
+
+        # undistort
+        img_points1_cv = lib.undistort_image_points(img_points1_cv, self.mtx1, self.dist1)
+        img_points2_cv = lib.undistort_image_points(img_points2_cv, self.mtx2, self.dist2)
+
+        p1 = lib.get_projection_matrix(self.mtx1, self.rvecs1[-1], self.tvecs1[-1])
+        p2 = lib.get_projection_matrix(self.mtx2, self.rvecs2[-1], self.tvecs2[-1])
+
+        op_recon4 = cv2.triangulatePoints(p1, p2, img_points1_cv, img_points2_cv)
+        op_recon3 = op_recon4[:3] / op_recon4[3]
+
+        return op_recon3.flatten() + self.offset # np.array([x,y,z])
+
+
+class CalibrationStereo:
+
+    def __init__(self, name, cs):
+        self.set_name(name)
+        self.set_cs(cs)
+        self.set_initial_intrinsics_default()
+        self.offset = np.array([0,0,0], dtype=np.float32)
+        self.intrinsics_fixed = False
+
+    def set_name(self, name):
+        self.name = name
+
+    def set_cs(self, cs):
+        self.cs = cs
+
+    def set_initial_intrinsics(self, mtx1, mtx2, dist1, dist2, fixed=False):
+
+        self.imtx1 = mtx1
+        self.imtx2 = mtx2
+        self.idist1 = dist1
+        self.idist2 = dist2
+
+        self.intrinsics_fixed = fixed
+
+    def set_initial_intrinsics_default(self):
+        self.set_initial_intrinsics(imtx, imtx, idist, idist)
+
+    def calibrate(self, img_points1, img_points2, obj_points):
 
         # img_points have dims (npose, npts, 2)
         # obj_points have dims (npose, npts, 3)
@@ -198,7 +242,7 @@ class Calibration:
                 op = self.obj_points[i,j,:]
                 ip1 = self.img_points1[i,j,:]
                 ip2 = self.img_points2[i,j,:]
-                op_recon = self.triangulate_stereo_pose(ip1,ip2, i)
+                op_recon = self.triangulate_pose(ip1,ip2, i)
                 diff = op - op_recon
                 diffs.append(diff)
         self.diffs = np.array(diffs, dtype=np.float32)
@@ -207,11 +251,11 @@ class Calibration:
         self.rmse = np.sqrt(np.mean(self.diffs * self.diffs))
 
 
-    def triangulate_stereo(self, lcorr, rcorr):
-        return self.triangulate_stereo_pose(lcorr, rcorr, -1)
+    def triangulate(self, lcorr, rcorr):
+        return self.triangulate_pose(lcorr, rcorr, -1)
 
 
-    def triangulate_stereo_pose(self, lcorr, rcorr, pose_index):
+    def triangulate_pose(self, lcorr, rcorr, pose_index):
         # idea, switch to rvec/tvec 2 if the rmse is lower there?
 
         rvec1 = self.rvecs1[pose_index]
