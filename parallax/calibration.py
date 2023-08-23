@@ -5,6 +5,8 @@ import cv2
 from . import lib
 from .helper import WF, HF
 
+from .transform import TransformNP, TransformRT, TransformSRT
+
 
 imtx = np.array([[1.5e+04, 0.0e+00, 2e+03],
                 [0.0e+00, 1.5e+04, 1.5e+03],
@@ -15,6 +17,7 @@ idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
                     dtype=np.float32)
 
 CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-8)
+
 
 class Calibration:
 
@@ -59,17 +62,14 @@ class Calibration:
         img_point1 = img_points1_cv[0,0]
         img_point2 = img_points2_cv[0,0]
 
-        p1 = lib.get_projection_matrix(self.mtx1, self.rvecs1[pose_index],
-                                        self.tvecs1[pose_index])
-        p2 = lib.get_projection_matrix(self.mtx2, self.rvecs2[pose_index],
-                                        self.tvecs2[pose_index])
+        P1 = lib.get_projection_matrix(self.mtx1, self.rvecs1[pose_index], self.tvecs1[pose_index])
+        P2 = lib.get_projection_matrix(self.mtx2, self.rvecs2[pose_index], self.tvecs2[pose_index])
 
-        op_recon = lib.triangulate_from_image_points(img_point1, img_point2,
-                                    p1, p2)
+        op_recon = lib.triangulate_from_image_points(img_point1, img_point2, P1, P2)
 
         return op_recon + self.offset # np.array([x,y,z])
 
-    def calibrate(self, img_points1, img_points2, obj_points):
+    def calibrate(self, img_points1, img_points2, obj_points, stats=True):
 
         # img_points have dims (npose, npts, 2)
         # obj_points have dims (npose, npts, 3)
@@ -117,7 +117,11 @@ class Calibration:
         self.img_points1 = img_points1
         self.img_points2 = img_points2
 
-        # compute error stastistics
+        if stats:
+            self.compute_error_statistics()
+
+    def compute_error_statistics(self):
+
         err = np.zeros(self.obj_points.shape, dtype=np.float32)
         for i in range(self.npose):
             for j in range(self.npts):
@@ -128,8 +132,83 @@ class Calibration:
                 err[i,j,:] = op - op_recon
         self.mean_error = np.mean(err, axis=(0,1))
         self.std_error = np.std(err, axis=(0,1))
-        # this the RMS re-triangulation error
         self.rmse = np.sqrt(np.mean(err*err))
         self.err = err
 
+
+class CalibrationStereo(Calibration):
+
+    def __init__(self, name, cs):
+        Calibration.__init__(self, name, cs)
+
+    def calibrate(self, img_points1, img_points2, obj_points, stats=False):
+        Calibration.calibrate(self, img_points1, img_points2, obj_points, stats=False)
+
+        stereo_flags = cv2.CALIB_FIX_INTRINSIC
+        rmse, _, _, _, _, R, T, E, F = cv2.stereoCalibrate(obj_points, img_points1, 
+                                                                    img_points2, self.mtx1, self.dist1,
+                                                                     self.mtx2, self.dist2, (WF, HF),
+                                                                    criteria = CRIT,
+                                                                    flags = stereo_flags)
+
+
+        # save stereo calibration parameters
+        self.R = R
+        self.T = T
+        self.E = E
+        self.F = F
+        self.rmse_reproj_stereo = rmse
+
+        if stats:
+            self.compute_error_statistics()
+
+    def triangulate(self, lcorr, rcorr):
+
+        img_points1_cv = np.array([lcorr], dtype=np.float32)
+        img_points2_cv = np.array([rcorr], dtype=np.float32)
+
+        # undistort
+        img_points1_cv = lib.undistort_image_points(img_points1_cv, self.mtx1, self.dist1)
+        img_points2_cv = lib.undistort_image_points(img_points2_cv, self.mtx2, self.dist2)
+
+        img_point1 = img_points1_cv[0,0]
+        img_point2 = img_points2_cv[0,0]
+
+        r1 = np.zeros((3,1), dtype=np.float32)
+        t1 = np.zeros((3,1), dtype=np.float32)
+        P1 = lib.get_projection_matrix(self.mtx1, r1, t1)
+        r2 = lib.axis_angle_from_matrix(self.R)
+        t2 = self.T
+        P2 = lib.get_projection_matrix(self.mtx2, r2, t2)
+
+        op_recon = lib.triangulate_from_image_points(img_point1, img_point2, P1, P2)
+
+        return op_recon + self.offset # np.array([x,y,z])
+
+    def compute_error_statistics(self):
+
+        # warning: this function computes transforms for each pose, and takes
+        # about 5 seconds to complete for a 19x19 checkerboard
+
+        err = np.zeros(self.obj_points.shape, dtype=np.float32)
+        for i in range(self.npose):
+            # first establish a transform from 8 corr points
+            tx = TransformNP('tmp', 'cam1', 'checker')
+            jx = np.linspace(0,360,13).astype(int)
+            opts_cam1 = np.zeros((len(jx),3), dtype=np.float32)
+            for k,j in enumerate(jx):
+                ip1 = self.img_points1[i,j,:]
+                ip2 = self.img_points2[i,j,:]
+                opts_cam1[k,:] = self.triangulate(ip1, ip2)
+            tx.compute_from_correspondence(opts_cam1, self.obj_points[i,jx,:])
+            for j in range(self.npts):
+                ip1 = self.img_points1[i,j,:]
+                ip2 = self.img_points2[i,j,:]
+                op_cam1 = self.triangulate(ip1, ip2)
+                op_recon = tx.map(op_cam1)
+                err[i,j,:] = op_recon - self.obj_points[i,j,:]
+        self.mean_error = np.mean(err, axis=(0,1))
+        self.std_error = np.std(err, axis=(0,1))
+        self.rmse = np.sqrt(np.mean(err*err))
+        self.err = err
 

@@ -1,6 +1,6 @@
 import os
 
-__version__ = "0.28.2"
+__version__ = "0.30.1"
 
 
 # allow multiple OpenMP instances
