@@ -29,6 +29,7 @@ class Transform:
                 tt = self.map(self.from_points[i,:])
                 err[i,:] = tt - gt
             self.rmse = np.sqrt(np.mean(err*err))
+            self.mean_error = np.mean(err, axis=0)
 
     def compute_dproj(self):
         """
@@ -193,7 +194,7 @@ def _errfunc(x, global_pts, measured_pts):
     error_values = np.zeros((M * 3,))
     for i in range(M):
         global_pt = global_pts[i,:].T
-        measured_pt = measured_pts[i,:].T - np.array([3,3,3])
+        measured_pt = measured_pts[i,:].T
         local_pt = np.dot(global_pt + ori, rot)
         error_values[0+i*3:3+i*3] = local_pt - measured_pt
     return error_values
@@ -206,7 +207,7 @@ def _errfunc_s(x, global_pts, measured_pts):
     error_values = np.zeros((M * 3,))
     for i in range(M):
         global_pt = global_pts[i,:].T
-        measured_pt = measured_pts[i,:].T - np.array([3,3,3])
+        measured_pt = measured_pts[i,:].T
         local_pt = s * np.dot(global_pt + ori, rot)
         error_values[0+i*3:3+i*3] = local_pt - measured_pt
     return error_values
