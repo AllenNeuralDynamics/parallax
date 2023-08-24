@@ -45,7 +45,7 @@ class CoordinateWidget(QWidget):
 
         self.dragHold = False
 
-        self.img_point = (-1,-1,-1,-1)
+        self.img_points = (-1,-1,-1,-1)
 
     def mousePressEvent(self, e):
         self.dragHold = True
@@ -74,11 +74,11 @@ class CoordinateWidget(QWidget):
         self.yedit.setText('{0:.2f}'.format(coords[1]))
         self.zedit.setText('{0:.2f}'.format(coords[2]))
 
-    def set_img_point(self, img_point):
-        self.img_point = img_point
+    def set_img_points(self, img_points):
+        self.img_points = img_points
 
-    def get_img_point(self):
-        return self.img_point
+    def get_img_points(self):
+        return self.img_points
 
     def clear_coordinates(self):
         for e in self.xedit, self.yedit, self.zedit:
@@ -98,7 +98,8 @@ class CoordinateWidget(QWidget):
         md = e.mimeData()
         coords = tuple((float(e) for e in md.text().split(',')))
         self.set_coordinates(coords[:3])
-        self.set_img_point(coords[3:])
+        if len(coords) >= 7:
+            self.set_img_points(coords[3:7])
         e.accept()
 
 
@@ -249,26 +250,24 @@ class CorrespondencePointsTab(QWidget):
         self.right_widget = QFrame()
         self.right_widget.setFrameStyle(QFrame.Box | QFrame.Plain)
         self.right_widget.setLineWidth(2)
-        self.right_layout = QVBoxLayout()
         self.list_widget = QListWidget()
         self.list_widget.setDragDropMode(QAbstractItemView.InternalMove)
         self.list_widget.installEventFilter(self)
-        self.right_layout.addWidget(self.list_widget)
         self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText('Transform Name')
-        self.right_layout.addWidget(self.name_edit)
-        self.load_button = QPushButton('Load')
+        self.load_button = QPushButton('Load Corr. Points')
         self.load_button.clicked.connect(self.load)
-        self.save_button = QPushButton('Save')
+        self.save_button = QPushButton('Save Corr. Points')
         self.save_button.clicked.connect(self.save)
         self.generate_button = QPushButton('Generate Transform')
         self.generate_button.clicked.connect(self.generate)
-        self.right_buttons = QWidget()
-        self.right_buttons.setLayout(QHBoxLayout())
-        self.right_buttons.layout().addWidget(self.load_button)
-        self.right_buttons.layout().addWidget(self.save_button)
-        self.right_buttons.layout().addWidget(self.generate_button)
-        self.right_layout.addWidget(self.right_buttons)
+        ###
+        self.right_layout = QGridLayout()
+        self.right_layout.addWidget(self.load_button, 0,0, 1,1)
+        self.right_layout.addWidget(self.save_button, 0,1, 1,1)
+        self.right_layout.addWidget(self.list_widget, 1,0, 10,2)
+        self.right_layout.addWidget(self.name_edit, 11,0, 1,1)
+        self.right_layout.addWidget(self.generate_button, 11,1, 1,1)
         self.right_widget.setLayout(self.right_layout)
 
         self.layout = QHBoxLayout()
@@ -277,8 +276,6 @@ class CorrespondencePointsTab(QWidget):
         self.layout.addWidget(self.right_widget)
 
         self.setLayout(self.layout)
-
-        self.img_points = []
 
     def eventFilter(self, src, e):
         if src is self.list_widget:
@@ -316,24 +313,23 @@ class CorrespondencePointsTab(QWidget):
     def add_coordinates(self, coords=None):
         # if !coords, then pull from the CoordinateWidgets
         if coords:
-            p1 = coords[:3]
-            p2 = coords[3:]
-            s = '{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}'.format(*(p1+p2))
+            p1 = coords[0:3]
+            p2 = coords[3:6]
+            i1 = coords[6:10]
+            i2 = coords[10:14]
         else:
             try:
                 p1 = self.coords_widget1.get_coordinates()
                 p2 = self.coords_widget2.get_coordinates()
-                s = '{0:.2f}, {1:.2f}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.2f}'.format(*(p1+p2))
+                i1 = self.coords_widget1.get_img_points()
+                i2 = self.coords_widget2.get_img_points()
             except ValueError:  # handle incomplete coordinate fields
                 return
-        # save img points
-        i1 = self.coords_widget1.get_img_point()
-        i2 = self.coords_widget2.get_img_point()
-        self.img_points.append(i1 + i2)
-        print('self.img_points = ', self.img_points)
-        ###
+        sp = '%.1f, %.1f, %.1f, %.1f, %.1f, %.1f, ' % tuple(p1 + p2)
+        si = '%.1f, %.1f, %.1f, %.1f, %.1f, %.1f, %.1f, %.1f' % tuple(i1 + i2)
+        s = sp + si
         item = QListWidgetItem(s)
-        item.points = p1, p2
+        item.points = p1, p2, i1, i2
         self.list_widget.addItem(item)
         self.coords_widget1.clear_coordinates()
         self.coords_widget2.clear_coordinates()
@@ -348,7 +344,7 @@ class CorrespondencePointsTab(QWidget):
                     self.add_coordinates(coords=[float(e) for e in row])
 
     def save(self):
-        filename = QFileDialog.getSaveFileName(self, 'Save correspondence file',
+        filename = QFileDialog.getSaveFileName(self, 'Save correspondence points',
                                                 data_dir, 'CSV files (*.csv)')[0]
         if filename:
             with open(filename, 'w', newline='') as csvfile:
