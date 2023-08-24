@@ -162,10 +162,14 @@ class PointBank(QFrame):
 
     def dropEvent(self, e):
         md = e.mimeData()
-        x,y,z = (float(e) for e in md.text().split(','))
+        coords = tuple(float(e) for e in md.text().split(','))
         e.accept()
         point = Point3D()
+        x,y,z = coords[:3]
         point.set_coordinates(x,y,z)
+        if len(coords) >= 7:
+            img_points = coords[3:7]
+            point.set_img_points(img_points)
         self.new_point(point)
 
 
@@ -179,6 +183,8 @@ class Point3D:
         self.y = 0.
         self.z = 0.
 
+        self.img_points = (-1, -1, -1, -1)
+
     def set_name(self, name):
         self.name = name
 
@@ -189,6 +195,12 @@ class Point3D:
         self.x = x
         self.y = y
         self.z = z
+
+    def set_img_points(self, img_points):
+        self.img_points = img_points
+
+    def get_img_points(self):
+        return self.img_points
 
 
 class PointBankItem(QListWidgetItem):
@@ -222,9 +234,18 @@ class EditPointDialog(QDialog):
         self.y_edit = QLineEdit(str(self.point.y))
         self.z_label = QLabel('z:')
         self.z_edit = QLineEdit(str(self.point.z))
+        self.ix1_label = QLabel('ix1:')
+        self.ix1_edit = QLineEdit(str(self.point.img_points[0]))
+        self.iy1_label = QLabel('iy1:')
+        self.iy1_edit = QLineEdit(str(self.point.img_points[1]))
+        self.ix2_label = QLabel('ix2:')
+        self.ix2_edit = QLineEdit(str(self.point.img_points[2]))
+        self.iy2_label = QLabel('iy2:')
+        self.iy2_edit = QLineEdit(str(self.point.img_points[3]))
 
         for label in (self.name_label, self.cs_label,
-                    self.x_label, self.y_label, self.z_label):
+                    self.x_label, self.y_label, self.z_label,
+                    self.ix1_label, self.iy1_label, self.ix2_label, self.iy2_label):
             label.setAlignment(Qt.AlignCenter)
 
         self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
@@ -243,7 +264,15 @@ class EditPointDialog(QDialog):
         self.layout.addWidget(self.y_edit, 3,1, 1,1)
         self.layout.addWidget(self.z_label, 4,0, 1,1)
         self.layout.addWidget(self.z_edit, 4,1, 1,1)
-        self.layout.addWidget(self.buttons, 5,0, 1,2)
+        self.layout.addWidget(self.ix1_label, 5,0, 1,1)
+        self.layout.addWidget(self.ix1_edit, 5,1, 1,1)
+        self.layout.addWidget(self.iy1_label, 6,0, 1,1)
+        self.layout.addWidget(self.iy1_edit, 6,1, 1,1)
+        self.layout.addWidget(self.ix2_label, 7,0, 1,1)
+        self.layout.addWidget(self.ix2_edit, 7,1, 1,1)
+        self.layout.addWidget(self.iy2_label, 8,0, 1,1)
+        self.layout.addWidget(self.iy2_edit, 8,1, 1,1)
+        self.layout.addWidget(self.buttons, 9,0, 1,2)
 
         self.setLayout(self.layout)
         self.setWindowTitle('Point Editor')
