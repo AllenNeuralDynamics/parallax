@@ -28,8 +28,9 @@ class Transform:
                 gt = self.to_points[i,:]
                 tt = self.map(self.from_points[i,:])
                 err[i,:] = tt - gt
-            self.rmse = np.sqrt(np.mean(err*err))
             self.mean_error = np.mean(err, axis=0)
+            self.std_error = np.std(err, axis=0)
+            self.rmse = np.sqrt(np.mean(err*err))
 
     def compute_dproj(self):
         """
@@ -187,31 +188,6 @@ def _yaw(inputMat, a):
                [0, 0, 1]])
     return np.dot(inputMat,yawMat)
 
-def _errfunc(x, global_pts, measured_pts):
-    rot = _combine_angles(x[2], x[1], x[0])
-    ori = np.array([x[3], x[4], x[5]]).T
-    M = global_pts.shape[0]
-    error_values = np.zeros((M * 3,))
-    for i in range(M):
-        global_pt = global_pts[i,:].T
-        measured_pt = measured_pts[i,:].T
-        local_pt = np.dot(global_pt + ori, rot)
-        error_values[0+i*3:3+i*3] = local_pt - measured_pt
-    return error_values
-
-def _errfunc_s(x, global_pts, measured_pts):
-    rot = _combine_angles(x[2], x[1], x[0])
-    ori = np.array([x[3], x[4], x[5]]).T
-    s = x[6]
-    M = global_pts.shape[0]
-    error_values = np.zeros((M * 3,))
-    for i in range(M):
-        global_pt = global_pts[i,:].T
-        measured_pt = measured_pts[i,:].T
-        local_pt = s * np.dot(global_pt + ori, rot)
-        error_values[0+i*3:3+i*3] = local_pt - measured_pt
-    return error_values
-
 def _combine_angles(x, y, z):
     eye = np.identity(3)
     rot = _roll(_pitch(_yaw(eye,z),y),x)
@@ -240,7 +216,7 @@ class TransformNP(Transform):
         self.to_points = to_points
 
         x0 = np.array([0,0,0,0,0,0])
-        rz, ry, rx, x, y, z = leastsq(_errfunc, x0, args=(from_points, to_points))[0]
+        rz, ry, rx, x, y, z = leastsq(self._errfunc, x0, args=(from_points, to_points))[0]
         self.rot = _combine_angles(rx,ry,rz)
         self.ori = np.array([x,y,z], dtype=np.float32)
         self.params = np.array([rx,ry,rz,x,y,z], dtype=np.float32)
@@ -248,6 +224,19 @@ class TransformNP(Transform):
         if recurse:
             self.compute_dproj()
             self.compute_dparams()
+
+    @staticmethod
+    def _errfunc(x, global_pts, measured_pts):
+        rot = _combine_angles(x[2], x[1], x[0])
+        ori = np.array([x[3], x[4], x[5]]).T
+        M = global_pts.shape[0]
+        error_values = np.zeros((M * 3,))
+        for i in range(M):
+            global_pt = global_pts[i,:].T
+            measured_pt = measured_pts[i,:].T
+            local_pt = np.dot(global_pt + ori, rot)
+            error_values[0+i*3:3+i*3] = local_pt - measured_pt
+        return error_values
 
     def compute_from_composition(self, transforms, recurse=True):
         rot = np.identity(3)
@@ -331,7 +320,7 @@ class TransformNPS(Transform):
         self.to_points = to_points
 
         x0 = np.array([0,0,0,0,0,0,1.])
-        rz, ry, rx, x, y, z, s = leastsq(_errfunc_s, x0, args=(from_points, to_points))[0]
+        rz, ry, rx, x, y, z, s = leastsq(self._errfunc, x0, args=(from_points, to_points))[0]
         self.rot = _combine_angles(rx,ry,rz)
         self.ori = np.array([x,y,z], dtype=np.float32)
         self.s = s
@@ -340,6 +329,20 @@ class TransformNPS(Transform):
         if recurse:
             self.compute_dproj()
             self.compute_dparams()
+
+    @staticmethod
+    def _errfunc(x, global_pts, measured_pts):
+        rot = _combine_angles(x[2], x[1], x[0])
+        ori = np.array([x[3], x[4], x[5]]).T
+        s = x[6]
+        M = global_pts.shape[0]
+        error_values = np.zeros((M * 3,))
+        for i in range(M):
+            global_pt = global_pts[i,:].T
+            measured_pt = measured_pts[i,:].T
+            local_pt = s * np.dot(global_pt + ori, rot)
+            error_values[0+i*3:3+i*3] = local_pt - measured_pt
+        return error_values
 
     def set_from_rot_ori_scale(self, rot, ori, s):
         self.rot = rot

@@ -95,6 +95,7 @@ class CalibrationPanel(QFrame):
 
         obj_point = cal_selected.triangulate(lcorr, rcorr)
         self.model.set_last_object_point(obj_point)
+        self.model.set_last_image_point(lcorr, rcorr)
 
         x,y,z = obj_point
         self.msg_posted.emit('Reconstructed object point: '
@@ -208,8 +209,10 @@ class CalibrationPanel(QFrame):
             self.dragHold = False
             if self.model.obj_point_last is not None:
                 x,y,z = self.model.obj_point_last
+                ipx1, ipy1, ipx2, ipy2 = self.model.img_point_last
                 md = QMimeData()
-                md.setText('%.6f,%.6f,%.6f' % (x, y, z))
+                #md.setText('%.6f,%.6f,%.6f' % (x, y, z))
+                md.setText('%.6f,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f' % (x, y, z, ipx1, ipy1, ipx2, ipy2))
                 drag = QDrag(self)
                 drag.setMimeData(md)
                 drag.exec()

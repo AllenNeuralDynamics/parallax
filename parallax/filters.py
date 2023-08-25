@@ -148,7 +148,7 @@ class CheckerboardSmoothFilter(NoFilter):
             self.buf = []
 
         def process(self, frame):
-            sz_roll = 8
+            sz_roll = 16
             sz_conv = 32
             if frame.ndim > 2:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)

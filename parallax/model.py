@@ -41,6 +41,7 @@ class Model(QObject):
 
         self.lcorr, self.rcorr = False, False
         
+        self.img_point_last = None
         self.obj_point_last = None
         self.transforms = {}
 
@@ -67,6 +68,9 @@ class Model(QObject):
 
     def set_last_object_point(self, obj_point):
         self.obj_point_last = obj_point
+
+    def set_last_image_point(self, lcorr, rcorr):
+        self.img_point_last = (lcorr + rcorr)
 
     def add_calibration(self, cal):
         self.calibrations[cal.name] = cal

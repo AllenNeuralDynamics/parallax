@@ -65,7 +65,8 @@ class Calibration:
         P1 = lib.get_projection_matrix(self.mtx1, self.rvecs1[pose_index], self.tvecs1[pose_index])
         P2 = lib.get_projection_matrix(self.mtx2, self.rvecs2[pose_index], self.tvecs2[pose_index])
 
-        op_recon = lib.triangulate_from_image_points(img_point1, img_point2, P1, P2)
+        op_recon_coord4 = cv2.triangulatePoints(P1, P2, img_points1_cv, img_points2_cv).reshape(4)
+        op_recon = op_recon_coord4[:3] / op_recon_coord4[3]
 
         return op_recon + self.offset # np.array([x,y,z])
 
@@ -142,7 +143,9 @@ class CalibrationStereo(Calibration):
         Calibration.__init__(self, name, cs)
 
     def calibrate(self, img_points1, img_points2, obj_points, stats=False):
+        # thought: if not fixed, then do the below. otherwise no?
         Calibration.calibrate(self, img_points1, img_points2, obj_points, stats=False)
+
 
         stereo_flags = cv2.CALIB_FIX_INTRINSIC
         rmse, _, _, _, _, R, T, E, F = cv2.stereoCalibrate(obj_points, img_points1, 
@@ -181,7 +184,8 @@ class CalibrationStereo(Calibration):
         t2 = self.T
         P2 = lib.get_projection_matrix(self.mtx2, r2, t2)
 
-        op_recon = lib.triangulate_from_image_points(img_point1, img_point2, P1, P2)
+        op_recon_coord4 = cv2.triangulatePoints(P1, P2, img_points1_cv, img_points2_cv).reshape(4)
+        op_recon = op_recon_coord4[:3] / op_recon_coord4[3]
 
         return op_recon + self.offset # np.array([x,y,z])
 
