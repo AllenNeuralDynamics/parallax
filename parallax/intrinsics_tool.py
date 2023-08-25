@@ -35,15 +35,12 @@ class IntrinsicParameters:
     def set_initial_intrinsics_default(self):
         self.set_initial_intrinsics(imtx, idist)
 
-    def calibrate(self, img_points, obj_points, use_initial_guess=False):
+    def calibrate(self, img_points, obj_points):
 
         # img_points have dims (npose, npts, 2)
         # obj_points have dims (npose, npts, 3)
 
-        if use_initial_guess:
-            my_flags = cv2.CALIB_USE_INTRINSIC_GUESS
-        else:
-            my_flags = 0
+        my_flags = cv2.CALIB_USE_INTRINSIC_GUESS
 
         rmse, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points,
                                                                         (WF, HF),
@@ -75,8 +72,6 @@ class IntrinsicsTool(QWidget):
         self.npts_label.setAlignment(Qt.AlignCenter)
         self.npts_label.setFont(FONT_BOLD)
 
-        self.initial_check = QCheckBox('Use initial guess')
-
         ts = time.time()
         dt = datetime.datetime.fromtimestamp(ts)
         suggested_name = 'intrinsics_%04d%02d%02d-%02d%02d%02d' % (dt.year,
@@ -94,7 +89,6 @@ class IntrinsicsTool(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.load_corners_button)
         layout.addWidget(self.npts_label)
-        layout.addWidget(self.initial_check)
         layout.addWidget(self.name_edit)
         layout.addWidget(self.generate_button)
         layout.addWidget(self.save_button)
@@ -122,8 +116,7 @@ class IntrinsicsTool(QWidget):
     def generate_intrinsics(self):
         name = self.name_edit.text()
         self.intrinsics = IntrinsicParameters(name)
-        self.intrinsics.calibrate(self.ipts, self.opts,
-                                    use_initial_guess=self.initial_check.checkState())
+        self.intrinsics.calibrate(self.ipts, self.opts)
         self.msg_posted.emit('Generated %s' % self.intrinsics.name)
         self.msg_posted.emit('mtx = %s' % np.array2string(self.intrinsics.mtx))
         self.msg_posted.emit('dist = %s' % np.array2string(self.intrinsics.dist))
