@@ -27,6 +27,7 @@ from .ground_truth_data_tool import GroundTruthDataTool
 from .elevator_control import ElevatorControlTool
 from .point_bank import PointBank
 from .ruler import Ruler
+from .training_data_validator import TrainingDataValidator
 from .camera import VideoSource
 from .preferences import PreferencesWindow
 from .helper import uid8
@@ -79,6 +80,8 @@ class MainWindow(QMainWindow):
         self.pb_action.triggered.connect(self.launch_pb)
         self.ruler_action = QAction("Ruler")
         self.ruler_action.triggered.connect(self.launch_ruler)
+        self.tdv_action = QAction("Training Data Validator")
+        self.tdv_action.triggered.connect(self.launch_tdv)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -101,14 +104,15 @@ class MainWindow(QMainWindow):
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.cbm_action)
-        self.tools_menu.addAction(self.csc_action)
         self.tools_menu.addAction(self.cbs_action)
+        self.tools_menu.addAction(self.csc_action)
         self.tools_menu.addAction(self.elevator_action)
         self.tools_menu.addAction(self.tt_action)
         self.tools_menu.addAction(self.it_action)
         self.tools_menu.addAction(self.pb_action)
         self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.ruler_action)
+        self.tools_menu.addAction(self.tdv_action)
         #self.tools_menu.addAction(self.gtd_action)
         #self.tools_menu.addAction(self.console_action)
 
@@ -194,6 +198,10 @@ class MainWindow(QMainWindow):
     def launch_ruler(self):
         self.ruler = Ruler()
         self.ruler.show()
+
+    def launch_tdv(self):
+        self.tdv = TrainingDataValidator(self.model)
+        self.tdv.show()
 
     def launch_video_source_dialog(self):
         filename = QFileDialog.getOpenFileNames(self, 'Select video file', data_dir,
