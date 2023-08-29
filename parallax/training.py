@@ -1,0 +1,347 @@
+from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QLabel
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QProgressDialog
+from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
+from PyQt5.QtWidgets import QTabWidget
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt
+
+import glob
+import os
+import csv
+import re
+import cv2
+import sleap
+import time
+import datetime
+
+from .screen_widget import ScreenWidget
+from . import get_image_file, training_dir
+from .helper import WF, HF, FONT_BOLD
+
+
+class TrainingTool(QWidget):
+
+    def __init__(self, model):
+        QWidget.__init__(self)
+
+        self.labels_tab = LabelsTab(model)
+        self.training_tab = TrainingTab(model)
+
+        self.tabs = QTabWidget()
+        self.tabs.setFocusPolicy(Qt.NoFocus)
+        self.tabs.addTab(self.labels_tab, 'Labels')
+        self.tabs.addTab(self.training_tab, 'Training')
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.tabs)
+
+        self.setLayout(layout)
+
+        self.setWindowTitle('Probe Detection Training Tool')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
+
+
+class LabelsTab(QWidget):
+
+    def __init__(self, model):
+        QWidget.__init__(self)
+
+        self.file2ipt = {}
+
+        self.list_widget = QListWidget()
+        self.screen = ScreenWidget(model=model)
+        self.reject_button = QPushButton('Reject')
+        self.modify_button = QPushButton('Modify')
+        self.modify_button.setEnabled(False)
+        self.accept_button = QPushButton('Accept')
+        self.save_button = QPushButton('Save Accepted Labels')
+
+        layout3 = QHBoxLayout()
+        layout3.addWidget(self.reject_button)
+        layout3.addWidget(self.modify_button)
+        layout3.addWidget(self.accept_button)
+
+        layout2 = QVBoxLayout()
+        layout2.addWidget(self.screen)
+        layout2.addLayout(layout3)
+
+        layout1 = QHBoxLayout()
+        layout1.addWidget(self.list_widget)
+        layout1.addLayout(layout2)
+
+        layout0 = QVBoxLayout()
+        layout0.addLayout(layout1)
+        layout0.addWidget(self.save_button)
+        self.setLayout(layout0)
+
+        # connections
+        self.reject_button.clicked.connect(self.reject_current)
+        self.modify_button.clicked.connect(self.modify_current)
+        self.accept_button.clicked.connect(self.accept_current)
+        self.save_button.clicked.connect(self.save)
+        self.list_widget.currentItemChanged.connect(self.handle_item_changed)
+        self.screen.selected.connect(self.handle_new_selection)
+
+        self.update_list()
+
+    def update_list(self):
+
+        filename_meta = os.path.join(training_dir, 'metadata.csv')
+        with open(filename_meta, 'r') as f:
+            reader = csv.reader(f, delimiter=',')
+            for row in reader:
+                basename_img, ix, iy = row
+                self.file2ipt[basename_img] = (int(ix),int(iy))
+
+        filenames_img = glob.glob(os.path.join(training_dir, '*.png'))
+        for filename_img in filenames_img:
+            basename_img = os.path.basename(filename_img)
+            item = TrainingDataItem(filename_img, self.file2ipt[basename_img])
+            self.list_widget.addItem(item)
+
+    def handle_item_changed(self, item):
+        self.screen.set_data(cv2.imread(item.filename_img))
+        self.screen.select(item.ipt)
+        self.screen.zoom_out()
+        self.modify_button.setEnabled(False)
+
+    def handle_new_selection(self, ix, iy):
+        self.modify_button.setEnabled(True)
+
+    def accept_current(self):
+        item = self.list_widget.currentItem()
+        item.accept()
+
+    def modify_current(self):
+        item = self.list_widget.currentItem()
+        ipt = self.screen.get_selected()
+        item.set_image_point(ipt)
+
+    def reject_current(self):
+        item = self.list_widget.currentItem()
+        item.reject()
+        
+    def keyPressEvent(self, e):
+        if (e.key() == Qt.Key_Right) or (e.key() == Qt.Key_Down):
+            current_row = self.list_widget.currentRow()
+            new_row = current_row + 1
+            if new_row >= self.list_widget.count():
+                new_row = 0
+            self.list_widget.setCurrentRow(new_row)
+        elif (e.key() == Qt.Key_Left) or (e.key() == Qt.Key_Up):
+            current_row = self.list_widget.currentRow()
+            new_row = current_row - 1
+            if new_row < 0:
+                new_row = self.list_widget.count() - 1
+            self.list_widget.setCurrentRow(new_row)
+
+    def save(self):
+        dlg = SaveLabelsDialog()
+        if dlg.exec_():
+            filename_vid = dlg.filename_vid
+            filename_lab = dlg.filename_lab
+        else:
+            return
+        # video stuff
+        codec = cv2.VideoWriter.fourcc('X','V','I','D')
+        writer = cv2.VideoWriter(filename_vid, codec, 20, (WF,HF))
+        # label stuff
+        labeled_frames = []
+        frame_idx = 0
+        video = sleap.io.video.Video(sleap.io.video.MediaVideo(filename_vid))
+        skeleton = sleap.skeleton.Skeleton('probeTip')
+        skeleton.add_node('tip')
+        # progress stuff
+        count = self.list_widget.count()
+        progress = QProgressDialog("Generating training video...", "Abort", 0, count, self)
+        progress.setWindowTitle("Progress")
+        progress.setWindowModality(Qt.WindowModal)
+        for i in range(count):
+            progress.setValue(i)
+            if progress.wasCanceled():
+                break
+            item = self.list_widget.item(i)
+            if item.state == TrainingDataItem.STATE_ACCEPTED:
+                # write to video
+                frame = cv2.imread(item.filename_img)
+                writer.write(frame)
+                # collect labeled frame
+                points = {'tip' : sleap.instance.Point(x=item.ipt[0], y=item.ipt[1])}
+                instance = sleap.instance.Instance(skeleton=skeleton, points=points)
+                labeled_frames.append(sleap.instance.LabeledFrame(video, frame_idx, [instance]))
+                frame_idx += 1
+        progress.setValue(count)
+        writer.release()
+        labels = sleap.io.dataset.Labels(labeled_frames=labeled_frames)
+        sleap.io.dataset.Labels.save_file(labels, filename_lab)
+
+
+class SaveLabelsDialog(QDialog):
+
+    def __init__(self, parent=None):
+        QDialog.__init__(self, parent)
+
+        dt = datetime.datetime.fromtimestamp(time.time())
+        self.dt_str = '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
+                                                dt.hour, dt.minute, dt.second)
+
+        self.video_label = QLabel('Video File:')
+        self.video_label.setAlignment(Qt.AlignCenter)
+        self.video_button = QPushButton('Set Filename')
+        self.video_button.clicked.connect(self.handle_video_button)
+
+        self.label_label = QLabel('Label File:')
+        self.label_label.setAlignment(Qt.AlignCenter)
+        self.label_button = QPushButton('Set Filename')
+        self.label_button.clicked.connect(self.handle_label_button)
+
+        self.dialog_buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
+        self.dialog_buttons.accepted.connect(self.accept)
+        self.dialog_buttons.rejected.connect(self.reject)
+
+        layout = QGridLayout()
+        layout.addWidget(self.video_label, 0,0, 1,1)
+        layout.addWidget(self.video_button, 0,1, 1,1)
+        layout.addWidget(self.label_label, 1,0, 1,1)
+        layout.addWidget(self.label_button, 1,1, 1,1)
+        layout.addWidget(self.dialog_buttons, 2,0, 1,2)
+        self.setLayout(layout)
+
+        self.setWindowTitle('Save Labels')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
+
+    def handle_video_button(self):
+        suggested_filename = os.path.join(training_dir, 'training_data_' + self.dt_str + '.avi')
+        filename_vid = QFileDialog.getSaveFileName(self, 'Save video file',
+                                                suggested_filename,
+                                                'Video files (*.avi)')[0]
+        if filename_vid:
+            self.video_button.setText(os.path.basename(filename_vid))
+            self.video_button.setFont(FONT_BOLD)
+            self.filename_vid = filename_vid
+
+    def handle_label_button(self):
+        suggested_filename = os.path.join(training_dir, 'training_labels_' + self.dt_str + '.slp')
+        filename_lab = QFileDialog.getSaveFileName(self, 'Save labels file',
+                                                suggested_filename,
+                                                'Video files (*.slp)')[0]
+        if filename_lab:
+            self.label_button.setText(os.path.basename(filename_lab))
+            self.label_button.setFont(FONT_BOLD)
+            self.filename_lab = filename_lab
+
+
+class TrainingTab(QWidget):
+
+    def __init__(self, model):
+        QWidget.__init__(self)
+
+        self.video_label = QLabel('Video File:')
+        self.video_label.setAlignment(Qt.AlignCenter)
+        self.video_button = QPushButton('Load')
+        self.video_button.clicked.connect(self.handle_load_video)
+
+        self.label_label = QLabel('Label File:')
+        self.label_label.setAlignment(Qt.AlignCenter)
+        self.label_button = QPushButton('Load')
+        self.label_button.clicked.connect(self.handle_load_label)
+
+        self.start_button = QPushButton('Start Training')
+        self.start_button.clicked.connect(self.start)
+
+        layout = QGridLayout()
+        layout.addWidget(self.video_label, 0,0, 1,1)
+        layout.addWidget(self.video_button, 0,1, 1,1)
+        layout.addWidget(self.label_label, 1,0, 1,1)
+        layout.addWidget(self.label_button, 1,1, 1,1)
+        layout.addWidget(self.start_button, 2,0, 1,2)
+        self.setLayout(layout)
+
+    def handle_load_video(self):
+        filename_vid = QFileDialog.getOpenFileName(self, 'Load Training Video File',
+                                                training_dir, 'Video Files (*.avi)')[0]
+        if filename_vid:
+            self.video_button.setText(os.path.basename(filename_vid))
+            self.video_button.setFont(FONT_BOLD)
+            self.filename_vid = filename_vid
+
+    def handle_load_label(self):
+        filename_lab = QFileDialog.getOpenFileName(self, 'Load Training Label File',
+                                                training_dir, 'Label Files (*.slp)')[0]
+        if filename_lab:
+            self.label_button.setText(os.path.basename(filename_lab))
+            self.label_button.setFont(FONT_BOLD)
+            self.filename_lab = filename_lab
+
+    def start(self):
+        cfg = sleap.nn.config.TrainingJobConfig()
+        # data
+        cfg.data.labels.training_labels = self.filename_lab
+        cfg.data.preprocessing.input_scaling = 0.01
+        cfg.data.instance_cropping.center_on_part = 'tip'
+        # model
+        cfg.model.backbone.unet = sleap.nn.config.model.UNetConfig(
+            filters=16,
+            output_stride=2
+        )
+        cfg.model.heads.centroid = sleap.nn.config.model.CentroidsHeadConfig(
+            anchor_part='tip',
+            sigma=5,
+            output_stride=2
+        )
+        # optimization
+        cfg.optimization.augmentation_config.rotate = True
+        cfg.optimization.hard_keypoint_mining.online_mining = False
+        cfg.optimization.epochs = 3
+        cfg.optimization.batches_per_epoch = 10
+        # output
+        cfg.outputs.run_name = 'parallax.centroids'
+        cfg.outputs.runs_folder = os.path.join(training_dir, 'models')
+        # go!
+        trainer = sleap.nn.training.Trainer.from_config(cfg)
+        trainer.setup()
+        trainer.train()
+
+
+class TrainingDataItem(QListWidgetItem):
+
+    STATE_TODO = 0
+    STATE_ACCEPTED = 1
+    STATE_REJECTED = 2
+
+    def __init__(self, filename_img, ipt):
+        QListWidgetItem.__init__(self, '')
+
+        self.filename_img = filename_img
+        self.ipt = ipt
+        self.state = self.STATE_TODO
+
+        self.update_text()
+
+    def update_text(self):
+        basename = os.path.basename(self.filename_img)
+        basename_split = re.split('_|\.', basename)
+        uid = basename_split[-2]
+        if self.state == self.STATE_TODO:
+            state_str = 'To Do'
+        elif self.state == self.STATE_ACCEPTED:
+            state_str = 'Accepted'
+        elif self.state == self.STATE_REJECTED:
+            state_str = 'Rejected'
+        text = '%s: %d,%d (%s)' % (uid, self.ipt[0], self.ipt[1], state_str)
+        self.setText(text)
+
+    def accept(self):
+        self.state = self.STATE_ACCEPTED
+        self.update_text()
+
+    def reject(self):
+        self.state = self.STATE_REJECTED
+        self.update_text()
+
+    def set_image_point(self, ipt):
+        self.ipt = ipt
+        self.update_text()
+

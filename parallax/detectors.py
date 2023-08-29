@@ -125,14 +125,14 @@ class SleapDetector(QObject):
 
         def select_centroid_dir(self):
             centroid_dir = QFileDialog.getExistingDirectory(self, 'Select Centroid Directory',
-                                                    data_dir, QFileDialog.ShowDirsOnly)
+                                                    training_dir, QFileDialog.ShowDirsOnly)
             if centroid_dir:
                 self.centroid_label.setText(centroid_dir)
                 self.centroid_dir = centroid_dir
 
         def select_instance_dir(self):
             instance_dir = QFileDialog.getExistingDirectory(self, 'Select Instance Directory',
-                                                    data_dir, QFileDialog.ShowDirsOnly)
+                                                    training_dir, QFileDialog.ShowDirsOnly)
             if instance_dir:
                 self.instance_label.setText(instance_dir)
                 self.instance_dir = instance_dir
