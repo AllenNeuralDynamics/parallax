@@ -99,16 +99,21 @@ class MainWindow(QMainWindow):
         self.device_menu.addAction(self.video_source_action)
 
         self.tools_menu = self.menuBar().addMenu("Tools")
-        self.tools_menu.addAction(self.accutest_action)
-        self.tools_menu.addAction(self.cbm_action)
-        self.tools_menu.addAction(self.csc_action)
-        self.tools_menu.addAction(self.cbs_action)
-        self.tools_menu.addAction(self.elevator_action)
+        self.tools_calibrations_menu = self.tools_menu.addMenu('Calibrations')
+        self.tools_transforms_menu = self.tools_menu.addMenu('Transforms')
+        self.tools_testing_menu = self.tools_menu.addMenu('Testing')
+
+        # add the actions
+        self.tools_calibrations_menu.addAction(self.cbm_action)
+        self.tools_calibrations_menu.addAction(self.cbs_action)
+        self.tools_calibrations_menu.addAction(self.it_action)
+        self.tools_calibrations_menu.addAction(self.csc_action)
+        self.tools_transforms_menu.addAction(self.rbt_action)
+        self.tools_testing_menu.addAction(self.accutest_action)
         self.tools_menu.addAction(self.tt_action)
-        self.tools_menu.addAction(self.it_action)
         self.tools_menu.addAction(self.pb_action)
-        self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.ruler_action)
+        self.tools_menu.addAction(self.elevator_action)
         #self.tools_menu.addAction(self.gtd_action)
         #self.tools_menu.addAction(self.console_action)
 
