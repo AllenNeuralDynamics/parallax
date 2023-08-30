@@ -30,7 +30,7 @@ from .ruler import Ruler
 from .camera import VideoSource
 from .preferences import PreferencesWindow
 from .helper import uid8, FONT_BOLD
-from .probe_transform_tool import ProbeTransformTool
+from .camera_to_probe_transform_tool import CameraToProbeTransformTool
 
 
 class MainWindow(QMainWindow):
@@ -84,8 +84,8 @@ class MainWindow(QMainWindow):
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
         self.about_action.triggered.connect(self.launch_about)
-        self.ptt_action = QAction("Probe Transform Tool")
-        self.ptt_action.triggered.connect(self.launch_ptt)
+        self.cpt_action = QAction("Camera-to-Probe Transform Tool")
+        self.cpt_action.triggered.connect(self.launch_cpt)
 
         # build the menubar
         self.file_menu = self.menuBar().addMenu("File")
@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
         self.tools_calibrations_menu.addAction(self.it_action)
         self.tools_calibrations_menu.addAction(self.csc_action)
 
-        self.tools_transforms_menu.addAction(self.ptt_action)
+        self.tools_transforms_menu.addAction(self.cpt_action)
         self.tools_transforms_menu.addAction(self.rbt_action)
 
         self.tools_testing_menu.addAction(self.accutest_action)
@@ -219,11 +219,12 @@ class MainWindow(QMainWindow):
             for screen in self.screens():
                 screen.update_camera_menu()
 
-    def launch_ptt(self):
-        self.widget.ptt = ProbeTransformTool(self.model, self.widget.lscreen, self.widget.rscreen)
-        self.widget.ptt.msg_posted.connect(self.widget.msg_log.post)
-        self.widget.ptt.transform_generated.connect(self.widget.trans_panel.update_transforms)
-        self.widget.ptt.show()
+    def launch_cpt(self):
+        self.widget.cpt = CameraToProbeTransformTool(self.model, self.widget.lscreen,
+                                                        self.widget.rscreen)
+        self.widget.cpt.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.cpt.transform_generated.connect(self.widget.trans_panel.update_transforms)
+        self.widget.cpt.show()
 
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
@@ -307,7 +308,7 @@ class MainWidget(QWidget):
         main_layout.addWidget(self.msg_log)
         self.setLayout(main_layout)
 
-        self.ptt = None
+        self.cpt = None
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
@@ -328,8 +329,8 @@ class MainWidget(QWidget):
             self.cal_panel.triangulate()
             if self.model.prefs.train_t:
                 self.save_training_data()
-            if self.ptt is not None:
-                self.ptt.register(src='keyboard')
+            if self.cpt is not None:
+                self.cpt.register(src='keyboard')
 
     def save_training_data(self):
         if self.model.prefs.train_left:

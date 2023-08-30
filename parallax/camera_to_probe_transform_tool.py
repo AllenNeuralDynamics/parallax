@@ -17,7 +17,7 @@ from .points import Point3D
 from .calibration_worker import CalibrationWorker
 
 
-class ProbeTransformTool(QWidget):
+class CameraToProbeTransformTool(QWidget):
 
     msg_posted = pyqtSignal(str)
     transform_generated = pyqtSignal()
@@ -46,7 +46,7 @@ class ProbeTransformTool(QWidget):
         self.auto_panel.corr_generated.connect(self.corr_panel.add_correspondence)
         self.gen_panel.transform_generated.connect(self.transform_generated)
 
-        self.setWindowTitle('Probe Transform Tool')
+        self.setWindowTitle('Camera-to-Probe Transform Tool')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
     def register(self, src):
