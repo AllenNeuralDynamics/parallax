@@ -26,37 +26,37 @@ class TransformPanel(QFrame):
         self.transforms_label = QLabel('Transforms')
         self.transforms_label.setAlignment(Qt.AlignCenter)
         self.transforms_label.setFont(FONT_BOLD)
-        self.transforms_combo = QComboBox()
-        self.transforms_settings_button = QPushButton()
-        self.transforms_settings_button.setIcon(QIcon(get_image_file('gear.png')))
-        self.transforms_settings_button.setToolTip('Calibration Settings')
-        self.transforms_apply_button = QPushButton('Apply')
-        self.transforms_load_button = QPushButton('Load')
-        self.transforms_save_button = QPushButton('Save')
-        self.transforms_gen_button = QPushButton('Generate')
-        transforms_layout = QGridLayout()
-        transforms_layout.addWidget(self.transforms_label, 0,0,1,3)
-        transforms_layout.addWidget(self.transforms_combo, 1,0,1,1)
-        transforms_layout.addWidget(self.transforms_settings_button, 1,1,1,1)
-        transforms_layout.addWidget(self.transforms_apply_button, 1,2,1,1)
-        transforms_layout.addWidget(self.transforms_load_button, 2,0,2,1)
-        transforms_layout.addWidget(self.transforms_save_button, 2,1,2,1)
-        transforms_layout.addWidget(self.transforms_gen_button, 2,2,2,1)
-        self.setLayout(transforms_layout)
+        self.combo = QComboBox()
+        self.settings_button = QPushButton()
+        self.settings_button.setIcon(QIcon(get_image_file('gear.png')))
+        self.settings_button.setToolTip('Calibration Settings')
+        self.apply_button = QPushButton('Apply')
+        self.load_button = QPushButton('Load')
+        self.save_button = QPushButton('Save')
+        self.gen_button = QPushButton('Generate')
+        layout = QGridLayout()
+        layout.addWidget(self.transforms_label, 0,0,1,12)
+        layout.addWidget(self.combo, 1,0,1,8)
+        layout.addWidget(self.settings_button, 1,8,1,2)
+        layout.addWidget(self.apply_button, 1,10,1,2)
+        layout.addWidget(self.load_button, 2,0,1,4)
+        layout.addWidget(self.save_button, 2,4,1,4)
+        layout.addWidget(self.gen_button, 2,8,1,4)
+        self.setLayout(layout)
 
         # connections
-        self.transforms_save_button.clicked.connect(self.save_transform)
-        self.transforms_load_button.clicked.connect(self.load_transform)
-        self.transforms_gen_button.clicked.connect(self.show_rbt_tool)
-        self.transforms_apply_button.clicked.connect(self.show_transform_widget)
-        self.transforms_settings_button.clicked.connect(self.launch_settings)
+        self.save_button.clicked.connect(self.save_transform)
+        self.load_button.clicked.connect(self.load_transform)
+        self.gen_button.clicked.connect(self.show_rbt_tool)
+        self.apply_button.clicked.connect(self.show_transform_widget)
+        self.settings_button.clicked.connect(self.launch_settings)
 
         # frame border
         self.setFrameStyle(QFrame.Box | QFrame.Plain)
         self.setLineWidth(2)
 
     def launch_settings(self):
-        name_selected = self.transforms_combo.currentText()
+        name_selected = self.combo.currentText()
         if not name_selected:
             return
         transform = self.model.transforms[name_selected]
@@ -65,11 +65,11 @@ class TransformPanel(QFrame):
 
     def save_transform(self):
 
-        if (self.transforms_combo.currentIndex() < 0):
+        if (self.combo.currentIndex() < 0):
             self.msg_posted.emit('No transform selected.')
             return
         else:
-            name_selected = self.transforms_combo.currentText()
+            name_selected = self.combo.currentText()
             tf_selected = self.model.transforms[name_selected]
 
         suggested_filename = os.path.join(data_dir, 'transform_' + name_selected + '.pkl')
@@ -91,12 +91,12 @@ class TransformPanel(QFrame):
         self.update_transforms()
 
     def update_transforms(self):
-        self.transforms_combo.clear()
+        self.combo.clear()
         for tf in self.model.transforms.keys():
-            self.transforms_combo.addItem(tf)
+            self.combo.addItem(tf)
 
     def show_transform_widget(self):
-        name_selected = self.transforms_combo.currentText()
+        name_selected = self.combo.currentText()
         transform = self.model.transforms[name_selected]
         self.transform_widget = PointTransformWidget(transform)
         self.transform_widget.show()
