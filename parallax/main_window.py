@@ -29,7 +29,8 @@ from .point_bank import PointBank
 from .ruler import Ruler
 from .camera import VideoSource
 from .preferences import PreferencesWindow
-from .helper import uid8
+from .helper import uid8, FONT_BOLD
+from .probe_transform_tool import ProbeTransformTool
 
 
 class MainWindow(QMainWindow):
@@ -83,6 +84,8 @@ class MainWindow(QMainWindow):
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
         self.about_action.triggered.connect(self.launch_about)
+        self.ptt_action = QAction("Probe Transform Tool")
+        self.ptt_action.triggered.connect(self.launch_ptt)
 
         # build the menubar
         self.file_menu = self.menuBar().addMenu("File")
@@ -100,16 +103,24 @@ class MainWindow(QMainWindow):
 
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_calibrations_menu = self.tools_menu.addMenu('Calibrations')
+        self.tools_calibrations_menu.menuAction().setFont(FONT_BOLD)
         self.tools_transforms_menu = self.tools_menu.addMenu('Transforms')
+        self.tools_transforms_menu.menuAction().setFont(FONT_BOLD)
         self.tools_testing_menu = self.tools_menu.addMenu('Testing')
+        self.tools_testing_menu.menuAction().setFont(FONT_BOLD)
 
         # add the actions
+
         self.tools_calibrations_menu.addAction(self.cbm_action)
         self.tools_calibrations_menu.addAction(self.cbs_action)
         self.tools_calibrations_menu.addAction(self.it_action)
         self.tools_calibrations_menu.addAction(self.csc_action)
+
+        self.tools_transforms_menu.addAction(self.ptt_action)
         self.tools_transforms_menu.addAction(self.rbt_action)
+
         self.tools_testing_menu.addAction(self.accutest_action)
+
         self.tools_menu.addAction(self.tt_action)
         self.tools_menu.addAction(self.pb_action)
         self.tools_menu.addAction(self.ruler_action)
@@ -208,6 +219,12 @@ class MainWindow(QMainWindow):
             for screen in self.screens():
                 screen.update_camera_menu()
 
+    def launch_ptt(self):
+        self.widget.ptt = ProbeTransformTool(self.model, self.widget.lscreen, self.widget.rscreen)
+        self.widget.ptt.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.ptt.transform_generated.connect(self.widget.trans_panel.update_transforms)
+        self.widget.ptt.show()
+
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
 
@@ -290,6 +307,8 @@ class MainWidget(QWidget):
         main_layout.addWidget(self.msg_log)
         self.setLayout(main_layout)
 
+        self.ptt = None
+
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
             if (e.modifiers() & Qt.ControlModifier):
@@ -309,6 +328,8 @@ class MainWidget(QWidget):
             self.cal_panel.triangulate()
             if self.model.prefs.train_t:
                 self.save_training_data()
+            if self.ptt is not None:
+                self.ptt.register(src='keyboard')
 
     def save_training_data(self):
         if self.model.prefs.train_left:

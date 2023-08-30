@@ -15,6 +15,7 @@ import pickle
 
 from . import get_image_file, data_dir
 from .helper import FONT_BOLD
+from .points import Point3D
 
 
 class PointListWidget(QListWidget):
@@ -171,36 +172,6 @@ class PointBank(QFrame):
             img_points = coords[3:7]
             point.set_img_points(img_points)
         self.new_point(point)
-
-
-class Point3D:
-
-    def __init__(self):
-        self.name = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) \
-                        for _ in range(8))
-        self.cs = 'default'
-        self.x = 0.
-        self.y = 0.
-        self.z = 0.
-
-        self.img_points = (-1, -1, -1, -1)
-
-    def set_name(self, name):
-        self.name = name
-
-    def set_coordinate_system(self, cs):
-        self.cs = cs
-
-    def set_coordinates(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-
-    def set_img_points(self, img_points):
-        self.img_points = img_points
-
-    def get_img_points(self):
-        return self.img_points
 
 
 class PointBankItem(QListWidgetItem):

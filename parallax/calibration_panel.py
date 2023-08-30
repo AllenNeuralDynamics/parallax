@@ -17,7 +17,6 @@ from . import get_image_file
 from .helper import FONT_BOLD
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
 from .calibration import Calibration
-from .calibration_worker import CalibrationWorker
 from .rigid_body_transform_tool import CoordinateWidget
 from .stage_dropdown import StageDropdown
 from .calibration_worker import CalibrationWorker as cw
@@ -515,9 +514,6 @@ class CalibrationDialog(QDialog):
 
     def go(self):
         self.accept()
-
-    def handle_radio(self, button):
-        print('TODO handleRadio')
 
     def update_status(self):
         if self.stage_dropdown.is_selected():

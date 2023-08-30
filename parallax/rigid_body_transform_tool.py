@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QInputDialog, QComboBox
+from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QComboBox
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QCheckBox
 from PyQt5.QtWidgets import QTabWidget 
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget, QListWidgetItem, QAbstractItemView
@@ -104,6 +104,7 @@ class CoordinateWidget(QWidget):
 
 
 class RigidBodyTransformTool(QWidget):
+
     msg_posted = pyqtSignal(str)
     generated = pyqtSignal()
 
@@ -358,9 +359,9 @@ class CorrespondencePointsTab(QWidget):
 
     def generate(self):
         ncorr = self.list_widget.count()
-        if ncorr < 4:
-            self.msg_posted.emit('Rigid Body Transform: need at least 4 '
-                                    'correspondence points to compute')
+        if ncorr < 3:
+            self.msg_posted.emit('Rigid Body Transform: need at least 3 '
+                                    'correspondence points to generate transform')
             return
 
         items = [self.list_widget.item(i) for i in range(ncorr)]
