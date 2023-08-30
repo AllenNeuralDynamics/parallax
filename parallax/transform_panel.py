@@ -4,8 +4,10 @@ from PyQt5.QtWidgets import QFileDialog, QDialog
 from PyQt5.QtCore import pyqtSignal, Qt, QThread
 from PyQt5.QtGui import QIcon
 
+import numpy as np
 import pickle
 import os
+import json
 
 from . import data_dir
 from . import get_image_file
@@ -61,6 +63,7 @@ class TransformPanel(QFrame):
             return
         transform = self.model.transforms[name_selected]
         dlg = TransformSettingsDialog(transform)
+        dlg.msg_posted.connect(self.msg_posted)
         dlg.exec_()
 
     def save_transform(self):
@@ -107,38 +110,128 @@ class TransformPanel(QFrame):
         self.rbt_tool.generated.connect(self.update_transforms)
         self.rbt_tool.show()
 
+
 class TransformSettingsDialog(QDialog):
+
+    msg_posted = pyqtSignal(str)
 
     def __init__(self, transform):
         QDialog.__init__(self)
-        self.transform = transform
+        self.tx = transform
 
-        self.name_label = QLabel('Name:')
+        key_labels = []
+        value_labels = []
+
+        self.name_key = QLabel('Name:')
+        self.name_key.setAlignment(Qt.AlignCenter)
+        self.name_key.setFont(FONT_BOLD)
         self.name_value = QLabel(transform.name)
-        self.from_label = QLabel('From Coord:')
+        self.name_value.setAlignment(Qt.AlignCenter)
+
+        self.from_key = QLabel('From Coord:')
+        self.from_key.setAlignment(Qt.AlignCenter)
+        self.from_key.setFont(FONT_BOLD)
         self.from_value = QLabel(transform.from_cs)
-        self.to_label = QLabel('To Coord:')
+        self.from_value.setAlignment(Qt.AlignCenter)
+
+        self.to_key = QLabel('To Coord:')
+        self.to_key.setAlignment(Qt.AlignCenter)
+        self.to_key.setFont(FONT_BOLD)
         self.to_value = QLabel(transform.to_cs)
-        self.rmse_label = QLabel('RMSE:')
+        self.to_value.setAlignment(Qt.AlignCenter)
+
+        self.rot_key = QLabel('Rx, Ry, Rz:')
+        self.rot_key.setAlignment(Qt.AlignCenter)
+        self.rot_key.setFont(FONT_BOLD)
+        self.rot_value = QLabel('%.2f, %.2f, %.2f' % tuple(transform.params[:3]))
+        self.rot_value.setAlignment(Qt.AlignCenter)
+
+        self.drot_key = QLabel('dRx, dRy, dRz:')
+        self.drot_key.setAlignment(Qt.AlignCenter)
+        self.drot_key.setFont(FONT_BOLD)
+        self.drot_value = QLabel('%.2e, %.2e, %.2e' % tuple(transform.dparams[:3]))
+        self.drot_value.setAlignment(Qt.AlignCenter)
+
+        self.ori_key = QLabel('tx, ty, tz:')
+        self.ori_key.setAlignment(Qt.AlignCenter)
+        self.ori_key.setFont(FONT_BOLD)
+        self.ori_value = QLabel('%.2f, %.2f, %.2f' % tuple(transform.params[3:]))
+        self.ori_value.setAlignment(Qt.AlignCenter)
+
+        self.dori_key = QLabel('dtx, dty, dtz:')
+        self.dori_key.setAlignment(Qt.AlignCenter)
+        self.dori_key.setFont(FONT_BOLD)
+        self.dori_value = QLabel('%.2f, %.2f, %.2f' % tuple(transform.dparams[3:]))
+        self.dori_value.setAlignment(Qt.AlignCenter)
+
+        self.rmse_key = QLabel('RMSE:')
+        self.rmse_key.setAlignment(Qt.AlignCenter)
+        self.rmse_key.setFont(FONT_BOLD)
         if transform.rmse:
             self.rmse_value = QLabel(str(transform.rmse))
         else:
             self.rmse_value = QLabel('N/A')
-        self.dproj_label = QLabel('Dproj:')
+        self.rmse_value.setAlignment(Qt.AlignCenter)
+
+        self.dproj_key = QLabel('dproj:')
+        self.dproj_key.setAlignment(Qt.AlignCenter)
+        self.dproj_key.setFont(FONT_BOLD)
         self.dproj_value = QLabel(str(transform.dproj))
+        self.dproj_value.setAlignment(Qt.AlignCenter)
+
+        self.json_button = QPushButton('Export as JSON')
+        self.json_button.clicked.connect(self.save_json)
+
         layout = QGridLayout()
-        layout.addWidget(self.name_label, 0,0, 1,1)
+        layout.addWidget(self.name_key, 0,0, 1,1)
         layout.addWidget(self.name_value, 0,1, 1,1)
-        layout.addWidget(self.from_label, 1,0, 1,1)
+        layout.addWidget(self.from_key, 1,0, 1,1)
         layout.addWidget(self.from_value, 1,1, 1,1)
-        layout.addWidget(self.to_label, 2,0, 1,1)
+        layout.addWidget(self.to_key, 2,0, 1,1)
         layout.addWidget(self.to_value, 2,1, 1,1)
-        layout.addWidget(self.rmse_label, 3,0, 1,1)
-        layout.addWidget(self.rmse_value, 3,1, 1,1)
-        layout.addWidget(self.dproj_label, 4,0, 1,1)
-        layout.addWidget(self.dproj_value, 4,1, 1,1)
+        layout.addWidget(self.rot_key, 3,0, 1,1)
+        layout.addWidget(self.rot_value, 3,1, 1,1)
+        layout.addWidget(self.drot_key, 4,0, 1,1)
+        layout.addWidget(self.drot_value, 4,1, 1,1)
+        layout.addWidget(self.ori_key, 5,0, 1,1)
+        layout.addWidget(self.ori_value, 5,1, 1,1)
+        layout.addWidget(self.dori_key, 6,0, 1,1)
+        layout.addWidget(self.dori_value, 6,1, 1,1)
+        layout.addWidget(self.rmse_key, 7,0, 1,1)
+        layout.addWidget(self.rmse_value, 7,1, 1,1)
+        layout.addWidget(self.dproj_key, 8,0, 1,1)
+        layout.addWidget(self.dproj_value, 8,1, 1,1)
+        layout.addWidget(self.json_button, 9,0, 1,2)
         self.setLayout(layout)
 
         self.setWindowTitle('Transform Settings')
+        self.setMinimumWidth(400)
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
+
+    def save_json(self):
+        suggested_filename = os.path.join(data_dir, 'transform_' + self.tx.name + '.json')
+        filename = QFileDialog.getSaveFileName(self, 'Save transform as JSON',
+                                                suggested_filename,
+                                                'JSON files (*.json)')[0]
+        if filename:
+            data = {}
+            data['name'] = self.tx.name
+            data['from_cs'] = self.tx.from_cs
+            data['to_cs'] = self.tx.to_cs
+            data['r_euler'] = self.tx.params[:3].tolist()
+            data['dr_euler'] = self.tx.dparams[:3].tolist()
+            data['t'] = self.tx.params[3:].tolist()
+            data['dt'] = self.tx.dparams[3:].tolist()
+            R = self.tx.rot.T
+            t = self.tx.ori.reshape(3,1)
+            Rt34 = np.concatenate([R,t], axis=-1)
+            Rt44 = np.concatenate([Rt34,np.array([[0.,0.,0.,1.]])], axis=0)
+            data['Rt'] = Rt44.tolist()
+            data['rmse'] = float(self.tx.rmse)
+            data['dproj'] = float(self.tx.dproj)
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            self.msg_posted.emit('Saved transform %s as JSON file: %s' % \
+                                    (self.tx.name, filename))
+
 
