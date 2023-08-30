@@ -29,8 +29,9 @@ class CameraToProbeTransformTool(QWidget):
         # widgets
         self.auto_panel = AutomationPanel(model, screen1, screen2)
         reg_button = self.auto_panel.get_register_button()
-        self.corr_panel = CorrespondencePanel(reg_button)
-        self.gen_panel = GeneratePanel(self.corr_panel)
+        kb_check = self.auto_panel.get_keyboard_check()
+        self.corr_panel = CorrespondencePanel(reg_button, kb_check)
+        self.gen_panel = GeneratePanel(model, self.corr_panel)
 
         # widgets
         layout = QHBoxLayout()
@@ -77,7 +78,7 @@ class AutomationPanel(QFrame):
         self.auto_label = QLabel('Automation')
         self.auto_label.setAlignment(Qt.AlignCenter)
         self.auto_label.setFont(FONT_BOLD)
-        self.stage_label = QLabel('Select a Stage:')
+        self.stage_label = QLabel('Stage:')
         self.stage_label.setAlignment(Qt.AlignCenter)
         self.stage_dropdown = StageDropdown(self.model)
         self.stage_dropdown.activated.connect(self.update_status)
@@ -107,6 +108,9 @@ class AutomationPanel(QFrame):
         self.register_button = QPushButton('Register Points and Continue')
         self.register_button.setEnabled(False)
         self.register_button.clicked.connect(self.register)
+        self.kb_check = QCheckBox('Trigger from keyboard (C)')
+        self.kb_check.setStyleSheet("margin-left:70%; margin-right:50%;")
+
         self.cal_dropdown.activated.connect(self.update_status)
 
         layout = QGridLayout()
@@ -123,7 +127,6 @@ class AutomationPanel(QFrame):
         layout.addWidget(self.cal_label, 6,0, 1,1)
         layout.addWidget(self.cal_dropdown, 6,1, 1,1)
         layout.addWidget(self.start_stop_button, 7,0, 1,2)
-        #layout.addWidget(self.register_button, 8,0, 1,2)
         self.setLayout(layout)
 
         self.state = self.STATE_NOT_RUNNING
@@ -131,6 +134,9 @@ class AutomationPanel(QFrame):
 
     def get_register_button(self):
         return self.register_button
+
+    def get_keyboard_check(self):
+        return self.kb_check
 
     def set_origin(self, pos):
         self.origin_value.setText('[%.1f, %.1f, %.1f]' % pos)
@@ -217,27 +223,30 @@ class AutomationPanel(QFrame):
 
     def register(self, src='button'):
         if self.is_running():
-            lipt = self.screen1.get_selected()
-            ript = self.screen2.get_selected()
-            if (lipt[0] is None) or (ript[0] is None):
-                self.msg_posted.emit('Select probe tip in both camera views to register '
-                                        'correspondence point.')
-                return
-            coord_camera = tuple(self.cal_running.triangulate(lipt, ript))
-            coord_probe = self.stage_running.get_position()
-            p1 = Point3D('auto%03d_camera')
-            p1.set_coordinates(*coord_camera)
-            p2 = Point3D('auto%03d_probe')
-            p2.set_coordinates(*coord_probe)
-            self.corr_generated.emit(p1, p2)
-            self.worker.carry_on()
+            if src=='button' or (src=='keyboard' and self.kb_check.isChecked()):
+                lipt = self.screen1.get_selected()
+                ript = self.screen2.get_selected()
+                if (lipt[0] is None) or (ript[0] is None):
+                    self.msg_posted.emit('Select probe tip in both camera views to register '
+                                            'correspondence point.')
+                    return
+                coord_camera = tuple(self.cal_running.triangulate(lipt, ript))
+                coord_probe = self.stage_running.get_position()
+                p1 = Point3D('auto%03d_camera')
+                p1.set_coordinates(*coord_camera)
+                p2 = Point3D('auto%03d_probe')
+                p2.set_coordinates(*coord_probe)
+                self.corr_generated.emit(p1, p2)
+                self.worker.carry_on()
+                self.screen1.zoom_out()
+                self.screen2.zoom_out()
 
 
 class CorrespondencePanel(QFrame):
 
     msg_posted = pyqtSignal(str)
 
-    def __init__(self, reg_button, parent=None):
+    def __init__(self, reg_button, kb_check, parent=None):
         QFrame.__init__(self, parent)
         self.setFrameStyle(QFrame.Box | QFrame.Plain)
         self.setLineWidth(2)
@@ -254,6 +263,7 @@ class CorrespondencePanel(QFrame):
         layout.addWidget(self.corr_label)
         layout.addWidget(self.list_widget)
         layout.addWidget(reg_button)
+        layout.addWidget(kb_check)
         self.setLayout(layout)
 
         self.setMinimumWidth(375)
@@ -293,21 +303,22 @@ class GeneratePanel(QFrame):
     msg_posted = pyqtSignal(str)
     transform_generated = pyqtSignal()
 
-    def __init__(self, corr_panel, parent=None):
+    def __init__(self, model, corr_panel, parent=None):
         QFrame.__init__(self, parent)
         self.setFrameStyle(QFrame.Box | QFrame.Plain)
         self.setLineWidth(2)
 
+        self.model = model
         self.corr_panel = corr_panel
 
         dt = datetime.datetime.fromtimestamp(time.time())
         name_default = 'transform_%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
                                                             dt.hour, dt.minute, dt.second)
 
-        self.gen_label = QLabel('Generate')
+        self.gen_label = QLabel('Generate Transform')
         self.gen_label.setAlignment(Qt.AlignCenter)
         self.gen_label.setFont(FONT_BOLD)
-        self.name_label = QLabel('Transform Name')
+        self.name_label = QLabel('Name')
         self.name_label.setAlignment(Qt.AlignCenter)
         self.name_edit = QLineEdit(name_default)
         self.from_cs_label = QLabel('"From" Coordinates')
@@ -342,8 +353,8 @@ class GeneratePanel(QFrame):
         p1 = np.array([item.points[0].get_coordinates_array() for item in items])
         p2 = np.array([item.points[1].get_coordinates_array() for item in items])
         name = self.name_edit.text()
-        from_cs = self.from_cs_name_edit.text()
-        to_cs = self.to_cs_name_edit.text()
+        from_cs = self.from_cs_edit.text()
+        to_cs = self.to_cs_edit.text()
         transform = TransformNP(name, from_cs, to_cs)
         transform.compute_from_correspondence(p1, p2)
         self.model.add_transform(transform)

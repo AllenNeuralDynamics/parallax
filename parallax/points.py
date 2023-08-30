@@ -1,5 +1,6 @@
 import random
 import string
+import numpy as np
 
 
 class Point3D:

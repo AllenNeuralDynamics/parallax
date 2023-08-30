@@ -323,14 +323,14 @@ class MainWidget(QWidget):
                 self.model.register_corr_points_accutest()
             if self.model.prefs.train_c:
                 self.save_training_data()
+            if self.cpt is not None:
+                self.cpt.register(src='keyboard')
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
         elif e.key() == Qt.Key_T:
             self.cal_panel.triangulate()
             if self.model.prefs.train_t:
                 self.save_training_data()
-            if self.cpt is not None:
-                self.cpt.register(src='keyboard')
 
     def save_training_data(self):
         if self.model.prefs.train_left:
