@@ -155,10 +155,11 @@ class SleapDetector(QObject):
         # CV worker and thread
         self.cv_thread = QThread()
         self.cv_worker = self.SleapWorker()
+        self.cv_worker.tracked.connect(self.tracked)
         self.cv_worker.moveToThread(self.cv_thread)
         self.cv_thread.started.connect(self.cv_worker.run)
-        self.cv_worker.finished.connect(self.cv_thread.quit, Qt.DirectConnection)
-        self.cv_worker.tracked.connect(self.tracked)
+        self.cv_worker.finished.connect(self.cv_worker.deleteLater)
+        self.cv_thread.finished.connect(self.cv_thread.deleteLater)
         self.cv_thread.start()
 
         self.control_panel = self.ControlPanel()
@@ -182,6 +183,7 @@ class SleapDetector(QObject):
 
     def clean(self):
         self.cv_worker.stop_running()
+        self.cv_thread.quit()
         self.cv_thread.wait()
 
 
