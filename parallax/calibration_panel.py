@@ -19,7 +19,7 @@ from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWid
 from .calibration import Calibration
 from .rigid_body_transform_tool import CoordinateWidget
 from .stage_dropdown import StageDropdown
-from .calibration_worker import CalibrationWorker as cw
+from .calibration_worker import CalibrationWorker
 
 
 class CalibrationPanel(QFrame):
@@ -379,7 +379,7 @@ class CalibrationDialog(QDialog):
         self.resolution_label.setAlignment(Qt.AlignCenter)
         self.resolution_box = QSpinBox()
         self.resolution_box.setMinimum(2)
-        self.resolution_box.setValue(cw.RESOLUTION_DEFAULT)
+        self.resolution_box.setValue(CalibrationWorker.RESOLUTION_DEFAULT)
 
         self.origin_label = QLabel('Origin:')
         self.origin_label.setAlignment(Qt.AlignCenter)
@@ -388,7 +388,7 @@ class CalibrationDialog(QDialog):
 
         self.extent_label = QLabel('Extent (um):')
         self.extent_label.setAlignment(Qt.AlignCenter)
-        self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
+        self.extent_edit = QLineEdit(str(CalibrationWorker.EXTENT_UM_DEFAULT))
 
         self.name_label = QLabel('Name:')
         self.name_label.setAlignment(Qt.AlignCenter)

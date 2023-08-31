@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
 from PyQt5.QtWidgets import QPushButton, QFrame, QWidget, QComboBox, QLabel
 from PyQt5.QtWidgets import QFileDialog, QDialog
-from PyQt5.QtCore import pyqtSignal, Qt, QThread
+from PyQt5.QtCore import pyqtSignal, Qt 
 from PyQt5.QtGui import QIcon
 
 import numpy as np
