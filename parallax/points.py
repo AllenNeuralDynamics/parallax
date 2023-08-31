@@ -35,7 +35,9 @@ class Point3D:
     def set_img_points(self, img_points):
         self.img_points = img_points
 
-    def get_img_points(self):
+    def get_img_points_tuple(self):
         return self.img_points
 
+    def get_img_points_array(self):
+        return np.array(self.img_points, dtype=np.float32)
 

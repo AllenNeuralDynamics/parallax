@@ -8,6 +8,7 @@ from PyQt5.QtCore import QSize, pyqtSignal, QEvent, Qt, QMimeData, QThread
 import numpy as np
 import time
 import datetime
+import csv
 
 from .helper import FONT_BOLD
 from . import get_image_file, data_dir
@@ -234,6 +235,7 @@ class AutomationPanel(QFrame):
             coord_probe = self.stage_running.get_position()
             p1 = Point3D('auto%03d_camera')
             p1.set_coordinates(*coord_camera)
+            p1.set_img_points(lipt + ript)
             p2 = Point3D('auto%03d_probe')
             p2.set_coordinates(*coord_probe)
             self.corr_generated.emit(p1, p2)
@@ -291,6 +293,8 @@ class CorrespondencePanel(QFrame):
                     delete_action.triggered.connect(lambda _: self.delete_corr_point(item))
                 clear_action = menu.addAction('Clear')
                 clear_action.triggered.connect(lambda _: self.clear())
+                save_action = menu.addAction('Save')
+                save_action.triggered.connect(lambda _: self.save_corr_points())
                 menu.exec_(e.globalPos())
         return super().eventFilter(src, e)
 
@@ -298,6 +302,22 @@ class CorrespondencePanel(QFrame):
         row = self.list_widget.row(item)
         self.list_widget.takeItem(row)
         del item
+
+    def clear(self):
+        self.list_widget.clear()
+
+    def save_corr_points(self):
+        filename = QFileDialog.getSaveFileName(self, 'Save correspondence points',
+                                                data_dir, 'CSV files (*.csv)')[0]
+        if filename:
+            with open(filename, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile, delimiter=',')
+                for i in range(self.list_widget.count()):
+                    p1, p2 = self.list_widget.item(i).points
+                    coords = [str(x) for x in (p1.get_coordinates_tuple() + p2.get_coordinates_tuple())]
+                    ipts = [str(x) for x in (p1.get_img_points_tuple() + p2.get_img_points_tuple())]
+                    writer.writerow(coords + ipts)
+
 
 
 class GeneratePanel(QFrame):
