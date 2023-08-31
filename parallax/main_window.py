@@ -324,7 +324,7 @@ class MainWidget(QWidget):
             if self.model.prefs.train_c:
                 self.save_training_data()
             if self.cpt is not None:
-                self.cpt.register(src='keyboard')
+                self.cpt.register()
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
         elif e.key() == Qt.Key_T:

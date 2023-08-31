@@ -50,8 +50,9 @@ class CameraToProbeTransformTool(QWidget):
         self.setWindowTitle('Camera-to-Probe Transform Tool')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
-    def register(self, src):
-        self.auto_panel.register(src=src)
+    def register(self):
+        if self.auto_panel.kb_check.isChecked():
+            self.auto_panel.register()
 
     def closeEvent(self, e):
         self.auto_panel.stop()
@@ -211,7 +212,7 @@ class AutomationPanel(QFrame):
         return self.state == self.STATE_RUNNING
 
     def handle_point_reached(self, n, num, x,y,z):
-        msg1 = 'Registration point %d (of %d) reached: [%f, %f, %f]\n' % (n+1,num, x,y,z)
+        msg1 = 'Automation point %d (of %d) reached: [%f, %f, %f]\n' % (n+1,num, x,y,z)
         self.msg_posted.emit(msg1)
 
     def handle_finished(self):
@@ -221,25 +222,26 @@ class AutomationPanel(QFrame):
             self.msg_posted.emit('Calibration canceled.')
         self.set_running(False)
 
-    def register(self, src='button'):
+    def register(self):
         if self.is_running():
-            if src=='button' or (src=='keyboard' and self.kb_check.isChecked()):
-                lipt = self.screen1.get_selected()
-                ript = self.screen2.get_selected()
-                if (lipt[0] is None) or (ript[0] is None):
-                    self.msg_posted.emit('Select probe tip in both camera views to register '
-                                            'correspondence point.')
-                    return
-                coord_camera = tuple(self.cal_running.triangulate(lipt, ript))
-                coord_probe = self.stage_running.get_position()
-                p1 = Point3D('auto%03d_camera')
-                p1.set_coordinates(*coord_camera)
-                p2 = Point3D('auto%03d_probe')
-                p2.set_coordinates(*coord_probe)
-                self.corr_generated.emit(p1, p2)
-                self.worker.carry_on()
-                self.screen1.zoom_out()
-                self.screen2.zoom_out()
+            lipt = self.screen1.get_selected()
+            ript = self.screen2.get_selected()
+            if (lipt[0] is None) or (ript[0] is None):
+                self.msg_posted.emit('Select probe tip in both camera views to register '
+                                        'correspondence point.')
+                return
+            coord_camera = tuple(self.cal_running.triangulate(lipt, ript))
+            coord_probe = self.stage_running.get_position()
+            p1 = Point3D('auto%03d_camera')
+            p1.set_coordinates(*coord_camera)
+            p2 = Point3D('auto%03d_probe')
+            p2.set_coordinates(*coord_probe)
+            self.corr_generated.emit(p1, p2)
+            self.worker.carry_on()
+            self.screen1.zoom_out()
+            self.screen2.zoom_out()
+            self.screen1.clear_selected()
+            self.screen2.clear_selected()
 
 
 class CorrespondencePanel(QFrame):
@@ -276,7 +278,7 @@ class CorrespondencePanel(QFrame):
         item = QListWidgetItem(s)
         item.points = p1, p2
         self.list_widget.addItem(item)
-        self.msg_posted.emit('Registered correspondence: %.2f,%.2f,%.2f / %.2f,%.2f,%.2f,' \
+        self.msg_posted.emit('Correspondence point registered: %.2f,%.2f,%.2f / %.2f,%.2f,%.2f,' \
                                 % (p1.get_coordinates_tuple() + p2.get_coordinates_tuple()))
 
     def eventFilter(self, src, e):
