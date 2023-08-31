@@ -10,7 +10,6 @@ import numpy as np
 
 from . import get_image_file, data_dir
 from .helper import FONT_BOLD
-from .stage_dropdown import StageDropdown
 from .transform import TransformNP
 
 
@@ -224,27 +223,15 @@ class CorrespondencePointsTab(QWidget):
         self.left_widget.setLineWidth(2)
         self.left_layout = QVBoxLayout()
         self.cs1_name_edit = QLineEdit()
-        self.cs1_name_edit.setPlaceholderText('"From" Coordinate System')
+        self.cs1_name_edit.setPlaceholderText('"From" Coordinates')
         self.left_layout.addWidget(self.cs1_name_edit)
         self.coords_widget1 = CoordinateWidget()
         self.left_layout.addWidget(self.coords_widget1)
         self.cs2_name_edit = QLineEdit()
-        self.cs2_name_edit.setPlaceholderText('"To" Coordinate System')
+        self.cs2_name_edit.setPlaceholderText('"To" Coordinates')
         self.left_layout.addWidget(self.cs2_name_edit)
         self.coords_widget2 = CoordinateWidget()
         self.left_layout.addWidget(self.coords_widget2)
-        self.left_buttons = QWidget()
-        self.left_buttons.setLayout(QHBoxLayout())
-        self.current_button = QPushButton('Current Position')
-        self.current_button.clicked.connect(self.fill_current)
-        self.left_buttons.layout().addWidget(self.current_button)
-        self.last_button = QPushButton('Last Reconstruction')
-        self.last_button.clicked.connect(self.fill_last)
-        self.left_buttons.layout().addWidget(self.last_button)
-        self.left_layout.addWidget(self.left_buttons)
-        self.stage_dropdown = StageDropdown(self.model)
-        self.stage_dropdown.activated.connect(self.handle_stage_selection)
-        self.left_layout.addWidget(self.stage_dropdown)
         self.left_widget.setLayout(self.left_layout)
         self.left_widget.setMaximumWidth(300)
 
@@ -300,10 +287,6 @@ class CorrespondencePointsTab(QWidget):
         row = self.list_widget.row(item)
         self.list_widget.takeItem(row)
         del item
-
-    def handle_stage_selection(self, index):
-        stage_name = self.stage_dropdown.currentText()
-        self.stage = self.model.stages[stage_name]
 
     def fill_current(self):
         if self.stage:
