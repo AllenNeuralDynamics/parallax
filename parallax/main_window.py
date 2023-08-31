@@ -136,6 +136,8 @@ class MainWindow(QMainWindow):
 
         self.console = None
 
+        self.elevator_tool = None
+
         self.refresh_cameras()
         self.refresh_focus_controllers()
         if not self.dummy:
@@ -198,8 +200,9 @@ class MainWindow(QMainWindow):
         self.gtd_tool.show()
 
     def launch_elevator(self):
-        self.elevator_tool = ElevatorControlTool(self.model)
-        self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
+        if self.elevator_tool is None:
+            self.elevator_tool = ElevatorControlTool(self.model)
+            self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
         self.elevator_tool.show()
 
     def launch_pb(self):
