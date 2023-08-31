@@ -50,10 +50,10 @@ class MainWindow(QMainWindow):
         self.edit_prefs_action = QAction("Preferences")
         self.edit_prefs_action.triggered.connect(self.launch_preferences)
         self.edit_prefs_action.setShortcut("Ctrl+P")
+        self.refresh_stages_action = QAction("Refresh Stages")
+        self.refresh_stages_action.triggered.connect(self.refresh_stages)
         self.refresh_cameras_action = QAction("Refresh Camera List")
         self.refresh_cameras_action.triggered.connect(self.refresh_cameras)
-        self.manage_stages_action = QAction("Manage Stages")
-        self.manage_stages_action.triggered.connect(self.launch_stage_manager)
         self.refresh_focos_action = QAction("Refresh Focus Controllers")
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
         self.video_source_action = QAction("Add video source as camera")
@@ -96,8 +96,8 @@ class MainWindow(QMainWindow):
         self.edit_menu.addAction(self.edit_prefs_action)
 
         self.device_menu = self.menuBar().addMenu("Devices")
+        self.device_menu.addAction(self.refresh_stages_action)
         self.device_menu.addAction(self.refresh_cameras_action)
-        self.device_menu.addAction(self.manage_stages_action)
         self.device_menu.addAction(self.refresh_focos_action)
         self.device_menu.addAction(self.video_source_action)
 
@@ -253,6 +253,10 @@ class MainWindow(QMainWindow):
             self.model.scan_for_focus_controllers()
         for screen in self.screens():
             screen.update_focus_control_menu()
+
+    def refresh_stages(self):
+        if not self.dummy:
+            self.model.scan_for_usb_stages()
 
 
 class MainWidget(QWidget):
