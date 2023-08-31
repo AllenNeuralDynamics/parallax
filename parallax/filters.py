@@ -47,11 +47,11 @@ class NoFilter(QObject):
         # CV worker and thread
         self.thread = QThread()
         self.worker = self.Worker()
-        self.worker.start_running()
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit, Qt.DirectConnection)
         self.worker.frame_processed.connect(self.frame_processed)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
         self.thread.start()
 
     def process(self, frame):
@@ -62,6 +62,7 @@ class NoFilter(QObject):
 
     def clean(self):
         self.worker.stop_running()
+        self.thread.quit()
         self.thread.wait()
 
 

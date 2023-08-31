@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QInputDialog, QComboBox
+from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QComboBox
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QCheckBox
 from PyQt5.QtWidgets import QTabWidget 
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget, QListWidgetItem, QAbstractItemView
@@ -104,6 +104,7 @@ class CoordinateWidget(QWidget):
 
 
 class RigidBodyTransformTool(QWidget):
+
     msg_posted = pyqtSignal(str)
     generated = pyqtSignal()
 
@@ -140,6 +141,7 @@ class TransformListItem(QListWidgetItem):
 
 
 class CompositionTab(QWidget):
+
     msg_posted = pyqtSignal(str)
     generated = pyqtSignal()
 
@@ -193,7 +195,10 @@ class CompositionTab(QWidget):
         for i in range(len(transforms) - 1):
             t = transforms[i]
             tnext = transforms[i+1]
-            assert tnext.from_cs == t.to_cs, 'Coordinates systems do not match'
+            if (tnext.from_cs != t.to_cs):
+                self.msg_posted.emit('Transform from Composition: '
+                        'coordinates systems do not match: %s, %s' % (t.to_cs, tnext.from_cs))
+                return
         name = self.name_edit.text()
         from_cs = transforms[0].from_cs
         to_cs = transforms[-1].to_cs
@@ -204,6 +209,7 @@ class CompositionTab(QWidget):
 
 
 class CorrespondencePointsTab(QWidget):
+
     msg_posted = pyqtSignal(str)
     generated = pyqtSignal()
 
@@ -358,9 +364,9 @@ class CorrespondencePointsTab(QWidget):
 
     def generate(self):
         ncorr = self.list_widget.count()
-        if ncorr < 4:
-            self.msg_posted.emit('Rigid Body Transform: need at least 4 '
-                                    'correspondence points to compute')
+        if ncorr < 3:
+            self.msg_posted.emit('Rigid Body Transform: need at least 3 '
+                                    'correspondence points to generate transform')
             return
 
         items = [self.list_widget.item(i) for i in range(ncorr)]

@@ -29,7 +29,8 @@ from .point_bank import PointBank
 from .ruler import Ruler
 from .camera import VideoSource
 from .preferences import PreferencesWindow
-from .helper import uid8
+from .helper import uid8, FONT_BOLD
+from .camera_to_probe_transform_tool import CameraToProbeTransformTool
 
 
 class MainWindow(QMainWindow):
@@ -83,6 +84,8 @@ class MainWindow(QMainWindow):
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
         self.about_action.triggered.connect(self.launch_about)
+        self.cpt_action = QAction("Camera-to-Probe Transform Tool")
+        self.cpt_action.triggered.connect(self.launch_cpt)
 
         # build the menubar
         self.file_menu = self.menuBar().addMenu("File")
@@ -99,16 +102,29 @@ class MainWindow(QMainWindow):
         self.device_menu.addAction(self.video_source_action)
 
         self.tools_menu = self.menuBar().addMenu("Tools")
-        self.tools_menu.addAction(self.accutest_action)
-        self.tools_menu.addAction(self.cbm_action)
-        self.tools_menu.addAction(self.csc_action)
-        self.tools_menu.addAction(self.cbs_action)
-        self.tools_menu.addAction(self.elevator_action)
+        self.tools_calibrations_menu = self.tools_menu.addMenu('Calibrations')
+        self.tools_calibrations_menu.menuAction().setFont(FONT_BOLD)
+        self.tools_transforms_menu = self.tools_menu.addMenu('Transforms')
+        self.tools_transforms_menu.menuAction().setFont(FONT_BOLD)
+        self.tools_testing_menu = self.tools_menu.addMenu('Testing')
+        self.tools_testing_menu.menuAction().setFont(FONT_BOLD)
+
+        # add the actions
+
+        self.tools_calibrations_menu.addAction(self.cbm_action)
+        self.tools_calibrations_menu.addAction(self.cbs_action)
+        self.tools_calibrations_menu.addAction(self.it_action)
+        self.tools_calibrations_menu.addAction(self.csc_action)
+
+        self.tools_transforms_menu.addAction(self.cpt_action)
+        self.tools_transforms_menu.addAction(self.rbt_action)
+
+        self.tools_testing_menu.addAction(self.accutest_action)
+
         self.tools_menu.addAction(self.tt_action)
-        self.tools_menu.addAction(self.it_action)
         self.tools_menu.addAction(self.pb_action)
-        self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.ruler_action)
+        self.tools_menu.addAction(self.elevator_action)
         #self.tools_menu.addAction(self.gtd_action)
         #self.tools_menu.addAction(self.console_action)
 
@@ -203,6 +219,13 @@ class MainWindow(QMainWindow):
             for screen in self.screens():
                 screen.update_camera_menu()
 
+    def launch_cpt(self):
+        self.widget.cpt = CameraToProbeTransformTool(self.model, self.widget.lscreen,
+                                                        self.widget.rscreen)
+        self.widget.cpt.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.cpt.transform_generated.connect(self.widget.trans_panel.update_transforms)
+        self.widget.cpt.show()
+
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
 
@@ -285,6 +308,8 @@ class MainWidget(QWidget):
         main_layout.addWidget(self.msg_log)
         self.setLayout(main_layout)
 
+        self.cpt = None
+
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
             if (e.modifiers() & Qt.ControlModifier):
@@ -298,6 +323,8 @@ class MainWidget(QWidget):
                 self.model.register_corr_points_accutest()
             if self.model.prefs.train_c:
                 self.save_training_data()
+            if self.cpt is not None:
+                self.cpt.register()
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
         elif e.key() == Qt.Key_T:
