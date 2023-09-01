@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, QObject
 
-from . import data_dir
+from . import data_dir, training_dir
 from .helper import FONT_BOLD
 
 

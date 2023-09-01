@@ -2,9 +2,9 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QLabel
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QProgressDialog
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
-from PyQt5.QtWidgets import QTabWidget
+from PyQt5.QtWidgets import QTabWidget, QMenu
 from PyQt5.QtGui import QIcon, QBrush, QColor
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 
 import glob
 import os
@@ -50,6 +50,7 @@ class LabelsTab(QWidget):
         self.file2ipt = {}
 
         self.list_widget = QListWidget()
+        self.list_widget.installEventFilter(self)
         self.screen = ScreenWidget(model=model)
         self.reject_button = QPushButton('Reject')
         self.modify_button = QPushButton('Modify')
@@ -86,6 +87,16 @@ class LabelsTab(QWidget):
 
         self.update_list()
 
+    def eventFilter(self, src, e):
+        if src is self.list_widget:
+            if e.type() == QEvent.ContextMenu:
+                item = src.itemAt(e.pos())
+                menu = QMenu()
+                accept_all_action = menu.addAction('Accept All')
+                accept_all_action.triggered.connect(lambda _: self.accept_all())
+                menu.exec_(e.globalPos())
+        return super().eventFilter(src, e)
+
     def update_list(self):
 
         filename_meta = os.path.join(training_dir, 'metadata.csv')
@@ -113,6 +124,12 @@ class LabelsTab(QWidget):
     def accept_current(self):
         item = self.list_widget.currentItem()
         item.accept()
+
+    def accept_all(self):
+        item = self.list_widget.currentItem()
+        items = [self.list_widget.item(i) for i in range(self.list_widget.count())]
+        for item in items:
+            item.accept()
 
     def modify_current(self):
         item = self.list_widget.currentItem()
