@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QProgressDialog
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt5.QtWidgets import QTabWidget
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QBrush, QColor
 from PyQt5.QtCore import Qt
 
 import glob
@@ -57,23 +57,24 @@ class LabelsTab(QWidget):
         self.accept_button = QPushButton('Accept')
         self.save_button = QPushButton('Save Accepted Labels')
 
-        layout3 = QHBoxLayout()
-        layout3.addWidget(self.reject_button)
-        layout3.addWidget(self.modify_button)
-        layout3.addWidget(self.accept_button)
+        layout_buttons = QHBoxLayout()
+        layout_buttons.addWidget(self.reject_button)
+        layout_buttons.addWidget(self.modify_button)
+        layout_buttons.addWidget(self.accept_button)
 
-        layout2 = QVBoxLayout()
-        layout2.addWidget(self.screen)
-        layout2.addLayout(layout3)
+        layout_screen = QVBoxLayout()
+        layout_screen.addWidget(self.screen)
+        layout_screen.addLayout(layout_buttons)
 
-        layout1 = QHBoxLayout()
-        layout1.addWidget(self.list_widget)
-        layout1.addLayout(layout2)
+        layout_list = QVBoxLayout()
+        layout_list.addWidget(self.list_widget)
+        layout_list.addWidget(self.save_button)
 
-        layout0 = QVBoxLayout()
-        layout0.addLayout(layout1)
-        layout0.addWidget(self.save_button)
-        self.setLayout(layout0)
+        layout_main = QHBoxLayout()
+        layout_main.addLayout(layout_screen)
+        layout_main.addLayout(layout_list)
+
+        self.setLayout(layout_main)
 
         # connections
         self.reject_button.clicked.connect(self.reject_current)
@@ -117,6 +118,7 @@ class LabelsTab(QWidget):
         item = self.list_widget.currentItem()
         ipt = self.screen.get_selected()
         item.set_image_point(ipt)
+        self.modify_button.setEnabled(False)
 
     def reject_current(self):
         item = self.list_widget.currentItem()
@@ -311,6 +313,10 @@ class TrainingDataItem(QListWidgetItem):
     STATE_ACCEPTED = 1
     STATE_REJECTED = 2
 
+    BRUSH_TODO = QBrush(QColor(255,255,255))
+    BRUSH_ACCEPTED = QBrush(QColor(0,255,0))
+    BRUSH_REJECTED = QBrush(QColor(255,0,0))
+
     def __init__(self, filename_img, ipt):
         QListWidgetItem.__init__(self, '')
 
@@ -318,30 +324,30 @@ class TrainingDataItem(QListWidgetItem):
         self.ipt = ipt
         self.state = self.STATE_TODO
 
-        self.update_text()
+        self.update_gui()
 
-    def update_text(self):
+    def update_gui(self):
         basename = os.path.basename(self.filename_img)
         basename_split = re.split('_|\.', basename)
         uid = basename_split[-2]
         if self.state == self.STATE_TODO:
-            state_str = 'To Do'
+            self.setBackground(self.BRUSH_TODO)
         elif self.state == self.STATE_ACCEPTED:
-            state_str = 'Accepted'
+            self.setBackground(self.BRUSH_ACCEPTED)
         elif self.state == self.STATE_REJECTED:
-            state_str = 'Rejected'
-        text = '%s: %d,%d (%s)' % (uid, self.ipt[0], self.ipt[1], state_str)
+            self.setBackground(self.BRUSH_REJECTED)
+        text = '%s: %d,%d' % (uid, self.ipt[0], self.ipt[1])
         self.setText(text)
 
     def accept(self):
         self.state = self.STATE_ACCEPTED
-        self.update_text()
+        self.update_gui()
 
     def reject(self):
         self.state = self.STATE_REJECTED
-        self.update_text()
+        self.update_gui()
 
     def set_image_point(self, ipt):
         self.ipt = ipt
-        self.update_text()
+        self.update_gui()
 
