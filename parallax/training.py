@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QProgressDia
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt5.QtWidgets import QTabWidget, QMenu
 from PyQt5.QtGui import QIcon, QBrush, QColor
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 
 import glob
 import os
@@ -21,6 +21,8 @@ from .helper import WF, HF, FONT_BOLD
 
 
 class TrainingTool(QWidget):
+
+    msg_posted = pyqtSignal(str)
 
     def __init__(self, model):
         QWidget.__init__(self)
@@ -41,8 +43,12 @@ class TrainingTool(QWidget):
         self.setWindowTitle('Probe Detection Training Tool')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
+        self.labels_tab.msg_posted.connect(self.msg_posted)
+
 
 class LabelsTab(QWidget):
+
+    msg_posted = pyqtSignal(str)
 
     def __init__(self, model):
         QWidget.__init__(self)
@@ -109,7 +115,11 @@ class LabelsTab(QWidget):
         filenames_img = glob.glob(os.path.join(training_dir, '*.png'))
         for filename_img in filenames_img:
             basename_img = os.path.basename(filename_img)
-            item = TrainingDataItem(filename_img, self.file2ipt[basename_img])
+            try:
+                item = TrainingDataItem(filename_img, self.file2ipt[basename_img])
+            except KeyError as e:
+                self.msg_posted.emit('Probe Detection Training Tool: Could not find %s '
+                                        'in metadata file.' % e)
             self.list_widget.addItem(item)
 
     def handle_item_changed(self, item):
@@ -295,10 +305,24 @@ class TrainingTab(QWidget):
             self.filename_lab = filename_lab
 
     def start(self):
+        # centroid first
+        cfg_centroid = self.get_config_centroid()
+        trainer_centroid = sleap.nn.training.Trainer.from_config(cfg_centroid)
+        trainer_centroid.setup()
+        print('training centroid first')
+        trainer_centroid.train()
+        # instance second
+        cfg_instance = self.get_config_instance()
+        trainer_instance = sleap.nn.training.Trainer.from_config(cfg_instance)
+        trainer_instance.setup()
+        print('training instance second first')
+        trainer_instance.train()
+
+    def get_config_centroid(self):
         cfg = sleap.nn.config.TrainingJobConfig()
         # data
         cfg.data.labels.training_labels = self.filename_lab
-        cfg.data.preprocessing.input_scaling = 0.01
+        cfg.data.preprocessing.input_scaling = 0.25
         cfg.data.instance_cropping.center_on_part = 'tip'
         # model
         cfg.model.backbone.unet = sleap.nn.config.model.UNetConfig(
@@ -307,21 +331,56 @@ class TrainingTab(QWidget):
         )
         cfg.model.heads.centroid = sleap.nn.config.model.CentroidsHeadConfig(
             anchor_part='tip',
-            sigma=5,
-            output_stride=2
+            sigma=2.5,
+            output_stride=2,
+            loss_weight=1.0,
+            offset_refinement=False
         )
         # optimization
         cfg.optimization.augmentation_config.rotate = True
+        cfg.optimization.augmentation_config.random_flip = True
+        cfg.optimization.augmentation_config.flip_horizontal = False
         cfg.optimization.hard_keypoint_mining.online_mining = False
-        cfg.optimization.epochs = 3
-        cfg.optimization.batches_per_epoch = 10
+        cfg.optimization.epochs = 200
+        cfg.optimization.batches_per_epoch = 200
+        cfg.optimization.val_batches_per_epoch = 11
         # output
         cfg.outputs.run_name = 'parallax.centroids'
         cfg.outputs.runs_folder = os.path.join(training_dir, 'models')
-        # go!
-        trainer = sleap.nn.training.Trainer.from_config(cfg)
-        trainer.setup()
-        trainer.train()
+        return cfg
+
+
+    def get_config_instance(self):
+        cfg = sleap.nn.config.TrainingJobConfig()
+        # data
+        cfg.data.labels.training_labels = self.filename_lab
+        cfg.data.preprocessing.input_scaling = 1.0
+        cfg.data.instance_cropping.center_on_part = 'tip'
+        # model
+        cfg.model.backbone.unet = sleap.nn.config.model.UNetConfig(
+            filters=16,
+            output_stride=2
+        )
+        cfg.model.heads.centered_instance = sleap.nn.config.model.CenteredInstanceConfMapsHeadConf(
+            anchor_part='tip',
+            part_names=['tip'],
+            sigma=2.5,
+            output_stride=16,
+            loss_weight=1.0,
+            offset_refinement=False
+        )
+        # optimization
+        cfg.optimization.augmentation_config.rotate = True
+        cfg.optimization.augmentation_config.random_flip = True
+        cfg.optimization.augmentation_config.flip_horizontal = False
+        cfg.optimization.hard_keypoint_mining.online_mining = False
+        cfg.optimization.epochs = 200
+        cfg.optimization.batches_per_epoch = 200
+        cfg.optimization.val_batches_per_epoch = 11
+        # output
+        cfg.outputs.run_name = 'parallax.instance'
+        cfg.outputs.runs_folder = os.path.join(training_dir, 'models')
+        return cfg
 
 
 class TrainingDataItem(QListWidgetItem):

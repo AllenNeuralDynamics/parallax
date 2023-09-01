@@ -201,6 +201,7 @@ class MainWindow(QMainWindow):
 
     def launch_pdt(self):
         self.pdt = TrainingTool(self.model)
+        self.pdt.msg_posted.connect(self.widget.msg_log.post)
         self.pdt.show()
 
     def launch_video_source_dialog(self):
