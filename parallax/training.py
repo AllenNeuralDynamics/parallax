@@ -98,8 +98,6 @@ class LabelsTab(QWidget):
 
         self.update_list()
 
-        self.n_accepted = 0
-
     def eventFilter(self, src, e):
         if src is self.list_widget:
             if e.type() == QEvent.ContextMenu:
@@ -141,19 +139,21 @@ class LabelsTab(QWidget):
     def accept_current(self):
         item = self.list_widget.currentItem()
         item.accept()
-        self.n_accepted += 1
         self.update_gui()
 
     def update_gui(self):
-        if self.n_accepted > 0:
-            self.save_button.setText('Save Accepted Labels (%d)' % self.n_accepted)
+        n_accepted = 0
+        items = [self.list_widget.item(i) for i in range(self.list_widget.count())]
+        for item in items:
+            if item.is_accepted():
+                n_accepted += 1
+        if n_accepted > 0:
+            self.save_button.setText('Save Accepted Labels (%d)' % n_accepted)
 
     def accept_all(self):
-        nitems = self.list_widget.count()
-        items = [self.list_widget.item(i) for i in range(nitems)]
+        items = [self.list_widget.item(i) for i in range(self.list_widget.count())]
         for item in items:
             item.accept()
-        self.n_accepted = nitems
         self.update_gui()
 
 
@@ -166,7 +166,6 @@ class LabelsTab(QWidget):
     def reject_current(self):
         item = self.list_widget.currentItem()
         item.reject()
-        self.n_accepted -= 1
         self.update_gui()
         
     def keyPressEvent(self, e):
@@ -493,3 +492,5 @@ class TrainingDataItem(QListWidgetItem):
         self.ipt = ipt
         self.update_gui()
 
+    def is_accepted(self):
+        return self.state == self.STATE_ACCEPTED
