@@ -61,6 +61,7 @@ class LabelsTab(QWidget):
 
         self.list_widget = QListWidget()
         self.list_widget.installEventFilter(self)
+        self.list_widget.setFocusPolicy(Qt.NoFocus)
         self.screen = ScreenWidget(model=model)
         self.reject_button = QPushButton('Reject')
         self.modify_button = QPushButton('Modify')
@@ -96,6 +97,8 @@ class LabelsTab(QWidget):
         self.screen.selected.connect(self.handle_new_selection)
 
         self.update_list()
+
+        self.n_accepted = 0
 
     def eventFilter(self, src, e):
         if src is self.list_widget:
@@ -138,12 +141,21 @@ class LabelsTab(QWidget):
     def accept_current(self):
         item = self.list_widget.currentItem()
         item.accept()
+        self.n_accepted += 1
+        self.update_gui()
+
+    def update_gui(self):
+        if self.n_accepted > 0:
+            self.save_button.setText('Save Accepted Labels (%d)' % self.n_accepted)
 
     def accept_all(self):
-        item = self.list_widget.currentItem()
-        items = [self.list_widget.item(i) for i in range(self.list_widget.count())]
+        nitems = self.list_widget.count()
+        items = [self.list_widget.item(i) for i in range(nitems)]
         for item in items:
             item.accept()
+        self.n_accepted = nitems
+        self.update_gui()
+
 
     def modify_current(self):
         item = self.list_widget.currentItem()
@@ -154,6 +166,8 @@ class LabelsTab(QWidget):
     def reject_current(self):
         item = self.list_widget.currentItem()
         item.reject()
+        self.n_accepted -= 1
+        self.update_gui()
         
     def keyPressEvent(self, e):
         if (e.key() == Qt.Key_Right) or (e.key() == Qt.Key_Down):
@@ -168,6 +182,10 @@ class LabelsTab(QWidget):
             if new_row < 0:
                 new_row = self.list_widget.count() - 1
             self.list_widget.setCurrentRow(new_row)
+        elif (e.key() == Qt.Key_Y):
+            self.accept_current()
+        elif (e.key() == Qt.Key_N):
+            self.reject_current()
 
     def save(self):
         dlg = SaveLabelsDialog()
@@ -333,12 +351,13 @@ class TrainingTab(QWidget):
         cfg.data.labels.training_labels = self.filename_lab
         cfg.data.labels.skeletons = [SKELETON]
         cfg.data.preprocessing.ensure_rbg = True
-        cfg.data.preprocessing.input_scaling = 0.01
+        #cfg.data.preprocessing.input_scaling = 0.01
+        cfg.data.preprocessing.input_scaling = 0.25
         cfg.data.preprocessing.pad_to_stride = 16
         cfg.data.preprocessing.target_height = 3000
         cfg.data.preprocessing.target_width = 4000
         cfg.data.instance_cropping.center_on_part = 'tip'
-        cfg.data.instance_cropping.crop_size = 64
+        #cfg.data.instance_cropping.crop_size = 64
         # model
         cfg.model.backbone.unet = sleap.nn.config.model.UNetConfig(
             stem_stride = None,
@@ -359,16 +378,17 @@ class TrainingTab(QWidget):
         )
         # optimization
         cfg.optimization.augmentation_config.rotate = True
-        cfg.optimization.augmentation_config.rotation_min_angle = -15.0
-        cfg.optimization.augmentation_config.rotation_max_angle = 15.0
+        cfg.optimization.augmentation_config.rotation_min_angle = -180.0
+        cfg.optimization.augmentation_config.rotation_max_angle = 180.0
+        cfg.optimization.augmentation_config.scale = True
+        cfg.optimization.augmentation_config.scale_min = 0.8
+        cfg.optimization.augmentation_config.scale_max = 1.2
         cfg.optimization.augmentation_config.random_flip = True
         cfg.optimization.augmentation_config.flip_horizontal = False
         cfg.optimization.batch_size = 2 
         cfg.optimization.batches_per_epoch = 200
         cfg.optimization.val_batches_per_epoch = 11
-        cfg.optimization.epochs = 3
-        cfg.optimization.learning_rate_schedule.plateau_min_delta = 1e-08
-        cfg.optimization.learning_rate_schedule.plateau_patience = 20
+        cfg.optimization.epochs = 200
         # output
         cfg.outputs.run_name = 'parallax.centroids'
         cfg.outputs.runs_folder = os.path.join(training_dir, 'models')
@@ -388,7 +408,7 @@ class TrainingTab(QWidget):
         cfg.data.preprocessing.target_height = 3000
         cfg.data.preprocessing.target_width = 4000
         cfg.data.instance_cropping.center_on_part = 'tip'
-        cfg.data.instance_cropping.crop_size = 64
+        cfg.data.instance_cropping.crop_size = 256
         # model
         cfg.model.backbone.unet = sleap.nn.config.model.UNetConfig(
             stem_stride = None,
@@ -412,13 +432,15 @@ class TrainingTab(QWidget):
         cfg.optimization.augmentation_config.rotate = True
         cfg.optimization.augmentation_config.rotation_min_angle = -180.0
         cfg.optimization.augmentation_config.rotation_max_angle = 180.0
+        cfg.optimization.augmentation_config.scale = True
+        cfg.optimization.augmentation_config.scale_min = 0.8
+        cfg.optimization.augmentation_config.scale_max = 1.2
         cfg.optimization.augmentation_config.random_flip = True
         cfg.optimization.augmentation_config.flip_horizontal = False
         cfg.optimization.batch_size = 4
         cfg.optimization.batches_per_epoch = 200
-        cfg.optimization.val_batches_per_epoch = 11
-        cfg.optimization.epochs = 3
-        cfg.optimization.learning_rate_schedule.plateau_min_delta = 1e-08
+        cfg.optimization.val_batches_per_epoch = 21
+        cfg.optimization.epochs = 200
         # output
         cfg.outputs.run_name = 'parallax.instance'
         cfg.outputs.runs_folder = os.path.join(training_dir, 'models')
