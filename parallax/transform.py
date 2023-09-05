@@ -210,10 +210,16 @@ class TransformNP(Transform):
     def __init__(self, name, from_cs, to_cs):
         Transform.__init__(self, name, from_cs, to_cs)
 
+    def set_from_points(self, from_points):
+        self.from_points = from_points
+
+    def set_to_points(self, to_points):
+        self.to_points = to_points
+
     def compute_from_correspondence(self, from_points, to_points, recurse=True):
 
-        self.from_points = from_points
-        self.to_points = to_points
+        self.set_from_points(from_points)
+        self.set_to_points(to_points)
 
         x0 = np.array([0,0,0,0,0,0])
         rz, ry, rx, x, y, z = leastsq(self._errfunc, x0, args=(from_points, to_points))[0]
@@ -299,7 +305,9 @@ class TransformNP(Transform):
 
     def get_inverse(self):
         new_transform = TransformNP(f"{self.name}-inv", self.to_cs, self.from_cs)
-        new_transform.set_from_rot_ori(self.rot.T, (-1) * np.dot(T, self.rot))
+        new_transform.set_from_rot_ori(self.rot.T, (-1) * np.dot(self.ori, self.rot))
+        new_transform.set_from_points(self.from_points)
+        new_transform.set_to_points(self.to_points)
         return new_transform
 
 
@@ -314,10 +322,16 @@ class TransformNPS(Transform):
     def __init__(self, name, from_cs, to_cs):
         Transform.__init__(self, name, from_cs, to_cs)
 
+    def set_from_points(self, from_points):
+        self.from_points = from_points
+
+    def set_to_points(self, to_points):
+        self.to_points = to_points
+
     def compute_from_correspondence(self, from_points, to_points, recurse=True):
 
-        self.from_points = from_points
-        self.to_points = to_points
+        self.set_from_points(from_points)
+        self.set_to_points(to_points)
 
         x0 = np.array([0,0,0,0,0,0,1.])
         rz, ry, rx, x, y, z, s = leastsq(self._errfunc, x0, args=(from_points, to_points))[0]
@@ -408,7 +422,9 @@ class TransformNPS(Transform):
         return np.dot(self.rot, p) / self.s - self.ori
 
     def get_inverse(self):
-        new_transform = TransformNP(f"{self.name}-inv", self.to_cs, self.from_cs)
-        new_transform.set_from_rot_ori_scale(self.rot.T / self.s, (-1) * self.s * np.dot(T, self.rot))
+        new_transform = TransformNPS(f"{self.name}-inv", self.to_cs, self.from_cs)
+        new_transform.set_from_rot_ori_scale(self.rot.T / self.s, (-1) * self.s * np.dot(self.ori, self.rot))
+        new_transform.set_from_points(self.from_points)
+        new_transform.set_to_points(self.to_points)
         return new_transform
 

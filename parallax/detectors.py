@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QSlider, QPushButton
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PyQt5.QtCore import pyqtSignal, Qt, QThread, QObject
 
-from . import data_dir
+from . import data_dir, training_dir
 from .helper import FONT_BOLD
 
 
@@ -125,23 +125,23 @@ class SleapDetector(QObject):
 
         def select_centroid_dir(self):
             centroid_dir = QFileDialog.getExistingDirectory(self, 'Select Centroid Directory',
-                                                    data_dir, QFileDialog.ShowDirsOnly)
+                                                    os.path.join(training_dir, 'models'),
+                                                    QFileDialog.ShowDirsOnly)
             if centroid_dir:
                 self.centroid_label.setText(centroid_dir)
                 self.centroid_dir = centroid_dir
 
         def select_instance_dir(self):
             instance_dir = QFileDialog.getExistingDirectory(self, 'Select Instance Directory',
-                                                    data_dir, QFileDialog.ShowDirsOnly)
+                                                    os.path.join(training_dir, 'models'),
+                                                    QFileDialog.ShowDirsOnly)
             if instance_dir:
                 self.instance_label.setText(instance_dir)
                 self.instance_dir = instance_dir
 
         def load(self):
-            #print('TODO load model, set predictor, start thread')
             if self.centroid_dir and self.instance_dir:
                 self.model_selected.emit(self.centroid_dir, self.instance_dir)
-                
 
         def update_fps(self, fps):
             self.fps_label.setText('%.2f FPS' % fps)
@@ -155,11 +155,10 @@ class SleapDetector(QObject):
         # CV worker and thread
         self.cv_thread = QThread()
         self.cv_worker = self.SleapWorker()
-        self.cv_worker.tracked.connect(self.tracked)
         self.cv_worker.moveToThread(self.cv_thread)
         self.cv_thread.started.connect(self.cv_worker.run)
-        self.cv_worker.finished.connect(self.cv_worker.deleteLater)
-        self.cv_thread.finished.connect(self.cv_thread.deleteLater)
+        self.cv_worker.finished.connect(self.cv_thread.quit, Qt.DirectConnection)
+        self.cv_worker.tracked.connect(self.tracked)
         self.cv_thread.start()
 
         self.control_panel = self.ControlPanel()

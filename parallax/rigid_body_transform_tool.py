@@ -190,14 +190,13 @@ class CompositionTab(QWidget):
         transforms = []
         for row in range(self.list_widget.count()):
             transforms.append(self.list_widget.item(row).transform)
-        # check to make sure coordinates systems match
+        # if coordinate systems don't match, print a warning
         for i in range(len(transforms) - 1):
             t = transforms[i]
             tnext = transforms[i+1]
             if (tnext.from_cs != t.to_cs):
                 self.msg_posted.emit('Transform from Composition: '
-                        'coordinates systems do not match: %s, %s' % (t.to_cs, tnext.from_cs))
-                return
+                        'WARNING: coordinates systems do not match: %s, %s' % (t.to_cs, tnext.from_cs))
         name = self.name_edit.text()
         from_cs = transforms[0].from_cs
         to_cs = transforms[-1].to_cs

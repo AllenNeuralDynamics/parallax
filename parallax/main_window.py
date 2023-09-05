@@ -27,6 +27,7 @@ from .ground_truth_data_tool import GroundTruthDataTool
 from .elevator_control import ElevatorControlTool
 from .point_bank import PointBank
 from .ruler import Ruler
+from .training import TrainingTool
 from .camera import VideoSource
 from .preferences import PreferencesWindow
 from .helper import uid8, FONT_BOLD
@@ -80,6 +81,8 @@ class MainWindow(QMainWindow):
         self.pb_action.triggered.connect(self.launch_pb)
         self.ruler_action = QAction("Ruler")
         self.ruler_action.triggered.connect(self.launch_ruler)
+        self.pdt_action = QAction("Probe Detection Training Tool")
+        self.pdt_action.triggered.connect(self.launch_pdt)
         self.console_action = QAction("Python Console")
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
@@ -125,6 +128,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.pb_action)
         self.tools_menu.addAction(self.ruler_action)
         self.tools_menu.addAction(self.elevator_action)
+        self.tools_menu.addAction(self.pdt_action)
         #self.tools_menu.addAction(self.gtd_action)
         #self.tools_menu.addAction(self.console_action)
 
@@ -213,6 +217,11 @@ class MainWindow(QMainWindow):
     def launch_ruler(self):
         self.ruler = Ruler()
         self.ruler.show()
+
+    def launch_pdt(self):
+        self.pdt = TrainingTool(self.model)
+        self.pdt.msg_posted.connect(self.widget.msg_log.post)
+        self.pdt.show()
 
     def launch_video_source_dialog(self):
         filename = QFileDialog.getOpenFileNames(self, 'Select video file', data_dir,

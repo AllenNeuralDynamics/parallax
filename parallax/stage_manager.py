@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QHBoxLayout, QLabel
 from PyQt5.QtWidgets import QPushButton, QListWidget, QProgressBar
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
-import socket, glob
+import socket 
 
 from serial.tools.list_ports import comports as list_comports
 from serial.serialutil import SerialException
