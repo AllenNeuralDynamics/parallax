@@ -30,7 +30,8 @@ from .ruler import Ruler
 from .training import TrainingTool
 from .camera import VideoSource
 from .preferences import PreferencesWindow
-from .helper import uid8
+from .helper import uid8, FONT_BOLD
+from .camera_to_probe_transform_tool import CameraToProbeTransformTool
 
 
 class MainWindow(QMainWindow):
@@ -50,10 +51,10 @@ class MainWindow(QMainWindow):
         self.edit_prefs_action = QAction("Preferences")
         self.edit_prefs_action.triggered.connect(self.launch_preferences)
         self.edit_prefs_action.setShortcut("Ctrl+P")
+        self.refresh_stages_action = QAction("Refresh Stages")
+        self.refresh_stages_action.triggered.connect(self.refresh_stages)
         self.refresh_cameras_action = QAction("Refresh Camera List")
         self.refresh_cameras_action.triggered.connect(self.refresh_cameras)
-        self.manage_stages_action = QAction("Manage Stages")
-        self.manage_stages_action.triggered.connect(self.launch_stage_manager)
         self.refresh_focos_action = QAction("Refresh Focus Controllers")
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
         self.video_source_action = QAction("Add video source as camera")
@@ -86,6 +87,8 @@ class MainWindow(QMainWindow):
         self.console_action.triggered.connect(self.show_console)
         self.about_action = QAction("About")
         self.about_action.triggered.connect(self.launch_about)
+        self.cpt_action = QAction("Camera-to-Probe Transform Tool")
+        self.cpt_action.triggered.connect(self.launch_cpt)
 
         # build the menubar
         self.file_menu = self.menuBar().addMenu("File")
@@ -96,23 +99,35 @@ class MainWindow(QMainWindow):
         self.edit_menu.addAction(self.edit_prefs_action)
 
         self.device_menu = self.menuBar().addMenu("Devices")
+        self.device_menu.addAction(self.refresh_stages_action)
         self.device_menu.addAction(self.refresh_cameras_action)
-        self.device_menu.addAction(self.manage_stages_action)
         self.device_menu.addAction(self.refresh_focos_action)
         self.device_menu.addAction(self.video_source_action)
 
         self.tools_menu = self.menuBar().addMenu("Tools")
-        self.tools_menu.addAction(self.accutest_action)
-        self.tools_menu.addAction(self.cbm_action)
-        self.tools_menu.addAction(self.cbs_action)
-        self.tools_menu.addAction(self.csc_action)
-        self.tools_menu.addAction(self.elevator_action)
+        self.tools_calibrations_menu = self.tools_menu.addMenu('Calibrations')
+        self.tools_calibrations_menu.menuAction().setFont(FONT_BOLD)
+        self.tools_transforms_menu = self.tools_menu.addMenu('Transforms')
+        self.tools_transforms_menu.menuAction().setFont(FONT_BOLD)
+        self.tools_testing_menu = self.tools_menu.addMenu('Testing')
+        self.tools_testing_menu.menuAction().setFont(FONT_BOLD)
+
+        # add the actions
+
+        self.tools_calibrations_menu.addAction(self.cbm_action)
+        self.tools_calibrations_menu.addAction(self.cbs_action)
+        self.tools_calibrations_menu.addAction(self.it_action)
+        self.tools_calibrations_menu.addAction(self.csc_action)
+
+        self.tools_transforms_menu.addAction(self.cpt_action)
+        self.tools_transforms_menu.addAction(self.rbt_action)
+
+        self.tools_testing_menu.addAction(self.accutest_action)
+
         self.tools_menu.addAction(self.tt_action)
-        self.tools_menu.addAction(self.it_action)
         self.tools_menu.addAction(self.pb_action)
-        self.tools_menu.addAction(self.rbt_action)
         self.tools_menu.addAction(self.ruler_action)
-        self.tools_menu.addAction(self.pdt_action)
+        self.tools_menu.addAction(self.elevator_action)
         #self.tools_menu.addAction(self.gtd_action)
         #self.tools_menu.addAction(self.console_action)
 
@@ -123,6 +138,8 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
         self.console = None
+
+        self.elevator_tool = None
 
         self.refresh_cameras()
         self.refresh_focus_controllers()
@@ -186,8 +203,9 @@ class MainWindow(QMainWindow):
         self.gtd_tool.show()
 
     def launch_elevator(self):
-        self.elevator_tool = ElevatorControlTool(self.model)
-        self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
+        if self.elevator_tool is None:
+            self.elevator_tool = ElevatorControlTool(self.model)
+            self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
         self.elevator_tool.show()
 
     def launch_pb(self):
@@ -211,6 +229,13 @@ class MainWindow(QMainWindow):
             self.model.add_video_source(VideoSource(filename[0]))
             for screen in self.screens():
                 screen.update_camera_menu()
+
+    def launch_cpt(self):
+        self.widget.cpt = CameraToProbeTransformTool(self.model, self.widget.lscreen,
+                                                        self.widget.rscreen)
+        self.widget.cpt.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.cpt.transform_generated.connect(self.widget.trans_panel.update_transforms)
+        self.widget.cpt.show()
 
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
@@ -236,6 +261,10 @@ class MainWindow(QMainWindow):
             self.model.scan_for_focus_controllers()
         for screen in self.screens():
             screen.update_focus_control_menu()
+
+    def refresh_stages(self):
+        if not self.dummy:
+            self.model.scan_for_usb_stages()
 
 
 class MainWidget(QWidget):
@@ -294,6 +323,8 @@ class MainWidget(QWidget):
         main_layout.addWidget(self.msg_log)
         self.setLayout(main_layout)
 
+        self.cpt = None
+
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
             if (e.modifiers() & Qt.ControlModifier):
@@ -307,6 +338,8 @@ class MainWidget(QWidget):
                 self.model.register_corr_points_accutest()
             if self.model.prefs.train_c:
                 self.save_training_data()
+            if self.cpt is not None:
+                self.cpt.register()
         elif e.key() == Qt.Key_Escape:
             self.model.halt_all_stages()
         elif e.key() == Qt.Key_T:

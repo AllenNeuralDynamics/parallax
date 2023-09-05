@@ -17,10 +17,9 @@ from . import get_image_file
 from .helper import FONT_BOLD
 from .rigid_body_transform_tool import RigidBodyTransformTool, PointTransformWidget
 from .calibration import Calibration
-from .calibration_worker import CalibrationWorker
 from .rigid_body_transform_tool import CoordinateWidget
 from .stage_dropdown import StageDropdown
-from .calibration_worker import CalibrationWorker as cw
+from .calibration_worker import CalibrationWorker
 
 
 class CalibrationPanel(QFrame):
@@ -43,15 +42,15 @@ class CalibrationPanel(QFrame):
         self.load_button = QPushButton('Load')
         self.save_button = QPushButton('Save')
         self.start_stop_button = QPushButton('Start')
-        cal_layout = QGridLayout()
-        cal_layout.addWidget(self.cal_label, 0,0,1,3)
-        cal_layout.addWidget(self.combo, 1,0,1,1)
-        cal_layout.addWidget(self.settings_button, 1,1,1,1)
-        cal_layout.addWidget(self.apply_button, 1,2,1,1)
-        cal_layout.addWidget(self.load_button, 2,0,2,1)
-        cal_layout.addWidget(self.save_button, 2,1,2,1)
-        cal_layout.addWidget(self.start_stop_button, 2,2,2,1)
-        self.setLayout(cal_layout)
+        layout = QGridLayout()
+        layout.addWidget(self.cal_label, 0,0,1,12)
+        layout.addWidget(self.combo, 1,0,1,8)
+        layout.addWidget(self.settings_button, 1,8,1,2)
+        layout.addWidget(self.apply_button, 1,10,1,2)
+        layout.addWidget(self.load_button, 2,0,1,4)
+        layout.addWidget(self.save_button, 2,4,1,4)
+        layout.addWidget(self.start_stop_button, 2,8,1,4)
+        self.setLayout(layout)
 
         # connections
         self.load_button.clicked.connect(self.load_cal)
@@ -380,7 +379,7 @@ class CalibrationDialog(QDialog):
         self.resolution_label.setAlignment(Qt.AlignCenter)
         self.resolution_box = QSpinBox()
         self.resolution_box.setMinimum(2)
-        self.resolution_box.setValue(cw.RESOLUTION_DEFAULT)
+        self.resolution_box.setValue(CalibrationWorker.RESOLUTION_DEFAULT)
 
         self.origin_label = QLabel('Origin:')
         self.origin_label.setAlignment(Qt.AlignCenter)
@@ -389,7 +388,7 @@ class CalibrationDialog(QDialog):
 
         self.extent_label = QLabel('Extent (um):')
         self.extent_label.setAlignment(Qt.AlignCenter)
-        self.extent_edit = QLineEdit(str(cw.EXTENT_UM_DEFAULT))
+        self.extent_edit = QLineEdit(str(CalibrationWorker.EXTENT_UM_DEFAULT))
 
         self.name_label = QLabel('Name:')
         self.name_label.setAlignment(Qt.AlignCenter)
@@ -515,9 +514,6 @@ class CalibrationDialog(QDialog):
 
     def go(self):
         self.accept()
-
-    def handle_radio(self, button):
-        print('TODO handleRadio')
 
     def update_status(self):
         if self.stage_dropdown.is_selected():
