@@ -128,6 +128,7 @@ class MainWindow(QMainWindow):
         self.tools_menu.addAction(self.pb_action)
         self.tools_menu.addAction(self.ruler_action)
         self.tools_menu.addAction(self.elevator_action)
+        self.tools_menu.addAction(self.pdt_action)
         #self.tools_menu.addAction(self.gtd_action)
         #self.tools_menu.addAction(self.console_action)
 
