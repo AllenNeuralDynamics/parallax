@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLineEdit, QLabel
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFileDialog, QProgressDialog
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
-from PyQt5.QtWidgets import QTabWidget, QMenu
+from PyQt5.QtWidgets import QTabWidget, QMenu, QCheckBox
 from PyQt5.QtGui import QIcon, QBrush, QColor
 from PyQt5.QtCore import Qt, QEvent, pyqtSignal
 
@@ -19,6 +19,10 @@ from .screen_widget import ScreenWidget
 from . import get_image_file, training_dir
 from .helper import WF, HF, FONT_BOLD
 
+NEPOCHS = 3
+
+SKELETON = sleap.skeleton.Skeleton('probeTip')
+SKELETON.add_node('tip')
 
 class TrainingTool(QWidget):
 
@@ -179,8 +183,6 @@ class LabelsTab(QWidget):
         labeled_frames = []
         frame_idx = 0
         video = sleap.io.video.Video(sleap.io.video.MediaVideo(filename_vid))
-        skeleton = sleap.skeleton.Skeleton('probeTip')
-        skeleton.add_node('tip')
         # progress stuff
         count = self.list_widget.count()
         progress = QProgressDialog("Generating training video...", "Abort", 0, count, self)
@@ -197,7 +199,7 @@ class LabelsTab(QWidget):
                 writer.write(frame)
                 # collect labeled frame
                 points = {'tip' : sleap.instance.Point(x=item.ipt[0], y=item.ipt[1])}
-                instance = sleap.instance.Instance(skeleton=skeleton, points=points)
+                instance = sleap.instance.Instance(skeleton=SKELETON, points=points)
                 labeled_frames.append(sleap.instance.LabeledFrame(video, frame_idx, [instance]))
                 frame_idx += 1
         progress.setValue(count)
@@ -277,6 +279,11 @@ class TrainingTab(QWidget):
         self.label_button = QPushButton('Load')
         self.label_button.clicked.connect(self.handle_load_label)
 
+        self.centroid_check = QCheckBox('Train Centroid Model')
+        self.centroid_check.setChecked(True)
+        self.instance_check = QCheckBox('Train Instance Model')
+        self.instance_check.setChecked(True)
+
         self.start_button = QPushButton('Start Training')
         self.start_button.clicked.connect(self.start)
 
@@ -285,7 +292,9 @@ class TrainingTab(QWidget):
         layout.addWidget(self.video_button, 0,1, 1,1)
         layout.addWidget(self.label_label, 1,0, 1,1)
         layout.addWidget(self.label_button, 1,1, 1,1)
-        layout.addWidget(self.start_button, 2,0, 1,2)
+        layout.addWidget(self.centroid_check, 2,0, 1,2)
+        layout.addWidget(self.instance_check, 3,0, 1,2)
+        layout.addWidget(self.start_button, 4,0, 1,2)
         self.setLayout(layout)
 
     def handle_load_video(self):
@@ -305,29 +314,41 @@ class TrainingTab(QWidget):
             self.filename_lab = filename_lab
 
     def start(self):
-        # centroid first
-        cfg_centroid = self.get_config_centroid()
-        trainer_centroid = sleap.nn.training.Trainer.from_config(cfg_centroid)
-        trainer_centroid.setup()
-        print('training centroid first')
-        trainer_centroid.train()
-        # instance second
-        cfg_instance = self.get_config_instance()
-        trainer_instance = sleap.nn.training.Trainer.from_config(cfg_instance)
-        trainer_instance.setup()
-        print('training instance second first')
-        trainer_instance.train()
+        if self.centroid_check.isChecked():
+            cfg_centroid = self.get_config_centroid()
+            trainer_centroid = sleap.nn.training.Trainer.from_config(cfg_centroid)
+            trainer_centroid.setup()
+            print('\n[training centroid]\n')
+            trainer_centroid.train()
+        if self.instance_check.isChecked():
+            cfg_instance = self.get_config_instance()
+            trainer_instance = sleap.nn.training.Trainer.from_config(cfg_instance)
+            trainer_instance.setup()
+            print('\n[training instance]\n')
+            trainer_instance.train()
 
     def get_config_centroid(self):
         cfg = sleap.nn.config.TrainingJobConfig()
         # data
         cfg.data.labels.training_labels = self.filename_lab
-        cfg.data.preprocessing.input_scaling = 0.25
+        cfg.data.labels.skeletons = [SKELETON]
+        cfg.data.preprocessing.ensure_rbg = True
+        cfg.data.preprocessing.input_scaling = 0.01
+        cfg.data.preprocessing.pad_to_stride = 16
+        cfg.data.preprocessing.target_height = 3000
+        cfg.data.preprocessing.target_width = 4000
         cfg.data.instance_cropping.center_on_part = 'tip'
+        cfg.data.instance_cropping.crop_size = 64
         # model
         cfg.model.backbone.unet = sleap.nn.config.model.UNetConfig(
-            filters=16,
-            output_stride=2
+            stem_stride = None,
+            max_stride = 16,
+            output_stride = 2,
+            filters = 16,
+            filters_rate = 2.0,
+            middle_block = True,
+            up_interpolate = True,
+            stacks = 1
         )
         cfg.model.heads.centroid = sleap.nn.config.model.CentroidsHeadConfig(
             anchor_part='tip',
@@ -338,30 +359,48 @@ class TrainingTab(QWidget):
         )
         # optimization
         cfg.optimization.augmentation_config.rotate = True
+        cfg.optimization.augmentation_config.rotation_min_angle = -15.0
+        cfg.optimization.augmentation_config.rotation_max_angle = 15.0
         cfg.optimization.augmentation_config.random_flip = True
         cfg.optimization.augmentation_config.flip_horizontal = False
-        cfg.optimization.hard_keypoint_mining.online_mining = False
-        cfg.optimization.epochs = 200
+        cfg.optimization.batch_size = 2 
         cfg.optimization.batches_per_epoch = 200
         cfg.optimization.val_batches_per_epoch = 11
+        cfg.optimization.epochs = 3
+        cfg.optimization.learning_rate_schedule.plateau_min_delta = 1e-08
+        cfg.optimization.learning_rate_schedule.plateau_patience = 20
         # output
         cfg.outputs.run_name = 'parallax.centroids'
         cfg.outputs.runs_folder = os.path.join(training_dir, 'models')
+        cfg.outputs.zmq.subscribe_to_controller = True
+        cfg.outputs.zmq.publish_updates = True
         return cfg
-
 
     def get_config_instance(self):
         cfg = sleap.nn.config.TrainingJobConfig()
         # data
         cfg.data.labels.training_labels = self.filename_lab
+        cfg.data.labels.validation_fraction = 0.2
+        cfg.data.labels.skeletons = [SKELETON]
+        cfg.data.preprocessing.ensure_rbg = True
         cfg.data.preprocessing.input_scaling = 1.0
+        cfg.data.preprocessing.pad_to_stride = 1
+        cfg.data.preprocessing.target_height = 3000
+        cfg.data.preprocessing.target_width = 4000
         cfg.data.instance_cropping.center_on_part = 'tip'
+        cfg.data.instance_cropping.crop_size = 64
         # model
         cfg.model.backbone.unet = sleap.nn.config.model.UNetConfig(
-            filters=16,
-            output_stride=2
+            stem_stride = None,
+            max_stride = 16,
+            output_stride = 16,
+            filters = 24,
+            filters_rate = 2.0,
+            middle_block = True,
+            up_interpolate = True,
+            stacks = 1
         )
-        cfg.model.heads.centered_instance = sleap.nn.config.model.CenteredInstanceConfMapsHeadConf(
+        cfg.model.heads.centered_instance = sleap.nn.config.model.CenteredInstanceConfmapsHeadConfig(
             anchor_part='tip',
             part_names=['tip'],
             sigma=2.5,
@@ -371,15 +410,20 @@ class TrainingTab(QWidget):
         )
         # optimization
         cfg.optimization.augmentation_config.rotate = True
+        cfg.optimization.augmentation_config.rotation_min_angle = -180.0
+        cfg.optimization.augmentation_config.rotation_max_angle = 180.0
         cfg.optimization.augmentation_config.random_flip = True
         cfg.optimization.augmentation_config.flip_horizontal = False
-        cfg.optimization.hard_keypoint_mining.online_mining = False
-        cfg.optimization.epochs = 200
+        cfg.optimization.batch_size = 4
         cfg.optimization.batches_per_epoch = 200
         cfg.optimization.val_batches_per_epoch = 11
+        cfg.optimization.epochs = 3
+        cfg.optimization.learning_rate_schedule.plateau_min_delta = 1e-08
         # output
         cfg.outputs.run_name = 'parallax.instance'
         cfg.outputs.runs_folder = os.path.join(training_dir, 'models')
+        cfg.outputs.zmq.subscribe_to_controller = True
+        cfg.outputs.zmq.publish_updates = True
         return cfg
 
 
