@@ -19,8 +19,6 @@ from .screen_widget import ScreenWidget
 from . import get_image_file, training_dir
 from .helper import WF, HF, FONT_BOLD
 
-NEPOCHS = 3
-
 SKELETON = sleap.skeleton.Skeleton('probeTip')
 SKELETON.add_node('tip')
 
@@ -52,6 +50,8 @@ class TrainingTool(QWidget):
 
 class LabelsTab(QWidget):
 
+    RZOOM = 32  # the radius of the zoomed-in view that zoom_on_tip uses
+
     msg_posted = pyqtSignal(str)
 
     def __init__(self, model):
@@ -62,6 +62,9 @@ class LabelsTab(QWidget):
         self.list_widget = QListWidget()
         self.list_widget.installEventFilter(self)
         self.list_widget.setFocusPolicy(Qt.NoFocus)
+        self.list_widget.setMaximumWidth(200)
+        self.nlabels_label = QLabel('0 labels found')
+        self.nlabels_label.setAlignment(Qt.AlignCenter)
         self.screen = ScreenWidget(model=model)
         self.reject_button = QPushButton('Reject')
         self.modify_button = QPushButton('Modify')
@@ -79,6 +82,7 @@ class LabelsTab(QWidget):
         layout_screen.addLayout(layout_buttons)
 
         layout_list = QVBoxLayout()
+        layout_list.addWidget(self.nlabels_label)
         layout_list.addWidget(self.list_widget)
         layout_list.addWidget(self.save_button)
 
@@ -97,6 +101,8 @@ class LabelsTab(QWidget):
         self.screen.selected.connect(self.handle_new_selection)
 
         self.update_list()
+
+        self.is_zoomed = False
 
     def eventFilter(self, src, e):
         if src is self.list_widget:
@@ -117,20 +123,23 @@ class LabelsTab(QWidget):
                 basename_img, ix, iy = row
                 self.file2ipt[basename_img] = (int(ix),int(iy))
 
+        nlabels = 0
         filenames_img = glob.glob(os.path.join(training_dir, '*.png'))
         for filename_img in filenames_img:
             basename_img = os.path.basename(filename_img)
             try:
                 item = TrainingDataItem(filename_img, self.file2ipt[basename_img])
+                self.list_widget.addItem(item)
+                nlabels += 1
             except KeyError as e:
                 self.msg_posted.emit('Probe Detection Training Tool: Could not find %s '
                                         'in metadata file.' % e)
-            self.list_widget.addItem(item)
+        self.nlabels_label.setText('%d labels found' % nlabels)
 
     def handle_item_changed(self, item):
         self.screen.set_data(cv2.imread(item.filename_img))
         self.screen.select(item.ipt)
-        self.screen.zoom_out()
+        self.zoom_on_tip()
         self.modify_button.setEnabled(False)
 
     def handle_new_selection(self, ix, iy):
@@ -156,6 +165,22 @@ class LabelsTab(QWidget):
             item.accept()
         self.update_gui()
 
+    def toggle_zoom(self):
+        if self.is_zoomed:
+            self.zoom_out()
+        else:
+            self.zoom_on_tip()
+
+    def zoom_on_tip(self):
+        item = self.list_widget.currentItem()
+        x,y = self.screen.get_selected()
+        self.screen.view_box.setRange(xRange=(x-self.RZOOM,x+self.RZOOM),
+                                        yRange=(y-self.RZOOM,y+self.RZOOM))
+        self.is_zoomed = True
+
+    def zoom_out(self):
+        self.screen.zoom_out()
+        self.is_zoomed = False
 
     def modify_current(self):
         item = self.list_widget.currentItem()
@@ -167,24 +192,38 @@ class LabelsTab(QWidget):
         item = self.list_widget.currentItem()
         item.reject()
         self.update_gui()
+
+    def next(self):
+        current_row = self.list_widget.currentRow()
+        new_row = current_row + 1
+        if new_row >= self.list_widget.count():
+            new_row = 0
+        self.list_widget.setCurrentRow(new_row)
+
+    def previous(self):
+        current_row = self.list_widget.currentRow()
+        new_row = current_row - 1
+        if new_row < 0:
+            new_row = self.list_widget.count() - 1
+        self.list_widget.setCurrentRow(new_row)
         
     def keyPressEvent(self, e):
         if (e.key() == Qt.Key_Right) or (e.key() == Qt.Key_Down):
-            current_row = self.list_widget.currentRow()
-            new_row = current_row + 1
-            if new_row >= self.list_widget.count():
-                new_row = 0
-            self.list_widget.setCurrentRow(new_row)
+            self.next()
         elif (e.key() == Qt.Key_Left) or (e.key() == Qt.Key_Up):
-            current_row = self.list_widget.currentRow()
-            new_row = current_row - 1
-            if new_row < 0:
-                new_row = self.list_widget.count() - 1
-            self.list_widget.setCurrentRow(new_row)
+            self.previous()
         elif (e.key() == Qt.Key_Y):
             self.accept_current()
+            self.next()
         elif (e.key() == Qt.Key_N):
             self.reject_current()
+            self.next()
+        elif (e.key() == Qt.Key_M):
+            self.modify_current()
+            self.accept_current()
+            self.next()
+        elif (e.key() == Qt.Key_Z):
+            self.toggle_zoom()
 
     def save(self):
         dlg = SaveLabelsDialog()
