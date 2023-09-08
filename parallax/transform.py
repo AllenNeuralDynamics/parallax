@@ -253,6 +253,8 @@ class TransformNP(Transform):
             ori = ori + np.dot(rot, t.ori)
             rot = np.dot(rot, t.rot)
         self.set_from_rot_ori(rot, ori)
+        self.set_from_points(transforms[0].from_points)
+        self.set_to_points(transforms[-1].to_points)
         self.component_transforms = transforms
         if recurse:
             self.compute_variances_composition(transforms)

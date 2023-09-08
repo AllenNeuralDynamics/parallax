@@ -278,10 +278,9 @@ class TargetDialog(QWidget):
         x,y,z = self.stage.get_position()
         self.populate(x,y,z)
 
-        self.random_button = QPushButton('Randomize')
-        self.random_button.setToolTip('Choose target coordinates randomly from '
-                                        'a 1x1 mm cube centered at the current position')
-        self.random_button.clicked.connect(self.populate_random)
+        self.round_button = QPushButton('Round')
+        self.round_button.setToolTip('Round to the nearest 10 um in each dimension')
+        self.round_button.clicked.connect(self.populate_round)
 
         self.validator = QDoubleValidator(0,15000,-1)
         self.validator.setNotation(QDoubleValidator.StandardNotation)
@@ -323,7 +322,7 @@ class TargetDialog(QWidget):
         layout.addWidget(self.yedit, 3,1)
         layout.addWidget(self.zedit, 4,1)
         layout.addWidget(self.info_label, 5,0, 1,2)
-        layout.addWidget(self.random_button, 6,0, 1,2)
+        layout.addWidget(self.round_button, 6,0, 1,2)
         layout.addWidget(self.move_button, 7,0, 1,2)
         layout.addWidget(self.halt_button, 8,0, 1,2)
 
@@ -354,6 +353,15 @@ class TargetDialog(QWidget):
         y = np.clip(y + dy, 0, 15000)
         z = np.clip(z + dz, 0, 15000)
         self.populate(x,y,z)
+
+    def populate_round(self):
+        x = float(self.xedit.text())
+        y = float(self.yedit.text())
+        z = float(self.zedit.text())
+        x_round = np.round(x, decimals=-1)
+        y_round = np.round(y, decimals=-1)
+        z_round = np.round(z, decimals=-1)
+        self.populate(x_round, y_round, z_round)
 
     def get_params(self):
         params = {}

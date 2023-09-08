@@ -167,7 +167,7 @@ class SleapDetector(QObject):
         self.cv_worker.ninstances_updated.connect(self.control_panel.update_ninstances)
 
     def load_model(self, centroid_dir, instance_dir):
-        predictor = sleap.load_model([centroid_dir, instance_dir], batch_size=1)
+        predictor = sleap.load_model([centroid_dir, instance_dir], batch_size=1, tracker='simple')
         predictor.verbosity = None  # NECESSARY for multiple detector instances
         self.cv_worker.set_predictor(predictor)
         self.cv_worker.start_running()
