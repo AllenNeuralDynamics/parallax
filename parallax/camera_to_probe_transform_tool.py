@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QCheckBox
 from PyQt5.QtWidgets import QSpinBox, QMenu
 from PyQt5.QtWidgets import QFileDialog, QLineEdit, QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt5.QtGui import QIcon, QDrag
-from PyQt5.QtCore import QSize, pyqtSignal, QEvent, Qt, QMimeData, QThread
+from PyQt5.QtCore import QObject, pyqtSignal, QEvent, Qt, QMimeData, QThread
 
 import numpy as np
 import time
@@ -15,7 +15,7 @@ from . import get_image_file, data_dir
 from .stage_dropdown import StageDropdown, CalibrationDropdown
 from .transform import TransformNP
 from .points import Point3D
-from .calibration_worker import CalibrationWorker
+from .formations import mapping
 
 
 class CameraToProbeTransformTool(QWidget):
@@ -84,19 +84,19 @@ class AutomationPanel(QFrame):
         self.stage_label.setAlignment(Qt.AlignCenter)
         self.stage_dropdown = StageDropdown(self.model)
         self.stage_dropdown.activated.connect(self.update_status)
-        self.resolution_label = QLabel('Resolution:')
-        self.resolution_label.setAlignment(Qt.AlignCenter)
-        self.resolution_box = QSpinBox()
-        self.resolution_box.setMinimum(2)
-        self.resolution_box.setValue(2)
+        self.ncorr_label = QLabel('# of points:')
+        self.ncorr_label.setAlignment(Qt.AlignCenter)
+        self.ncorr_box = QComboBox()
+        for ncorr in mapping.keys():
+            self.ncorr_box.addItem(str(ncorr))
         self.origin_label = QLabel('Origin:')
         self.origin_label.setAlignment(Qt.AlignCenter)
         self.origin_value = QLabel()
         self.origin_value.setAlignment(Qt.AlignCenter)
         self.set_origin((7500., 7500., 7500.))
-        self.extent_label = QLabel('Extent (um):')
-        self.extent_label.setAlignment(Qt.AlignCenter)
-        self.extent_edit = QLineEdit(str(4000))
+        self.radius_label = QLabel('radius (um):')
+        self.radius_label.setAlignment(Qt.AlignCenter)
+        self.radius_edit = QLineEdit(str(3000))
         self.cal_label = QLabel('Calibration:')
         self.cal_label.setAlignment(Qt.AlignCenter)
         self.cal_dropdown = CalibrationDropdown(self.model)
@@ -119,10 +119,10 @@ class AutomationPanel(QFrame):
         layout.addWidget(self.auto_label, 0,0, 1,2)
         layout.addWidget(self.stage_label, 1,0, 1,1)
         layout.addWidget(self.stage_dropdown, 1,1, 1,1)
-        layout.addWidget(self.resolution_label, 2,0, 1,1)
-        layout.addWidget(self.resolution_box, 2,1, 1,1)
-        layout.addWidget(self.extent_label, 3,0, 1,1)
-        layout.addWidget(self.extent_edit, 3,1, 1,1)
+        layout.addWidget(self.ncorr_label, 2,0, 1,1)
+        layout.addWidget(self.ncorr_box, 2,1, 1,1)
+        layout.addWidget(self.radius_label, 3,0, 1,1)
+        layout.addWidget(self.radius_edit, 3,1, 1,1)
         layout.addWidget(self.origin_label, 4,0, 1,1)
         layout.addWidget(self.origin_value, 4,1, 1,1)
         layout.addWidget(self.origin_button, 5,0, 1,2)
@@ -158,11 +158,11 @@ class AutomationPanel(QFrame):
     def get_calibration(self):
         return self.cal_dropdown.get_current()
 
-    def get_resolution(self):
-        return self.resolution_box.value()
+    def get_ncorr(self):
+        return int(self.ncorr_box.currentText())
 
-    def get_extent(self):
-        return float(self.extent_edit.text())
+    def get_radius(self):
+        return float(self.radius_edit.text())
 
     def update_status(self):
         if self.stage_dropdown.is_selected():
@@ -178,20 +178,26 @@ class AutomationPanel(QFrame):
 
     def start(self):
         stage = self.get_stage()
-        res = self.get_resolution()
-        extent = self.get_extent()
-        origin = self.get_origin()
+        ncorr = self.get_ncorr()
+        radius = self.get_radius()
+        origin = np.array(self.get_origin(), dtype=np.float32)
+        points = mapping[ncorr] * radius + origin
+
         self.thread = QThread()
-        self.worker = CalibrationWorker('', '', stage, None, res, extent, origin)
+        self.worker = AutomationWorker(stage, points)
+
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
-        self.worker.calibration_point_reached.connect(self.handle_point_reached)
+        self.worker.point_reached.connect(self.handle_point_reached)
         self.thread.finished.connect(self.handle_finished)
         self.worker.finished.connect(self.thread.quit)
         self.thread.finished.connect(self.thread.deleteLater)
         self.thread.start()
+
         self.stage_running = stage
         self.cal_running = self.get_calibration()
+        self.ncorr_running = ncorr
+
         self.set_running(True)
 
     def stop(self):
@@ -212,8 +218,8 @@ class AutomationPanel(QFrame):
     def is_running(self):
         return self.state == self.STATE_RUNNING
 
-    def handle_point_reached(self, n, num, x,y,z):
-        msg1 = 'Automation point %d (of %d) reached: [%f, %f, %f]\n' % (n+1,num, x,y,z)
+    def handle_point_reached(self, n):
+        msg1 = 'Automation point %d (of %d) reached.\n' % (n+1, self.ncorr_running)
         self.msg_posted.emit(msg1)
 
     def handle_finished(self):
@@ -244,6 +250,52 @@ class AutomationPanel(QFrame):
             self.screen2.zoom_out()
             self.screen1.clear_selected()
             self.screen2.clear_selected()
+
+
+class AutomationWorker(QObject):
+    finished = pyqtSignal()
+    point_reached = pyqtSignal(int, int)
+
+    def __init__(self, stage, points, parent=None):
+        QObject.__init__(self)
+        self.stage = stage
+        self.points = points
+        self.npoints = len(points)
+
+        self.complete = False
+        self.alive = True
+
+    def carry_on(self):
+        self.ready_to_go = True
+
+    def stop(self):
+        self.alive = False
+
+    def run(self):
+        """
+        x1, x2 = self.origin[0]-self.extent_um/2., self.origin[0]+self.extent_um/2.
+        y1, y2 = self.origin[1]-self.extent_um/2., self.origin[1]+self.extent_um/2.
+        z1, z2 = self.origin[2]-self.extent_um/2., self.origin[2]+self.extent_um/2.
+        n = 0
+        for x in np.linspace(x1, x2, self.resolution):
+            for y in np.linspace(y1, y2, self.resolution):
+                for z in np.linspace(z1, z2, self.resolution):
+                    self.stage.move_absolute_3d(x,y,z, safe=False)
+                    self.point_reached.emit(n, self.num_cal, x,y,z)
+        """
+        
+        for i in range(self.npoints):
+            x,y,z = self.points[i,:]
+            self.stage.move_absolute_3d(x,y,z, safe=False)
+            self.point_reached.emit(i, self.npoints)
+            self.ready_to_go = False
+            while self.alive and not self.ready_to_go:
+                time.sleep(0.1)
+            if not self.alive:
+                break
+        else:
+            self.complete = True
+        self.finished.emit()
 
 
 class CorrespondencePanel(QFrame):

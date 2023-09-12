@@ -10,3 +10,4 @@ parallax/*.png
 data
 training
 env
+*.egg-info
