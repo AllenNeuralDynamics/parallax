@@ -117,7 +117,7 @@ class CalibrationPanel(QFrame):
 
     def start_cal_thread(self, stage, res, extent, origin, name, cs, intrinsics):
         self.model.cal_in_progress = True
-        self.cal_thread = QThread()
+        self.cal_thread = QThread(self)
         self.cal_worker = CalibrationWorker(name, cs, stage, intrinsics, res, extent, origin)
         self.cal_worker.moveToThread(self.cal_thread)
         self.cal_thread.started.connect(self.cal_worker.run)

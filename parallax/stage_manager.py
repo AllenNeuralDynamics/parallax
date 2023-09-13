@@ -129,7 +129,7 @@ class StageManager(QWidget):
         return x,y,z
 
     def scan_for_stages(self, subnet):
-        self.scan_thread = QThread()
+        self.scan_thread = QThread(self)
         self.scan_worker = ScanStageWorker(subnet)
         self.scan_worker.moveToThread(self.scan_thread)
         self.scan_thread.started.connect(self.scan_worker.run)

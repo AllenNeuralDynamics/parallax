@@ -45,7 +45,7 @@ class NoFilter(QObject):
     def __init__(self):
         QObject.__init__(self)
         # CV worker and thread
-        self.thread = QThread()
+        self.thread = QThread(self)
         self.worker = self.Worker()
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)

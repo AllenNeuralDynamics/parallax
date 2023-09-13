@@ -48,7 +48,7 @@ class Model(QObject):
         self.prefs = Preferences()
 
         # training thread
-        self.training_thread = QThread()
+        self.training_thread = QThread(self)
         self.training_worker = TrainingWorker()
         self.training_worker.moveToThread(self.training_thread)
         self.training_thread.started.connect(self.training_worker.run)
@@ -165,7 +165,7 @@ class Model(QObject):
         self.accutest_in_progress = False
 
     def start_accuracy_test(self, params):
-        self.accutest_thread = QThread()
+        self.accutest_thread = QThread(self)
         self.accutest_worker = AccuracyTestWorker(params)
         self.accutest_worker.moveToThread(self.accutest_thread)
         self.accutest_thread.started.connect(self.accutest_worker.run)

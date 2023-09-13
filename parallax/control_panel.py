@@ -153,7 +153,7 @@ class ControlPanel(QFrame):
         self.refresh_timer.start(100)
 
         # position worker and thread
-        self.pos_thread = QThread()
+        self.pos_thread = QThread(self)
         self.pos_worker = PositionWorker()
         self.pos_worker.moveToThread(self.pos_thread)
         self.pos_thread.started.connect(self.pos_worker.run)

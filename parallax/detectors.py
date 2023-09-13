@@ -153,7 +153,7 @@ class SleapDetector(QObject):
         QObject.__init__(self)
 
         # CV worker and thread
-        self.cv_thread = QThread()
+        self.cv_thread = QThread(self)
         self.cv_worker = self.SleapWorker()
         self.cv_worker.moveToThread(self.cv_thread)
         self.cv_thread.started.connect(self.cv_worker.run)

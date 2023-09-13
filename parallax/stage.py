@@ -58,9 +58,10 @@ class IOWorker(QObject):
         self.halt_requested = True
 
 
-class Stage:
+class Stage(QObject):
 
     def __init__(self, ip=None, serial=None):
+        QObject.__init__(self)
 
         if ip is not None:
             self.ip = ip
@@ -71,7 +72,7 @@ class Stage:
             self.name = serial.get_serial_number()
             self.device = USBXYZStage(usb_interface=USBInterface(serial))
 
-        self.thread = QThread()
+        self.thread = QThread(self)
         self.worker = IOWorker(self.device)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
