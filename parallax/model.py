@@ -125,10 +125,6 @@ class Model(QObject):
 
     def clean(self):
         close_cameras()
-        self.clean_stages()
-
-    def clean_stages(self):
-        pass
 
     def halt_all_stages(self):
         for stage in self.stages.values():

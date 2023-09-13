@@ -157,14 +157,22 @@ class SleapDetector(QObject):
         self.cv_worker = self.SleapWorker()
         self.cv_worker.moveToThread(self.cv_thread)
         self.cv_thread.started.connect(self.cv_worker.run)
-        self.cv_worker.finished.connect(self.cv_thread.quit, Qt.DirectConnection)
         self.cv_worker.tracked.connect(self.tracked)
+        self.cv_worker.finished.connect(self.thread.deleteLater)
         self.cv_thread.start()
 
         self.control_panel = self.ControlPanel()
         self.control_panel.model_selected.connect(self.load_model)
         self.cv_worker.fps_updated.connect(self.control_panel.update_fps)
         self.cv_worker.ninstances_updated.connect(self.control_panel.update_ninstances)
+
+    def __del__(self):
+        self.clean()
+
+    def clean(self):
+        self.cv_worker.stop_running()
+        self.cv_thread.quit()
+        self.cv_thread.wait()
 
     def load_model(self, centroid_dir, instance_dir):
         predictor = sleap.load_model([centroid_dir, instance_dir], batch_size=1, tracker='simple')
@@ -179,11 +187,6 @@ class SleapDetector(QObject):
 
     def launch_control_panel(self):
         self.control_panel.show()
-
-    def clean(self):
-        self.cv_worker.stop_running()
-        self.cv_thread.quit()
-        self.cv_thread.wait()
 
 
 class RandomWalkDetector:

@@ -157,9 +157,14 @@ class ControlPanel(QFrame):
         self.pos_worker = PositionWorker()
         self.pos_worker.moveToThread(self.pos_thread)
         self.pos_thread.started.connect(self.pos_worker.run)
-        self.pos_worker.finished.connect(self.pos_thread.quit)
         self.pos_worker.finished.connect(self.pos_worker.deleteLater)
-        self.pos_thread.finished.connect(self.pos_thread.deleteLater)
+
+    def __del__(self):
+        self.clean()
+
+    def clean(self):
+        self.pos_thread.quit()
+        self.pos_thread.wait()
 
     def update_coordinates(self, *args):
         if self.stage is not None:

@@ -16,8 +16,9 @@ class NoFilter(QObject):
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
 
-        def __init__(self):
+        def __init__(self, name):
             QObject.__init__(self)
+            self.name = name
             self.running = True
             self.new = False
 
@@ -46,13 +47,15 @@ class NoFilter(QObject):
         QObject.__init__(self)
         # CV worker and thread
         self.thread = QThread(self)
-        self.worker = self.Worker()
+        self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.frame_processed.connect(self.frame_processed)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.finished.connect(self.thread.deleteLater)
         self.thread.start()
+
+    def __del__(self):
+        self.clean()
 
     def process(self, frame):
         self.worker.update_frame(frame)
@@ -81,8 +84,8 @@ class CheckerboardFilter(NoFilter):
                 + cv2.CALIB_CB_NORMALIZE_IMAGE \
                 + cv2.CALIB_CB_FAST_CHECK
 
-        def __init__(self):
-            NoFilter.Worker.__init__(self)
+        def __init__(self, name):
+            NoFilter.Worker.__init__(self, name)
             self.mtx_corners = QMutex()
             self.corners = None
 
@@ -142,8 +145,8 @@ class CheckerboardSmoothFilter(NoFilter):
                 + cv2.CALIB_CB_NORMALIZE_IMAGE \
                 + cv2.CALIB_CB_FAST_CHECK
 
-        def __init__(self):
-            NoFilter.Worker.__init__(self)
+        def __init__(self, name):
+            NoFilter.Worker.__init__(self, name)
             self.mtx_corners = QMutex()
             self.corners = None
             self.buf = []

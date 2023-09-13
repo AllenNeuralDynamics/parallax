@@ -76,12 +76,17 @@ class Stage(QObject):
         self.worker = IOWorker(self.device)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.finished.connect(self.thread.deleteLater)
         self.thread.start()
 
         self.z_safe = 0.
+
+    def __del__(self):
+        self.clean()
+
+    def clean(self):
+        self.thread.quit()
+        self.thread.wait()
 
     def get_name(self):
         return self.name
