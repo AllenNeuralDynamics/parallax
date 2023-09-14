@@ -190,8 +190,7 @@ class AutomationPanel(QFrame):
         self.thread.started.connect(self.worker.run)
         self.worker.point_reached.connect(self.handle_point_reached)
         self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.thread.deleteLater)
-        self.thread.finished.connect(self.handle_finished)
+        self.worker.finished.connect(self.handle_finished)
         self.thread.start()
 
         self.stage_running = stage
@@ -199,14 +198,6 @@ class AutomationPanel(QFrame):
         self.ncorr_running = ncorr
 
         self.set_running(True)
-
-    def __del__(self):
-        self.clean()
-
-    def clean(self):
-        self.worker.stop()
-        self.thread.quit()
-        self.thread.wait()
 
     def stop(self):
         if self.worker is not None:
