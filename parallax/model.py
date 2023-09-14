@@ -48,7 +48,7 @@ class Model(QObject):
         self.prefs = Preferences()
 
         # training thread
-        self.training_thread = QThread(self)
+        self.training_thread = QThread()
         self.training_worker = TrainingWorker()
         self.training_worker.moveToThread(self.training_thread)
         self.training_thread.started.connect(self.training_worker.run)
@@ -56,8 +56,6 @@ class Model(QObject):
         self.training_worker.finished.connect(self.training_worker.deleteLater)
         self.training_thread.finished.connect(self.training_thread.deleteLater)
         self.training_thread.start()
-        self.training_worker.start_running()
-
 
     def save_training_data(self, ipt, frame, tag):
         self.training_worker.submit_data(ipt, frame, tag)
@@ -161,7 +159,7 @@ class Model(QObject):
         self.accutest_in_progress = False
 
     def start_accuracy_test(self, params):
-        self.accutest_thread = QThread(self)
+        self.accutest_thread = QThread()
         self.accutest_worker = AccuracyTestWorker(params)
         self.accutest_worker.moveToThread(self.accutest_thread)
         self.accutest_thread.started.connect(self.accutest_worker.run)
@@ -196,7 +194,7 @@ class TrainingWorker(QObject):
 
     def __init__(self):
         QObject.__init__(self)
-        self.running = False
+        self.running = True
         self.q = queue.Queue()
 
     def process(self, data):
@@ -219,7 +217,10 @@ class TrainingWorker(QObject):
             while not self.q.empty() and self.running:
                 data = self.q.get()
                 self.process(data)
+            if not self.running:
+                break
             time.sleep(0.001)
+        print('trainingworker finished')
         self.finished.emit()
 
     def submit_data(self, ipt, frame, tag):

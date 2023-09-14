@@ -183,7 +183,7 @@ class AutomationPanel(QFrame):
         origin = np.array(self.get_origin(), dtype=np.float32)
         points = mapping[ncorr] * radius + origin
 
-        self.thread = QThread(self)
+        self.thread = QThread()
         self.worker = AutomationWorker(stage, points)
 
         self.worker.moveToThread(self.thread)

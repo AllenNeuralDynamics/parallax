@@ -72,11 +72,13 @@ class Stage(QObject):
             self.name = serial.get_serial_number()
             self.device = USBXYZStage(usb_interface=USBInterface(serial))
 
-        self.thread = QThread(self)
+        self.thread = QThread()
         self.worker = IOWorker(self.device)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.deleteLater)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
         self.thread.start()
 
         self.z_safe = 0.
