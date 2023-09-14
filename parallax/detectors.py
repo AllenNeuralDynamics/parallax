@@ -34,19 +34,19 @@ class SleapDetector(QObject):
 
     name = 'SLEAP'
 
-    tracked = pyqtSignal(tuple)
+    tracked = pyqtSignal(list)
 
     class SleapWorker(QObject):
 
         finished = pyqtSignal()
-        tracked = pyqtSignal(tuple)
+        tracked = pyqtSignal(list)
         fps_updated = pyqtSignal(float)
         ninstances_updated = pyqtSignal(int)
 
         def __init__(self):
             QObject.__init__(self)
             self.predictor = None
-            self.running = False
+            self.running = True
             self.new = False
 
         def set_predictor(self, predictor):
@@ -70,7 +70,7 @@ class SleapDetector(QObject):
             self.ninstances = len(tip_positions)
             self.ninstances_updated.emit(self.ninstances)
             if self.ninstances >= 1:
-                self.tracked.emit(tip_positions[0])
+                self.tracked.emit(tip_positions)
 
         def stop_running(self):
             self.running = False
@@ -80,10 +80,11 @@ class SleapDetector(QObject):
 
         def run(self):
             while self.running:
-                if self.new:
-                    self.process(self.frame)
-                    self.new = False
-                time.sleep(0.001)
+                if self.predictor is not None:
+                    if self.new:
+                        self.process(self.frame)
+                        self.new = False
+                time.sleep(0.01)
             self.finished.emit()
 
     class ControlPanel(QWidget):
@@ -158,7 +159,7 @@ class SleapDetector(QObject):
         self.cv_worker.moveToThread(self.cv_thread)
         self.cv_thread.started.connect(self.cv_worker.run)
         self.cv_worker.tracked.connect(self.tracked)
-        self.cv_worker.finished.connect(self.cv_thread.quit)
+        #self.cv_worker.finished.connect(self.cv_thread.quit)
         self.cv_worker.finished.connect(self.cv_worker.deleteLater)
         self.cv_thread.finished.connect(self.cv_thread.deleteLater)
         self.cv_thread.start()

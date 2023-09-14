@@ -35,6 +35,10 @@ class ScreenWidget(pg.GraphicsView):
         self.view_box.addItem(self.click_target)
         self.click_target.setVisible(False)
 
+        self.click_target2 = pg.TargetItem()
+        self.view_box.addItem(self.click_target2)
+        self.click_target2.setVisible(False)
+
         self.camera_actions = []
         self.focochan_actions = []
         self.filter_actions = []
@@ -136,6 +140,10 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target.setVisible(True)
         self.selected.emit(*self.get_selected())
 
+    def select2(self, pos):
+        self.click_target2.setPos(pos)
+        self.click_target2.setVisible(True)
+
     def zoom_out(self):
         self.view_box.autoRange()
 
@@ -155,7 +163,13 @@ class ScreenWidget(pg.GraphicsView):
         self.detector = detector()
         self.detector.launch_control_panel()
         if hasattr(self.detector, "tracked"):
-            self.detector.tracked.connect(self.select)
+            self.detector.tracked.connect(self.handle_detector_tracked)
+
+    def handle_detector_tracked(self, tip_positions):
+        if len(tip_positions) > 0:
+            self.select(tip_positions[0])
+        if len(tip_positions) > 1:
+            self.select2(tip_positions[1])
 
     def get_selected(self):
         if self.click_target.isVisible():
