@@ -189,9 +189,8 @@ class AutomationPanel(QFrame):
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.point_reached.connect(self.handle_point_reached)
-        self.thread.finished.connect(self.handle_finished)
         self.worker.finished.connect(self.thread.quit)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.finished.connect(self.handle_finished)
         self.thread.start()
 
         self.stage_running = stage
@@ -272,18 +271,6 @@ class AutomationWorker(QObject):
         self.alive = False
 
     def run(self):
-        """
-        x1, x2 = self.origin[0]-self.extent_um/2., self.origin[0]+self.extent_um/2.
-        y1, y2 = self.origin[1]-self.extent_um/2., self.origin[1]+self.extent_um/2.
-        z1, z2 = self.origin[2]-self.extent_um/2., self.origin[2]+self.extent_um/2.
-        n = 0
-        for x in np.linspace(x1, x2, self.resolution):
-            for y in np.linspace(y1, y2, self.resolution):
-                for z in np.linspace(z1, z2, self.resolution):
-                    self.stage.move_absolute_3d(x,y,z, safe=False)
-                    self.point_reached.emit(n, self.num_cal, x,y,z)
-        """
-        
         for i in range(self.npoints):
             x,y,z = self.points[i,:]
             self.stage.move_absolute_3d(x,y,z, safe=False)

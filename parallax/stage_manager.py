@@ -133,12 +133,19 @@ class StageManager(QWidget):
         self.scan_worker = ScanStageWorker(subnet)
         self.scan_worker.moveToThread(self.scan_thread)
         self.scan_thread.started.connect(self.scan_worker.run)
+        self.scan_thread.finished.connect(self.handle_stage_scan_finished)
+        self.scan_worker.progress_made.connect(self.report_stage_scan_progress)
         self.scan_worker.finished.connect(self.scan_thread.quit)
         self.scan_worker.finished.connect(self.scan_worker.deleteLater)
         self.scan_thread.finished.connect(self.scan_thread.deleteLater)
-        self.scan_thread.finished.connect(self.handle_stage_scan_finished)
-        self.scan_worker.progress_made.connect(self.report_stage_scan_progress)
         self.scan_thread.start()
+
+    def __del__(self):
+        self.clean()
+
+    def clean(self):
+        self.scan_thread.quit()
+        self.scan_thread.wait()
 
     def report_stage_scan_progress(self, i):
         self.pbar.setValue(i)

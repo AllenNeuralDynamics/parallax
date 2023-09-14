@@ -32,6 +32,7 @@ from .camera import VideoSource
 from .preferences import PreferencesWindow
 from .helper import uid8, FONT_BOLD
 from .camera_to_probe_transform_tool import CameraToProbeTransformTool
+from .calibration_tester import CalibrationTester
 
 
 class MainWindow(QMainWindow):
@@ -89,6 +90,8 @@ class MainWindow(QMainWindow):
         self.about_action.triggered.connect(self.launch_about)
         self.cpt_action = QAction("Camera-to-Probe Transform Tool")
         self.cpt_action.triggered.connect(self.launch_cpt)
+        self.ct_action = QAction("Calibration Tester")
+        self.ct_action.triggered.connect(self.launch_ct)
 
         # build the menubar
         self.file_menu = self.menuBar().addMenu("File")
@@ -118,6 +121,7 @@ class MainWindow(QMainWindow):
         self.tools_calibrations_menu.addAction(self.cbs_action)
         self.tools_calibrations_menu.addAction(self.it_action)
         self.tools_calibrations_menu.addAction(self.csc_action)
+        self.tools_calibrations_menu.addAction(self.ct_action)
 
         self.tools_transforms_menu.addAction(self.cpt_action)
         self.tools_transforms_menu.addAction(self.rbt_action)
@@ -237,6 +241,11 @@ class MainWindow(QMainWindow):
         self.widget.cpt.msg_posted.connect(self.widget.msg_log.post)
         self.widget.cpt.transform_generated.connect(self.widget.trans_panel.update_transforms)
         self.widget.cpt.show()
+
+    def launch_ct(self):
+        self.widget.ct = CalibrationTester(self.model)
+        self.widget.ct.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.ct.show()
 
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen

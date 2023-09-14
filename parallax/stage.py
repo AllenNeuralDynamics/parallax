@@ -58,9 +58,10 @@ class IOWorker(QObject):
         self.halt_requested = True
 
 
-class Stage:
+class Stage(QObject):
 
     def __init__(self, ip=None, serial=None):
+        QObject.__init__(self)
 
         if ip is not None:
             self.ip = ip
@@ -81,6 +82,13 @@ class Stage:
         self.thread.start()
 
         self.z_safe = 0.
+
+    def __del__(self):
+        self.clean()
+
+    def clean(self):
+        self.thread.quit()
+        self.thread.wait()
 
     def get_name(self):
         return self.name

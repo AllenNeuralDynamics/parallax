@@ -33,7 +33,7 @@ class CheckerboardToolMono(QWidget):
         self.model = model
 
         self.lscreen = ScreenWidget(model=self.model)
-        self.lscreen.set_filter(CheckerboardFilter)
+        self.lscreen.set_filter(CheckerboardSmoothFilter)
 
         self.grab_button = QPushButton('Grab Corners')
         self.grab_button.clicked.connect(self.grab_corners)
@@ -104,9 +104,9 @@ class CheckerboardToolStereo(QWidget):
         self.model = model
 
         self.lscreen = ScreenWidget(model=self.model)
-        self.lscreen.set_filter(CheckerboardFilter)
+        self.lscreen.set_filter(CheckerboardSmoothFilter)
         self.rscreen = ScreenWidget(model=self.model)
-        self.rscreen.set_filter(CheckerboardFilter)
+        self.rscreen.set_filter(CheckerboardSmoothFilter)
 
         self.grab_button = QPushButton('Grab Corners')
         self.grab_button.clicked.connect(self.grab_corners)

@@ -24,7 +24,7 @@ class CalibrateStereoCornersTool(QWidget):
         QWidget.__init__(self, parent=None)
         self.model = model
 
-        self.load_corners_button = QPushButton('Load corners')
+        self.load_corners_button = QPushButton('Load Stereo Corners')
         self.load_corners_button.clicked.connect(self.load_corners)
 
         self.opts = None
@@ -108,11 +108,12 @@ class CalibrateStereoCornersTool(QWidget):
             self.opts = corners['opts']
             self.lipts = corners['lipts']
             self.ripts = corners['ripts']
+            self.load_corners_button.setText(os.path.basename(filename))
             self.update_gui()
 
     def update_gui(self):
         if self.opts is not None:
-            self.npts_label.setText('%d points loaded' % self.opts.shape[0])
+            self.npts_label.setText('%d poses loaded' % self.opts.shape[0])
             self.generate_button.setEnabled(True)
 
     def generate_calibration(self):

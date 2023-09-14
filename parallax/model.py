@@ -56,8 +56,6 @@ class Model(QObject):
         self.training_worker.finished.connect(self.training_worker.deleteLater)
         self.training_thread.finished.connect(self.training_thread.deleteLater)
         self.training_thread.start()
-        self.training_worker.start_running()
-
 
     def save_training_data(self, ipt, frame, tag):
         self.training_worker.submit_data(ipt, frame, tag)
@@ -125,10 +123,6 @@ class Model(QObject):
 
     def clean(self):
         close_cameras()
-        self.clean_stages()
-
-    def clean_stages(self):
-        pass
 
     def halt_all_stages(self):
         for stage in self.stages.values():
@@ -200,7 +194,7 @@ class TrainingWorker(QObject):
 
     def __init__(self):
         QObject.__init__(self)
-        self.running = False
+        self.running = True
         self.q = queue.Queue()
 
     def process(self, data):
@@ -223,7 +217,10 @@ class TrainingWorker(QObject):
             while not self.q.empty() and self.running:
                 data = self.q.get()
                 self.process(data)
+            if not self.running:
+                break
             time.sleep(0.001)
+        print('trainingworker finished')
         self.finished.emit()
 
     def submit_data(self, ipt, frame, tag):

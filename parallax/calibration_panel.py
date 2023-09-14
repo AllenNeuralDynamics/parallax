@@ -123,10 +123,10 @@ class CalibrationPanel(QFrame):
         self.cal_thread.started.connect(self.cal_worker.run)
         self.cal_worker.calibration_point_reached.connect(self.handle_cal_point_reached)
         self.cal_thread.finished.connect(self.handle_cal_finished)
-        self.cal_worker.finished.connect(self.cal_thread.quit)
+        self.cal_worker.finished.connect(self.cal_worker.deleteLater)
         self.cal_thread.finished.connect(self.cal_thread.deleteLater)
         self.msg_posted.emit('Starting Calibration...')
-        self.cal_thread.start()
+        #self.cal_thread.start()
         self.start_stop_button.setText('Stop')
 
     def stop_cal_thread(self):

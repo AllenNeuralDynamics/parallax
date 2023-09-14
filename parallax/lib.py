@@ -31,9 +31,9 @@ def get_rt_matrix(r, t):
 def get_inverse_rt_matrix(r, t):
     R, jacobian = cv.Rodrigues(r)
     Ri = R.T
-    ti = (-1) * np.matmul(R,t)
-    rt = np.concatenate([R,ti], axis=-1) # [R|t]
-    return rt
+    ti = (-1) * np.matmul(Ri,t)
+    rti = np.concatenate([Ri,ti], axis=-1) # [R|t]
+    return rti
 
 def DLT(P1, P2, point1, point2):
     """
@@ -64,8 +64,8 @@ def axis_angle_from_matrix(m):
 
 def compose_rt_cv(r1,t1, r2,t2):
     # compose r and t vectors according to the opencv convention
-    R1, _ = cv2.Rodrigues(r1)
-    R2, _ = cv2.Rodrigues(r2)
+    R1, _ = cv.Rodrigues(r1)
+    R2, _ = cv.Rodrigues(r2)
     Rf = np.matmul(R2, R1)
     rf = axis_angle_from_matrix(Rf)
     tf = np.matmul(R2, t1) + t2
@@ -74,21 +74,21 @@ def compose_rt_cv(r1,t1, r2,t2):
 def get_rti_cv(r,t):
     # get inverse r and t vectors according to the opencv convention
     ri = (-1) * r
-    Ri, _ = cv2.Rodrigues(ri)
+    Ri, _ = cv.Rodrigues(ri)
     ti = (-1) * np.matmul(Ri,t)
     return ri, ti
 
 def apply_rt_cv(coord, r, t):
     # apply rototranslation according to opencv convention
     vec = coord.reshape((3,1))
-    R, _ = cv2.Rodrigues(r)
+    R, _ = cv.Rodrigues(r)
     vec2 = np.matmul(R, vec) + t
     return vec2.reshape(3)
 
 def apply_rti_cv(coord, r, t):
     # apply INVERSE rototranslation according to opencv convention
     vec = coord.reshape((3,1))
-    R, _ = cv2.Rodrigues(r)
+    R, _ = cv.Rodrigues(r)
     vec2 = np.matmul(R.T, vec - t)
     return vec2.reshape(3)
 
