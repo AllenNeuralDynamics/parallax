@@ -1,3 +1,4 @@
+# Import necessary PyQt5 modules and other libraries
 from PyQt5.QtWidgets import QPushButton, QLabel, QWidget, QFrame, QInputDialog, QComboBox
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGridLayout, QMenu, QCheckBox
 from PyQt5.QtWidgets import QTabWidget 
@@ -12,10 +13,12 @@ import cv2
 import os
 import pickle
 
+# Import custom modules from the project
 from . import get_image_file, data_dir
 from .helper import FONT_BOLD, WF, HF
 from .calibration import Calibration
 
+# Create a class for the CalibrateStereoCornersTool
 class CalibrateStereoCornersTool(QWidget):
     msg_posted = pyqtSignal(str)
     cal_generated = pyqtSignal()
@@ -24,6 +27,7 @@ class CalibrateStereoCornersTool(QWidget):
         QWidget.__init__(self, parent=None)
         self.model = model
 
+        # Create buttons, labels, and other UI elements
         self.load_corners_button = QPushButton('Load Stereo Corners')
         self.load_corners_button.clicked.connect(self.load_corners)
 
@@ -61,6 +65,7 @@ class CalibrateStereoCornersTool(QWidget):
         self.generate_button.clicked.connect(self.generate_calibration)
         self.generate_button.setEnabled(False)
 
+        # Create a grid layout for arranging UI elements
         layout = QGridLayout()
         layout.addWidget(self.load_corners_button, 0,0, 1,2)
         layout.addWidget(self.npts_label, 1,0, 1,2)
@@ -77,13 +82,16 @@ class CalibrateStereoCornersTool(QWidget):
         self.setLayout(layout)
         self.setMinimumWidth(350)
 
+        # Set window title and icon
         self.setWindowTitle('Calibration from Stereo Corners')
         self.setWindowIcon(QIcon(get_image_file('sextant.png')))
 
+    # Function to handle the checkbox state change
     def handle_check(self):
         self.int1_button.setEnabled(self.intrinsics_check.checkState())
         self.int2_button.setEnabled(self.intrinsics_check.checkState())
 
+    # Function to load intrinsic parameters for the left camera
     def load_int1(self):
         filename = QFileDialog.getOpenFileName(self, 'Load intrinsics file', data_dir,
                                                     'Pickle files (*.pkl)')[0]
@@ -92,6 +100,7 @@ class CalibrateStereoCornersTool(QWidget):
                 self.int1 = pickle.load(f)
             self.int1_button.setText(os.path.basename(self.int1.name))
 
+    # Function to load intrinsic parameters for the right camera
     def load_int2(self):
         filename = QFileDialog.getOpenFileName(self, 'Load intrinsics file', data_dir,
                                                     'Pickle files (*.pkl)')[0]
@@ -100,6 +109,7 @@ class CalibrateStereoCornersTool(QWidget):
                 self.int2 = pickle.load(f)
             self.int2_button.setText(os.path.basename(self.int2.name))
 
+    # Function to load stereo corner data
     def load_corners(self):
         filename = QFileDialog.getOpenFileName(self, 'Load corners file (stereo)', data_dir,
                                                     'Numpy files (*.npz)')[0]
@@ -111,11 +121,13 @@ class CalibrateStereoCornersTool(QWidget):
             self.load_corners_button.setText(os.path.basename(filename))
             self.update_gui()
 
+    # Function to update the user interface
     def update_gui(self):
         if self.opts is not None:
             self.npts_label.setText('%d poses loaded' % self.opts.shape[0])
             self.generate_button.setEnabled(True)
 
+    # Function to generate calibration
     def generate_calibration(self):
         name = self.name_edit.text()
         self.cal = Calibration(name, 'checker')

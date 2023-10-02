@@ -6,16 +6,17 @@ import logging
 import os
 import cv2
 
+# Initialize the logger
 logger = logging.getLogger(__name__)
 
-
+# Check if PySpin library is available
 try:
     import PySpin
 except ImportError:
     PySpin = None
     logger.warn("Could not import PySpin.")
 
-
+# Function to list available cameras (real or mock)
 def list_cameras(dummy=False):
     global pyspin_cameras, pyspin_instance
     cameras = []
@@ -24,18 +25,19 @@ def list_cameras(dummy=False):
             cameras.extend(PySpinCamera.list_cameras())
     return cameras
 
-
+# Function to close all cameras
 def close_cameras():
     if PySpin is not None:
         PySpinCamera.close_cameras()
 
-
+# Class for managing PySpin cameras
 class PySpinCamera:
 
     pyspin_cameras = None
     pyspin_instance = None
     cameras = []
 
+    # Class method to list available PySpin cameras
     @classmethod
     def list_cameras(cls):
         if cls.pyspin_instance is None:
@@ -45,6 +47,7 @@ class PySpinCamera:
         cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
         return cls.cameras
 
+    # Class method to close all PySpin cameras
     @classmethod
     def close_cameras(cls):
         print('cleaning up SpinSDK')
@@ -55,6 +58,7 @@ class PySpinCamera:
         if cls.pyspin_instance is not None:
             cls.pyspin_instance.ReleaseInstance()
 
+    # Constructor for PySpinCamera
     def __init__(self, camera_pyspin):
         self.running = False
         self.camera = camera_pyspin
@@ -93,14 +97,14 @@ class PySpinCamera:
         # begin acquisition
         self.begin_acquisition()
 
-
+    # Function to get the camera name
     def name(self):
         sn = self.camera.DeviceSerialNumber()
         device_model = self.camera.DeviceModelName()
         return '%s (Serial # %s)' % (device_model, sn)
 
+    # Function to begin image acquisition
     def begin_acquisition(self):
-
         # set acquisition mode continuous
         node_acquisition_mode = PySpin.CEnumerationPtr(self.node_map.GetNode('AcquisitionMode'))
         node_acquisition_mode_continuous = node_acquisition_mode.GetEntryByName('Continuous')
@@ -113,6 +117,7 @@ class PySpinCamera:
         self.capture_thread = threading.Thread(target=self.capture_loop, daemon=True)
         self.capture_thread.start()
 
+    # Function to capture an image
     def capture(self):
         ts = time.time()
         self.last_capture_time = ts
@@ -129,25 +134,30 @@ class PySpinCamera:
 
         self.last_image = image
 
+    # Get the timestamp of the last capture
     def get_last_capture_time(self):
         ts = self.last_capture_time
         dt = datetime.datetime.fromtimestamp(ts)
         return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
                                               dt.hour, dt.minute, dt.second)
 
+    # Save the last captured image to a file
     def save_last_image(self, filename):
         image_converted = self.get_last_image()
         image_converted.Save(filename)
 
+    # Get the last captured image
     def get_last_image(self):
         return self.last_image
 
+    # Get the last captured image data as a numpy array
     def get_last_image_data(self):
         """
         Return last image as numpy array with shape (height, width, 3) for RGB or (height, width) for mono. 
         """
         return self.last_image.GetNDArray()
 
+    # Clean up the camera
     def clean(self):
         if self.running:
             self.running = False
@@ -160,16 +170,20 @@ class PySpinCamera:
             self.capture()
 
 
+# Class for simulating a mock camera
 class MockCamera:
     n_cameras = 0
 
     def __init__(self):
+        # Initialize a mock camera with a unique name
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
+        # Create mock image data with random values
         self.data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype='ubyte')
         self._next_frame = 0
 
     def name(self):
+        # Get the name of the mock camera
         return self._name
 
     def get_last_image_data(self):
@@ -183,18 +197,22 @@ class MockCamera:
 class VideoSource:
 
     def __init__(self, filename):
+        # Initialize a video source with a given filename
         self.filename = filename
         self._name = os.path.basename(self.filename)
         self.cap = cv2.VideoCapture(self.filename)
 
     def name(self):
+        # Get the name of the video source
         return self._name
 
     def get_last_image_data(self):
+        # Read the last captured frame from the video source
         ret, frame = self.cap.read()
         if ret:
             return frame
         else:
+            # If the video has ended, reset the video source to the beginning
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             return np.random.randint(0, 255, size=(3000, 4000), dtype='ubyte')
 
