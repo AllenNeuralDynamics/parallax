@@ -1,3 +1,4 @@
+# Import necessary PyQt5 modules and other dependencies
 from PyQt5.QtWidgets import QApplication, QMainWindow, QAction
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout
 from PyQt5.QtWidgets import QFileDialog
@@ -7,6 +8,7 @@ import pyqtgraph.console
 import numpy as np
 import os
 
+# Import custom modules from the current package
 from . import get_image_file, data_dir
 from .message_log import MessageLog
 from .screen_widget import ScreenWidget
@@ -34,24 +36,34 @@ from .helper import uid8, FONT_BOLD
 from .camera_to_probe_transform_tool import CameraToProbeTransformTool
 from .calibration_tester import CalibrationTester
 
-
+# Define the main application window class
 class MainWindow(QMainWindow):
-
+    # Initialize the QMainWindow
     def __init__(self, model, dummy=False):
         QMainWindow.__init__(self)
         self.model = model
         self.dummy = dummy
 
+        # Create the main widget for the application
         self.widget = MainWidget(model)
         self.setCentralWidget(self.widget)
 
-        # menubar actions
+        # Build the menu bar with "File" option
         self.save_frames_action = QAction("Save Camera Frames")
         self.save_frames_action.triggered.connect(self.widget.save_camera_frames)
         self.save_frames_action.setShortcut("Ctrl+F")
+        self.file_menu = self.menuBar().addMenu("File")
+        self.file_menu.addAction(self.save_frames_action)
+        self.file_menu.addSeparator()    # not visible on linuxmint?
+
+        # Build the menu bar with "Edit" option
         self.edit_prefs_action = QAction("Preferences")
         self.edit_prefs_action.triggered.connect(self.launch_preferences)
         self.edit_prefs_action.setShortcut("Ctrl+P")
+        self.edit_menu = self.menuBar().addMenu("Edit")
+        self.edit_menu.addAction(self.edit_prefs_action)
+
+        # Build the menu bar with "Devices" option
         self.refresh_stages_action = QAction("Refresh Stages")
         self.refresh_stages_action.triggered.connect(self.refresh_stages)
         self.refresh_cameras_action = QAction("Refresh Camera List")
@@ -60,8 +72,14 @@ class MainWindow(QMainWindow):
         self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
         self.video_source_action = QAction("Add video source as camera")
         self.video_source_action.triggered.connect(self.launch_video_source_dialog)
-        self.tt_action = QAction("Generate Template")
-        self.tt_action.triggered.connect(self.launch_tt)
+        self.device_menu = self.menuBar().addMenu("Devices")
+        self.device_menu.addAction(self.refresh_stages_action)
+        self.device_menu.addAction(self.refresh_cameras_action)
+        self.device_menu.addAction(self.refresh_focos_action)
+        self.device_menu.addAction(self.video_source_action)
+
+        # Create menu bar actions with 'Tools' option
+        # 'Tools' > 'Calibrations' > ...
         self.cbm_action = QAction("Checkerboard Tool (mono)")
         self.cbm_action.triggered.connect(self.launch_cbm)
         self.cbs_action = QAction("Checkerboard Tool (stereo)")
@@ -70,82 +88,81 @@ class MainWindow(QMainWindow):
         self.it_action.triggered.connect(self.launch_it)
         self.csc_action = QAction("Calibration from Stereo Corners")
         self.csc_action.triggered.connect(self.launch_csc)
-        self.rbt_action = QAction("Rigid Body Transform Tool")
-        self.rbt_action.triggered.connect(self.launch_rbt)
-        self.accutest_action = QAction("Accuracy Testing Tool")
-        self.accutest_action.triggered.connect(self.launch_accutest)
-        self.gtd_action = QAction("Ground Truth Data Collector")
-        self.gtd_action.triggered.connect(self.launch_gtd)
-        self.elevator_action = QAction("Elevator Control Tool")
-        self.elevator_action.triggered.connect(self.launch_elevator)
-        self.pb_action = QAction("Point Bank")
-        self.pb_action.triggered.connect(self.launch_pb)
-        self.ruler_action = QAction("Ruler")
-        self.ruler_action.triggered.connect(self.launch_ruler)
-        self.pdt_action = QAction("Probe Detection Training Tool")
-        self.pdt_action.triggered.connect(self.launch_pdt)
-        self.console_action = QAction("Python Console")
-        self.console_action.triggered.connect(self.show_console)
-        self.about_action = QAction("About")
-        self.about_action.triggered.connect(self.launch_about)
-        self.cpt_action = QAction("Camera-to-Probe Transform Tool")
-        self.cpt_action.triggered.connect(self.launch_cpt)
         self.ct_action = QAction("Calibration Tester")
         self.ct_action.triggered.connect(self.launch_ct)
-
-        # build the menubar
-        self.file_menu = self.menuBar().addMenu("File")
-        self.file_menu.addAction(self.save_frames_action)
-        self.file_menu.addSeparator()    # not visible on linuxmint?
-
-        self.edit_menu = self.menuBar().addMenu("Edit")
-        self.edit_menu.addAction(self.edit_prefs_action)
-
-        self.device_menu = self.menuBar().addMenu("Devices")
-        self.device_menu.addAction(self.refresh_stages_action)
-        self.device_menu.addAction(self.refresh_cameras_action)
-        self.device_menu.addAction(self.refresh_focos_action)
-        self.device_menu.addAction(self.video_source_action)
-
+        # Add sub menu for 'Tools>Calibrations' menu
         self.tools_menu = self.menuBar().addMenu("Tools")
         self.tools_calibrations_menu = self.tools_menu.addMenu('Calibrations')
         self.tools_calibrations_menu.menuAction().setFont(FONT_BOLD)
-        self.tools_transforms_menu = self.tools_menu.addMenu('Transforms')
-        self.tools_transforms_menu.menuAction().setFont(FONT_BOLD)
-        self.tools_testing_menu = self.tools_menu.addMenu('Testing')
-        self.tools_testing_menu.menuAction().setFont(FONT_BOLD)
-
-        # add the actions
-
+        # Add the actions for 'Tools>Calibrations' menu
         self.tools_calibrations_menu.addAction(self.cbm_action)
         self.tools_calibrations_menu.addAction(self.cbs_action)
         self.tools_calibrations_menu.addAction(self.it_action)
         self.tools_calibrations_menu.addAction(self.csc_action)
         self.tools_calibrations_menu.addAction(self.ct_action)
 
+        # 'Tools' > 'Transforms' > ...
+        self.cpt_action = QAction("Camera-to-Probe Transform Tool")
+        self.cpt_action.triggered.connect(self.launch_cpt)
+        self.rbt_action = QAction("Rigid Body Transform Tool")
+        self.rbt_action.triggered.connect(self.launch_rbt)
+        # Add sub menu for the 'Tools>Transforms' menu
+        self.tools_transforms_menu = self.tools_menu.addMenu('Transforms')
+        self.tools_transforms_menu.menuAction().setFont(FONT_BOLD)
+        # Add the actions for 'Tools>Transforms' menu
         self.tools_transforms_menu.addAction(self.cpt_action)
         self.tools_transforms_menu.addAction(self.rbt_action)
 
+        # 'Tools' > 'Testing' > ...
+        self.accutest_action = QAction("Accuracy Testing Tool")
+        self.accutest_action.triggered.connect(self.launch_accutest)
+        # Add sub menu for the 'Tools>Testing' menu
+        self.tools_testing_menu = self.tools_menu.addMenu('Testing')
+        self.tools_testing_menu.menuAction().setFont(FONT_BOLD)
+        # Add the actions for 'Tools>Testing' menu
         self.tools_testing_menu.addAction(self.accutest_action)
 
+        # 'Tools' > ...
+        self.tt_action = QAction("Generate Template")
+        self.tt_action.triggered.connect(self.launch_tt)
+        self.pb_action = QAction("Point Bank")
+        self.pb_action.triggered.connect(self.launch_pb)
+        self.ruler_action = QAction("Ruler")
+        self.ruler_action.triggered.connect(self.launch_ruler)
+        self.elevator_action = QAction("Elevator Control Tool")
+        self.elevator_action.triggered.connect(self.launch_elevator)
+        self.pdt_action = QAction("Probe Detection Training Tool")
+        self.pdt_action.triggered.connect(self.launch_pdt)
+        # Add the actions for 'Tools>...' menu
         self.tools_menu.addAction(self.tt_action)
         self.tools_menu.addAction(self.pb_action)
         self.tools_menu.addAction(self.ruler_action)
         self.tools_menu.addAction(self.elevator_action)
         self.tools_menu.addAction(self.pdt_action)
-        #self.tools_menu.addAction(self.gtd_action)
-        #self.tools_menu.addAction(self.console_action)
 
+        # Create menu bar actions with 'Help' option
+        self.about_action = QAction("About")
+        self.about_action.triggered.connect(self.launch_about)
+        # Add sub menu for the 'Tools>Help' menu
         self.help_menu = self.menuBar().addMenu("Help")
+        # Add the actions for 'Tools>Help' menu
         self.help_menu.addAction(self.about_action)
 
-        self.setWindowTitle('Parallax')
-        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
-
+        # TDB
+        self.gtd_action = QAction("Ground Truth Data Collector")
+        self.gtd_action.triggered.connect(self.launch_gtd)
+        self.console_action = QAction("Python Console")
+        self.console_action.triggered.connect(self.show_console)
+        #self.tools_menu.addAction(self.gtd_action)
+        #self.tools_menu.addAction(self.console_action)
         self.console = None
-
         self.elevator_tool = None
 
+        # Set window title and icon
+        self.setWindowTitle('Parallax')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
+        
+        # Refresh cameras and focus controllers
         self.refresh_cameras()
         self.refresh_focus_controllers()
         if not self.dummy:
