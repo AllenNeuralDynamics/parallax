@@ -169,6 +169,7 @@ class MainWindow(QMainWindow):
             self.model.scan_for_usb_stages()
             self.model.update_elevators()
 
+    # Callback function for 'Menu' > 'Edit' > 'Preference' 
     def launch_preferences(self):
         self.prefs = PreferencesWindow(self.model)
         self.prefs.show()
@@ -177,41 +178,49 @@ class MainWindow(QMainWindow):
         self.stage_manager = StageManager(self.model)
         self.stage_manager.show()
 
+    # Callback function for 'Menu' > 'Help' > 'About' 
     def launch_about(self):
         dlg = AboutDialog()
         dlg.exec_()
 
+    # Callback function for 'Menu' > 'Tools' > 'Transforms' > 'Ridgid Body Transform Tool'
     def launch_rbt(self):
         self.rbt = RigidBodyTransformTool(self.model)
         self.rbt.msg_posted.connect(self.widget.msg_log.post)
         self.rbt.generated.connect(self.widget.trans_panel.update_transforms)
         self.rbt.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Generate Template' 
     def launch_tt(self):
         self.tt = TemplateTool(self.model)
         self.tt.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Checkerboard Tool (mono)' 
     def launch_cbm(self):
         self.cbm = CheckerboardToolMono(self.model)
         self.cbm.msg_posted.connect(self.widget.msg_log.post)
         self.cbm.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Checkerboard Tool (stereo)' 
     def launch_cbs(self):
         self.cbs = CheckerboardToolStereo(self.model)
         self.cbs.msg_posted.connect(self.widget.msg_log.post)
         self.cbs.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Intrinsic Tool' 
     def launch_it(self):
         self.it = IntrinsicsTool()
         self.it.msg_posted.connect(self.widget.msg_log.post)
         self.it.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Calibration from Streo Corners' 
     def launch_csc(self):
         self.csc = CalibrateStereoCornersTool(self.model)
         self.csc.msg_posted.connect(self.widget.msg_log.post)
         self.csc.cal_generated.connect(self.widget.cal_panel.update_cals)
         self.csc.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Calibration from Streo Corners' 
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
         self.accutest_tool.msg_posted.connect(self.widget.msg_log.post)
@@ -219,31 +228,37 @@ class MainWindow(QMainWindow):
         self.model.accutest_point_reached.connect(self.widget.zoom_out)
         self.accutest_tool.show()
 
+    # TDB Callback function for 'Tools' > 'Ground Truth Collector'
     def launch_gtd(self):
         self.gtd_tool = GroundTruthDataTool(self.model, self.screens())
         self.gtd_tool.msg_posted.connect(self.widget.msg_log.post)
         self.gtd_tool.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Elevator Control Tool'
     def launch_elevator(self):
         if self.elevator_tool is None:
             self.elevator_tool = ElevatorControlTool(self.model)
             self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
         self.elevator_tool.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Point Bank'
     def launch_pb(self):
         self.pb = PointBank()
         self.pb.msg_posted.connect(self.widget.msg_log.post)
         self.pb.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Ruler'
     def launch_ruler(self):
         self.ruler = Ruler()
         self.ruler.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Probe Detection Training Tool'
     def launch_pdt(self):
         self.pdt = TrainingTool(self.model)
         self.pdt.msg_posted.connect(self.widget.msg_log.post)
         self.pdt.show()
 
+    # Callback function for 'Menu' > 'Devices' > 'Add video source as camera'
     def launch_video_source_dialog(self):
         filename = QFileDialog.getOpenFileNames(self, 'Select video file', data_dir,
                                                     'Video files (*.avi)')[0]
@@ -252,6 +267,7 @@ class MainWindow(QMainWindow):
             for screen in self.screens():
                 screen.update_camera_menu()
 
+    # Callback function for 'Menu' > 'Tools' > 'Transform' > 'Camera-to-Probe Transform Tool'
     def launch_cpt(self):
         self.widget.cpt = CameraToProbeTransformTool(self.model, self.widget.lscreen,
                                                         self.widget.rscreen)
@@ -259,6 +275,7 @@ class MainWindow(QMainWindow):
         self.widget.cpt.transform_generated.connect(self.widget.trans_panel.update_transforms)
         self.widget.cpt.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Calibration Tester' 
     def launch_ct(self):
         self.widget.ct = CalibrationTester(self.model)
         self.widget.ct.msg_posted.connect(self.widget.msg_log.post)
@@ -267,6 +284,7 @@ class MainWindow(QMainWindow):
     def screens(self):
         return self.widget.lscreen, self.widget.rscreen
 
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Camera List'
     def refresh_cameras(self):
         self.model.add_mock_cameras()
         if not self.dummy:
@@ -274,6 +292,7 @@ class MainWindow(QMainWindow):
         for screen in self.screens():
             screen.update_camera_menu()
 
+    # TDB Callback function for 'menu' > 'Python Console'
     def show_console(self):
         if self.console is None:
             self.console = pyqtgraph.console.ConsoleWidget()
@@ -283,19 +302,20 @@ class MainWindow(QMainWindow):
         super().closeEvent(ev)
         QApplication.instance().quit()
 
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Focus Controllers'
     def refresh_focus_controllers(self):
         if not self.dummy:
             self.model.scan_for_focus_controllers()
         for screen in self.screens():
             screen.update_focus_control_menu()
 
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Stages'
     def refresh_stages(self):
         if not self.dummy:
             self.model.scan_for_usb_stages()
 
 
 class MainWidget(QWidget):
-
     def __init__(self, model):
         QWidget.__init__(self) 
         self.model = model
