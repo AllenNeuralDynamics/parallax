@@ -174,26 +174,43 @@ class MainWindow(QMainWindow):
         self.prefs = PreferencesWindow(self.model)
         self.prefs.show()
 
+    # TDB 
     def launch_stage_manager(self):
         self.stage_manager = StageManager(self.model)
         self.stage_manager.show()
 
-    # Callback function for 'Menu' > 'Help' > 'About' 
-    def launch_about(self):
-        dlg = AboutDialog()
-        dlg.exec_()
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Stages'
+    def refresh_stages(self):
+        if not self.dummy:
+            self.model.scan_for_usb_stages()
+    
+    # Called from self.refresh_cameras()
+    def screens(self):
+        return self.widget.lscreen, self.widget.rscreen
 
-    # Callback function for 'Menu' > 'Tools' > 'Transforms' > 'Ridgid Body Transform Tool'
-    def launch_rbt(self):
-        self.rbt = RigidBodyTransformTool(self.model)
-        self.rbt.msg_posted.connect(self.widget.msg_log.post)
-        self.rbt.generated.connect(self.widget.trans_panel.update_transforms)
-        self.rbt.show()
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Camera List'
+    def refresh_cameras(self):
+        self.model.add_mock_cameras()
+        if not self.dummy:
+            self.model.scan_for_cameras()
+        for screen in self.screens():
+            screen.update_camera_menu()
 
-    # Callback function for 'Menu' > 'Tools' > 'Generate Template' 
-    def launch_tt(self):
-        self.tt = TemplateTool(self.model)
-        self.tt.show()
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Focus Controllers'
+    def refresh_focus_controllers(self):
+        if not self.dummy:
+            self.model.scan_for_focus_controllers()
+        for screen in self.screens():
+            screen.update_focus_control_menu()
+
+    # Callback function for 'Menu' > 'Devices' > 'Add video source as camera'
+    def launch_video_source_dialog(self):
+        filename = QFileDialog.getOpenFileNames(self, 'Select video file', data_dir,
+                                                    'Video files (*.avi)')[0]
+        if filename:
+            self.model.add_video_source(VideoSource(filename[0]))
+            for screen in self.screens():
+                screen.update_camera_menu()
 
     # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Checkerboard Tool (mono)' 
     def launch_cbm(self):
@@ -220,7 +237,28 @@ class MainWindow(QMainWindow):
         self.csc.cal_generated.connect(self.widget.cal_panel.update_cals)
         self.csc.show()
 
-    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Calibration from Streo Corners' 
+    # Callback function for 'Menu' > 'Tools' > 'Calibrations' > 'Calibration Tester' 
+    def launch_ct(self):
+        self.widget.ct = CalibrationTester(self.model)
+        self.widget.ct.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.ct.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Transform' > 'Camera-to-Probe Transform Tool'
+    def launch_cpt(self):
+        self.widget.cpt = CameraToProbeTransformTool(self.model, self.widget.lscreen,
+                                                        self.widget.rscreen)
+        self.widget.cpt.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.cpt.transform_generated.connect(self.widget.trans_panel.update_transforms)
+        self.widget.cpt.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Transforms' > 'Ridgid Body Transform Tool'
+    def launch_rbt(self):
+        self.rbt = RigidBodyTransformTool(self.model)
+        self.rbt.msg_posted.connect(self.widget.msg_log.post)
+        self.rbt.generated.connect(self.widget.trans_panel.update_transforms)
+        self.rbt.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Testing' > 'Accuracy Testing Tool' 
     def launch_accutest(self):
         self.accutest_tool = AccuracyTestTool(self.model)
         self.accutest_tool.msg_posted.connect(self.widget.msg_log.post)
@@ -228,18 +266,10 @@ class MainWindow(QMainWindow):
         self.model.accutest_point_reached.connect(self.widget.zoom_out)
         self.accutest_tool.show()
 
-    # TDB Callback function for 'Tools' > 'Ground Truth Collector'
-    def launch_gtd(self):
-        self.gtd_tool = GroundTruthDataTool(self.model, self.screens())
-        self.gtd_tool.msg_posted.connect(self.widget.msg_log.post)
-        self.gtd_tool.show()
-
-    # Callback function for 'Menu' > 'Tools' > 'Elevator Control Tool'
-    def launch_elevator(self):
-        if self.elevator_tool is None:
-            self.elevator_tool = ElevatorControlTool(self.model)
-            self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
-        self.elevator_tool.show()
+    # Callback function for 'Menu' > 'Tools' > 'Generate Template' 
+    def launch_tt(self):
+        self.tt = TemplateTool(self.model)
+        self.tt.show()
 
     # Callback function for 'Menu' > 'Tools' > 'Point Bank'
     def launch_pb(self):
@@ -252,45 +282,29 @@ class MainWindow(QMainWindow):
         self.ruler = Ruler()
         self.ruler.show()
 
+    # Callback function for 'Menu' > 'Tools' > 'Elevator Control Tool'
+    def launch_elevator(self):
+        if self.elevator_tool is None:
+            self.elevator_tool = ElevatorControlTool(self.model)
+            self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
+        self.elevator_tool.show()
+
     # Callback function for 'Menu' > 'Tools' > 'Probe Detection Training Tool'
     def launch_pdt(self):
         self.pdt = TrainingTool(self.model)
         self.pdt.msg_posted.connect(self.widget.msg_log.post)
         self.pdt.show()
 
-    # Callback function for 'Menu' > 'Devices' > 'Add video source as camera'
-    def launch_video_source_dialog(self):
-        filename = QFileDialog.getOpenFileNames(self, 'Select video file', data_dir,
-                                                    'Video files (*.avi)')[0]
-        if filename:
-            self.model.add_video_source(VideoSource(filename[0]))
-            for screen in self.screens():
-                screen.update_camera_menu()
+    # Callback function for 'Menu' > 'Help' > 'About' 
+    def launch_about(self):
+        dlg = AboutDialog()
+        dlg.exec_()
 
-    # Callback function for 'Menu' > 'Tools' > 'Transform' > 'Camera-to-Probe Transform Tool'
-    def launch_cpt(self):
-        self.widget.cpt = CameraToProbeTransformTool(self.model, self.widget.lscreen,
-                                                        self.widget.rscreen)
-        self.widget.cpt.msg_posted.connect(self.widget.msg_log.post)
-        self.widget.cpt.transform_generated.connect(self.widget.trans_panel.update_transforms)
-        self.widget.cpt.show()
-
-    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Calibration Tester' 
-    def launch_ct(self):
-        self.widget.ct = CalibrationTester(self.model)
-        self.widget.ct.msg_posted.connect(self.widget.msg_log.post)
-        self.widget.ct.show()
-
-    def screens(self):
-        return self.widget.lscreen, self.widget.rscreen
-
-    # Callback function for 'Menu' > 'Devices' > 'Refresh Camera List'
-    def refresh_cameras(self):
-        self.model.add_mock_cameras()
-        if not self.dummy:
-            self.model.scan_for_cameras()
-        for screen in self.screens():
-            screen.update_camera_menu()
+    # TDB Callback function for 'Tools' > 'Ground Truth Collector'
+    def launch_gtd(self):
+        self.gtd_tool = GroundTruthDataTool(self.model, self.screens())
+        self.gtd_tool.msg_posted.connect(self.widget.msg_log.post)
+        self.gtd_tool.show()
 
     # TDB Callback function for 'menu' > 'Python Console'
     def show_console(self):
@@ -298,22 +312,10 @@ class MainWindow(QMainWindow):
             self.console = pyqtgraph.console.ConsoleWidget()
         self.console.show()
 
+    # Closing event
     def closeEvent(self, ev):
         super().closeEvent(ev)
         QApplication.instance().quit()
-
-    # Callback function for 'Menu' > 'Devices' > 'Refresh Focus Controllers'
-    def refresh_focus_controllers(self):
-        if not self.dummy:
-            self.model.scan_for_focus_controllers()
-        for screen in self.screens():
-            screen.update_focus_control_menu()
-
-    # Callback function for 'Menu' > 'Devices' > 'Refresh Stages'
-    def refresh_stages(self):
-        if not self.dummy:
-            self.model.scan_for_usb_stages()
-
 
 class MainWidget(QWidget):
     def __init__(self, model):
@@ -418,6 +420,7 @@ class MainWidget(QWidget):
         self.lscreen.zoom_out()
         self.rscreen.zoom_out()
 
+    # Callback function for 'Menu' > 'File' > 'Save Camera Frames'
     def save_camera_frames(self):
         for i,camera in enumerate(self.model.cameras):
             if camera.last_image:
