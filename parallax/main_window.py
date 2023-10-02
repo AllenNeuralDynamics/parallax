@@ -319,24 +319,30 @@ class MainWindow(QMainWindow):
 
 class MainWidget(QWidget):
     def __init__(self, model):
+        # Initialize the QWidget
         QWidget.__init__(self) 
         self.model = model
 
+        # Create a container for the screens using a horizontal layout
         self.screens = QWidget()
         hlayout = QHBoxLayout()
+        # Create left and right screen widgets and add them to the layout
         self.lscreen = ScreenWidget(model=self.model)
         self.rscreen = ScreenWidget(model=self.model)
         hlayout.addWidget(self.lscreen)
         hlayout.addWidget(self.rscreen)
         self.screens.setLayout(hlayout)
 
+        # Create a container for control panels
         self.controls = QWidget()
+        # Create four control panels, one calibration panel, and one transform panel
         self.control_panel1 = ControlPanel(self.model)
         self.control_panel2 = ControlPanel(self.model)
         self.control_panel3 = ControlPanel(self.model)
         self.control_panel4 = ControlPanel(self.model)
         self.cal_panel = CalibrationPanel(self.model)
         self.trans_panel = TransformPanel(self.model)
+        # Create a grid layout and add control panels to it
         glayout = QGridLayout()
         glayout.addWidget(self.control_panel1, 0,0, 1,1)
         glayout.addWidget(self.control_panel2, 1,0, 1,1)
@@ -346,12 +352,15 @@ class MainWidget(QWidget):
         glayout.addWidget(self.control_panel4, 1,2, 1,1)
         self.controls.setLayout(glayout)
 
+        # Create a timer for refreshing screens
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh)
         self.refresh_timer.start(125)
 
-        # connections
+        # Create a message log widget
         self.msg_log = MessageLog()
+        
+        # Connect signals and slots to handle events and interactions
         self.control_panel1.msg_posted.connect(self.msg_log.post)
         self.control_panel2.msg_posted.connect(self.msg_log.post)
         self.control_panel1.target_reached.connect(self.zoom_out)
@@ -366,14 +375,17 @@ class MainWidget(QWidget):
         self.rscreen.selected.connect(self.model.set_rcorr)
         self.rscreen.cleared.connect(self.model.clear_rcorr)
 
+        # Create the main layout for the widget
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.screens)
         main_layout.addWidget(self.controls)
         main_layout.addWidget(self.msg_log)
         self.setLayout(main_layout)
-
+        
+        # Initialize the CameraToProbeTransformTool as None
         self.cpt = None
 
+    # Handle key press events
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_R:
             if (e.modifiers() & Qt.ControlModifier):
@@ -396,6 +408,7 @@ class MainWidget(QWidget):
             if self.model.prefs.train_t:
                 self.save_training_data()
 
+    # Save training data for calibration
     def save_training_data(self):
         if self.model.prefs.train_left:
             if (self.lscreen.camera is not None) and (not self.lscreen.is_detecting()):
@@ -408,14 +421,17 @@ class MainWidget(QWidget):
                 tag = 'right_%s_%s' % (self.rscreen.camera.name(), uid8())
                 self.model.save_training_data(self.model.rcorr, frame, tag)
 
+    # Refresh the screens
     def refresh(self):
         self.lscreen.refresh()
         self.rscreen.refresh()
 
+    # Clear selected points on the screens
     def clear_selected(self):
         self.lscreen.clear_selected()
         self.rscreen.clear_selected()
 
+    # Zoom out the screens
     def zoom_out(self):
         self.lscreen.zoom_out()
         self.rscreen.zoom_out()
