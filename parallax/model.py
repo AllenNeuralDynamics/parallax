@@ -13,7 +13,7 @@ from mis_focus_controller import FocusController
 from newscale.interfaces import NewScaleSerial
 
 from . import training_dir, training_file
-from .camera import list_cameras, close_cameras, MockCamera 
+from .camera import list_cameras, close_cameras, MockCamera, PySpinCamera
 from .stage import Stage
 from .accuracy_test import AccuracyTestWorker
 from .elevator import list_elevators
@@ -28,6 +28,8 @@ class Model(QObject):
         QObject.__init__(self)
 
         self.cameras = []
+        self.nPySpinCameras = 0
+        self.nMockCameras = 0
         self.focos = []
         self.init_stages()
 
@@ -100,6 +102,8 @@ class Model(QObject):
 
     def scan_for_cameras(self):
         self.cameras = list_cameras() + self.cameras
+        self.nMockCameras = len([camera for camera in self.cameras if isinstance(camera, MockCamera)])
+        self.nPySpinCameras = len([camera for camera in self.cameras if isinstance(camera, PySpinCamera)])
 
     def scan_for_usb_stages(self):
         instances = NewScaleSerial.get_instances()

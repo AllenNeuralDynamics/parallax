@@ -11,6 +11,7 @@ package_dir = os.path.dirname(__file__)
 image_dir = os.path.join(os.path.dirname(package_dir), 'img')
 data_dir = os.path.join(os.path.dirname(package_dir), 'data')
 training_dir = os.path.join(os.path.dirname(package_dir), 'training')
+ui_dir = os.path.join(os.path.dirname(package_dir), 'ui')
 training_file = os.path.join(training_dir, 'metadata.csv')
 
 if not os.path.exists(data_dir):
