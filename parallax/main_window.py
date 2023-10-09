@@ -16,17 +16,25 @@ class MainWindow(QMainWindow):
         self.dummy = dummy
         
         print("init", vars(self.model))
+        
         # Refresh cameras and focus controllers
         self.refresh_cameras()
         print("refresh", vars(self.model))
         print("self.cameras:", self.model.cameras)
 
-        
-        #print(self.model.cameras)
-        
+        # TBD Load different UI depending on the number of PySpin cameras
+        ui = None
+        if self.model.nPySpinCameras == 0:
+            ui = os.path.join(ui_dir, "mainWondow_cam2.ui")
+        elif self.model.nPySpinCameras == 1:
+            ui = os.path.join(ui_dir, "mainWondow_cam1.ui")
+        elif self.model.nPySpinCameras == 2:
+            ui = os.path.join(ui_dir, "mainWondow_cam2.ui")
+        else:
+            ui = os.path.join(ui_dir, "mainWondow_cam1.ui")
+
         # Create the main widget for the application
-        ui1 = os.path.join(ui_dir, "mainWondow_cam1.ui")
-        loadUi(ui1, self)
+        loadUi(ui, self)
         self.startButton.clicked.connect(self.clickhandler)
 
         """
