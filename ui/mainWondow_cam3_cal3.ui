@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1125</width>
-    <height>516</height>
+    <width>1233</width>
+    <height>443</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,7 +25,7 @@ color: #FFFFFF;
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0" colspan="2">
+    <item row="0" column="0" colspan="3">
      <widget class="QSplitter" name="splitter">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -79,7 +79,7 @@ color: #FFFFFF;
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>recordingButton.png</normaloff>recordingButton.png</iconset>
+            <normaloff>../img/recordingButton.png</normaloff>../img/recordingButton.png</iconset>
           </property>
          </widget>
         </item>
@@ -102,7 +102,7 @@ color: #FFFFFF;
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>snapshotButton_white.png</normaloff>snapshotButton_white.png</iconset>
+            <normaloff>../img/snapshotButton_white.png</normaloff>../img/snapshotButton_white.png</iconset>
           </property>
           <property name="iconSize">
            <size>
@@ -210,10 +210,10 @@ color: #FFFFFF;
            <number>2</number>
           </property>
           <property name="maximum">
-           <number>2</number>
+           <number>3</number>
           </property>
           <property name="value">
-           <number>2</number>
+           <number>3</number>
           </property>
          </widget>
         </item>
@@ -253,7 +253,7 @@ color: #FFFFFF;
      </widget>
     </item>
     <item row="1" column="1">
-     <widget class="QGroupBox" name="microscopeGrp1_2">
+     <widget class="QGroupBox" name="microscopeGrp2">
       <property name="font">
        <font>
         <family>Terminal</family>
@@ -261,7 +261,7 @@ color: #FFFFFF;
        </font>
       </property>
       <property name="title">
-       <string>Microscope 1</string>
+       <string>Microscope 2</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
@@ -283,6 +283,37 @@ color: #FFFFFF;
       </layout>
      </widget>
     </item>
+    <item row="1" column="2">
+     <widget class="QGroupBox" name="microscopeGrp3">
+      <property name="font">
+       <font>
+        <family>Terminal</family>
+        <pointsize>6</pointsize>
+       </font>
+      </property>
+      <property name="title">
+       <string>Microscope 3</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <widget class="QGraphicsView" name="graphicsView_3"/>
+       </item>
+       <item>
+        <widget class="QToolButton" name="settingButton_3">
+         <property name="font">
+          <font>
+           <family>Terminal</family>
+           <pointsize>6</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>SETTINGS ►</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -290,8 +321,8 @@ color: #FFFFFF;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1125</width>
-     <height>22</height>
+     <width>1233</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>
