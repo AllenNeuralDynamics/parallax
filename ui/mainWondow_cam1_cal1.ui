@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>885</width>
-    <height>737</height>
+    <width>745</width>
+    <height>646</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,37 +25,6 @@ color: #FFFFFF;
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="1" column="0">
-     <widget class="QGroupBox" name="microscopeGrp1">
-      <property name="font">
-       <font>
-        <family>Terminal</family>
-        <pointsize>6</pointsize>
-       </font>
-      </property>
-      <property name="title">
-       <string>Microscope 1</string>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <widget class="QGraphicsView" name="graphicsView"/>
-       </item>
-       <item>
-        <widget class="QToolButton" name="settingButton">
-         <property name="font">
-          <font>
-           <family>Terminal</family>
-           <pointsize>6</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>SETTINGS ►</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
     <item row="0" column="0">
      <widget class="QSplitter" name="splitter">
       <property name="orientation">
@@ -144,21 +113,14 @@ color: #FFFFFF;
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="dirDisplayLineEdit">
-          <property name="enabled">
-           <bool>true</bool>
+         <widget class="QLabel" name="dirLabel">
+          <property name="font">
+           <font>
+            <pointsize>10</pointsize>
+           </font>
           </property>
-          <property name="minimumSize">
-           <size>
-            <width>300</width>
-            <height>30</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>30</height>
-           </size>
+          <property name="text">
+           <string>TextLabel</string>
           </property>
          </widget>
         </item>
@@ -252,6 +214,37 @@ color: #FFFFFF;
       </widget>
      </widget>
     </item>
+    <item row="1" column="0">
+     <widget class="QGroupBox" name="microscopeGrp1">
+      <property name="font">
+       <font>
+        <family>Terminal</family>
+        <pointsize>6</pointsize>
+       </font>
+      </property>
+      <property name="title">
+       <string>Microscope 1</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QGraphicsView" name="graphicsView"/>
+       </item>
+       <item>
+        <widget class="QToolButton" name="settingButton">
+         <property name="font">
+          <font>
+           <family>Terminal</family>
+           <pointsize>6</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>SETTINGS ►</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -259,7 +252,7 @@ color: #FFFFFF;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>885</width>
+     <width>745</width>
      <height>21</height>
     </rect>
    </property>

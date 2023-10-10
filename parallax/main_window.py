@@ -1,5 +1,6 @@
 # Import necessary PyQt5 modules and other dependencies
-from PyQt5.QtWidgets import QMainWindow, QAction
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QAction 
+from PyQt5.QtCore import QStandardPaths
 from PyQt5.uic import loadUi
 from PyQt5.QtGui import QIcon
 
@@ -22,43 +23,30 @@ class MainWindow(QMainWindow):
         self.nColumn = self.load_settings_item("nColumn")
         self.nColumn = self.nColumn if self.nColumn is not None else 0
 
-        
         # Refresh cameras and focus controllers
         self.refresh_cameras()
         
-        # print("refresh", vars(self.model))
-        # print("self.cameras:", self.model.cameras)
-
         self.model.nPySpinCameras = 2
         # TBD Load different UI depending on the number of PySpin cameras
-        ui = None
-        if self.model.nPySpinCameras == 0:
-            ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
-        elif self.model.nPySpinCameras == 1:
-            ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
-        elif self.model.nPySpinCameras == 2 and self.nColumn == 2:
-            ui = os.path.join(ui_dir, "mainWondow_cam2_cal2.ui")
-        elif self.model.nPySpinCameras == 2 and self.nColumn == 1:
-            ui = os.path.join(ui_dir, "mainWondow_cam2_cal1.ui")
-        else:
-            ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
+        ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
 
         # Create the main widget for the application
         loadUi(ui, self)
         self.load_settings()
 
-        # self.load_settings()
-        self.startButton.clicked.connect(self.clickhandler)
+        # Enable directory serach that user wants to save files
+        self.browseDirButton.clicked.connect(self.dir_setting_handler)
 
-        """
-        self.refresh_focus_controllers()
-        if not self.dummy:
-            self.model.scan_for_usb_stages()
-            self.model.update_elevators()
-        """
+    def dir_setting_handler(self):
+        # Get the user's Documents directory on Windows
+        documents_dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
 
-    def clickhandler(self):
-        print("start button clicked")
+        # Create a file dialog for selecting a directory
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory", documents_dir)
+
+        if directory:
+            # Update the label with the selected directory path
+            self.dirLabel.setText(directory)
 
     # Called from self.refresh_cameras()
     def screens(self):
@@ -76,7 +64,7 @@ class MainWindow(QMainWindow):
     def save_settings(self):
         settings = {
             "nColumn": self.nColumnsSpinBox.value(),
-            "directory": self.dirDisplayLineEdit.text()
+            "directory": self.dirLabel.text()
             # TBD : Add camerat settings such as gamma, gain, and exposure
         }
         with open(SETTINGS_FILE, 'w') as file:
@@ -89,7 +77,7 @@ class MainWindow(QMainWindow):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
                 self.nColumnsSpinBox.setValue(settings["nColumn"])
-                self.dirDisplayLineEdit.setText(settings["directory"])
+                self.dirLabel.setText(settings["directory"])
                 # TBD : Add camerat settings such as gamma, gain, and exposure
             print("Settings loaded!\n", settings)
         else:
