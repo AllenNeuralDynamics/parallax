@@ -17,11 +17,11 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
         self.model = model
         self.dummy = dummy
-        self.userPrefColumn = None
-        self.userPrefDir = None
         
         # Load data pref
-        self.load_settings()
+        self.nColumn = self.load_settings_item("nColumn")
+        self.nColumn = self.nColumn if self.nColumn is not None else 0
+
         
         # Refresh cameras and focus controllers
         self.refresh_cameras()
@@ -36,16 +36,16 @@ class MainWindow(QMainWindow):
             ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
         elif self.model.nPySpinCameras == 1:
             ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
-        elif self.model.nPySpinCameras == 2 and self.userPrefColumn == 2:
+        elif self.model.nPySpinCameras == 2 and self.nColumn == 2:
             ui = os.path.join(ui_dir, "mainWondow_cam2_cal2.ui")
-        elif self.model.nPySpinCameras == 2 and self.userPrefColumn == 1:
+        elif self.model.nPySpinCameras == 2 and self.nColumn == 1:
             ui = os.path.join(ui_dir, "mainWondow_cam2_cal1.ui")
         else:
             ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
 
         # Create the main widget for the application
         loadUi(ui, self)
-        self.load_settings_ui()
+        self.load_settings()
 
         # self.load_settings()
         self.startButton.clicked.connect(self.clickhandler)
@@ -88,14 +88,20 @@ class MainWindow(QMainWindow):
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
-                self.userPrefColumn = settings['nColumn']
-                self.userPrefDir = settings['directory']
-                # TBD : Add camerat settings such as gamma, gain, and exposure\
+                self.nColumnsSpinBox.setValue(settings["nColumn"])
+                self.dirDisplayLineEdit.setText(settings["directory"])
+                # TBD : Add camerat settings such as gamma, gain, and exposure
             print("Settings loaded!\n", settings)
         else:
             print("Settings file not found.")
     
-    # Load the user setting on Qt UI
-    def load_settings_ui(self):
-        self.nColumnsSpinBox.setValue(self.userPrefColumn)
-        self.dirDisplayLineEdit.setText(self.userPrefDir)
+    # Load the user setting when opening the program
+    def load_settings_item(self, item=None):
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, 'r') as file:
+                settings = json.load(file)
+                print("User Pref item loaded!\n", settings[item])
+                return settings[item]
+        else:
+            print("Settings file not found.")
+            return None
