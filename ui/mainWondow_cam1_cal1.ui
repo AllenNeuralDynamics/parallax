@@ -24,7 +24,7 @@ color: #FFFFFF;
 }</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout">
+   <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="0">
      <widget class="QSplitter" name="splitter">
       <property name="orientation">
@@ -235,37 +235,21 @@ color: #FFFFFF;
      </widget>
     </item>
     <item row="1" column="0">
-     <widget class="QGroupBox" name="microscopeGrp1">
-      <property name="font">
-       <font>
-        <family>Terminal</family>
-        <pointsize>6</pointsize>
-       </font>
+     <widget class="QScrollArea" name="scrollArea">
+      <property name="widgetResizable">
+       <bool>true</bool>
       </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(58, 58, 58);</string>
-      </property>
-      <property name="title">
-       <string>Microscope 1</string>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <widget class="QGraphicsView" name="graphicsView"/>
-       </item>
-       <item>
-        <widget class="QToolButton" name="settingButton">
-         <property name="font">
-          <font>
-           <family>Terminal</family>
-           <pointsize>6</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string>SETTINGS ►</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
+      <widget class="QWidget" name="scrollAreaWidgetContents">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>725</width>
+         <height>537</height>
+        </rect>
+       </property>
+       <layout class="QGridLayout" name="gridLayout"/>
+      </widget>
      </widget>
     </item>
    </layout>

@@ -1,8 +1,10 @@
 # Import necessary PyQt5 modules and other dependencies
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QAction 
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsView
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
 from PyQt5.QtCore import QStandardPaths
+from PyQt5.QtGui import QFont
 from PyQt5.uic import loadUi
-from PyQt5.QtGui import QIcon
+
 
 from . import ui_dir
 
@@ -32,10 +34,38 @@ class MainWindow(QMainWindow):
 
         # Create the main widget for the application
         loadUi(ui, self)
+        
+        # Load the user settings from JSON file
         self.load_settings()
 
         # Enable directory serach that user wants to save files
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
+
+        # Display the number of Microscopes dynamically
+        # depending on the number of cameras and column numbers in settings
+        for rows in range(0, 2):
+            for cols in range(0, 3):
+                self.createNewGroupBox(rows, cols)
+
+    def createNewGroupBox(self, rows, cols):
+        self.microscopeGrp1 = QGroupBox(self.scrollAreaWidgetContents)
+        self.microscopeGrp1.setObjectName(u"microscopeGrp1")
+        font_grpbox = QFont()
+        font_grpbox.setFamily(u"Terminal")
+        font_grpbox.setPointSize(6)
+        self.microscopeGrp1.setFont(font_grpbox)
+        self.microscopeGrp1.setStyleSheet(u"background-color: rgb(58, 58, 58);")
+        self.verticalLayout = QVBoxLayout(self.microscopeGrp1)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.graphicsView = QGraphicsView(self.microscopeGrp1)
+        self.graphicsView.setObjectName(u"graphicsView")
+        self.verticalLayout.addWidget(self.graphicsView)
+        self.settingButton = QToolButton(self.microscopeGrp1)
+        self.settingButton.setObjectName(u"settingButton")
+        self.settingButton.setFont(font_grpbox)
+        self.verticalLayout.addWidget(self.settingButton)
+        self.gridLayout.addWidget(self.microscopeGrp1, rows, cols, 1, 1)
+        
 
     def dir_setting_handler(self):
         # Get the user's Documents directory on Windows
