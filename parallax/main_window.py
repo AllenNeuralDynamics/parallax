@@ -1,7 +1,7 @@
 # Import necessary PyQt5 modules and other dependencies
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsView
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
-from PyQt5.QtCore import QStandardPaths
+from PyQt5.QtCore import QCoreApplication, QStandardPaths
 from PyQt5.QtGui import QFont
 from PyQt5.uic import loadUi
 
@@ -48,23 +48,27 @@ class MainWindow(QMainWindow):
                 self.createNewGroupBox(rows, cols)
 
     def createNewGroupBox(self, rows, cols):
-        self.microscopeGrp1 = QGroupBox(self.scrollAreaWidgetContents)
-        self.microscopeGrp1.setObjectName(u"microscopeGrp1")
+        # Create New unique names for the widgets
+        newName = "Microscope" + "_" + str(rows) + "_" + str(cols) 
+        self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
+        # Give the object the unique name 
+        self.microscopeGrp.setObjectName(newName)
         font_grpbox = QFont()
         font_grpbox.setFamily(u"Terminal")
         font_grpbox.setPointSize(6)
-        self.microscopeGrp1.setFont(font_grpbox)
-        self.microscopeGrp1.setStyleSheet(u"background-color: rgb(58, 58, 58);")
-        self.verticalLayout = QVBoxLayout(self.microscopeGrp1)
+        self.microscopeGrp.setFont(font_grpbox)
+        self.microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
+        self.verticalLayout = QVBoxLayout(self.microscopeGrp)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.graphicsView = QGraphicsView(self.microscopeGrp1)
+        self.graphicsView = QGraphicsView(self.microscopeGrp)
         self.graphicsView.setObjectName(u"graphicsView")
         self.verticalLayout.addWidget(self.graphicsView)
-        self.settingButton = QToolButton(self.microscopeGrp1)
+        self.settingButton = QToolButton(self.microscopeGrp)
         self.settingButton.setObjectName(u"settingButton")
         self.settingButton.setFont(font_grpbox)
         self.verticalLayout.addWidget(self.settingButton)
-        self.gridLayout.addWidget(self.microscopeGrp1, rows, cols, 1, 1)
+        self.gridLayout.addWidget(self.microscopeGrp, rows, cols, 1, 1)
+        self.microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newName, None))
         
 
     def dir_setting_handler(self):
