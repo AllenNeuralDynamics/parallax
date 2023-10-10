@@ -15,11 +15,11 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>resources/sextant.png</normaloff>resources/sextant.png</iconset>
+    <normaloff>../img/sextant.png</normaloff>../img/sextant.png</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">QWidget{
-background-color: rgb(33,33,33);
+background-color: rgb(00,00,00);
 color: #FFFFFF;
 }</string>
   </property>
@@ -52,6 +52,10 @@ color: #FFFFFF;
             <pointsize>12</pointsize>
            </font>
           </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(58, 58, 58);
+</string>
+          </property>
           <property name="text">
            <string>START</string>
           </property>
@@ -73,6 +77,10 @@ color: #FFFFFF;
             <width>40</width>
             <height>40</height>
            </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(58, 58, 58);
+</string>
           </property>
           <property name="text">
            <string/>
@@ -97,6 +105,10 @@ color: #FFFFFF;
             <height>40</height>
            </size>
           </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(58, 58, 58);
+</string>
+          </property>
           <property name="text">
            <string/>
           </property>
@@ -119,8 +131,12 @@ color: #FFFFFF;
             <pointsize>10</pointsize>
            </font>
           </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(58, 58, 58);
+</string>
+          </property>
           <property name="text">
-           <string>TextLabel</string>
+           <string>C:\</string>
           </property>
          </widget>
         </item>
@@ -137,6 +153,10 @@ color: #FFFFFF;
             <width>40</width>
             <height>40</height>
            </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(58, 58, 58);
+</string>
           </property>
           <property name="text">
            <string>...</string>
@@ -221,6 +241,9 @@ color: #FFFFFF;
         <family>Terminal</family>
         <pointsize>6</pointsize>
        </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(58, 58, 58);</string>
       </property>
       <property name="title">
        <string>Microscope 1</string>
