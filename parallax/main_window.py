@@ -8,7 +8,7 @@ from PyQt5.uic import loadUi
 
 from . import ui_dir
 
-import json
+import json, math
 import os
 
 SETTINGS_FILE = 'settings.json'
@@ -20,15 +20,16 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)
         self.model = model
         self.dummy = dummy
-        
-        # Load data pref
-        self.nColumn = self.load_settings_item("nColumn")
-        self.nColumn = self.nColumn if self.nColumn is not None else 0
 
         # Refresh cameras and focus controllers
         self.refresh_cameras()
-        
-        self.model.nPySpinCameras = 2
+        self.model.nPySpinCameras = 5 # test
+
+        # Load data pref
+        self.nColumn = self.load_settings_item("nColumn")
+        self.nColumn = self.nColumn if self.nColumn is not None else 2
+        self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
+
         # TBD Load different UI depending on the number of PySpin cameras
         ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
 
@@ -43,9 +44,16 @@ class MainWindow(QMainWindow):
 
         # Display the number of Microscopes dynamically
         # depending on the number of cameras and column numbers in settings
-        for rows in range(0, 2):
-            for cols in range(0, 3):
-                self.createNewGroupBox(rows, cols)
+        rows, cols, cnt = self.model.nPySpinCameras//self.nColumn, self.nColumn, 0
+        rows += 1 if self.model.nPySpinCameras % cols else 0
+
+        for row_idx  in range(0, rows):
+            for col_idx  in range(0, cols):
+                if cnt < self.model.nPySpinCameras:
+                    self.createNewGroupBox(row_idx, col_idx)
+                    cnt += 1
+                else:
+                    break # Exit the loop if cnt exceeds nPySpinCameras
 
     def createNewGroupBox(self, rows, cols):
         # Create New unique names for the widgets
