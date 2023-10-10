@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../img/sextant.png</normaloff>../img/sextant.png</iconset>
+    <normaloff>resources/sextant.png</normaloff>resources/sextant.png</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">QWidget{

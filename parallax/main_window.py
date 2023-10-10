@@ -4,7 +4,7 @@ from PyQt5.QtCore import QStandardPaths
 from PyQt5.uic import loadUi
 from PyQt5.QtGui import QIcon
 
-from . import get_image_file, ui_dir
+from . import ui_dir
 
 import json
 import os
