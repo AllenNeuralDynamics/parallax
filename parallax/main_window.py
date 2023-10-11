@@ -5,10 +5,9 @@ from PyQt5.QtCore import QCoreApplication, QStandardPaths
 from PyQt5.QtGui import QFont
 from PyQt5.uic import loadUi
 
-
 from . import ui_dir
 
-import json, math
+import json
 import os
 
 SETTINGS_FILE = 'settings.json'
@@ -31,7 +30,7 @@ class MainWindow(QMainWindow):
         self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
 
         # TBD Load different UI depending on the number of PySpin cameras
-        ui = os.path.join(ui_dir, "mainWondow_cam1_cal1.ui")
+        ui = os.path.join(ui_dir, "mainWindow_cam1_cal1.ui")
 
         # Create the main widget for the application
         loadUi(ui, self)
@@ -47,7 +46,7 @@ class MainWindow(QMainWindow):
         self.nColumnsSpinBox.setValue(self.nColumn)
         # Connect the spinBox valueChanged signal to the handler
         self.nColumnsSpinBox.valueChanged.connect(self.column_changed_handler)
-        
+
         # Display the number of Microscopes dynamically
         self.display_microscope()
 
