@@ -1,10 +1,11 @@
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsView
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
-from PyQt5.QtCore import QCoreApplication, QStandardPaths
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.uic import loadUi
 
+from .screen_widget import ScreenWidget
 from . import ui_dir
 import json
 import os
@@ -17,7 +18,11 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self) # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
-
+        # TBD self.model.clean() call to close the camera when there was abnormal program exit in previous run.
+        
+        # Initialize an empty list to keep track of ScreenWidget instances
+        self.screen_widgets = []
+        
         # Update camera information
         self.refresh_cameras()
         print(self.model.nPySpinCameras, self.model.nMockCameras)
@@ -57,7 +62,16 @@ class MainWindow(QMainWindow):
             self.display_microscope()
         else: #display only mock camera
             self.display_mock_camera()
-            pass
+
+        # Create a timer for refreshing screens
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.refresh)
+        self.refresh_timer.start(125)
+
+    # Refresh the screens
+    def refresh(self):
+        for screen in self.screen_widgets:
+            screen.refresh()
 
     def display_mock_camera(self):
         """Display mock camera when there is no detected camera."""
@@ -124,9 +138,16 @@ class MainWindow(QMainWindow):
         self.microscopeGrp.setFont(font_grpbox)
         self.verticalLayout = QVBoxLayout(self.microscopeGrp)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.graphicsView = QGraphicsView(self.microscopeGrp)
-        self.graphicsView.setObjectName(u"graphicsView")
-        self.verticalLayout.addWidget(self.graphicsView)
+
+        # TO DO add screen
+        # self.graphicsView = QGraphicsView(self.microscopeGrp)
+        # self.graphicsView.setObjectName(u"graphicsView")
+
+        self.screen = ScreenWidget(model=self.model, parent=self.microscopeGrp)
+        self.screen.setObjectName("Screen" + "_" + str(rows) + "_" + str(cols)) #TBD 
+        self.verticalLayout.addWidget(self.screen)
+        self.screen_widgets.append(self.screen) # Add the new ScreenWidget instance to the list
+
         self.settingButton = QToolButton(self.microscopeGrp)
         self.settingButton.setObjectName(newNameSettingButton)
         self.settingButton.setFont(font_grpbox)
