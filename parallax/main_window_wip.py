@@ -20,12 +20,15 @@ class MainWindow(QMainWindow):
 
         # Update camera information
         self.refresh_cameras()
-        self.model.nPySpinCameras = 5 # test
+        print(self.model.nPySpinCameras, self.model.nMockCameras)
+        #self.model.nPySpinCameras = 1 # test
     
         # Load column configuration from user preferences
         self.nColumn = self.load_settings_item("nColumn")
-        self.nColumn = self.nColumn if self.nColumn is not None else 2
-        self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
+        if self.nColumn is None or 0:
+            self.nColumn = 1
+        if self.model.nPySpinCameras:
+            self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
 
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow_cam1_cal1.ui")
@@ -44,12 +47,21 @@ class MainWindow(QMainWindow):
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
 
         # Configure the column spin box
-        self.nColumnsSpinBox.setMaximum(self.model.nPySpinCameras)
+        self.nColumnsSpinBox.setMaximum(max(self.model.nPySpinCameras, 1))
         self.nColumnsSpinBox.setValue(self.nColumn)
-        self.nColumnsSpinBox.valueChanged.connect(self.column_changed_handler)
+        if self.model.nPySpinCameras:
+            self.nColumnsSpinBox.valueChanged.connect(self.column_changed_handler)
 
         # Dynamically generate Microscope display
-        self.display_microscope()
+        if self.model.nPySpinCameras:
+            self.display_microscope()
+        else: #display only mock camera
+            self.display_mock_camera()
+            pass
+
+    def display_mock_camera(self):
+        """Display mock camera when there is no detected camera."""
+        self.createNewGroupBox(0, 0, mock=True)
 
     def display_microscope(self):
         """Dynamically arrange Microscopes based on camera count and column configuration."""
@@ -95,10 +107,12 @@ class MainWindow(QMainWindow):
                 else:
                     break
 
-    def createNewGroupBox(self, rows, cols):
+    def createNewGroupBox(self, rows, cols, mock=False):
         """Create a new Microscope widget with associated settings."""
         # Generate unique names based on row and column indices
         newNameMicroscope = "Microscope" + "_" + str(rows) + "_" + str(cols)
+        if mock: 
+            newNameMicroscope = "Mock Camera"
         newNameSettingButton = "Setting" + "_" + str(rows) + "_" + str(cols) 
         self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
         
@@ -159,7 +173,6 @@ class MainWindow(QMainWindow):
         }
         with open(SETTINGS_FILE, 'w') as file:
             json.dump(settings, file)
-        print("Settings saved!\n", settings)
 
     def load_settings(self):
         """Load user settings from a JSON file during application startup."""
@@ -171,7 +184,6 @@ class MainWindow(QMainWindow):
                 self.nColumnsSpinBox.setValue(settings["nColumn"])
                 self.dirLabel.setText(settings["directory"])
                 # TBD Future Implementation: Load additional camera settings
-            print("Settings loaded!\n", settings)
         else:
             print("Settings file not found.")
     
@@ -180,7 +192,6 @@ class MainWindow(QMainWindow):
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
-                print("User Pref item loaded!\n", settings[item])
                 return settings[item]
         else:
             print("Settings file not found.")
