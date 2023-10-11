@@ -1,8 +1,8 @@
 # Import required PyQt5 modules and other libraries
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsView
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QGraphicsView
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
 from PyQt5.QtCore import QCoreApplication, QStandardPaths
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.uic import loadUi
 
 from . import ui_dir
@@ -31,6 +31,12 @@ class MainWindow(QMainWindow):
         ui = os.path.join(ui_dir, "mainWindow_cam1_cal1.ui")
         loadUi(ui, self) 
         
+        # Load Fira Code font
+        fira_code_font_path = os.path.join(ui_dir, "font/FiraCode-VariableFont_wght.ttf")
+        QFontDatabase.addApplicationFont(fira_code_font_path)
+        fira_code_font = QFont("Fira Code Light", 10) # Setting font size to 10
+        QApplication.setFont(fira_code_font)
+
         # Load existing user preferences
         self.load_settings()
 
@@ -95,14 +101,13 @@ class MainWindow(QMainWindow):
         newNameMicroscope = "Microscope" + "_" + str(rows) + "_" + str(cols)
         newNameSettingButton = "Setting" + "_" + str(rows) + "_" + str(cols) 
         self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
-
+        
         # Construct and configure the Microscope widget
         self.microscopeGrp.setObjectName(newNameMicroscope)
-        font_grpbox = QFont()
-        font_grpbox.setFamily(u"Terminal")
-        font_grpbox.setPointSize(6)
-        self.microscopeGrp.setFont(font_grpbox)
         self.microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
+        font_grpbox = QFont()
+        font_grpbox.setPointSize(8)  # Setting font size to 8
+        self.microscopeGrp.setFont(font_grpbox)
         self.verticalLayout = QVBoxLayout(self.microscopeGrp)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.graphicsView = QGraphicsView(self.microscopeGrp)
