@@ -1,4 +1,4 @@
-# Import necessary PyQt5 modules and other dependencies
+# Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsView
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
 from PyQt5.QtCore import QCoreApplication, QStandardPaths
@@ -6,98 +6,97 @@ from PyQt5.QtGui import QFont
 from PyQt5.uic import loadUi
 
 from . import ui_dir
-
 import json
 import os
 
 SETTINGS_FILE = 'settings.json'
 
-# Define the main application window class
+# Main application window
 class MainWindow(QMainWindow):
-    # Initialize the QMainWindow
     def __init__(self, model, dummy=False):
-        QMainWindow.__init__(self)
+        QMainWindow.__init__(self) # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
 
-        # Refresh cameras and focus controllers
+        # Update camera information
         self.refresh_cameras()
         self.model.nPySpinCameras = 4 # test
     
-        # Load data pref
+        # Load column configuration from user preferences
         self.nColumn = self.load_settings_item("nColumn")
         self.nColumn = self.nColumn if self.nColumn is not None else 2
         self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
 
-        # TBD Load different UI depending on the number of PySpin cameras
+        # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow_cam1_cal1.ui")
-
-        # Create the main widget for the application
-        loadUi(ui, self)
+        loadUi(ui, self) 
         
-        # Load the user settings from JSON file
+        # Load existing user preferences
         self.load_settings()
 
-        # Enable directory serach that user wants to save files8
+        # Attach directory selection event handler for saving files
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
 
-        # Set max and current value on the column spin box
+        # Configure the column spin box
         self.nColumnsSpinBox.setMaximum(self.model.nPySpinCameras)
         self.nColumnsSpinBox.setValue(self.nColumn)
-        # Connect the spinBox valueChanged signal to the handler
         self.nColumnsSpinBox.valueChanged.connect(self.column_changed_handler)
 
-        # Display the number of Microscopes dynamically
+        # Dynamically generate Microscope display
         self.display_microscope()
 
     def display_microscope(self):
-        # Display the number of Microscopes dynamically
-        # depending on the number of cameras and column numbers in settings
-            rows, cols, cnt = self.model.nPySpinCameras//self.nColumn, self.nColumn, 0
-            print("displayMicroscope_row: {}, col: {}, WidgetCnt: {}".format(rows, cols, self.model.nPySpinCameras))
-            rows += 1 if self.model.nPySpinCameras % cols else 0
-            for row_idx  in range(0, rows):
-                for col_idx  in range(0, cols):
-                    if cnt < self.model.nPySpinCameras:
-                        self.createNewGroupBox(row_idx, col_idx)
-                        cnt += 1
-                    else:
-                        break # Exit the loop if cnt exceeds nPySpinCameras
+        """Dynamically arrange Microscopes based on camera count and column configuration."""
+        # Calculate rows and columns
+        rows, cols, cnt = self.model.nPySpinCameras//self.nColumn, self.nColumn, 0
+        rows += 1 if self.model.nPySpinCameras % cols else 0
+        # Create grid of Microscope displays
+        for row_idx  in range(0, rows):
+            for col_idx  in range(0, cols):
+                if cnt < self.model.nPySpinCameras:
+                    self.createNewGroupBox(row_idx, col_idx)
+                    cnt += 1
+                else:
+                    break # Stop when all Microscopes are displayed
 
     def column_changed_handler(self, val):
-        # Detach all the current QGroupBox microscopes from the grid layout
-        widgets_to_remove = []
+        """Rearrange the layout of Microscopes when the column number changes."""
+        # Identify current Microscope widgets
+        camera_screen_list = []
+        # Detach the identified widgets
         for i in range(self.gridLayout.count()):
             widget = self.gridLayout.itemAt(i).widget()
             if isinstance(widget, QGroupBox):  # Ensure we're handling the correct type of widget
-                widgets_to_remove.append(widget)
-        print(widgets_to_remove)
+                camera_screen_list.append(widget)
 
-        for widget in widgets_to_remove:
+        # Detach the identified widgets
+        for widget in camera_screen_list:
             self.gridLayout.removeWidget(widget)
-            widget.hide()
+            widget.hide() # Temporarily hide the widget
 
-        # Recalculate the number of rows and columns based on the new column value
+        # Calculate new rows and columns layout
         rows, cols, cnt = self.model.nPySpinCameras//val, val, 0
         rows += 1 if self.model.nPySpinCameras % cols else 0
 
-        # Re-add the microscopes to the grid layout based on the new row and column configuration
+        # Reattach widgets in the new layout
         for row_idx  in range(0, rows):
             for col_idx  in range(0, cols):
-                if cnt < len(widgets_to_remove): 
-                    widget = widgets_to_remove[cnt]
+                if cnt < len(camera_screen_list): 
+                    widget = camera_screen_list[cnt]
                     self.gridLayout.addWidget(widget, row_idx, col_idx, 1, 1)
-                    widget.show()  # unhide the widget
+                    widget.show()  # Make the widget visible again
                     cnt += 1
                 else:
                     break
 
     def createNewGroupBox(self, rows, cols):
-        # Create New unique names for the widgets
+        """Create a new Microscope widget with associated settings."""
+        # Generate unique names based on row and column indices
         newNameMicroscope = "Microscope" + "_" + str(rows) + "_" + str(cols)
         newNameSettingButton = "Setting" + "_" + str(rows) + "_" + str(cols) 
         self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
-        # Give the object the unique name 
+
+        # Construct and configure the Microscope widget
         self.microscopeGrp.setObjectName(newNameMicroscope)
         font_grpbox = QFont()
         font_grpbox.setFamily(u"Terminal")
@@ -118,53 +117,61 @@ class MainWindow(QMainWindow):
         self.settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
 
     def dir_setting_handler(self):
-        # Get the user's Documents directory on Windows
+        """Handle directory selection to determine where files should be saved."""
+        # Fetch the default documents directory path
         documents_dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
 
-        # Create a file dialog for selecting a directory
+        # Open a dialog to allow the user to select a directory
         directory = QFileDialog.getExistingDirectory(self, "Select Directory", documents_dir)
 
+        # If a directory is chosen, update the label to display the chosen path
         if directory:
-            # Update the label with the selected directory path
             self.dirLabel.setText(directory)
 
-    # Called from self.refresh_cameras()
     def screens(self):
+        """Return screens (left and right) of the widget."""
         return self.widget.lscreen, self.widget.rscreen
 
-    # Callback function for 'Menu' > 'Devices' > 'Refresh Camera List'
     def refresh_cameras(self):
+        """Scan for available cameras and update the camera list."""
+        # Add mock cameras for testing purposes
         self.model.add_mock_cameras()
+
+        # If not in dummy mode, scan for actual available cameras
         if not self.dummy:
             self.model.scan_for_cameras()
-        #for screen in self.screens():
+        
+        # TBD Commented code: Update the list of cameras on the UI (uncomment if needed) 
+        # for screen in self.screens():
         #    screen.update_camera_menu()
         
-    # Saved the user setting when closing the program
     def save_settings(self):
+        """Save user settings (e.g., column configuration, directory path) to a JSON file."""
         settings = {
             "nColumn": self.nColumnsSpinBox.value(),
             "directory": self.dirLabel.text()
-            # TBD : Add camerat settings such as gamma, gain, and exposure
+             # TBD Future Implementation: Additional camera settings such as gamma, gain, and exposure 
         }
         with open(SETTINGS_FILE, 'w') as file:
             json.dump(settings, file)
         print("Settings saved!\n", settings)
 
-    # Load the user setting when opening the program
     def load_settings(self):
+        """Load user settings from a JSON file during application startup."""
+        # Check if the settings file exists
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
+                # Apply the loaded settings to the UI components
                 self.nColumnsSpinBox.setValue(settings["nColumn"])
                 self.dirLabel.setText(settings["directory"])
-                # TBD : Add camerat settings such as gamma, gain, and exposure
+                # TBD Future Implementation: Load additional camera settings
             print("Settings loaded!\n", settings)
         else:
             print("Settings file not found.")
     
-    # Load the user setting when opening the program
     def load_settings_item(self, item=None):
+        """Load a specific setting item from the JSON settings file."""
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
