@@ -1,182 +1,448 @@
-# Import required PyQt5 modules and other libraries
-from PyQt5.QtWidgets import QMainWindow, QFileDialog, QGraphicsView
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
-from PyQt5.QtCore import QCoreApplication, QStandardPaths
-from PyQt5.QtGui import QFont
-from PyQt5.uic import loadUi
-
-from . import ui_dir
-import json
+# Import necessary PyQt5 modules and other dependencies
+from PyQt5.QtWidgets import QApplication, QMainWindow, QAction
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout
+from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QIcon
+import pyqtgraph.console
+import numpy as np
 import os
 
-SETTINGS_FILE = 'settings.json'
+# Import custom modules from the current package
+from . import get_image_file, data_dir
+from .message_log import MessageLog
+from .screen_widget import ScreenWidget
+from .control_panel import ControlPanel
 
-# Main application window
+from .calibration_panel import CalibrationPanel
+from .transform_panel import TransformPanel
+
+from .dialogs import AboutDialog
+from .stage_manager import StageManager
+from .rigid_body_transform_tool import RigidBodyTransformTool
+from .template_tool import TemplateTool
+from .checkerboard_tool import CheckerboardToolMono, CheckerboardToolStereo
+from .intrinsics_tool import IntrinsicsTool
+from .cal_stereo_corners import CalibrateStereoCornersTool
+from .accuracy_test import AccuracyTestTool
+from .ground_truth_data_tool import GroundTruthDataTool
+from .elevator_control import ElevatorControlTool
+from .point_bank import PointBank
+from .ruler import Ruler
+from .training import TrainingTool
+from .camera import VideoSource
+from .preferences import PreferencesWindow
+from .helper import uid8, FONT_BOLD
+from .camera_to_probe_transform_tool import CameraToProbeTransformTool
+from .calibration_tester import CalibrationTester
+
+# Define the main application window class
 class MainWindow(QMainWindow):
+    # Initialize the QMainWindow
     def __init__(self, model, dummy=False):
-        QMainWindow.__init__(self) # Initialize the QMainWindow
+        QMainWindow.__init__(self)
         self.model = model
         self.dummy = dummy
 
-        # Update camera information
-        self.refresh_cameras()
-        self.model.nPySpinCameras = 4 # test
-    
-        # Load column configuration from user preferences
-        self.nColumn = self.load_settings_item("nColumn")
-        self.nColumn = self.nColumn if self.nColumn is not None else 2
-        self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
+        # Create the main widget for the application
+        self.widget = MainWidget(model)
+        self.setCentralWidget(self.widget)
 
-        # Load the main widget with UI components
-        ui = os.path.join(ui_dir, "mainWindow_cam1_cal1.ui")
-        loadUi(ui, self) 
+        # Build the menu bar with "File" option
+        self.save_frames_action = QAction("Save Camera Frames")
+        self.save_frames_action.triggered.connect(self.widget.save_camera_frames)
+        self.save_frames_action.setShortcut("Ctrl+F")
+        self.file_menu = self.menuBar().addMenu("File")
+        self.file_menu.addAction(self.save_frames_action)
+        self.file_menu.addSeparator()    # not visible on linuxmint?
+
+        # Build the menu bar with "Edit" option
+        self.edit_prefs_action = QAction("Preferences")
+        self.edit_prefs_action.triggered.connect(self.launch_preferences)
+        self.edit_prefs_action.setShortcut("Ctrl+P")
+        self.edit_menu = self.menuBar().addMenu("Edit")
+        self.edit_menu.addAction(self.edit_prefs_action)
+
+        # Build the menu bar with "Devices" option
+        self.refresh_stages_action = QAction("Refresh Stages")
+        self.refresh_stages_action.triggered.connect(self.refresh_stages)
+        self.refresh_cameras_action = QAction("Refresh Camera List")
+        self.refresh_cameras_action.triggered.connect(self.refresh_cameras)
+        self.refresh_focos_action = QAction("Refresh Focus Controllers")
+        self.refresh_focos_action.triggered.connect(self.refresh_focus_controllers)
+        self.video_source_action = QAction("Add video source as camera")
+        self.video_source_action.triggered.connect(self.launch_video_source_dialog)
+        self.device_menu = self.menuBar().addMenu("Devices")
+        self.device_menu.addAction(self.refresh_stages_action)
+        self.device_menu.addAction(self.refresh_cameras_action)
+        self.device_menu.addAction(self.refresh_focos_action)
+        self.device_menu.addAction(self.video_source_action)
+
+        # Create menu bar actions with 'Tools' option
+        # 'Tools' > 'Calibrations' > ...
+        self.cbm_action = QAction("Checkerboard Tool (mono)")
+        self.cbm_action.triggered.connect(self.launch_cbm)
+        self.cbs_action = QAction("Checkerboard Tool (stereo)")
+        self.cbs_action.triggered.connect(self.launch_cbs)
+        self.it_action = QAction("Intrinsics Tool")
+        self.it_action.triggered.connect(self.launch_it)
+        self.csc_action = QAction("Calibration from Stereo Corners")
+        self.csc_action.triggered.connect(self.launch_csc)
+        self.ct_action = QAction("Calibration Tester")
+        self.ct_action.triggered.connect(self.launch_ct)
+        # Add sub menu for 'Tools>Calibrations' menu
+        self.tools_menu = self.menuBar().addMenu("Tools")
+        self.tools_calibrations_menu = self.tools_menu.addMenu('Calibrations')
+        self.tools_calibrations_menu.menuAction().setFont(FONT_BOLD)
+        # Add the actions for 'Tools>Calibrations' menu
+        self.tools_calibrations_menu.addAction(self.cbm_action)
+        self.tools_calibrations_menu.addAction(self.cbs_action)
+        self.tools_calibrations_menu.addAction(self.it_action)
+        self.tools_calibrations_menu.addAction(self.csc_action)
+        self.tools_calibrations_menu.addAction(self.ct_action)
+
+        # 'Tools' > 'Transforms' > ...
+        self.cpt_action = QAction("Camera-to-Probe Transform Tool")
+        self.cpt_action.triggered.connect(self.launch_cpt)
+        self.rbt_action = QAction("Rigid Body Transform Tool")
+        self.rbt_action.triggered.connect(self.launch_rbt)
+        # Add sub menu for the 'Tools>Transforms' menu
+        self.tools_transforms_menu = self.tools_menu.addMenu('Transforms')
+        self.tools_transforms_menu.menuAction().setFont(FONT_BOLD)
+        # Add the actions for 'Tools>Transforms' menu
+        self.tools_transforms_menu.addAction(self.cpt_action)
+        self.tools_transforms_menu.addAction(self.rbt_action)
+
+        # 'Tools' > 'Testing' > ...
+        self.accutest_action = QAction("Accuracy Testing Tool")
+        self.accutest_action.triggered.connect(self.launch_accutest)
+        # Add sub menu for the 'Tools>Testing' menu
+        self.tools_testing_menu = self.tools_menu.addMenu('Testing')
+        self.tools_testing_menu.menuAction().setFont(FONT_BOLD)
+        # Add the actions for 'Tools>Testing' menu
+        self.tools_testing_menu.addAction(self.accutest_action)
+
+        # 'Tools' > ...
+        self.tt_action = QAction("Generate Template")
+        self.tt_action.triggered.connect(self.launch_tt)
+        self.pb_action = QAction("Point Bank")
+        self.pb_action.triggered.connect(self.launch_pb)
+        self.ruler_action = QAction("Ruler")
+        self.ruler_action.triggered.connect(self.launch_ruler)
+        self.elevator_action = QAction("Elevator Control Tool")
+        self.elevator_action.triggered.connect(self.launch_elevator)
+        self.pdt_action = QAction("Probe Detection Training Tool")
+        self.pdt_action.triggered.connect(self.launch_pdt)
+        # Add the actions for 'Tools>...' menu
+        self.tools_menu.addAction(self.tt_action)
+        self.tools_menu.addAction(self.pb_action)
+        self.tools_menu.addAction(self.ruler_action)
+        self.tools_menu.addAction(self.elevator_action)
+        self.tools_menu.addAction(self.pdt_action)
+
+        # Create menu bar actions with 'Help' option
+        self.about_action = QAction("About")
+        self.about_action.triggered.connect(self.launch_about)
+        # Add sub menu for the 'Tools>Help' menu
+        self.help_menu = self.menuBar().addMenu("Help")
+        # Add the actions for 'Tools>Help' menu
+        self.help_menu.addAction(self.about_action)
+
+        # TDB
+        self.gtd_action = QAction("Ground Truth Data Collector")
+        self.gtd_action.triggered.connect(self.launch_gtd)
+        self.console_action = QAction("Python Console")
+        self.console_action.triggered.connect(self.show_console)
+        #self.tools_menu.addAction(self.gtd_action)
+        #self.tools_menu.addAction(self.console_action)
+        self.console = None
+        self.elevator_tool = None
+
+        # Set window title and icon
+        self.setWindowTitle('Parallax')
+        self.setWindowIcon(QIcon(get_image_file('sextant.png')))
         
-        # Load existing user preferences
-        self.load_settings()
+        # Refresh cameras and focus controllers
+        self.refresh_cameras()
+        self.refresh_focus_controllers()
+        if not self.dummy:
+            self.model.scan_for_usb_stages()
+            self.model.update_elevators()
 
-        # Attach directory selection event handler for saving files
-        self.browseDirButton.clicked.connect(self.dir_setting_handler)
+    # Callback function for 'Menu' > 'Edit' > 'Preference' 
+    def launch_preferences(self):
+        self.prefs = PreferencesWindow(self.model)
+        self.prefs.show()
 
-        # Configure the column spin box
-        self.nColumnsSpinBox.setMaximum(self.model.nPySpinCameras)
-        self.nColumnsSpinBox.setValue(self.nColumn)
-        self.nColumnsSpinBox.valueChanged.connect(self.column_changed_handler)
+    # TDB 
+    def launch_stage_manager(self):
+        self.stage_manager = StageManager(self.model)
+        self.stage_manager.show()
 
-        # Dynamically generate Microscope display
-        self.display_microscope()
-
-    def display_microscope(self):
-        """Dynamically arrange Microscopes based on camera count and column configuration."""
-        # Calculate rows and columns
-        rows, cols, cnt = self.model.nPySpinCameras//self.nColumn, self.nColumn, 0
-        rows += 1 if self.model.nPySpinCameras % cols else 0
-        # Create grid of Microscope displays
-        for row_idx  in range(0, rows):
-            for col_idx  in range(0, cols):
-                if cnt < self.model.nPySpinCameras:
-                    self.createNewGroupBox(row_idx, col_idx)
-                    cnt += 1
-                else:
-                    break # Stop when all Microscopes are displayed
-
-    def column_changed_handler(self, val):
-        """Rearrange the layout of Microscopes when the column number changes."""
-        # Identify current Microscope widgets
-        camera_screen_list = []
-        # Detach the identified widgets
-        for i in range(self.gridLayout.count()):
-            widget = self.gridLayout.itemAt(i).widget()
-            if isinstance(widget, QGroupBox):  # Ensure we're handling the correct type of widget
-                camera_screen_list.append(widget)
-
-        # Detach the identified widgets
-        for widget in camera_screen_list:
-            self.gridLayout.removeWidget(widget)
-            widget.hide() # Temporarily hide the widget
-
-        # Calculate new rows and columns layout
-        rows, cols, cnt = self.model.nPySpinCameras//val, val, 0
-        rows += 1 if self.model.nPySpinCameras % cols else 0
-
-        # Reattach widgets in the new layout
-        for row_idx  in range(0, rows):
-            for col_idx  in range(0, cols):
-                if cnt < len(camera_screen_list): 
-                    widget = camera_screen_list[cnt]
-                    self.gridLayout.addWidget(widget, row_idx, col_idx, 1, 1)
-                    widget.show()  # Make the widget visible again
-                    cnt += 1
-                else:
-                    break
-
-    def createNewGroupBox(self, rows, cols):
-        """Create a new Microscope widget with associated settings."""
-        # Generate unique names based on row and column indices
-        newNameMicroscope = "Microscope" + "_" + str(rows) + "_" + str(cols)
-        newNameSettingButton = "Setting" + "_" + str(rows) + "_" + str(cols) 
-        self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
-
-        # Construct and configure the Microscope widget
-        self.microscopeGrp.setObjectName(newNameMicroscope)
-        font_grpbox = QFont()
-        font_grpbox.setFamily(u"Terminal")
-        font_grpbox.setPointSize(6)
-        self.microscopeGrp.setFont(font_grpbox)
-        self.microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
-        self.verticalLayout = QVBoxLayout(self.microscopeGrp)
-        self.verticalLayout.setObjectName(u"verticalLayout")
-        self.graphicsView = QGraphicsView(self.microscopeGrp)
-        self.graphicsView.setObjectName(u"graphicsView")
-        self.verticalLayout.addWidget(self.graphicsView)
-        self.settingButton = QToolButton(self.microscopeGrp)
-        self.settingButton.setObjectName(newNameSettingButton)
-        self.settingButton.setFont(font_grpbox)
-        self.verticalLayout.addWidget(self.settingButton)
-        self.gridLayout.addWidget(self.microscopeGrp, rows, cols, 1, 1)
-        self.microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newNameMicroscope, None))
-        self.settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
-
-    def dir_setting_handler(self):
-        """Handle directory selection to determine where files should be saved."""
-        # Fetch the default documents directory path
-        documents_dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
-
-        # Open a dialog to allow the user to select a directory
-        directory = QFileDialog.getExistingDirectory(self, "Select Directory", documents_dir)
-
-        # If a directory is chosen, update the label to display the chosen path
-        if directory:
-            self.dirLabel.setText(directory)
-
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Stages'
+    def refresh_stages(self):
+        if not self.dummy:
+            self.model.scan_for_usb_stages()
+    
+    # Called from self.refresh_cameras()
     def screens(self):
-        """Return screens (left and right) of the widget."""
         return self.widget.lscreen, self.widget.rscreen
 
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Camera List'
     def refresh_cameras(self):
-        """Scan for available cameras and update the camera list."""
-        # Add mock cameras for testing purposes
         self.model.add_mock_cameras()
-
-        # If not in dummy mode, scan for actual available cameras
         if not self.dummy:
             self.model.scan_for_cameras()
-        
-        # TBD Commented code: Update the list of cameras on the UI (uncomment if needed) 
-        # for screen in self.screens():
-        #    screen.update_camera_menu()
-        
-    def save_settings(self):
-        """Save user settings (e.g., column configuration, directory path) to a JSON file."""
-        settings = {
-            "nColumn": self.nColumnsSpinBox.value(),
-            "directory": self.dirLabel.text()
-             # TBD Future Implementation: Additional camera settings such as gamma, gain, and exposure 
-        }
-        with open(SETTINGS_FILE, 'w') as file:
-            json.dump(settings, file)
-        print("Settings saved!\n", settings)
+        for screen in self.screens():
+            screen.update_camera_menu()
 
-    def load_settings(self):
-        """Load user settings from a JSON file during application startup."""
-        # Check if the settings file exists
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
-                settings = json.load(file)
-                # Apply the loaded settings to the UI components
-                self.nColumnsSpinBox.setValue(settings["nColumn"])
-                self.dirLabel.setText(settings["directory"])
-                # TBD Future Implementation: Load additional camera settings
-            print("Settings loaded!\n", settings)
-        else:
-            print("Settings file not found.")
-    
-    def load_settings_item(self, item=None):
-        """Load a specific setting item from the JSON settings file."""
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
-                settings = json.load(file)
-                print("User Pref item loaded!\n", settings[item])
-                return settings[item]
-        else:
-            print("Settings file not found.")
-            return None
+    # Callback function for 'Menu' > 'Devices' > 'Refresh Focus Controllers'
+    def refresh_focus_controllers(self):
+        if not self.dummy:
+            self.model.scan_for_focus_controllers()
+        for screen in self.screens():
+            screen.update_focus_control_menu()
+
+    # Callback function for 'Menu' > 'Devices' > 'Add video source as camera'
+    def launch_video_source_dialog(self):
+        filename = QFileDialog.getOpenFileNames(self, 'Select video file', data_dir,
+                                                    'Video files (*.avi)')[0]
+        if filename:
+            self.model.add_video_source(VideoSource(filename[0]))
+            for screen in self.screens():
+                screen.update_camera_menu()
+
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Checkerboard Tool (mono)' 
+    def launch_cbm(self):
+        self.cbm = CheckerboardToolMono(self.model)
+        self.cbm.msg_posted.connect(self.widget.msg_log.post)
+        self.cbm.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Checkerboard Tool (stereo)' 
+    def launch_cbs(self):
+        self.cbs = CheckerboardToolStereo(self.model)
+        self.cbs.msg_posted.connect(self.widget.msg_log.post)
+        self.cbs.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Intrinsic Tool' 
+    def launch_it(self):
+        self.it = IntrinsicsTool()
+        self.it.msg_posted.connect(self.widget.msg_log.post)
+        self.it.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Calibarations' > 'Calibration from Streo Corners' 
+    def launch_csc(self):
+        self.csc = CalibrateStereoCornersTool(self.model)
+        self.csc.msg_posted.connect(self.widget.msg_log.post)
+        self.csc.cal_generated.connect(self.widget.cal_panel.update_cals)
+        self.csc.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Calibrations' > 'Calibration Tester' 
+    def launch_ct(self):
+        self.widget.ct = CalibrationTester(self.model)
+        self.widget.ct.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.ct.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Transform' > 'Camera-to-Probe Transform Tool'
+    def launch_cpt(self):
+        self.widget.cpt = CameraToProbeTransformTool(self.model, self.widget.lscreen,
+                                                        self.widget.rscreen)
+        self.widget.cpt.msg_posted.connect(self.widget.msg_log.post)
+        self.widget.cpt.transform_generated.connect(self.widget.trans_panel.update_transforms)
+        self.widget.cpt.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Transforms' > 'Ridgid Body Transform Tool'
+    def launch_rbt(self):
+        self.rbt = RigidBodyTransformTool(self.model)
+        self.rbt.msg_posted.connect(self.widget.msg_log.post)
+        self.rbt.generated.connect(self.widget.trans_panel.update_transforms)
+        self.rbt.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Testing' > 'Accuracy Testing Tool' 
+    def launch_accutest(self):
+        self.accutest_tool = AccuracyTestTool(self.model)
+        self.accutest_tool.msg_posted.connect(self.widget.msg_log.post)
+        self.model.accutest_point_reached.connect(self.widget.clear_selected)
+        self.model.accutest_point_reached.connect(self.widget.zoom_out)
+        self.accutest_tool.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Generate Template' 
+    def launch_tt(self):
+        self.tt = TemplateTool(self.model)
+        self.tt.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Point Bank'
+    def launch_pb(self):
+        self.pb = PointBank()
+        self.pb.msg_posted.connect(self.widget.msg_log.post)
+        self.pb.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Ruler'
+    def launch_ruler(self):
+        self.ruler = Ruler()
+        self.ruler.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Elevator Control Tool'
+    def launch_elevator(self):
+        if self.elevator_tool is None:
+            self.elevator_tool = ElevatorControlTool(self.model)
+            self.elevator_tool.msg_posted.connect(self.widget.msg_log.post)
+        self.elevator_tool.show()
+
+    # Callback function for 'Menu' > 'Tools' > 'Probe Detection Training Tool'
+    def launch_pdt(self):
+        self.pdt = TrainingTool(self.model)
+        self.pdt.msg_posted.connect(self.widget.msg_log.post)
+        self.pdt.show()
+
+    # Callback function for 'Menu' > 'Help' > 'About' 
+    def launch_about(self):
+        dlg = AboutDialog()
+        dlg.exec_()
+
+    # TDB Callback function for 'Tools' > 'Ground Truth Collector'
+    def launch_gtd(self):
+        self.gtd_tool = GroundTruthDataTool(self.model, self.screens())
+        self.gtd_tool.msg_posted.connect(self.widget.msg_log.post)
+        self.gtd_tool.show()
+
+    # TDB Callback function for 'menu' > 'Python Console'
+    def show_console(self):
+        if self.console is None:
+            self.console = pyqtgraph.console.ConsoleWidget()
+        self.console.show()
+
+    # Closing event
+    def closeEvent(self, ev):
+        super().closeEvent(ev)
+        QApplication.instance().quit()
+
+class MainWidget(QWidget):
+    def __init__(self, model):
+        # Initialize the QWidget
+        QWidget.__init__(self) 
+        self.model = model
+
+        # Create a container for the screens using a horizontal layout
+        self.screens = QWidget()
+        hlayout = QHBoxLayout()
+        # Create left and right screen widgets and add them to the layout
+        self.lscreen = ScreenWidget(model=self.model)
+        self.rscreen = ScreenWidget(model=self.model)
+        hlayout.addWidget(self.lscreen)
+        hlayout.addWidget(self.rscreen)
+        self.screens.setLayout(hlayout)
+
+        # Create a container for control panels
+        self.controls = QWidget()
+        # Create four control panels, one calibration panel, and one transform panel
+        self.control_panel1 = ControlPanel(self.model)
+        self.control_panel2 = ControlPanel(self.model)
+        self.control_panel3 = ControlPanel(self.model)
+        self.control_panel4 = ControlPanel(self.model)
+        self.cal_panel = CalibrationPanel(self.model)
+        self.trans_panel = TransformPanel(self.model)
+        # Create a grid layout and add control panels to it
+        glayout = QGridLayout()
+        glayout.addWidget(self.control_panel1, 0,0, 1,1)
+        glayout.addWidget(self.control_panel2, 1,0, 1,1)
+        glayout.addWidget(self.cal_panel, 0,1, 1,1)
+        glayout.addWidget(self.trans_panel, 1,1, 1,1)
+        glayout.addWidget(self.control_panel3, 0,2, 1,1)
+        glayout.addWidget(self.control_panel4, 1,2, 1,1)
+        self.controls.setLayout(glayout)
+
+        # Create a timer for refreshing screens
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.refresh)
+        self.refresh_timer.start(125)
+
+        # Create a message log widget
+        self.msg_log = MessageLog()
+        
+        # Connect signals and slots to handle events and interactions
+        self.control_panel1.msg_posted.connect(self.msg_log.post)
+        self.control_panel2.msg_posted.connect(self.msg_log.post)
+        self.control_panel1.target_reached.connect(self.zoom_out)
+        self.control_panel2.target_reached.connect(self.zoom_out)
+        self.cal_panel.msg_posted.connect(self.msg_log.post)
+        self.cal_panel.cal_point_reached.connect(self.clear_selected)
+        self.cal_panel.cal_point_reached.connect(self.zoom_out)
+        self.trans_panel.msg_posted.connect(self.msg_log.post)
+        self.model.msg_posted.connect(self.msg_log.post)
+        self.lscreen.selected.connect(self.model.set_lcorr)
+        self.lscreen.cleared.connect(self.model.clear_lcorr)
+        self.rscreen.selected.connect(self.model.set_rcorr)
+        self.rscreen.cleared.connect(self.model.clear_rcorr)
+
+        # Create the main layout for the widget
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.screens)
+        main_layout.addWidget(self.controls)
+        main_layout.addWidget(self.msg_log)
+        self.setLayout(main_layout)
+        
+        # Initialize the CameraToProbeTransformTool as None
+        self.cpt = None
+
+    # Handle key press events
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_R:
+            if (e.modifiers() & Qt.ControlModifier):
+                self.clear_selected()
+                self.zoom_out()
+                e.accept()
+        elif e.key() == Qt.Key_C:
+            if self.model.cal_in_progress:
+                self.cal_panel.register_corr_points_cal()
+            if self.model.accutest_in_progress:
+                self.model.register_corr_points_accutest()
+            if self.model.prefs.train_c:
+                self.save_training_data()
+            if self.cpt is not None:
+                self.cpt.register()
+        elif e.key() == Qt.Key_Escape:
+            self.model.halt_all_stages()
+        elif e.key() == Qt.Key_T:
+            self.cal_panel.triangulate()
+            if self.model.prefs.train_t:
+                self.save_training_data()
+
+    # Save training data for calibration
+    def save_training_data(self):
+        if self.model.prefs.train_left:
+            if (self.lscreen.camera is not None) and (not self.lscreen.is_detecting()):
+                frame = self.lscreen.camera.get_last_image_data()
+                tag = 'left_%s_%s' % (self.lscreen.camera.name(), uid8())
+                self.model.save_training_data(self.model.lcorr, frame, tag)
+        if self.model.prefs.train_right:
+            if (self.rscreen.camera is not None) and (not self.rscreen.is_detecting()):
+                frame = self.rscreen.camera.get_last_image_data()
+                tag = 'right_%s_%s' % (self.rscreen.camera.name(), uid8())
+                self.model.save_training_data(self.model.rcorr, frame, tag)
+
+    # Refresh the screens
+    def refresh(self):
+        self.lscreen.refresh()
+        self.rscreen.refresh()
+
+    # Clear selected points on the screens
+    def clear_selected(self):
+        self.lscreen.clear_selected()
+        self.rscreen.clear_selected()
+
+    # Zoom out the screens
+    def zoom_out(self):
+        self.lscreen.zoom_out()
+        self.rscreen.zoom_out()
+
+    # Callback function for 'Menu' > 'File' > 'Save Camera Frames'
+    def save_camera_frames(self):
+        for i,camera in enumerate(self.model.cameras):
+            if camera.last_image:
+                basename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+                filename = os.path.join(data_dir, basename)
+                camera.save_last_image(filename)
+                self.msg_log.post('Saved camera frame: %s' % filename)
+
+
