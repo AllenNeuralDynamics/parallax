@@ -126,10 +126,8 @@ class MainWindow(QMainWindow):
         # Generate unique names based on row and column indices
         newNameMicroscope = ""
         # Generate unique names based on camera number
-        if camera_number:
-            newNameMicroscope = f"Microscope {camera_number}"
-        if mock:
-            newNameMicroscope = "Mock Camera"
+        newNameMicroscope = f"Microscope {camera_number}" if camera_number else newNameMicroscope
+        newNameMicroscope = "Mock Camera" if mock else newNameMicroscope
 
         self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
         # Construct and configure the Microscope widget
