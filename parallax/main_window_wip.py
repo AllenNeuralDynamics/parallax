@@ -86,7 +86,7 @@ class MainWindow(QMainWindow):
         for row_idx  in range(0, rows):
             for col_idx  in range(0, cols):
                 if cnt < self.model.nPySpinCameras:
-                    self.createNewGroupBox(row_idx, col_idx)
+                    self.createNewGroupBox(row_idx, col_idx, camera_number=cnt+1)
                     cnt += 1
                 else:
                     break # Stop when all Microscopes are displayed
@@ -121,15 +121,17 @@ class MainWindow(QMainWindow):
                 else:
                     break
 
-    def createNewGroupBox(self, rows, cols, mock=False):
+    def createNewGroupBox(self, rows, cols, mock=False, camera_number=None):
         """Create a new Microscope widget with associated settings."""
         # Generate unique names based on row and column indices
-        newNameMicroscope = "Microscope" + "_" + str(rows) + "_" + str(cols)
-        if mock: 
+        newNameMicroscope = ""
+        # Generate unique names based on camera number
+        if camera_number:
+            newNameMicroscope = f"Microscope {camera_number}"
+        if mock:
             newNameMicroscope = "Mock Camera"
-        newNameSettingButton = "Setting" + "_" + str(rows) + "_" + str(cols) 
+
         self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
-        
         # Construct and configure the Microscope widget
         self.microscopeGrp.setObjectName(newNameMicroscope)
         self.microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
@@ -138,18 +140,14 @@ class MainWindow(QMainWindow):
         self.microscopeGrp.setFont(font_grpbox)
         self.verticalLayout = QVBoxLayout(self.microscopeGrp)
         self.verticalLayout.setObjectName(u"verticalLayout")
-
-        # TO DO add screen
-        # self.graphicsView = QGraphicsView(self.microscopeGrp)
-        # self.graphicsView.setObjectName(u"graphicsView")
-
+        # Add camera screens
         self.screen = ScreenWidget(model=self.model, parent=self.microscopeGrp)
-        self.screen.setObjectName("Screen" + "_" + str(rows) + "_" + str(cols)) #TBD 
+        self.screen.setObjectName(f"Screen{camera_number}")
         self.verticalLayout.addWidget(self.screen)
         self.screen_widgets.append(self.screen) # Add the new ScreenWidget instance to the list
-
+        # Add setting button
         self.settingButton = QToolButton(self.microscopeGrp)
-        self.settingButton.setObjectName(newNameSettingButton)
+        self.settingButton.setObjectName(f"Setting{camera_number}")
         self.settingButton.setFont(font_grpbox)
         self.verticalLayout.addWidget(self.settingButton)
         self.gridLayout.addWidget(self.microscopeGrp, rows, cols, 1, 1)
