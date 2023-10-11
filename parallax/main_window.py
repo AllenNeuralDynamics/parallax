@@ -92,10 +92,11 @@ class MainWindow(QMainWindow):
     
     def createNewGroupBox(self, rows, cols):
         # Create New unique names for the widgets
-        newName = "Microscope" + "_" + str(rows) + "_" + str(cols) 
+        newNameMicroscope = "Microscope" + "_" + str(rows) + "_" + str(cols)
+        newNameSettingButton = "Setting" + "_" + str(rows) + "_" + str(cols) 
         self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
         # Give the object the unique name 
-        self.microscopeGrp.setObjectName(newName)
+        self.microscopeGrp.setObjectName(newNameMicroscope)
         font_grpbox = QFont()
         font_grpbox.setFamily(u"Terminal")
         font_grpbox.setPointSize(6)
@@ -107,12 +108,12 @@ class MainWindow(QMainWindow):
         self.graphicsView.setObjectName(u"graphicsView")
         self.verticalLayout.addWidget(self.graphicsView)
         self.settingButton = QToolButton(self.microscopeGrp)
-        self.settingButton.setObjectName(u"settingButton")
+        self.settingButton.setObjectName(newNameSettingButton)
         self.settingButton.setFont(font_grpbox)
         self.verticalLayout.addWidget(self.settingButton)
         self.gridLayout.addWidget(self.microscopeGrp, rows, cols, 1, 1)
-        self.microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newName, None))
-        
+        self.microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newNameMicroscope, None))
+        self.settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
 
     def dir_setting_handler(self):
         # Get the user's Documents directory on Windows
