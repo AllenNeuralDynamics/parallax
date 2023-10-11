@@ -23,8 +23,8 @@ class MainWindow(QMainWindow):
 
         # Refresh cameras and focus controllers
         self.refresh_cameras()
-        self.model.nPySpinCameras = 5 # test
-
+        self.model.nPySpinCameras = 4 # test
+    
         # Load data pref
         self.nColumn = self.load_settings_item("nColumn")
         self.nColumn = self.nColumn if self.nColumn is not None else 2
@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
         # Load the user settings from JSON file
         self.load_settings()
 
-        # Enable directory serach that user wants to save files
+        # Enable directory serach that user wants to save files8
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
 
         # Set max and current value on the column spin box
@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self.nColumnsSpinBox.setValue(self.nColumn)
         # Connect the spinBox valueChanged signal to the handler
         self.nColumnsSpinBox.valueChanged.connect(self.column_changed_handler)
-
+        
         # Display the number of Microscopes dynamically
         self.display_microscope()
 
@@ -55,14 +55,15 @@ class MainWindow(QMainWindow):
         # Display the number of Microscopes dynamically
         # depending on the number of cameras and column numbers in settings
             rows, cols, cnt = self.model.nPySpinCameras//self.nColumn, self.nColumn, 0
+            print("displayMicroscope_row: {}, col: {}, WidgetCnt: {}".format(rows, cols, self.model.nPySpinCameras))
             rows += 1 if self.model.nPySpinCameras % cols else 0
             for row_idx  in range(0, rows):
                 for col_idx  in range(0, cols):
                     if cnt < self.model.nPySpinCameras:
                         self.createNewGroupBox(row_idx, col_idx)
                         cnt += 1
-                else:
-                    break # Exit the loop if cnt exceeds nPySpinCameras
+                    else:
+                        break # Exit the loop if cnt exceeds nPySpinCameras
 
     def column_changed_handler(self, val):
         # Detach all the current QGroupBox microscopes from the grid layout
@@ -71,11 +72,11 @@ class MainWindow(QMainWindow):
             widget = self.gridLayout.itemAt(i).widget()
             if isinstance(widget, QGroupBox):  # Ensure we're handling the correct type of widget
                 widgets_to_remove.append(widget)
-                
+        print(widgets_to_remove)
+
         for widget in widgets_to_remove:
             self.gridLayout.removeWidget(widget)
             widget.hide()
-            widget.deleteLater()  # Schedule the widget for deletion
 
         # Recalculate the number of rows and columns based on the new column value
         rows, cols, cnt = self.model.nPySpinCameras//val, val, 0
@@ -84,12 +85,14 @@ class MainWindow(QMainWindow):
         # Re-add the microscopes to the grid layout based on the new row and column configuration
         for row_idx  in range(0, rows):
             for col_idx  in range(0, cols):
-                if cnt < self.model.nPySpinCameras:
-                    self.createNewGroupBox(row_idx, col_idx)
+                if cnt < len(widgets_to_remove): 
+                    widget = widgets_to_remove[cnt]
+                    self.gridLayout.addWidget(widget, row_idx, col_idx, 1, 1)
+                    widget.show()  # unhide the widget
                     cnt += 1
                 else:
                     break
-    
+
     def createNewGroupBox(self, rows, cols):
         # Create New unique names for the widgets
         newNameMicroscope = "Microscope" + "_" + str(rows) + "_" + str(cols)
