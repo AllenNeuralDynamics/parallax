@@ -71,10 +71,19 @@ class MainWindow(QMainWindow):
         else: # Display only mock camera
             self.display_mock_camera()
 
-        # Create a timer for refreshing screens
-        self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.refresh)
-        self.refresh_timer.start(125)
+        self.startButton.toggled.connect(self.handle_start_button_toggle)
+
+    def handle_start_button_toggle(self, checked):
+        if checked:
+            # Start the timer for refreshing screens if it's not already running
+            if not hasattr(self, 'refresh_timer') or not self.refresh_timer.isActive():
+                self.refresh_timer = QTimer()
+                self.refresh_timer.timeout.connect(self.refresh)
+                self.refresh_timer.start(125)
+        else:
+            # Stop the timer if it's running
+            if hasattr(self, 'refresh_timer') and self.refresh_timer.isActive():
+                self.refresh_timer.stop()
 
     # Refresh the screens
     def refresh(self):
@@ -186,7 +195,7 @@ class MainWindow(QMainWindow):
                 menu_x = button_position.x() + settingButton.width()
                 menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()
                 menu_y = settingButton.y() + settingButton.height() - settingMenu.height()
-                logger.debug(f"coordinates of setting menu: x: {menu_x}, y: {menu_y}")
+                logger.debug(f"(SettingMenu) coordinates of setting menu: x: {menu_x}, y: {menu_y}")
                 settingMenu.move(menu_x, menu_y)
                 settingMenu.show()
             else:
