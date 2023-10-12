@@ -1,5 +1,5 @@
 # Import required PyQt5 modules and other libraries
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer
 from PyQt5.QtGui import QFont, QFontDatabase
@@ -28,13 +28,13 @@ class MainWindow(QMainWindow):
         self.dummy = dummy
         # TBD self.model.clean() call to close the camera when there was abnormal program exit in previous run.
 
-        # Initialize an empty list to keep track of ScreenWidget instances
-        self.screen_widgets = []
+        # Initialize an empty list to keep track of microscopeGrp widgets instances
+        self.microscopeGrp_widgets = []
         
         # Update camera information
         self.refresh_cameras()
         logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
-        # self.model.nPySpinCameras = 1 # test
+        # self.model.nPySpinCameras = 2 # test
     
         # Load column configuration from user preferences
         self.nColumn = self.load_settings_item("nColumn")
@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow_cam1_cal1.ui")
         loadUi(ui, self) 
-        
+
         # Load Fira Code font
         fira_code_font_path = os.path.join(ui_dir, "font/FiraCode-VariableFont_wght.ttf")
         QFontDatabase.addApplicationFont(fira_code_font_path)
@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
         # Dynamically generate Microscope display
         if self.model.nPySpinCameras:
             self.display_microscope()
-        else: #display only mock camera
+        else: # Display only mock camera
             self.display_mock_camera()
 
         # Create a timer for refreshing screens
@@ -78,9 +78,11 @@ class MainWindow(QMainWindow):
 
     # Refresh the screens
     def refresh(self):
-        for screen in self.screen_widgets:
-            screen.refresh()
-
+        for groupbox in self.microscopeGrp_widgets:
+            screen = groupbox.findChild(ScreenWidget)  # Find the ScreenWidget inside the QGroupBox
+            if screen:
+                screen.refresh()
+        
     def display_mock_camera(self):
         """Display mock camera when there is no detected camera."""
         self.createNewGroupBox(0, 0, mock=True)
@@ -150,15 +152,19 @@ class MainWindow(QMainWindow):
         self.screen = ScreenWidget(model=self.model, parent=self.microscopeGrp)
         self.screen.setObjectName(f"Screen{camera_number}")
         self.verticalLayout.addWidget(self.screen)
-        self.screen_widgets.append(self.screen) # Add the new ScreenWidget instance to the list
+        # self.screen_widgets.append(self.screen) # Add the new ScreenWidget instance to the list # TO DO append GrpBox
         # Add setting button
         self.settingButton = QToolButton(self.microscopeGrp)
         self.settingButton.setObjectName(f"Setting{camera_number}")
         self.settingButton.setFont(font_grpbox)
         self.verticalLayout.addWidget(self.settingButton)
+        
         self.gridLayout.addWidget(self.microscopeGrp, rows, cols, 1, 1)
         self.microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newNameMicroscope, None))
         self.settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
+        
+        self.microscopeGrp_widgets.append(self.microscopeGrp) # Add the new microscopeGrpBox instance to the list
+
 
     def dir_setting_handler(self):
         """Handle directory selection to determine where files should be saved."""
@@ -210,7 +216,7 @@ class MainWindow(QMainWindow):
                 self.dirLabel.setText(settings["directory"])
                 # TBD Future Implementation: Load additional camera settings
         else:
-            print("Settings file not found.")
+            logger.debug("load_settings: Settings file not found.")
     
     def load_settings_item(self, item=None):
         """Load a specific setting item from the JSON settings file."""
@@ -219,5 +225,5 @@ class MainWindow(QMainWindow):
                 settings = json.load(file)
                 return settings[item]
         else:
-            print("Settings file not found.")
+            logger.debug("load_settings_item: Settings file not found.")
             return None
