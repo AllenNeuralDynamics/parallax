@@ -155,8 +155,9 @@ class MainWindow(QMainWindow):
         settingButton = QToolButton(microscopeGrp)
         settingButton.setObjectName(f"Setting")
         settingButton.setFont(font_grpbox)
+        settingButton.setCheckable(True)
         self.create_settings_menu(microscopeGrp)
-        settingButton.clicked.connect(lambda: self.show_settings_menu(settingButton))
+        settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
         verticalLayout.addWidget(settingButton)
         # Add widget to the gridlayout
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
@@ -173,20 +174,23 @@ class MainWindow(QMainWindow):
         settingMenu.setObjectName("SettingsMenu")        
         settingMenu.hide()  # Hide the menu by default
         
-    def show_settings_menu(self, settingButton):
-        """Show the settings menu next to the specified settings button."""
+    def show_settings_menu(self, settingButton, is_checked):
+        """Toggle the settings menu next to the specified settings button based on its check state."""
         # Get the parent microscopeGrp of the clicked settingButton
         microscopeGrp = settingButton.parent()
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
         if settingMenu:
-            button_position = settingButton.mapToGlobal(settingButton.pos())
-            menu_x = button_position.x() + settingButton.width()
-            menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()
-            menu_y = settingButton.y() + settingButton.height() - settingMenu.height()
-            logger.debug(f"coordinates of setting menu: x: {menu_x}, y: {menu_y}")
-            settingMenu.move(menu_x, menu_y)
-            settingMenu.show()
+            if is_checked:
+                button_position = settingButton.mapToGlobal(settingButton.pos())
+                menu_x = button_position.x() + settingButton.width()
+                menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()
+                menu_y = settingButton.y() + settingButton.height() - settingMenu.height()
+                logger.debug(f"coordinates of setting menu: x: {menu_x}, y: {menu_y}")
+                settingMenu.move(menu_x, menu_y)
+                settingMenu.show()
+            else:
+                settingMenu.hide()
 
     def dir_setting_handler(self):
         """Handle directory selection to determine where files should be saved."""
