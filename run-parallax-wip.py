@@ -1,36 +1,49 @@
 #!/usr/bin/env python
+
+# Imports
+import argparse
+import atexit
+import logging
 from PyQt5.QtWidgets import QApplication
 from parallax.model import Model
 from parallax.main_window_wip import MainWindow
-import atexit
-import argparse
-import logging
 
-# parse command line args
-parser = argparse.ArgumentParser()
-parser.add_argument('-d', '--dummy', action='store_true', help='dummy mode')
-args = parser.parse_args()
-if args.dummy:
-    print('\nRunning in dummy mode; hardware devices will be inaccessible.')
+def setup_logging():
+    """Set up logging to file."""
+    logger = logging.getLogger()
+    logger.handlers.clear()
+    logger.setLevel(logging.DEBUG)
 
-# set up logging to file
-logger = logging.getLogger()
-logger.handlers.clear()
-logger.setLevel(logging.DEBUG)
-log_handler = logging.FileHandler('parallax_debug.log')
-log_handler.setLevel(logging.DEBUG)
-log_handler.setFormatter(
-   logging.Formatter(fmt='%(asctime)s:%(name)s:%(levelname)s: %(message)s'))
-logger.addHandler(log_handler)
+    log_handler = logging.FileHandler('parallax_debug.log')
+    log_handler.setLevel(logging.DEBUG)
+    log_handler.setFormatter(
+        logging.Formatter(fmt='%(asctime)s:%(name)s:%(levelname)s: %(message)s')
+    )
+    logger.addHandler(log_handler)
 
-app = QApplication([])
-model = Model()
-main_window = MainWindow(model, dummy=args.dummy)
-main_window.show()
-app.exec()
+def main():
+    """Main execution function."""
+    # Parse command line args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--dummy', action='store_true', help='dummy mode')
+    args = parser.parse_args()
+    if args.dummy:
+        print('\nRunning in dummy mode; hardware devices will be inaccessible.')
 
-# Called on program termination
-atexit.register(model.clean)
-atexit.register(main_window.save_settings)
+    # Set up logging
+    setup_logging()
+
+    app = QApplication([])
+    model = Model()
+    main_window = MainWindow(model, dummy=args.dummy)
+    main_window.show()
+    app.exec()
+
+    # Register cleanup functions to be called on program termination
+    atexit.register(model.clean)
+    atexit.register(main_window.save_settings)
+
+if __name__ == "__main__":
+    main()
 
 
