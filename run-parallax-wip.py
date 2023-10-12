@@ -21,29 +21,22 @@ def setup_logging():
     )
     logger.addHandler(log_handler)
 
-def main():
-    """Main execution function."""
-    # Parse command line args
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--dummy', action='store_true', help='dummy mode')
-    args = parser.parse_args()
-    if args.dummy:
-        print('\nRunning in dummy mode; hardware devices will be inaccessible.')
+# Parse command line args
+parser = argparse.ArgumentParser()
+parser.add_argument('-d', '--dummy', action='store_true', help='dummy mode')
+args = parser.parse_args()
+if args.dummy:
+    print('\nRunning in dummy mode; hardware devices will be inaccessible.')
+# Set up logging
+setup_logging()
+app = QApplication([])
+model = Model()
+main_window = MainWindow(model, dummy=args.dummy)
+main_window.show()
+app.exec()
+# Register cleanup functions to be called on program termination
+atexit.register(model.clean)
+atexit.register(main_window.save_settings)
 
-    # Set up logging
-    setup_logging()
-
-    app = QApplication([])
-    model = Model()
-    main_window = MainWindow(model, dummy=args.dummy)
-    main_window.show()
-    app.exec()
-
-    # Register cleanup functions to be called on program termination
-    atexit.register(model.clean)
-    atexit.register(main_window.save_settings)
-
-if __name__ == "__main__":
-    main()
 
 
