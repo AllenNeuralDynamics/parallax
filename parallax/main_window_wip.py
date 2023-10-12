@@ -1,7 +1,7 @@
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer
+from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer, QPoint
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.uic import loadUi
 
@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self) # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
-        # TBD self.model.clean() call to close the camera when there was abnormal program exit in previous run.
+        # self.model.clean() TBD call to close the camera when there was abnormal program exit in previous run.
 
         # Initialize an empty list to keep track of microscopeGrp widgets instances
         self.microscopeGrp_widgets = []
@@ -138,42 +138,62 @@ class MainWindow(QMainWindow):
         # Generate unique names based on camera number
         newNameMicroscope = f"Microscope {camera_number}" if camera_number else newNameMicroscope
         newNameMicroscope = "Mock Camera" if mock else newNameMicroscope
-
-        self.microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
+        microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
         # Construct and configure the Microscope widget
-        self.microscopeGrp.setObjectName(newNameMicroscope)
-        self.microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
+        microscopeGrp.setObjectName(newNameMicroscope)
+        microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
         font_grpbox = QFont()
         font_grpbox.setPointSize(8)  # Setting font size to 8
-        self.microscopeGrp.setFont(font_grpbox)
-        self.verticalLayout = QVBoxLayout(self.microscopeGrp)
-        self.verticalLayout.setObjectName(u"verticalLayout")
+        microscopeGrp.setFont(font_grpbox)
+        verticalLayout = QVBoxLayout(microscopeGrp)
+        verticalLayout.setObjectName(u"verticalLayout")
         # Add camera screens
-        self.screen = ScreenWidget(model=self.model, parent=self.microscopeGrp)
-        self.screen.setObjectName(f"Screen{camera_number}")
-        self.verticalLayout.addWidget(self.screen)
-        # self.screen_widgets.append(self.screen) # Add the new ScreenWidget instance to the list # TO DO append GrpBox
+        screen = ScreenWidget(model=self.model, parent=microscopeGrp)
+        screen.setObjectName(f"Screen{camera_number}")
+        verticalLayout.addWidget(screen)
         # Add setting button
-        self.settingButton = QToolButton(self.microscopeGrp)
-        self.settingButton.setObjectName(f"Setting{camera_number}")
-        self.settingButton.setFont(font_grpbox)
-        self.verticalLayout.addWidget(self.settingButton)
-        
-        self.gridLayout.addWidget(self.microscopeGrp, rows, cols, 1, 1)
-        self.microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newNameMicroscope, None))
-        self.settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
-        
-        self.microscopeGrp_widgets.append(self.microscopeGrp) # Add the new microscopeGrpBox instance to the list
+        settingButton = QToolButton(microscopeGrp)
+        settingButton.setObjectName(f"Setting")
+        settingButton.setFont(font_grpbox)
+        self.create_settings_menu(microscopeGrp)
+        settingButton.clicked.connect(lambda: self.show_settings_menu(settingButton))
+        verticalLayout.addWidget(settingButton)
+        # Add widget to the gridlayout
+        self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
+        microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newNameMicroscope, None))
+        settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
+        # Add the new microscopeGrpBox instance to the list
+        self.microscopeGrp_widgets.append(microscopeGrp) 
 
+    def create_settings_menu(self, microscopeGrp):
+        """Create and hide the settings menu by default."""
+        settingMenu = QWidget(microscopeGrp)
+        setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
+        loadUi(setting_ui, settingMenu)
+        settingMenu.setObjectName("SettingsMenu")        
+        settingMenu.hide()  # Hide the menu by default
+        
+    def show_settings_menu(self, settingButton):
+        """Show the settings menu next to the specified settings button."""
+        # Get the parent microscopeGrp of the clicked settingButton
+        microscopeGrp = settingButton.parent()
+        # Find the settingMenu within this microscopeGrp
+        settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
+        if settingMenu:
+            button_position = settingButton.mapToGlobal(settingButton.pos())
+            menu_x = button_position.x() + settingButton.width()
+            menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()
+            menu_y = settingButton.y() + settingButton.height() - settingMenu.height()
+            logger.debug(f"coordinates of setting menu: x: {menu_x}, y: {menu_y}")
+            settingMenu.move(menu_x, menu_y)
+            settingMenu.show()
 
     def dir_setting_handler(self):
         """Handle directory selection to determine where files should be saved."""
         # Fetch the default documents directory path
         documents_dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
-
         # Open a dialog to allow the user to select a directory
         directory = QFileDialog.getExistingDirectory(self, "Select Directory", documents_dir)
-
         # If a directory is chosen, update the label to display the chosen path
         if directory:
             self.dirLabel.setText(directory)
