@@ -13,7 +13,9 @@ def setup_logging():
     logger = logging.getLogger()
     logger.handlers.clear()
     logger.setLevel(logging.DEBUG)
-
+    
+    with open('parallax_debug.log', 'w') as log_file: # Clear the log file
+        pass
     log_handler = logging.FileHandler('parallax_debug.log')
     log_handler.setLevel(logging.DEBUG)
     log_handler.setFormatter(
