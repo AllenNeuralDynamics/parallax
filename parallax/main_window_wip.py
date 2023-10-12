@@ -9,7 +9,15 @@ from .screen_widget import ScreenWidget
 from . import ui_dir
 import json
 import os
+import logging
 
+# Set logger name
+logger = logging.getLogger(__name__)
+# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+
+# User Preferences (Data directory, UI config..) setting file
 SETTINGS_FILE = 'settings.json'
 
 # Main application window
@@ -19,7 +27,7 @@ class MainWindow(QMainWindow):
         self.model = model
         self.dummy = dummy
         # TBD self.model.clean() call to close the camera when there was abnormal program exit in previous run.
-        
+
         # Initialize an empty list to keep track of ScreenWidget instances
         self.screen_widgets = []
         
