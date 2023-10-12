@@ -50,14 +50,14 @@ class PySpinCamera:
     # Class method to close all PySpin cameras
     @classmethod
     def close_cameras(cls):
-        print('cleaning up SpinSDK')
+        logger.debug("cleaning up SpinSDK")
         for camera in cls.cameras:
             camera.clean()
         if cls.pyspin_cameras is not None:
             cls.pyspin_cameras.Clear()
         if cls.pyspin_instance is not None:
             cls.pyspin_instance.ReleaseInstance()
-
+        
     # Constructor for PySpinCamera
     def __init__(self, camera_pyspin):
         self.running = False
