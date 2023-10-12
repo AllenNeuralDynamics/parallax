@@ -33,8 +33,8 @@ class MainWindow(QMainWindow):
         
         # Update camera information
         self.refresh_cameras()
-        print(self.model.nPySpinCameras, self.model.nMockCameras)
-        #self.model.nPySpinCameras = 1 # test
+        logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
+        # self.model.nPySpinCameras = 1 # test
     
         # Load column configuration from user preferences
         self.nColumn = self.load_settings_item("nColumn")
