@@ -32,7 +32,7 @@ color: #FFFFFF;
 font: 7pt;
 }</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout" rowminimumheight="50,20,40,40,45,40" columnminimumwidth="25,30,10">
+  <layout class="QGridLayout" name="gridLayout">
    <property name="verticalSpacing">
     <number>1</number>
    </property>
@@ -49,13 +49,6 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="snLabel">
-     <property name="text">
-      <string>S/N:</string>
-     </property>
-    </widget>
-   </item>
    <item row="2" column="0">
     <widget class="QLabel" name="expLabel">
      <property name="text">
@@ -63,10 +56,27 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="2" column="1">
-    <widget class="QSlider" name="expSlider">
+   <item row="5" column="2">
+    <widget class="QLabel" name="cntrstNum">
+     <property name="text">
+      <string>o</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1" colspan="2">
+    <widget class="QSpinBox" name="spinBox"/>
+   </item>
+   <item row="3" column="1">
+    <widget class="QSlider" name="gainSlider">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="cntrstLabel">
+     <property name="text">
+      <string>Contrast:</string>
      </property>
     </widget>
    </item>
@@ -77,6 +87,20 @@ font: 7pt;
      </property>
     </widget>
    </item>
+   <item row="4" column="2">
+    <widget class="QLabel" name="wbNum">
+     <property name="text">
+      <string>o</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QSlider" name="wbSlider">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
    <item row="3" column="0">
     <widget class="QLabel" name="gainLabel">
      <property name="text">
@@ -84,8 +108,8 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="3" column="1">
-    <widget class="QSlider" name="gainSlider">
+   <item row="2" column="1">
+    <widget class="QSlider" name="expSlider">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -122,24 +146,10 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="4" column="1">
-    <widget class="QSlider" name="wbSlider">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="2">
-    <widget class="QLabel" name="wbNum">
+   <item row="1" column="0">
+    <widget class="QLabel" name="snLabel">
      <property name="text">
-      <string>o</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="cntrstLabel">
-     <property name="text">
-      <string>Contrast:</string>
+      <string>S/N:</string>
      </property>
     </widget>
    </item>
@@ -150,28 +160,8 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="5" column="2">
-    <widget class="QLabel" name="cntrstNum">
-     <property name="text">
-      <string>o</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1" colspan="2">
-    <widget class="QSpinBox" name="spinBox"/>
-   </item>
    <item row="0" column="1" colspan="2">
-    <widget class="QLabel" name="microscopeName">
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>20</height>
-      </size>
-     </property>
-     <property name="text">
-      <string>TextLabel</string>
-     </property>
-    </widget>
+    <widget class="QLineEdit" name="customName"/>
    </item>
   </layout>
  </widget>
