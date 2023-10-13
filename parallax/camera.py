@@ -77,8 +77,8 @@ class PySpinCamera:
         node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
         node_gainauto_mode_off = node_gainauto_mode.GetEntryByName("Off")
         node_gainauto_mode.SetIntValue(node_gainauto_mode_off.GetValue())
-        node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
-        node_gain.SetValue(25.0)
+        self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
+        self.node_gain.SetValue(25.0)
 
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
@@ -89,13 +89,19 @@ class PySpinCamera:
         node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
         node_expauto_mode_off = node_expauto_mode.GetEntryByName("Off")
         node_expauto_mode.SetIntValue(node_expauto_mode_off.GetValue())
-        node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
-        node_exptime.SetValue(125000)   # 8 fps
+        self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
+        self.node_exptime.SetValue(125000)   # 8 fps
 
         self.last_image = None
 
         # begin acquisition
         self.begin_acquisition()
+
+    def set_gain(self, gain=25.0):
+        self.node_gain.SetValue(gain)
+    
+    def set_exposure(self, expTime=125000):
+        self.node_exptime.SetValue(expTime)
 
     # Function to get the camera name
     def name(self):

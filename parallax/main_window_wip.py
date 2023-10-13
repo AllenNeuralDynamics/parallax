@@ -181,7 +181,7 @@ class MainWindow(QMainWindow):
         settingButton.setObjectName(f"Setting")
         settingButton.setFont(font_grpbox)
         settingButton.setCheckable(True)
-        self.create_settings_menu(microscopeGrp)
+        self.create_settings_menu(microscopeGrp, screen)
         settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
         verticalLayout.addWidget(settingButton)
         # Add widget to the gridlayout
@@ -191,7 +191,7 @@ class MainWindow(QMainWindow):
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
 
-    def create_settings_menu(self, microscopeGrp):
+    def create_settings_menu(self, microscopeGrp, screen):
         """Create and hide the settings menu by default."""
         settingMenu = QWidget(microscopeGrp)
         setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
@@ -203,12 +203,15 @@ class MainWindow(QMainWindow):
         settingMenu.customName.textChanged.connect(lambda: \
                         self.update_groupbox_name(microscopeGrp, settingMenu.customName.text()))
 
-        # S/N
+        # S/N #TODO connect to mouse right click>parallax>Camera> menu
 
         # Exposure
+        settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
+                                                                val = settingMenu.expSlider.value()))
 
         # Gain
-
+        settingMenu.gainSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gain",\
+                                                                val = settingMenu.gainSlider.value()))
         # W/B
 
         # Contrast

@@ -97,6 +97,13 @@ class ScreenWidget(pg.GraphicsView):
     def set_image_item_from_data(self, data):
         self.image_item.setImage(data, autoLevels=False)
 
+    def set_camera_setting(self, setting, val):
+        if self.camera:
+            if setting == "exposure":
+                self.camera.set_exposure(val)
+            elif setting == "gain":
+                self.camera.set_gain(val)
+
     def update_camera_menu(self):
         for act in self.camera_actions:
             self.camera_menu.removeAction(act)
