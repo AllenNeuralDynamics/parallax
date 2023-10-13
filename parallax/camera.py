@@ -142,9 +142,19 @@ class PySpinCamera:
                                               dt.hour, dt.minute, dt.second)
 
     # Save the last captured image to a file
-    def save_last_image(self, filename):
-        image_converted = self.get_last_image()
-        image_converted.Save(filename)
+    def save_last_image(self, filepath, isTimestamp=False):
+        image_name = "{}_{}.png".format(self.get_last_capture_time(), self.name()) \
+            if isTimestamp else "{}.png".format(self.name())
+        full_path = os.path.join(filepath, image_name)
+        logger.debug(f"Try saving image to {full_path}")
+        try:
+            image_converted = self.get_last_image()
+            if image_converted is not None:
+                image_converted.Save(full_path)
+            else:
+                logger.error("Image not found or couldn't be retrieved.")
+        except Exception as e:
+            logger.error(f"An error occurred while saving the image: {e}")
 
     # Get the last captured image
     def get_last_image(self):
@@ -193,7 +203,12 @@ class MockCamera:
         frame = self.data[self._next_frame]
         self._next_frame = (self._next_frame + 1) % self.data.shape[0]
         return frame
-
+    
+    def save_last_image(self, filepath, isTimestamp=False):
+        # TODO
+        print("This is MockCamera. Cannot capture the image")
+        return
+        
 class VideoSource:
 
     def __init__(self, filename):
@@ -215,4 +230,9 @@ class VideoSource:
             # If the video has ended, reset the video source to the beginning
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             return np.random.randint(0, 255, size=(3000, 4000), dtype='ubyte')
-
+        
+    def save_last_image(self, filepath, isTimestamp=False):
+        # TODO
+        print("This is from Video Source. Cannot capture the image")
+        return
+        

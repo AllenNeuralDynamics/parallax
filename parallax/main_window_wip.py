@@ -71,7 +71,23 @@ class MainWindow(QMainWindow):
         else: # Display only mock camera
             self.display_mock_camera()
 
+        # Start button. If toggled, start camera acquisition  
         self.startButton.toggled.connect(self.handle_start_button_toggle)
+
+        # Snapshot button. If clicked, save the last image from cameras to dirLabel path.
+        self.snapshotButton.clicked.connect(self.save_last_image)
+        
+    def save_last_image(self):
+        save_path = self.dirLabel.text()
+        if os.path.exists(save_path):
+            for groupbox in self.microscopeGrp_widgets:
+                screen = groupbox.findChild(ScreenWidget)  # Find the ScreenWidget inside the QGroupBox
+                if screen.is_camera():
+                    screen.save_image(save_path, isTimestamp=True)
+                else:
+                    logger.debug("save_last_image) camera not found")
+        else:
+            print(f"Directory {save_path} does not exist!")
 
     def handle_start_button_toggle(self, checked):
         if checked:
@@ -87,7 +103,7 @@ class MainWindow(QMainWindow):
 
     # Refresh the screens
     def refresh(self):
-        for groupbox in self.microscopeGrp_widgets:
+        for groupbox in self.microscopeGrp_widgets: # TO DO register screen to list and call directly to save the time
             screen = groupbox.findChild(ScreenWidget)  # Find the ScreenWidget inside the QGroupBox
             if screen:
                 screen.refresh()

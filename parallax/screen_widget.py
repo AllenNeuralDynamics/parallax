@@ -78,6 +78,9 @@ class ScreenWidget(pg.GraphicsView):
 
     def is_detecting(self):
         return not isinstance(self.detector, detectors.NoDetector)
+    
+    def is_camera(self):
+        return True if self.camera else False
 
     def clear_selected(self):
         self.click_target.setVisible(False)
@@ -86,7 +89,11 @@ class ScreenWidget(pg.GraphicsView):
     def set_data(self, data):
         self.filter.process(data)
         self.detector.process(data)
-
+    
+    def save_image(self, filepath, isTimestamp=False):
+        if self.camera:
+            self.camera.save_last_image(filepath, isTimestamp)
+            
     def set_image_item_from_data(self, data):
         self.image_item.setImage(data, autoLevels=False)
 
