@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>300</width>
-    <height>245</height>
+    <height>259</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -89,7 +89,10 @@ font: 7pt;
    <item row="2" column="2">
     <widget class="QLabel" name="expNum">
      <property name="text">
-      <string>o</string>
+      <string>125000</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::PlainText</enum>
      </property>
     </widget>
    </item>
@@ -133,7 +136,10 @@ font: 7pt;
    <item row="3" column="2">
     <widget class="QLabel" name="gainNum">
      <property name="text">
-      <string>o</string>
+      <string>25</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::PlainText</enum>
      </property>
     </widget>
    </item>
@@ -176,10 +182,79 @@ font: 7pt;
     </widget>
    </item>
    <item row="0" column="1" colspan="2">
-    <widget class="QLineEdit" name="customName"/>
+    <widget class="QLineEdit" name="customName">
+     <property name="text">
+      <string>Microscope</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>expSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>expNum</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>177</x>
+     <y>116</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>289</x>
+     <y>117</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gainSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>gainNum</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>235</x>
+     <y>147</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>288</x>
+     <y>150</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>wbSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>wbNum</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>216</x>
+     <y>187</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>287</x>
+     <y>191</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>cntrstSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>cntrstNum</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>230</x>
+     <y>224</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>287</x>
+     <y>224</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
