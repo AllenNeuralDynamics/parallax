@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         # Generate unique names based on row and column indices
         newNameMicroscope = ""
         # Generate unique names based on camera number
-        newNameMicroscope = f"Microscope {camera_number}" if camera_number else newNameMicroscope
+        newNameMicroscope = f"Microscope_{camera_number}" if camera_number else newNameMicroscope
         newNameMicroscope = "Mock Camera" if mock else newNameMicroscope
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
         # Construct and configure the Microscope widget
@@ -195,7 +195,27 @@ class MainWindow(QMainWindow):
         loadUi(setting_ui, settingMenu)
         settingMenu.setObjectName("SettingsMenu")        
         settingMenu.hide()  # Hide the menu by default
-        
+
+        # Name) If name is changed, change the groupBoxName label. 
+        settingMenu.customName.textChanged.connect(lambda: \
+                        self.update_groupbox_name(microscopeGrp, settingMenu.customName.text()))
+
+        # S/N
+
+        # Exposure
+
+        # Gain
+
+        # W/B
+
+        # Contrast
+
+    def update_groupbox_name(self, microscopeGrp, customName):
+        """Update the group box's title and object name based on custom name."""
+        if customName:  # If there's some text in customName
+            microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", customName, None))
+            microscopeGrp.setObjectName(customName)
+
     def show_settings_menu(self, settingButton, is_checked):
         """Toggle the settings menu next to the specified settings button based on its check state."""
         # Get the parent microscopeGrp of the clicked settingButton
