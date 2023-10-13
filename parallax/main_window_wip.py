@@ -76,17 +76,20 @@ class MainWindow(QMainWindow):
 
         # Snapshot button. If clicked, save the last image from cameras to dirLabel path.
         self.snapshotButton.clicked.connect(self.save_last_image)
-        
+
     def save_last_image(self):
         save_path = self.dirLabel.text()
         if os.path.exists(save_path):
             for screen in self.screen_widgets:
                 if screen.is_camera():
-                    screen.save_image(save_path, isTimestamp=True, name=screen.objectName())
+                    parentGrpBox, customName = screen.parent(), screen.objectName()
+                    if parentGrpBox.title():
+                        customName = parentGrpBox.title()
+                    screen.save_image(save_path, isTimestamp=True, name=customName)
                 else:
                     logger.debug("save_last_image) camera not found")
         else:
-            print(f"Directory {save_path} does not exist!")
+            print(f"Directory {save_path} does not exist!")    
 
     def handle_start_button_toggle(self, checked):
         if checked:
