@@ -29,7 +29,7 @@ class MainWindow(QMainWindow):
         # self.model.clean() TBD call to close the camera when there was abnormal program exit in previous run.
 
         # Initialize an empty list to keep track of microscopeGrp widgets instances
-        self.microscopeGrp_widgets = []
+        self.screen_widgets = []
         
         # Update camera information
         self.refresh_cameras()
@@ -80,8 +80,7 @@ class MainWindow(QMainWindow):
     def save_last_image(self):
         save_path = self.dirLabel.text()
         if os.path.exists(save_path):
-            for groupbox in self.microscopeGrp_widgets:
-                screen = groupbox.findChild(ScreenWidget)  # Find the ScreenWidget inside the QGroupBox
+            for screen in self.screen_widgets:
                 if screen.is_camera():
                     screen.save_image(save_path, isTimestamp=True)
                 else:
@@ -103,10 +102,8 @@ class MainWindow(QMainWindow):
 
     # Refresh the screens
     def refresh(self):
-        for groupbox in self.microscopeGrp_widgets: # TO DO register screen to list and call directly to save the time
-            screen = groupbox.findChild(ScreenWidget)  # Find the ScreenWidget inside the QGroupBox
-            if screen:
-                screen.refresh()
+        for screen in self.screen_widgets:
+            screen.refresh()
         
     def display_mock_camera(self):
         """Display mock camera when there is no detected camera."""
@@ -189,7 +186,7 @@ class MainWindow(QMainWindow):
         microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newNameMicroscope, None))
         settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
         # Add the new microscopeGrpBox instance to the list
-        self.microscopeGrp_widgets.append(microscopeGrp) 
+        self.screen_widgets.append(screen) 
 
     def create_settings_menu(self, microscopeGrp):
         """Create and hide the settings menu by default."""
