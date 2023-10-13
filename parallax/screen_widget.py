@@ -90,9 +90,9 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.process(data)
         self.detector.process(data)
     
-    def save_image(self, filepath, isTimestamp=False):
+    def save_image(self, filepath, isTimestamp=False, name="Microscope_"):
         if self.camera:
-            self.camera.save_last_image(filepath, isTimestamp)
+            self.camera.save_last_image(filepath, isTimestamp, name)
             
     def set_image_item_from_data(self, data):
         self.image_item.setImage(data, autoLevels=False)

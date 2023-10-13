@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
         if os.path.exists(save_path):
             for screen in self.screen_widgets:
                 if screen.is_camera():
-                    screen.save_image(save_path, isTimestamp=True)
+                    screen.save_image(save_path, isTimestamp=True, name=screen.objectName())
                 else:
                     logger.debug("save_last_image) camera not found")
         else:
@@ -171,7 +171,7 @@ class MainWindow(QMainWindow):
         verticalLayout.setObjectName(u"verticalLayout")
         # Add camera screens
         screen = ScreenWidget(model=self.model, parent=microscopeGrp)
-        screen.setObjectName(f"Screen{camera_number}")
+        screen.setObjectName(f"Microscope_{camera_number}")
         verticalLayout.addWidget(screen)
         # Add setting button
         settingButton = QToolButton(microscopeGrp)

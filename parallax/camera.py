@@ -142,9 +142,9 @@ class PySpinCamera:
                                               dt.hour, dt.minute, dt.second)
 
     # Save the last captured image to a file
-    def save_last_image(self, filepath, isTimestamp=False):
-        image_name = "{}_{}.png".format(self.get_last_capture_time(), self.name()) \
-            if isTimestamp else "{}.png".format(self.name())
+    def save_last_image(self, filepath, isTimestamp=False, custom_name="Microscope_"):
+        image_name = "{}_{}.png".format(custom_name, self.get_last_capture_time()) \
+            if isTimestamp else "{}.png".format(custom_name)
         full_path = os.path.join(filepath, image_name)
         logger.debug(f"Try saving image to {full_path}")
         try:
@@ -204,7 +204,7 @@ class MockCamera:
         self._next_frame = (self._next_frame + 1) % self.data.shape[0]
         return frame
     
-    def save_last_image(self, filepath, isTimestamp=False):
+    def save_last_image(self, filepath, isTimestamp=False, custom_name="MockCamera_"):
         # TODO
         print("This is MockCamera. Cannot capture the image")
         return
@@ -231,7 +231,7 @@ class VideoSource:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             return np.random.randint(0, 255, size=(3000, 4000), dtype='ubyte')
         
-    def save_last_image(self, filepath, isTimestamp=False):
+    def save_last_image(self, filepath, isTimestamp=False, custom_name="VideoSource_"):
         # TODO
         print("This is from Video Source. Cannot capture the image")
         return
