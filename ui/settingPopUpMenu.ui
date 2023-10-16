@@ -99,12 +99,21 @@ font: 7pt;
    <item row="4" column="2">
     <widget class="QLabel" name="wbNum">
      <property name="text">
-      <string>o</string>
+      <string>2.2</string>
      </property>
     </widget>
    </item>
    <item row="4" column="1">
     <widget class="QSlider" name="wbSlider">
+     <property name="minimum">
+      <number>180</number>
+     </property>
+     <property name="maximum">
+      <number>250</number>
+     </property>
+     <property name="value">
+      <number>220</number>
+     </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>

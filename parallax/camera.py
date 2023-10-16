@@ -94,13 +94,26 @@ class PySpinCamera:
 
         # set gamma
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
-        self.node_gamma.SetValue(1.0)   
+        self.node_gamma.SetValue(1.0)  
+
+        # Set White Balance
+        node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
+        node_wbauto_mode_off = node_wbauto_mode.GetEntryByName("Off")
+        node_wbauto_mode.SetIntValue(node_wbauto_mode_off.GetValue())
+        node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
+        node_balanceratio_mode_blue = node_balanceratio_mode.GetEntryByName("Blue")
+        node_balanceratio_mode.SetIntValue(node_balanceratio_mode_blue.GetValue())
+        self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
+        self.node_wb.SetValue(2)   # 8 fps 
         
         self.last_image = None
 
         # begin acquisition
         self.begin_acquisition()
 
+    def set_wb(self, wb=2.0):
+        self.node_wb.SetValue(wb)
+    
     def set_gamma(self, gamma=1.0):
         self.node_gamma.SetValue(gamma)
 
