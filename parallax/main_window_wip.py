@@ -214,7 +214,11 @@ class MainWindow(QMainWindow):
                                                                 val = settingMenu.gainSlider.value()))
         # W/B
 
-        # Contrast
+        # Gamma
+        settingMenu.gammaSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gamma",\
+                                                                val = settingMenu.gammaSlider.value()/100))
+        settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setNum(settingMenu.gammaSlider.value()/100))
+
 
     def update_groupbox_name(self, microscopeGrp, customName):
         """Update the group box's title and object name based on custom name."""

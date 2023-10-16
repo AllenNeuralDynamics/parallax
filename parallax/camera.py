@@ -50,7 +50,7 @@ class PySpinCamera:
     # Class method to close all PySpin cameras
     @classmethod
     def close_cameras(cls):
-        logger.debug("cleaning up SpinSDK")
+        logger.info("cleaning up SpinSDK")
         for camera in cls.cameras:
             camera.clean()
         if cls.pyspin_cameras is not None:
@@ -92,10 +92,17 @@ class PySpinCamera:
         self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
         self.node_exptime.SetValue(125000)   # 8 fps
 
+        # set gamma
+        self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
+        self.node_gamma.SetValue(1.0)   
+        
         self.last_image = None
 
         # begin acquisition
         self.begin_acquisition()
+
+    def set_gamma(self, gamma=1.0):
+        self.node_gamma.SetValue(gamma)
 
     def set_gain(self, gain=25.0):
         self.node_gain.SetValue(gain)
@@ -214,6 +221,8 @@ class MockCamera:
         # TODO
         print("This is MockCamera. Cannot capture the image")
         return
+    
+    
         
 class VideoSource:
 

@@ -103,6 +103,8 @@ class ScreenWidget(pg.GraphicsView):
                 self.camera.set_exposure(val)
             elif setting == "gain":
                 self.camera.set_gain(val)
+            elif setting == "gamma":
+                self.camera.set_gamma(val)
 
     def update_camera_menu(self):
         for act in self.camera_actions:

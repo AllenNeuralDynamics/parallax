@@ -57,7 +57,7 @@ font: 7pt;
     </widget>
    </item>
    <item row="5" column="2">
-    <widget class="QLabel" name="cntrstNum">
+    <widget class="QLabel" name="gammaNum">
      <property name="text">
       <string>o</string>
      </property>
@@ -80,7 +80,7 @@ font: 7pt;
     </widget>
    </item>
    <item row="5" column="0">
-    <widget class="QLabel" name="cntrstLabel">
+    <widget class="QLabel" name="gammaLabel">
      <property name="text">
       <string>Gamma:</string>
      </property>
@@ -175,7 +175,19 @@ font: 7pt;
     </widget>
    </item>
    <item row="5" column="1">
-    <widget class="QSlider" name="cntrstSlider">
+    <widget class="QSlider" name="gammaSlider">
+     <property name="minimum">
+      <number>25</number>
+     </property>
+     <property name="maximum">
+      <number>125</number>
+     </property>
+     <property name="singleStep">
+      <number>1</number>
+     </property>
+     <property name="value">
+      <number>100</number>
+     </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -241,9 +253,9 @@ font: 7pt;
    </hints>
   </connection>
   <connection>
-   <sender>cntrstSlider</sender>
+   <sender>gammaSlider</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>cntrstNum</receiver>
+   <receiver>gammaNum</receiver>
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
