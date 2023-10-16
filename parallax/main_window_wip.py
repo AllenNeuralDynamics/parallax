@@ -207,7 +207,8 @@ class MainWindow(QMainWindow):
 
         # Exposure
         settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
-                                                                val = settingMenu.expSlider.value()))
+                                                                val = settingMenu.expSlider.value()*1000))
+        settingMenu.expSlider.valueChanged.connect(lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value()))
 
         # Gain
         settingMenu.gainSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gain",\

@@ -59,7 +59,7 @@ font: 7pt;
    <item row="5" column="2">
     <widget class="QLabel" name="gammaNum">
      <property name="text">
-      <string>o</string>
+      <string>1.0</string>
      </property>
     </widget>
    </item>
@@ -89,7 +89,7 @@ font: 7pt;
    <item row="2" column="2">
     <widget class="QLabel" name="expNum">
      <property name="text">
-      <string>125000</string>
+      <string>125</string>
      </property>
      <property name="textFormat">
       <enum>Qt::PlainText</enum>
@@ -120,13 +120,13 @@ font: 7pt;
    <item row="2" column="1">
     <widget class="QSlider" name="expSlider">
      <property name="minimum">
-      <number>90000</number>
+      <number>90</number>
      </property>
      <property name="maximum">
-      <number>250000</number>
+      <number>250</number>
      </property>
      <property name="value">
-      <number>125000</number>
+      <number>125</number>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
