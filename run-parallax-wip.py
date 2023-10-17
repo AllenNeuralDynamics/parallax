@@ -29,6 +29,7 @@ parser.add_argument('-d', '--dummy', action='store_true', help='dummy mode')
 args = parser.parse_args()
 if args.dummy:
     print('\nRunning in dummy mode; hardware devices will be inaccessible.')
+
 # Set up logging
 setup_logging()
 app = QApplication([])

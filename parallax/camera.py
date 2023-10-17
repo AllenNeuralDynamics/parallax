@@ -235,6 +235,22 @@ class MockCamera:
         print("This is MockCamera. Cannot capture the image")
         return
     
+    def set_wb(self, wb=2.0):
+        logger.info("This is MockCamera. Setting is not appliable")
+        return
+    
+    def set_gamma(self, gamma=1.0):
+        logger.info("This is MockCamera. Setting is not appliable")
+        return
+
+    def set_gain(self, gain=25.0):
+        logger.info("This is MockCamera. Setting is not appliable")
+        return
+    
+    def set_exposure(self, expTime=125000):
+        logger.info("This is MockCamera. Setting is not appliable")
+        return
+    
     
         
 class VideoSource:
@@ -263,4 +279,19 @@ class VideoSource:
         # TODO
         print("This is from Video Source. Cannot capture the image")
         return
-        
+    
+    def set_wb(self, wb=2.0):
+        logger.info("This is VideoSource. Setting is not appliable")
+        return
+    
+    def set_gamma(self, gamma=1.0):
+        logger.info("This is VideoSource. Setting is not appliable")
+        return
+
+    def set_gain(self, gain=25.0):
+        logger.info("This is VideoSource. Setting is not appliable")
+        return
+    
+    def set_exposure(self, expTime=125000):
+        logger.info("This is VideoSource. Setting is not appliable")
+        return

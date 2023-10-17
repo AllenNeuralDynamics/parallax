@@ -83,7 +83,7 @@ class ScreenWidget(pg.GraphicsView):
         return True if self.camera else False
     
     def get_camera_name(self):
-        return self.camera.name() if self.camera else None #TODO Parshing the serial number
+        return self.camera.name() if self.camera else None #TODO Parshing the serial
 
     def clear_selected(self):
         self.click_target.setVisible(False)
