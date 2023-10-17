@@ -93,6 +93,8 @@ class PySpinCamera:
         self.node_exptime.SetValue(125000)   # 8 fps
 
         # set gamma
+        node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
+        node_gammaenable_mode.SetValue(True)
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
         self.node_gamma.SetValue(1.0)  
 
@@ -104,7 +106,7 @@ class PySpinCamera:
         node_balanceratio_mode_blue = node_balanceratio_mode.GetEntryByName("Blue")
         node_balanceratio_mode.SetIntValue(node_balanceratio_mode_blue.GetValue())
         self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
-        self.node_wb.SetValue(2)   # 8 fps 
+        self.node_wb.SetValue(2)   
         
         self.last_image = None
 
@@ -124,10 +126,13 @@ class PySpinCamera:
         self.node_exptime.SetValue(expTime)
 
     # Function to get the camera name
-    def name(self):
+    def name(self, sn_only=False):
         sn = self.camera.DeviceSerialNumber()
         device_model = self.camera.DeviceModelName()
-        return '%s (Serial # %s)' % (device_model, sn)
+        if sn_only:
+            return sn
+        else:
+            return '%s (Serial # %s)' % (device_model, sn)
 
     # Function to begin image acquisition
     def begin_acquisition(self):
@@ -218,7 +223,7 @@ class MockCamera:
         self.data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype='ubyte')
         self._next_frame = 0
 
-    def name(self):
+    def name(self, sn_only=False):
         # Get the name of the mock camera
         return self._name
 
@@ -261,7 +266,7 @@ class VideoSource:
         self._name = os.path.basename(self.filename)
         self.cap = cv2.VideoCapture(self.filename)
 
-    def name(self):
+    def name(self, sn_only=False):
         # Get the name of the video source
         return self._name
 
