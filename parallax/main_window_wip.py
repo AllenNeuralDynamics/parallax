@@ -280,7 +280,7 @@ class MainWindow(QMainWindow):
         # for screen in self.screens():
         #    screen.update_camera_menu()
         
-    def save_settings(self):
+    def save_user_settings(self):
         """Save user settings (e.g., column configuration, directory path) to a JSON file."""
         settings = {
             "nColumn": self.nColumnsSpinBox.value(),

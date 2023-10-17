@@ -39,7 +39,7 @@ main_window.show()
 app.exec()
 # Register cleanup functions to be called on program termination
 atexit.register(model.clean)
-atexit.register(main_window.save_settings)
+atexit.register(main_window.save_user_settings)
 
 
 
