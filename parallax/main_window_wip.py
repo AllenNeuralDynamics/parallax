@@ -174,7 +174,7 @@ class MainWindow(QMainWindow):
         verticalLayout.setObjectName(u"verticalLayout")
         # Add camera screens
         screen = ScreenWidget(model=self.model, parent=microscopeGrp)
-        screen.setObjectName(f"Microscope_{camera_number}")
+        screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
         # Add setting button
         settingButton = QToolButton(microscopeGrp)
@@ -202,8 +202,6 @@ class MainWindow(QMainWindow):
         # Name) If name is changed, change the groupBoxName label. 
         settingMenu.customName.textChanged.connect(lambda: \
                         self.update_groupbox_name(microscopeGrp, settingMenu.customName.text()))
-
-        # S/N #TODO connect to mouse right click>parallax>Camera> menu
 
         # Exposure
         settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
@@ -237,8 +235,14 @@ class MainWindow(QMainWindow):
         microscopeGrp = settingButton.parent()
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
+        screen = microscopeGrp.findChild(ScreenWidget, "Screen")
+
         if settingMenu:
             if is_checked:
+                # Display the S/N of camera 
+                if screen.is_camera:
+                    settingMenu.snDspLabel.setText(screen.get_camera_name())
+                # Show the setting menu next to setting button
                 button_position = settingButton.mapToGlobal(settingButton.pos())
                 menu_x = button_position.x() + settingButton.width()
                 menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()

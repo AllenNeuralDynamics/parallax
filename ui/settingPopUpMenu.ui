@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>300</width>
-    <height>259</height>
+    <height>300</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -36,93 +36,10 @@ font: 7pt;
    <property name="verticalSpacing">
     <number>1</number>
    </property>
-   <item row="0" column="0">
-    <widget class="QLabel" name="nameLabel">
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>20</height>
-      </size>
-     </property>
-     <property name="text">
-      <string>Name:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="expLabel">
-     <property name="text">
-      <string>Exposure:</string>
-     </property>
-    </widget>
-   </item>
    <item row="5" column="2">
     <widget class="QLabel" name="gammaNum">
      <property name="text">
       <string>1.0</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1" colspan="2">
-    <widget class="QSpinBox" name="spinBox"/>
-   </item>
-   <item row="3" column="1">
-    <widget class="QSlider" name="gainSlider">
-     <property name="maximum">
-      <number>27</number>
-     </property>
-     <property name="value">
-      <number>25</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="gammaLabel">
-     <property name="text">
-      <string>Gamma:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="2">
-    <widget class="QLabel" name="expNum">
-     <property name="text">
-      <string>125</string>
-     </property>
-     <property name="textFormat">
-      <enum>Qt::PlainText</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="2">
-    <widget class="QLabel" name="wbNum">
-     <property name="text">
-      <string>2.2</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QSlider" name="wbSlider">
-     <property name="minimum">
-      <number>180</number>
-     </property>
-     <property name="maximum">
-      <number>250</number>
-     </property>
-     <property name="value">
-      <number>220</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="gainLabel">
-     <property name="text">
-      <string>Gain:</string>
      </property>
     </widget>
    </item>
@@ -142,6 +59,45 @@ font: 7pt;
      </property>
     </widget>
    </item>
+   <item row="0" column="1" colspan="2">
+    <widget class="QLineEdit" name="customName">
+     <property name="text">
+      <string>Microscope</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QSlider" name="gainSlider">
+     <property name="maximum">
+      <number>27</number>
+     </property>
+     <property name="value">
+      <number>25</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QSlider" name="gammaSlider">
+     <property name="minimum">
+      <number>25</number>
+     </property>
+     <property name="maximum">
+      <number>125</number>
+     </property>
+     <property name="singleStep">
+      <number>1</number>
+     </property>
+     <property name="value">
+      <number>100</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
    <item row="3" column="2">
     <widget class="QLabel" name="gainNum">
      <property name="text">
@@ -149,6 +105,80 @@ font: 7pt;
      </property>
      <property name="textFormat">
       <enum>Qt::PlainText</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="gainLabel">
+     <property name="text">
+      <string>Gain:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="2">
+    <widget class="QLabel" name="wbNum">
+     <property name="text">
+      <string>2.2</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QLabel" name="expNum">
+     <property name="text">
+      <string>125</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::PlainText</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="nameLabel">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>Name:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="gammaLabel">
+     <property name="text">
+      <string>Gamma:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QSlider" name="wbSlider">
+     <property name="minimum">
+      <number>180</number>
+     </property>
+     <property name="maximum">
+      <number>250</number>
+     </property>
+     <property name="value">
+      <number>220</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="snLabel">
+     <property name="text">
+      <string>S/N:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="expLabel">
+     <property name="text">
+      <string>Exposure:</string>
      </property>
     </widget>
    </item>
@@ -176,36 +206,19 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="snLabel">
+   <item row="1" column="1">
+    <widget class="QLabel" name="snDspLabel">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>20</height>
+      </size>
+     </property>
      <property name="text">
-      <string>S/N:</string>
+      <string/>
      </property>
-    </widget>
-   </item>
-   <item row="5" column="1">
-    <widget class="QSlider" name="gammaSlider">
-     <property name="minimum">
-      <number>25</number>
-     </property>
-     <property name="maximum">
-      <number>125</number>
-     </property>
-     <property name="singleStep">
-      <number>1</number>
-     </property>
-     <property name="value">
-      <number>100</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="1" colspan="2">
-    <widget class="QLineEdit" name="customName">
-     <property name="text">
-      <string>Microscope</string>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
    </item>
@@ -221,11 +234,11 @@ font: 7pt;
    <hints>
     <hint type="sourcelabel">
      <x>177</x>
-     <y>116</y>
+     <y>136</y>
     </hint>
     <hint type="destinationlabel">
-     <x>289</x>
-     <y>117</y>
+     <x>290</x>
+     <y>137</y>
     </hint>
    </hints>
   </connection>
@@ -237,11 +250,11 @@ font: 7pt;
    <hints>
     <hint type="sourcelabel">
      <x>235</x>
-     <y>147</y>
+     <y>173</y>
     </hint>
     <hint type="destinationlabel">
-     <x>288</x>
-     <y>150</y>
+     <x>290</x>
+     <y>176</y>
     </hint>
    </hints>
   </connection>
@@ -253,11 +266,11 @@ font: 7pt;
    <hints>
     <hint type="sourcelabel">
      <x>216</x>
-     <y>187</y>
+     <y>219</y>
     </hint>
     <hint type="destinationlabel">
-     <x>287</x>
-     <y>191</y>
+     <x>290</x>
+     <y>223</y>
     </hint>
    </hints>
   </connection>
@@ -269,11 +282,11 @@ font: 7pt;
    <hints>
     <hint type="sourcelabel">
      <x>230</x>
-     <y>224</y>
+     <y>262</y>
     </hint>
     <hint type="destinationlabel">
-     <x>287</x>
-     <y>224</y>
+     <x>290</x>
+     <y>262</y>
     </hint>
    </hints>
   </connection>
