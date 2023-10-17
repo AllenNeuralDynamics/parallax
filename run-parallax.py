@@ -31,6 +31,5 @@ app.exec()
 
 # Called on program termination
 atexit.register(model.clean)
-atexit.register(main_window.save_settings)
 
 
