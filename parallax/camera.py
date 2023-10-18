@@ -66,17 +66,15 @@ class PySpinCamera:
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
 
-        self.lock = threading.RLock()
         self.last_image = None
         self.video_output = None
-        self.capture_on = False
+        self.capture_on = threading.Event()
+        self.capture_busy = threading.Event()
         self.height = None
         self.width = None
         self.channels = None
         self.frame_rate = None
-        # self.sn = None # tmp
         
-
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()
         node_bufferhandling_mode = PySpin.CEnumerationPtr(s_nodemap.GetNode('StreamBufferHandlingMode'))
@@ -137,7 +135,6 @@ class PySpinCamera:
     # Function to get the camera name
     def name(self, sn_only=False):
         sn = self.camera.DeviceSerialNumber()
-        # self.sn = sn # Temp
         device_model = self.camera.DeviceModelName()
         if sn_only:
             return sn
@@ -175,15 +172,13 @@ class PySpinCamera:
 
         self.last_image = image
 
-        self.lock.acquire() # Test locking method
         # Video Capture
-        if self.capture_on: 
+        if self.capture_on.is_set(): 
+            self.capture_busy.set()
             im_cv2_format = self.last_image.GetData().reshape(self.height, self.width, self.channels)
-            # print(".", self.sn)
             self.video_output.write(im_cv2_format)
-            # print("..", self.sn)
-        self.lock.release()
-            
+            self.capture_busy.clear()
+        
     # Get the timestamp of the last capture
     def get_last_capture_time(self):
         ts = self.last_capture_time
@@ -245,13 +240,12 @@ class PySpinCamera:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         self.video_output = cv2.VideoWriter(full_path, fourcc, self.frame_rate, \
                                             (self.width, self.height), True) 
-        self.capture_on = True
+        self.capture_on.set()
 
     def stop_capture(self):
-        # print("...stop", self.sn)
-        self.capture_on = False
-        # Sleep for 0.5 second for preventing race condition with self.video_output.write
-        time.sleep(0.5)  
+        self.capture_on.clear()
+        while self.capture_busy.is_set():
+            pass
         self.video_output.release()
 
     # Clean up the camera
@@ -259,8 +253,8 @@ class PySpinCamera:
         if self.running:
             self.running = False
             self.capture_thread.join()
-        if self.capture_on:
-            self.capture_on = False
+        if self.capture_on.is_set():
+            self.capture_on.clear()
             self.video_output.release()
         self.camera.EndAcquisition()
         del self.camera
