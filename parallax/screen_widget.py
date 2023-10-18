@@ -97,6 +97,14 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             self.camera.save_last_image(filepath, isTimestamp, name)
             
+    def save_recording(self, filepath, isTimestamp=False, name="Microscope_"):
+        if self.camera:
+            self.camera.save_recording(filepath, isTimestamp, name)
+    
+    def stop_recording(self):
+        if self.camera:
+            self.camera.stop_capture()
+
     def set_image_item_from_data(self, data):
         self.image_item.setImage(data, autoLevels=False)
 

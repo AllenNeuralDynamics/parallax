@@ -66,6 +66,16 @@ class PySpinCamera:
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
 
+        self.lock = threading.Lock()
+        self.last_image = None
+        self.video_output = None
+        self.capture_on = False
+        self.height = None
+        self.width = None
+        self.channels = None
+        self.frame_rate = None
+        
+
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()
         node_bufferhandling_mode = PySpin.CEnumerationPtr(s_nodemap.GetNode('StreamBufferHandlingMode'))
@@ -107,9 +117,7 @@ class PySpinCamera:
         node_balanceratio_mode.SetIntValue(node_balanceratio_mode_blue.GetValue())
         self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
         self.node_wb.SetValue(2)   
-        
-        self.last_image = None
-
+                
         # begin acquisition
         self.begin_acquisition()
 
@@ -165,6 +173,14 @@ class PySpinCamera:
 
         self.last_image = image
 
+        with self.lock:
+            # Video Capture
+            if self.capture_on:
+                im_cv2_format = self.last_image.GetData().reshape(self.height, self.width, self.channels)
+                print(".")
+                self.video_output.write(im_cv2_format)
+                print("..")
+            
     # Get the timestamp of the last capture
     def get_last_capture_time(self):
         ts = self.last_capture_time
@@ -198,11 +214,49 @@ class PySpinCamera:
         """
         return self.last_image.GetNDArray()
 
+    def camera_info(self):
+        self.height = self.camera.Height()
+        self.width = self.camera.Width()
+        self.channels = 3 #TODO
+        logger.info(f"camera frame width: {self.width}, height: {self.width}")
+
+        # Set frame rate equal to the current acquisition frame rate (Hz)
+        nodeFramerate = PySpin.CFloatPtr(self.node_map.GetNode('AcquisitionFrameRate'))
+        if (not PySpin.IsAvailable(nodeFramerate)) or (not PySpin.IsReadable(nodeFramerate)):
+            logger.error('Unable to retrieve frame rate. Aborting...')
+            return -1
+        self.frame_rate = nodeFramerate.GetValue()
+        logger.info(f"Frame rate to be set to {self.frame_rate}")
+
+    # Save the video to a file TODO
+    def save_recording(self, filepath, isTimestamp=False, custom_name="Microscope_"):
+        video_name = "{}_{}.avi".format(custom_name, self.get_last_capture_time()) \
+            if isTimestamp else "{}.avi".format(custom_name)
+        full_path = os.path.join(filepath, video_name)
+        print(f"Try saving video to {full_path}")
+        logger.debug(f"Try saving video to {full_path}")
+
+        # Fill camera info
+        self.camera_info()
+
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        self.video_output = cv2.VideoWriter(full_path, fourcc, self.frame_rate, \
+                                            (self.width, self.height), True) 
+        self.capture_on = True
+
+    def stop_capture(self):
+        self.capture_on = False
+        time.sleep(0.5)  # Sleep for 0.5 second for preventing race condition with self.video_output.write
+        self.video_output.release()
+
     # Clean up the camera
     def clean(self):
         if self.running:
             self.running = False
             self.capture_thread.join()
+        if self.capture_on:
+            self.capture_on = False
+            self.video_output.release()
         self.camera.EndAcquisition()
         del self.camera
 
