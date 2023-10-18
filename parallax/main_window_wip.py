@@ -77,6 +77,36 @@ class MainWindow(QMainWindow):
         # Snapshot button. If clicked, save the last image from cameras to dirLabel path.
         self.snapshotButton.clicked.connect(self.save_last_image)
 
+        # Recording button. If clicked, save the recording in Mjpg format. 
+        self.recordButton.clicked.connect(self.record_button_handler)
+
+    def record_button_handler(self):
+        if self.recordButton.isChecked():
+            self.save_recording()
+        else:
+            self.stop_recording()
+
+    def save_recording(self):
+        print("====== Start recording ======")
+        save_path = self.dirLabel.text()
+        if os.path.exists(save_path):
+            for screen in self.screen_widgets:
+                if screen.is_camera():
+                    parentGrpBox, customName = screen.parent(), screen.objectName() 
+                    if parentGrpBox.title():
+                        customName = parentGrpBox.title()
+                    screen.save_recording(save_path, isTimestamp=True, name=customName)
+                else:
+                    logger.debug("save_last_image) camera not found")
+        else:
+            print(f"Directory {save_path} does not exist!")
+
+    def stop_recording(self):
+        print("====== stop recording ======")
+        for screen in self.screen_widgets:
+                if screen.is_camera():
+                    screen.stop_recording()
+
     def save_last_image(self):
         save_path = self.dirLabel.text()
         if os.path.exists(save_path):
@@ -236,7 +266,6 @@ class MainWindow(QMainWindow):
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
         screen = microscopeGrp.findChild(ScreenWidget, "Screen")
-
         if settingMenu:
             if is_checked:
                 # Display the S/N of camera 

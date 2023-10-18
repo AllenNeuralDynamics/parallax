@@ -66,7 +66,7 @@ class PySpinCamera:
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
 
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.last_image = None
         self.video_output = None
         self.capture_on = False
@@ -74,6 +74,7 @@ class PySpinCamera:
         self.width = None
         self.channels = None
         self.frame_rate = None
+        # self.sn = None # tmp
         
 
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
@@ -136,6 +137,7 @@ class PySpinCamera:
     # Function to get the camera name
     def name(self, sn_only=False):
         sn = self.camera.DeviceSerialNumber()
+        # self.sn = sn # Temp
         device_model = self.camera.DeviceModelName()
         if sn_only:
             return sn
@@ -173,13 +175,14 @@ class PySpinCamera:
 
         self.last_image = image
 
-        with self.lock:
-            # Video Capture
-            if self.capture_on:
-                im_cv2_format = self.last_image.GetData().reshape(self.height, self.width, self.channels)
-                print(".")
-                self.video_output.write(im_cv2_format)
-                print("..")
+        self.lock.acquire() # Test locking method
+        # Video Capture
+        if self.capture_on: 
+            im_cv2_format = self.last_image.GetData().reshape(self.height, self.width, self.channels)
+            # print(".", self.sn)
+            self.video_output.write(im_cv2_format)
+            # print("..", self.sn)
+        self.lock.release()
             
     # Get the timestamp of the last capture
     def get_last_capture_time(self):
@@ -245,8 +248,10 @@ class PySpinCamera:
         self.capture_on = True
 
     def stop_capture(self):
+        # print("...stop", self.sn)
         self.capture_on = False
-        time.sleep(0.5)  # Sleep for 0.5 second for preventing race condition with self.video_output.write
+        # Sleep for 0.5 second for preventing race condition with self.video_output.write
+        time.sleep(0.5)  
         self.video_output.release()
 
     # Clean up the camera
