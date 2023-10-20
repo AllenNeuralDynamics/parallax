@@ -131,18 +131,23 @@ class MainWindow(QMainWindow):
         if self.startButton.isChecked():
             print("\n===== START Clicked =====")
             # Camera begin acquisition
-            cnt = 1
             for screen in self.screen_widgets:
-                print(cnt)
-                cnt += 1
                 screen.start_acquisition_camera()
                 
             # Refreshing images to display screen
             for screen in self.screen_widgets:
                 self.refresh_timer.start(125)
+            
+            # Start button is checked, enable record and snapshot button. 
+            self.recordButton.setEnabled(True)
+            self.snapshotButton.setEnabled(True)
 
         else:  
             print("\n===== STOP Clicked=====")
+            # Start button is unchecked, disable record and snapshot button. 
+            self.recordButton.setEnabled(False)
+            self.snapshotButton.setEnabled(False)
+            
             # Stop Refresh: stop refreshing images to display screen
             if self.refresh_timer.isActive():
                 self.refresh_timer.stop()
@@ -150,7 +155,6 @@ class MainWindow(QMainWindow):
             # End acquisition from camera: stop acquiring images from camera to framebuffer
             for screen in self.screen_widgets:
                 screen.stop_acquisition_camera()
-
 
     def handle_start_button_toggle(self, checked):
         if checked:

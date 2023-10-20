@@ -77,6 +77,7 @@ class ScreenWidget(pg.GraphicsView):
             self.set_data(data)
 
     def start_acquisition_camera(self):
+        #print("start_acquisition_camera:")
         if self.camera:
             # print(f"start_acquisition_camera: {self.camera.name(sn_only=True)}")
             self.camera.begin_continuous_acquisition()

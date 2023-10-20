@@ -12,7 +12,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>600</width>
+    <width>800</width>
     <height>0</height>
    </size>
   </property>
@@ -88,6 +88,12 @@ QPushButton#startButton:checked {
           <property name="text">
            <string>START</string>
           </property>
+          <property name="iconSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
           <property name="checkable">
            <bool>true</bool>
           </property>
@@ -126,7 +132,9 @@ QPushButton#recordButton:checked {
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>../img/recordingButton.png</normaloff>../img/recordingButton.png</iconset>
+            <normaloff>resources/recordingButton.png</normaloff>
+            <disabledoff>resources/recordingButton_disabled.png</disabledoff>
+            <disabledon>resources/recordingButton_disabled.png</disabledon>resources/recordingButton.png</iconset>
           </property>
           <property name="checkable">
            <bool>true</bool>
@@ -160,12 +168,13 @@ QPushButton#snapshotButton:pressed {
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>../img/snapshotButton_white.png</normaloff>../img/snapshotButton_white.png</iconset>
+            <normaloff>resources/snapshotButton_green.png</normaloff>
+            <disabledon>resources/snapshotButton_disabled.png</disabledon>resources/snapshotButton_green.png</iconset>
           </property>
           <property name="iconSize">
            <size>
-            <width>18</width>
-            <height>18</height>
+            <width>22</width>
+            <height>22</height>
            </size>
           </property>
          </widget>
