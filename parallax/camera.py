@@ -16,7 +16,7 @@ except ImportError:
     PySpin = None
     logger.warn("Could not import PySpin.")
 
-def list_cameras(dummy=False):
+def list_cameras(dummy=False, version="V1"):
     """
     List available cameras.
     
@@ -26,6 +26,10 @@ def list_cameras(dummy=False):
     Returns:
     - list: List of available PySpin cameras.
     """
+    # Init version, V1: original, V2: WIP with new GUI
+    global VERSION
+    VERSION = version
+
     global pyspin_cameras, pyspin_instance
     cameras = []
     if not dummy:
@@ -37,7 +41,6 @@ def close_cameras():
     """Close all available cameras."""
     if PySpin is not None:
         PySpinCamera.close_cameras()
-
 
 class PySpinCamera:
     """
@@ -70,7 +73,7 @@ class PySpinCamera:
         """
         logger.info("cleaning up SpinSDK")
         for camera in cls.cameras:
-            camera.clean()
+            camera.stop(clean=True)
         if cls.pyspin_cameras is not None:
             cls.pyspin_cameras.Clear()
         if cls.pyspin_instance is not None:
@@ -140,9 +143,19 @@ class PySpinCamera:
         node_balanceratio_mode.SetIntValue(node_balanceratio_mode_blue.GetValue())
         self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
         self.node_wb.SetValue(2)   
-                
-        # begin acquisition
-        self.begin_acquisition()
+
+        # Start acquisition on initialization
+        self.begin_continuous_acquisition() 
+        """     
+        if VERSION == "V1":
+            # begin acquisition
+            # V1: Start continuous acquisition on initialization. 
+            self.begin_continuous_acquisition()
+        elif VERSION == "V2":
+            # V2: Start continous acquisition when 'Start' button is toggled and end acquisition when untoggled.
+            # On initialization, start onetime acquisition to get one frame. 
+            self.begin_singleframe_acquisition()
+        """ 
 
     def set_wb(self, wb=2.0):
         """
@@ -198,10 +211,29 @@ class PySpinCamera:
         else:
             return '%s (Serial # %s)' % (device_model, sn)
 
-    def begin_acquisition(self):
+    def begin_singleframe_acquisition(self):
+        """
+        Begings a single Frame image acquisition. 
+        """  
+        # set acquisition mode to singleFrame
+        node_acquisition_mode = PySpin.CEnumerationPtr(self.node_map.GetNode('AcquisitionMode'))
+        node_acquisition_mode_singleframe = node_acquisition_mode.GetEntryByName('SingleFrame')
+        acquisition_mode_singleframe = node_acquisition_mode_singleframe.GetValue()
+        node_acquisition_mode.SetIntValue(acquisition_mode_singleframe)
+
+        # Begin Acquisition: Image acquisition must be ended when no more images are needed.
+        self.camera.BeginAcquisition() 
+        self.capture()      
+        self.camera.EndAcquisition()
+
+    def begin_continuous_acquisition(self):
         """
         Begins the image acquisition process in continuous mode and starts the capture loop in a separate thread.
         """    
+        if self.running:
+            print("Error: camera is already running")
+            return -1
+
         # set acquisition mode continuous (continuous stream of images)
         node_acquisition_mode = PySpin.CEnumerationPtr(self.node_map.GetNode('AcquisitionMode'))
         node_acquisition_mode_continuous = node_acquisition_mode.GetEntryByName('Continuous')
@@ -240,10 +272,10 @@ class PySpinCamera:
 
         # Retrieve the next image from the camera
         image = self.camera.GetNextImage(1000)
+    
         while image.IsIncomplete():
-            logger.warning(f"Image incomplete with image status {image.GetImageStatus()}")
             time.sleep(0.001)
-
+        
         # Release the previous image from the buffer if it exists
         if self.last_image is not None:
             try:
@@ -315,6 +347,10 @@ class PySpinCamera:
         Returns:
         - numpy.ndarray: Image data in array format.
         """
+        # Wait until last_image is not None
+        while self.last_image is None:
+            pass
+
         return self.last_image.GetNDArray()
 
     def camera_info(self):
@@ -364,7 +400,7 @@ class PySpinCamera:
                                             (self.width, self.height), True) 
         self.video_recording_on.set()
 
-    def stop_capture(self):
+    def stop_recording(self):
         """
         Stops the ongoing video capture process and releases video resources.
         """
@@ -374,18 +410,25 @@ class PySpinCamera:
         self.video_output.release()
 
     # Clean up the camera
-    def clean(self):
+    def stop(self, clean=False):
         """
         Cleans up resources associated with the camera and video recording.
+        Note: 
+            Do not change the order of codes without refering PySpin manual.
+            They are ordered by PySpin Camera Init / Turn off sequence. 
         """  
         if self.running:
             self.running = False
             self.capture_thread.join()
+            self.camera.EndAcquisition()
+            self.last_image = None
+
         if self.video_recording_on.is_set():
             self.video_recording_on.clear()
             self.video_output.release()
-        self.camera.EndAcquisition()
-        del self.camera
+        
+        if clean:
+            del self.camera
 
 
 # Class for simulating a mock camera
@@ -432,6 +475,10 @@ class MockCamera:
     def set_exposure(self, expTime=125000):
         logger.info("This is MockCamera. Setting is not appliable")
         return
+
+    def stop(self, clean=False):
+        logger.info("This is MockCamera. Stop")
+        return
     
 class VideoSource:
 
@@ -474,4 +521,8 @@ class VideoSource:
     
     def set_exposure(self, expTime=125000):
         logger.info("This is VideoSource. Setting is not appliable")
+        return
+    
+    def stop(self, clean=False):
+        logger.info("This is VideoSource. Stop")
         return

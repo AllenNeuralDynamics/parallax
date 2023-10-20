@@ -76,6 +76,16 @@ class ScreenWidget(pg.GraphicsView):
             data = self.camera.get_last_image_data()
             self.set_data(data)
 
+    def start_acquisition_camera(self):
+        if self.camera:
+            # print(f"start_acquisition_camera: {self.camera.name(sn_only=True)}")
+            self.camera.begin_continuous_acquisition()
+
+    def stop_acquisition_camera(self):
+        if self.camera:
+            # print(f"stop_acquisition_camera: {self.camera.name(sn_only=True)}")
+            self.camera.stop(clean=False)
+
     def is_detecting(self):
         return not isinstance(self.detector, detectors.NoDetector)
     
@@ -103,7 +113,7 @@ class ScreenWidget(pg.GraphicsView):
     
     def stop_recording(self):
         if self.camera:
-            self.camera.stop_capture()
+            self.camera.stop_recording()
 
     def set_image_item_from_data(self, data):
         self.image_item.setImage(data, autoLevels=False)

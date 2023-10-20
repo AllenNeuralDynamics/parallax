@@ -10,6 +10,7 @@ from . import ui_dir
 import json
 import os
 import logging
+import time
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -72,13 +73,18 @@ class MainWindow(QMainWindow):
             self.display_mock_camera()
 
         # Start button. If toggled, start camera acquisition  
-        self.startButton.toggled.connect(self.handle_start_button_toggle)
+        self.startButton.clicked.connect(self.start_button_handler)
 
         # Snapshot button. If clicked, save the last image from cameras to dirLabel path.
         self.snapshotButton.clicked.connect(self.save_last_image)
 
         # Recording button. If clicked, save the recording in Mjpg format. 
         self.recordButton.clicked.connect(self.record_button_handler)
+
+        # Refreshing the screen on initialization
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.refresh)
+        self.refresh_timer.start(125)
 
     def record_button_handler(self):
         if self.recordButton.isChecked():
@@ -120,6 +126,28 @@ class MainWindow(QMainWindow):
                     logger.debug("save_last_image) camera not found")
         else:
             print(f"Directory {save_path} does not exist!")    
+
+    def start_button_handler(self):
+        if self.startButton.isChecked():
+            print("\n===== Start =====")
+            # Camera begin acquisition
+            for screen in self.screen_widgets:
+                screen.start_acquisition_camera()
+                
+            # Refreshing images to display screen
+            for screen in self.screen_widgets:
+                self.refresh_timer.start(125)
+
+        else:  
+            print("\n===== STOP =====")
+            # Stop Refresh: stop refreshing images to display screen
+            if self.refresh_timer.isActive():
+                self.refresh_timer.stop()
+
+            # End acquisition from camera: stop acquiring images from camera to framebuffer
+            for screen in self.screen_widgets:
+                screen.stop_acquisition_camera()
+
 
     def handle_start_button_toggle(self, checked):
         if checked:

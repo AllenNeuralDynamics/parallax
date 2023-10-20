@@ -35,11 +35,12 @@ setup_logging()
 
 # Init MainWindow
 app = QApplication([])
-model = Model()
 # Decide which main window to use based on the provided arguments
 if args.version2:
+    model = Model(version="V2")
     main_window = MainWindowV2(model, dummy=args.dummy)
 else:
+    model = Model(version="V1")
     main_window = MainWindowV1(model, dummy=args.dummy)
 main_window.show()
 app.exec()

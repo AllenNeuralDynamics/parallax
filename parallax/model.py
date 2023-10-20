@@ -24,9 +24,9 @@ class Model(QObject):
     msg_posted = pyqtSignal(str)
     accutest_point_reached = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, version="V1"):
         QObject.__init__(self)
-
+        self.version =version
         self.cameras = []
         self.nPySpinCameras = 0
         self.nMockCameras = 0
@@ -101,7 +101,7 @@ class Model(QObject):
             self.cameras.append(MockCamera())
 
     def scan_for_cameras(self):
-        self.cameras = list_cameras() + self.cameras
+        self.cameras = list_cameras(version = self.version) + self.cameras
         self.nMockCameras = len([camera for camera in self.cameras if isinstance(camera, MockCamera)])
         self.nPySpinCameras = len([camera for camera in self.cameras if isinstance(camera, PySpinCamera)])
 
