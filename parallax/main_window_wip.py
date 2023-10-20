@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
             self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
 
         # Load the main widget with UI components
-        ui = os.path.join(ui_dir, "mainWindow_cam1_cal1.ui")
+        ui = os.path.join(ui_dir, "mainWindow.ui")
         loadUi(ui, self) 
 
         # Load Fira Code font
@@ -129,9 +129,12 @@ class MainWindow(QMainWindow):
 
     def start_button_handler(self):
         if self.startButton.isChecked():
-            print("\n===== Start =====")
+            print("\n===== START Clicked =====")
             # Camera begin acquisition
+            cnt = 1
             for screen in self.screen_widgets:
+                print(cnt)
+                cnt += 1
                 screen.start_acquisition_camera()
                 
             # Refreshing images to display screen
@@ -139,7 +142,7 @@ class MainWindow(QMainWindow):
                 self.refresh_timer.start(125)
 
         else:  
-            print("\n===== STOP =====")
+            print("\n===== STOP Clicked=====")
             # Stop Refresh: stop refreshing images to display screen
             if self.refresh_timer.isActive():
                 self.refresh_timer.stop()
