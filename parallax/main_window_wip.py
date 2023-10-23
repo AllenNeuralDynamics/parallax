@@ -146,6 +146,7 @@ class MainWindow(QMainWindow):
             print("\n===== STOP Clicked =====")
             # Start button is unchecked, disable record and snapshot button. 
             self.recordButton.setEnabled(False)
+            self.recordButton.setChecked(False)
             self.snapshotButton.setEnabled(False)
             
             # Stop Refresh: stop refreshing images to display screen

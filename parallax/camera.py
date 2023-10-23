@@ -428,9 +428,7 @@ class PySpinCamera:
             # print(f"StopAcquisition{self.name(sn_only=True)} ")
 
         if self.video_recording_on.is_set():
-            self.video_recording_on.clear()
-            self.video_recording_idle.clear()
-            self.video_output.release()
+            self.stop_recording()
         
         if clean:
             del self.camera
