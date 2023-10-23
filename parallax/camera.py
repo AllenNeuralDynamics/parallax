@@ -92,12 +92,12 @@ class PySpinCamera:
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
-
         self.last_image = None
         self.last_image_filled = threading.Event()
+
         self.video_output = None
         self.video_recording_on = threading.Event()
-        self.video_recording_busy = threading.Event()
+        self.video_recording_idle = threading.Event()
         self.height = None
         self.width = None
         self.channels = None
@@ -292,10 +292,10 @@ class PySpinCamera:
 
         # Record the image if video recording is active     
         if self.video_recording_on.is_set(): 
-            self.video_recording_busy.set()
+            self.video_recording_idle.clear()
             im_cv2_format = self.last_image.GetData().reshape(self.height, self.width, self.channels)
             self.video_output.write(im_cv2_format)
-            self.video_recording_busy.clear()
+            self.video_recording_idle.set()
         
     def get_last_capture_time(self):
         """
@@ -407,8 +407,8 @@ class PySpinCamera:
         Stops the ongoing video capture process and releases video resources.
         """
         self.video_recording_on.clear()
-        while self.video_recording_busy.is_set():
-            pass
+        self.video_recording_idle.wait()
+        self.video_recording_idle.clear()
         self.video_output.release()
 
     # Clean up the camera
@@ -429,6 +429,7 @@ class PySpinCamera:
 
         if self.video_recording_on.is_set():
             self.video_recording_on.clear()
+            self.video_recording_idle.clear()
             self.video_output.release()
         
         if clean:
