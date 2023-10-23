@@ -77,9 +77,8 @@ class ScreenWidget(pg.GraphicsView):
             self.set_data(data)
 
     def start_acquisition_camera(self):
-        #print("start_acquisition_camera:")
         if self.camera:
-            # print(f"start_acquisition_camera: {self.camera.name(sn_only=True)}")
+            print(f"start_acquisition_camera: {self.camera.name(sn_only=True)}")
             self.camera.begin_continuous_acquisition()
 
     def stop_acquisition_camera(self):
@@ -189,7 +188,8 @@ class ScreenWidget(pg.GraphicsView):
 
     def set_camera(self, camera):
         self.camera = camera
-        self.refresh()
+        if self.model.version == "V1":
+            self.refresh()
 
     def set_focochan(self, foco, chan):
         self.focochan = (foco, chan)

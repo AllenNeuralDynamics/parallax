@@ -145,9 +145,7 @@ class PySpinCamera:
         self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
         self.node_wb.SetValue(2)   
 
-        # Start acquisition on initialization
-        self.begin_continuous_acquisition() 
-        """     
+        # Start acquisition on initialization             
         if VERSION == "V1":
             # begin acquisition
             # V1: Start continuous acquisition on initialization. 
@@ -155,8 +153,7 @@ class PySpinCamera:
         elif VERSION == "V2":
             # V2: Start continous acquisition when 'Start' button is toggled and end acquisition when untoggled.
             # On initialization, start onetime acquisition to get one frame. 
-            self.begin_singleframe_acquisition()
-        """ 
+            pass
 
     def set_wb(self, wb=2.0):
         """
@@ -243,7 +240,7 @@ class PySpinCamera:
 
         # Begin Acquisition: Image acquisition must be ended when no more images are needed.
         self.camera.BeginAcquisition() 
-        # print(f"BeginAcquisition{self.name(sn_only=True)} ")
+        print(f"BeginAcquisition {self.name(sn_only=True)} ")
         self.running = True
         self.capture_thread = threading.Thread(target=self.capture_loop, daemon=True)
         self.capture_thread.start()
@@ -253,8 +250,8 @@ class PySpinCamera:
         Continuous loop to capture images while the camera is running.
         """
         while self.running:
-            # print(f"{self.name(sn_only=True)}_", end = ' ', flush=True)
             self.capture()
+            print(".", end="",flush=True)
 
     def capture(self):
         """
@@ -483,6 +480,12 @@ class MockCamera:
         logger.info("This is MockCamera. Stop")
         return
     
+    def begin_continuous_acquisition(self):
+        return
+    
+    def stop(self, clean=False):
+        return
+    
 class VideoSource:
 
     def __init__(self, filename):
@@ -526,6 +529,8 @@ class VideoSource:
         logger.info("This is VideoSource. Setting is not appliable")
         return
     
+    def begin_continuous_acquisition(self):
+        return
+    
     def stop(self, clean=False):
-        logger.info("This is VideoSource. Stop")
         return

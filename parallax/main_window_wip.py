@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
 
         # Dynamically generate Microscope display
         if self.model.nPySpinCameras:
-            self.display_microscope()
+            self.display_microscope() # Attach screen widget
         else: # Display only mock camera
             self.display_mock_camera()
 
@@ -81,10 +81,23 @@ class MainWindow(QMainWindow):
         # Recording button. If clicked, save the recording in Mjpg format. 
         self.recordButton.clicked.connect(self.record_button_handler)
 
-        # Refreshing the screen on initialization
+        # Refreshing the screen timer
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh)
-        self.refresh_timer.start(125)
+        
+        # Set camera
+        # self.init_camera()
+        # Toggle start button on init
+        self.start_button_handler()
+
+    """
+    def init_camera(self):
+        for i, screen in enumerate(self.screen_widgets):
+            if i < len(self.model.cameras):
+                screen.set_camera(self.model.cameras[i])
+            else:
+                print(f"Warning: Not enough cameras for screen {i}")
+    """
 
     def record_button_handler(self):
         if self.recordButton.isChecked():
@@ -93,7 +106,7 @@ class MainWindow(QMainWindow):
             self.stop_recording()
 
     def save_recording(self):
-        print("====== Start recording ======")
+        print("===== Start Recording =====")
         save_path = self.dirLabel.text()
         if os.path.exists(save_path):
             for screen in self.screen_widgets:
@@ -108,7 +121,7 @@ class MainWindow(QMainWindow):
             print(f"Directory {save_path} does not exist!")
 
     def stop_recording(self):
-        print("====== stop recording ======")
+        print("===== Stop Recording =====")
         for screen in self.screen_widgets:
                 if screen.is_camera():
                     screen.stop_recording()
@@ -135,8 +148,7 @@ class MainWindow(QMainWindow):
                 screen.start_acquisition_camera()
                 
             # Refreshing images to display screen
-            for screen in self.screen_widgets:
-                self.refresh_timer.start(125)
+            self.refresh_timer.start(125)
             
             # Start button is checked, enable record and snapshot button. 
             self.recordButton.setEnabled(True)
@@ -157,18 +169,6 @@ class MainWindow(QMainWindow):
             for screen in self.screen_widgets:
                 screen.stop_acquisition_camera()
 
-    def handle_start_button_toggle(self, checked):
-        if checked:
-            # Start the timer for refreshing screens if it's not already running
-            if not hasattr(self, 'refresh_timer') or not self.refresh_timer.isActive():
-                self.refresh_timer = QTimer()
-                self.refresh_timer.timeout.connect(self.refresh)
-                self.refresh_timer.start(125)
-        else:
-            # Stop the timer if it's running
-            if hasattr(self, 'refresh_timer') and self.refresh_timer.isActive():
-                self.refresh_timer.stop()
-
     # Refresh the screens
     def refresh(self):
         for screen in self.screen_widgets:
@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
         for row_idx  in range(0, rows):
             for col_idx  in range(0, cols):
                 if cnt < self.model.nPySpinCameras:
-                    self.createNewGroupBox(row_idx, col_idx, camera_number=cnt+1)
+                    self.createNewGroupBox(row_idx, col_idx, camera_number=cnt)
                     cnt += 1
                 else:
                     break # Stop when all Microscopes are displayed
@@ -227,8 +227,11 @@ class MainWindow(QMainWindow):
         # Generate unique names based on row and column indices
         newNameMicroscope = ""
         # Generate unique names based on camera number
-        newNameMicroscope = f"Microscope_{camera_number}" if camera_number else newNameMicroscope
-        newNameMicroscope = "Mock Camera" if mock else newNameMicroscope
+        if mock:
+            newNameMicroscope = "Mock Camera"
+        else:
+            newNameMicroscope = f"Microscope_{camera_number+1}"
+
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
         # Construct and configure the Microscope widget
         microscopeGrp.setObjectName(newNameMicroscope)
@@ -238,10 +241,16 @@ class MainWindow(QMainWindow):
         microscopeGrp.setFont(font_grpbox)
         verticalLayout = QVBoxLayout(microscopeGrp)
         verticalLayout.setObjectName(u"verticalLayout")
-        # Add camera screens
+        # Add screens
         screen = ScreenWidget(model=self.model, parent=microscopeGrp)
         screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
+        # Add camera on screen
+        if mock: 
+            screen.set_camera(self.model.cameras[0])
+        else:
+            screen.set_camera(self.model.cameras[camera_number]) # set screen.camera = model.camera 
+
         # Add setting button
         settingButton = QToolButton(microscopeGrp)
         settingButton.setObjectName(f"Setting")
@@ -268,6 +277,10 @@ class MainWindow(QMainWindow):
         # Name) If name is changed, change the groupBoxName label. 
         settingMenu.customName.textChanged.connect(lambda: \
                         self.update_groupbox_name(microscopeGrp, settingMenu.customName.text()))
+        
+        # s/n
+        settingMenu.snDspLabel.setText(screen.get_camera_name())
+        print(screen.get_camera_name())
 
         # Exposure
         settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
@@ -306,7 +319,8 @@ class MainWindow(QMainWindow):
             if is_checked:
                 # Display the S/N of camera 
                 if screen.is_camera:
-                    settingMenu.snDspLabel.setText(screen.get_camera_name())
+                    #settingMenu.snDspLabel.setText(screen.get_camera_name())
+                    print("show_settings_menu", settingMenu.snDspLabel.text())
                 # Show the setting menu next to setting button
                 button_position = settingButton.mapToGlobal(settingButton.pos())
                 menu_x = button_position.x() + settingButton.width()
@@ -341,16 +355,32 @@ class MainWindow(QMainWindow):
         if not self.dummy:
             self.model.scan_for_cameras()
         
-        # TBD Commented code: Update the list of cameras on the UI (uncomment if needed) 
+        # TODO Commented code: Update the list of cameras on the UI (uncomment if needed) 
         # for screen in self.screens():
         #    screen.update_camera_menu()
-        
+
     def save_user_settings(self):
         """Save user settings (e.g., column configuration, directory path) to a JSON file."""
+        customNameList, expList, gainList, wbList, gammaList = [], [], [], [], []
+
+        for screen in self.screen_widgets:
+            microscopeGrp = screen.parent()
+            settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
+            customNameList.append(microscopeGrp.title())
+            expList.append(settingMenu.expSlider.value())
+            gainList.append(settingMenu.gainSlider.value())
+            wbList.append(settingMenu.wbSlider.value())
+            gammaList.append(settingMenu.gammaSlider.value())
+
         settings = {
             "nColumn": self.nColumnsSpinBox.value(),
-            "directory": self.dirLabel.text()
-             # TBD Future Implementation: Additional camera settings such as gamma, gain, and exposure 
+            "directory": self.dirLabel.text(),
+            # TODO Future Implementation: Additional camera settings such as gamma, gain, and exposure 
+            "customNameList": customNameList,
+            "expList": expList,
+            "gainList": gainList,
+            "wbList": wbList,
+            "gammaList": gammaList,
         }
         with open(SETTINGS_FILE, 'w') as file:
             json.dump(settings, file)
@@ -364,10 +394,17 @@ class MainWindow(QMainWindow):
                 # Apply the loaded settings to the UI components
                 self.nColumnsSpinBox.setValue(settings["nColumn"])
                 self.dirLabel.setText(settings["directory"])
-                # TBD Future Implementation: Load additional camera settings
+                # TODO Future Implementation: Load additional camera settings
+                """
+                gamma_values = settings.get("gammaValues", [])
+                for i, screen in enumerate(self.screen_widgets):
+                    if i < len(gamma_values):
+                        screen.set_gamma_value(gamma_values[i])
+                """
+                
         else:
             logger.debug("load_settings: Settings file not found.")
-    
+
     def load_settings_item(self, item=None):
         """Load a specific setting item from the JSON settings file."""
         if os.path.exists(SETTINGS_FILE):
@@ -377,3 +414,6 @@ class MainWindow(QMainWindow):
         else:
             logger.debug("load_settings_item: Settings file not found.")
             return None
+        
+
+
