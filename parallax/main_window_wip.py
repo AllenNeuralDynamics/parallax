@@ -143,7 +143,7 @@ class MainWindow(QMainWindow):
             self.snapshotButton.setEnabled(True)
 
         else:  
-            print("\n===== STOP Clicked=====")
+            print("\n===== STOP Clicked =====")
             # Start button is unchecked, disable record and snapshot button. 
             self.recordButton.setEnabled(False)
             self.snapshotButton.setEnabled(False)

@@ -94,6 +94,7 @@ class PySpinCamera:
         self.node_map = self.camera.GetNodeMap()
 
         self.last_image = None
+        self.last_image_filled = threading.Event()
         self.video_output = None
         self.video_recording_on = threading.Event()
         self.video_recording_busy = threading.Event()
@@ -287,6 +288,7 @@ class PySpinCamera:
 
         # Update the last captured image reference
         self.last_image = image
+        self.last_image_filled.set()
 
         # Record the image if video recording is active     
         if self.video_recording_on.is_set(): 
@@ -350,9 +352,7 @@ class PySpinCamera:
         - numpy.ndarray: Image data in array format.
         """
         # Wait until last_image is not None
-        while self.last_image is None:
-            pass
-
+        self.last_image_filled.wait()
         return self.last_image.GetNDArray()
 
     def camera_info(self):
@@ -424,6 +424,7 @@ class PySpinCamera:
             self.capture_thread.join()
             self.camera.EndAcquisition()
             self.last_image = None
+            self.last_image_filled.clear()
             # print(f"StopAcquisition{self.name(sn_only=True)} ")
 
         if self.video_recording_on.is_set():
