@@ -375,6 +375,8 @@ class MainWindow(QMainWindow):
         settings = {
             "nColumn": self.nColumnsSpinBox.value(),
             "directory": self.dirLabel.text(),
+            "width": self.width(),
+            "height": self.height(),
             # TODO Future Implementation: Additional camera settings such as gamma, gain, and exposure 
             "customNameList": customNameList,
             "expList": expList,
@@ -394,6 +396,10 @@ class MainWindow(QMainWindow):
                 # Apply the loaded settings to the UI components
                 self.nColumnsSpinBox.setValue(settings["nColumn"])
                 self.dirLabel.setText(settings["directory"])
+                width = settings["width"]
+                height = settings["height"]
+                if width is not None and height is not None:
+                    self.resize(width, height)
                 # TODO Future Implementation: Load additional camera settings
                 """
                 gamma_values = settings.get("gammaValues", [])
