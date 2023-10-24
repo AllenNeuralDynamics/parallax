@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
         QApplication.setFont(fira_code_font)
 
         # Load existing user preferences
-        self.load_settings()
+        self.load_mainWindow_settings()
 
         # Attach directory selection event handler for saving files
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
@@ -256,51 +256,66 @@ class MainWindow(QMainWindow):
         settingButton.setObjectName(f"Setting")
         settingButton.setFont(font_grpbox)
         settingButton.setCheckable(True)
-        self.create_settings_menu(microscopeGrp, screen)
+        self.create_settings_menu(microscopeGrp, newNameMicroscope, screen)
         settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
         verticalLayout.addWidget(settingButton)
         # Add widget to the gridlayout
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
         microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newNameMicroscope, None))
         settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
+
+        # Load setting file from JSON
+        self.show_settings_menu(settingButton, is_checked=True)
+        self.show_settings_menu(settingButton, is_checked=False)
+        
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
 
-    def create_settings_menu(self, microscopeGrp, screen):
+    def create_settings_menu(self, microscopeGrp, newNameMicroscope, screen):
         """Create and hide the settings menu by default."""
         settingMenu = QWidget(microscopeGrp)
         setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
         loadUi(setting_ui, settingMenu)
         settingMenu.setObjectName("SettingsMenu")        
         settingMenu.hide()  # Hide the menu by default
-
-        # Name) If name is changed, change the groupBoxName label. 
-        settingMenu.customName.textChanged.connect(lambda: \
-                        self.update_groupbox_name(microscopeGrp, settingMenu.customName.text()))
         
         # s/n
-        settingMenu.snDspLabel.setText(screen.get_camera_name())
-        print(screen.get_camera_name())
+        sn = screen.get_camera_name()
+        settingMenu.snDspLabel.setText(sn)
+
+        # Name) If name is changed, change the groupBoxName label. 
+        settingMenu.customName.setText(newNameMicroscope)       # Default is Microscope_{num}
+        settingMenu.customName.textChanged.connect(lambda: \
+                        self.update_groupbox_name(microscopeGrp, settingMenu.customName.text()))
+        settingMenu.customName.textChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+                                                            sn, "customName", settingMenu.customName.text()))
 
         # Exposure
         settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
                                                                 val = settingMenu.expSlider.value()*1000))
         settingMenu.expSlider.valueChanged.connect(lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value()))
+        settingMenu.expSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+                                                            sn, "exp", settingMenu.expSlider.value()))
 
         # Gain
         settingMenu.gainSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gain",\
                                                                 val = settingMenu.gainSlider.value()))
+        settingMenu.gainSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+                                                            sn, "gain", settingMenu.gainSlider.value()))
         
         # W/B
         settingMenu.wbSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wb",\
                                                                 val = settingMenu.wbSlider.value()/100))
         settingMenu.wbSlider.valueChanged.connect(lambda: settingMenu.wbNum.setNum(settingMenu.wbSlider.value()/100))
+        settingMenu.wbSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+                                                            sn, "wb", settingMenu.wbSlider.value()))
 
         # Gamma
         settingMenu.gammaSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gamma",\
                                                                 val = settingMenu.gammaSlider.value()/100))
         settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setNum(settingMenu.gammaSlider.value()/100))
-
+        settingMenu.gammaSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+                                                            sn, "gamma", settingMenu.gammaSlider.value()))
 
     def update_groupbox_name(self, microscopeGrp, customName):
         """Update the group box's title and object name based on custom name."""
@@ -318,9 +333,19 @@ class MainWindow(QMainWindow):
         if settingMenu:
             if is_checked:
                 # Display the S/N of camera 
-                if screen.is_camera:
-                    #settingMenu.snDspLabel.setText(screen.get_camera_name())
-                    print("show_settings_menu", settingMenu.snDspLabel.text())
+                sn = screen.get_camera_name()
+                settingMenu.snDspLabel.setText(sn)
+                print("show_settings_menu", settingMenu.snDspLabel.text())
+                
+                # Load the saved settings
+                saved_settings = self.load_settings_item(sn)
+                if saved_settings:
+                    settingMenu.expSlider.setValue(saved_settings.get('exp', settingMenu.expSlider.value()))
+                    settingMenu.gainSlider.setValue(saved_settings.get('gain', settingMenu.gainSlider.value()))
+                    settingMenu.wbSlider.setValue(saved_settings.get('wb', settingMenu.wbSlider.value()))
+                    settingMenu.gammaSlider.setValue(saved_settings.get('gamma', settingMenu.gammaSlider.value()))
+                    settingMenu.customName.setText(saved_settings.get('customName', ''))
+
                 # Show the setting menu next to setting button
                 button_position = settingButton.mapToGlobal(settingButton.pos())
                 menu_x = button_position.x() + settingButton.width()
@@ -331,7 +356,7 @@ class MainWindow(QMainWindow):
                 settingMenu.show()
             else:
                 settingMenu.hide()
-
+        
     def dir_setting_handler(self):
         """Handle directory selection to determine where files should be saved."""
         # Fetch the default documents directory path
@@ -377,7 +402,7 @@ class MainWindow(QMainWindow):
         with open(SETTINGS_FILE, 'w') as file:
             json.dump(settings, file)
 
-    def load_settings(self):
+    def load_mainWindow_settings(self):
         """Load user settings from a JSON file during application startup."""
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
@@ -386,26 +411,35 @@ class MainWindow(QMainWindow):
                     main_settings = settings["main"]
                     self.nColumnsSpinBox.setValue(main_settings.get("nColumn", 2))  
                     self.dirLabel.setText(main_settings.get("directory", "")) 
-                    width = main_settings.get("width", 400)
-                    height = main_settings.get("height", 300)
+                    width = main_settings.get("width", 1400)
+                    height = main_settings.get("height", 1000)
                     if width is not None and height is not None:
                         self.resize(width, height)
         else:
             logger.debug("load_settings: Settings file not found.")
 
-    def load_settings_item(self, category=None, item=None):
+    def load_settings_item(self, category, item=None):
         """Load a specific setting item from the JSON settings file."""
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
                 if category in settings:
-                    category_settings = settings[category]
-                    if item in category_settings:
-                        return category_settings[item]
-        logger.warning(f"Cannot load setting item, category:{category}, item:{item}")
-        return None
+                    if item is not None:
+                        if item in settings[category]:
+                            return settings[category][item]
+                        else:
+                            logger.debug(f"load_settings_item: Item '{item}' not found in settings.")
+                            return None
+                    return settings[category]
+                else:
+                    logger.debug(f"load_settings_item: Section '{category}' not found in settings.")
+                    return None
+        else:
+            logger.debug("load_settings_item: Settings file not found.")
+            return None
 
-    def update_user_configs_settingMenu(self, screen):
+
+    def update_user_configs_settingMenu(self, microscopeGrp, sn, item, val):
         # Read current settings from file
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
@@ -414,17 +448,10 @@ class MainWindow(QMainWindow):
             settings = {}
 
         # Update settings with values from the settingMenu of current screen
-        microscopeGrp = screen.parent()
-        settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
-        sn = settingMenu.snDspLabel.text()
-        settings[sn] = {
-            "customName": microscopeGrp.title(), 
-            "exp": settingMenu.expSlider.value(),
-            "gain": settingMenu.gainSlider.value(),
-            "wb": settingMenu.wbSlider.value(),
-            "gamma": settingMenu.gammaSlider.value(),
-        }
+        if sn not in settings:
+            settings[sn] = {}
+        settings[sn][item] = val
+
         # Write updated settings back to file
         with open(SETTINGS_FILE, 'w') as file:
             json.dump(settings, file)
-
