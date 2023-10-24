@@ -48,5 +48,5 @@ app.exec()
 # Register cleanup functions to be called on program termination
 atexit.register(model.clean)
 if args.version2:
-    atexit.register(main_window.save_user_settings)
+    atexit.register(main_window.save_user_configs)
     

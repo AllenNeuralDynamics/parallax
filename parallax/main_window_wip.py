@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
         # self.model.nPySpinCameras = 2 # test
     
         # Load column configuration from user preferences
-        self.nColumn = self.load_settings_item("nColumn")
+        self.nColumn = self.load_settings_item("main", "nColumn")
         if self.nColumn is None or 0:
             self.nColumn = 1
         if self.model.nPySpinCameras:
@@ -359,67 +359,72 @@ class MainWindow(QMainWindow):
         # for screen in self.screens():
         #    screen.update_camera_menu()
 
-    def save_user_settings(self):
+    def save_user_configs(self):
         """Save user settings (e.g., column configuration, directory path) to a JSON file."""
-        customNameList, expList, gainList, wbList, gammaList = [], [], [], [], []
+        # Read current settings from file
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, 'r') as file:
+                settings = json.load(file)
+        else:
+            settings = {}
 
-        for screen in self.screen_widgets:
-            microscopeGrp = screen.parent()
-            settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
-            customNameList.append(microscopeGrp.title())
-            expList.append(settingMenu.expSlider.value())
-            gainList.append(settingMenu.gainSlider.value())
-            wbList.append(settingMenu.wbSlider.value())
-            gammaList.append(settingMenu.gammaSlider.value())
-
-        settings = {
+        settings["main"] = {
             "nColumn": self.nColumnsSpinBox.value(),
             "directory": self.dirLabel.text(),
             "width": self.width(),
-            "height": self.height(),
-            # TODO Future Implementation: Additional camera settings such as gamma, gain, and exposure 
-            "customNameList": customNameList,
-            "expList": expList,
-            "gainList": gainList,
-            "wbList": wbList,
-            "gammaList": gammaList,
+            "height": self.height(),  
         }
         with open(SETTINGS_FILE, 'w') as file:
             json.dump(settings, file)
 
     def load_settings(self):
         """Load user settings from a JSON file during application startup."""
-        # Check if the settings file exists
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
-                # Apply the loaded settings to the UI components
-                self.nColumnsSpinBox.setValue(settings["nColumn"])
-                self.dirLabel.setText(settings["directory"])
-                width = settings["width"]
-                height = settings["height"]
-                if width is not None and height is not None:
-                    self.resize(width, height)
-                # TODO Future Implementation: Load additional camera settings
-                """
-                gamma_values = settings.get("gammaValues", [])
-                for i, screen in enumerate(self.screen_widgets):
-                    if i < len(gamma_values):
-                        screen.set_gamma_value(gamma_values[i])
-                """
-                
+                if "main" in settings:
+                    main_settings = settings["main"]
+                    self.nColumnsSpinBox.setValue(main_settings.get("nColumn", 2))  
+                    self.dirLabel.setText(main_settings.get("directory", "")) 
+                    width = main_settings.get("width", 400)
+                    height = main_settings.get("height", 300)
+                    if width is not None and height is not None:
+                        self.resize(width, height)
         else:
             logger.debug("load_settings: Settings file not found.")
 
-    def load_settings_item(self, item=None):
+    def load_settings_item(self, category=None, item=None):
         """Load a specific setting item from the JSON settings file."""
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
-                return settings[item]
-        else:
-            logger.debug("load_settings_item: Settings file not found.")
-            return None
-        
+                if category in settings:
+                    category_settings = settings[category]
+                    if item in category_settings:
+                        return category_settings[item]
+        logger.warning(f"Cannot load setting item, category:{category}, item:{item}")
+        return None
 
+    def update_user_configs_settingMenu(self, screen):
+        # Read current settings from file
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE, 'r') as file:
+                settings = json.load(file)
+        else:
+            settings = {}
+
+        # Update settings with values from the settingMenu of current screen
+        microscopeGrp = screen.parent()
+        settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
+        sn = settingMenu.snDspLabel.text()
+        settings[sn] = {
+            "customName": microscopeGrp.title(), 
+            "exp": settingMenu.expSlider.value(),
+            "gain": settingMenu.gainSlider.value(),
+            "wb": settingMenu.wbSlider.value(),
+            "gamma": settingMenu.gammaSlider.value(),
+        }
+        # Write updated settings back to file
+        with open(SETTINGS_FILE, 'w') as file:
+            json.dump(settings, file)
 
