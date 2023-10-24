@@ -245,6 +245,7 @@ class MainWindow(QMainWindow):
         screen = ScreenWidget(model=self.model, parent=microscopeGrp)
         screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
+        
         # Add camera on screen
         if mock: 
             screen.set_camera(self.model.cameras[0])
@@ -288,34 +289,34 @@ class MainWindow(QMainWindow):
         settingMenu.customName.textChanged.connect(lambda: \
                         self.update_groupbox_name(microscopeGrp, settingMenu.customName.text()))
         settingMenu.customName.textChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                            sn, "customName", settingMenu.customName.text()))
+                                                            "customName", settingMenu.customName.text()))
 
         # Exposure
         settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
                                                                 val = settingMenu.expSlider.value()*1000))
         settingMenu.expSlider.valueChanged.connect(lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value()))
         settingMenu.expSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                            sn, "exp", settingMenu.expSlider.value()))
+                                                            "exp", settingMenu.expSlider.value()))
 
         # Gain
         settingMenu.gainSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gain",\
                                                                 val = settingMenu.gainSlider.value()))
         settingMenu.gainSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                            sn, "gain", settingMenu.gainSlider.value()))
+                                                             "gain", settingMenu.gainSlider.value()))
         
         # W/B
         settingMenu.wbSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wb",\
                                                                 val = settingMenu.wbSlider.value()/100))
         settingMenu.wbSlider.valueChanged.connect(lambda: settingMenu.wbNum.setNum(settingMenu.wbSlider.value()/100))
         settingMenu.wbSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                            sn, "wb", settingMenu.wbSlider.value()))
+                                                             "wb", settingMenu.wbSlider.value()))
 
         # Gamma
         settingMenu.gammaSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gamma",\
                                                                 val = settingMenu.gammaSlider.value()/100))
         settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setNum(settingMenu.gammaSlider.value()/100))
         settingMenu.gammaSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                            sn, "gamma", settingMenu.gammaSlider.value()))
+                                                             "gamma", settingMenu.gammaSlider.value()))
 
     def update_groupbox_name(self, microscopeGrp, customName):
         """Update the group box's title and object name based on custom name."""
@@ -438,14 +439,16 @@ class MainWindow(QMainWindow):
             logger.debug("load_settings_item: Settings file not found.")
             return None
 
-
-    def update_user_configs_settingMenu(self, microscopeGrp, sn, item, val):
+    def update_user_configs_settingMenu(self, microscopeGrp, item, val):
         # Read current settings from file
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
         else:
             settings = {}
+
+        screen = microscopeGrp.findChild(ScreenWidget, "Screen")
+        sn = screen.get_camera_name()
 
         # Update settings with values from the settingMenu of current screen
         if sn not in settings:
