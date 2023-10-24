@@ -269,8 +269,7 @@ class MainWindow(QMainWindow):
         settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
 
         # Load setting file from JSON
-        self.show_settings_menu(settingButton, is_checked=True)
-        self.show_settings_menu(settingButton, is_checked=False)
+        self.update_setting_menu(microscopeGrp)
         
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
