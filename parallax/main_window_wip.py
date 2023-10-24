@@ -7,10 +7,12 @@ from PyQt5.uic import loadUi
 
 from .screen_widget import ScreenWidget
 from . import ui_dir
+from functools import partial
 import json
 import os
 import logging
 import time
+
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -66,6 +68,9 @@ class MainWindow(QMainWindow):
         if self.model.nPySpinCameras:
             self.nColumnsSpinBox.valueChanged.connect(self.column_changed_handler)
 
+        # Refreshing the settingMenu while it is toggled
+        self.settings_refresh_timer = QTimer()
+
         # Dynamically generate Microscope display
         if self.model.nPySpinCameras:
             self.display_microscope() # Attach screen widget
@@ -84,9 +89,7 @@ class MainWindow(QMainWindow):
         # Refreshing the screen timer
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh)
-        
-        # Set camera
-        # self.init_camera()
+           
         # Toggle start button on init
         self.start_button_handler()
 
@@ -325,7 +328,47 @@ class MainWindow(QMainWindow):
             microscopeGrp.setObjectName(customName)
 
     def show_settings_menu(self, settingButton, is_checked):
-        """Toggle the settings menu next to the specified settings button based on its check state."""
+        microscopeGrp = settingButton.parent()
+        # Find the settingMenu within this microscopeGrp
+        settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
+        self.settings_refresh_timer.timeout.connect(partial(self.update_setting_menu, microscopeGrp))
+
+        if is_checked:
+            # Start
+            self.settings_refresh_timer.start(100)      # update setting menu every 0.1 sec
+            
+            # Show the setting menu next to setting button
+            button_position = settingButton.mapToGlobal(settingButton.pos())
+            menu_x = button_position.x() + settingButton.width()
+            menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()
+            menu_y = settingButton.y() + settingButton.height() - settingMenu.height()
+            logger.debug(f"(SettingMenu) coordinates of setting menu: x: {menu_x}, y: {menu_y}")
+            settingMenu.move(menu_x, menu_y)
+            settingMenu.show()
+        else:
+            # Stop
+            self.settings_refresh_timer.stop()
+            settingMenu.hide()
+
+    def update_setting_menu(self, microscopeGrp):
+        # Find the settingMenu within this microscopeGrp
+        settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
+        screen = microscopeGrp.findChild(ScreenWidget, "Screen")
+        # Display the S/N of camera 
+        sn = screen.get_camera_name()
+        settingMenu.snDspLabel.setText(sn)
+        # Load the saved settings
+        saved_settings = self.load_settings_item(sn)
+        if saved_settings:
+            settingMenu.expSlider.setValue(saved_settings.get('exp', settingMenu.expSlider.value()))
+            settingMenu.gainSlider.setValue(saved_settings.get('gain', settingMenu.gainSlider.value()))
+            settingMenu.wbSlider.setValue(saved_settings.get('wb', settingMenu.wbSlider.value()))
+            settingMenu.gammaSlider.setValue(saved_settings.get('gamma', settingMenu.gammaSlider.value()))
+            settingMenu.customName.setText(saved_settings.get('customName', ''))
+
+    """
+    def show_settings_menu(self, settingButton, is_checked):
+        # Toggle the settings menu next to the specified settings button based on its check state.
         # Get the parent microscopeGrp of the clicked settingButton
         microscopeGrp = settingButton.parent()
         # Find the settingMenu within this microscopeGrp
@@ -357,7 +400,8 @@ class MainWindow(QMainWindow):
                 settingMenu.show()
             else:
                 settingMenu.hide()
-        
+    
+    """
     def dir_setting_handler(self):
         """Handle directory selection to determine where files should be saved."""
         # Fetch the default documents directory path
