@@ -264,9 +264,7 @@ class MainWindow(QMainWindow):
         verticalLayout.addWidget(settingButton)
         # Add widget to the gridlayout
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
-        microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", newNameMicroscope, None))
         settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
-
         # Load setting file from JSON
         self.update_setting_menu(microscopeGrp)
         
@@ -285,13 +283,19 @@ class MainWindow(QMainWindow):
         sn = screen.get_camera_name()
         settingMenu.snDspLabel.setText(sn)
 
-        # Name) If name is changed, change the groupBoxName label. 
-        settingMenu.customName.setText(newNameMicroscope)       # Default is Microscope_{num}
-        settingMenu.customName.textChanged.connect(lambda: \
-                        self.update_groupbox_name(microscopeGrp, settingMenu.customName.text()))
+        # Custom name
+        customName = self.load_settings_item(sn, "customName")  # Default name on init
+        customName = customName if customName else newNameMicroscope
+        settingMenu.customName.setText(customName)
+        self.update_groupbox_name(microscopeGrp, customName)    # Update GroupBox name
+        print(customName)
+        # Name) If custom name is changed, change the groupBox name. 
+        settingMenu.customName.textChanged.connect(lambda: self.update_groupbox_name(microscopeGrp, \
+                                                                            settingMenu.customName.text()))
         settingMenu.customName.textChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                             "customName", settingMenu.customName.text()))
-
+        
+    
         # Exposure
         settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
                                                                 val = settingMenu.expSlider.value()*1000))
@@ -321,8 +325,8 @@ class MainWindow(QMainWindow):
 
     def update_groupbox_name(self, microscopeGrp, customName):
         """Update the group box's title and object name based on custom name."""
-        if customName:  # If there's some text in customName
-            microscopeGrp.setTitle(QCoreApplication.translate("MainWindow", customName, None))
+        if customName: 
+            microscopeGrp.setTitle(customName)
             microscopeGrp.setObjectName(customName)
 
     def show_settings_menu(self, settingButton, is_checked):
@@ -362,7 +366,7 @@ class MainWindow(QMainWindow):
             settingMenu.gainSlider.setValue(saved_settings.get('gain', settingMenu.gainSlider.value()))
             settingMenu.wbSlider.setValue(saved_settings.get('wb', settingMenu.wbSlider.value()))
             settingMenu.gammaSlider.setValue(saved_settings.get('gamma', settingMenu.gammaSlider.value()))
-            settingMenu.customName.setText(saved_settings.get('customName', ''))
+            # settingMenu.customName.setText(saved_settings.get('customName', microscopeGrp.objectName()))
 
     def dir_setting_handler(self):
         """Handle directory selection to determine where files should be saved."""
