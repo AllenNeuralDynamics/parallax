@@ -189,7 +189,7 @@ class MainWindow(QMainWindow):
         for row_idx  in range(0, rows):
             for col_idx  in range(0, cols):
                 if cnt < self.model.nPySpinCameras:
-                    self.createNewGroupBox(row_idx, col_idx, camera_number=cnt)
+                    self.createNewGroupBox(row_idx, col_idx, screen_index=cnt)
                     cnt += 1
                 else:
                     break # Stop when all Microscopes are displayed
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
                 else:
                     break
 
-    def createNewGroupBox(self, rows, cols, mock=False, camera_number=None):
+    def createNewGroupBox(self, rows, cols, mock=False, screen_index=None):
         """Create a new Microscope widget with associated settings."""
         # Generate unique names based on row and column indices
         newNameMicroscope = ""
@@ -232,7 +232,7 @@ class MainWindow(QMainWindow):
         if mock:
             newNameMicroscope = "Mock Camera"
         else:
-            newNameMicroscope = f"Microscope_{camera_number+1}"
+            newNameMicroscope = f"Microscope_{screen_index+1}"
 
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
         # Construct and configure the Microscope widget
@@ -252,14 +252,14 @@ class MainWindow(QMainWindow):
         if mock: 
             screen.set_camera(self.model.cameras[0])
         else:
-            screen.set_camera(self.model.cameras[camera_number]) # set screen.camera = model.camera 
+            screen.set_camera(self.model.cameras[screen_index]) # set screen.camera = model.camera 
 
         # Add setting button
         settingButton = QToolButton(microscopeGrp)
         settingButton.setObjectName(f"Setting")
         settingButton.setFont(font_grpbox)
         settingButton.setCheckable(True)
-        self.create_settings_menu(microscopeGrp, newNameMicroscope, screen)
+        self.create_settings_menu(microscopeGrp, newNameMicroscope, screen, screen_index)
         settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
         verticalLayout.addWidget(settingButton)
         # Add widget to the gridlayout
@@ -271,7 +271,7 @@ class MainWindow(QMainWindow):
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
 
-    def create_settings_menu(self, microscopeGrp, newNameMicroscope, screen):
+    def create_settings_menu(self, microscopeGrp, newNameMicroscope, screen, screen_index):
         """Create and hide the settings menu by default."""
         settingMenu = QWidget(microscopeGrp)
         setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
@@ -279,23 +279,30 @@ class MainWindow(QMainWindow):
         settingMenu.setObjectName("SettingsMenu")        
         settingMenu.hide()  # Hide the menu by default
         
-        # s/n
-        sn = screen.get_camera_name()
-        settingMenu.snDspLabel.setText(sn)
+        # S/N
+        for sn in self.model.cameras_sn:        # Add the list of cameras (serial number) in ComboBox
+            settingMenu.snComboBox.addItem(sn) 
+        sn = screen.get_camera_name()           # Select the sn for the current screen
+        index = settingMenu.snComboBox.findText(sn)
+        if index >= 0:
+            settingMenu.snComboBox.setCurrentIndex(index)
+        else:
+            logger.error("SN not found in the list")
+        # If SN is changed
+        settingMenu.snComboBox.currentIndexChanged.connect(lambda: self.update_screen(microscopeGrp, \
+                                            screen, screen_index, settingMenu.snComboBox.currentText()))
 
         # Custom name
         customName = self.load_settings_item(sn, "customName")  # Default name on init
         customName = customName if customName else newNameMicroscope
         settingMenu.customName.setText(customName)
         self.update_groupbox_name(microscopeGrp, customName)    # Update GroupBox name
-        print(customName)
         # Name) If custom name is changed, change the groupBox name. 
         settingMenu.customName.textChanged.connect(lambda: self.update_groupbox_name(microscopeGrp, \
                                                                             settingMenu.customName.text()))
         settingMenu.customName.textChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                             "customName", settingMenu.customName.text()))
         
-    
         # Exposure
         settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
                                                                 val = settingMenu.expSlider.value()*1000))
@@ -322,6 +329,48 @@ class MainWindow(QMainWindow):
         settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setNum(settingMenu.gammaSlider.value()/100))
         settingMenu.gammaSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                              "gamma", settingMenu.gammaSlider.value()))
+
+    def update_screen(self, microscopeGrp, screen, screen_index, selected_sn):
+        # Camera lists that currently attached on the model.
+        camera_list = {camera.name(sn_only=True): camera for camera in self.model.cameras}
+
+        # Get the prev camera lists displaying on the screen
+        prev_camera, curr_camera = screen.get_camera_name(), selected_sn
+        prev_lists = [screen.get_camera_name() for screen in self.screen_widgets if screen.get_camera_name()]
+        if 0 <= screen_index < len(prev_lists):  # Ensure screen_index is within valid range
+            curr_list = prev_lists[:]
+            curr_list.pop(screen_index)
+            curr_list.insert(screen_index, curr_camera)
+        else:
+            logger.error("Invalid screen index:", screen_index)
+    
+        print("prev_list: ", prev_lists)    
+        print("curr_list: ", curr_list)
+        
+        # On 'Start' Condition, 
+        if self.startButton.isChecked():
+            print("START button enabled")
+            # If one camera is removed from the list, stop continuous acquisition 
+            if prev_camera not in curr_list:
+                screen.stop_acquisition_camera()
+                screen.set_camera(camera_list.get(curr_camera))
+            # If selected_sn is new (not on the list), update camera and start continuous acquisition
+            if curr_camera not in prev_lists:
+                screen.set_camera(camera_list.get(curr_camera))
+                screen.start_acquisition_camera()   
+        else:
+            print("START button disabled")
+            # Single frame acquisition for changed camera
+            screen.set_camera(camera_list.get(curr_camera))
+            screen.single_acquisition_camera()
+            screen.refresh_single_frame()
+            screen.stop_single_acquisition_camera()
+            
+            pass
+        # On 'Pause' Condition, 
+        # If selected_sn is new (not on the list), start single frame acquisition
+        # If one camera is removed from the list, start single frame acquisition
+
 
     def update_groupbox_name(self, microscopeGrp, customName):
         """Update the group box's title and object name based on custom name."""
@@ -358,7 +407,7 @@ class MainWindow(QMainWindow):
         screen = microscopeGrp.findChild(ScreenWidget, "Screen")
         # Display the S/N of camera 
         sn = screen.get_camera_name()
-        settingMenu.snDspLabel.setText(sn)
+        # settingMenu.snDspLabel.setText(sn)
         # Load the saved settings
         saved_settings = self.load_settings_item(sn)
         if saved_settings:

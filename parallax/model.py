@@ -28,6 +28,7 @@ class Model(QObject):
         QObject.__init__(self)
         self.version =version
         self.cameras = []
+        self.cameras_sn = []
         self.nPySpinCameras = 0
         self.nMockCameras = 0
         self.focos = []
@@ -102,6 +103,7 @@ class Model(QObject):
 
     def scan_for_cameras(self):
         self.cameras = list_cameras(version = self.version) + self.cameras
+        self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
         self.nMockCameras = len([camera for camera in self.cameras if isinstance(camera, MockCamera)])
         self.nPySpinCameras = len([camera for camera in self.cameras if isinstance(camera, PySpinCamera)])
 

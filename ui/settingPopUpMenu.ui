@@ -36,36 +36,6 @@ font: 7pt;
    <property name="verticalSpacing">
     <number>1</number>
    </property>
-   <item row="5" column="2">
-    <widget class="QLabel" name="gammaNum">
-     <property name="text">
-      <string>1.0</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QSlider" name="expSlider">
-     <property name="minimum">
-      <number>90</number>
-     </property>
-     <property name="maximum">
-      <number>250</number>
-     </property>
-     <property name="value">
-      <number>125</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="1" colspan="2">
-    <widget class="QLineEdit" name="customName">
-     <property name="text">
-      <string>Microscope</string>
-     </property>
-    </widget>
-   </item>
    <item row="3" column="1">
     <widget class="QSlider" name="gainSlider">
      <property name="maximum">
@@ -79,22 +49,24 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="5" column="1">
-    <widget class="QSlider" name="gammaSlider">
-     <property name="minimum">
-      <number>25</number>
+   <item row="5" column="0">
+    <widget class="QLabel" name="gammaLabel">
+     <property name="text">
+      <string>Gamma:</string>
      </property>
-     <property name="maximum">
-      <number>125</number>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="snLabel">
+     <property name="text">
+      <string>S/N:</string>
      </property>
-     <property name="singleStep">
-      <number>1</number>
-     </property>
-     <property name="value">
-      <number>100</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+    </widget>
+   </item>
+   <item row="0" column="1" colspan="2">
+    <widget class="QLineEdit" name="customName">
+     <property name="text">
+      <string>Microscope</string>
      </property>
     </widget>
    </item>
@@ -108,20 +80,6 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="gainLabel">
-     <property name="text">
-      <string>Gain:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="2">
-    <widget class="QLabel" name="wbNum">
-     <property name="text">
-      <string>2.2</string>
-     </property>
-    </widget>
-   </item>
    <item row="2" column="2">
     <widget class="QLabel" name="expNum">
      <property name="text">
@@ -132,53 +90,10 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="nameLabel">
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>20</height>
-      </size>
-     </property>
+   <item row="5" column="2">
+    <widget class="QLabel" name="gammaNum">
      <property name="text">
-      <string>Name:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="gammaLabel">
-     <property name="text">
-      <string>Gamma:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QSlider" name="wbSlider">
-     <property name="minimum">
-      <number>180</number>
-     </property>
-     <property name="maximum">
-      <number>250</number>
-     </property>
-     <property name="value">
-      <number>220</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="snLabel">
-     <property name="text">
-      <string>S/N:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="expLabel">
-     <property name="text">
-      <string>Exposure:</string>
+      <string>1.0</string>
      </property>
     </widget>
    </item>
@@ -206,8 +121,57 @@ font: 7pt;
      </property>
     </widget>
    </item>
-   <item row="1" column="1">
-    <widget class="QLabel" name="snDspLabel">
+   <item row="2" column="1">
+    <widget class="QSlider" name="expSlider">
+     <property name="minimum">
+      <number>90</number>
+     </property>
+     <property name="maximum">
+      <number>250</number>
+     </property>
+     <property name="value">
+      <number>125</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QSlider" name="gammaSlider">
+     <property name="minimum">
+      <number>25</number>
+     </property>
+     <property name="maximum">
+      <number>125</number>
+     </property>
+     <property name="singleStep">
+      <number>1</number>
+     </property>
+     <property name="value">
+      <number>100</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="2">
+    <widget class="QLabel" name="wbNum">
+     <property name="text">
+      <string>2.2</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="expLabel">
+     <property name="text">
+      <string>Exposure:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="nameLabel">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -215,12 +179,35 @@ font: 7pt;
       </size>
      </property>
      <property name="text">
-      <string/>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      <string>Name:</string>
      </property>
     </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QSlider" name="wbSlider">
+     <property name="minimum">
+      <number>180</number>
+     </property>
+     <property name="maximum">
+      <number>250</number>
+     </property>
+     <property name="value">
+      <number>220</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="gainLabel">
+     <property name="text">
+      <string>Gain:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1" colspan="2">
+    <widget class="QComboBox" name="snComboBox"/>
    </item>
   </layout>
  </widget>

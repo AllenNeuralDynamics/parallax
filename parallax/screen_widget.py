@@ -76,10 +76,26 @@ class ScreenWidget(pg.GraphicsView):
             data = self.camera.get_last_image_data()
             self.set_data(data)
 
+    def refresh_single_frame(self):
+        print("refresh_single_frame screen")
+        if self.camera:
+            data = self.camera.get_last_image_data_singleFrame()
+            self.set_data(data)
+
     def start_acquisition_camera(self):
         if self.camera:
             print(f"start_acquisition_camera: {self.camera.name(sn_only=True)}")
             self.camera.begin_continuous_acquisition()
+
+    def single_acquisition_camera(self):
+        if self.camera:
+            print(f"single_acquisition_camera: {self.camera.name(sn_only=True)}")
+            self.camera.begin_singleframe_acquisition()
+    
+    def stop_single_acquisition_camera(self):
+        if self.camera:
+            print(f"end single_acquisition_camera: {self.camera.name(sn_only=True)}")
+            self.camera.end_singleframe_acquisition()
 
     def stop_acquisition_camera(self):
         if self.camera:
@@ -93,6 +109,7 @@ class ScreenWidget(pg.GraphicsView):
         return True if self.camera else False
     
     def get_camera_name(self):
+        # print("screen:get_camera_name:", self.camera.name(sn_only=True))
         return self.camera.name(sn_only=True) if self.camera else None #TODO Parshing the serial
 
     def clear_selected(self):

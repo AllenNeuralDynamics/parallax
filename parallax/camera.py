@@ -94,6 +94,7 @@ class PySpinCamera:
         self.node_map = self.camera.GetNodeMap()
         self.last_image = None
         self.last_image_filled = threading.Event()
+        self.last_image_cleared = threading.Event()
 
         self.video_output = None
         self.video_recording_on = threading.Event()
@@ -145,7 +146,7 @@ class PySpinCamera:
         self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
         self.node_wb.SetValue(2)   
 
-        # Start acquisition on initialization             
+        # acquisition on initialization             
         if VERSION == "V1":
             # begin acquisition
             # V1: Start continuous acquisition on initialization. 
@@ -221,8 +222,18 @@ class PySpinCamera:
 
         # Begin Acquisition: Image acquisition must be ended when no more images are needed.
         self.camera.BeginAcquisition() 
-        self.capture()      
+        print(f"Begin Single Frame Acquisition {self.name(sn_only=True)} ")
+        self.capture_thread = threading.Thread(target=self.capture, daemon=False)
+        self.capture_thread.start()
+        
+    def end_singleframe_acquisition(self):
+        # End Acquisition
+        self.last_image_cleared.wait()
+        self.capture_thread.join()
         self.camera.EndAcquisition()
+        self.last_image = None
+        self.last_image_cleared.clear()
+        self.last_image_filled.clear()
 
     def begin_continuous_acquisition(self):
         """
@@ -351,6 +362,21 @@ class PySpinCamera:
         # Wait until last_image is not None
         self.last_image_filled.wait()
         return self.last_image.GetNDArray()
+
+    # Get the last captured image data as a numpy array
+    def get_last_image_data_singleFrame(self):
+        """
+        Returns the last captured image data as a numpy array.
+        Shape: (height, width, 3) for RGB,  (height, width) for mono
+
+        Returns:
+        - numpy.ndarray: Image data in array format.
+        """
+        # Wait until last_image is not None
+        self.last_image_filled.wait()
+        frame_image = self.last_image.GetNDArray()
+        self.last_image_cleared.set()
+        return frame_image
 
     def camera_info(self):
         """
