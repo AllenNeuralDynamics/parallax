@@ -344,33 +344,36 @@ class MainWindow(QMainWindow):
         else:
             logger.error("Invalid screen index:", screen_index)
     
-        print("prev_list: ", prev_lists)    
-        print("curr_list: ", curr_list)
+        print("\nprev_list: ", prev_lists)    
+        print("\ncurr_list: ", curr_list)
         
         # On 'Start' Condition, 
         if self.startButton.isChecked():
-            print("START button enabled")
-            # If one camera is removed from the list, stop continuous acquisition 
-            if prev_camera not in curr_list:
-                screen.stop_acquisition_camera()
+            print("== START button Enabled")
+            if set(prev_lists) == set(curr_list):
                 screen.set_camera(camera_list.get(curr_camera))
-            # If selected_sn is new (not on the list), update camera and start continuous acquisition
-            if curr_camera not in prev_lists:
-                screen.set_camera(camera_list.get(curr_camera))
-                screen.start_acquisition_camera()   
+            else:
+                # If one camera is removed from the list, stop continuous acquisition 
+                if prev_camera not in curr_list:
+                    screen.stop_acquisition_camera()
+                    screen.set_camera(camera_list.get(curr_camera))
+                # If selected_sn is new (not on the list), update camera and start continuous acquisition
+                if curr_camera not in prev_lists:
+                    screen.set_camera(camera_list.get(curr_camera))
+                    screen.start_acquisition_camera()
+
+
         else:
-            print("START button disabled")
+            print("== START button Disabled")
             # Single frame acquisition for changed camera
             screen.set_camera(camera_list.get(curr_camera))
             screen.single_acquisition_camera()
             screen.refresh_single_frame()
             screen.stop_single_acquisition_camera()
             
-            pass
         # On 'Pause' Condition, 
         # If selected_sn is new (not on the list), start single frame acquisition
         # If one camera is removed from the list, start single frame acquisition
-
 
     def update_groupbox_name(self, microscopeGrp, customName):
         """Update the group box's title and object name based on custom name."""

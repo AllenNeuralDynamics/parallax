@@ -55,18 +55,19 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.frame_processed.connect(self.set_image_item_from_data)
         self.detector = detectors.NoDetector()
 
-        # sub-menus
-        self.parallax_menu = QMenu("Parallax", self.view_box.menu)
-        self.camera_menu = self.parallax_menu.addMenu("Cameras")
-        self.focochan_menu = self.parallax_menu.addMenu("Focus Controllers")
-        self.filter_menu = self.parallax_menu.addMenu("Filters")
-        self.detector_menu = self.parallax_menu.addMenu("Detectors")
-        self.view_box.menu.insertMenu(self.view_box.menu.actions()[0], self.parallax_menu)
+        if self.model.version == "V1":
+            # sub-menus
+            self.parallax_menu = QMenu("Parallax", self.view_box.menu)
+            self.camera_menu = self.parallax_menu.addMenu("Cameras")
+            self.focochan_menu = self.parallax_menu.addMenu("Focus Controllers")
+            self.filter_menu = self.parallax_menu.addMenu("Filters")
+            self.detector_menu = self.parallax_menu.addMenu("Detectors")
+            self.view_box.menu.insertMenu(self.view_box.menu.actions()[0], self.parallax_menu)
 
-        self.update_camera_menu()
-        self.update_focus_control_menu()
-        self.update_filter_menu()
-        self.update_detector_menu()
+            self.update_camera_menu()
+            self.update_focus_control_menu()
+            self.update_filter_menu()
+            self.update_detector_menu()
 
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
