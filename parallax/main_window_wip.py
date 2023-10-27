@@ -11,7 +11,6 @@ from functools import partial
 import json
 import os
 import logging
-import time
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -92,61 +91,98 @@ class MainWindow(QMainWindow):
            
         # Toggle start button on init
         self.start_button_handler()
+    
+    def refresh_cameras(self):
+        """
+        This method is responsible for scanning for available cameras and updating the camera list.
+        It adds mock cameras for testing purposes and scans for actual cameras if the application
+        is not in dummy mode. This ensures that the list of available cameras is always up-to-date.
+        """
+        # Add mock cameras for testing purposes
+        self.model.add_mock_cameras()
 
-    """
-    def init_camera(self):
-        for i, screen in enumerate(self.screen_widgets):
-            if i < len(self.model.cameras):
-                screen.set_camera(self.model.cameras[i])
-            else:
-                print(f"Warning: Not enough cameras for screen {i}")
-    """
+        # If not in dummy mode, scan for actual available cameras
+        if not self.dummy:
+            self.model.scan_for_cameras()
 
     def record_button_handler(self):
+        """
+        Handles the record button press event.
+        If the record button is checked, start recording. Otherwise, stop recording.
+        """
         if self.recordButton.isChecked():
             self.save_recording()
         else:
             self.stop_recording()
 
     def save_recording(self):
-        print("===== Start Recording =====")
+        """
+        Initiates recording for all active camera feeds.
+
+        Records video from all active camera feeds and saves them to a specified directory.
+        The directory path is taken from the label showing the current save directory.
+        """
+        print("\n===== Start Recording =====")
+        # Initialize the list to keep track of cameras that are currently recording
         self.recording_camera_list = []
-        save_path = self.dirLabel.text()
+
+        # Get the directory path where the recordings will be saved
+        save_path = self.dirLabel.text()        
         if os.path.exists(save_path):
+            # Iterate through each screen widget
             for screen in self.screen_widgets:
-                if screen.is_camera():
-                    camera_name = screen.get_camera_name()
+                # Check if the current screen is a camera
+                if screen.is_camera():                      # If name is 'Blackfly"
+                    camera_name = screen.get_camera_name()  # Get the name of the camer
+                    # If this camera is not already in the list of recording cameras, then record
                     if camera_name not in self.recording_camera_list:
+                        # Use custom name of the camera if it has one, otherwise use the camera's serial number
                         customName = screen.parent().title()
                         customName =  customName if customName else camera_name
+                        # Start recording and save the video with a timestamp and custom name
                         screen.save_recording(save_path, isTimestamp=True, name=customName)
                         self.recording_camera_list.append(camera_name)
-            
-            print(self.recording_camera_list)
         else:
+            # If the save directory does not exist   
             print(f"Directory {save_path} does not exist!")
 
     def stop_recording(self):
-        print("===== Stop Recording =====")
-        print(self.recording_camera_list)
+        """
+        Stops recording for all cameras that are currently recording.
+        """
+        print("\n===== Stop Recording =====")
+        # Iterate through each screen widget
         for screen in self.screen_widgets:
                 camera_name =  screen.get_camera_name()
+                # Check if it is 'Balckfly' camera and in the list of recording cameras
                 if screen.is_camera() and camera_name in self.recording_camera_list:
-                    screen.stop_recording()
-                    self.recording_camera_list.remove(camera_name)
-                    print("  ", self.recording_camera_list)
+                    screen.stop_recording()         # Stop recording
+                    # Remove the camera from the list of cameras that are currently recording 
+                    self.recording_camera_list.remove(camera_name) 
 
     def save_last_image(self):
+        """
+        Saves the last captured image from all active camera feeds.
+        
+        Saves the last captured image from all active camera feeds to a specified directory.
+        The directory path is taken from the label showing the current save directory.
+        """
+        # Initialize the list to keep track of cameras from which an image has been saved
         snapshot_camera_list = []
+        # Get the directory path where the images will be saved
         save_path = self.dirLabel.text()
         if os.path.exists(save_path):
             for screen in self.screen_widgets:
-                if screen.is_camera():
+                # Save image only for 'Blackfly' camera 
+                if screen.is_camera():      
+                    # Use custom name of the camera if it has one, otherwise use the camera's serial number
                     camera_name = screen.get_camera_name()
                     if camera_name not in snapshot_camera_list:
                         customName = screen.parent().title()
                         customName =  customName if customName else camera_name
+                        # Save the image with a timestamp and custom name
                         screen.save_image(save_path, isTimestamp=True, name=customName)
+                        # Add the camera to the list of cameras from which an image has been saved
                         snapshot_camera_list.append(camera_name)
                 else:
                     logger.debug("save_last_image) camera not found")
@@ -154,7 +190,16 @@ class MainWindow(QMainWindow):
             print(f"Directory {save_path} does not exist!")    
 
     def start_button_handler(self):
+        """
+        Handles the start button press event.
+        
+        If the start button is checked, initiate acquisition from all cameras and start refreshing images.
+        If unchecked, stop acquisition from all cameras and stop refreshing images.
+        """
+        # Initialize the list to keep track of cameras that have been started or stopped
         refresh_camera_list = []
+        
+        # Check if the start button is toggled on
         if self.startButton.isChecked():
             print("\n===== START Clicked =====")
             # Camera begin acquisition
@@ -187,10 +232,10 @@ class MainWindow(QMainWindow):
                     screen.stop_acquisition_camera()
                     refresh_camera_list.append(camera_name)
 
-    # Refresh the screens
     def refresh(self):
+        """ Refreshing from framebuffer to screen"""
         for screen in self.screen_widgets:
-            screen.refresh()
+            screen.refresh()        # Refresh the screens
         
     def display_mock_camera(self):
         """Display mock camera when there is no detected camera."""
@@ -241,7 +286,21 @@ class MainWindow(QMainWindow):
                     break
 
     def createNewGroupBox(self, rows, cols, mock=False, screen_index=None):
-        """Create a new Microscope widget with associated settings."""
+        """
+        Create a new group box widget representing a microscope, and add it to the grid layout.
+
+        This function is responsible for generating a unique name for the microscope, creating a group box to
+        represent it, adding a screen widget for camera display, a settings button, and configuring their
+        properties and layouts. It also adds the group box to the grid layout at the specified row and column
+        indices, and updates the settings menu for the microscope.
+
+        Parameters:
+        - rows (int): The row index in the grid layout where the group box should be added.
+        - cols (int): The column index in the grid layout where the group box should be added.
+        - mock (bool, optional): If True, a mock camera will be associated with this microscope. Default is False.
+        - screen_index (int, optional): The index of the camera in the model's camera list to be associated
+                                        with this microscope. Required if mock is False.
+        """
         # Generate unique names based on row and column indices
         newNameMicroscope = ""
         # Generate unique names based on camera number
@@ -249,8 +308,8 @@ class MainWindow(QMainWindow):
             newNameMicroscope = "Mock Camera"
         else:
             newNameMicroscope = f"Microscope_{screen_index+1}"
-
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
+       
         # Construct and configure the Microscope widget
         microscopeGrp.setObjectName(newNameMicroscope)
         microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
@@ -259,6 +318,7 @@ class MainWindow(QMainWindow):
         microscopeGrp.setFont(font_grpbox)
         verticalLayout = QVBoxLayout(microscopeGrp)
         verticalLayout.setObjectName(u"verticalLayout")
+        
         # Add screens
         screen = ScreenWidget(model=self.model, parent=microscopeGrp)
         screen.setObjectName(f"Screen")
@@ -278,17 +338,33 @@ class MainWindow(QMainWindow):
         self.create_settings_menu(microscopeGrp, newNameMicroscope, screen, screen_index)
         settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
         verticalLayout.addWidget(settingButton)
+        
         # Add widget to the gridlayout
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
         settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
+       
         # Load setting file from JSON
         self.update_setting_menu(microscopeGrp)
-        
+       
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
 
     def create_settings_menu(self, microscopeGrp, newNameMicroscope, screen, screen_index):
-        """Create and hide the settings menu by default."""
+        """
+        Create the settings menu for each Microscope widget.
+
+        This function initializes the settings menu UI, loads it with necessary data, 
+        and associates the relevant signals with their slots. 
+        The settings menu is hidden by default and will be shown 
+        when the user toggles the settings button.
+
+        Parameters:
+        - microscopeGrp (QGroupBox): The group box representing a Microscope widget.
+        - newNameMicroscope (str): The unique name assigned to the Microscope widget.
+        - screen (ScreenWidget): The screen widget associated with the Microscope.
+        - screen_index (int): The index of the camera in the model's camera list to be associated with this screen.
+        """
+        # Initialize the settings menu UI from the .ui file
         settingMenu = QWidget(microscopeGrp)
         setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
         loadUi(setting_ui, settingMenu)
@@ -304,9 +380,9 @@ class MainWindow(QMainWindow):
             settingMenu.snComboBox.setCurrentIndex(index)
         else:
             logger.error("SN not found in the list")
-        # If SN is changed
-        settingMenu.snComboBox.currentIndexChanged.connect(lambda: self.update_screen(microscopeGrp, \
-                                            screen, screen_index, settingMenu.snComboBox.currentText()))
+        # If serial number is changed, connect to update_screen function
+        settingMenu.snComboBox.currentIndexChanged.connect(lambda: self.update_screen(screen, \
+                                             screen_index, settingMenu.snComboBox.currentText()))
 
         # Custom name
         customName = self.load_settings_item(sn, "customName")  # Default name on init
@@ -346,7 +422,19 @@ class MainWindow(QMainWindow):
         settingMenu.gammaSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                              "gamma", settingMenu.gammaSlider.value()))
 
-    def update_screen(self, microscopeGrp, screen, screen_index, selected_sn):
+    def update_screen(self, screen, screen_index, selected_sn):
+        """
+        Update the screen with a new camera based on the selected serial number.
+
+        This method manages the update of the camera associated with a specific microscope screen. It takes into
+        account the current state of the application, i.e., whether acquisition is ongoing or not, and performs
+        the necessary actions to update the camera and manage acquisition accordingly.
+
+        Parameters:
+        - screen (ScreenWidget): The screen widget associated with the microscope.
+        - screen_index (int): The index of the screen in the list of all microscope screens.
+        - selected_sn (str): The serial number of the camera selected to be associated with the microscope.
+        """
         # Camera lists that currently attached on the model.
         camera_list = {camera.name(sn_only=True): camera for camera in self.model.cameras}
 
@@ -359,46 +447,65 @@ class MainWindow(QMainWindow):
             curr_list.insert(screen_index, curr_camera)
         else:
             logger.error("Invalid screen index:", screen_index)
-    
-        print("\nprev_list: ", prev_lists)    
-        print("\ncurr_list: ", curr_list)
-        
-        # On 'Start' Condition, 
-        if self.startButton.isChecked():
-            print("== START button En       abled")
+        logger.debug("\nprev_list: ", prev_lists)    
+        logger.debug("\ncurr_list: ", curr_list)
+
+        # Handle updates based on the current state of the application
+        if self.startButton.isChecked():        # If the 'Start' button is enabled (continuous acquisition mode)
             if set(prev_lists) == set(curr_list):
+                # If the list of cameras hasn't changed, just update the current screen's camera
                 screen.set_camera(camera_list.get(curr_camera))
             else:
-                # If one camera is removed from the list, stop continuous acquisition 
                 if prev_camera not in curr_list:
+                    # If the previous camera has been removed from the list, stop its acquisition
                     screen.stop_acquisition_camera()
                     screen.set_camera(camera_list.get(curr_camera))
-                # If selected_sn is new (not on the list), update camera and start continuous acquisition
                 if curr_camera not in prev_lists:
+                    # If the selected camera is new (wasn't in the previous list), start its acquisition
                     screen.set_camera(camera_list.get(curr_camera))
                     screen.start_acquisition_camera()
         else:
-            print("== START button Disabled")
-            # # On 'Pause' Condition, Single frame acquisition for changed camera 
+            # If the 'Start' button is disabled, start single frame acquisition to show the image
             screen.set_camera(camera_list.get(curr_camera))
             screen.single_acquisition_camera()
             screen.refresh_single_frame()
             screen.stop_single_acquisition_camera()
 
     def update_groupbox_name(self, microscopeGrp, customName):
-        """Update the group box's title and object name based on custom name."""
+        """
+        Update the title and object name of the group box representing a microscope.
+
+        This method is used to update the visual representation of a microscope based on a custom name provided
+        by the user.
+
+        Parameters:
+        - microscopeGrp (QGroupBox): The group box representing the microscope.
+        - customName (str): The custom name to set as the title and object name of the group box.
+        """
         if customName: 
             microscopeGrp.setTitle(customName)
             microscopeGrp.setObjectName(customName)
 
     def show_settings_menu(self, settingButton, is_checked):
+        """
+        Show or hide the settings menu associated with a microscope group box.
+
+        This method is connected to the toggled signal of a QToolButton, which represents
+        the settings button for a microscope group box. When the button is toggled, it
+        shows or hides the settings menu and starts or stops a timer to refresh the settings
+        values displayed in the menu.
+
+        Parameters:
+        - settingButton (QToolButton): The settings button associated with the microscope group box.
+        - is_checked (bool): Indicates whether the settings button is checked (True) or unchecked (False).
+        """
         microscopeGrp = settingButton.parent()
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
         self.settings_refresh_timer.timeout.connect(partial(self.update_setting_menu, microscopeGrp))
 
         if is_checked:
-            # Start
+            # If the settings button is checked, start the settings refresh timer and show the settings menu
             self.settings_refresh_timer.start(100)      # update setting menu every 0.1 sec
             
             # Show the setting menu next to setting button
@@ -410,28 +517,45 @@ class MainWindow(QMainWindow):
             settingMenu.move(menu_x, menu_y)
             settingMenu.show()
         else:
-            # Stop
+            # If the settings button is unchecked, stop the settings refresh timer and hide the settings menu
             self.settings_refresh_timer.stop()
             settingMenu.hide()
 
     def update_setting_menu(self, microscopeGrp):
+        """
+        Update the values displayed in the settings menu based on the current camera settings.
+
+        This method is called periodically by a QTimer to refresh the values displayed in the
+        settings menu, ensuring they are up-to-date with the current settings of the camera.
+
+        Parameters:
+        - microscopeGrp (QGroupBox): The microscope group box associated with the settings menu to be updated.
+        """
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
         screen = microscopeGrp.findChild(ScreenWidget, "Screen")
+
         # Display the S/N of camera 
         sn = screen.get_camera_name()
-        # settingMenu.snDspLabel.setText(sn)
+        
         # Load the saved settings
         saved_settings = self.load_settings_item(sn)
         if saved_settings:
+            # If saved settings are found, update the sliders in the settings menu with the saved values
             settingMenu.expSlider.setValue(saved_settings.get('exp', settingMenu.expSlider.value()))
             settingMenu.gainSlider.setValue(saved_settings.get('gain', settingMenu.gainSlider.value()))
             settingMenu.wbSlider.setValue(saved_settings.get('wb', settingMenu.wbSlider.value()))
             settingMenu.gammaSlider.setValue(saved_settings.get('gamma', settingMenu.gammaSlider.value()))
-            # settingMenu.customName.setText(saved_settings.get('customName', microscopeGrp.objectName()))
 
     def dir_setting_handler(self):
-        """Handle directory selection to determine where files should be saved."""
+        """
+        This method handles the selection of a directory for saving files. It opens a dialog that allows
+        the user to browse their filesystem and select a directory. The selected directory's path is then
+        displayed on the user interface.
+
+        This is a crucial function for users who need to save data or configurations, as it provides a
+        simple and intuitive way to specify the location where files should be saved.
+        """
         # Fetch the default documents directory path
         documents_dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
         # Open a dialog to allow the user to select a directory
@@ -439,26 +563,16 @@ class MainWindow(QMainWindow):
         # If a directory is chosen, update the label to display the chosen path
         if directory:
             self.dirLabel.setText(directory)
-
-    def screens(self):
-        """Return screens (left and right) of the widget."""
-        return self.widget.lscreen, self.widget.rscreen
-
-    def refresh_cameras(self):
-        """Scan for available cameras and update the camera list."""
-        # Add mock cameras for testing purposes
-        self.model.add_mock_cameras()
-
-        # If not in dummy mode, scan for actual available cameras
-        if not self.dummy:
-            self.model.scan_for_cameras()
         
-        # TODO Commented code: Update the list of cameras on the UI (uncomment if needed) 
-        # for screen in self.screens():
-        #    screen.update_camera_menu()
-
     def save_user_configs(self):
-        """Save user settings (e.g., column configuration, directory path) to a JSON file."""
+        """
+        This method saves user configurations, such as column configuration and directory path,
+        to a JSON file. This ensures that user preferences are preserved and can be reloaded
+        the next time the application is started.
+
+        The method reads the current settings from a file (if it exists), updates the settings
+        with the current user configurations, and then writes the updated settings back to the file.
+        """
         # Read current settings from file
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
@@ -476,7 +590,15 @@ class MainWindow(QMainWindow):
             json.dump(settings, file)
 
     def load_mainWindow_settings(self):
-        """Load user settings from a JSON file during application startup."""
+        """
+        This method is responsible for loading the main window settings from a JSON file when the application starts.
+        The settings include the number of columns in the main window, the directory path for saving files, and the
+        dimensions of the main window. If the settings file does not exist, the method logs a debug message indicating
+        that the settings file was not found.
+
+        The purpose of this method is to enhance user experience by preserving user preferences across sessions, allowing
+        the application to remember the user's settings and adjust the interface accordingly when it is restarted.
+        """
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
@@ -492,7 +614,19 @@ class MainWindow(QMainWindow):
             logger.debug("load_settings: Settings file not found.")
 
     def load_settings_item(self, category, item=None):
-        """Load a specific setting item from the JSON settings file."""
+        """
+        It provides a flexible way to retrieve settings, whether it be a single setting
+        item or an entire category of settings.
+
+        Parameters:
+        category (str): The category of settings to retrieve from the settings file.
+        item (str, optional): The specific setting item to retrieve from the category. Defaults to None.
+
+        Returns:
+        dict or any: The requested settings. If item is None, a dictionary of the entire category is returned.
+                    If item is specified, the value of the setting item is returned. If the requested category
+                    or item is not found, None is returned.
+        """
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
@@ -512,6 +646,20 @@ class MainWindow(QMainWindow):
             return None
 
     def update_user_configs_settingMenu(self, microscopeGrp, item, val):
+        """
+        Update the user configurations in the settings menu for a specific camera.
+
+        This method is used to save the user's changes to camera settings in a JSON file. The changes
+        could be made through sliders or other input fields in the settings menu associated with
+        a microscope group box. When a user changes a setting, this method is called to update
+        the saved settings for the camera currently associated with the given microscope group box.
+
+        Parameters:
+        - microscopeGrp (QGroupBox): The microscope group box associated with the settings menu to be updated.
+        - item (str): The name of the setting item to be updated (e.g., 'exposure', 'gain').
+        - val (int/float/str): The new value of the setting item.
+        """
+
         # Read current settings from file
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:

@@ -251,7 +251,7 @@ class PySpinCamera:
 
         # Begin Acquisition: Image acquisition must be ended when no more images are needed.
         self.camera.BeginAcquisition() 
-        print(f"BeginAcquisition {self.name(sn_only=True)} ")
+        logger.debug(f"BeginAcquisition {self.name(sn_only=True)} ")
         self.running = True
         self.capture_thread = threading.Thread(target=self.capture_loop, daemon=True)
         self.capture_thread.start()
@@ -262,7 +262,7 @@ class PySpinCamera:
         """
         while self.running:
             self.capture()
-            print(".", end="",flush=True)
+            # print(".", end="",flush=True)
 
     def capture(self):
         """
