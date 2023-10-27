@@ -109,24 +109,31 @@ class MainWindow(QMainWindow):
 
     def save_recording(self):
         print("===== Start Recording =====")
+        self.recording_camera_list = []
         save_path = self.dirLabel.text()
         if os.path.exists(save_path):
             for screen in self.screen_widgets:
                 if screen.is_camera():
-                    parentGrpBox, customName = screen.parent(), screen.objectName() 
-                    if parentGrpBox.title():
-                        customName = parentGrpBox.title()
-                    screen.save_recording(save_path, isTimestamp=True, name=customName)
-                else:
-                    logger.debug("save_last_image) camera not found")
+                    camera_name = screen.get_camera_name()
+                    if camera_name not in self.recording_camera_list:
+                        customName = screen.parent().title()
+                        customName =  customName if customName else camera_name
+                        screen.save_recording(save_path, isTimestamp=True, name=customName)
+                        self.recording_camera_list.append(camera_name)
+            
+            print(self.recording_camera_list)
         else:
             print(f"Directory {save_path} does not exist!")
 
     def stop_recording(self):
         print("===== Stop Recording =====")
+        print(self.recording_camera_list)
         for screen in self.screen_widgets:
-                if screen.is_camera():
+                camera_name =  screen.get_camera_name()
+                if screen.is_camera() and camera_name in self.recording_camera_list:
                     screen.stop_recording()
+                    self.recording_camera_list.remove(camera_name)
+                    print("  ", self.recording_camera_list)
 
     def save_last_image(self):
         save_path = self.dirLabel.text()
@@ -143,15 +150,18 @@ class MainWindow(QMainWindow):
             print(f"Directory {save_path} does not exist!")    
 
     def start_button_handler(self):
+        refresh_camera_list = []
         if self.startButton.isChecked():
             print("\n===== START Clicked =====")
             # Camera begin acquisition
             for screen in self.screen_widgets:
-                screen.start_acquisition_camera()
-                
+                camera_name = screen.get_camera_name()
+                if camera_name not in refresh_camera_list:
+                    screen.start_acquisition_camera()
+                    refresh_camera_list.append(camera_name)
+            
             # Refreshing images to display screen
             self.refresh_timer.start(125)
-            
             # Start button is checked, enable record and snapshot button. 
             self.recordButton.setEnabled(True)
             self.snapshotButton.setEnabled(True)
@@ -166,10 +176,12 @@ class MainWindow(QMainWindow):
             # Stop Refresh: stop refreshing images to display screen
             if self.refresh_timer.isActive():
                 self.refresh_timer.stop()
-
             # End acquisition from camera: stop acquiring images from camera to framebuffer
             for screen in self.screen_widgets:
-                screen.stop_acquisition_camera()
+                camera_name = screen.get_camera_name()
+                if camera_name not in refresh_camera_list:
+                    screen.stop_acquisition_camera()
+                    refresh_camera_list.append(camera_name)
 
     # Refresh the screens
     def refresh(self):
@@ -349,7 +361,7 @@ class MainWindow(QMainWindow):
         
         # On 'Start' Condition, 
         if self.startButton.isChecked():
-            print("== START button Enabled")
+            print("== START button En       abled")
             if set(prev_lists) == set(curr_list):
                 screen.set_camera(camera_list.get(curr_camera))
             else:
@@ -361,19 +373,13 @@ class MainWindow(QMainWindow):
                 if curr_camera not in prev_lists:
                     screen.set_camera(camera_list.get(curr_camera))
                     screen.start_acquisition_camera()
-
-
         else:
             print("== START button Disabled")
-            # Single frame acquisition for changed camera
+            # # On 'Pause' Condition, Single frame acquisition for changed camera 
             screen.set_camera(camera_list.get(curr_camera))
             screen.single_acquisition_camera()
             screen.refresh_single_frame()
             screen.stop_single_acquisition_camera()
-            
-        # On 'Pause' Condition, 
-        # If selected_sn is new (not on the list), start single frame acquisition
-        # If one camera is removed from the list, start single frame acquisition
 
     def update_groupbox_name(self, microscopeGrp, customName):
         """Update the group box's title and object name based on custom name."""
