@@ -32,6 +32,7 @@ class MainWindow(QMainWindow):
 
         # Initialize an empty list to keep track of microscopeGrp widgets instances
         self.screen_widgets = []
+        self.recording_camera_list = []
         
         # Update camera information
         self.refresh_cameras()
@@ -136,14 +137,17 @@ class MainWindow(QMainWindow):
                     print("  ", self.recording_camera_list)
 
     def save_last_image(self):
+        snapshot_camera_list = []
         save_path = self.dirLabel.text()
         if os.path.exists(save_path):
             for screen in self.screen_widgets:
                 if screen.is_camera():
-                    parentGrpBox, customName = screen.parent(), screen.objectName()
-                    if parentGrpBox.title():
-                        customName = parentGrpBox.title()
-                    screen.save_image(save_path, isTimestamp=True, name=customName)
+                    camera_name = screen.get_camera_name()
+                    if camera_name not in snapshot_camera_list:
+                        customName = screen.parent().title()
+                        customName =  customName if customName else camera_name
+                        screen.save_image(save_path, isTimestamp=True, name=customName)
+                        snapshot_camera_list.append(camera_name)
                 else:
                     logger.debug("save_last_image) camera not found")
         else:
