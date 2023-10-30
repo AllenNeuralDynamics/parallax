@@ -318,7 +318,7 @@ class MainWindow(QMainWindow):
         microscopeGrp.setObjectName(newNameMicroscope)
         microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
         font_grpbox = QFont()
-        font_grpbox.setPointSize(8)  # Setting font size to 8
+        font_grpbox.setPointSize(9)  # Setting font size to 9
         microscopeGrp.setFont(font_grpbox)
         verticalLayout = QVBoxLayout(microscopeGrp)
         verticalLayout.setObjectName(u"verticalLayout")
