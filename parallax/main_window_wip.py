@@ -88,7 +88,7 @@ class MainWindow(QMainWindow):
         # Refreshing the screen timer
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh)
-           
+        
         # Toggle start button on init
         self.start_button_handler()
     
@@ -180,8 +180,10 @@ class MainWindow(QMainWindow):
                     if camera_name not in snapshot_camera_list:
                         customName = screen.parent().title()
                         customName =  customName if customName else camera_name
+                        
                         # Save the image with a timestamp and custom name
                         screen.save_image(save_path, isTimestamp=True, name=customName)
+                        
                         # Add the camera to the list of cameras from which an image has been saved
                         snapshot_camera_list.append(camera_name)
                 else:
@@ -211,6 +213,7 @@ class MainWindow(QMainWindow):
             
             # Refreshing images to display screen
             self.refresh_timer.start(125)
+
             # Start button is checked, enable record and snapshot button. 
             self.recordButton.setEnabled(True)
             self.snapshotButton.setEnabled(True)
@@ -225,6 +228,7 @@ class MainWindow(QMainWindow):
             # Stop Refresh: stop refreshing images to display screen
             if self.refresh_timer.isActive():
                 self.refresh_timer.stop()
+
             # End acquisition from camera: stop acquiring images from camera to framebuffer
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -446,9 +450,9 @@ class MainWindow(QMainWindow):
             curr_list.pop(screen_index)
             curr_list.insert(screen_index, curr_camera)
         else:
-            logger.error("Invalid screen index:", screen_index)
-        logger.debug("\nprev_list: ", prev_lists)    
-        logger.debug("\ncurr_list: ", curr_list)
+            logger.error(f"Invalid screen index: {screen_index}")
+        logger.debug(f"prev_list: {prev_lists}")    
+        logger.debug(f"curr_list: {curr_list}")
 
         # Handle updates based on the current state of the application
         if self.startButton.isChecked():        # If the 'Start' button is enabled (continuous acquisition mode)
@@ -678,3 +682,6 @@ class MainWindow(QMainWindow):
         # Write updated settings back to file
         with open(SETTINGS_FILE, 'w') as file:
             json.dump(settings, file)
+
+
+

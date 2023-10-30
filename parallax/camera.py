@@ -333,9 +333,9 @@ class PySpinCamera:
 
         # Save the image
         try:
-            image_converted = self.get_last_image()
+            image_converted = self.get_last_image_data()
             if image_converted is not None:
-                image_converted.Save(full_path)
+                cv2.imwrite(full_path, image_converted)
             else:
                 logger.error("Image not found or couldn't be retrieved.")
         except Exception as e:
