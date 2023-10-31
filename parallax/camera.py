@@ -329,7 +329,8 @@ class PySpinCamera:
         image_name = "{}_{}.png".format(custom_name, self.get_last_capture_time()) \
             if isTimestamp else "{}.png".format(custom_name)
         full_path = os.path.join(filepath, image_name)
-        logger.debug(f"Try saving image to {full_path}")
+        logger.debug(f"Saving image to {full_path}")
+        print(f"Saving image to {full_path}")
 
         # Save the image
         try:
@@ -413,7 +414,7 @@ class PySpinCamera:
         video_name = "{}_{}.avi".format(custom_name, self.get_last_capture_time()) \
             if isTimestamp else "{}.avi".format(custom_name)
         full_path = os.path.join(filepath, video_name)
-        print(f"Try saving video to {full_path}")
+        print(f"Saving video to {full_path}")
         logger.debug(f"Try saving video to {full_path}")
 
         # Update camera details

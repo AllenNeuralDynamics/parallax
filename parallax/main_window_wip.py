@@ -24,6 +24,9 @@ SETTINGS_FILE = 'settings.json'
 # Main application window
 class MainWindow(QMainWindow):
     def __init__(self, model, dummy=False):
+        """
+        
+        """
         QMainWindow.__init__(self) # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
@@ -122,7 +125,6 @@ class MainWindow(QMainWindow):
         Records video from all active camera feeds and saves them to a specified directory.
         The directory path is taken from the label showing the current save directory.
         """
-        print("\n===== Start Recording =====")
         # Initialize the list to keep track of cameras that are currently recording
         self.recording_camera_list = []
 
@@ -130,6 +132,7 @@ class MainWindow(QMainWindow):
         save_path = self.dirLabel.text()        
         if os.path.exists(save_path):
             # Iterate through each screen widget
+            print("\nRecording...")
             for screen in self.screen_widgets:
                 # Check if the current screen is a camera
                 if screen.is_camera():                      # If name is 'Blackfly"
@@ -150,7 +153,6 @@ class MainWindow(QMainWindow):
         """
         Stops recording for all cameras that are currently recording.
         """
-        print("\n===== Stop Recording =====")
         # Iterate through each screen widget
         for screen in self.screen_widgets:
                 camera_name =  screen.get_camera_name()
@@ -172,6 +174,7 @@ class MainWindow(QMainWindow):
         # Get the directory path where the images will be saved
         save_path = self.dirLabel.text()
         if os.path.exists(save_path):
+            print("\nSnapshot...")
             for screen in self.screen_widgets:
                 # Save image only for 'Blackfly' camera 
                 if screen.is_camera():      
@@ -203,7 +206,7 @@ class MainWindow(QMainWindow):
         
         # Check if the start button is toggled on
         if self.startButton.isChecked():
-            print("\n===== START Clicked =====")
+            print("\nRefreshing Screen")
             # Camera begin acquisition
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -219,7 +222,7 @@ class MainWindow(QMainWindow):
             self.snapshotButton.setEnabled(True)
 
         else:  
-            print("\n===== STOP Clicked =====")
+            print("Stop Refreshing Screen")
             # Start button is unchecked, disable record and snapshot button. 
             self.recordButton.setEnabled(False)
             self.recordButton.setChecked(False)
