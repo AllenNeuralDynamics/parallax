@@ -155,7 +155,7 @@ class PySpinCamera:
             # V2: Start continous acquisition when 'Start' button is toggled and end acquisition when untoggled.
             # On initialization, start onetime acquisition to get one frame. 
             pass
-
+        
     def set_wb(self, wb=2.0):
         """
         Sets the white balance of the camera.
@@ -448,7 +448,6 @@ class PySpinCamera:
             self.camera.EndAcquisition()
             self.last_image = None
             self.last_image_filled.clear()
-            # print(f"StopAcquisition{self.name(sn_only=True)} ")
 
         if self.video_recording_on.is_set():
             self.stop_recording()
