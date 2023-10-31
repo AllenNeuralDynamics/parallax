@@ -141,10 +141,10 @@ class PySpinCamera:
         node_wbauto_mode_off = node_wbauto_mode.GetEntryByName("Off")
         node_wbauto_mode.SetIntValue(node_wbauto_mode_off.GetValue())
         node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
-        node_balanceratio_mode_blue = node_balanceratio_mode.GetEntryByName("Blue")
+        node_balanceratio_mode_blue = node_balanceratio_mode.GetEntryByName("Blue")     # Blue Channel
         node_balanceratio_mode.SetIntValue(node_balanceratio_mode_blue.GetValue())
         self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
-        self.node_wb.SetValue(2)   
+        self.node_wb.SetValue(2.2)  
 
         # acquisition on initialization             
         if VERSION == "V1":
@@ -156,7 +156,7 @@ class PySpinCamera:
             # On initialization, start onetime acquisition to get one frame. 
             pass
         
-    def set_wb(self, wb=2.0):
+    def set_wb(self, wb=2.2):
         """
         Sets the white balance of the camera.
 
