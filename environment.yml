@@ -12,12 +12,14 @@ dependencies:
   - pyserial
   - cudnn=8.2.1
   - pip:
+    - opencv-python
     - PyQt5>=5.15
     - pyqtgraph
     - opencv-python-headless
     - spinnaker-python
     - PyOpenGL
     - zaber-motion
+    - typing_extensions
     - git+https://github.com/chronopoulos/coorx
     - git+https://github.com/AllenNeuralDynamics/python-newscale@axes-on-target
     - git+https://github.com/AllenNeuralDynamics/mis-focus-controller-sw
