@@ -2,8 +2,8 @@
 name = "parallax"
 version = "0.1.0"
 description = "GUI software for photogrammetry-assisted probe targeting in electrophysiology"
-authors = ["Your Name <you@example.com>"]
-license = "Custom"
+authors = ["Hanna Lee <hanna.lee@alleninstitute.org>"]
+license = "Allen Institute Software License"
 readme = "README.md"
 homepage = "https://github.com/AllenNeuralDynamics/parallax"
 repository = "https://github.com/AllenNeuralDynamics/parallax"
@@ -37,6 +37,7 @@ mis_focus_controller = { git = "https://github.com/AllenNeuralDynamics/mis-focus
 flake8 = "*"
 pytest = "*"
 coverage = "*"
+interrogate = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
