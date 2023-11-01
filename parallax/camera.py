@@ -302,6 +302,8 @@ class PySpinCamera:
         if self.video_recording_on.is_set(): 
             self.video_recording_idle.clear()
             im_cv2_format = self.last_image.GetData().reshape(self.height, self.width, self.channels)
+            # Convert the image from RGB to BGR
+            im_cv2_format = cv2.cvtColor(im_cv2_format, cv2.COLOR_RGB2BGR)
             self.video_output.write(im_cv2_format)
             self.video_recording_idle.set()
         
@@ -336,6 +338,8 @@ class PySpinCamera:
         try:
             image_converted = self.get_last_image_data()
             if image_converted is not None:
+                # Convert the image from RGB to BGR
+                image_converted = cv2.cvtColor(image_converted, cv2.COLOR_RGB2BGR)
                 cv2.imwrite(full_path, image_converted)
             else:
                 logger.error("Image not found or couldn't be retrieved.")
