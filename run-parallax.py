@@ -6,9 +6,6 @@ from parallax.main_window_wip import MainWindow as MainWindowV2
 import atexit
 import argparse
 import logging
-import sys
-import time
-import threading
 
 def setup_logging():
     """Set up logging to file."""
@@ -24,23 +21,6 @@ def setup_logging():
         logging.Formatter(fmt='%(asctime)s:%(name)s:%(levelname)s: %(message)s')
     )
     logger.addHandler(log_handler)
-
-def loading_animation():
-    """Show a loading animation in the terminal."""
-    chars = "/—\\|"
-    index = 0
-    while not loading_done:
-        sys.stdout.write('\r' + chars[index])
-        sys.stdout.flush()
-        index = (index + 1) % len(chars)
-        time.sleep(0.1)
-    sys.stdout.write('\r \r')  # Clear loading character
-    sys.stdout.flush()
-
-# Start loading animation
-loading_done = False
-loading_thread = threading.Thread(target=loading_animation)
-loading_thread.start()
 
 # parse command line args
 parser = argparse.ArgumentParser()
@@ -63,10 +43,6 @@ if args.version2:
 else:
     model = Model(version="V1")
     main_window = MainWindowV1(model, dummy=args.dummy)
-
-# Stop loading animation
-loading_done = True
-loading_thread.join()
 
 # Show main window
 main_window.show()
