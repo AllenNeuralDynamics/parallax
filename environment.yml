@@ -12,7 +12,7 @@ dependencies:
   - pyserial
   - cudnn=8.2.1
   - pip:
-    - opencv-python
+    - opencv-python==4.5.1.48
     - PyQt5>=5.15
     - pyqtgraph
     - opencv-python-headless
