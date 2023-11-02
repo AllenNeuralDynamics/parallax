@@ -10,6 +10,7 @@ First, clone the this repository.
 
 Then, browse to the top-level `parallax` code directory and run:
 
+(yml)
 ```bash
 conda env create --file environment.yml
 conda activate parallax
