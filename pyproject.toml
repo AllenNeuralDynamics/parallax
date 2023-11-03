@@ -1,44 +1,61 @@
-[tool.poetry]
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+ 
+[project]
 name = "parallax"
-version = "0.1.0"
 description = "GUI software for photogrammetry-assisted probe targeting in electrophysiology"
-authors = ["Hanna Lee <hanna.lee@alleninstitute.org>"]
-license = "Allen Institute Software License"
+license =  {text = "Allen Institute Software License"}
 readme = "README.md"
+keywords = ["parallax"]
+dynamic = ["version"]
+requires-python = "~=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
+ 
+dependencies = [
+    "pip",
+    "PyQt5>=5.15",
+    "pyqtgraph",
+    "opencv-python-headless",
+    "opencv-python==4.5.1.48",
+    "spinnaker-python",
+    "PyOpenGL",
+    "zaber-motion",
+    "typing_extensions",
+    "protobuf==3.20.1",
+    "sleap==1.3.0",
+    "pyserial", 
+    "coorx@git+https://github.com/chronopoulos/coorx.git", 
+    "mis_focus_controller@git+https://github.com/AllenNeuralDynamics/mis-focus-controller-sw.git",
+    "newscale@git+https://github.com/AllenNeuralDynamics/python-newscale.git@axes-on-target"
+   ]
+ 
+[tool.setuptools.packages.find]
+where = ["parallax"]
+ 
+[tool.setuptools.dynamic]
+version = {attr = "parallax.__version__"}
+readme = {file = "README.md"}
+ 
+[project.optional-dependencies]
+linters = [
+    'codespell',
+    'coverage',
+    'flake8',
+    'interrogate',
+    'isort'
+]
+ 
+[tool.interrogate]
+exclude = ["setup.py"]
+fail-under = 100
+ 
+[tool.codespell]
+skip = ".git,*.json"
+ 
+[tool]
 homepage = "https://github.com/AllenNeuralDynamics/parallax"
 repository = "https://github.com/AllenNeuralDynamics/parallax"
 documentation = "https://github.com/AllenNeuralDynamics/parallax/wiki"
-keywords = ["parallax"]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-]
-requires-python = ">=3.8"
-
-[tool.poetry.dependencies]
-python = "^3.8"
-pip = "*"
-PyQt5 = ">=5.15"
-pyqtgraph = "*"
-opencv-python-headless = "*"
-opencv-python = "4.5.1.48"
-spinnaker-python = "*"
-PyOpenGL = "*"
-zaber-motion = "*"
-typing-extensions = "*"
-protobuf = "3.20.1"
-sleap = "1.3.0"
-pyserial = "*"
-coorx = { git = "https://github.com/chronopoulos/coorx" }
-newscale = { git = "https://github.com/AllenNeuralDynamics/python-newscale", branch = "axes-on-target" }
-mis_focus_controller = { git = "https://github.com/AllenNeuralDynamics/mis-focus-controller-sw" }
-
-[tool.poetry.dev-dependencies]
-flake8 = "*"
-pytest = "*"
-coverage = "*"
-interrogate = "*"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
