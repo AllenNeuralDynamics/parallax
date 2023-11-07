@@ -1,16 +1,8 @@
 # Parallax
 
-## GUI software for photogrammetry-assisted probe targeting in electrophysiology
-
 ![Parallax](ui/ParallaxReadME.JPG)
 
-Parallax is an graphical user interface designed to aid researchers in the field of electrophysiology. With its photogrammetry-assisted targeting system, Parallax streamlines the process of probe placement, increasing accuracy and efficiency in experimental setups.
-
-
-### Features
-- Easy-to-use graphical interface for precise probe positioning.
-- Photogrammetry assistance for enhanced targeting accuracy.
-- Compatible with various electrophysiology instruments.
+Parallax is a graphical user interface designed to streamline the process of setting up and performing acute *in vivo* electrophysiology experiments.
 
 
 ### Prerequisites
@@ -43,12 +35,12 @@ pip install .
 ```
 
 ### Running Parallax
-- Old Version: Stable version featuring camera view displays, camera calibration with a checkerboard, coordinate system transformation, and manipulation of probe locations in x, y, z coordinates.
+- Old Version: Stable version featuring dual camera display, camera calibration with a checkerboard, coordinate system transformation, and manipulation of probe locations in x, y, z coordinates.
 ```bash
 python run-parallax.py
 ```
 
-- New Version: Currently under development with limited functionality available.
+- New Version: Currently under development; allows snapshots and recording of an arbitrary number of camera displays.
 ```bash
 python run-parallax.py -v2
 ```
