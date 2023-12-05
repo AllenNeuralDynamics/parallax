@@ -62,7 +62,19 @@ class PySpinCamera:
             cls.pyspin_instance = PySpin.System.GetInstance()
         cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
         ncameras = cls.pyspin_cameras.GetSize()
-        cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
+        cls.cameras = []
+
+        for i in range(ncameras):
+            camera_pyspin = cls.pyspin_cameras.GetByIndex(i)
+            temp_camera = PySpinCamera(camera_pyspin)
+            camera_name = temp_camera.name()
+            
+            if "BFS-U3-120S4C" in camera_name:
+                cls.cameras.append(temp_camera)
+            else:
+                temp_camera.stop(clean=True)
+
+        # cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
         return cls.cameras
 
     # Class method to close all PySpin cameras
@@ -103,6 +115,9 @@ class PySpinCamera:
         self.width = None
         self.channels = None
         self.frame_rate = None
+        
+        if "BFS-U3-120S4C" not in camera_name:
+            return None
         
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()
