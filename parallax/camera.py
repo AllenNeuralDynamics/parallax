@@ -116,6 +116,7 @@ class PySpinCamera:
         self.channels = None
         self.frame_rate = None
         
+        camera_name = self.name()
         if "BFS-U3-120S4C" not in camera_name:
             return None
         
