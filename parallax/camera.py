@@ -8,6 +8,7 @@ import cv2
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
+supported_camera_models = ["BFS-U3-120S4C", "BFS-U3-04S2M"]
 
 # Check for the availability of the PySpin library
 try:
@@ -62,7 +63,18 @@ class PySpinCamera:
             cls.pyspin_instance = PySpin.System.GetInstance()
         cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
         ncameras = cls.pyspin_cameras.GetSize()
-        cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
+        
+        
+        cls.cameras = []
+        for i in range(ncameras):
+            camera_pyspin = cls.pyspin_cameras.GetByIndex(i)
+            camera = PySpinCamera(camera_pyspin)
+            if camera is not None:
+                cls.cameras.append(camera)
+            else:
+                camera.stop(clean=True)
+        
+        # cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
         return cls.cameras
 
     # Class method to close all PySpin cameras
@@ -92,6 +104,7 @@ class PySpinCamera:
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
+        
         self.last_image = None
         self.last_image_filled = threading.Event()
         self.last_image_cleared = threading.Event()
@@ -104,25 +117,49 @@ class PySpinCamera:
         self.channels = None
         self.frame_rate = None
         
+        self.device_model = self.camera.DeviceModelName()
+        self.device_color_type = None
+        camera_color_type = self.device_model.split('-')[2][-1]
+        if camera_color_type == 'M':
+            self.device_color_type = "Mono"
+        elif camera_color_type == 'C':
+            self.device_color_type = "Color"
+        elif camera_color_type == 'P':
+            self.device_color_type = "Polarized"
+            print("Polarized Camera model not supported.")
+            return None
+        else:
+            print("Not supported camera type.")
+            return None
+        print(self.device_model, self.device_color_type)
+
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()
         node_bufferhandling_mode = PySpin.CEnumerationPtr(s_nodemap.GetNode('StreamBufferHandlingMode'))
         node_newestonly = node_bufferhandling_mode.GetEntryByName('NewestOnly')
         node_newestonly_mode = node_newestonly.GetValue()
         node_bufferhandling_mode.SetIntValue(node_newestonly_mode)
-
+        
         # set gain
         node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
         node_gainauto_mode_off = node_gainauto_mode.GetEntryByName("Off")
-        node_gainauto_mode.SetIntValue(node_gainauto_mode_off.GetValue())
+        node_gainauto_mode_continous = node_gainauto_mode.GetEntryByName("Continuous")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
-        self.node_gain.SetValue(25.0)
+        if self.device_color_type == "Color":
+            node_gainauto_mode.SetIntValue(node_gainauto_mode_off.GetValue()) # Set manual for color camera
+            self.node_gain.SetValue(25.0)
+        if self.device_color_type == "Mono":
+            node_gainauto_mode.SetIntValue(node_gainauto_mode_continous.GetValue()) # Set continous for mono camera
 
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
-        entry_pixelformat_rgb8packed = node_pixelformat.GetEntryByName("RGB8Packed")
-        node_pixelformat.SetIntValue(entry_pixelformat_rgb8packed.GetValue())
-
+        if self.device_color_type == "Mono":
+            entry_pixelformat_mono8 = node_pixelformat.GetEntryByName("Mono8")
+            node_pixelformat.SetIntValue(entry_pixelformat_mono8.GetValue())
+        elif self.device_color_type == "Color":
+            entry_pixelformat_rgb8packed = node_pixelformat.GetEntryByName("RGB8Packed")
+            node_pixelformat.SetIntValue(entry_pixelformat_rgb8packed.GetValue())
+            
         # set exposure time
         node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
         node_expauto_mode_off = node_expauto_mode.GetEntryByName("Off")
@@ -130,21 +167,22 @@ class PySpinCamera:
         self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
         self.node_exptime.SetValue(125000)   # 8 fps
 
-        # set gamma
+        # set gamma  
         node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
         node_gammaenable_mode.SetValue(True)
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
         self.node_gamma.SetValue(1.0)  
-
+        
         # Set White Balance
-        node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
-        node_wbauto_mode_off = node_wbauto_mode.GetEntryByName("Off")
-        node_wbauto_mode.SetIntValue(node_wbauto_mode_off.GetValue())
-        node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
-        node_balanceratio_mode_blue = node_balanceratio_mode.GetEntryByName("Blue")     # Blue Channel
-        node_balanceratio_mode.SetIntValue(node_balanceratio_mode_blue.GetValue())
-        self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
-        self.node_wb.SetValue(2.2)  
+        if self.device_color_type == "Color":
+            node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
+            node_wbauto_mode_off = node_wbauto_mode.GetEntryByName("Off")
+            node_wbauto_mode.SetIntValue(node_wbauto_mode_off.GetValue())
+            node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
+            node_balanceratio_mode_blue = node_balanceratio_mode.GetEntryByName("Blue")     # Blue Channel
+            node_balanceratio_mode.SetIntValue(node_balanceratio_mode_blue.GetValue())
+            self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
+            self.node_wb.SetValue(2.2)  
 
         # acquisition on initialization             
         if VERSION == "V1":
@@ -163,7 +201,10 @@ class PySpinCamera:
         Args:
         - wb (float): The desired white balance value. min:1.8, max:2.5
         """
-        self.node_wb.SetValue(wb)
+        if self.device_color_type == "Color":
+            self.node_wb.SetValue(wb)
+        else:
+            pass
     
     def set_gamma(self, gamma=1.0):
         """
@@ -174,14 +215,17 @@ class PySpinCamera:
         """
         self.node_gamma.SetValue(gamma)
 
-    def set_gain(self, gain=25.0):
+    def set_gain(self, gain=20.0):
         """
         Sets the gain of the camera.
 
         Args:
         - gain (float): The desired gain value. min:0, max:27.0
         """
-        self.node_gain.SetValue(gain)
+        if self.device_color_type == "Color":
+            self.node_gain.SetValue(gain)
+        else: 
+            pass
     
     def set_exposure(self, expTime=125000):
         """
