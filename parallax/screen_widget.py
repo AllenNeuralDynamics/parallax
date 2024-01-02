@@ -191,6 +191,13 @@ class ScreenWidget(pg.GraphicsView):
             elif setting == "wb":
                 self.camera.set_wb(val)
 
+    def get_camera_setting(self, setting):
+        val = 0
+        if self.camera:
+            if setting == "exposure":
+                val = self.camera.get_exposure()
+        return val
+
     def update_camera_menu(self):
         """
         Update the camera menu. (Right click on the screen widget)

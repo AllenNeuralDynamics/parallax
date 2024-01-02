@@ -161,9 +161,10 @@ class PySpinCamera:
             node_pixelformat.SetIntValue(entry_pixelformat_rgb8packed.GetValue())
             
         # set exposure time
-        node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
-        node_expauto_mode_off = node_expauto_mode.GetEntryByName("Off")
-        node_expauto_mode.SetIntValue(node_expauto_mode_off.GetValue())
+        self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
+        self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
+        self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
+        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())
         self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
         self.node_exptime.SetValue(125000)   # 8 fps
 
@@ -233,9 +234,25 @@ class PySpinCamera:
 
         Args:
         - expTime (int): The desired exposure time in microseconds. 
-                        min: 90,000(10fps) max: 250,000(4fps)
         """
+        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())   # Return back to manual mode
         self.node_exptime.SetValue(expTime)
+        print("Set Camera Exp to ", expTime)
+    
+    def get_exposure(self):
+        """
+        Get the exposure time of the camera for Auto mode.
+        """
+        initial_val = self.node_exptime.GetValue()
+        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())    # Enable the Auto mode
+        
+        for i in range(5):  # Repeat few times
+            time.sleep(0.5)  # Wait for a short period
+            updated_val = self.node_exptime.GetValue()
+            if updated_val != initial_val:
+                return updated_val  # Return the updated value if there's a change
+        
+        return initial_val  # Return the initial value if no change is detected
 
     def name(self, sn_only=False):
         """

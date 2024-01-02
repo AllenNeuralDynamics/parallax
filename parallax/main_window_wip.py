@@ -409,6 +409,8 @@ class MainWindow(QMainWindow):
         settingMenu.expSlider.valueChanged.connect(lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value()))
         settingMenu.expSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                             "exp", settingMenu.expSlider.value()))        
+        settingMenu.expAuto.stateChanged.connect(lambda: settingMenu.expSlider.setValue(int(screen.get_camera_setting(setting = "exposure")/1000)) \
+                                                 if settingMenu.expAuto.isChecked() else None)
         settingMenu.expAuto.stateChanged.connect(lambda: settingMenu.expSlider.setEnabled(not settingMenu.expAuto.isChecked()))
 
         # Gain
@@ -416,14 +418,18 @@ class MainWindow(QMainWindow):
                                                                 val = settingMenu.gainSlider.value()))
         settingMenu.gainSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                              "gain", settingMenu.gainSlider.value()))
+        settingMenu.gainAuto.stateChanged.connect(lambda: settingMenu.gainSlider.setValue(screen.get_camera_setting(setting = "gain"))\
+                                                 if settingMenu.gainAuto.isChecked() else None)
         settingMenu.gainAuto.stateChanged.connect(lambda: settingMenu.gainSlider.setEnabled(not settingMenu.gainAuto.isChecked()))
-        
+                                               
         # W/B
         settingMenu.wbSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wb",\
                                                                 val = settingMenu.wbSlider.value()/100))
         settingMenu.wbSlider.valueChanged.connect(lambda: settingMenu.wbNum.setNum(settingMenu.wbSlider.value()/100))
         settingMenu.wbSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                              "wb", settingMenu.wbSlider.value()))
+        settingMenu.wbAuto.stateChanged.connect(lambda: settingMenu.wbSlider.setValue(screen.get_camera_setting(setting = "wb"))\
+                                                 if settingMenu.wbAuto.isChecked() else None)
         settingMenu.wbAuto.stateChanged.connect(lambda: settingMenu.wbSlider.setEnabled(not settingMenu.wbAuto.isChecked()))
 
         # Gamma
@@ -432,6 +438,8 @@ class MainWindow(QMainWindow):
         settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setNum(settingMenu.gammaSlider.value()/100))
         settingMenu.gammaSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                              "gamma", settingMenu.gammaSlider.value()))
+        settingMenu.gammaAuto.stateChanged.connect(lambda: settingMenu.gammaSlider.setValue(screen.get_camera_setting(setting = "gamma"))\
+                                                 if settingMenu.gammaAuto.isChecked() else None)
         settingMenu.gammaAuto.stateChanged.connect(lambda: settingMenu.gammaSlider.setEnabled(not settingMenu.gammaAuto.isChecked()))
 
     def update_screen(self, screen, screen_index, selected_sn):
