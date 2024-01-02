@@ -141,16 +141,16 @@ class PySpinCamera:
         node_bufferhandling_mode.SetIntValue(node_newestonly_mode)
         
         # set gain
-        node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
-        node_gainauto_mode_off = node_gainauto_mode.GetEntryByName("Off")
-        node_gainauto_mode_continous = node_gainauto_mode.GetEntryByName("Continuous")
+        self.node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
+        self.node_gainauto_mode_off = self.node_gainauto_mode.GetEntryByName("Off")
+        self.node_gainauto_mode_continous = self.node_gainauto_mode.GetEntryByName("Continuous")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
+        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_off.GetValue())
         if self.device_color_type == "Color":
-            node_gainauto_mode.SetIntValue(node_gainauto_mode_off.GetValue()) # Set manual for color camera
             self.node_gain.SetValue(25.0)
         if self.device_color_type == "Mono":
-            node_gainauto_mode.SetIntValue(node_gainauto_mode_continous.GetValue()) # Set continous for mono camera
-
+            self.node_gain.SetValue(11.0)
+            
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
         if self.device_color_type == "Mono":
@@ -223,11 +223,24 @@ class PySpinCamera:
         Args:
         - gain (float): The desired gain value. min:0, max:27.0
         """
-        if self.device_color_type == "Color":
-            self.node_gain.SetValue(gain)
-        else: 
-            pass
-    
+        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_off.GetValue())
+        self.node_gain.SetValue(gain)
+
+    def get_gain(self):
+        """
+        Get the gain of the camera for Auto mode.
+        """
+        initial_val = self.node_gain.GetValue()
+        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_continous.GetValue()) # Set continous for mono camera
+
+        for i in range(5):  # Repeat few times
+            time.sleep(0.5)  # Wait for a short period
+            updated_val = self.node_gain.GetValue()
+            if updated_val != initial_val:
+                return updated_val  # Return the updated value if there's a change
+
+        return initial_val  # Return the initial value if no change is detected
+
     def set_exposure(self, expTime=125000):
         """
         Sets the exposure time of the camera.
@@ -237,7 +250,6 @@ class PySpinCamera:
         """
         self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())   # Return back to manual mode
         self.node_exptime.SetValue(expTime)
-        print("Set Camera Exp to ", expTime)
     
     def get_exposure(self):
         """
@@ -251,7 +263,7 @@ class PySpinCamera:
             updated_val = self.node_exptime.GetValue()
             if updated_val != initial_val:
                 return updated_val  # Return the updated value if there's a change
-        
+
         return initial_val  # Return the initial value if no change is detected
 
     def name(self, sn_only=False):
