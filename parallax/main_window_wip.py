@@ -438,7 +438,7 @@ class MainWindow(QMainWindow):
         settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setNum(settingMenu.gammaSlider.value()/100))
         settingMenu.gammaSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
                                                              "gamma", settingMenu.gammaSlider.value()))
-        settingMenu.gammaAuto.stateChanged.connect(lambda: settingMenu.gammaSlider.setValue(screen.get_camera_setting(setting = "gamma"))\
+        settingMenu.gammaAuto.stateChanged.connect(lambda: screen.get_camera_setting(setting = "gamma")\
                                                  if settingMenu.gammaAuto.isChecked() else None)
         settingMenu.gammaAuto.stateChanged.connect(lambda: settingMenu.gammaSlider.setEnabled(not settingMenu.gammaAuto.isChecked()))
 

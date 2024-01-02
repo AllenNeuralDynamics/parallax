@@ -169,8 +169,8 @@ class PySpinCamera:
         self.node_exptime.SetValue(125000)   # 8 fps
 
         # set gamma  
-        node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
-        node_gammaenable_mode.SetValue(True)
+        self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
+        self.node_gammaenable_mode.SetValue(True)
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
         self.node_gamma.SetValue(1.0)  
         
@@ -214,7 +214,14 @@ class PySpinCamera:
         Args:
         - gamma (float): The desired gamma value. min:0.25 max:1.25
         """
+        self.node_gammaenable_mode.SetValue(True)
         self.node_gamma.SetValue(gamma)
+
+    def disable_gamma(self):
+        """
+        Disable the gamma of the camera.
+        """
+        self.node_gammaenable_mode.SetValue(False)
 
     def set_gain(self, gain=20.0):
         """
@@ -228,7 +235,7 @@ class PySpinCamera:
 
     def get_gain(self):
         """
-        Get the gain of the camera for Auto mode.
+        Get the gain of the camera for the auto mode.
         """
         initial_val = self.node_gain.GetValue()
         self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_continous.GetValue()) # Set continous for mono camera
@@ -253,7 +260,7 @@ class PySpinCamera:
     
     def get_exposure(self):
         """
-        Get the exposure time of the camera for Auto mode.
+        Get the exposure time of the camera for the auto mode.
         """
         initial_val = self.node_exptime.GetValue()
         self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())    # Enable the Auto mode
