@@ -423,15 +423,23 @@ class MainWindow(QMainWindow):
         settingMenu.gainAuto.stateChanged.connect(lambda: settingMenu.gainSlider.setEnabled(not settingMenu.gainAuto.isChecked()))
                                                
         # W/B
-        settingMenu.wbSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wb",\
-                                                                val = settingMenu.wbSlider.value()/100))
-        settingMenu.wbSlider.valueChanged.connect(lambda: settingMenu.wbNum.setNum(settingMenu.wbSlider.value()/100))
-        settingMenu.wbSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                             "wb", settingMenu.wbSlider.value()))
-        settingMenu.wbAuto.stateChanged.connect(lambda: settingMenu.wbSlider.setValue(screen.get_camera_setting(setting = "wb"))\
-                                                 if settingMenu.wbAuto.isChecked() else None)
-        settingMenu.wbAuto.stateChanged.connect(lambda: settingMenu.wbSlider.setEnabled(not settingMenu.wbAuto.isChecked()))
-
+        # Check Color/Mono camera.
+        if screen.get_camera_color_type() == "Color":
+            settingMenu.wbSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wb",\
+                                                                    val = settingMenu.wbSlider.value()/100))
+            settingMenu.wbSlider.valueChanged.connect(lambda: settingMenu.wbNum.setNum(settingMenu.wbSlider.value()/100))
+            settingMenu.wbSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+                                                                "wb", settingMenu.wbSlider.value()))
+            settingMenu.wbAuto.stateChanged.connect(lambda: settingMenu.wbSlider.setValue(screen.get_camera_setting(setting = "wb"))\
+                                                    if settingMenu.wbAuto.isChecked() else None)
+            settingMenu.wbAuto.stateChanged.connect(lambda: settingMenu.wbSlider.setEnabled(not settingMenu.wbAuto.isChecked()))
+        else: # Mono Camera does not suuport the W/B
+            settingMenu.wbNum.setNum(-1) # To Do
+            self.update_user_configs_settingMenu(microscopeGrp, "wb", -1)
+            settingMenu.wbAuto.setChecked(True) 
+            settingMenu.wbAuto.setDisabled(True) 
+            settingMenu.wbSlider.setDisabled(True)
+        
         # Gamma
         settingMenu.gammaSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gamma",\
                                                                 val = settingMenu.gammaSlider.value()/100))
