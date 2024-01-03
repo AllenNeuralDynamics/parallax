@@ -165,10 +165,13 @@ font: 9pt;
       <number>1</number>
      </property>
      <property name="value">
-      <number>80</number>
+      <number>100</number>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="tickPosition">
+      <enum>QSlider::NoTicks</enum>
      </property>
     </widget>
    </item>
@@ -185,7 +188,7 @@ font: 9pt;
       <number>27</number>
      </property>
      <property name="value">
-      <number>18</number>
+      <number>25</number>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -236,13 +239,13 @@ font: 9pt;
       </size>
      </property>
      <property name="minimum">
-      <number>10</number>
+      <number>1</number>
      </property>
      <property name="maximum">
       <number>250</number>
      </property>
      <property name="value">
-      <number>15</number>
+      <number>16</number>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

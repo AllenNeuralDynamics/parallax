@@ -164,9 +164,10 @@ class PySpinCamera:
         self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
         self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
         self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
-        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())
+        #self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())
+        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())
         self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
-        self.node_exptime.SetValue(125000)   # 8 fps
+        #self.node_exptime.SetValue(125000)   # 8 fps
 
         # set gamma  
         self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
@@ -240,7 +241,7 @@ class PySpinCamera:
         initial_val = self.node_gain.GetValue()
         self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_continous.GetValue()) # Set continous for mono camera
 
-        for i in range(5):  # Repeat few times
+        for i in range(2):  # Repeat few times
             time.sleep(0.5)  # Wait for a short period
             updated_val = self.node_gain.GetValue()
             if updated_val != initial_val:
@@ -248,7 +249,7 @@ class PySpinCamera:
 
         return initial_val  # Return the initial value if no change is detected
 
-    def set_exposure(self, expTime=125000):
+    def set_exposure(self, expTime=16000):
         """
         Sets the exposure time of the camera.
 
@@ -265,12 +266,12 @@ class PySpinCamera:
         initial_val = self.node_exptime.GetValue()
         self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())    # Enable the Auto mode
         
-        for i in range(5):  # Repeat few times
+        for i in range(2):  # Repeat few times TODO Need more test. 
             time.sleep(0.5)  # Wait for a short period
             updated_val = self.node_exptime.GetValue()
             if updated_val != initial_val:
                 return updated_val  # Return the updated value if there's a change
-
+        
         return initial_val  # Return the initial value if no change is detected
 
     def name(self, sn_only=False):
@@ -582,7 +583,7 @@ class MockCamera:
         logger.info("This is MockCamera. Setting is not appliable")
         return
     
-    def set_exposure(self, expTime=125000):
+    def set_exposure(self, expTime=16000):
         logger.info("This is MockCamera. Setting is not appliable")
         return
 

@@ -200,8 +200,6 @@ class ScreenWidget(pg.GraphicsView):
                 val = self.camera.get_gain()
             elif setting == "gamma":
                 self.camera.disable_gamma()
-            elif setting == "wb":
-                self.camera.get_wb()
         return val
 
     def get_camera_color_type(self):
