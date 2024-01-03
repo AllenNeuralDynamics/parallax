@@ -164,10 +164,8 @@ class PySpinCamera:
         self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
         self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
         self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
-        #self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())
         self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())
         self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
-        #self.node_exptime.SetValue(125000)   # 8 fps
 
         # set gamma  
         self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
