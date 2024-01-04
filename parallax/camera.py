@@ -143,7 +143,7 @@ class PySpinCamera:
         # set gain
         self.node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
         self.node_gainauto_mode_off = self.node_gainauto_mode.GetEntryByName("Off")
-        self.node_gainauto_mode_continous = self.node_gainauto_mode.GetEntryByName("Continuous")
+        self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName("Continuous")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
         self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_off.GetValue())
         if self.device_color_type == "Color":
@@ -175,14 +175,20 @@ class PySpinCamera:
         
         # Set White Balance
         if self.device_color_type == "Color":
-            node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
-            node_wbauto_mode_off = node_wbauto_mode.GetEntryByName("Off")
-            node_wbauto_mode.SetIntValue(node_wbauto_mode_off.GetValue())
-            node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
-            node_balanceratio_mode_blue = node_balanceratio_mode.GetEntryByName("Blue")     # Blue Channel
-            node_balanceratio_mode.SetIntValue(node_balanceratio_mode_blue.GetValue())
+            self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
+            self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
+            self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName("Continuous")
+            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_off.GetValue())
+            self.node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
             self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
-            self.node_wb.SetValue(2.2)  
+            # Red Channel
+            self.node_balanceratio_mode_red = self.node_balanceratio_mode.GetEntryByName("Red")     
+            self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
+            self.node_wb.SetValue(1.2)
+            # Blue Channel
+            self.node_balanceratio_mode_blue = self.node_balanceratio_mode.GetEntryByName("Blue")   
+            self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
+            self.node_wb.SetValue(1.2)
 
         # acquisition on initialization             
         if VERSION == "V1":
@@ -194,7 +200,7 @@ class PySpinCamera:
             # On initialization, start onetime acquisition to get one frame. 
             pass
         
-    def set_wb(self, wb=2.2):
+    def set_wb(self, channel, wb=1.2):
         """
         Sets the white balance of the camera.
 
@@ -202,10 +208,46 @@ class PySpinCamera:
         - wb (float): The desired white balance value. min:1.8, max:2.5
         """
         if self.device_color_type == "Color":
-            self.node_wb.SetValue(wb)
+            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_off.GetValue())
+            if channel == "Red":
+                self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
+                self.node_wb.SetValue(wb)
+            elif channel == "Blue":
+                self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
+                self.node_wb.SetValue(wb)
         else:
             pass
     
+    def get_wb(self, channel):
+        """
+        Get the gamma of the camera for the auto mode.
+        """
+        if self.device_color_type == "Color":
+            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue()) # Set continous for mono camera
+            time.sleep(0.5)
+            if channel == "Red":
+                self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
+                time.sleep(0.1)
+                return self.node_wb.GetValue()                
+            elif channel == "Blue":
+                self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
+                time.sleep(0.1)
+                return self.node_wb.GetValue()
+
+            """
+            for i in range(5):  # Repeat few times
+                time.sleep(0.5)  # Wait for a short period
+                updated_val = self.node_wb.GetValue()
+                print(i)
+                if updated_val != initial_val:
+                    print(initial_val, updated_val)
+                    return updated_val  # Return the updated value if there's a change
+            print(initial_val)
+            return initial_val  # Return the initial value if no change is detected
+            """
+        else:
+            return -1
+        
     def set_gamma(self, gamma=1.0):
         """
         Sets the gamma correction of the camera.
@@ -237,7 +279,7 @@ class PySpinCamera:
         Get the gain of the camera for the auto mode.
         """
         initial_val = self.node_gain.GetValue()
-        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_continous.GetValue()) # Set continous for mono camera
+        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue()) # Set continous for mono camera
 
         for i in range(2):  # Repeat few times
             time.sleep(0.5)  # Wait for a short period

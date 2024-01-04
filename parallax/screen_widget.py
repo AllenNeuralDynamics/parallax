@@ -188,8 +188,10 @@ class ScreenWidget(pg.GraphicsView):
                 self.camera.set_gain(val)
             elif setting == "gamma":
                 self.camera.set_gamma(val)
-            elif setting == "wb":
-                self.camera.set_wb(val)
+            elif setting == "wbRed":
+                self.camera.set_wb("Red", val)
+            elif setting == "wbBlue":
+                self.camera.set_wb("Blue", val)
 
     def get_camera_setting(self, setting):
         val = 0
@@ -200,6 +202,10 @@ class ScreenWidget(pg.GraphicsView):
                 val = self.camera.get_gain()
             elif setting == "gamma":
                 self.camera.disable_gamma()
+            elif setting == "wbRed":
+                val = self.camera.get_wb("Red")
+            elif setting == "wbBlue":
+                val = self.camera.get_wb("Blue")
         return val
 
     def get_camera_color_type(self):

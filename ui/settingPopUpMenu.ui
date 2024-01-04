@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
+    <width>407</width>
     <height>300</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>400</width>
+    <width>407</width>
     <height>200</height>
    </size>
   </property>
@@ -36,106 +36,34 @@ font: 9pt;
    <property name="verticalSpacing">
     <number>1</number>
    </property>
-   <item row="6" column="1">
-    <widget class="QCheckBox" name="gammaAuto">
-     <property name="enabled">
-      <bool>true</bool>
+   <item row="0" column="0">
+    <widget class="QLabel" name="nameLabel">
+     <property name="minimumSize">
+      <size>
+       <width>100</width>
+       <height>0</height>
+      </size>
      </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="checked">
-      <bool>false</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QLabel" name="autoLabel">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
        <height>20</height>
       </size>
      </property>
-     <property name="font">
-      <font>
-       <pointsize>9</pointsize>
-       <weight>50</weight>
-       <italic>false</italic>
-       <bold>false</bold>
-      </font>
-     </property>
      <property name="text">
-      <string>Auto</string>
+      <string>Name:</string>
      </property>
     </widget>
    </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="wbLabel">
-     <property name="maximumSize">
-      <size>
-       <width>100</width>
-       <height>16777215</height>
-      </size>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>9</pointsize>
-       <weight>50</weight>
-       <italic>false</italic>
-       <bold>false</bold>
-      </font>
-     </property>
+   <item row="7" column="3">
+    <widget class="QLabel" name="gammaNum">
      <property name="text">
-      <string>W/B:</string>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="3">
-    <widget class="QLabel" name="wbNum">
-     <property name="text">
-      <string>1.1</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QCheckBox" name="gainAuto">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="checked">
-      <bool>false</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="1">
-    <widget class="QCheckBox" name="wbAuto">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="checked">
-      <bool>false</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="0">
-    <widget class="QLabel" name="gammaLabel">
-     <property name="text">
-      <string>Gamma:</string>
+      <string>1.0</string>
      </property>
     </widget>
    </item>
    <item row="5" column="2">
-    <widget class="QSlider" name="wbSlider">
+    <widget class="QSlider" name="wbSliderRed">
      <property name="minimum">
       <number>25</number>
      </property>
@@ -153,7 +81,125 @@ font: 9pt;
      </property>
     </widget>
    </item>
-   <item row="6" column="2">
+   <item row="1" column="1" colspan="3">
+    <widget class="QComboBox" name="snComboBox"/>
+   </item>
+   <item row="4" column="3">
+    <widget class="QLabel" name="gainNum">
+     <property name="text">
+      <string>25</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::PlainText</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="1">
+    <widget class="QCheckBox" name="gammaAuto">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="3">
+    <widget class="QLabel" name="wbNumBlue">
+     <property name="text">
+      <string>1.1</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0">
+    <widget class="QLabel" name="gammaLabel">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>Gamma:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="snLabel">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>S/N:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1" colspan="3">
+    <widget class="QLineEdit" name="customName">
+     <property name="minimumSize">
+      <size>
+       <width>100</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>Microscope</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QCheckBox" name="expAuto">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="baseSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>9</pointsize>
+       <weight>50</weight>
+       <italic>false</italic>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="expLabel">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>Exposure:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="2">
     <widget class="QSlider" name="gammaSlider">
      <property name="minimum">
       <number>30</number>
@@ -175,10 +221,73 @@ font: 9pt;
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="expLabel">
+   <item row="3" column="3">
+    <widget class="QLabel" name="expNum">
      <property name="text">
-      <string>Exposure:</string>
+      <string>16</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::PlainText</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="gainLabel">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>Gain:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="3">
+    <widget class="QLabel" name="wbNumRed">
+     <property name="text">
+      <string>1.1</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="2">
+    <widget class="QSlider" name="wbSliderBlue">
+     <property name="minimum">
+      <number>25</number>
+     </property>
+     <property name="maximum">
+      <number>400</number>
+     </property>
+     <property name="value">
+      <number>110</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1" alignment="Qt::AlignHCenter">
+    <widget class="QLabel" name="autoLabel">
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>9</pointsize>
+       <weight>50</weight>
+       <italic>false</italic>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Auto</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
      </property>
     </widget>
    </item>
@@ -195,14 +304,45 @@ font: 9pt;
      </property>
     </widget>
    </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="nameLabel">
-     <property name="minimumSize">
+   <item row="4" column="1">
+    <widget class="QCheckBox" name="gainAuto">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="wbLabelRed">
+     <property name="maximumSize">
       <size>
-       <width>100</width>
-       <height>0</height>
+       <width>16777215</width>
+       <height>20</height>
       </size>
      </property>
+     <property name="font">
+      <font>
+       <pointsize>9</pointsize>
+       <weight>50</weight>
+       <italic>false</italic>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>W/B Red:</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="wbLabelBlue">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -210,23 +350,7 @@ font: 9pt;
       </size>
      </property>
      <property name="text">
-      <string>Name:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1" colspan="3">
-    <widget class="QComboBox" name="snComboBox"/>
-   </item>
-   <item row="0" column="1" colspan="3">
-    <widget class="QLineEdit" name="customName">
-     <property name="minimumSize">
-      <size>
-       <width>100</width>
-       <height>0</height>
-      </size>
-     </property>
-     <property name="text">
-      <string>Microscope</string>
+      <string>W/B Blue:</string>
      </property>
     </widget>
    </item>
@@ -252,60 +376,13 @@ font: 9pt;
      </property>
     </widget>
    </item>
-   <item row="4" column="0">
-    <widget class="QLabel" name="gainLabel">
-     <property name="text">
-      <string>Gain:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="3">
-    <widget class="QLabel" name="expNum">
-     <property name="text">
-      <string>16</string>
-     </property>
-     <property name="textFormat">
-      <enum>Qt::PlainText</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="snLabel">
-     <property name="text">
-      <string>S/N:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="3">
-    <widget class="QLabel" name="gainNum">
-     <property name="text">
-      <string>25</string>
-     </property>
-     <property name="textFormat">
-      <enum>Qt::PlainText</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="3">
-    <widget class="QLabel" name="gammaNum">
-     <property name="text">
-      <string>1.0</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
-    <widget class="QCheckBox" name="expAuto">
+   <item row="5" column="1">
+    <widget class="QCheckBox" name="wbAuto">
      <property name="enabled">
       <bool>true</bool>
      </property>
      <property name="text">
       <string/>
-     </property>
-     <property name="iconSize">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -349,9 +426,9 @@ font: 9pt;
    </hints>
   </connection>
   <connection>
-   <sender>wbSlider</sender>
+   <sender>wbSliderRed</sender>
    <signal>valueChanged(int)</signal>
-   <receiver>wbNum</receiver>
+   <receiver>wbNumRed</receiver>
    <slot>setNum(int)</slot>
    <hints>
     <hint type="sourcelabel">
