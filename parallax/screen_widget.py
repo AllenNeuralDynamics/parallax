@@ -192,6 +192,8 @@ class ScreenWidget(pg.GraphicsView):
                 self.camera.set_wb("Red", val)
             elif setting == "wbBlue":
                 self.camera.set_wb("Blue", val)
+        #print("Set: ", self.camera.name(), setting, val)
+        
 
     def get_camera_setting(self, setting):
         val = 0
@@ -206,6 +208,7 @@ class ScreenWidget(pg.GraphicsView):
                 val = self.camera.get_wb("Red")
             elif setting == "wbBlue":
                 val = self.camera.get_wb("Blue")
+        #print("Get: ", self.camera.name(), setting, val)
         return val
 
     def get_camera_color_type(self):

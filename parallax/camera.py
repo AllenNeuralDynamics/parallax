@@ -145,12 +145,14 @@ class PySpinCamera:
         self.node_gainauto_mode_off = self.node_gainauto_mode.GetEntryByName("Off")
         self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName("Continuous")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
-        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_off.GetValue())
+        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())      # Default: Auto mode on    
+        """
         if self.device_color_type == "Color":
             self.node_gain.SetValue(25.0)
         if self.device_color_type == "Mono":
             self.node_gain.SetValue(11.0)
-            
+        """
+
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
         if self.device_color_type == "Mono":
@@ -164,31 +166,31 @@ class PySpinCamera:
         self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
         self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
         self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
-        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())
+        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())        # Default: Auto mode on 
         self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
 
         # set gamma  
         self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
-        self.node_gammaenable_mode.SetValue(True)
+        self.node_gammaenable_mode.SetValue(True)                # Default: Gammal Enable on 
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
-        self.node_gamma.SetValue(1.0)  
+        self.node_gamma.SetValue(0.8)  
         
         # Set White Balance
         if self.device_color_type == "Color":
             self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
             self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
             self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName("Continuous")
-            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_off.GetValue())
+            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue())      # Default: Auto mode on 
             self.node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
             self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
             # Red Channel
             self.node_balanceratio_mode_red = self.node_balanceratio_mode.GetEntryByName("Red")     
-            self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
-            self.node_wb.SetValue(1.2)
+            #self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
+            #self.node_wb.SetValue(1.2)
             # Blue Channel
             self.node_balanceratio_mode_blue = self.node_balanceratio_mode.GetEntryByName("Blue")   
-            self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
-            self.node_wb.SetValue(1.2)
+            #self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
+            #self.node_wb.SetValue(1.2)
 
         # acquisition on initialization             
         if VERSION == "V1":
@@ -233,18 +235,6 @@ class PySpinCamera:
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
                 time.sleep(0.1)
                 return self.node_wb.GetValue()
-
-            """
-            for i in range(5):  # Repeat few times
-                time.sleep(0.5)  # Wait for a short period
-                updated_val = self.node_wb.GetValue()
-                print(i)
-                if updated_val != initial_val:
-                    print(initial_val, updated_val)
-                    return updated_val  # Return the updated value if there's a change
-            print(initial_val)
-            return initial_val  # Return the initial value if no change is detected
-            """
         else:
             return -1
         
