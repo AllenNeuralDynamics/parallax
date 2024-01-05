@@ -140,18 +140,36 @@ class PySpinCamera:
         node_newestonly_mode = node_newestonly.GetValue()
         node_bufferhandling_mode.SetIntValue(node_newestonly_mode)
         
+        # Set White Balance
+        if self.device_color_type == "Color":
+            self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
+            self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
+            self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName("Continuous")
+            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue())      # Default: Auto mode on 
+            self.node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
+            self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
+            self.node_balanceratio_mode_red = self.node_balanceratio_mode.GetEntryByName("Red")     # Red Channel    
+            self.node_balanceratio_mode_blue = self.node_balanceratio_mode.GetEntryByName("Blue")   # Blue Channel 
+
+        # set exposure time
+        self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
+        self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
+        self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
+        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())        # Default: Auto mode on 
+        self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
+
         # set gain
         self.node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
         self.node_gainauto_mode_off = self.node_gainauto_mode.GetEntryByName("Off")
         self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName("Continuous")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
         self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())      # Default: Auto mode on    
-        """
-        if self.device_color_type == "Color":
-            self.node_gain.SetValue(25.0)
-        if self.device_color_type == "Mono":
-            self.node_gain.SetValue(11.0)
-        """
+
+        # set gamma  
+        self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
+        self.node_gammaenable_mode.SetValue(True)                # Default: Gammal Enable on 
+        self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
+        self.node_gamma.SetValue(0.8)  
 
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
@@ -162,36 +180,6 @@ class PySpinCamera:
             entry_pixelformat_rgb8packed = node_pixelformat.GetEntryByName("RGB8Packed")
             node_pixelformat.SetIntValue(entry_pixelformat_rgb8packed.GetValue())
             
-        # set exposure time
-        self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
-        self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
-        self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
-        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())        # Default: Auto mode on 
-        self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
-
-        # set gamma  
-        self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
-        self.node_gammaenable_mode.SetValue(True)                # Default: Gammal Enable on 
-        self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
-        self.node_gamma.SetValue(0.8)  
-        
-        # Set White Balance
-        if self.device_color_type == "Color":
-            self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
-            self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
-            self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName("Continuous")
-            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue())      # Default: Auto mode on 
-            self.node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
-            self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
-            # Red Channel
-            self.node_balanceratio_mode_red = self.node_balanceratio_mode.GetEntryByName("Red")     
-            #self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
-            #self.node_wb.SetValue(1.2)
-            # Blue Channel
-            self.node_balanceratio_mode_blue = self.node_balanceratio_mode.GetEntryByName("Blue")   
-            #self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
-            #self.node_wb.SetValue(1.2)
-
         # acquisition on initialization             
         if VERSION == "V1":
             # begin acquisition
@@ -583,7 +571,8 @@ class MockCamera:
         # Create mock image data with random values
         self.data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype='ubyte')
         self._next_frame = 0
-
+        self.device_color_type = None
+        
     def name(self, sn_only=False):
         # Get the name of the mock camera
         return self._name

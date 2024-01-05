@@ -192,8 +192,8 @@ class MainWindow(QMainWindow):
                 else:
                     logger.debug("save_last_image) camera not found")
         else:
-            print(f"Directory {save_path} does not exist!")    
-
+            print(f"Directory {save_path} does not exist!")
+            
     def start_button_handler(self):
         """
         Handles the start button press event.
@@ -352,7 +352,7 @@ class MainWindow(QMainWindow):
        
         # Load setting file from JSON
         self.update_setting_menu(microscopeGrp)
-        
+
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
 
