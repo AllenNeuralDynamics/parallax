@@ -654,13 +654,13 @@ class MainWindow(QMainWindow):
                     settingMenu.gammaAuto.setChecked(True)
                 else:
                     settingMenu.gammaSlider.setEnabled(True)
-                    settingMenu.gammaSlider.setValue(saved_settings.get('gamma', 1))
+                    settingMenu.gammaSlider.setValue(saved_settings.get('gamma', 100))
                     settingMenu.gammaSlider.setEnabled(False)
             elif gammaAuto == False:
                 if settingMenu.gammaAuto.isChecked():
                     settingMenu.gammaAuto.setChecked(False)
                 else:
-                    settingMenu.gammaSlider.setValue(saved_settings.get('gamma', 1))
+                    settingMenu.gammaSlider.setValue(saved_settings.get('gamma', 100))
             else:
                 pass
 
@@ -690,6 +690,10 @@ class MainWindow(QMainWindow):
             settingMenu.gainAuto.setChecked(True)       # Gain - Auto mode on
             settingMenu.wbAuto.setChecked(True)         # W/B - Auto mode on
             settingMenu.gammaAuto.setChecked(False)     # Gamma - Enable
+            self.update_user_configs_settingMenu(microscopeGrp, "expAuto", settingMenu.expAuto.isChecked())
+            self.update_user_configs_settingMenu(microscopeGrp, "gainAuto", settingMenu.gainAuto.isChecked())
+            self.update_user_configs_settingMenu(microscopeGrp, "wbAuto", settingMenu.wbAuto.isChecked())
+            self.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", settingMenu.gammaAuto.isChecked())
 
     def dir_setting_handler(self):
         """
