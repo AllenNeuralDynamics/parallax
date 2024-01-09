@@ -216,11 +216,11 @@ class PySpinCamera:
             time.sleep(0.5)
             if channel == "Red":
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
-                time.sleep(0.1)
+                time.sleep(0.5)
                 return self.node_wb.GetValue()                
             elif channel == "Blue":
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
-                time.sleep(0.1)
+                time.sleep(0.5)
                 return self.node_wb.GetValue()
         else:
             return -1
