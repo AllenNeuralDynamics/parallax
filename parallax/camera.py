@@ -63,8 +63,7 @@ class PySpinCamera:
             cls.pyspin_instance = PySpin.System.GetInstance()
         cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
         ncameras = cls.pyspin_cameras.GetSize()
-        
-        
+           
         cls.cameras = []
         for i in range(ncameras):
             camera_pyspin = cls.pyspin_cameras.GetByIndex(i)
@@ -259,11 +258,10 @@ class PySpinCamera:
         initial_val = self.node_gain.GetValue()
         self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue()) # Set continous for mono camera
 
-        for i in range(2):  # Repeat few times
-            time.sleep(0.5)  # Wait for a short period
-            updated_val = self.node_gain.GetValue()
-            if updated_val != initial_val:
-                return updated_val  # Return the updated value if there's a change
+        time.sleep(0.5)  # Wait for a short period
+        updated_val = self.node_gain.GetValue()
+        if updated_val != initial_val:
+            return updated_val  # Return the updated value if there's a change
 
         return initial_val  # Return the initial value if no change is detected
 
@@ -284,11 +282,10 @@ class PySpinCamera:
         initial_val = self.node_exptime.GetValue()
         self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())    # Enable the Auto mode
         
-        for i in range(2):  # Repeat few times TODO Need more test. 
-            time.sleep(0.5)  # Wait for a short period
-            updated_val = self.node_exptime.GetValue()
-            if updated_val != initial_val:
-                return updated_val  # Return the updated value if there's a change
+        time.sleep(0.5)  # Wait for a short period
+        updated_val = self.node_exptime.GetValue()
+        if updated_val != initial_val:
+            return updated_val  # Return the updated value if there's a change
         
         return initial_val  # Return the initial value if no change is detected
 
@@ -559,11 +556,9 @@ class PySpinCamera:
         if clean:
             del self.camera
 
-
 # Class for simulating a mock camera
 class MockCamera:
     n_cameras = 0
-
     def __init__(self):
         # Initialize a mock camera with a unique name
         self._name = f"MockCamera{MockCamera.n_cameras}"
