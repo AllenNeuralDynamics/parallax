@@ -192,8 +192,8 @@ class MainWindow(QMainWindow):
                 else:
                     logger.debug("save_last_image) camera not found")
         else:
-            print(f"Directory {save_path} does not exist!")    
-
+            print(f"Directory {save_path} does not exist!")
+            
     def start_button_handler(self):
         """
         Handles the start button press event.
@@ -352,7 +352,7 @@ class MainWindow(QMainWindow):
        
         # Load setting file from JSON
         self.update_setting_menu(microscopeGrp)
-       
+
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
 
@@ -387,10 +387,11 @@ class MainWindow(QMainWindow):
             settingMenu.snComboBox.setCurrentIndex(index)
         else:
             logger.error("SN not found in the list")
-        # If serial number is changed, connect to update_screen function
+
+        # If serial number is changed, connect to update_screen function and update setting menu
         settingMenu.snComboBox.currentIndexChanged.connect(lambda: self.update_screen(screen, \
                                              screen_index, settingMenu.snComboBox.currentText()))
-
+        
         # Custom name
         customName = self.load_settings_item(sn, "customName")  # Default name on init
         customName = customName if customName else newNameMicroscope
@@ -407,28 +408,54 @@ class MainWindow(QMainWindow):
                                                                 val = settingMenu.expSlider.value()*1000))
         settingMenu.expSlider.valueChanged.connect(lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value()))
         settingMenu.expSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                            "exp", settingMenu.expSlider.value()))
+                            "exp", settingMenu.expSlider.value()))       
+        settingMenu.expAuto.clicked.connect(lambda: settingMenu.expSlider.setValue(\
+                            int(screen.get_camera_setting(setting = "exposure")/1000)))
 
         # Gain
         settingMenu.gainSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gain",\
                                                                 val = settingMenu.gainSlider.value()))
+        settingMenu.gainSlider.valueChanged.connect(lambda: settingMenu.gainNum.setNum(settingMenu.gainSlider.value()))
         settingMenu.gainSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                             "gain", settingMenu.gainSlider.value()))
-        
-        # W/B
-        settingMenu.wbSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wb",\
-                                                                val = settingMenu.wbSlider.value()/100))
-        settingMenu.wbSlider.valueChanged.connect(lambda: settingMenu.wbNum.setNum(settingMenu.wbSlider.value()/100))
-        settingMenu.wbSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                             "wb", settingMenu.wbSlider.value()))
+                            "gain", settingMenu.gainSlider.value()))
+        settingMenu.gainAuto.clicked.connect(lambda: settingMenu.gainSlider.setValue(\
+                            screen.get_camera_setting(setting = "gain")))
 
         # Gamma
         settingMenu.gammaSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gamma",\
                                                                 val = settingMenu.gammaSlider.value()/100))
-        settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setNum(settingMenu.gammaSlider.value()/100))
+        settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setText(
+                            "{:.2f}".format(settingMenu.gammaSlider.value()/100)))
         settingMenu.gammaSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
-                                                             "gamma", settingMenu.gammaSlider.value()))
-
+                            "gamma", settingMenu.gammaSlider.value()))
+        settingMenu.gammaAuto.clicked.connect(lambda: settingMenu.gammaSlider.setEnabled(
+                            not settingMenu.gammaSlider.isEnabled()))
+        settingMenu.gammaAuto.clicked.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", \
+                            settingMenu.gammaSlider.isEnabled()))
+                            
+        # W/B
+        settingLayout = settingMenu.layout()
+        settingLayout.addWidget(settingMenu.wbAuto, 5, 1, 2, 1)
+        # Blue Channel
+        settingMenu.wbSliderBlue.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wbBlue",\
+                                                                val = settingMenu.wbSliderBlue.value()/100))
+        settingMenu.wbSliderBlue.valueChanged.connect(lambda: settingMenu.wbNumBlue.setText(\
+                        "{:.2f}".format(settingMenu.wbSliderBlue.value()/100)))
+        settingMenu.wbSliderBlue.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+                        "wbBlue", settingMenu.wbSliderBlue.value()))
+        settingMenu.wbAuto.clicked.connect(lambda: settingMenu.wbSliderBlue.setValue(\
+                        screen.get_camera_setting(setting = "wbBlue")*100))
+        
+        # Red Channel
+        settingMenu.wbSliderRed.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wbRed",\
+                                                                val = settingMenu.wbSliderRed.value()/100))
+        settingMenu.wbSliderRed.valueChanged.connect(lambda: settingMenu.wbNumRed.setText(\
+                        "{:.2f}".format(settingMenu.wbSliderRed.value()/100)))
+        settingMenu.wbSliderRed.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+                        "wbRed", settingMenu.wbSliderRed.value()))
+        settingMenu.wbAuto.clicked.connect(lambda: settingMenu.wbSliderRed.setValue(\
+                        screen.get_camera_setting(setting = "wbRed")*100))
+        
     def update_screen(self, screen, screen_index, selected_sn):
         """
         Update the screen with a new camera based on the selected serial number.
@@ -538,22 +565,51 @@ class MainWindow(QMainWindow):
         Parameters:
         - microscopeGrp (QGroupBox): The microscope group box associated with the settings menu to be updated.
         """
+        
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
         screen = microscopeGrp.findChild(ScreenWidget, "Screen")
 
         # Display the S/N of camera 
         sn = screen.get_camera_name()
-        
         # Load the saved settings
         saved_settings = self.load_settings_item(sn)
         if saved_settings:
             # If saved settings are found, update the sliders in the settings menu with the saved values
-            settingMenu.expSlider.setValue(saved_settings.get('exp', settingMenu.expSlider.value()))
-            settingMenu.gainSlider.setValue(saved_settings.get('gain', settingMenu.gainSlider.value()))
-            settingMenu.wbSlider.setValue(saved_settings.get('wb', settingMenu.wbSlider.value()))
-            settingMenu.gammaSlider.setValue(saved_settings.get('gamma', settingMenu.gammaSlider.value()))
+            settingMenu.expSlider.setValue(saved_settings.get('exp', 15))
+            settingMenu.gainSlider.setValue(saved_settings.get('gain', 20))
 
+            # Gamma
+            gammaAuto = saved_settings.get('gammaAuto', None)
+            if gammaAuto == True:
+                settingMenu.gammaSlider.setEnabled(True)
+                settingMenu.gammaSlider.setValue(saved_settings.get('gamma', 100))
+            elif gammaAuto == False:
+                settingMenu.gammaSlider.setEnabled(False)
+            else:
+                pass
+
+            # W/B
+            if screen.get_camera_color_type() == "Color":
+                settingMenu.wbAuto.setDisabled(False)
+                settingMenu.wbSliderRed.setDisabled(False)
+                settingMenu.wbSliderBlue.setDisabled(False)
+                settingMenu.wbSliderRed.setValue(saved_settings.get('wbRed', 1.2))
+                settingMenu.wbSliderBlue.setValue(saved_settings.get('wbBlue', 2.8))
+            elif screen.get_camera_color_type() == "Mono":
+                settingMenu.wbAuto.setDisabled(True)
+                settingMenu.wbSliderRed.setDisabled(True)
+                settingMenu.wbSliderBlue.setDisabled(True)
+                settingMenu.wbNumRed.setText("--")
+                settingMenu.wbNumBlue.setText("--")
+
+        else: 
+            settingMenu.gainAuto.click()
+            settingMenu.wbAuto.click()
+            settingMenu.expAuto.click()
+            self.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", True)
+            self.update_user_configs_settingMenu(microscopeGrp, "gamma", settingMenu.gammaSlider.value())
+            
     def dir_setting_handler(self):
         """
         This method handles the selection of a directory for saving files. It opens a dialog that allows
@@ -667,15 +723,18 @@ class MainWindow(QMainWindow):
         - val (int/float/str): The new value of the setting item.
         """
 
+        # Find the screen within this microscopeGrp
+        screen = microscopeGrp.findChild(ScreenWidget, "Screen")
+
+        # Display the S/N of camera 
+        sn = screen.get_camera_name()
+
         # Read current settings from file
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:
                 settings = json.load(file)
         else:
             settings = {}
-
-        screen = microscopeGrp.findChild(ScreenWidget, "Screen")
-        sn = screen.get_camera_name()
 
         # Update settings with values from the settingMenu of current screen
         if sn not in settings:
