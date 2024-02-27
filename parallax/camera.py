@@ -63,7 +63,7 @@ class PySpinCamera:
             cls.pyspin_instance = PySpin.System.GetInstance()
         cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
         ncameras = cls.pyspin_cameras.GetSize()
-           
+
         cls.cameras = []
         for i in range(ncameras):
             camera_pyspin = cls.pyspin_cameras.GetByIndex(i)
@@ -130,7 +130,7 @@ class PySpinCamera:
         else:
             print("Not supported camera type.")
             return None
-        print(self.device_model, self.device_color_type)
+        print(self.device_model, self.device_color_type, self.name(sn_only=True))
 
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()

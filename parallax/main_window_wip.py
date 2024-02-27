@@ -11,6 +11,7 @@ from functools import partial
 import json
 import os
 import logging
+import time
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -39,7 +40,6 @@ class MainWindow(QMainWindow):
         # Update camera information
         self.refresh_cameras()
         logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
-        # self.model.nPySpinCameras = 2 # test
     
         # Load column configuration from user preferences
         self.nColumn = self.load_settings_item("main", "nColumn")
@@ -103,10 +103,12 @@ class MainWindow(QMainWindow):
         """
         # Add mock cameras for testing purposes
         self.model.add_mock_cameras()
-
         # If not in dummy mode, scan for actual available cameras
         if not self.dummy:
-            self.model.scan_for_cameras()
+            try:
+                self.model.scan_for_cameras()
+            except Exception as e:
+                    print(f" Something still holds a reference to the camera.\n {e}")
 
     def record_button_handler(self):
         """
