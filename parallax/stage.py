@@ -10,7 +10,6 @@ from . import io_commands as io
 
 TIME_SLEEP = 0.03
 
-
 class IOWorker(QObject):
     finished = pyqtSignal()
 

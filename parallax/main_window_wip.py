@@ -16,8 +16,8 @@ import time
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
 # User Preferences (Data directory, UI config..) setting file
 SETTINGS_FILE = 'settings.json'
@@ -25,9 +25,6 @@ SETTINGS_FILE = 'settings.json'
 # Main application window
 class MainWindow(QMainWindow):
     def __init__(self, model, dummy=False):
-        """
-        
-        """
         QMainWindow.__init__(self) # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
@@ -41,6 +38,10 @@ class MainWindow(QMainWindow):
         self.refresh_cameras()
         logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
     
+        # Update stage information
+        self.refresh_stages()
+        logger.debug(f"stages: {self.model.stages}")
+        
         # Load column configuration from user preferences
         self.nColumn = self.load_settings_item("main", "nColumn")
         if self.nColumn is None or 0:
@@ -109,6 +110,10 @@ class MainWindow(QMainWindow):
                 self.model.scan_for_cameras()
             except Exception as e:
                     print(f" Something still holds a reference to the camera.\n {e}")
+
+    def refresh_stages(self):
+        if not self.dummy:
+            self.model.scan_for_usb_stages()
 
     def record_button_handler(self):
         """

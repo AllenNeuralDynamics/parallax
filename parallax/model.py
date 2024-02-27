@@ -14,7 +14,8 @@ from newscale.interfaces import NewScaleSerial
 
 from . import training_dir, training_file
 from .camera import list_cameras, close_cameras, MockCamera, PySpinCamera
-from .stage import Stage
+from .stage import Stage    # v1
+from .stage_listener import StageInfo, Stage_ #v2
 from .accuracy_test import AccuracyTestWorker
 from .elevator import list_elevators
 from .preferences import Preferences
@@ -26,15 +27,19 @@ class Model(QObject):
 
     def __init__(self, version="V1"):
         QObject.__init__(self)
-        self.version =version
+        self.version = version
+        # camera
         self.cameras = []
         self.cameras_sn = []
         self.nPySpinCameras = 0
         self.nMockCameras = 0
         self.focos = []
-        self.init_stages()
 
+        # stage
+        self.nStages = 0
+        self.init_stages()
         self.elevators = {}
+        self.stage_listener_url = 'http://localhost:8080/'
 
         self.calibration = None
         self.calibrations = {}
@@ -108,11 +113,20 @@ class Model(QObject):
         self.nPySpinCameras = len([camera for camera in self.cameras if isinstance(camera, PySpinCamera)])
 
     def scan_for_usb_stages(self):
-        instances = NewScaleSerial.get_instances()
-        self.init_stages()
-        for instance in instances:
-            stage = Stage(serial=instance)
-            self.add_stage(stage)
+        if self.version == "V1":
+            instances = NewScaleSerial.get_instances()
+            self.init_stages()
+            for instance in instances:
+                stage = Stage(serial=instance)
+                self.add_stage(stage)
+        else:
+            stage_info = StageInfo(self.stage_listener_url)
+            instances = stage_info.get_instances()
+            self.init_stages()
+            for instance in instances:
+                stage = Stage_(stage_info = instance)
+                self.add_stage(stage)
+            self.nStages = len(self.stages)
 
     def scan_for_focus_controllers(self):
         self.focos = []
