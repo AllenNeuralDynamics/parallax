@@ -172,13 +172,16 @@ class PySpinCamera:
 
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
+        self.pixelformat = None
         if self.device_color_type == "Mono":
+            self.pixelformat = "Mono"
             entry_pixelformat_mono8 = node_pixelformat.GetEntryByName("Mono8")
             node_pixelformat.SetIntValue(entry_pixelformat_mono8.GetValue())
         elif self.device_color_type == "Color":
-            entry_pixelformat_rgb8packed = node_pixelformat.GetEntryByName("RGB8Packed")
-            node_pixelformat.SetIntValue(entry_pixelformat_rgb8packed.GetValue())
-            
+            self.pixelformat = "BayerRG8"
+            entry_pixelformat_bayerRG8 = node_pixelformat.GetEntryByName("BayerRG8")
+            node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
+
         # acquisition on initialization             
         if VERSION == "V1":
             # begin acquisition
@@ -397,10 +400,11 @@ class PySpinCamera:
         # Record the image if video recording is active     
         if self.video_recording_on.is_set(): 
             self.video_recording_idle.clear()
-            im_cv2_format = self.last_image.GetData().reshape(self.height, self.width, self.channels)
-            # Convert the image from RGB to BGR
-            im_cv2_format = cv2.cvtColor(im_cv2_format, cv2.COLOR_RGB2BGR)
-            self.video_output.write(im_cv2_format)
+            
+            frame = self.get_last_image_data()
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+            self.video_output.write(frame)
             self.video_recording_idle.set()
         
     def get_last_capture_time(self):
@@ -462,7 +466,10 @@ class PySpinCamera:
         """
         # Wait until last_image is not None
         self.last_image_filled.wait()
-        return self.last_image.GetNDArray()
+        frame_image = self.last_image.GetNDArray()
+        if self.pixelformat == "BayerRG8":
+            frame_image = cv2.cvtColor(frame_image, cv2.COLOR_BayerRG2BGR)
+        return frame_image
 
     # Get the last captured image data as a numpy array
     def get_last_image_data_singleFrame(self):
@@ -476,6 +483,8 @@ class PySpinCamera:
         # Wait until last_image is not None
         self.last_image_filled.wait()
         frame_image = self.last_image.GetNDArray()
+        if self.pixelformat == "BayerRG8":
+            frame_image = cv2.cvtColor(frame_image, cv2.COLOR_BayerRG2BGR)
         self.last_image_cleared.set()
         return frame_image
 
