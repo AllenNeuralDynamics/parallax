@@ -6,6 +6,7 @@ from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.uic import loadUi
 
 from .screen_widget import ScreenWidget
+from .recording_manager import RecordingManager
 from . import ui_dir
 from functools import partial
 import json
@@ -83,11 +84,12 @@ class MainWindow(QMainWindow):
         # Start button. If toggled, start camera acquisition  
         self.startButton.clicked.connect(self.start_button_handler)
 
-        # Snapshot button. If clicked, save the last image from cameras to dirLabel path.
-        self.snapshotButton.clicked.connect(self.save_last_image)
-
-        # Recording button. If clicked, save the recording in Mjpg format. 
-        self.recordButton.clicked.connect(self.record_button_handler)
+        # Recording functions
+        self.recordingManager = RecordingManager(self.model)
+        #self.snapshotButton.clicked.connect(self.save_last_image)           # Snapshot button
+        self.snapshotButton.clicked.connect(lambda: \
+                self.recordingManager.save_last_image(self.dirLabel.text(), self.screen_widgets))
+        self.recordButton.clicked.connect(self.record_button_handler)       # Recording video button
 
         # Refreshing the screen timer
         self.refresh_timer = QTimer()
@@ -121,85 +123,10 @@ class MainWindow(QMainWindow):
         If the record button is checked, start recording. Otherwise, stop recording.
         """
         if self.recordButton.isChecked():
-            self.save_recording()
+            save_path = self.dirLabel.text() 
+            self.recordingManager.save_recording(save_path, self.screen_widgets)
         else:
-            self.stop_recording()
-
-    def save_recording(self):
-        """
-        Initiates recording for all active camera feeds.
-
-        Records video from all active camera feeds and saves them to a specified directory.
-        The directory path is taken from the label showing the current save directory.
-        """
-        # Initialize the list to keep track of cameras that are currently recording
-        self.recording_camera_list = []
-
-        # Get the directory path where the recordings will be saved
-        save_path = self.dirLabel.text()        
-        if os.path.exists(save_path):
-            # Iterate through each screen widget
-            print("\nRecording...")
-            for screen in self.screen_widgets:
-                # Check if the current screen is a camera
-                if screen.is_camera():                      # If name is 'Blackfly"
-                    camera_name = screen.get_camera_name()  # Get the name of the camer
-                    # If this camera is not already in the list of recording cameras, then record
-                    if camera_name not in self.recording_camera_list:
-                        # Use custom name of the camera if it has one, otherwise use the camera's serial number
-                        customName = screen.parent().title()
-                        customName =  customName if customName else camera_name
-                        # Start recording and save the video with a timestamp and custom name
-                        screen.save_recording(save_path, isTimestamp=True, name=customName)
-                        self.recording_camera_list.append(camera_name)
-        else:
-            # If the save directory does not exist   
-            print(f"Directory {save_path} does not exist!")
-
-    def stop_recording(self):
-        """
-        Stops recording for all cameras that are currently recording.
-        """
-        # Iterate through each screen widget
-        for screen in self.screen_widgets:
-                camera_name =  screen.get_camera_name()
-                # Check if it is 'Balckfly' camera and in the list of recording cameras
-                if screen.is_camera() and camera_name in self.recording_camera_list:
-                    screen.stop_recording()         # Stop recording
-                    # Remove the camera from the list of cameras that are currently recording 
-                    self.recording_camera_list.remove(camera_name) 
-
-    def save_last_image(self):
-        """
-        Saves the last captured image from all active camera feeds.
-        
-        Saves the last captured image from all active camera feeds to a specified directory.
-        The directory path is taken from the label showing the current save directory.
-        """
-        # Initialize the list to keep track of cameras from which an image has been saved
-        snapshot_camera_list = []
-        # Get the directory path where the images will be saved
-        save_path = self.dirLabel.text()
-        if os.path.exists(save_path):
-            print("\nSnapshot...")
-            for screen in self.screen_widgets:
-                # Save image only for 'Blackfly' camera 
-                if screen.is_camera():      
-                    # Use custom name of the camera if it has one, otherwise use the camera's serial number
-                    camera_name = screen.get_camera_name()
-                    if camera_name not in snapshot_camera_list:
-                        customName = screen.parent().title()
-                        customName =  customName if customName else camera_name
-                        
-                        # Save the image with a timestamp and custom name
-                        screen.save_image(save_path, isTimestamp=True, name=customName)
-                        
-                        # Add the camera to the list of cameras from which an image has been saved
-                        snapshot_camera_list.append(camera_name)
-                else:
-                    logger.debug("save_last_image) camera not found")
-        else:
-            print(f"Directory {save_path} does not exist!")
+            self.recordingManager.stop_recording(self.screen_widgets)
             
     def start_button_handler(self):
         """
