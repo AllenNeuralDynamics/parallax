@@ -136,7 +136,7 @@ class Stage_(QObject):
         if stage_info is not None:
             self.sn = stage_info["SerialNumber"]
             self.name = stage_info["Id"]
-            self.stage_x = stage_info["Stage_X"]
-            self.stage_y = stage_info["Stage_Y"]
-            self.stage_z = stage_info["Stage_Z"]
+            self.stage_x = stage_info["Stage_X"]*1000
+            self.stage_y = stage_info["Stage_Y"]*1000
+            self.stage_z = stage_info["Stage_Z"]*1000
             
