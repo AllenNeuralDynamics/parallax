@@ -1,5 +1,5 @@
 # Import required PyQt5 modules and other libraries
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog, QScrollArea
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer, QPoint
 from PyQt5.QtGui import QFont, QFontDatabase
@@ -7,6 +7,7 @@ from PyQt5.uic import loadUi
 
 from .screen_widget import ScreenWidget
 from .recording_manager import RecordingManager
+from .stage_ui import StageUI
 from . import ui_dir
 from functools import partial
 import json
@@ -59,6 +60,13 @@ class MainWindow(QMainWindow):
         QFontDatabase.addApplicationFont(fira_code_font_path)
         fira_code_font = QFont("Fira Code Light", 10) # Setting font size to 10
         QApplication.setFont(fira_code_font)
+
+        # Load stage setting
+        self.stage = QWidget()
+        ui = os.path.join(ui_dir, "stage_info.ui")
+        loadUi(ui, self.stage) 
+        self.horizontalLayout.insertWidget(0, self.stage)
+        stageUI = StageUI(self.model, self.stage)
 
         # Load existing user preferences
         self.load_mainWindow_settings()
