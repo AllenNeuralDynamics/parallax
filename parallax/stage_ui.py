@@ -11,6 +11,7 @@ class StageUI(QWidget):
         self.updateStageLocalCoords()
 
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
+        self.ui.stage_selector.currentIndexChanged.connect(self.updateStageLocalCoords)
 
     def update_stage_selector(self):
         self.ui.stage_selector.clear()
