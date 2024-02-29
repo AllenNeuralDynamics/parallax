@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
-
 class StageInfo(QObject):
     def __init__(self, url):
         super().__init__()
@@ -168,6 +167,3 @@ class StageListener(QObject):
             self.stage_ui.updateStageLocalCoords()
 
         logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
-
-        # Prepare data row to write to CSV
-        #data_row = [timestamp, probe['Id'], probe['SerialNumber'], probe['Stage_X']*1000, probe['Stage_Y']*1000, probe['Stage_Z']*1000]
