@@ -34,7 +34,7 @@ class StageUI(QWidget):
         if stage_id:
             self.selected_stage = self.model.stages.get(stage_id)
             if self.selected_stage:
-                self.ui.stage_sn.setText(self.selected_stage.sn)
+                self.ui.stage_sn.setText(" "+self.selected_stage.sn)
 
     def updateStageLocalCoords(self):
         stage_id = self._get_current_stage_id()

@@ -1,5 +1,5 @@
 # Import required PyQt5 modules and other libraries
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog, QScrollArea
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog, QScrollArea, QSplitter, QGridLayout
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer, QPoint
 from PyQt5.QtGui import QFont, QFontDatabase
@@ -54,20 +54,13 @@ class MainWindow(QMainWindow):
 
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
-        loadUi(ui, self) 
+        loadUi(ui, self)
 
         # Load Fira Code font
         fira_code_font_path = os.path.join(ui_dir, "font/FiraCode-VariableFont_wght.ttf")
         QFontDatabase.addApplicationFont(fira_code_font_path)
         fira_code_font = QFont("Fira Code Light", 10) # Setting font size to 10
         QApplication.setFont(fira_code_font)
-
-        # Load stage setting
-        self.stage = QWidget()
-        ui = os.path.join(ui_dir, "stage_info.ui")
-        loadUi(ui, self.stage) 
-        self.horizontalLayout.insertWidget(0, self.stage)
-        self.stageUI = StageUI(self.model, self.stage)
 
         # Load existing user preferences
         self.load_mainWindow_settings()
@@ -84,11 +77,32 @@ class MainWindow(QMainWindow):
         # Refreshing the settingMenu while it is toggled
         self.settings_refresh_timer = QTimer()
 
+        # Create the widget for screen
+        self.scrollArea = QScrollArea(self.centralwidget)
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setObjectName("scrollArea")
+        self.scrollAreaWidgetContents = QWidget()
+        self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
+        self.gridLayout = QGridLayout(self.scrollAreaWidgetContents)
+
         # Dynamically generate Microscope display
         if self.model.nPySpinCameras:
             self.display_microscope() # Attach screen widget
         else: # Display only mock camera
             self.display_mock_camera()
+
+        # Load stage setting
+        self.stage = QWidget()
+        ui = os.path.join(ui_dir, "stage_info.ui")
+        loadUi(ui, self.stage)
+        self.stage.setMaximumWidth(400)
+        
+        # Create a QSplitter
+        splitter = QSplitter()
+        splitter.addWidget(self.scrollAreaWidgetContents)
+        splitter.addWidget(self.stage)
+        self.verticalLayout_4.addWidget(splitter)
+        self.stageUI = StageUI(self.model, self.stage)
 
         # Start button. If toggled, start camera acquisition  
         self.startButton.clicked.connect(self.start_button_handler)

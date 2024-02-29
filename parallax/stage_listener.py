@@ -166,4 +166,4 @@ class StageListener(QObject):
         if self.stage_ui.get_selected_stage_sn() == sn:
             self.stage_ui.updateStageLocalCoords()
 
-        logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
+        #logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
