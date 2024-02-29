@@ -71,7 +71,6 @@ class RecordingManager:
         """
         Stops recording for all cameras that are currently recording.
         """
-        print("stop_recording recording manager")
         # Iterate through each screen widget
         for screen in screen_widgets:
                 camera_name =  screen.get_camera_name()
