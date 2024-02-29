@@ -8,6 +8,7 @@ from PyQt5.uic import loadUi
 from .screen_widget import ScreenWidget
 from .recording_manager import RecordingManager
 from .stage_ui import StageUI
+from .stage_listener import StageListener
 from . import ui_dir
 from functools import partial
 import json
@@ -66,7 +67,7 @@ class MainWindow(QMainWindow):
         ui = os.path.join(ui_dir, "stage_info.ui")
         loadUi(ui, self.stage) 
         self.horizontalLayout.insertWidget(0, self.stage)
-        stageUI = StageUI(self.model, self.stage)
+        self.stageUI = StageUI(self.model, self.stage)
 
         # Load existing user preferences
         self.load_mainWindow_settings()
@@ -105,6 +106,10 @@ class MainWindow(QMainWindow):
         
         # Toggle start button on init
         self.start_button_handler()
+
+        # Start refreshing stage info
+        self.stageListener = StageListener(self.model, self.stageUI)
+        self.stageListener.start()
     
     def refresh_cameras(self):
         """

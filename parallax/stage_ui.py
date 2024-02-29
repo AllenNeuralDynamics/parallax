@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 
+
 class StageUI(QWidget):
     def __init__(self, model, parent=None):
         QWidget.__init__(self, parent)
@@ -13,6 +14,11 @@ class StageUI(QWidget):
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageLocalCoords)
 
+    def get_selected_stage_sn(self):
+        if self.selected_stage is not None:
+            return self.selected_stage.sn
+        return None
+
     def update_stage_selector(self):
         self.ui.stage_selector.clear()
         for stage in self.model.stages.keys():
@@ -25,7 +31,6 @@ class StageUI(QWidget):
         
     def updateStageSN(self):
         stage_id = self._get_current_stage_id()
-
         if stage_id:
             self.selected_stage = self.model.stages.get(stage_id)
             if self.selected_stage:
