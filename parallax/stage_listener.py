@@ -61,6 +61,7 @@ class Worker(QObject):
         self._high_freq_interval = 100
         self.curr_interval = self._low_freq_interval
         self._idle_time = 1
+        self.is_error_log_printed = False
         
     def start(self, interval=1000):
         """Main Worker Thread: This thread periodically checks for significant changes in the stage information."""
@@ -106,10 +107,12 @@ class Worker(QObject):
             else:
                 print(f"Failed to access {self.url}. Status code: {response.status_code}")
         except Exception as e:
-            print(f"\nAn error occurred: {e}")
-            print("== Trouble Shooting ==")
-            print("1. Check New Scale Stage connection.")
-            print("2. Enable Http Server: 'http://localhost:8080/'")
+            if self.is_error_log_printed == False:
+                self.is_error_log_printed = True
+                print(f"\nAn error occurred: {e}")
+                print("== Trouble Shooting ==")
+                print("1. Check New Scale Stage connection.")
+                print("2. Enable Http Server: 'http://localhost:8080/'")
 
     def isSignificantChange(self, current_stage_info, stage_threshold=0.005):
         """Check if the change in any axis exceeds the threshold."""
@@ -157,6 +160,7 @@ class StageListener(QObject):
 
         # update into model
         moving_stage = self.model.stages.get(id)
+        
         if moving_stage is not None:
             moving_stage.stage_x = local_coords_x
             moving_stage.stage_y = local_coords_y
