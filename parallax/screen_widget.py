@@ -9,7 +9,7 @@ import importlib
 
 from . import filters
 from . import detectors
-
+from .probe_detect_manager import ProbeDetectManager
 
 class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(int, int)
@@ -50,9 +50,13 @@ class ScreenWidget(pg.GraphicsView):
 
         self.camera = None
         self.focochan = None
-        self.filter = filters.NoFilter()
-        self.filter.frame_processed.connect(self.set_image_item_from_data)
-        self.detector = detectors.NoDetector()
+        if self.model.version == "V1":
+            self.filter = filters.NoFilter()
+            self.filter.frame_processed.connect(self.set_image_item_from_data)
+            self.detector = detectors.NoDetector()
+        else:
+            self.probeDetector = ProbeDetectManager()
+            self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
 
         if self.model.version == "V1":
             # sub-menus
@@ -119,8 +123,11 @@ class ScreenWidget(pg.GraphicsView):
         """
         Set the data displayed in the screen widget.
         """
-        self.filter.process(data)
-        self.detector.process(data)
+        if self.model.version == "V1":
+            self.filter.process(data)
+            self.detector.process(data)
+        else:
+            self.probeDetector.process(data)
 
     def is_detecting(self):
         """
