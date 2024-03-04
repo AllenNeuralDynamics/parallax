@@ -39,11 +39,11 @@ class ProbeDetector:
         # Contour
         contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
-            logger.debug("get_probe:: Not found contours. threshold: ", thresh)
+            logger.debug(f"get_probe:: Not found contours. threshold: {thresh}", )
             return None
         largest_contour = max(contours, key=cv2.contourArea)
         if cv2.contourArea(largest_contour) < thresh:
-            logger.debug("get_probe:: largest_contour is less than threshold ", cv2.contourArea(largest_contour))
+            logger.debug(f"get_probe:: largest_contour is less than threshold {cv2.contourArea(largest_contour)}" )
             return None
         if remove_noise: 
             for contour in contours:
@@ -115,10 +115,10 @@ class ProbeDetector:
         
         if len(self.gradients) > 0:
             if self._is_distance_in_thres(highest_point, lowest_point):
-                logger.debug("Distance between tip and base is too close, ", highest_point, lowest_point)
+                logger.debug(f"Distance between tip and base is too close {highest_point} {lowest_point}")
                 return False, highest_point, lowest_point
             found_ret = True
-            logger.debug("First line detection ", self.gradients)
+            logger.debug(f"First line detection {self.gradients}")
             self.angle = np.median(self.gradients)
             return found_ret, highest_point, lowest_point
         else:
@@ -175,7 +175,7 @@ class ProbeDetector:
         
         if found_ret:
             if self._is_distance_in_thres(highest_point, lowest_point):
-                logger.debug("Distance between tip and base is too close, ", highest_point, lowest_point)
+                logger.debug(f"Distance between tip and base is too close, {highest_point} {lowest_point}")
                 return False, highest_point, lowest_point
     
             gradient_counts = Counter(self.gradients)
