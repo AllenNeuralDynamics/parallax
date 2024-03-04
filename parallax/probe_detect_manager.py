@@ -76,7 +76,8 @@ class ProbeDetectManager(QObject):
                         ret = self.currBgCmpProcess.first_cmp(self.curr_img, mask, gray_img)
                     if ret:
                         logger.debug("First detect")
-                        logger.debug(self.probeDetect.angle, self.probeDetect.probe_tip, self.probeDetect.probe_base)
+                        logger.debug(f"angle: {self.probeDetect.angle}, tip: {self.probeDetect.probe_tip}, \
+                                                                base: {self.probeDetect.probe_base}")
                 else:
                     ret = self.currPrevCmpProcess.update_cmp(self.curr_img, self.prev_img, mask, gray_img)
                     if ret is False:

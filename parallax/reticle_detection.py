@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
-
 class ReticleDetection:
     def __init__(self, IMG_SIZE, reticle_frame_detector):
         self.image_size = IMG_SIZE
