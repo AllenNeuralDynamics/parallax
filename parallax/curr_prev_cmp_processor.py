@@ -124,7 +124,7 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         """Apply threshold to suppress shadows and check significant differences."""
         max_value = np.max(self.diff_img)
         if max_value < 20:
-            logger.debug("Not strong pattern detected on diff image. max_value :", max_value)
+            logger.debug(f"Not strong pattern detected on diff image. max_value: {max_value}")
             return False
         
         threshold_value = self.shadow_threshold * max_value

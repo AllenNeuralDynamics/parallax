@@ -32,7 +32,7 @@ class ProbeFineTipDetector:
         and_result = cv2.bitwise_and(cv2.bitwise_not(self.img), boundary_img)
         contours_boundary, _ = cv2.findContours(and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours_boundary) >= 2:
-            logger.debug("get_probe_precise_tip fail. N of contours_boundary :", len(contours_boundary))
+            logger.debug(f"get_probe_precise_tip fail. N of contours_boundary :{len(contours_boundary)}" )
             return False
         
         boundary_img = np.zeros_like(self.img)
@@ -43,7 +43,7 @@ class ProbeFineTipDetector:
         and_result = cv2.bitwise_and(and_result, boundary_img)
         contours_boundary, _ = cv2.findContours(and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours_boundary) >= 2:
-            logger.debug("get_probe_precise_tip fail. No detection of tip :", len(contours_boundary))
+            logger.debug(f"get_probe_precise_tip fail. No detection of tip :{len(contours_boundary)}")
             return False
         
         return True

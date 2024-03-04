@@ -65,7 +65,7 @@ class MaskGenerator:
                     (hist_smoothed[1:-1] > 300))[0] + 1
 
         self.is_reticle_exist = True if len(peaks) >= 2 else False
-        logger.debug("is_reticle_exist :", self.is_reticle_exist)
+        logger.debug(f"is_reticle_exist: {self.is_reticle_exist}")
         return self.is_reticle_exist
     
     def process(self, img):
