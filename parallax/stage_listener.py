@@ -30,10 +30,11 @@ class StageInfo(QObject):
                     self.stages_sn.append(stage["SerialNumber"])
                     stages.append(stage)
         except Exception as e:
-            print(f"\nAn error occurred: {e}")
-            print("== Trouble Shooting ==")
+            print(f"\nHttpServer for stages not enabled: {e}")
+            print("* Trouble Shooting: ")
             print("1. Check New Scale Stage connection.")
             print("2. Enable Http Server: 'http://localhost:8080/'")
+            print("3. Click 'Connect' on New Scale SW")
         
         return stages
 
@@ -71,48 +72,60 @@ class Worker(QObject):
         """Stop the timer."""
         self.timer.stop()
 
+    def print_trouble_shooting_msg(self):
+        print("Trouble Shooting: ")
+        print("1. Check New Scale Stage connection.")
+        print("2. Enable Http Server: 'http://localhost:8080/'")
+        print("3. Click 'Connect' on New Scale SW")
+
     def fetchData(self):
         """Fetches content from the URL and checks for significant changes."""
         try:
-            response = requests.get(self.url, timeout=5)
-            if response.status_code == 200:
+            response = requests.get(self.url, timeout=1)        
+            if response.status_code == 200:   
                 data = response.json()
-                selected_probe = data["SelectedProbe"]
-                probe = data["ProbeArray"][selected_probe]  
+                if data["Probes"] == 0:
+                    if self.is_error_log_printed == False:
+                        self.is_error_log_printed = True
+                        print("\nStage is not connected to New Scale SW")
+                        self.print_trouble_shooting_msg()
+                else:
+                    selected_probe = data["SelectedProbe"]
+                    probe = data["ProbeArray"][selected_probe]  
 
-                if self.last_stage_info is None: # Initial 
-                    self.last_stage_info = probe
-                    self.last_bigmove_stage_info = probe
-                    self.dataChanged.emit(probe)
+                    if self.last_stage_info is None: # Initial 
+                        self.last_stage_info = probe
+                        self.last_bigmove_stage_info = probe
+                        self.dataChanged.emit(probe)
 
-                if self.curr_interval == self._high_freq_interval:
-                    # Update
-                    self.isSmallChange(probe)
-                    # If last updated move (in 30um) is more than 1 sec agon, swith to w/ low freq
-                    current_time = time.time()
-                    if current_time - self.last_bigmove_detected_time >= self._idle_time:
-                        logger.debug("low freq mode")
-                        self.curr_interval = self._low_freq_interval
-                        self.stop()
-                        self.start(interval=self.curr_interval)
+                    if self.curr_interval == self._high_freq_interval:
+                        # Update
+                        self.isSmallChange(probe)
+                        # If last updated move (in 30um) is more than 1 sec ago, swith to w/ low freq
+                        current_time = time.time()
+                        if current_time - self.last_bigmove_detected_time >= self._idle_time:
+                            logger.debug("low freq mode")
+                            self.curr_interval = self._low_freq_interval
+                            self.stop()
+                            self.start(interval=self.curr_interval)
 
-                # If moves more than 30um, check w/ high freq
-                if self.isSignificantChange(probe):
-                    if self.curr_interval == self._low_freq_interval:
-                        # 10 msec mode
-                        logger.debug("high freq mode")
-                        self.curr_interval = self._high_freq_interval
-                        self.stop()
-                        self.start(interval=self.curr_interval)
+                    # If moves more than 30um, check w/ high freq
+                    if self.isSignificantChange(probe):
+                        if self.curr_interval == self._low_freq_interval:
+                            # 10 msec mode
+                            logger.debug("high freq mode")
+                            self.curr_interval = self._high_freq_interval
+                            self.stop()
+                            self.start(interval=self.curr_interval)
+
+                    self.is_error_log_printed = False
             else:
                 print(f"Failed to access {self.url}. Status code: {response.status_code}")
         except Exception as e:
             if self.is_error_log_printed == False:
                 self.is_error_log_printed = True
-                print(f"\nAn error occurred: {e}")
-                print("== Trouble Shooting ==")
-                print("1. Check New Scale Stage connection.")
-                print("2. Enable Http Server: 'http://localhost:8080/'")
+                print(f"\nHttpServer for stages not enabled: {e}")
+                self.print_trouble_shooting_msg()
 
     def isSignificantChange(self, current_stage_info, stage_threshold=0.005):
         """Check if the change in any axis exceeds the threshold."""
@@ -139,14 +152,14 @@ class StageListener(QObject):
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
         self.stage_ui = stage_ui
-
         self.thread.started.connect(self.worker.start)
         self.worker.dataChanged.connect(self.handleDataChange)
 
     def start(self):
         # Move worker to the thread and setup signals
-        self.worker.moveToThread(self.thread)
-        self.thread.start()
+        if self.model.nStages != 0:
+            self.worker.moveToThread(self.thread)
+            self.thread.start()
 
     def handleDataChange(self, probe):
         # Format the current timestamp
