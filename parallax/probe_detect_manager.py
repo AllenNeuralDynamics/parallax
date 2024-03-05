@@ -59,7 +59,7 @@ class ProbeDetectManager(QObject):
                 self.currBgCmpProcess = CurrBgCmpProcessor(self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
                 self.probes[self.sn] = {'probeDetector': self.probeDetect,
                               'currPrevCmpProcess': self.currPrevCmpProcess,
-                              'self.currBgCmpProcess': self.currBgCmpProcess}
+                              'currBgCmpProcess': self.currBgCmpProcess}
             else:
                 if sn != self.sn:
                     self.sn = sn
