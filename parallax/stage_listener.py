@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from datetime import datetime
+from .probe_detect_manager import ProbeDetectManager
 
 import requests
 import time
@@ -50,6 +51,9 @@ class Stage_(QObject):
 
 class Worker(QObject):
     dataChanged = pyqtSignal(dict)
+    stage_moving = pyqtSignal(dict)
+    stage_not_moving = pyqtSignal(dict)
+
     def __init__(self, url):
         super().__init__()
         self.url = url
@@ -108,6 +112,7 @@ class Worker(QObject):
                             self.curr_interval = self._low_freq_interval
                             self.stop()
                             self.start(interval=self.curr_interval)
+                            self.stage_not_moving.emit(probe)
 
                     # If moves more than 30um, check w/ high freq
                     if self.isSignificantChange(probe):
@@ -117,6 +122,7 @@ class Worker(QObject):
                             self.curr_interval = self._high_freq_interval
                             self.stop()
                             self.start(interval=self.curr_interval)
+                            self.stage_moving.emit(probe)
 
                     self.is_error_log_printed = False
             else:
@@ -154,6 +160,8 @@ class StageListener(QObject):
         self.stage_ui = stage_ui
         self.thread.started.connect(self.worker.start)
         self.worker.dataChanged.connect(self.handleDataChange)
+        self.worker.stage_moving.connect(self.stageMovingStatus)
+        self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
 
     def start(self):
         # Move worker to the thread and setup signals
@@ -172,7 +180,7 @@ class StageListener(QObject):
         local_coords_z = probe['Stage_Z']*1000
 
         # update into model
-        moving_stage = self.model.stages.get(id)
+        moving_stage = self.model.stages.get(sn)
         
         if moving_stage is not None:
             moving_stage.stage_x = local_coords_x
@@ -184,3 +192,13 @@ class StageListener(QObject):
             self.stage_ui.updateStageLocalCoords()
 
         #logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
+    
+    def stageMovingStatus(self, probe):
+        sn = probe['SerialNumber']
+        for probeDetector in self.model.probeDetectors:
+            probeDetector.start_detection(sn)
+
+    def stageNotMovingStatus(self, probe):
+        sn = probe['SerialNumber']
+        for probeDetector in self.model.probeDetectors:
+            probeDetector.stop_detection(sn)

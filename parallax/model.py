@@ -41,6 +41,9 @@ class Model(QObject):
         self.elevators = {}
         self.stage_listener_url = 'http://localhost:8080/'
 
+        # probe detector
+        self.probeDetectors = []
+
         self.calibration = None
         self.calibrations = {}
     
@@ -139,7 +142,13 @@ class Model(QObject):
                 self.focos.append(foco)
 
     def add_stage(self, stage):
-        self.stages[stage.name] = stage
+        if self.version == "V1":
+            self.stages[stage.name] = stage
+        else:
+            self.stages[stage.sn] = stage
+
+    def add_probe_detector(self, probeDetector):
+        self.probeDetectors.append(probeDetector)
 
     def clean(self):
         close_cameras()

@@ -55,7 +55,8 @@ class ScreenWidget(pg.GraphicsView):
             self.filter.frame_processed.connect(self.set_image_item_from_data)
             self.detector = detectors.NoDetector()
         else:
-            self.probeDetector = ProbeDetectManager()
+            self.probeDetector = ProbeDetectManager(self.model.stages)
+            self.model.add_probe_detector(self.probeDetector)
             self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
 
         if self.model.version == "V1":
