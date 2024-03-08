@@ -10,6 +10,7 @@ import importlib
 from . import filters
 from . import detectors
 from .probe_detect_manager import ProbeDetectManager
+from .reticle_detect_manager import ReticleDetectManager
 
 class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(int, int)
@@ -45,7 +46,6 @@ class ScreenWidget(pg.GraphicsView):
 
         # still needed?
         self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
-
         self.clear_selected()
 
         self.camera = None
@@ -58,6 +58,10 @@ class ScreenWidget(pg.GraphicsView):
             self.probeDetector = ProbeDetectManager(self.model.stages)
             self.model.add_probe_detector(self.probeDetector)
             self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
+             
+            # Reticle Detection
+            self.reticleDetector = ReticleDetectManager()
+            self.reticleDetector.frame_processed.connect(self.set_image_item_from_data)
 
         if self.model.version == "V1":
             # sub-menus
@@ -128,7 +132,8 @@ class ScreenWidget(pg.GraphicsView):
             self.filter.process(data)
             self.detector.process(data)
         else:
-            self.probeDetector.process(data)
+            self.reticleDetector.process(data)
+            #self.probeDetector.process(data)
 
     def is_detecting(self):
         """
@@ -319,6 +324,10 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.frame_processed.connect(self.set_image_item_from_data)
         self.filter.launch_control_panel()
 
+    def run_reticle_detection(self):
+        self.reticleDetector.start_running()
+        pass
+
     def set_detector(self, detector):
         """
         Set the detector.
@@ -362,6 +371,8 @@ class ScreenWidget(pg.GraphicsView):
         else:
             super().wheelEvent(e)
 
+
+        
 
 class ClickableImage(pg.ImageItem):
     mouse_clicked = pyqtSignal(object)    

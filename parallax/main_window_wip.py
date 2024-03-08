@@ -106,7 +106,7 @@ class MainWindow(QMainWindow):
 
         # Start button. If toggled, start camera acquisition  
         self.startButton.clicked.connect(self.start_button_handler)
-
+        
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
         #self.snapshotButton.clicked.connect(self.save_last_image)           # Snapshot button
@@ -117,6 +117,9 @@ class MainWindow(QMainWindow):
         # Refreshing the screen timer
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh)
+        
+        # Reticle Detection
+        self.stage.reticle_calibratoin_btn.clicked.connect(self.reticle_detection_button_handler)
         
         # Toggle start button on init
         self.start_button_handler()
@@ -706,5 +709,12 @@ class MainWindow(QMainWindow):
         with open(SETTINGS_FILE, 'w') as file:
             json.dump(settings, file)
 
-
+    def reticle_detection_button_handler(self):
+        suceess_screens = []
+        
+        for screen in self.screen_widgets:
+            camera_name = screen.get_camera_name()
+            screen.run_reticle_detection()
+            print(camera_name)
+            
 
