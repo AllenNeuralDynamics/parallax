@@ -56,9 +56,12 @@ class ReticleDetectManager(QObject):
         
         def process(self, frame):
             #cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
-            frame, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
-            x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
-            frame = self.draw(frame, x_axis_coords, y_axis_coords)
+            ret, frame, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
+            if ret:
+                ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
+            if ret:
+                frame = self.draw(frame, x_axis_coords, y_axis_coords)
+                self.found_coords.emit()
             return frame
 
         def stop_running(self):

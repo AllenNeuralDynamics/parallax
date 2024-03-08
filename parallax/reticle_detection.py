@@ -105,7 +105,9 @@ class ReticleDetection:
             for point in points:
                 cv2.circle(img_color, (int(point[0]), int(point[1])), 1, (0, 0, 255), -1)  # Draw green circles
         cv2.imwrite("debug/centroid.jpg", img_color)
-        return inlier_lines, inlier_pixels
+        
+        
+        return len(inlier_lines)==2, inlier_lines, inlier_pixels
     
     def _fit_line(self, pixels):
         x_coords, y_coords = zip(*pixels)
@@ -295,7 +297,7 @@ class ReticleDetection:
         bg = cv2.resize(bg, self.image_size)
         masked = self._apply_mask(bg)
         if self.reticle_frame_detector.is_reticle_exist:
-            bg, _, pixels_in_lines = self.coords_detect_morph(bg)
+            ret, bg, _, pixels_in_lines = self.coords_detect_morph(bg)
             return self._draw_reticle_lines(bg, pixels_in_lines)
         else:
             return None
@@ -314,7 +316,7 @@ class ReticleDetection:
 
         img = self._eroding(img)
         cv2.imwrite("debug/after_eroding.jpg", img)
-        inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img)
+        ret, inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img)
         logging.debug(f"n of inliner lines: {len(inliner_lines_pixels)}")
         
         # Draw
@@ -325,24 +327,27 @@ class ReticleDetection:
         cv2.imwrite("debug/inliner_pixels.jpg", img_color)
         
         #return img, inliner_lines, inliner_lines_pixels
-        return img_color, inliner_lines, inliner_lines_pixels
+        return ret, img_color, inliner_lines, inliner_lines_pixels
     
     def get_coords(self, img):
         bg = self._preprocess_image(img)
         masked = self._apply_mask(bg)
-        cv2.imwrite("debug/mask.jpg", bg)
+        if self.mask is not None:
+            cv2.imwrite("debug/mask.jpg", self.mask)
+
         if self.reticle_frame_detector.is_reticle_exist:
-            bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(bg)
+            ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(bg)
             logging.debug(f"nLines: {len(pixels_in_lines)}")
-            if len(pixels_in_lines) == 2:
+            #if len(pixels_in_lines) == 2:
+            if ret:
                 bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
                 logging.debug(f"detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
                 bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
                 logging.debug(f"interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
-                cv2.imwrite("mask/10.jpg", bg)
-            return bg, inliner_lines, pixels_in_lines
+                cv2.imwrite("debug/added_missing_points.jpg", bg)
+            return ret, bg, inliner_lines, pixels_in_lines
         
-        return bg, None, None
+        return False, bg, None, None
 
     """
     def is_distance_tip_reticle_threshold(self, probe, reticle, thresh=10):

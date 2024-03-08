@@ -81,10 +81,10 @@ class ReticleDetectCoordsInterest(QObject):
     
     def get_coords_interest(self, pixels_in_lines):
         if len(pixels_in_lines) != 2:
-            return None, None
+            return False, None, None
 
         if pixels_in_lines[0] is None or pixels_in_lines[1] is None:
-            return None, None
+            return False, None, None
 
         coords_interest = []
         # Find the center pixels (crossing point between two lines)
@@ -98,4 +98,4 @@ class ReticleDetectCoordsInterest(QObject):
             coords_interest.append(coords)
 
         x_axis, y_axis = self._get_orientation(coords_interest)
-        return x_axis, y_axis
+        return True, x_axis, y_axis

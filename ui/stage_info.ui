@@ -68,6 +68,15 @@
        <property name="enabled">
         <bool>true</bool>
        </property>
+       <property name="styleSheet">
+        <string notr="true">/* Disabled &amp; Checked */
+QPushButton#reticle_calibratoin_btn:checked {
+	color: gray;
+	background-color: #ffaaaa;
+}
+
+</string>
+       </property>
        <property name="text">
         <string>Reticle Detection</string>
        </property>

@@ -68,6 +68,7 @@ class ScreenWidget(pg.GraphicsView):
             # Reticle Detection
             self.reticleDetector = ReticleDetectManager()
             self.reticleDetector.frame_processed.connect(self.set_image_item_from_data)
+            self.reticleDetector.found_coords.connect(self.found_reticle_coords)
 
         if self.model.version == "V1":
             # sub-menus
@@ -339,6 +340,9 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.start()
         pass
     
+    def found_reticle_coords(self):
+        pass
+
     def run_no_filter(self):
         self.reticleDetector.stop()
         self.filter.start()
