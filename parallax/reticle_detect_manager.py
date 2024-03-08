@@ -26,7 +26,7 @@ class ReticleDetectManager(QObject):
         def __init__(self, name):
             QObject.__init__(self)
             self.name = name
-            self.running = True
+            self.running = False
             self.is_detection_on = False
             self.new = False
             self.frame = None
@@ -51,10 +51,11 @@ class ReticleDetectManager(QObject):
                 pt = tuple(pixel)
                 cv2.circle(frame, pt, 7, (0, 255, 0), -1)
             
-            #print(x_axis_coords[0], y_axis_coords[0])
+            print(x_axis_coords[0], y_axis_coords[0])
             return frame
         
         def process(self, frame):
+            #cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
             frame, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
             x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
             frame = self.draw(frame, x_axis_coords, y_axis_coords)
@@ -73,52 +74,59 @@ class ReticleDetectManager(QObject):
             self.is_detection_on = False
 
         def run(self):
-            print(self.running)
+            print("reticle detection run ", self.running)
             while self.running:
                 if self.new:
                     self.frame = self.process(self.frame)
                 self.frame_processed.emit(self.frame)
                 self.new = False
                 time.sleep(0.001)
+            print("reticle detection run finished ", self.running)
             self.finished.emit()
 
     def __init__(self):
-        QObject.__init__(self)
-        # CV worker and thread
+        super().__init__()
+        self.worker = None
+        self.thread = None
+        self.init_thread()
+    
+    def init_thread(self):
+        #if self.thread is not None:
+        #    self.clean()  # Clean up existing thread and worker before reinitializing
+    
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
+
         self.thread.started.connect(self.worker.run)
         self.worker.frame_processed.connect(self.frame_processed)
         self.worker.found_coords.connect(self.found_coords)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
-
-    def __del__(self):
-        self.clean()
 
     def process(self, frame):
-        self.worker.update_frame(frame)
+        if self.worker is not None:
+            self.worker.update_frame(frame)
 
     def found_coords(self):
         pass
-        
-    def start_running(self):
-        print("start running")
+    
+    def start(self):
+        self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
+        self.thread.start()
     
-    def stop_running(self):
-        self.worker.stop_running()
-
-    def start_detection(self):
-        self.worker.start_detection()
-    
-    def stop_detection(self):
-        self.worker.stop_detection()
+    def stop(self):
+        if self.worker is not None:
+            self.worker.stop_running()
 
     def clean(self):
-        self.worker.stop_running()
-        self.thread.quit()
-        self.thread.wait()
+        if self.worker is not None:
+            self.worker.stop_running()
+        if self.thread is not None:
+            self.thread.quit()
+            self.thread.wait()
+
+    def __del__(self):
+        self.clean()

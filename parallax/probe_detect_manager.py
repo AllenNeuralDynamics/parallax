@@ -31,7 +31,7 @@ class ProbeDetectManager(QObject):
         def __init__(self, name):
             QObject.__init__(self)
             self.name = name
-            self.running = True
+            self.running = False
             self.is_detection_on = False
             self.new = False
             self.frame = None

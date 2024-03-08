@@ -11,6 +11,7 @@ from . import filters
 from . import detectors
 from .probe_detect_manager import ProbeDetectManager
 from .reticle_detect_manager import ReticleDetectManager
+from .no_filter import NoFilter
 
 class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(int, int)
@@ -50,11 +51,16 @@ class ScreenWidget(pg.GraphicsView):
 
         self.camera = None
         self.focochan = None
+
         if self.model.version == "V1":
             self.filter = filters.NoFilter()
             self.filter.frame_processed.connect(self.set_image_item_from_data)
             self.detector = detectors.NoDetector()
         else:
+            self.filter = NoFilter()
+            self.filter.frame_processed.connect(self.set_image_item_from_data)
+            
+            # Probe Detection
             self.probeDetector = ProbeDetectManager(self.model.stages)
             self.model.add_probe_detector(self.probeDetector)
             self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
@@ -132,6 +138,7 @@ class ScreenWidget(pg.GraphicsView):
             self.filter.process(data)
             self.detector.process(data)
         else:
+            self.filter.process(data)
             self.reticleDetector.process(data)
             #self.probeDetector.process(data)
 
@@ -325,8 +332,16 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.launch_control_panel()
 
     def run_reticle_detection(self):
-        self.reticleDetector.start_running()
+        #self.reticleDetector.start_running()
+        #print(self.filter)
+        #self.filter.clean()
+        self.filter.stop()
+        self.reticleDetector.start()
         pass
+    
+    def run_no_filter(self):
+        self.reticleDetector.stop()
+        self.filter.start()
 
     def set_detector(self, detector):
         """

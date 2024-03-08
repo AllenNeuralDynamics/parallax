@@ -65,8 +65,14 @@
      </item>
      <item row="14" column="0" colspan="3">
       <widget class="QPushButton" name="reticle_calibratoin_btn">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="text">
         <string>Reticle Detection</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

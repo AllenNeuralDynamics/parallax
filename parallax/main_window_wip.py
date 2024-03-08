@@ -712,9 +712,17 @@ class MainWindow(QMainWindow):
     def reticle_detection_button_handler(self):
         suceess_screens = []
         
-        for screen in self.screen_widgets:
-            camera_name = screen.get_camera_name()
-            screen.run_reticle_detection()
-            print(camera_name)
-            
+        if self.stage.reticle_calibratoin_btn.isChecked():
+            print("reticle_calibratoin_btn checked")
+            for screen in self.screen_widgets:
+                camera_name = screen.get_camera_name()
+                screen.run_reticle_detection()
+                print(camera_name)
+        else:
+            print("reticle_calibratoin_btn unchecked")
+            for screen in self.screen_widgets:
+                camera_name = screen.get_camera_name()
+                screen.run_no_filter()
+                print(camera_name)
+            pass
 
