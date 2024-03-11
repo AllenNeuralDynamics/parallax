@@ -65,7 +65,7 @@ class ReticleDetection:
         inlier_pixels = []
 
         if img is None:
-            return 
+            return False, inlier_lines, inlier_pixels
 
         # Draw
         if len(img.shape) == 2:  # Grayscale image
@@ -77,7 +77,7 @@ class ReticleDetection:
         centroids = np.array(self._get_centroid(contours))
         if len(centroids) < 10:
             logging.debug("points for rasac line detection are less than 10")
-            return inlier_lines, inlier_pixels
+            return False, inlier_lines, inlier_pixels
         
         max_trials = 7000
         residual_threshold = 2
