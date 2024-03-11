@@ -294,6 +294,7 @@ class MainWindow(QMainWindow):
         screen = ScreenWidget(model=self.model, parent=microscopeGrp)
         screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
+        screen.reticle_coords_detected.connect(self.reticle_detect_all_screen)
         
         # Add camera on screen
         if mock: 
@@ -713,16 +714,35 @@ class MainWindow(QMainWindow):
         suceess_screens = []
         
         if self.stage.reticle_calibratoin_btn.isChecked():
-            print("reticle_calibratoin_btn checked")
+            print("\nreticle_calibratoin_btn checked")
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
                 screen.run_reticle_detection()
                 print(camera_name)
         else:
-            print("reticle_calibratoin_btn unchecked")
+            print("\nreticle_calibratoin_btn unchecked")
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
+                # set secree.reticle_coords = None using function TODO
                 screen.run_no_filter()
                 print(camera_name)
             pass
 
+    def reticle_detect_all_screen(self, coords):
+        for screen in self.screen_widgets:
+            coords = screen.get_reticle_coords()
+            if coords is None:
+                return
+
+        for screen in self.screen_widgets:
+            coords = screen.get_reticle_coords()
+            camera_name = screen.get_camera_name()
+            # Retister the reticle coords in the model
+            self.model.add_coords_axis(camera_name, coords)
+        # Detect Reticle in all screens
+        # Retister the reticle coords in the model
+        # self.stage.reticle_calibratoin_btn unchecked
+        #if self.stage.reticle_calibratoin_btn.isChecked():
+        #    self.stage.reticle_calibratoin_btn.click()
+        #self.reticle_detection_button_handler()
+        pass

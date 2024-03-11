@@ -6,6 +6,7 @@ from PyQt5 import QtCore
 import pyqtgraph as pg
 import inspect
 import importlib
+import numpy as np
 
 from . import filters
 from . import detectors
@@ -16,6 +17,7 @@ from .no_filter import NoFilter
 class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
+    reticle_coords_detected = pyqtSignal(np.ndarray, np.ndarray)
 
     def __init__(self, filename=None, model=None, parent=None):
         super().__init__(parent=parent)
@@ -44,6 +46,7 @@ class ScreenWidget(pg.GraphicsView):
         self.focochan_actions = []
         self.filter_actions = []
         self.detector_actions = []
+        self.reticle_coords = None
 
         # still needed?
         self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
@@ -69,6 +72,7 @@ class ScreenWidget(pg.GraphicsView):
             self.reticleDetector = ReticleDetectManager()
             self.reticleDetector.frame_processed.connect(self.set_image_item_from_data)
             self.reticleDetector.found_coords.connect(self.found_reticle_coords)
+            self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
 
         if self.model.version == "V1":
             # sub-menus
@@ -340,8 +344,12 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.start()
         pass
     
-    def found_reticle_coords(self):
+    def found_reticle_coords(self, x_coords, y_coords):
+        self.reticle_coords = [x_coords, y_coords]
         pass
+
+    def get_reticle_coords(self):
+        return self.reticle_coords
 
     def run_no_filter(self):
         self.reticleDetector.stop()

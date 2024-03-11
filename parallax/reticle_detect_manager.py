@@ -17,11 +17,12 @@ class ReticleDetectManager(QObject):
 
     name = "None"
     frame_processed = pyqtSignal(object)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray)
 
     class Worker(QObject):
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(str, tuple)
+        found_coords = pyqtSignal(np.ndarray, np.ndarray) 
 
         def __init__(self, name):
             QObject.__init__(self)
@@ -38,7 +39,8 @@ class ReticleDetectManager(QObject):
                 
         def update_frame(self, frame):
             self.frame = frame
-            self.new = True
+            if self.new is False: # Deal with one frame at a time. This may cause the frame drop
+                self.new = True
 
         def draw(self, frame, x_axis_coords, y_axis_coords):
             if x_axis_coords is None or y_axis_coords is None:
@@ -51,7 +53,6 @@ class ReticleDetectManager(QObject):
                 pt = tuple(pixel)
                 cv2.circle(frame, pt, 7, (0, 255, 0), -1)
             
-            print(x_axis_coords[0], y_axis_coords[0])
             return frame
         
         def process(self, frame):
@@ -61,7 +62,7 @@ class ReticleDetectManager(QObject):
                 ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
             if ret:
                 frame = self.draw(frame, x_axis_coords, y_axis_coords)
-                self.found_coords.emit()
+                self.found_coords.emit(x_axis_coords, y_axis_coords)
             return frame
 
         def stop_running(self):
@@ -103,7 +104,8 @@ class ReticleDetectManager(QObject):
 
         self.thread.started.connect(self.worker.run)
         self.worker.frame_processed.connect(self.frame_processed)
-        self.worker.found_coords.connect(self.found_coords)
+        self.worker.found_coords.connect(self.found_coords) 
+        self.worker.found_coords.connect(self.found_coords_x_y) 
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -112,7 +114,8 @@ class ReticleDetectManager(QObject):
         if self.worker is not None:
             self.worker.update_frame(frame)
 
-    def found_coords(self):
+    def found_coords_x_y(self, x_coords, y_coords):
+        #print(x_coords, y_coords)
         pass
     
     def start(self):

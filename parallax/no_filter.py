@@ -41,7 +41,6 @@ class NoFilter(QObject):
                     self.process(self.frame)
                     self.new = False
                 time.sleep(0.001)
-            print("No filter run_finished")
             self.finished.emit()
 
     def __init__(self):
@@ -78,7 +77,6 @@ class NoFilter(QObject):
 
     def stop(self):
         if self.worker is not None:
-            print("No filter stop ", self.thread)
             self.worker.stop_running()
     
     def clean(self):
@@ -92,5 +90,4 @@ class NoFilter(QObject):
         self.clean()
 
     def thread_deleted(self):
-        #print("thread stopped ")
         pass

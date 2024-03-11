@@ -59,9 +59,7 @@ class ReticleDetectCoordsInterest(QObject):
     def _get_orientation(self, pixels_in_lines):
         if pixels_in_lines[0] is None or pixels_in_lines[1] is None: 
             logger.error("One of the pixel lines is None. Cannot proceed with orientation calculation.")
-            return None, None
-
-        #pixels_in_lines = [list(map(list, line)) for line in pixels_in_lines]
+            return False, None, None
 
         # Temp solution: first coords of X axis is left side to first coords of Y axis. 
         min_x_value_line0 = min(pixels_in_lines[0], key=lambda x: x[0])
@@ -77,8 +75,9 @@ class ReticleDetectCoordsInterest(QObject):
         #sorted_y_axis = sorted(y_axis, key=lambda y: y[1], reverse=True)
         #print(x_axis)
         #print(y_axis)
-        return x_axis, y_axis
+        return True, x_axis, y_axis
     
+
     def get_coords_interest(self, pixels_in_lines):
         if len(pixels_in_lines) != 2:
             return False, None, None
@@ -91,11 +90,13 @@ class ReticleDetectCoordsInterest(QObject):
         line1 = self._fit_line(pixels_in_lines[0])
         line2 = self._fit_line(pixels_in_lines[1])
         center_point = self._find_intersection(line1, line2)
-        logger.debug("center_point: {center_point}")
+        logger.debug(f"center_point: {center_point}")
 
         for pixels_in_line in pixels_in_lines:
             coords = self._get_pixels_interest(center_point, pixels_in_line)
             coords_interest.append(coords)
 
-        x_axis, y_axis = self._get_orientation(coords_interest)
+        ret, x_axis, y_axis = self._get_orientation(coords_interest)
+        if ret is False:
+            return False, None, None
         return True, x_axis, y_axis

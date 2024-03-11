@@ -44,6 +44,9 @@ class Model(QObject):
         # probe detector
         self.probeDetectors = []
 
+        # coords axis
+        self.coords_axis = {}
+
         self.calibration = None
         self.calibrations = {}
     
@@ -149,6 +152,9 @@ class Model(QObject):
 
     def add_probe_detector(self, probeDetector):
         self.probeDetectors.append(probeDetector)
+
+    def add_coords_axis(self, camera_name, coords):
+        self.coords_axis[camera_name] = coords
 
     def clean(self):
         close_cameras()
