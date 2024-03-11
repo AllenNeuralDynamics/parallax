@@ -62,17 +62,18 @@ class ScreenWidget(pg.GraphicsView):
         else:
             self.filter = NoFilter()
             self.filter.frame_processed.connect(self.set_image_item_from_data)
-            
-            # Probe Detection
-            self.probeDetector = ProbeDetectManager(self.model.stages)
-            self.model.add_probe_detector(self.probeDetector)
-            self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
-             
+
             # Reticle Detection
             self.reticleDetector = ReticleDetectManager()
             self.reticleDetector.frame_processed.connect(self.set_image_item_from_data)
             self.reticleDetector.found_coords.connect(self.found_reticle_coords)
             self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
+
+            # Probe Detection
+            self.probeDetector = ProbeDetectManager(self.model.stages)
+            self.model.add_probe_detector(self.probeDetector)
+            self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
+             
 
         if self.model.version == "V1":
             # sub-menus
@@ -337,9 +338,6 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.launch_control_panel()
 
     def run_reticle_detection(self):
-        #self.reticleDetector.start_running()
-        #print(self.filter)
-        #self.filter.clean()
         self.filter.stop()
         self.reticleDetector.start()
         pass

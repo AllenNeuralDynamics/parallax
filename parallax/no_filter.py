@@ -27,6 +27,7 @@ class NoFilter(QObject):
             self.new = True
 
         def process(self, frame):
+            #cv2.circle(frame, (1000,1000), 10, (255, 0, 0), -1) 
             self.frame_processed.emit(frame)
 
         def stop_running(self):

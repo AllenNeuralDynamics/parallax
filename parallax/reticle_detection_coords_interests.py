@@ -38,8 +38,8 @@ class ReticleDetectCoordsInterest(QObject):
 
     def _get_center_coords_index(self, center, coords):
         x_center, y_center = center
-        for i in range(-4, 5):  # Range from -4 to 4
-            for j in range(-4, 5):  # Range from -4 to 4
+        for i in range(-5, 6):  # Range from -5 to 5
+            for j in range(-5, 6):  # Range from -5 to 5
                 test_center = np.array([x_center + i, y_center + j])
                 result = np.where((coords == test_center).all(axis=1))
                 if len(result[0]) > 0:  # Check if the element was found
@@ -85,6 +85,10 @@ class ReticleDetectCoordsInterest(QObject):
         if pixels_in_lines[0] is None or pixels_in_lines[1] is None:
             return False, None, None
 
+        if len(pixels_in_lines[0]) < self.n_interest_pixels*2 + 1 \
+            or len(pixels_in_lines[1]) < self.n_interest_pixels*2 + 1:
+            return False, None, None
+
         coords_interest = []
         # Find the center pixels (crossing point between two lines)
         line1 = self._fit_line(pixels_in_lines[0])
@@ -94,6 +98,8 @@ class ReticleDetectCoordsInterest(QObject):
 
         for pixels_in_line in pixels_in_lines:
             coords = self._get_pixels_interest(center_point, pixels_in_line)
+            if coords is None or len(coords) < self.n_interest_pixels*2 + 1:
+                return False, None, None
             coords_interest.append(coords)
 
         ret, x_axis, y_axis = self._get_orientation(coords_interest)

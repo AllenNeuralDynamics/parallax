@@ -739,6 +739,7 @@ class MainWindow(QMainWindow):
             camera_name = screen.get_camera_name()
             # Retister the reticle coords in the model
             self.model.add_coords_axis(camera_name, coords)
+        
         # Detect Reticle in all screens
         # Retister the reticle coords in the model
         # self.stage.reticle_calibratoin_btn unchecked
