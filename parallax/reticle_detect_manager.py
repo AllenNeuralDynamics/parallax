@@ -7,6 +7,7 @@ from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread
 from .reticle_detection import ReticleDetection
 from .mask_generator import MaskGenerator
 from .reticle_detection_coords_interests import ReticleDetectCoordsInterest
+from .calibration_camera import CalibrationCamera
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
@@ -14,7 +15,6 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
 class ReticleDetectManager(QObject):
-
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(np.ndarray, np.ndarray)
@@ -32,10 +32,12 @@ class ReticleDetectManager(QObject):
             self.new = False
             self.frame = None
             self.IMG_SIZE_ORIGINAL = (4000, 3000) # TODO
+            self.frame_success = None
 
             self.mask_detect = MaskGenerator()
             self.reticleDetector = ReticleDetection(self.IMG_SIZE_ORIGINAL, self.mask_detect)
             self.coordsInterests = ReticleDetectCoordsInterest()
+            self.calibrationCamera = CalibrationCamera()
                 
         def update_frame(self, frame):
             self.frame = frame
@@ -56,14 +58,20 @@ class ReticleDetectManager(QObject):
             return frame
         
         def process(self, frame):
-            #cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
+            cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
             ret, frame, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
             if ret:
                 ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
             if ret:
                 frame = self.draw(frame, x_axis_coords, y_axis_coords)
                 self.found_coords.emit(x_axis_coords, y_axis_coords)
-            return frame
+                self.calibrationCamera.process_reticle_points(x_axis_coords, y_axis_coords)
+                self.frame_success = frame
+
+            if self.frame_success is None:
+                return frame
+            else: 
+                return self.frame_success
 
         def stop_running(self):
             self.running = False
@@ -82,7 +90,7 @@ class ReticleDetectManager(QObject):
             while self.running:
                 if self.new:
                     self.frame = self.process(self.frame)
-                self.frame_processed.emit(self.frame)
+                    self.frame_processed.emit(self.frame)
                 self.new = False
                 time.sleep(0.001)
             print("reticle detection run finished ", self.running)
