@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
+# Objectpoints
 WORLD_SCALE = 0.2   # 200 um per tick mark --> Translation matrix will be in mm
 X_COORDS_HALF = 15
 Y_COORDS_HALF = 15
@@ -23,9 +24,28 @@ OBJPOINTS = np.around(OBJPOINTS, decimals=2)
 CENTER_INDEX_X = X_COORDS_HALF
 CENTER_INDEX_Y = X_COORDS + Y_COORDS_HALF 
 
+# Calibration
+CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-11)
+imtx = np.array([[1.52e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.52e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+myflags = cv2.CALIB_USE_INTRINSIC_GUESS | \
+            cv2.CALIB_FIX_PRINCIPAL_POINT | \
+            cv2.CALIB_FIX_ASPECT_RATIO | \
+            cv2.CALIB_FIX_K1 | \
+            cv2.CALIB_FIX_K2 | \
+            cv2.CALIB_FIX_K3 | \
+            cv2.CALIB_FIX_TANGENT_DIST
+idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
+                    dtype=np.float32)
+SIZE = (4000,3000)
+
 class CalibrationCamera:
     def __init__(self):
         self.n_interest_pixels = 15
+        self.imgpoints = None
+        self.imgpoints = None
         pass
 
     def _get_changed_data_format(self, x_axis, y_axis):
@@ -37,12 +57,45 @@ class CalibrationCamera:
         coords_lines_reshaped = coords_lines.reshape((nCoords_per_axis*2, 2)).astype(np.float32)
         return coords_lines_reshaped
     
-    def process_reticle_points(self, x_axis, y_axis):
+    def _process_reticle_points(self, x_axis, y_axis):
         self.objpoints = []
         self.imgpoints = []
 
         coords_lines_foramtted = self._get_changed_data_format(x_axis, y_axis)
         self.imgpoints.append(coords_lines_foramtted)
         self.objpoints.append(OBJPOINTS)
-        #print(OBJPOINTS.shape)
-        #print(OBJPOINTS)
+        
+        self.objpoints = np.array(self.objpoints)
+        self.imgpoints = np.array(self.imgpoints)
+
+    def calibrate_camera(self, x_axis, y_axis):
+        self._process_reticle_points(x_axis, y_axis)
+        ret, self.mtx, self.dist, self.rvecs, self.tvecs = cv2.calibrateCamera(self.objpoints, self.imgpoints, \
+                                            SIZE, imtx, idist, flags=myflags, criteria=CRIT)
+        
+        formatted_mtxt = "\n".join([" ".join([f"{val:.2f}" for val in row]) for row in self.mtx]) + "\n"
+        formatted_dist = " ".join([f"{val:.2f}" for val in self.dist[0]]) + "\n"
+        logger.debug(f"A reproj error: {ret}")
+        logger.debug(f"Intrinsic: {formatted_mtxt}\n")
+        logger.debug(f"Distortion: {formatted_dist}\n")
+        logger.debug(f"Focal length: {self.mtx[0][0]*1.85/1000}")
+        distancesA = [np.linalg.norm(vec) for vec in self.tvecs]
+        logger.debug(f"Distance from camera to world center: {np.mean(distancesA)}")
+        return ret, self.mtx, self.dist
+
+    def get_origin_xyz(self):
+        axis = np.float32([[3,0,0], [0,3,0], [0,0,3]]).reshape(-1,3)
+        # Find the rotation and translation vectors.
+        # Output rotation vector (see Rodrigues ) that, together with tvec, 
+        # brings points from the model coordinate system to the camera coordinate system.
+        if self.objpoints is not None:
+            _, rvecs, tvecs, _ = cv2.solvePnPRansac(self.objpoints, self.imgpoints, self.mtx, self.dist)
+            imgpts, _ = cv2.projectPoints(axis, rvecs, tvecs, self.mtx, self.dist)
+            origin = tuple(self.imgpoints[0][CENTER_INDEX_X].ravel().astype(int))
+            x = tuple(imgpts[0].ravel().astype(int))
+            y = tuple(imgpts[1].ravel().astype(int))
+            z = tuple(imgpts[2].ravel().astype(int))
+            return origin, x, y, z
+        else:
+            return None
+

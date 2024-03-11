@@ -17,12 +17,12 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 class ReticleDetectManager(QObject):
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(np.ndarray, np.ndarray)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
 
     class Worker(QObject):
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(np.ndarray, np.ndarray) 
+        found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray) 
 
         def __init__(self, name):
             QObject.__init__(self)
@@ -47,27 +47,34 @@ class ReticleDetectManager(QObject):
         def draw(self, frame, x_axis_coords, y_axis_coords):
             if x_axis_coords is None or y_axis_coords is None:
                 return frame
-            
             for pixel in x_axis_coords:
                 pt = tuple(pixel)
-                cv2.circle(frame, pt, 7, (255, 0, 0), -1)
+                cv2.circle(frame, pt, 7, (255, 255, 0), -1)
             for pixel in y_axis_coords:
                 pt = tuple(pixel)
-                cv2.circle(frame, pt, 7, (0, 255, 0), -1)
-            
+                cv2.circle(frame, pt, 7, (0, 255, 255), -1)
+            return frame
+        
+        def draw_xyz(self, frame, origin, x, y, z):
+            frame = cv2.line(frame, origin, x, (0, 0, 255), 3)  # Blue line
+            frame = cv2.line(frame, origin, y, (0, 255, 0), 3)  # Green line
+            frame = cv2.line(frame, origin, z, (255, 0, ), 3)  # Red line
             return frame
         
         def process(self, frame):
-            cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
-            ret, frame, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
+            #cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
+            ret, frame_, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
             if ret:
                 ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
             if ret:
-                frame = self.draw(frame, x_axis_coords, y_axis_coords)
-                self.found_coords.emit(x_axis_coords, y_axis_coords)
-                self.calibrationCamera.process_reticle_points(x_axis_coords, y_axis_coords)
+                # Draw
+                ret, mtx, dist = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords)
+                if ret:
+                    self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist) 
+                    origin, x, y, z = self.calibrationCamera.get_origin_xyz()
+                    frame = self.draw_xyz(frame, origin, x, y, z)
+                    frame = self.draw(frame, x_axis_coords, y_axis_coords)
                 self.frame_success = frame
-
             if self.frame_success is None:
                 return frame
             else: 

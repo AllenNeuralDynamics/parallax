@@ -71,13 +71,10 @@ class ReticleDetectCoordsInterest(QObject):
             x_axis, y_axis = pixels_in_lines[1], pixels_in_lines[0]
         
         # Sort by ascending order
-        #sorted_x_axis = sorted(x_axis, key=lambda x: x[0])
-        #sorted_y_axis = sorted(y_axis, key=lambda y: y[1], reverse=True)
-        #print(x_axis)
-        #print(y_axis)
+        x_axis = x_axis[np.argsort(x_axis[:, 0])]
+        y_axis = y_axis[np.argsort(-y_axis[:, 1])]
         return True, x_axis, y_axis
     
-
     def get_coords_interest(self, pixels_in_lines):
         if len(pixels_in_lines) != 2:
             return False, None, None

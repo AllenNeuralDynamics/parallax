@@ -294,7 +294,6 @@ class MainWindow(QMainWindow):
         screen = ScreenWidget(model=self.model, parent=microscopeGrp)
         screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
-        screen.reticle_coords_detected.connect(self.reticle_detect_all_screen)
         
         # Add camera on screen
         if mock: 
@@ -715,17 +714,30 @@ class MainWindow(QMainWindow):
         
         if self.stage.reticle_calibratoin_btn.isChecked():
             print("\nreticle_calibratoin_btn checked")
+            self.stage.reticle_calibratoin_btn.setStyleSheet(
+                "color: gray;"
+                "background-color: #ffaaaa;"
+            )
             for screen in self.screen_widgets:
+                screen.reticle_coords_detected.connect(self.reticle_detect_all_screen)
                 camera_name = screen.get_camera_name()
                 screen.run_reticle_detection()
                 print(camera_name)
         else:
             print("\nreticle_calibratoin_btn unchecked")
+
             for screen in self.screen_widgets:
+                screen.reticle_coords_detected.disconnect(self.reticle_detect_all_screen)
                 camera_name = screen.get_camera_name()
                 # set secree.reticle_coords = None using function TODO
                 screen.run_no_filter()
                 print(camera_name)
+
+            self.stage.reticle_calibratoin_btn.setStyleSheet(
+                "color: white;"
+                "background-color: black;"
+            )
+            self.stage.reticle_calibratoin_btn.setText("Reticle Detection")
             pass
 
     def reticle_detect_all_screen(self, coords):
@@ -734,12 +746,21 @@ class MainWindow(QMainWindow):
             if coords is None:
                 return
 
+        # Found the coords - Change the button to green.
+        self.stage.reticle_calibratoin_btn.setStyleSheet(
+            "color: white;"
+            "background-color: #11dd11;"
+        )
+        self.stage.reticle_calibratoin_btn.setText("Confirm ?")
+
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
+            mtx, dist = screen.get_camera_intrinsic()
             camera_name = screen.get_camera_name()
             # Retister the reticle coords in the model
             self.model.add_coords_axis(camera_name, coords)
-        
+            self.model.add_camera_intrinsic(camera_name, mtx, dist)
+            
         # Detect Reticle in all screens
         # Retister the reticle coords in the model
         # self.stage.reticle_calibratoin_btn unchecked

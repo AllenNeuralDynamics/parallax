@@ -46,7 +46,8 @@ class Model(QObject):
 
         # coords axis
         self.coords_axis = {}
-
+        
+        self.camera_intrinsic = {}
         self.calibration = None
         self.calibrations = {}
     
@@ -155,6 +156,9 @@ class Model(QObject):
 
     def add_coords_axis(self, camera_name, coords):
         self.coords_axis[camera_name] = coords
+
+    def add_camera_intrinsic(self, camera_name, mtx, dist):
+        self.camera_intrinsic[camera_name] = [mtx, dist]
 
     def clean(self):
         close_cameras()
