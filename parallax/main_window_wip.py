@@ -119,8 +119,9 @@ class MainWindow(QMainWindow):
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh)
         
-        # Reticle Detection
+        # Reticl and probe Calibration
         self.stage.reticle_calibratoin_btn.clicked.connect(self.reticle_detection_button_handler)
+        self.stage.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
         
         # Toggle start button on init
         self.start_button_handler()
@@ -711,8 +712,6 @@ class MainWindow(QMainWindow):
             json.dump(settings, file)
 
     def reticle_detection_button_handler(self):
-        suceess_screens = []
-        
         if self.stage.reticle_calibratoin_btn.isChecked():
             self.stage.reticle_calibratoin_btn.setStyleSheet(
                 "color: gray;"
@@ -776,10 +775,28 @@ class MainWindow(QMainWindow):
             self.model.add_coords_axis(camera_name, coords)
             self.model.add_camera_intrinsic(camera_name, mtx, dist)
         
-        # Detect Reticle in all screens
-        # Retister the reticle coords in the model
-        # self.stage.reticle_calibratoin_btn unchecked
-        #if self.stage.reticle_calibratoin_btn.isChecked():
-        #    self.stage.reticle_calibratoin_btn.click()
-        #self.reticle_detection_button_handler()
-        pass
+
+    def probe_detection_button_handler(self):
+        if self.stage.probe_calibration_btn.isChecked():
+            self.stage.probe_calibration_btn.setStyleSheet(
+                "color: gray;"
+                "background-color: #ffaaaa;"
+            )
+            for screen in self.screen_widgets:
+                camera_name = screen.get_camera_name()
+                screen.run_probe_detection()
+        
+        else:
+            for screen in self.screen_widgets:
+                camera_name = screen.get_camera_name()
+                screen.run_no_filter()
+
+            self.stage.probe_calibration_btn.setStyleSheet("""
+                QPushButton {
+                    color: white;
+                    background-color: black;
+                }
+                QPushButton:hover {
+                    background-color: #641e1e;
+                }
+            """)

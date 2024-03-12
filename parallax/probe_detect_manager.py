@@ -15,8 +15,8 @@ from .curr_bg_cmp_processor import CurrBgCmpProcessor
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
 class ProbeDetectManager(QObject):
 
@@ -105,7 +105,7 @@ class ProbeDetectManager(QObject):
                     # Draw
                     if ret:
                         self.found_coords.emit(self.sn, self.probeDetect.probe_tip_org)
-                        cv2.circle(frame, self.probeDetect.probe_tip_org, 10, (0, 0, 255), -1)
+                        cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (0, 0, 255), -1)
 
                 if ret:
                     self.prev_img = self.curr_img
@@ -128,6 +128,7 @@ class ProbeDetectManager(QObject):
             self.is_detection_on = False
 
         def run(self):
+            print("probe_detect_manager running ")
             while self.running:
                 if self.new:
                     if self.is_detection_on:
@@ -135,12 +136,17 @@ class ProbeDetectManager(QObject):
                     self.frame_processed.emit(self.frame)
                     self.new = False
                 time.sleep(0.001)
+            print("probe_detect_manager running done")
             self.finished.emit()
 
     def __init__(self, stages):
-        QObject.__init__(self)
+        super().__init__()
         self.stages = stages
-        # CV worker and thread
+        self.worker = None
+        self.thread = None
+        self.init_thread()
+
+    def init_thread(self):
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
@@ -150,37 +156,41 @@ class ProbeDetectManager(QObject):
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
-
-    def __del__(self):
-        self.clean()
 
     def process(self, frame):
-        self.worker.update_frame(frame)
-
+        if self.worker is not None:
+            self.worker.update_frame(frame)
+    
     def found_coords(self, sn, pixel_coords):
         moving_stage = self.stages.get(sn)
         if moving_stage is not None:
             stage_info = (moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z)
         print(sn, stage_info, pixel_coords)
         
-    def launch_control_panel(self):
-        pass
-    
-    def start_running(self):
+    def start(self):
+        self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
-    
-    def stop_running(self):
-        self.worker.stop_running()
+        self.thread.start()
 
-    def start_detection(self, sn):
-        self.worker.update_sn(sn)
-        self.worker.start_detection()
+    def stop(self):
+        if self.worker is not None:
+            self.worker.stop_running()
+
+    def start_detection(self, sn):       # Call from stage listener.
+        if self.worker is not None:
+            self.worker.update_sn(sn)
+            self.worker.start_detection()
     
-    def stop_detection(self, sn):
-        self.worker.stop_detection()
+    def stop_detection(self, sn):       # Call from stage listener.
+        if self.worker is not None:
+            self.worker.stop_detection()
 
     def clean(self):
-        self.worker.stop_running()
-        self.thread.quit()
-        self.thread.wait()
+        if self.worker is not None:
+            self.worker.stop_running()
+        if self.thread is not None:
+            self.thread.quit()
+            self.thread.wait()
+
+    def __del__(self):
+        self.clean()

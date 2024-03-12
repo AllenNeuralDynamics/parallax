@@ -147,7 +147,7 @@ class ScreenWidget(pg.GraphicsView):
         else:
             self.filter.process(data)
             self.reticleDetector.process(data)
-            #self.probeDetector.process(data)
+            self.probeDetector.process(data)
 
     def is_detecting(self):
         """
@@ -343,6 +343,16 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.start()
         pass
     
+    def run_probe_detection(self):
+        self.filter.stop()
+        self.probeDetector.start()
+        pass
+    
+    def run_no_filter(self):
+        self.reticleDetector.stop()
+        self.probeDetector.stop()
+        self.filter.start()
+
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist):
         self.reticle_coords = [x_coords, y_coords]
         self.mtx = mtx
@@ -354,10 +364,6 @@ class ScreenWidget(pg.GraphicsView):
     
     def get_reticle_coords(self):
         return self.reticle_coords
-
-    def run_no_filter(self):
-        self.reticleDetector.stop()
-        self.filter.start()
 
     def set_detector(self, detector):
         """
@@ -403,8 +409,7 @@ class ScreenWidget(pg.GraphicsView):
             super().wheelEvent(e)
 
 
-        
-
+    
 class ClickableImage(pg.ImageItem):
     mouse_clicked = pyqtSignal(object)    
     def mouseClickEvent(self, ev):

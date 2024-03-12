@@ -11,8 +11,8 @@ from .calibration_camera import CalibrationCamera
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ReticleDetectManager(QObject):
     name = "None"
@@ -110,7 +110,6 @@ class ReticleDetectManager(QObject):
     def init_thread(self):
         #if self.thread is not None:
         #    self.clean()  # Clean up existing thread and worker before reinitializing
-    
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
@@ -118,7 +117,6 @@ class ReticleDetectManager(QObject):
         self.thread.started.connect(self.worker.run)
         self.worker.frame_processed.connect(self.frame_processed)
         self.worker.found_coords.connect(self.found_coords) 
-        self.worker.found_coords.connect(self.found_coords_x_y) 
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -126,10 +124,6 @@ class ReticleDetectManager(QObject):
     def process(self, frame):
         if self.worker is not None:
             self.worker.update_frame(frame)
-
-    def found_coords_x_y(self, x_coords, y_coords):
-        #print(x_coords, y_coords)
-        pass
     
     def start(self):
         self.init_thread()  # Reinitialize and start the worker and thread

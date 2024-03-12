@@ -306,6 +306,9 @@ QPushButton#reticle_calibratoin_btn:checked {
        <property name="text">
         <string>Probe Calibration</string>
        </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
       </widget>
      </item>
     </layout>
