@@ -17,7 +17,7 @@ from .no_filter import NoFilter
 class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
-    reticle_coords_detected = pyqtSignal(np.ndarray, np.ndarray)
+    reticle_coords_detected = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
 
     def __init__(self, filename=None, model=None, parent=None):
         super().__init__(parent=parent)
@@ -47,6 +47,7 @@ class ScreenWidget(pg.GraphicsView):
         self.filter_actions = []
         self.detector_actions = []
         self.reticle_coords = None
+        self.mtx, self.dist = None, None
 
         # still needed?
         self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
@@ -342,10 +343,15 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.start()
         pass
     
-    def found_reticle_coords(self, x_coords, y_coords):
+    def found_reticle_coords(self, x_coords, y_coords, mtx, dist):
         self.reticle_coords = [x_coords, y_coords]
+        self.mtx = mtx
+        self.dist = dist
         pass
 
+    def get_camera_intrinsic(self):
+        return self.mtx, self.dist
+    
     def get_reticle_coords(self):
         return self.reticle_coords
 
