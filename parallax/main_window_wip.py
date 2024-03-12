@@ -1,6 +1,6 @@
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog, QScrollArea, QSplitter, QGridLayout
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton, QPushButton
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer, QPoint
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.uic import loadUi
@@ -713,7 +713,6 @@ class MainWindow(QMainWindow):
         suceess_screens = []
         
         if self.stage.reticle_calibratoin_btn.isChecked():
-            print("\nreticle_calibratoin_btn checked")
             self.stage.reticle_calibratoin_btn.setStyleSheet(
                 "color: gray;"
                 "background-color: #ffaaaa;"
@@ -722,22 +721,24 @@ class MainWindow(QMainWindow):
                 screen.reticle_coords_detected.connect(self.reticle_detect_all_screen)
                 camera_name = screen.get_camera_name()
                 screen.run_reticle_detection()
-                print(camera_name)
         else:
-            print("\nreticle_calibratoin_btn unchecked")
-
             for screen in self.screen_widgets:
                 screen.reticle_coords_detected.disconnect(self.reticle_detect_all_screen)
                 camera_name = screen.get_camera_name()
                 # set secree.reticle_coords = None using function TODO
                 screen.run_no_filter()
-                print(camera_name)
 
-            self.stage.reticle_calibratoin_btn.setStyleSheet(
-                "color: white;"
-                "background-color: black;"
-            )
+            self.stage.reticle_calibratoin_btn.setStyleSheet("""
+                QPushButton {
+                    color: white;
+                    background-color: black;
+                }
+                QPushButton:hover {
+                    background-color: #641e1e;
+                }
+            """)
             self.stage.reticle_calibratoin_btn.setText("Reticle Detection")
+            # Streo Camera Calibration
             pass
 
     def reticle_detect_all_screen(self, coords):
@@ -760,7 +761,7 @@ class MainWindow(QMainWindow):
             # Retister the reticle coords in the model
             self.model.add_coords_axis(camera_name, coords)
             self.model.add_camera_intrinsic(camera_name, mtx, dist)
-            
+        
         # Detect Reticle in all screens
         # Retister the reticle coords in the model
         # self.stage.reticle_calibratoin_btn unchecked
