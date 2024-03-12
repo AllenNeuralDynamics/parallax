@@ -93,14 +93,12 @@ class ReticleDetectManager(QObject):
             self.is_detection_on = False
 
         def run(self):
-            print("reticle detection run ", self.running)
             while self.running:
                 if self.new:
                     self.frame = self.process(self.frame)
                     self.frame_processed.emit(self.frame)
                 self.new = False
                 time.sleep(0.001)
-            print("reticle detection run finished ", self.running)
             self.finished.emit()
 
     def __init__(self):

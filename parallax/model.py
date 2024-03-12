@@ -48,6 +48,7 @@ class Model(QObject):
         self.coords_axis = {}
         
         self.camera_intrinsic = {}
+        self.camera_extrinsic = {}
         self.calibration = None
         self.calibrations = {}
     
@@ -157,9 +158,21 @@ class Model(QObject):
     def add_coords_axis(self, camera_name, coords):
         self.coords_axis[camera_name] = coords
 
+    def get_coords_axis(self, camera_name):
+        return self.coords_axis.get(camera_name)
+
     def add_camera_intrinsic(self, camera_name, mtx, dist):
         self.camera_intrinsic[camera_name] = [mtx, dist]
 
+    def get_camera_intrinsic(self, camera_name):
+        return self.camera_intrinsic.get(camera_name)
+    
+    def add_camera_extrinsic(self, name1, name2, retVal, R, T, E, F):
+        self.camera_extrinsic[name1+"-"+name2] = [retVal, R, T, E, F]
+
+    def get_camera_extrinsic(self, name1, name2):
+        return self.camera_extrinsic.get(name1+"-"+name2)
+    
     def clean(self):
         close_cameras()
 

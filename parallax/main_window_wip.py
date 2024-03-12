@@ -9,6 +9,7 @@ from .screen_widget import ScreenWidget
 from .recording_manager import RecordingManager
 from .stage_ui import StageUI
 from .stage_listener import StageListener
+from .calibration_camera import CalibrationStereo
 from . import ui_dir
 from functools import partial
 import json
@@ -739,7 +740,20 @@ class MainWindow(QMainWindow):
             """)
             self.stage.reticle_calibratoin_btn.setText("Reticle Detection")
             # Streo Camera Calibration
-            pass
+            if len(self.model.coords_axis) >=2 and len(self.model.camera_intrinsic) >=2:
+                img_coords = []
+                intrinsics = []
+                cam_names = []
+                for screen in self.screen_widgets:
+                    camera_name = screen.get_camera_name()
+                    cam_names.append(camera_name)
+                    img_coords.append(self.model.get_coords_axis(camera_name))
+                    intrinsics.append(self.model.get_camera_intrinsic(camera_name))
+
+                # TODO 
+                calibrationStereo = CalibrationStereo(img_coords[0], intrinsics[0], img_coords[1], intrinsics[1])
+                retval, R_AB, T_AB, E_AB, F_AB = calibrationStereo.calibrate_stereo()
+                self.model.add_camera_extrinsic(cam_names[0], cam_names[1], retval, R_AB, T_AB, E_AB, F_AB)
 
     def reticle_detect_all_screen(self, coords):
         for screen in self.screen_widgets:

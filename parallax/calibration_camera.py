@@ -45,7 +45,7 @@ class CalibrationCamera:
     def __init__(self):
         self.n_interest_pixels = 15
         self.imgpoints = None
-        self.imgpoints = None
+        self.objpoints = None
         pass
 
     def _get_changed_data_format(self, x_axis, y_axis):
@@ -67,6 +67,7 @@ class CalibrationCamera:
         
         self.objpoints = np.array(self.objpoints)
         self.imgpoints = np.array(self.imgpoints)
+        return self.imgpoints, self.objpoints
 
     def calibrate_camera(self, x_axis, y_axis):
         self._process_reticle_points(x_axis, y_axis)
@@ -99,3 +100,35 @@ class CalibrationCamera:
         else:
             return None
 
+class CalibrationStereo(CalibrationCamera):
+    def __init__(self, imgpointsA, intrinsicA, imgpointsB, intrinsicB):
+        self.n_interest_pixels = 15
+        self.imgpointsA, self.objpoints = self._process_reticle_points(imgpointsA[0], imgpointsA[1])
+        self.imgpointsB, self.objpoints = self._process_reticle_points(imgpointsB[0], imgpointsB[1])
+        self.mtxA, self.distA = intrinsicA[0], intrinsicA[1] 
+        self.mtxB, self.distB = intrinsicB[0], intrinsicB[1] 
+        self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
+        self.flags = cv2.CALIB_FIX_INTRINSIC
+        pass
+
+    def calibrate_stereo(self):
+        retval, _, _, _, _, R_AB, T_AB, E_AB, F_AB = \
+            cv2.stereoCalibrate(self.objpoints, 
+            self.imgpointsA, 
+            self.imgpointsB,
+            self.mtxA, self.distA, self.mtxB, self.distB, SIZE, 
+            criteria=self.criteria,
+            flags=self.flags)
+        
+        print("\nAB")
+        print(retval)
+        print(f"R: \n{R_AB}")
+        print(f"T: \n{T_AB}")
+        print(np.linalg.norm(T_AB))
+
+        formatted_F = "F_AB:\n" + "\n".join([" ".join([f"{val:.5f}" for val in row]) for row in F_AB]) + "\n"
+        formatted_E = "E_AB:\n" + "\n".join([" ".join([f"{val:.5f}" for val in row]) for row in E_AB]) + "\n"
+        print(formatted_F)
+        print(formatted_E)
+
+        return retval, R_AB, T_AB, E_AB, F_AB
