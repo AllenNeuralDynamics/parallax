@@ -123,10 +123,10 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
             if ret:
                 cv2.circle(diff_img_, self.ProbeDetector.probe_tip, 3, (0, 0, 255), -1)  # RED circle
                 cv2.circle(diff_img_, self.ProbeDetector.probe_base, 3, (0, 255, 0), -1)  # Green circle
-                #output_fname = os.path.basename(self.img_fname).replace('.', '_2_diff.')
-                #cv2.imwrite('output/' + output_fname, diff_img_)
+                cv2.imwrite('debug/crop.jpg', diff_img_)
+                cv2.imwrite('debug/reticle_zone.jpg', self.reticle_zone)
             
-            if ret and self.reticle_zone is not None: 
+            if ret and self.reticle_zone is not None:
                 tip_in_reticle = self._is_point_in_reticle_region(self.reticle_zone, self.ProbeDetector.probe_tip)
                 base_in_reticle = self._is_point_in_reticle_region(self.reticle_zone, self.ProbeDetector.probe_base)
                 if tip_in_reticle and base_in_reticle:
@@ -137,7 +137,7 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
             
             crop_size += 100
         
-        del crop_utils # Garbage Collect
+        del crop_utils # Garbage Collect 
         return ret
         
     def _is_point_in_reticle_region(self, image, point):

@@ -327,7 +327,7 @@ class ReticleDetection:
         cv2.imwrite("debug/inliner_pixels.jpg", img_color)
         
         #return img, inliner_lines, inliner_lines_pixels
-        return ret, img_color, inliner_lines, inliner_lines_pixels
+        return ret, img, inliner_lines, inliner_lines_pixels
     
     def get_coords(self, img):
         bg = self._preprocess_image(img)
