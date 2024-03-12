@@ -22,11 +22,12 @@ class ProbeDetectManager(QObject):
 
     name = "None"
     frame_processed = pyqtSignal(object)
+    found_coords = pyqtSignal(str, str, tuple, tuple)
 
     class Worker(QObject):
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(str, tuple)
+        found_coords = pyqtSignal(str, str, tuple)
 
         def __init__(self, name):
             QObject.__init__(self)
@@ -69,11 +70,12 @@ class ProbeDetectManager(QObject):
                 else: 
                     pass
                 
-        def update_frame(self, frame):
+        def update_frame(self, frame, timestamp):
             self.frame = frame
             self.new = True
+            self.timestamp = timestamp
 
-        def process(self, frame):
+        def process(self, frame, timestamp):
             if frame.ndim > 2:
                 gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
@@ -104,7 +106,7 @@ class ProbeDetectManager(QObject):
             
                     # Draw
                     if ret:
-                        self.found_coords.emit(self.sn, self.probeDetect.probe_tip_org)
+                        self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
                         cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (0, 0, 255), -1)
 
                 if ret:
@@ -113,7 +115,7 @@ class ProbeDetectManager(QObject):
             else:
                 self.prev_img = self.curr_img
 
-            return frame
+            return frame, timestamp
 
         def stop_running(self):
             self.running = False
@@ -132,7 +134,7 @@ class ProbeDetectManager(QObject):
             while self.running:
                 if self.new:
                     if self.is_detection_on:
-                        self.frame = self.process(self.frame)
+                        self.frame, self.timestamp = self.process(self.frame, self.timestamp)
                     self.frame_processed.emit(self.frame)
                     self.new = False
                 time.sleep(0.001)
@@ -152,21 +154,22 @@ class ProbeDetectManager(QObject):
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.frame_processed.connect(self.frame_processed)
-        self.worker.found_coords.connect(self.found_coords)
+        self.worker.found_coords.connect(self.found_coords_print)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
 
-    def process(self, frame):
+    def process(self, frame, timestamp):
         if self.worker is not None:
-            self.worker.update_frame(frame)
+            self.worker.update_frame(frame, timestamp)
     
-    def found_coords(self, sn, pixel_coords):
+    def found_coords_print(self, timestamp, sn, pixel_coords):
         moving_stage = self.stages.get(sn)
         if moving_stage is not None:
             stage_info = (moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z)
-        print(sn, stage_info, pixel_coords)
-        
+        print(timestamp, sn, stage_info, pixel_coords)
+        #self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
+
     def start(self):
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()

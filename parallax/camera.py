@@ -407,7 +407,7 @@ class PySpinCamera:
             self.video_output.write(frame)
             self.video_recording_idle.set()
         
-    def get_last_capture_time(self):
+    def get_last_capture_time(self, millisecond=False):
         """
         Returns the timestamp of the last captured image in a formatted string.
 
@@ -416,7 +416,11 @@ class PySpinCamera:
         """
         ts = self.last_capture_time
         dt = datetime.datetime.fromtimestamp(ts)
-        return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
+        if millisecond:
+            return '%04d%02d%02d-%02d%02d%02d.%03d' % (dt.year, dt.month, dt.day,
+                        dt.hour, dt.minute, dt.second, dt.microsecond // 1000)
+        else:
+            return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
                                               dt.hour, dt.minute, dt.second)
 
     def save_last_image(self, filepath, isTimestamp=False, custom_name="Microscope_"):

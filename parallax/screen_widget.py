@@ -74,6 +74,7 @@ class ScreenWidget(pg.GraphicsView):
             self.probeDetector = ProbeDetectManager(self.model.stages)
             self.model.add_probe_detector(self.probeDetector)
             self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
+            #self.probeDetector.found_coords.connect()
              
 
         if self.model.version == "V1":
@@ -147,7 +148,8 @@ class ScreenWidget(pg.GraphicsView):
         else:
             self.filter.process(data)
             self.reticleDetector.process(data)
-            self.probeDetector.process(data)
+            captured_time = self.camera.get_last_capture_time(millisecond=True)
+            self.probeDetector.process(data, captured_time)
 
     def is_detecting(self):
         """
