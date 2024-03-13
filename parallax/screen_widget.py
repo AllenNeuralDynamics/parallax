@@ -17,7 +17,10 @@ from .no_filter import NoFilter
 class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
-    reticle_coords_detected = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+    #reticle_coords_detected = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+    reticle_coords_detected = pyqtSignal()
+    #probe_coords_detected = pyqtSignal(str, str, tuple, tuple)
+    probe_coords_detected = pyqtSignal()
 
     def __init__(self, filename=None, model=None, parent=None):
         super().__init__(parent=parent)
@@ -49,6 +52,11 @@ class ScreenWidget(pg.GraphicsView):
         self.reticle_coords = None
         self.mtx, self.dist = None, None
 
+        # probe
+        self.probe_detect_last_timestamp = None
+        self.probe_detect_last_sn = None
+        self.probe_detect_last_coords = None
+
         # still needed?
         self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
         self.clear_selected()
@@ -74,9 +82,9 @@ class ScreenWidget(pg.GraphicsView):
             self.probeDetector = ProbeDetectManager(self.model.stages)
             self.model.add_probe_detector(self.probeDetector)
             self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
-            #self.probeDetector.found_coords.connect()
+            self.probeDetector.found_coords.connect(self.found_probe_coords)
+            self.probeDetector.found_coords.connect(self.probe_coords_detected)
              
-
         if self.model.version == "V1":
             # sub-menus
             self.parallax_menu = QMenu("Parallax", self.view_box.menu)
@@ -148,7 +156,7 @@ class ScreenWidget(pg.GraphicsView):
         else:
             self.filter.process(data)
             self.reticleDetector.process(data)
-            captured_time = self.camera.get_last_capture_time(millisecond=True)
+            captured_time = self.camera.get_last_capture_time(millisecond=False) #TODO
             self.probeDetector.process(data, captured_time)
 
     def is_detecting(self):
@@ -360,6 +368,17 @@ class ScreenWidget(pg.GraphicsView):
         self.mtx = mtx
         self.dist = dist
         pass
+
+    def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
+        self.probe_detect_last_timestamp = timestamp
+        self.probe_detect_last_sn = probe_sn
+        self.stage_info = stage_info
+        self.probe_detect_last_coords = tip_coords
+
+    def get_last_detect_probe_info(self):
+        return self.probe_detect_last_timestamp, \
+                self.probe_detect_last_sn, \
+                self.probe_detect_last_coords
 
     def get_camera_intrinsic(self):
         return self.mtx, self.dist

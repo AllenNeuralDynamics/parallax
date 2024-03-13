@@ -133,8 +133,14 @@ class ProbeDetector:
         
         # Find the neighboring gradients
         gradient_index = np.where(self.angle_step_bins == self.angle)
+        
         if gradient_index is None:
             return found_ret, highest_point, lowest_point
+        
+        # Check if gradient_index is not empty
+        if gradient_index[0].size == 0:
+            return found_ret, highest_point, lowest_point
+    
         gradient_index = gradient_index[0][0]
         neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index+3]
         

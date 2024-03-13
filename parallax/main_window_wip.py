@@ -122,7 +122,8 @@ class MainWindow(QMainWindow):
         # Reticl and probe Calibration
         self.stage.reticle_calibratoin_btn.clicked.connect(self.reticle_detection_button_handler)
         self.stage.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
-        
+        self.calibrationStereo = None
+
         # Toggle start button on init
         self.start_button_handler()
 
@@ -750,11 +751,12 @@ class MainWindow(QMainWindow):
                     intrinsics.append(self.model.get_camera_intrinsic(camera_name))
 
                 # TODO 
-                calibrationStereo = CalibrationStereo(img_coords[0], intrinsics[0], img_coords[1], intrinsics[1])
-                retval, R_AB, T_AB, E_AB, F_AB = calibrationStereo.calibrate_stereo()
+                self.calibrationStereo = CalibrationStereo(cam_names[0], img_coords[0], intrinsics[0], \
+                                                        cam_names[1], img_coords[1], intrinsics[1])
+                retval, R_AB, T_AB, E_AB, F_AB = self.calibrationStereo.calibrate_stereo()
                 self.model.add_camera_extrinsic(cam_names[0], cam_names[1], retval, R_AB, T_AB, E_AB, F_AB)
 
-    def reticle_detect_all_screen(self, coords):
+    def reticle_detect_all_screen(self):
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
             if coords is None:
@@ -783,12 +785,12 @@ class MainWindow(QMainWindow):
                 "background-color: #ffaaaa;"
             )
             for screen in self.screen_widgets:
-                camera_name = screen.get_camera_name()
+                screen.probe_coords_detected.connect(self.probe_detect_all_screen)
                 screen.run_probe_detection()
         
         else:
             for screen in self.screen_widgets:
-                camera_name = screen.get_camera_name()
+                screen.probe_coords_detected.disconnect(self.probe_detect_all_screen)
                 screen.run_no_filter()
 
             self.stage.probe_calibration_btn.setStyleSheet("""
@@ -800,3 +802,54 @@ class MainWindow(QMainWindow):
                     background-color: #641e1e;
                 }
             """)
+
+    def get_camera_pair_coords_extrinsic(self, cam_names, tip_coords):
+        extrinsic = self.model.get_camera_extrinsic(cam_names[0], cam_names[1])
+        if extrinsic is not None:
+            camera_pair = cam_names[0] + "-" + cam_names[1]
+            return camera_pair, tip_coords[0], tip_coords[1], extrinsic
+
+        extrinsic = self.model.get_camera_extrinsic(cam_names[1], cam_names[0])
+        if extrinsic is not None:
+            camera_pair = cam_names[1] + "-" + cam_names[0]
+            return camera_pair, tip_coords[1], tip_coords[0], extrinsic
+        
+        return None, None, None, None
+
+    def probe_detect_all_screen(self):
+        timestamp_cmp, sn_cmp = None, None
+        cam_names = []
+        tip_coords = []
+
+        if self.calibrationStereo is None:
+            print("Camera calibration has not done")
+            return 
+
+        for screen in self.screen_widgets:
+            timestamp, sn, tip_coord = screen.get_last_detect_probe_info()
+
+            if (sn is None) or (tip_coords is None) or (timestamp is None):
+                return
+            
+            if timestamp_cmp is None:
+                timestamp_cmp = timestamp
+            else: # if timestamp is different between screens, return
+                if timestamp_cmp != timestamp:
+                    return
+                
+            if sn_cmp is None:
+                sn_cmp = sn
+            else: # if sn is different between screens, return
+                if sn_cmp != sn:
+                    return
+                
+            camera_name = screen.get_camera_name()
+            cam_names.append(camera_name)
+            tip_coords.append(tip_coord)
+
+        # All screen has the same timestamp. Proceed the triangulation
+        global_coords = self.calibrationStereo.get_global_coords(cam_names[0], tip_coords[0], cam_names[1], tip_coords[1])
+        self.stageListener.handleGlobalDataChange(sn, global_coords)
+
+  
+        

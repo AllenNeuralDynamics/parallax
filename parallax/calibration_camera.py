@@ -101,18 +101,21 @@ class CalibrationCamera:
             return None
 
 class CalibrationStereo(CalibrationCamera):
-    def __init__(self, imgpointsA, intrinsicA, imgpointsB, intrinsicB):
+    def __init__(self, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
         self.n_interest_pixels = 15
+        self.camA = camA
+        self.camB = camB
         self.imgpointsA, self.objpoints = self._process_reticle_points(imgpointsA[0], imgpointsA[1])
         self.imgpointsB, self.objpoints = self._process_reticle_points(imgpointsB[0], imgpointsB[1])
         self.mtxA, self.distA = intrinsicA[0], intrinsicA[1] 
         self.mtxB, self.distB = intrinsicB[0], intrinsicB[1] 
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
         self.flags = cv2.CALIB_FIX_INTRINSIC
-        pass
+        self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB = None, None, None, None, None 
+        self.P_A, self.P_B = None, None
 
     def calibrate_stereo(self):
-        retval, _, _, _, _, R_AB, T_AB, E_AB, F_AB = \
+        self.retval, _, _, _, _, self.R_AB, self.T_AB, self.E_AB, self.F_AB = \
             cv2.stereoCalibrate(self.objpoints, 
             self.imgpointsA, 
             self.imgpointsB,
@@ -121,14 +124,64 @@ class CalibrationStereo(CalibrationCamera):
             flags=self.flags)
         
         print("\nAB")
-        print(retval)
-        print(f"R: \n{R_AB}")
-        print(f"T: \n{T_AB}")
-        print(np.linalg.norm(T_AB))
+        print(self.retval)
+        print(f"R: \n{self.R_AB}")
+        print(f"T: \n{self.T_AB}")
+        print(np.linalg.norm(self.T_AB))
 
-        formatted_F = "F_AB:\n" + "\n".join([" ".join([f"{val:.5f}" for val in row]) for row in F_AB]) + "\n"
-        formatted_E = "E_AB:\n" + "\n".join([" ".join([f"{val:.5f}" for val in row]) for row in E_AB]) + "\n"
+        formatted_F = "F_AB:\n" + "\n".join([" ".join([f"{val:.5f}" for val in row]) for row in self.F_AB]) + "\n"
+        formatted_E = "E_AB:\n" + "\n".join([" ".join([f"{val:.5f}" for val in row]) for row in self.E_AB]) + "\n"
         print(formatted_F)
         print(formatted_E)
 
-        return retval, R_AB, T_AB, E_AB, F_AB
+        self.P_A = self.mtxA @ np.hstack((np.eye(3), np.zeros((3, 1)))) 
+        self.P_B = self.mtxB @ np.hstack((self.R_AB, self.T_AB.reshape(-1, 1)))
+
+        return self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB
+    
+    def _matching_camera_order(self, camA, coordA, camB, coordB):
+        if self.camA == camA:
+            return camA, coordA, camB, coordB
+        
+        if self.camA == camB:
+            return camB, coordB, camA, coordA
+        
+    def triangulation(self, P_1, P_2, imgpoints_1, imgpoints_2):
+        points_4d_hom= cv2.triangulatePoints(P_1, P_2, imgpoints_1.T, imgpoints_2.T)
+        points_3d_hom = points_4d_hom / points_4d_hom[3]
+        points_3d_hom = points_3d_hom.T
+        return points_3d_hom[:,:3]
+    
+    def change_coords_system_from_camA_global(self, points_3d_AB):
+        _, rvecs, tvecs, _ = cv2.solvePnPRansac(self.objpoints, self.imgpointsA, self.mtxA, self.distA)
+        # Convert rotation vectors to rotation matrices
+        rmat, _ = cv2.Rodrigues(rvecs)
+
+        # Invert the rotation and translation
+        rmat_inv = rmat.T  # Transpose of rotation matrix is its inverse
+        tvecs_inv = -rmat_inv @ tvecs
+
+        # Transform the points
+        points_3d_G = np.dot(rmat_inv, points_3d_AB.T).T + tvecs_inv.T
+
+        return points_3d_G
+
+    def get_global_coords(self, camA, coordA, camB, coordB):
+        camA, coordA, camB, coordB = self._matching_camera_order(camA, coordA, camB, coordB)
+        coordA = np.array(coordA).astype(np.float32)
+        coordB = np.array(coordB).astype(np.float32)
+        points_3d_AB = self.triangulation(self.P_B, self.P_A, coordB, coordA)
+        points_3d_G = self.change_coords_system_from_camA_global(points_3d_AB)
+        print(points_3d_G, coordA, coordB)
+        return points_3d_G
+    
+    def test(self, camA, coordA, camB, coordB):
+        camA, coordA, camB, coordB = self._matching_camera_order(camA, coordA, camB, coordB)
+        points_3d_AB = self.triangulation(self.P_B, self.P_A, self.imgpointsB, self.imgpointsA)
+        points_3d_G = self.change_coords_system_from_camA_global(points_3d_AB)
+        np.set_printoptions(suppress=True, precision=8) 
+        err = np.sqrt(np.sum((points_3d_G - self.objpoints)**2, axis=1))
+        print(np.mean(err))
+        print(np.around(points_3d_G, decimals=5))
+
+        return points_3d_G

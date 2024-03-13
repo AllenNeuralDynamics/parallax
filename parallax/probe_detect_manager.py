@@ -167,8 +167,8 @@ class ProbeDetectManager(QObject):
         moving_stage = self.stages.get(sn)
         if moving_stage is not None:
             stage_info = (moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z)
-        print(timestamp, sn, stage_info, pixel_coords)
-        #self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
+        #print(timestamp, sn, stage_info, pixel_coords)
+        self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
 
     def start(self):
         self.init_thread()  # Reinitialize and start the worker and thread

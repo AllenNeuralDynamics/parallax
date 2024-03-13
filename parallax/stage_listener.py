@@ -2,6 +2,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from datetime import datetime
 from .probe_detect_manager import ProbeDetectManager
 
+import numpy as np
 import requests
 import time
 import logging
@@ -48,6 +49,9 @@ class Stage_(QObject):
             self.stage_x = stage_info["Stage_X"]*1000
             self.stage_y = stage_info["Stage_Y"]*1000
             self.stage_z = stage_info["Stage_Z"]*1000
+            self.stage_x_global = None
+            self.stage_y_global = None
+            self.stage_z_global = None
 
 class Worker(QObject):
     dataChanged = pyqtSignal(dict)
@@ -175,9 +179,9 @@ class StageListener(QObject):
         
         id = probe['Id']
         sn = probe['SerialNumber']
-        local_coords_x = probe['Stage_X']*1000
-        local_coords_y = probe['Stage_Y']*1000
-        local_coords_z = probe['Stage_Z']*1000
+        local_coords_x = round(probe['Stage_X']*1000, 1)
+        local_coords_y = round(probe['Stage_Y']*1000, 1)
+        local_coords_z = round(probe['Stage_Z']*1000, 1)
 
         # update into model
         moving_stage = self.model.stages.get(sn)
@@ -193,6 +197,23 @@ class StageListener(QObject):
 
         #logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
     
+    def handleGlobalDataChange(self, sn, coords):
+        global_coords_x = round(coords[0][0]*1000, 1)
+        global_coords_y = round(coords[0][1]*1000, 1)
+        global_coords_z = round(coords[0][2]*1000, 1)
+
+        # update into model
+        moving_stage = self.model.stages.get(sn)
+        
+        if moving_stage is not None:
+            moving_stage.stage_x_global = global_coords_x
+            moving_stage.stage_y_global = global_coords_y
+            moving_stage.stage_z_global = global_coords_z
+
+        # Update into UI
+        if self.stage_ui.get_selected_stage_sn() == sn:
+            self.stage_ui.updateStageGlobalCoords()
+
     def stageMovingStatus(self, probe):
         sn = probe['SerialNumber']
         for probeDetector in self.model.probeDetectors:
