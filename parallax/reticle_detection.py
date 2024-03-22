@@ -7,6 +7,7 @@ import logging
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
+logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
@@ -18,7 +19,12 @@ class ReticleDetection:
 
     def _preprocess_image(self, img):
         """Convert image to grayscale, blur, and resize."""
-        bg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Check if image is already grayscale
+        if img.ndim == 3 and img.shape[2] == 3:  # Check if image has 3 channels
+            bg = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            bg = img
+
         bg = cv2.GaussianBlur(bg, (11, 11), 0)
         return bg
 
@@ -76,7 +82,7 @@ class ReticleDetection:
         contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         centroids = np.array(self._get_centroid(contours))
         if len(centroids) < 10:
-            logging.debug("points for rasac line detection are less than 10")
+            logger.debug("points for rasac line detection are less than 10")
             return False, inlier_lines, inlier_pixels
         
         max_trials = 7000
@@ -86,7 +92,7 @@ class ReticleDetection:
             model_robust, inliers = ransac(centroids, LineModelND, min_samples=9, residual_threshold=residual_threshold, max_trials=max_trials)
             inlier_points = centroids[inliers]
             if len(inlier_points) >= 20:
-                logging.debug(f"residual_threshold: {residual_threshold}")
+                logger.debug(f"residual_threshold: {residual_threshold}")
                 inlier_pixels.append(inlier_points)
                 inlier_lines.append(model_robust)
                 centroids = centroids[~inliers]
@@ -317,7 +323,7 @@ class ReticleDetection:
         img = self._eroding(img)
         cv2.imwrite("debug/after_eroding.jpg", img)
         ret, inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img)
-        logging.debug(f"n of inliner lines: {len(inliner_lines_pixels)}")
+        logger.debug(f"n of inliner lines: {len(inliner_lines_pixels)}")
         
         # Draw
         for inliner_lines_pixel in inliner_lines_pixels:
@@ -337,13 +343,13 @@ class ReticleDetection:
 
         if self.reticle_frame_detector.is_reticle_exist:
             ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(bg)
-            logging.debug(f"nLines: {len(pixels_in_lines)}")
+            logger.debug(f"nLines: {len(pixels_in_lines)}")
             #if len(pixels_in_lines) == 2:
             if ret:
                 bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
-                logging.debug(f"detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
+                logger.debug(f"detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
                 bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
-                logging.debug(f"interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
+                logger.debug(f"interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
                 cv2.imwrite("debug/added_missing_points.jpg", bg)
             return ret, bg, inliner_lines, pixels_in_lines
         

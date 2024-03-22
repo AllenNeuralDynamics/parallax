@@ -15,8 +15,8 @@ from .curr_bg_cmp_processor import CurrBgCmpProcessor
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeDetectManager(QObject):
 
@@ -107,7 +107,7 @@ class ProbeDetectManager(QObject):
                     # Draw
                     if ret:
                         self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
-                        cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (0, 0, 255), -1)
+                        cv2.circle(frame, self.probeDetect.probe_tip_org, 3, (255, 255, 0), -1)
 
                 if ret:
                     self.prev_img = self.curr_img

@@ -70,7 +70,7 @@ class ReticleDetectManager(QObject):
                 # Draw
                 ret, mtx, dist = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords)
                 if ret:
-                    self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist) 
+                    self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist)
                     origin, x, y, z = self.calibrationCamera.get_origin_xyz()
                     frame = self.draw_xyz(frame, origin, x, y, z)
                     frame = self.draw(frame, x_axis_coords, y_axis_coords)

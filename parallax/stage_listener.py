@@ -1,11 +1,14 @@
 from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from datetime import datetime
+from collections import deque
 from .probe_detect_manager import ProbeDetectManager
 
 import numpy as np
 import requests
 import time
 import logging
+import copy
+
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -67,9 +70,9 @@ class Worker(QObject):
         self.last_bigmove_stage_info = None
         self.last_bigmove_detected_time = None
         self._low_freq_interval = 1000
-        self._high_freq_interval = 100
+        self._high_freq_interval = 10    # TODO
         self.curr_interval = self._low_freq_interval
-        self._idle_time = 1
+        self._idle_time = 2
         self.is_error_log_printed = False
         
     def start(self, interval=1000):
@@ -156,9 +159,12 @@ class Worker(QObject):
         return False
 
 class StageListener(QObject):
+    probeCalibRequest = pyqtSignal(QObject)
+
     def __init__(self, model, stage_ui):
         super().__init__()
         self.model = model
+        self.timestamp_local, self.timestamp_img_captured = None, None
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
         self.stage_ui = stage_ui
@@ -166,16 +172,32 @@ class StageListener(QObject):
         self.worker.dataChanged.connect(self.handleDataChange)
         self.worker.stage_moving.connect(self.stageMovingStatus)
         self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
-
+        self.buffer_size = 20
+        self.buffer_ts_local_coords = deque(maxlen=self.buffer_size)
+        self.stage_global_data = None
+    
     def start(self):
         # Move worker to the thread and setup signals
         if self.model.nStages != 0:
             self.worker.moveToThread(self.thread)
             self.thread.start()
 
+    def get_last_moved_time(self, millisecond=False):
+        ts = time.time()
+        dt = datetime.fromtimestamp(ts)
+        if millisecond:
+            return '%04d%02d%02d-%02d%02d%02d.%03d' % (dt.year, dt.month, dt.day,
+                        dt.hour, dt.minute, dt.second, dt.microsecond // 1000)
+        else:
+            return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
+                                              dt.hour, dt.minute, dt.second)
+        
+    def append_to_buffer(self, ts, stage):
+        self.buffer_ts_local_coords.append((ts, [stage.stage_x, stage.stage_y, stage.stage_z]))
+
     def handleDataChange(self, probe):
         # Format the current timestamp
-        timestamp = datetime.now().strftime('%m%d%Y%H%M%S')
+        self.timestamp_local = self.get_last_moved_time(millisecond=True)
         
         id = probe['Id']
         sn = probe['SerialNumber']
@@ -191,28 +213,78 @@ class StageListener(QObject):
             moving_stage.stage_y = local_coords_y
             moving_stage.stage_z = local_coords_z
 
+        # Update to buffer
+        self.append_to_buffer(self.timestamp_local, moving_stage)
+
         # Update into UI
         if self.stage_ui.get_selected_stage_sn() == sn:
             self.stage_ui.updateStageLocalCoords()
-
         #logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
     
-    def handleGlobalDataChange(self, sn, coords):
+    def _change_time_format(self, str_time):
+        fmt = "%Y%m%d-%H%M%S.%f"
+        date_time = datetime.strptime(str_time, fmt)
+        return date_time
+
+    def _find_closest_local_coords(self):
+        closest_ts = None
+        closest_coords = None
+        # Initialize a variable to track the smallest time difference
+        # Use a large initial value
+        smallest_time_diff = float('inf')
+
+        for ts, local_coords in self.buffer_ts_local_coords:
+            ts_datetime = self._change_time_format(ts)
+            time_diff = (self.ts_img_captured - ts_datetime).total_seconds()
+
+            if time_diff < 0:
+                break
+
+            # Ensure we're not exceeding the global timestamp and the time difference is the smallest so far
+            if 0 <= time_diff < smallest_time_diff:
+                smallest_time_diff = time_diff
+                closest_ts = ts
+                closest_coords = local_coords
+
+        return closest_ts, closest_coords
+
+    def handleGlobalDataChange(self, sn, coords, ts_img_captured):
+        self.ts_img_captured = self._change_time_format(ts_img_captured)
+        ts_local_coords, local_coords = self._find_closest_local_coords()
+
+        print("\ntimestamp ", ts_local_coords, ts_img_captured)
         global_coords_x = round(coords[0][0]*1000, 1)
         global_coords_y = round(coords[0][1]*1000, 1)
         global_coords_z = round(coords[0][2]*1000, 1)
-
-        # update into model
-        moving_stage = self.model.stages.get(sn)
         
-        if moving_stage is not None:
-            moving_stage.stage_x_global = global_coords_x
-            moving_stage.stage_y_global = global_coords_y
-            moving_stage.stage_z_global = global_coords_z
-
-        # Update into UI
-        if self.stage_ui.get_selected_stage_sn() == sn:
-            self.stage_ui.updateStageGlobalCoords()
+        if self.stage_global_data is None:
+            stage_info = {}
+            stage_info["SerialNumber"] = sn
+            stage_info["Id"] = None
+            stage_info['Stage_X'] =  local_coords[0]
+            stage_info['Stage_Y'] =  local_coords[1]
+            stage_info['Stage_Z'] =  local_coords[2]
+            self.stage_global_data = Stage_(stage_info)
+        
+        if local_coords is not None:
+            self.sn = sn
+            self.stage_global_data.stage_x =  local_coords[0]
+            self.stage_global_data.stage_y =  local_coords[1]
+            self.stage_global_data.stage_z =  local_coords[2]
+            self.stage_global_data.stage_x_global = global_coords_x
+            self.stage_global_data.stage_y_global = global_coords_y
+            self.stage_global_data.stage_z_global = global_coords_z
+            
+            self.probeCalibRequest.emit(self.stage_global_data)
+        
+            # Update into UI
+            moving_stage = self.model.stages.get(sn)
+            if moving_stage is not None:
+                moving_stage.stage_x_global = global_coords_x
+                moving_stage.stage_y_global = global_coords_y
+                moving_stage.stage_z_global = global_coords_z
+            if self.stage_ui.get_selected_stage_sn() == sn:
+                self.stage_ui.updateStageGlobalCoords()
 
     def stageMovingStatus(self, probe):
         sn = probe['SerialNumber']

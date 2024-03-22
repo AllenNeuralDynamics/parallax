@@ -64,7 +64,7 @@
       </widget>
      </item>
      <item row="14" column="0" colspan="3">
-      <widget class="QPushButton" name="reticle_calibratoin_btn">
+      <widget class="QPushButton" name="reticle_calibration_btn">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -303,6 +303,13 @@ QPushButton#reticle_calibratoin_btn:checked {
      </item>
      <item row="13" column="0" colspan="3">
       <widget class="QPushButton" name="probe_calibration_btn">
+       <property name="styleSheet">
+        <string notr="true">QPushButton#probe_calibratoin_btn:checked {
+	color: gray;
+	background-color: #ffaaaa;
+}
+</string>
+       </property>
        <property name="text">
         <string>Probe Calibration</string>
        </property>

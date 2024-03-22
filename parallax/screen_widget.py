@@ -146,6 +146,28 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             self.camera.end_singleframe_acquisition()
 
+    def get_intrinsic_test(self):
+        imtx = []
+        idist = []
+        cam_name = self.get_camera_name()
+        if cam_name == "22517664": #B
+            imtx = np.array([[1.488909e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.1488909e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+            idist = np.array([[ -0.32e+00, 34.55e+00, -0.01e+00, -0.01e+00, -769.48e+00 ]],
+                                dtype=np.float32)
+            
+        elif cam_name == "22433200": #A
+            imtx = np.array([[1.489554e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.489554e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+            idist = np.array([[ 0.26e+00, -21.23e+00, -0.01e+00, 0e+00, 862.61e+00 ]],
+                                dtype=np.float32)
+        
+        return imtx, idist
+    
     def set_data(self, data):
         """
         Set the data displayed in the screen widget.
@@ -156,7 +178,7 @@ class ScreenWidget(pg.GraphicsView):
         else:
             self.filter.process(data)
             self.reticleDetector.process(data)
-            captured_time = self.camera.get_last_capture_time(millisecond=False) #TODO
+            captured_time = self.camera.get_last_capture_time(millisecond=True) #TODO
             self.probeDetector.process(data, captured_time)
 
     def is_detecting(self):
@@ -367,7 +389,6 @@ class ScreenWidget(pg.GraphicsView):
         self.reticle_coords = [x_coords, y_coords]
         self.mtx = mtx
         self.dist = dist
-        pass
 
     def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
         self.probe_detect_last_timestamp = timestamp
