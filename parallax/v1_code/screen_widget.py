@@ -1,9 +1,15 @@
+import functools
 import cv2
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QAction, QSlider, QMenu
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
 import pyqtgraph as pg
+import inspect
+import importlib
 import numpy as np
 
+from . import filters
+from . import detectors
 from .probe_detect_manager import ProbeDetectManager
 from .reticle_detect_manager import ReticleDetectManager
 from .no_filter import NoFilter
@@ -11,7 +17,9 @@ from .no_filter import NoFilter
 class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
+    #reticle_coords_detected = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
     reticle_coords_detected = pyqtSignal()
+    #probe_coords_detected = pyqtSignal(str, str, tuple, tuple)
     probe_coords_detected = pyqtSignal()
 
     def __init__(self, filename=None, model=None, parent=None):
@@ -49,26 +57,47 @@ class ScreenWidget(pg.GraphicsView):
         self.probe_detect_last_sn = None
         self.probe_detect_last_coords = None
 
-        #self.clear_selected()
+        # still needed?
+        self.camera_action_separator = self.view_box.menu.insertSeparator(self.view_box.menu.actions()[0])
+        self.clear_selected()
 
         self.camera = None
         self.focochan = None
 
-        self.filter = NoFilter()
-        self.filter.frame_processed.connect(self.set_image_item_from_data)
+        if self.model.version == "V1":
+            self.filter = filters.NoFilter()
+            self.filter.frame_processed.connect(self.set_image_item_from_data)
+            self.detector = detectors.NoDetector()
+        else:
+            self.filter = NoFilter()
+            self.filter.frame_processed.connect(self.set_image_item_from_data)
 
-        # Reticle Detection
-        self.reticleDetector = ReticleDetectManager()
-        self.reticleDetector.frame_processed.connect(self.set_image_item_from_data)
-        self.reticleDetector.found_coords.connect(self.found_reticle_coords)
-        self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
+            # Reticle Detection
+            self.reticleDetector = ReticleDetectManager()
+            self.reticleDetector.frame_processed.connect(self.set_image_item_from_data)
+            self.reticleDetector.found_coords.connect(self.found_reticle_coords)
+            self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
 
-        # Probe Detection
-        self.probeDetector = ProbeDetectManager(self.model.stages)
-        self.model.add_probe_detector(self.probeDetector)
-        self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
-        self.probeDetector.found_coords.connect(self.found_probe_coords)
-        self.probeDetector.found_coords.connect(self.probe_coords_detected)
+            # Probe Detection
+            self.probeDetector = ProbeDetectManager(self.model.stages)
+            self.model.add_probe_detector(self.probeDetector)
+            self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
+            self.probeDetector.found_coords.connect(self.found_probe_coords)
+            self.probeDetector.found_coords.connect(self.probe_coords_detected)
+             
+        if self.model.version == "V1":
+            # sub-menus
+            self.parallax_menu = QMenu("Parallax", self.view_box.menu)
+            self.camera_menu = self.parallax_menu.addMenu("Cameras")
+            self.focochan_menu = self.parallax_menu.addMenu("Focus Controllers")
+            self.filter_menu = self.parallax_menu.addMenu("Filters")
+            self.detector_menu = self.parallax_menu.addMenu("Detectors")
+            self.view_box.menu.insertMenu(self.view_box.menu.actions()[0], self.parallax_menu)
+
+            self.update_camera_menu()
+            self.update_focus_control_menu()
+            self.update_filter_menu()
+            self.update_detector_menu()
 
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
@@ -117,6 +146,28 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             self.camera.end_singleframe_acquisition()
 
+    def get_intrinsic_test(self):
+        imtx = []
+        idist = []
+        cam_name = self.get_camera_name()
+        if cam_name == "22517664": #B
+            imtx = np.array([[1.488909e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.1488909e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+            idist = np.array([[ -0.32e+00, 34.55e+00, -0.01e+00, -0.01e+00, -769.48e+00 ]],
+                                dtype=np.float32)
+            
+        elif cam_name == "22433200": #A
+            imtx = np.array([[1.489554e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.489554e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+            idist = np.array([[ 0.26e+00, -21.23e+00, -0.01e+00, 0e+00, 862.61e+00 ]],
+                                dtype=np.float32)
+        
+        return imtx, idist
+    
     def set_data(self, data):
         """
         Set the data displayed in the screen widget.
@@ -129,6 +180,12 @@ class ScreenWidget(pg.GraphicsView):
             self.reticleDetector.process(data)
             captured_time = self.camera.get_last_capture_time(millisecond=True) #TODO
             self.probeDetector.process(data, captured_time)
+
+    def is_detecting(self):
+        """
+        Return True if the detector is not NoDetector.
+        """
+        return not isinstance(self.detector, detectors.NoDetector)
     
     def is_camera(self):
         """
@@ -214,6 +271,56 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             return self.camera.device_color_type
 
+    def update_camera_menu(self):
+        """
+        Update the camera menu. (Right click on the screen widget)
+        """
+        for act in self.camera_actions:
+            self.camera_menu.removeAction(act)
+        for camera in self.model.cameras:
+            act = self.camera_menu.addAction(camera.name())
+            act.callback = functools.partial(self.set_camera, camera)
+            act.triggered.connect(act.callback)
+            self.camera_actions.append(act)
+
+    def update_focus_control_menu(self):
+        """
+        Update the focus control menu. (Right click on the screen widget)
+        """
+        for act in self.focochan_actions:
+            self.focochan_menu.removeAction(act)
+        for foco in self.model.focos:
+            for chan in range(6):
+                act = self.focochan_menu.addAction(foco.ser.port + ', channel %d' % chan)
+                act.callback = functools.partial(self.set_focochan, foco, chan)
+                act.triggered.connect(act.callback)
+                self.focochan_actions.append(act)
+
+    def update_filter_menu(self):
+        """
+        Update the filter menu. (Right click on the screen widget)
+        """
+        for act in self.filter_actions:
+            self.filter_menu.removeAction(act)
+        for name, obj in inspect.getmembers(filters):
+            if inspect.isclass(obj) and (obj.__module__ == 'parallax.filters'):
+                act = self.filter_menu.addAction(obj.name)
+                act.callback = functools.partial(self.set_filter, obj)
+                act.triggered.connect(act.callback)
+                self.filter_actions.append(act)
+
+    def update_detector_menu(self):
+        """
+        Update the detector menu. (Right click on the screen widget)
+        """
+        for act in self.detector_actions:
+            self.detector_menu.removeAction(act)
+        for name, obj in inspect.getmembers(detectors):
+            if inspect.isclass(obj) and (obj.__module__ == 'parallax.detectors'):
+                act = self.detector_menu.addAction(obj.name)
+                act.callback = functools.partial(self.set_detector, obj)
+                act.triggered.connect(act.callback)
+                self.detector_actions.append(act)
 
     def image_clicked(self, event):
         """
@@ -249,13 +356,29 @@ class ScreenWidget(pg.GraphicsView):
         if self.model.version == "V1":
             self.refresh()
 
+    def set_focochan(self, foco, chan):
+        """
+        Set the focus controller channel.
+        """
+        self.focochan = (foco, chan)
+
+    def set_filter(self, filt):
+        """
+        Set the filter.
+        """
+        self.filter = filt()
+        self.filter.frame_processed.connect(self.set_image_item_from_data)
+        self.filter.launch_control_panel()
+
     def run_reticle_detection(self):
         self.filter.stop()
         self.reticleDetector.start()
+        pass
     
     def run_probe_detection(self):
         self.filter.stop()
         self.probeDetector.start()
+        pass
     
     def run_no_filter(self):
         self.reticleDetector.stop()
@@ -284,6 +407,24 @@ class ScreenWidget(pg.GraphicsView):
     def get_reticle_coords(self):
         return self.reticle_coords
 
+    def set_detector(self, detector):
+        """
+        Set the detector.
+        """
+        self.detector = detector()
+        self.detector.launch_control_panel()
+        if hasattr(self.detector, "tracked"):
+            self.detector.tracked.connect(self.handle_detector_tracked)
+
+    def handle_detector_tracked(self, tip_positions):
+        """
+        Handle the detector tracked event.
+        """
+        if len(tip_positions) > 0:
+            self.select(tip_positions[0])
+        if len(tip_positions) > 1:
+            self.select2(tip_positions[1])
+
     def get_selected(self):
         """
         Return the selected target position.
@@ -310,6 +451,7 @@ class ScreenWidget(pg.GraphicsView):
             super().wheelEvent(e)
 
 
+    
 class ClickableImage(pg.ImageItem):
     mouse_clicked = pyqtSignal(object)    
     def mouseClickEvent(self, ev):

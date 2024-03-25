@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from PyQt5.QtWidgets import QApplication
 from parallax.model import Model
+from parallax.main_window import MainWindow as MainWindowV1
 from parallax.main_window_wip import MainWindow as MainWindowV2
 import atexit
 import argparse
@@ -10,7 +11,7 @@ def setup_logging():
     """Set up logging to file."""
     logger = logging.getLogger()
     logger.handlers.clear()
-    logger.setLevel(logging.WARNING)
+    logger.setLevel(logging.DEBUG)
     
     with open('parallax_debug.log', 'w') as log_file: # Clear the log file
         pass
@@ -39,6 +40,9 @@ app = QApplication([])
 if args.version2:
     model = Model(version="V2")
     main_window = MainWindowV2(model, dummy=args.dummy)
+else:
+    model = Model(version="V1")
+    main_window = MainWindowV1(model, dummy=args.dummy)
 
 # Show main window
 main_window.show()
