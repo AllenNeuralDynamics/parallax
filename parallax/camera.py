@@ -594,7 +594,6 @@ class MockCamera:
         return frame
     
     def save_last_image(self, filepath, isTimestamp=False, custom_name="MockCamera_"):
-        # TODO
         print("This is MockCamera. Cannot capture the image")
         return
     
@@ -620,6 +619,9 @@ class MockCamera:
     
     def begin_continuous_acquisition(self):
         return
+    
+    def get_last_capture_time(self, millisecond=False):
+        return 
     
     def stop(self, clean=False):
         return
