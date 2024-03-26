@@ -1,0 +1,10 @@
+pip
+PyQt5>=5.15
+pyqtgraph
+opencv-python-headless
+opencv-python
+spinnaker-python
+scipy
+pandas
+scikit-image
+requests
