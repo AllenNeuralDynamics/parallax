@@ -1,8 +1,6 @@
 import numpy as np
 import cv2
 import logging
-from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread
-import time
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -111,7 +109,6 @@ class CalibrationCamera:
         else:
             return None
         
-
 class CalibrationStereo(CalibrationCamera):
     def __init__(self, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
         self.n_interest_pixels = 15
@@ -202,7 +199,7 @@ class CalibrationStereo(CalibrationCamera):
         #points_3d_G = self.change_coords_system_from_camA_to_global_iterative(points_3d_AB)
         points_3d_G = self.change_coords_system_from_camA_to_global_savedRT(points_3d_AB)
 
-        print(points_3d_G, coordA, coordB)
+        logger.debug(f"points_3d_G: {points_3d_G}, coordA: {coordA}, coordB: {coordB}")
         return points_3d_G
     
     def test(self, camA, coordA, camB, coordB):
@@ -223,7 +220,6 @@ class CalibrationStereo(CalibrationCamera):
         mean_error = 0
         for i in range(len(self.objpoints)):
             imgpointsA_converted = np.array(self.imgpointsA[i], dtype=np.float32).reshape(-1,2)
-            #_, rvecs, tvecs, _ = cv2.solvePnPRansac(objpointsA[i], imgpointsA_converted, mtxA, distA)
             solvePnP_method = cv2.SOLVEPNP_ITERATIVE
             retval, rvecs, tvecs = cv2.solvePnP(self.objpoints[i], imgpointsA_converted, self.mtxA, self.distA, flags=solvePnP_method)
             imgpoints2, _ = cv2.projectPoints(self.objpoints[i], rvecs, tvecs, self.mtxA, self.distA)
@@ -236,12 +232,10 @@ class CalibrationStereo(CalibrationCamera):
         mean_error = 0
         for i in range(len(self.objpoints)):
             imgpointsB_converted = np.array(self.imgpointsB[i], dtype=np.float32).reshape(-1,2)
-            #_, rvecs, tvecs, _ = cv2.solvePnPRansac(objpointsB[i], imgpointsB_converted, mtxB, distB)
             solvePnP_method = cv2.SOLVEPNP_ITERATIVE
             retval, rvecs, tvecs = cv2.solvePnP(self.objpoints[i], imgpointsB_converted, self.mtxB, self.distB, flags=solvePnP_method)
             imgpoints2, _ = cv2.projectPoints(self.objpoints[i], rvecs, tvecs, self.mtxB, self.distB)
             imgpoints2_reshaped = imgpoints2.reshape(-1,2) 
-            #print(f"imgpoint{imgpointsB_converted[7]}, proj_point{imgpoints2_reshaped[7]}")
             error = cv2.norm(imgpointsB_converted, imgpoints2_reshaped, cv2.NORM_L2) / len(imgpoints2)
             mean_error += error
         print(f"(Reprojection error) Pixel L2 diff B: {mean_error / len(self.objpoints)} pixels")
