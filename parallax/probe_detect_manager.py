@@ -48,9 +48,6 @@ class ProbeDetectManager(QObject):
             self.IMG_SIZE_ORIGINAL = (4000, 3000) # TODO
             self.CROP_INIT = 50
             self.mask_detect = MaskGenerator()
-            #self.probeDetect = ProbeDetector(self.sn, self.IMG_SIZE)
-            #self.currPrevCmpProcess = CurrPrevCmpProcessor(self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            #self.currBgCmpProcess = CurrBgCmpProcessor(self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
 
         def update_sn(self, sn):
             if sn not in self.probes.keys():

@@ -3,6 +3,7 @@ from skimage.measure import LineModelND, ransac
 import numpy as np
 import cv2
 import logging
+import warnings
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -53,11 +54,9 @@ class ReticleDetection:
             m = np.inf
             x_vert = x1  # Vertical line x-coordinate
         else:
-            #np.seterr(all='ignore')
             m = (y2 - y1) / (x2 - x1)
             b = y1 - m * x1
-            #old_settings = np.seterr(all='warn')  # Save current settings and restore warnings
-            #np.seterr(**old_settings)               # Restore previous settings
+
 
         if m == np.inf:
             cv2.line(reticle_points, (x_vert, 0), (x_vert, height), (255, 255, 255), 35)
@@ -89,7 +88,13 @@ class ReticleDetection:
         residual_threshold = 2
         counter = 50
         while len(inlier_lines) < 2 and counter > 0:
-            model_robust, inliers = ransac(centroids, LineModelND, min_samples=9, residual_threshold=residual_threshold, max_trials=max_trials)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                model_robust, inliers = ransac(centroids, 
+                                               LineModelND, 
+                                               min_samples=9, 
+                                               residual_threshold=residual_threshold, 
+                                               max_trials=max_trials)
             inlier_points = centroids[inliers]
             if len(inlier_points) >= 20:
                 logger.debug(f"residual_threshold: {residual_threshold}")
@@ -107,11 +112,12 @@ class ReticleDetection:
                 continue
 
         # Draw the centroids
+        """
         for points in inlier_pixels:
             for point in points:
                 cv2.circle(img_color, (int(point[0]), int(point[1])), 1, (0, 0, 255), -1)  # Draw green circles
-        #cv2.imwrite("debug/centroid.jpg", img_color)
-        
+        cv2.imwrite("debug/centroid.jpg", img_color)
+        """
         
         return len(inlier_lines)==2, inlier_lines, inlier_pixels
     
@@ -130,7 +136,7 @@ class ReticleDetection:
         x_intersect = (intercept2 - intercept1) / (slope1 - slope2)
         y_intersect = slope1 * x_intersect + intercept1
         return int(round(x_intersect)), int(round(y_intersect))
-
+        
     def _get_center_coords_index(self, center, coords):
         x_center, y_center = center
         for i in range(-4, 5):
@@ -332,14 +338,13 @@ class ReticleDetection:
                     cv2.circle(img_color, pt, 1, (0, 255, 0), -1)  
         #cv2.imwrite("debug/inliner_pixels.jpg", img_color)
         
-        #return img, inliner_lines, inliner_lines_pixels
         return ret, img, inliner_lines, inliner_lines_pixels
     
     def get_coords(self, img):
         bg = self._preprocess_image(img)
         masked = self._apply_mask(bg)
-        if self.mask is not None:
-            cv2.imwrite("debug/mask.jpg", self.mask)
+        #if self.mask is not None:
+        #    cv2.imwrite("debug/mask.jpg", self.mask)
 
         if self.reticle_frame_detector.is_reticle_exist:
             ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(bg)
@@ -350,7 +355,7 @@ class ReticleDetection:
                 logger.debug(f"detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
                 bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
                 logger.debug(f"interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
-                cv2.imwrite("debug/added_missing_points.jpg", bg)
+                #cv2.imwrite("debug/added_missing_points.jpg", bg)
             return ret, bg, inliner_lines, pixels_in_lines
         
         return False, bg, None, None

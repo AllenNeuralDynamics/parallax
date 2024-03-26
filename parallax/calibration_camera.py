@@ -136,7 +136,8 @@ class CalibrationStereo(CalibrationCamera):
             criteria=self.criteria,
             flags=self.flags)
         
-        print("\nAB")
+        print("\n== Stereo Calibration ==")
+        print("AB")
         print(self.retval)
         print(f"R: \n{self.R_AB}")
         print(f"T: \n{self.T_AB}")
@@ -207,18 +208,13 @@ class CalibrationStereo(CalibrationCamera):
     def test(self, camA, coordA, camB, coordB):
         camA, coordA, camB, coordB = self._matching_camera_order(camA, coordA, camB, coordB)
         points_3d_AB = self.triangulation(self.P_B, self.P_A, self.imgpointsB, self.imgpointsA)
-        points_3d_G = self.change_coords_system_from_camA_to_global(points_3d_AB)
         np.set_printoptions(suppress=True, precision=8) 
-        print("\n=solvePnPRansac=")
-        err = np.sqrt(np.sum((points_3d_G - self.objpoints)**2, axis=1))
-        print(np.mean(err))
-        print(np.around(points_3d_G, decimals=5))
 
         points_3d_G = self.change_coords_system_from_camA_to_global_iterative(points_3d_AB)
         print("\n=solvePnP SOLVEPNP_ITERATIVE=")
         err = np.sqrt(np.sum((points_3d_G - self.objpoints)**2, axis=1))
-        print(np.mean(err))
-        print(np.around(points_3d_G, decimals=5))
+        print(f"(Reprojection error) Object points L2 diff: {np.mean(err)}")
+        print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
         self.test_pixel_error()
         return points_3d_G
@@ -233,10 +229,9 @@ class CalibrationStereo(CalibrationCamera):
             imgpoints2, _ = cv2.projectPoints(self.objpoints[i], rvecs, tvecs, self.mtxA, self.distA)
             
             imgpoints2_reshaped = imgpoints2.reshape(-1,2) 
-            print(f"imgpoint{imgpointsA_converted[7]}, proj_point{imgpoints2_reshaped[7]}")
             error = cv2.norm(imgpointsA_converted, imgpoints2_reshaped, cv2.NORM_L2) / len(imgpoints2)
             mean_error += error
-        print("Pixel L2 diff A: {}".format(mean_error / len(self.objpoints)))
+        print(f"(Reprojection error) Pixel L2 diff A: {mean_error / len(self.objpoints)} pixels")
 
         mean_error = 0
         for i in range(len(self.objpoints)):
@@ -249,4 +244,4 @@ class CalibrationStereo(CalibrationCamera):
             #print(f"imgpoint{imgpointsB_converted[7]}, proj_point{imgpoints2_reshaped[7]}")
             error = cv2.norm(imgpointsB_converted, imgpoints2_reshaped, cv2.NORM_L2) / len(imgpoints2)
             mean_error += error
-        print("Pixel L2 diff B: {}".format(mean_error / len(self.objpoints)))
+        print(f"(Reprojection error) Pixel L2 diff B: {mean_error / len(self.objpoints)} pixels")

@@ -65,7 +65,11 @@ class StageWidget(QWidget):
                     cam_names.append(camera_name)
                     img_coords.append(self.model.get_coords_axis(camera_name))
                     intrinsics.append(self.model.get_camera_intrinsic(camera_name))
-                    print(intrinsics)
+
+                if len(intrinsics) >= 2:
+                    print("\n== intrinsics ==")
+                    print(f" cam {cam_names[0]}:\n  {intrinsics[0]}")
+                    print(f" cam {cam_names[1]}:\n  {intrinsics[1]}")
 
                 # TODO 
                 self.calibrationStereo = CalibrationStereo(cam_names[0], img_coords[0], intrinsics[0], \

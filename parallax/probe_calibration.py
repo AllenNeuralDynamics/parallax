@@ -33,7 +33,6 @@ class ProbeCalibration(QObject):
         self.local_points.append(local_point)
         global_point = np.array([stage.stage_x_global, stage.stage_y_global, stage.stage_z_global])
         self.global_points.append(global_point)
-        #print(local_point, global_point)
 
         csv_file_name = 'debug/points.csv'
         with open(csv_file_name, 'a', newline='') as file:
@@ -41,7 +40,7 @@ class ProbeCalibration(QObject):
             writer.writerow(['Local Point', *local_point, 'Global Point', *global_point])
         
     def is_enough_points(self):
-        print(f"n local points {len(self.local_points)}, inlier {np.sum(self.inliers)}")
+        logger.debug(f"n local points {len(self.local_points)}, inlier {np.sum(self.inliers)}")
         return True
     
     def reshape_array(self):
@@ -60,10 +59,10 @@ class ProbeCalibration(QObject):
             self.error_min = error
             self.transform_matrix = transform_matrix
 
-        print(f"Error (Euclidean distance): {error:.5f}, min_error: {self.error_min:.5f}")
-        print("Transformed point: ", transformed_point)
-        print("Expected global point: ", global_point)
-        print("local points: ", local_point)
+        logger.debug(f"Error (Euclidean distance): {error:.5f}, min_error: {self.error_min:.5f}")
+        logger.debug(f"Transformed point: {transformed_point}")
+        logger.debug(f"Expected global point: {global_point}")
+        logger.debug(f"local points: {local_point}")
 
     def local_global_transform(self, stage):
         self.update(stage)
@@ -74,15 +73,14 @@ class ProbeCalibration(QObject):
 
         if retval and transform_matrix is not None:
             self._test_cmp_truth_expect(stage, transform_matrix)
-            #if self.error_min < 5 and len(self.local_points) > 30:
-            print("========================")
+            logger.debug("========================")
             local_point = np.array([10346.5, 14720.0, 8270.5, 1])
             global_point = np.array([0.0, 0.0, 0.0])
             transformed_point = np.dot(transform_matrix, local_point)[:3]
             error = np.linalg.norm(transformed_point - global_point)
-            print("test. error: ", error)
-            print("Transformed point: ", transformed_point)
-            print(self.transform_matrix)
+            logger.debug(f"test. error: {error}")
+            logger.debug(f"Transformed point: {transformed_point}")
+            logger.debug(self.transform_matrix)
 
             if error < 50:
                 print(transform_matrix)
