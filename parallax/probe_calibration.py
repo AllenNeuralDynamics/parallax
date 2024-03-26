@@ -83,7 +83,7 @@ class ProbeCalibration(QObject):
             logger.debug(self.transform_matrix)
 
             if error < 50:
-                print(transform_matrix)
+                logger.debug(transform_matrix)
 
 
 

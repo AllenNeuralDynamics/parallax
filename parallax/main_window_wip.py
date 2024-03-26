@@ -1,6 +1,6 @@
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog, QScrollArea, QSplitter, QGridLayout
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton, QPushButton
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer, QPoint
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.uic import loadUi
@@ -13,8 +13,6 @@ from functools import partial
 import json
 import os
 import logging
-import time
-import numpy as np
 
 # Set logger name
 logger = logging.getLogger(__name__)
