@@ -41,7 +41,7 @@ class ReticleDetection:
         for pixels_in_line in pixels_in_lines:
             self._draw_line(reticle_points, pixels_in_line, width, height)
 
-        cv2.imwrite("debug/reticle_zone.jpg", reticle_points)
+        #cv2.imwrite("debug/reticle_zone.jpg", reticle_points)
         return reticle_points
 
     def _draw_line(self, reticle_points, pixels_in_line, width, height):
@@ -110,7 +110,7 @@ class ReticleDetection:
         for points in inlier_pixels:
             for point in points:
                 cv2.circle(img_color, (int(point[0]), int(point[1])), 1, (0, 0, 255), -1)  # Draw green circles
-        cv2.imwrite("debug/centroid.jpg", img_color)
+        #cv2.imwrite("debug/centroid.jpg", img_color)
         
         
         return len(inlier_lines)==2, inlier_lines, inlier_pixels
@@ -294,7 +294,7 @@ class ReticleDetection:
             for pixel in refined_pixels_per_line:
                     pt = tuple(pixel)
                     cv2.circle(bg, pt, 3, (255, 0, 0), -1)
-        cv2.imwrite("debug/refined_pixels.jpg", bg)
+        #cv2.imwrite("debug/refined_pixels.jpg", bg)
         return bg, lines, refined_pixels
 
     def get_reticle_zone(self, img):
@@ -321,7 +321,7 @@ class ReticleDetection:
         img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_ellipse_5)
 
         img = self._eroding(img)
-        cv2.imwrite("debug/after_eroding.jpg", img)
+        #cv2.imwrite("debug/after_eroding.jpg", img)
         ret, inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img)
         logger.debug(f"n of inliner lines: {len(inliner_lines_pixels)}")
         
@@ -330,7 +330,7 @@ class ReticleDetection:
             for pixel in inliner_lines_pixel:
                     pt = tuple(pixel)
                     cv2.circle(img_color, pt, 1, (0, 255, 0), -1)  
-        cv2.imwrite("debug/inliner_pixels.jpg", img_color)
+        #cv2.imwrite("debug/inliner_pixels.jpg", img_color)
         
         #return img, inliner_lines, inliner_lines_pixels
         return ret, img, inliner_lines, inliner_lines_pixels

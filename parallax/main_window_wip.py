@@ -103,7 +103,6 @@ class MainWindow(QMainWindow):
         
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
-        #self.snapshotButton.clicked.connect(self.save_last_image)           # Snapshot button
         self.snapshotButton.clicked.connect(lambda: \
                 self.recordingManager.save_last_image(self.dirLabel.text(), self.screen_widgets))
         self.recordButton.clicked.connect(self.record_button_handler)       # Recording video button
