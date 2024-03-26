@@ -43,7 +43,7 @@ class StageInfo(QObject):
         
         return stages
 
-class Stage_(QObject):
+class Stage(QObject):
     def __init__(self, stage_info = None):
         QObject.__init__(self)
         if stage_info is not None:
@@ -252,7 +252,7 @@ class StageListener(QObject):
         self.ts_img_captured = self._change_time_format(ts_img_captured)
         ts_local_coords, local_coords = self._find_closest_local_coords()
 
-        print("\ntimestamp ", ts_local_coords, ts_img_captured)
+        logger.debug(f"\ntimestamp local:{ts_local_coords} img_captured:{ts_img_captured}" )
         global_coords_x = round(coords[0][0]*1000, 1)
         global_coords_y = round(coords[0][1]*1000, 1)
         global_coords_z = round(coords[0][2]*1000, 1)
@@ -264,7 +264,7 @@ class StageListener(QObject):
             stage_info['Stage_X'] =  local_coords[0]
             stage_info['Stage_Y'] =  local_coords[1]
             stage_info['Stage_Z'] =  local_coords[2]
-            self.stage_global_data = Stage_(stage_info)
+            self.stage_global_data = Stage(stage_info)
         
         if local_coords is not None:
             self.sn = sn

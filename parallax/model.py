@@ -1,7 +1,7 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, pyqtSignal
 from .camera import list_cameras, close_cameras, MockCamera, PySpinCamera
-from .stage_listener import StageInfo, Stage_ #v2
+from .stage_listener import StageInfo, Stage
 
 class Model(QObject):
     msg_posted = pyqtSignal(str)
@@ -91,7 +91,7 @@ class Model(QObject):
         instances = stage_info.get_instances()
         self.init_stages()
         for instance in instances:
-            stage = Stage_(stage_info = instance)
+            stage = Stage(stage_info = instance)
             self.add_stage(stage)
         self.nStages = len(self.stages)
 
