@@ -1,13 +1,17 @@
-import cv2
-import numpy as np
-import time
-import logging
+"""
+ProbeDetectManager coordinates probe detection in images, leveraging PyQt threading 
+and signals for real-time processing. It handles frame updates, detection, 
+and result communication, utilizing components like MaskGenerator and ProbeDetector.
+"""
 from PyQt5.QtCore import pyqtSignal, QObject, QThread
 from .mask_generator import MaskGenerator
 from .reticle_detection import ReticleDetection
 from .probe_detector import ProbeDetector
 from .curr_prev_cmp_processor import CurrPrevCmpProcessor
 from .curr_bg_cmp_processor import CurrBgCmpProcessor
+import cv2
+import time
+import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)

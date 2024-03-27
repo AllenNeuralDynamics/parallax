@@ -1,3 +1,18 @@
+"""
+Module for managing package configuration and file paths.
+
+This module defines package-level configuration variables and functions
+for accessing files within the package directory.
+
+Attributes:
+    __version__ (str): The version of the package.
+    package_dir (str): The directory of the package.
+    image_dir (str): The directory for image files.
+    ui_dir (str): The directory for UI files.
+
+Functions:
+    get_image_file(basename): Get the full path to an image file given its basename.
+"""
 import os
 __version__ = "0.37.1"
 

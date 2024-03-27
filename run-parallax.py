@@ -1,3 +1,6 @@
+"""
+Parallax: A GUI application for controlling hardware devices.
+"""
 # Import necessary libraries and modules for the GUI application
 from PyQt5.QtWidgets import QApplication
 from parallax.model import Model

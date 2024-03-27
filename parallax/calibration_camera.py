@@ -1,3 +1,13 @@
+"""
+Module for camera calibration and stereo calibration.
+
+This module provides classes for intrinsic camera calibration (`CalibrationCamera`) 
+and stereo camera calibration (`CalibrationStereo`).
+
+Classes:
+    CalibrationCamera: Class for intrinsic camera calibration.
+    CalibrationStereo: Class for stereo camera calibration.
+"""
 import numpy as np
 import cv2
 import logging

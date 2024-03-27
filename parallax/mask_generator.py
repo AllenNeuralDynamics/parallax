@@ -1,3 +1,6 @@
+"""
+MaskGenerator: Generates a mask from an input image using various image processing techniques.
+"""
 import cv2
 import numpy as np
 import logging

@@ -1,6 +1,19 @@
+"""
+CurrBgCmpProcessor: Module for finding the difference image using Current and Background Comparison.
+
+This module provides classes and methods for processing images to detect differences 
+between a current image and a background image, with the aim of detecting a probe and its tip.
+
+Classes:
+    - CurrBgCmpProcessor: Main class for performing the comparison and detecting the probe.
+
+Usage:
+    - Initialize an instance of CurrBgCmpProcessor with necessary parameters.
+    - Use the first_cmp() method to perform the initial comparison.
+    - Use the update_cmp() method to update the comparison and detect changes over time.
+"""
 from .utils import UtilsCoords, UtilsCrops
 from .probe_fine_tip_detector import ProbeFineTipDetector 
-
 import cv2
 import numpy as np
 import logging

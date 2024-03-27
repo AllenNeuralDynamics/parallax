@@ -1,3 +1,6 @@
+"""
+The Model class is the core component for managing cameras, stages, and calibration data.
+"""
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtCore import QObject, pyqtSignal
 from .camera import list_cameras, close_cameras, MockCamera, PySpinCamera
@@ -9,6 +12,7 @@ class Model(QObject):
     accutest_point_reached = pyqtSignal()
 
     def __init__(self, version="V1"):
+        """ Initialize model object """
         QObject.__init__(self)
         self.version = version
         # camera
@@ -49,46 +53,59 @@ class Model(QObject):
         return len(self.cameras)
 
     def set_last_object_point(self, obj_point):
+        """Set the last object point."""
         self.obj_point_last = obj_point
 
     def set_last_image_point(self, lcorr, rcorr):
+        """Set the last image point."""
         self.img_point_last = (lcorr + rcorr)
 
     def add_calibration(self, cal):
+        """Add a calibration."""
         self.calibrations[cal.name] = cal
 
     def set_calibration(self, calibration):
+        """Set the calibration."""
         self.calibration = calibration
 
     def set_lcorr(self, xc, yc):
+        """Set left coordinates."""
         self.lcorr = [xc, yc]
 
     def clear_lcorr(self):
+        """Clear left coordinates."""
         self.lcorr = False
 
     def set_rcorr(self, xc, yc):
+        """Set right coordinates."""
         self.rcorr = [xc, yc]
 
     def clear_rcorr(self):
+        """Clear right coordinates."""
         self.rcorr = False
 
     def init_stages(self):
+        """Initialize stages."""
         self.stages = {}
 
     def add_video_source(self, video_source):
+        """Add a video source."""
         self.cameras.append(video_source)
 
     def add_mock_cameras(self, n=1):
+        """Add mock cameras."""
         for i in range(n):
             self.cameras.append(MockCamera())
 
     def scan_for_cameras(self):
+        """Scan for cameras."""
         self.cameras = list_cameras(version = self.version) + self.cameras
         self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
         self.nMockCameras = len([camera for camera in self.cameras if isinstance(camera, MockCamera)])
         self.nPySpinCameras = len([camera for camera in self.cameras if isinstance(camera, PySpinCamera)])
 
     def scan_for_usb_stages(self):
+        """Scan for USB stages."""
         stage_info = StageInfo(self.stage_listener_url)
         instances = stage_info.get_instances()
         self.init_stages()
@@ -98,33 +115,43 @@ class Model(QObject):
         self.nStages = len(self.stages)
 
     def add_stage(self, stage):
+        """Add a stage."""
         self.stages[stage.sn] = stage
 
     def add_probe_detector(self, probeDetector):
+        """Add a probe detector."""
         self.probeDetectors.append(probeDetector)
 
     def add_coords_axis(self, camera_name, coords):
+        """Add coordinates axis."""
         self.coords_axis[camera_name] = coords
 
     def get_coords_axis(self, camera_name):
+        """Get coordinates axis."""
         return self.coords_axis.get(camera_name)
 
     def add_camera_intrinsic(self, camera_name, mtx, dist):
+        """Add camera intrinsic parameters."""
         self.camera_intrinsic[camera_name] = [mtx, dist]
 
     def get_camera_intrinsic(self, camera_name):
+        """Get camera intrinsic parameters."""
         return self.camera_intrinsic.get(camera_name)
     
     def add_camera_extrinsic(self, name1, name2, retVal, R, T, E, F):
+        """Add camera extrinsic parameters."""
         self.camera_extrinsic[name1+"-"+name2] = [retVal, R, T, E, F]
 
     def get_camera_extrinsic(self, name1, name2):
+        """Get camera extrinsic parameters."""
         return self.camera_extrinsic.get(name1+"-"+name2)
     
     def clean(self):
+        """Clean up."""
         close_cameras()
 
     def save_all_camera_frames(self):
+        """Save all camera frames."""
         for i,camera in enumerate(self.cameras):
             if camera.last_image:
                 filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())

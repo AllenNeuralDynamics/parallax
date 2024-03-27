@@ -1,3 +1,8 @@
+"""
+ProbeFineTipDetector identifies a probe's fine tip in original images through preprocessing, 
+Harris corner detection, and geometric analysis, accommodating various probe orientations 
+for precise positioning tasks.
+"""
 import cv2
 import numpy as np
 import logging
@@ -10,6 +15,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ProbeFineTipDetector:
     """Class for detecting the fine tip of the probe in an image."""
     def __init__(self):
+        """ Initialize ProbeFineTipDetector object """
         self.img = None
         self.tip = (0,0)
         self.offset_x = 0

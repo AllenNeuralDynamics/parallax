@@ -5,11 +5,9 @@ applications, using PyQt5 for threading and signals, and requests for HTTP reque
 from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from datetime import datetime
 from collections import deque
-import numpy as np
 import requests
 import time
 import logging
-import copy
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -20,6 +18,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class StageInfo(QObject):
     """Class for retrieving stage information."""
     def __init__(self, url):
+        """ Initialize StageInfo thread """
         super().__init__()
         self.url = url
         self.nStages = 0
@@ -53,6 +52,7 @@ class StageInfo(QObject):
 class Stage(QObject):
     """Class representing a stage."""
     def __init__(self, stage_info = None):
+        """ Initialize Stage thread """
         QObject.__init__(self)
         if stage_info is not None:
             self.sn = stage_info["SerialNumber"]
@@ -71,6 +71,7 @@ class Worker(QObject):
     stage_not_moving = pyqtSignal(dict)
 
     def __init__(self, url):
+        """ Initialize worker thread """
         super().__init__()
         self.url = url
         self.timer = QTimer()
@@ -175,8 +176,8 @@ class Worker(QObject):
 class StageListener(QObject):
     """Class for listening to stage updates."""
     probeCalibRequest = pyqtSignal(QObject)
-
     def __init__(self, model, stage_ui):
+        """ Initialize Stage Listener object """
         super().__init__()
         self.model = model
         self.timestamp_local, self.timestamp_img_captured = None, None

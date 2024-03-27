@@ -1,3 +1,4 @@
+""" Test for screen widget """
 #!/usr/bin/env python -i
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout

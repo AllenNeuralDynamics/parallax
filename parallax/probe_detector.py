@@ -1,3 +1,8 @@
+"""
+ProbeDetector identifies probe tip and base in images using contour processing 
+and Hough Line Transform, with gradient analysis for refinement and directional 
+checks to ensure accuracy.
+"""
 import numpy as np
 import cv2
 import logging

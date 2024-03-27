@@ -1,10 +1,20 @@
+"""
+This script defines the main components of the application including the main window, UI elements,
+camera and stage management, and recording functionality.
+
+Modules imported:
+- PyQt5 modules for building the graphical user interface.
+- Other libraries and modules necessary for the application's functionality.
+
+Classes:
+- MainWindow: Represents the main window of the application.
+"""
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog, QScrollArea, QSplitter, QGridLayout
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
 from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer, QPoint
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.uic import loadUi
-
 from .screen_widget import ScreenWidget
 from .recording_manager import RecordingManager
 from .stage_widget import StageWidget

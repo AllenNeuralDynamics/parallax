@@ -1,3 +1,8 @@
+"""
+ProbeCalibration transforms probe coordinates from local to global space"
+- local space: Stage coordinates
+- global space: Reticle coordinates
+"""
 from PyQt5.QtCore import QObject
 import logging
 import numpy as np

@@ -1,3 +1,6 @@
+"""
+PySpinCamera: A class to interface with cameras using the PySpin library.
+"""
 import time
 import datetime
 import threading

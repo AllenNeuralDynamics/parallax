@@ -1,5 +1,10 @@
-import time
+"""
+NoFilter serves as a pass-through component in a frame processing pipeline, 
+employing a worker-thread model to asynchronously handle frames without modification, 
+facilitating integration and optional processing steps.
+"""
 from PyQt5.QtCore import pyqtSignal, QObject, QThread
+import time
 
 class NoFilter(QObject):
     """Class representing no filter."""
@@ -59,7 +64,7 @@ class NoFilter(QObject):
         self.init_thread()
 
     def init_thread(self):
-        # Initialize or reinitialize the worker and thread
+        """ Initialize or reinitialize the worker and thread """
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
