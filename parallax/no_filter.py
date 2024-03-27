@@ -12,6 +12,7 @@ class NoFilter(QObject):
         frame_processed = pyqtSignal(object)
 
         def __init__(self, name):
+            """Initialize the worker object."""
             QObject.__init__(self)
             self.name = name
             self.running = True

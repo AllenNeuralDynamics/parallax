@@ -1,9 +1,14 @@
+"""
+Defines StageUI, a PyQt5 QWidget for showing and updating stage information in the UI, 
+including serial numbers and coordinates. It interacts with the model to reflect 
+real-time data changes.
+"""
 from PyQt5.QtWidgets import QWidget
-
 
 class StageUI(QWidget):
     """User interface for stage control and display."""
     def __init__(self, model, parent=None):
+        """ Initialize StageUI object """
         QWidget.__init__(self, parent)
         self.selected_stage = None
         self.model = model

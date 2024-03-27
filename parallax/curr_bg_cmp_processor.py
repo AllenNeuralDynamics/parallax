@@ -14,6 +14,15 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
     """Finding diff image using Current and Background Comparison"""
     def __init__(self, ProbeDetector, original_size, resized_size, reticle_zone=None):
+        """
+        Initialize the CurrBgCmpProcessor.
+
+        Args:
+            ProbeDetector (object): An instance of the ProbeDetector class.
+            original_size (tuple): The original size of the image (height, width).
+            resized_size (tuple): The resized size of the image (height, width).
+            reticle_zone (numpy.ndarray, optional): The reticle zone image. Defaults to None.
+        """
         UtilsCoords.__init__(self, original_size, resized_size)
         UtilsCrops.__init__(self)
         ProbeFineTipDetector.__init__(self)

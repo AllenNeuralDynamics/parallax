@@ -1,3 +1,10 @@
+"""
+This module contains the StageWidget class, which is a PyQt5 QWidget subclass for controlling 
+and calibrating stages in microscopy instruments. It interacts with the application's model 
+to manage calibration data and provides UI functionalities for reticle and probe detection, 
+and camera calibration. The class integrates with PyQt5 for the UI, handling UI loading, 
+initializing components, and linking user actions to calibration processes.
+"""
 from PyQt5.QtWidgets import QWidget
 from PyQt5.uic import loadUi
 from .stage_listener import StageListener
@@ -9,6 +16,7 @@ import os
 class StageWidget(QWidget):
     """Widget for stage control and calibration."""
     def __init__(self, model, ui_dir, screen_widgets):
+        """ Initializes the StageWidget instance. """
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets

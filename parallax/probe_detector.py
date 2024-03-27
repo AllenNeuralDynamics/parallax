@@ -12,6 +12,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ProbeDetector:
     """Class for detecting the probe in an image."""
     def __init__(self, sn, IMG_SIZE, angle_step=9):
+        """ Initialize Probe Detector object """
         self.sn = sn
         self.IMG_SIZE = IMG_SIZE
         self.angle_step = angle_step

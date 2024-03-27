@@ -28,6 +28,7 @@ class ProbeDetectManager(QObject):
         found_coords = pyqtSignal(str, str, tuple)
 
         def __init__(self, name):
+            """ Initialize Worker object """
             QObject.__init__(self)
             self.name = name
             self.running = False
@@ -163,6 +164,7 @@ class ProbeDetectManager(QObject):
             self.finished.emit()
 
     def __init__(self, stages):
+        """ Initialize ProbeDetectManager object """
         super().__init__()
         self.stages = stages
         self.worker = None

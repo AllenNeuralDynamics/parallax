@@ -1,3 +1,8 @@
+"""
+RecordingManager manages snapshot saving and video recording from multiple camera feeds, 
+supporting custom file naming and ensuring recordings are properly initiated and 
+stopped across active cameras.
+"""
 import os
 import logging
 
@@ -8,7 +13,9 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class RecordingManager:
+    """ RecordingManager manages snapshot saving and video recording """
     def __init__(self, model):
+        """ Initialize recording manager """
         self.model = model
         self.recording_camera_list = []
 

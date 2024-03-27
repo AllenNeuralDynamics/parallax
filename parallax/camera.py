@@ -326,7 +326,7 @@ class PySpinCamera:
         self.capture_thread.start()
         
     def end_singleframe_acquisition(self):
-        # End Acquisition
+        """ End Acquisition """
         self.last_image_cleared.wait()
         self.capture_thread.join()
         self.camera.EndAcquisition()
@@ -571,9 +571,10 @@ class PySpinCamera:
 
 # Class for simulating a mock camera
 class MockCamera:
+    """ Mock Camera showing salts and pepper noise images """
     n_cameras = 0
     def __init__(self):
-        # Initialize a mock camera with a unique name
+        """ Initialize a mock camera with a unique name """
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
         # Create mock image data with random values
@@ -582,7 +583,7 @@ class MockCamera:
         self.device_color_type = None
         
     def name(self, sn_only=False):
-        # Get the name of the mock camera
+        """ Get the name of the mock camera """
         return self._name
 
     def get_last_image_data(self):
@@ -594,52 +595,61 @@ class MockCamera:
         return frame
     
     def save_last_image(self, filepath, isTimestamp=False, custom_name="MockCamera_"):
+        """ Dummy function """
         print("This is MockCamera. Cannot capture the image")
         return
     
     def set_wb(self, wb=2.0):
+        """ Dummy function """
         logger.info("This is MockCamera. Setting is not appliable")
         return
     
     def set_gamma(self, gamma=1.0):
+        """ Dummy function """
         logger.info("This is MockCamera. Setting is not appliable")
         return
 
     def set_gain(self, gain=25.0):
+        """ Dummy function """
         logger.info("This is MockCamera. Setting is not appliable")
         return
     
     def set_exposure(self, expTime=16000):
+        """ Dummy function """
         logger.info("This is MockCamera. Setting is not appliable")
         return
 
     def stop(self, clean=False):
+        """ Dummy function """
         logger.info("This is MockCamera. Stop")
         return
     
     def begin_continuous_acquisition(self):
+        """ Dummy function """
         return
     
     def get_last_capture_time(self, millisecond=False):
+        """ Dummy function """
         return 
     
     def stop(self, clean=False):
+        """ Dummy function """
         return
     
 class VideoSource:
-
+    """ Video Source """
     def __init__(self, filename):
-        # Initialize a video source with a given filename
+        """ Initialize a video source with a given filename """
         self.filename = filename
         self._name = os.path.basename(self.filename)
         self.cap = cv2.VideoCapture(self.filename)
 
     def name(self, sn_only=False):
-        # Get the name of the video source
+        """ Get the name of the video source """
         return self._name
 
     def get_last_image_data(self):
-        # Read the last captured frame from the video source
+        """ Read the last captured frame from the video source """
         ret, frame = self.cap.read()
         if ret:
             return frame
@@ -649,28 +659,34 @@ class VideoSource:
             return np.random.randint(0, 255, size=(3000, 4000), dtype='ubyte')
         
     def save_last_image(self, filepath, isTimestamp=False, custom_name="VideoSource_"):
-        # TODO
+        """ Dummy function """
         print("This is from Video Source. Cannot capture the image")
         return
     
     def set_wb(self, wb=2.0):
+        """ Dummy function """
         logger.info("This is VideoSource. Setting is not appliable")
         return
     
     def set_gamma(self, gamma=1.0):
+        """ Dummy function """
         logger.info("This is VideoSource. Setting is not appliable")
         return
 
     def set_gain(self, gain=25.0):
+        """ Dummy function """
         logger.info("This is VideoSource. Setting is not appliable")
         return
     
     def set_exposure(self, expTime=125000):
+        """ Dummy function """
         logger.info("This is VideoSource. Setting is not appliable")
         return
     
     def begin_continuous_acquisition(self):
+        """ Dummy function """
         return
     
     def stop(self, clean=False):
+        """ Dummy function """
         return

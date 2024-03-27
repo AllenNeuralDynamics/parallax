@@ -1,14 +1,15 @@
+"""
+Provides classes to manage stage data fetching, representation, and updates in microscopy 
+applications, using PyQt5 for threading and signals, and requests for HTTP requests.
+"""
 from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from datetime import datetime
 from collections import deque
-from .probe_detect_manager import ProbeDetectManager
-
 import numpy as np
 import requests
 import time
 import logging
 import copy
-
 
 # Set logger name
 logger = logging.getLogger(__name__)

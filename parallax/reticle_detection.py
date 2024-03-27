@@ -1,3 +1,11 @@
+""" ReticleDetection for identifying reticle coordinates in microscopy images
+Process: 
+- preprocessing, masking, and morphological operations
+- Utilizes adaptive thresholding, Gaussian blurring, and RANSAC 
+    for line detection, line drawing, and pixel refinement
+- Supports line intersection and missing point estimation
+
+"""
 from scipy.stats import linregress
 from skimage.measure import LineModelND, ransac
 import numpy as np
@@ -15,6 +23,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ReticleDetection:
     """Class for detecting reticle lines and coordinates."""
     def __init__(self, IMG_SIZE, reticle_frame_detector):
+        """ Initialize Reticle Detection object """
         self.image_size = IMG_SIZE
         self.reticle_frame_detector = reticle_frame_detector
         self.mask = None
@@ -268,6 +277,7 @@ class ReticleDetection:
         return centroids
     
     def __del__(self):
+        """ Delete the instance """
         #print("ReticleDetection Object destroyed")
         pass
     
@@ -433,6 +443,10 @@ class ReticleDetection:
             return None
     
     def coords_detect_morph(self, img):
+        """
+        Applies morphological operations and adaptive thresholding 
+        to detect coordinates in an image. 
+        """
         img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         if img.shape == (3000,4000):
             img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 13, 2)

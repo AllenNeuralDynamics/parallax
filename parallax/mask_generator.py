@@ -11,6 +11,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class MaskGenerator:
     """Class for generating a mask from an image."""
     def __init__(self):
+        """ Initialize mask generator object """
         self.img = None
         self.original_size = (None, None)
         self.is_reticle_exist = None

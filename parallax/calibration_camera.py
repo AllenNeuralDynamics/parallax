@@ -44,7 +44,6 @@ myflags2 =   cv2.CALIB_FIX_PRINCIPAL_POINT | \
             cv2.CALIB_FIX_ASPECT_RATIO | \
             cv2.CALIB_FIX_FOCAL_LENGTH
 
-
 idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
                     dtype=np.float32)
 SIZE = (4000,3000)
@@ -52,6 +51,7 @@ SIZE = (4000,3000)
 class CalibrationCamera:
     """Class for intrinsic calibration."""
     def __init__(self):
+        """ Initialize the CalibrationCamera object """
         self.n_interest_pixels = 15
         self.imgpoints = None
         self.objpoints = None
@@ -136,6 +136,7 @@ class CalibrationCamera:
 class CalibrationStereo(CalibrationCamera):
     """Class for stereo camera calibration."""
     def __init__(self, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
+        """Initialize the CalibrationStereo object"""
         self.n_interest_pixels = 15
         self.camA = camA
         self.camB = camB

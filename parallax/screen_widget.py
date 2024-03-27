@@ -1,12 +1,16 @@
-import cv2
+
+"""
+Provides ScreenWidget for image interaction in microscopy apps, supporting image display, 
+point selection, and zooming. It integrates with probe and reticle detection managers 
+for real-time processing and offers camera control functions.
+"""
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5 import QtCore
-import pyqtgraph as pg
-import numpy as np
-
 from .probe_detect_manager import ProbeDetectManager
 from .reticle_detect_manager import ReticleDetectManager
 from .no_filter import NoFilter
+import pyqtgraph as pg
+import cv2
 
 class ScreenWidget(pg.GraphicsView):
     """ Screens Class """
@@ -16,6 +20,7 @@ class ScreenWidget(pg.GraphicsView):
     probe_coords_detected = pyqtSignal()
 
     def __init__(self, filename=None, model=None, parent=None):
+        """ Init screen widget object """
         super().__init__(parent=parent)
         self.filename = filename
         self.model = model
@@ -49,8 +54,6 @@ class ScreenWidget(pg.GraphicsView):
         self.probe_detect_last_timestamp = None
         self.probe_detect_last_sn = None
         self.probe_detect_last_coords = None
-
-        #self.clear_selected()
 
         self.camera = None
         self.focochan = None
@@ -173,6 +176,7 @@ class ScreenWidget(pg.GraphicsView):
             self.camera.stop_recording()
 
     def set_image_item_from_data(self, data):
+        """ display image from data """
         self.image_item.setImage(data, autoLevels=False)
 
     def set_camera_setting(self, setting, val):
@@ -333,9 +337,9 @@ class ScreenWidget(pg.GraphicsView):
         else:
             super().wheelEvent(e)
 
-
 class ClickableImage(pg.ImageItem):
-    mouse_clicked = pyqtSignal(object)    
+    """ This class captures mouse click events on images. """
+    mouse_clicked = pyqtSignal(object)
     def mouseClickEvent(self, ev):
         """
         Handle the mouse click event.

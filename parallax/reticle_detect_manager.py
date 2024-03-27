@@ -1,13 +1,18 @@
-import cv2
-import numpy as np
-import time
-import logging
-
+"""
+Manages reticle detection in images through a worker thread, integrating line detection, 
+masking, coordinate analysis, and camera calibration. Uses PyQt's signals 
+for thread-safe operations and real-time processing feedback.
+"""
 from PyQt5.QtCore import pyqtSignal, QObject, QThread
 from .reticle_detection import ReticleDetection
 from .mask_generator import MaskGenerator
 from .reticle_detection_coords_interests import ReticleDetectCoordsInterest
 from .calibration_camera import CalibrationCamera
+import cv2
+import numpy as np
+import time
+import logging
+
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
@@ -21,6 +26,7 @@ class ReticleDetectManager(QObject):
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
 
     class Worker(QObject):
+        """ Reticle detection Worker Thread """
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
         found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray) 

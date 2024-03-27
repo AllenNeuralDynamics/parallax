@@ -1,3 +1,9 @@
+
+"""
+Provides functionality to detect and analyze points of interest on reticle lines in images, 
+employing line fitting and orientation determination techniques suitable 
+for microscopy image analysis tasks.
+"""
 from scipy.stats import linregress
 from PyQt5.QtCore import QObject
 import numpy as np
@@ -13,6 +19,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ReticleDetectCoordsInterest(QObject):
     """Class for detecting coordinates of interest in reticle lines."""
     def __init__(self):
+        """ Initialize object """
         self.n_interest_pixels = 15
         pass
     

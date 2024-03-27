@@ -13,6 +13,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ProbeCalibration(QObject):
     """Class for probe calibration."""
     def __init__(self, stage_listener):
+        """ Initialize the Probe Calibration object. """
         super().__init__()
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.local_global_transform)

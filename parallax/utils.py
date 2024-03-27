@@ -1,4 +1,9 @@
-import cv2
+"""
+This module provides utility classes for manipulating coordinates and calculating
+crop regions within images. 
+- UtilsCoords: scaling coordinates between original and resized images
+- UtilsCrops: calculating crop regions based on specified criteria.
+"""
 
 class UtilsCoords:
     """Utility class for coordinate scaling."""

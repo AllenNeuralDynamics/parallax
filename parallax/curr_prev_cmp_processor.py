@@ -14,6 +14,14 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
     """Finding diff image using Current Previous Comparison"""
     def __init__(self, ProbeDetector, original_size, resized_size):
+        """
+        Initialize the CurrPrevCmpProcessor.
+
+        Args:
+            ProbeDetector (object): An instance of the ProbeDetector class.
+            original_size (tuple): The original size of the image (height, width).
+            resized_size (tuple): The resized size of the image (height, width).
+        """
         UtilsCoords.__init__(self, original_size, resized_size)
         UtilsCrops.__init__(self)
         ProbeFineTipDetector.__init__(self)
