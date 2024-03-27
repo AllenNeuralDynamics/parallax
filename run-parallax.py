@@ -11,8 +11,8 @@ def setup_logging():
     logger = logging.getLogger()
     logger.handlers.clear()
     logger.setLevel(logging.WARNING)
-    
-    with open('parallax_debug.log', 'w') as log_file: # Clear the log file
+    with open('parallax_debug.log', 'w') as log_file:
+        # Clear the log file
         pass
     log_handler = logging.FileHandler('parallax_debug.log')
     log_handler.setLevel(logging.DEBUG)
@@ -21,31 +21,40 @@ def setup_logging():
     )
     logger.addHandler(log_handler)
 
-# parse command line args
-parser = argparse.ArgumentParser()
-parser.add_argument('-d', '--dummy', action='store_true', help='dummy mode')
-parser.add_argument('-v2', '--version2', action='store_true', help='use version 2 of main window')
-args = parser.parse_args()
-if args.dummy:
-    print('\nRunning in dummy mode; hardware devices will be inaccessible.')
+def main():
+    """Main function to run the Parallax application."""
+    # parse command line args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--dummy', action='store_true', help='dummy mode')
+    parser.add_argument('-v2', '--version2', action='store_true', help='use version 2 of main window')
+    args = parser.parse_args()
 
-# Set up logging
-setup_logging()
+    if args.dummy:
+        print('\nRunning in dummy mode; hardware devices will be inaccessible.')
 
-# Init MainWindow
-app = QApplication([])
+    # Set up logging
+    setup_logging()
 
-# Decide which main window to use based on the provided arguments
-if args.version2:
-    model = Model(version="V2")
-    main_window = MainWindowV2(model, dummy=args.dummy)
+    # Init MainWindow
+    app = QApplication([])
 
-# Show main window
-main_window.show()
-app.exec()
+    # Decide which main window to use based on the provided arguments
+    if args.version2:
+        model = Model(version="V2")
+        main_window = MainWindowV2(model, dummy=args.dummy)
+    else:
+        # Add code for handling other versions or default behavior
+        pass
 
-# Register cleanup functions to be called on program termination
-atexit.register(model.clean)
-if args.version2:
-    atexit.register(main_window.save_user_configs)
-    
+    # Show main window
+    main_window.show()
+    app.exec()
+
+    # Register cleanup functions to be called on program termination
+    atexit.register(model.clean)
+    if args.version2:
+        atexit.register(main_window.save_user_configs)
+
+if __name__ == '__main__':
+    """Entry point of the program."""
+    main()
