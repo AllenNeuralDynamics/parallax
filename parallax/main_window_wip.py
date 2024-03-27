@@ -25,8 +25,21 @@ SETTINGS_FILE = 'settings.json'
 
 # Main application window
 class MainWindow(QMainWindow):
+    """
+    The main window of the application.
+    
+    This class represents the main window of the application and handles the user interface
+    components, camera and stage management, and recording functionality.
+    """
     def __init__(self, model, dummy=False):
         QMainWindow.__init__(self) # Initialize the QMainWindow
+        """
+        Initialize the MainWindow.
+        
+        Args:
+            model (object): The data model for the application.
+            dummy (bool, optional): Flag indicating whether to run in dummy mode. Defaults to False.
+        """
         self.model = model
         self.dummy = dummy
         # self.model.clean() TBD call to close the camera when there was abnormal program exit in previous run.
@@ -128,6 +141,7 @@ class MainWindow(QMainWindow):
                     print(f" Something still holds a reference to the camera.\n {e}")
 
     def refresh_stages(self):
+        """ Search for connected stages """
         if not self.dummy:
             self.model.scan_for_usb_stages()
 
