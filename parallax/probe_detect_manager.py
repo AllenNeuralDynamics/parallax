@@ -2,10 +2,7 @@ import cv2
 import numpy as np
 import time
 import logging
-
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider
-from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread, QMutex
-
+from PyQt5.QtCore import pyqtSignal, QObject, QThread
 from .mask_generator import MaskGenerator
 from .reticle_detection import ReticleDetection
 from .probe_detector import ProbeDetector
@@ -19,12 +16,13 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeDetectManager(QObject):
-
+    """Manager class for probe detection."""
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(str, str, tuple, tuple)
 
     class Worker(QObject):
+        """Worker class for probe detection."""
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
         found_coords = pyqtSignal(str, str, tuple)
@@ -50,6 +48,11 @@ class ProbeDetectManager(QObject):
             self.mask_detect = MaskGenerator()
 
         def update_sn(self, sn):
+            """Update the serial number and initialize probe detectors.
+            
+            Args:
+                sn (str): Serial number.
+            """
             if sn not in self.probes.keys():
                 self.sn = sn
                 self.probeDetect = ProbeDetector(self.sn, self.IMG_SIZE)
@@ -68,11 +71,27 @@ class ProbeDetectManager(QObject):
                     pass
                 
         def update_frame(self, frame, timestamp):
+            """Update the frame and timestamp.
+            
+            Args:
+                frame (numpy.ndarray): Input frame.
+                timestamp (str): Timestamp of the frame.
+            """
             self.frame = frame
             self.new = True
             self.timestamp = timestamp
 
         def process(self, frame, timestamp):
+            """Process the frame for probe detection.
+                1. First run currPrevCmpProcess 
+                2. If it fails on 1, run currBgCmpProcess
+            Args:
+                frame (numpy.ndarray): Input frame.
+                timestamp (str): Timestamp of the frame.
+                
+            Returns:
+                tuple: Processed frame and timestamp.
+            """
             if frame.ndim > 2:
                 gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
@@ -115,18 +134,23 @@ class ProbeDetectManager(QObject):
             return frame, timestamp
 
         def stop_running(self):
+            """Stop the worker from running."""
             self.running = False
 
         def start_running(self):
+            """Start the worker running."""
             self.running = True
 
         def start_detection(self):
+            """Start the probe detection."""
             self.is_detection_on = True
 
         def stop_detection(self):
+            """Stop the probe detection."""
             self.is_detection_on = False
 
         def run(self):
+            """Run the worker thread."""
             print("probe_detect_manager running ")
             while self.running:
                 if self.new:
@@ -146,6 +170,7 @@ class ProbeDetectManager(QObject):
         self.init_thread()
 
     def init_thread(self):
+        """Initialize the worker thread."""
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
@@ -157,10 +182,21 @@ class ProbeDetectManager(QObject):
         self.thread.finished.connect(self.thread.deleteLater)
 
     def process(self, frame, timestamp):
+        """Process the frame using the worker.
+        Args:
+            frame (numpy.ndarray): Input frame.
+            timestamp (str): Timestamp of the frame.
+        """
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
     
     def found_coords_print(self, timestamp, sn, pixel_coords):
+        """Emit the found coordinates signal.
+        Args:
+            timestamp (str): Timestamp of the frame.
+            sn (str): Serial number.
+            pixel_coords (tuple): Pixel coordinates of the probe tip.
+        """
         moving_stage = self.stages.get(sn)
         if moving_stage is not None:
             stage_info = (moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z)
@@ -168,24 +204,35 @@ class ProbeDetectManager(QObject):
         self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
 
     def start(self):
+        """Start the probe detection manager."""
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
         self.thread.start()
 
     def stop(self):
+        """Stop the probe detection manager."""
         if self.worker is not None:
             self.worker.stop_running()
 
     def start_detection(self, sn):       # Call from stage listener.
+        """Start the probe detection for a specific serial number.
+        Args:
+            sn (str): Serial number.
+        """
         if self.worker is not None:
             self.worker.update_sn(sn)
             self.worker.start_detection()
     
     def stop_detection(self, sn):       # Call from stage listener.
+        """Stop the probe detection for a specific serial number.
+        Args:
+            sn (str): Serial number.
+        """
         if self.worker is not None:
             self.worker.stop_detection()
 
     def clean(self):
+        """Clean up the probe detection manager."""
         if self.worker is not None:
             self.worker.stop_running()
         if self.thread is not None:
@@ -193,4 +240,5 @@ class ProbeDetectManager(QObject):
             self.thread.wait()
 
     def __del__(self):
+        """Destructor for the probe detection manager."""
         self.clean()

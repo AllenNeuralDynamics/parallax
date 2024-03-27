@@ -1,18 +1,13 @@
-import cv2
-import numpy as np
 import time
-
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider
-from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread, QMutex
-
+from PyQt5.QtCore import pyqtSignal, QObject, QThread
 
 class NoFilter(QObject):
-
+    """Class representing no filter."""
     name = "None"
-
     frame_processed = pyqtSignal(object)
 
     class Worker(QObject):
+        """Worker class for processing frames in a separate thread."""
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
 
@@ -23,20 +18,31 @@ class NoFilter(QObject):
             self.new = False
 
         def update_frame(self, frame):
+            """Update the frame to be processed.
+        
+            Args:
+                frame: The frame to be processed.
+            """
             self.frame = frame
             self.new = True
 
         def process(self, frame):
-            #cv2.circle(frame, (1000,1000), 10, (255, 0, 0), -1) 
+            """Process nothing (no filter) and emit the frame_processed signal.
+            Args:
+                frame: The frame to be processed.
+            """
             self.frame_processed.emit(frame)
 
         def stop_running(self):
+            """Stop the worker from running."""
             self.running = False
 
         def start_running(self):
+            """Start the worker running."""
             self.running = True
 
         def run(self):
+            """Run the worker thread."""
             while self.running:
                 if self.new:
                     self.process(self.frame)
@@ -45,6 +51,7 @@ class NoFilter(QObject):
             self.finished.emit()
 
     def __init__(self):
+        """Initialize the filter object."""
         super().__init__()
         self.worker = None
         self.thread = None
@@ -52,9 +59,6 @@ class NoFilter(QObject):
 
     def init_thread(self):
         # Initialize or reinitialize the worker and thread
-        #if self.thread is not None:
-        #    self.clean()  # Clean up existing thread and worker before reinitializing
-
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
@@ -67,20 +71,27 @@ class NoFilter(QObject):
         self.thread.finished.connect(self.thread.deleteLater)
         
         self.thread.start()
-        #print("start thread ", self.thread)
 
     def process(self, frame):
+        """Process the frame using the worker.
+    
+        Args:
+            frame: The frame to be processed.
+        """
         if self.worker is not None:
             self.worker.update_frame(frame)
 
     def start(self):
+        """Start the filter by reinitializing and starting the worker and thread."""
         self.init_thread()  # Reinitialize and start the worker and thread
 
     def stop(self):
+        """Stop the filter by stopping the worker."""
         if self.worker is not None:
             self.worker.stop_running()
     
     def clean(self):
+        """Clean up the filter by stopping the worker and waiting for the thread to finish."""
         if self.worker is not None:
             self.worker.stop_running()
         if self.thread is not None:
@@ -88,7 +99,9 @@ class NoFilter(QObject):
             self.thread.wait()
 
     def __del__(self):
+        """Destructor for the filter object."""
         self.clean()
 
     def thread_deleted(self):
+        """Placeholder method for when the thread is deleted."""
         pass

@@ -10,6 +10,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeDetector:
+    """Class for detecting the probe in an image."""
     def __init__(self, sn, IMG_SIZE, angle_step=9):
         self.sn = sn
         self.IMG_SIZE = IMG_SIZE
@@ -23,19 +24,39 @@ class ProbeDetector:
         self._init_gradient_bins()
     
     def _init_gradient_bins(self):
+        """Initialize gradient bins."""
         self.angle_step_bins = np.arange(0, 180 + self.angle_step, self.angle_step)
         self.angle_step_bins_with_neighbor = np.append(np.insert(self.angle_step_bins, 0, 180), 0)
 
     def _find_represent_gradient(self, gradient=0):
+        """Find the representative gradient.
+        Returns:
+            float: Representative gradient value.
+        """
         index = np.argmin(np.abs(self.angle_step_bins - gradient))
         return self.angle_step_bins[index]
     
     def _find_neighboring_gradients(self, target_angle):
+        """Find the neighboring gradients.
+        Args:
+            target_angle (float): Target angle.
+        Returns:
+            numpy.ndarray: Neighboring gradients.
+        """
         gradient_index = np.where(self.angle_step_bins == target_angle)[0][0]
         neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index + 3]
         return neighboring_gradients
 
     def _contour_preprocessing(self, img, thresh=20, remove_noise=True, noise_threshold=1):
+        """Preprocess the image using contour detection.
+        Args:
+            img (numpy.ndarray): Input image.
+            thresh (int): Threshold for contour area. Defaults to 20.
+            remove_noise (bool): Flag to remove noise contours. Defaults to True.
+            noise_threshold (int): Threshold for noise contour area. Defaults to 1.
+        Returns:
+            numpy.ndarray: Preprocessed image.
+        """
         # Contour
         contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
@@ -52,6 +73,13 @@ class ProbeDetector:
         return img
 
     def _get_probe_direction(self, probe_tip, probe_base):
+        """Get the direction of the probe.
+        Args:
+            probe_tip (tuple): Coordinates of the probe tip.
+            probe_base (tuple): Coordinates of the probe base.
+        Returns:
+            str: Direction of the probe (N, NE, E, SE, S, SW, W, NW, Unknown).
+        """
         dx = probe_tip[0] - probe_base[0]
         dy = probe_tip[1] - probe_base[1]
         if dy > 0:
@@ -77,6 +105,19 @@ class ProbeDetector:
                 return "Unknown"
             
     def _hough_line_first_detection(self, img, minLineLength=150, maxLineGap=40):
+        """Perform Hough line detection for the first time.
+        
+        Args:
+            img (numpy.ndarray): Input image.
+            minLineLength (int): Minimum length of the line. Defaults to 150.
+            maxLineGap (int): Maximum gap between line segments. Defaults to 40.
+            
+        Returns:
+            tuple: (found_ret, highest_point, lowest_point)
+                - found_ret (bool): Flag indicating if the probe is found.
+                - highest_point (tuple): Coordinates of the highest point of the probe.
+                - lowest_point (tuple): Coordinates of the lowest point of the probe.
+        """
         found_ret = False
         self.gradients = []
         max_y, min_y = 0, img.shape[0]
@@ -125,6 +166,18 @@ class ProbeDetector:
             return found_ret, highest_point, lowest_point
 
     def _hough_line_update(self, img, minLineLength=50, maxLineGap=9):
+        """Update the Hough line detection.
+        Args:
+            img (numpy.ndarray): Input image.
+            minLineLength (int): Minimum length of the line. Defaults to 50.
+            maxLineGap (int): Maximum gap between line segments. Defaults to 9.
+            
+        Returns:
+            tuple: (found_ret, highest_point, lowest_point)
+                - found_ret (bool): Flag indicating if the probe is found.
+                - highest_point (tuple): Coordinates of the highest point of the probe.
+                - lowest_point (tuple): Coordinates of the lowest point of the probe.
+        """
         self.gradients = []
         updated_gradient = self.angle
         max_y, min_y = 0, img.shape[0]
@@ -195,7 +248,21 @@ class ProbeDetector:
         else:
             return found_ret, highest_point, lowest_point
         
-    def _get_probe_point(self, mask, p1, p2, img_fname=None):        
+    def _get_probe_point(self, mask, p1, p2, img_fname=None):
+        """Get the probe tip and base points.
+        
+        Args:
+            mask (numpy.ndarray): Mask image.
+            p1 (tuple): First point coordinates.
+            p2 (tuple): Second point coordinates.
+            img_fname (str, optional): Image filename. Defaults to None.
+            
+        Returns:
+            tuple: (probe_tip, probe_base)
+                - probe_tip (tuple): Coordinates of the probe tip.
+                - probe_base (tuple): Coordinates of the probe base.
+        """
+
         mask = cv2.copyMakeBorder(mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0])
         dist_transform = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
         """
@@ -216,18 +283,53 @@ class ProbeDetector:
             return p2, p1
     
     def _get_probe_point_known_direction(self, highest_point, lowest_point, direction="S"):
+        """Get the probe tip and base points based on known direction.
+        
+        Args:
+            highest_point (tuple): Coordinates of the highest point.
+            lowest_point (tuple): Coordinates of the lowest point.
+            direction (str): Direction of the probe. Defaults to "S".
+            
+        Returns:
+            tuple: (probe_tip, probe_base)
+                - probe_tip (tuple): Coordinates of the probe tip.
+                - probe_base (tuple): Coordinates of the probe base.
+        """
         if direction in ["S", "W", "SW", "SE"]:
             return lowest_point, highest_point 
         else:
             return highest_point, lowest_point
     
     def _is_distance_in_thres(self, point1, point2, thres=50):
+        """Check if the distance between two points is within a threshold.
+        
+        Args:
+            point1 (tuple): Coordinates of the first point.
+            point2 (tuple): Coordinates of the second point.
+            thres (int): Distance threshold. Defaults to 50.
+            
+        Returns:
+            bool: True if the distance is within the threshold, False otherwise.
+        """
         dist = ((point1[0] - point2[0]) ** 2 +
                 (point1[1] - point2[1]) ** 2 )** 0.5
         return dist < thres
 
     # Get the gradient / pixel points of probe at first time
     def first_detect_probe(self, img, mask, contour_thresh=50, hough_minLineLength=130, offset_x = 0, offset_y = 0):
+        """Detect the probe in the image for the first time.
+        
+        Args:
+            img (numpy.ndarray): Input image.
+            mask (numpy.ndarray): Mask image.
+            contour_thresh (int): Threshold for contour area. Defaults to 50.
+            hough_minLineLength (int): Minimum length of the line for Hough transform. Defaults to 130.
+            offset_x (int): X-offset for probe coordinates.
+            offset_y (int): Y-offset for probe coordinates.
+            
+        Returns:
+            bool: True if the probe is detected, False otherwise.
+        """
         ret = False
         img = self._contour_preprocessing(img, thresh=contour_thresh)
         if img is None:
@@ -244,6 +346,7 @@ class ProbeDetector:
 
     
     def update_probe(self, img, mask, contour_thresh=20, hough_minLineLength=200, maxLineGap=20, offset_x = 0, offset_y = 0, img_fname=None):
+        """Update the probe detection in the image."""
         ret = False
         img = self._contour_preprocessing(img, thresh=contour_thresh, remove_noise=False)
         if img is None:

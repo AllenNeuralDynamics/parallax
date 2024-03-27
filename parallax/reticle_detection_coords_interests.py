@@ -1,11 +1,7 @@
-import cv2
-import numpy as np
 from scipy.stats import linregress
+from PyQt5.QtCore import QObject
+import numpy as np
 import logging
-
-from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread
-from .reticle_detection import ReticleDetection
-from .mask_generator import MaskGenerator
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -15,16 +11,34 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ReticleDetectCoordsInterest(QObject):
+    """Class for detecting coordinates of interest in reticle lines."""
     def __init__(self):
         self.n_interest_pixels = 15
         pass
     
     def _fit_line(self, pixels):
+        """Fit a line to the given pixels.
+        
+        Args:
+            pixels (list): List of pixel coordinates.
+            
+        Returns:
+            tuple: Slope and intercept of the fitted line.
+        """
         x_coords, y_coords = zip(*pixels)
         slope, intercept, _, _, _ = linregress(x_coords, y_coords)
         return slope, intercept
 
     def _find_intersection(self, line1, line2):
+        """Find the intersection point of two lines.
+        
+        Args:
+            line1 (tuple): Slope and intercept of the first line.
+            line2 (tuple): Slope and intercept of the second line.
+            
+        Returns:
+            tuple or None: Coordinates of the intersection point if it exists, None otherwise.
+        """
         slope1, intercept1 = line1
         slope2, intercept2 = line2
 
@@ -38,6 +52,15 @@ class ReticleDetectCoordsInterest(QObject):
         return int(round(x_intersect)), int(round(y_intersect))
 
     def _get_center_coords_index(self, center, coords):
+        """Get the index of the center coordinates in the given coordinates.
+        
+        Args:
+            center (tuple): Center coordinates.
+            coords (numpy.ndarray): Array of coordinates.
+            
+        Returns:
+            int or None: Index of the center coordinates if found, None otherwise.
+        """
         x_center, y_center = center
         for i in range(-5, 6):  # Range from -5 to 5
             for j in range(-5, 6):  # Range from -5 to 5
@@ -48,6 +71,15 @@ class ReticleDetectCoordsInterest(QObject):
         return None
 
     def _get_pixels_interest(self, center, coords):
+        """Get the pixels of interest around the center coordinates.
+        
+        Args:
+            center (tuple): Center coordinates.
+            coords (numpy.ndarray): Array of coordinates.
+            
+        Returns:
+            numpy.ndarray or None: Pixels of interest if found, None otherwise.
+        """
         center_index = self._get_center_coords_index(center, coords)
         if center_index is None:
             return
@@ -58,6 +90,17 @@ class ReticleDetectCoordsInterest(QObject):
         return coords[start_index:end_index]
 
     def _get_orientation(self, pixels_in_lines):
+        """Get the orientation of the reticle lines.
+        
+        Args:
+            pixels_in_lines (list): List of pixel lines.
+            
+        Returns:
+            tuple: (ret, x_axis, y_axis)
+                - ret (bool): True if orientation is determined, False otherwise.
+                - x_axis (numpy.ndarray): X-axis coordinates.
+                - y_axis (numpy.ndarray): Y-axis coordinates.
+        """
         if pixels_in_lines[0] is None or pixels_in_lines[1] is None: 
             logger.error("One of the pixel lines is None. Cannot proceed with orientation calculation.")
             return False, None, None
@@ -77,6 +120,17 @@ class ReticleDetectCoordsInterest(QObject):
         return True, x_axis, y_axis
     
     def get_coords_interest(self, pixels_in_lines):
+        """Get the coordinates of interest from the pixel lines.
+        
+        Args:
+            pixels_in_lines (list): List of pixel lines.
+            
+        Returns:
+            tuple: (ret, x_axis, y_axis)
+                - ret (bool): True if coordinates of interest are found, False otherwise.
+                - x_axis (numpy.ndarray): X-axis coordinates.
+                - y_axis (numpy.ndarray): Y-axis coordinates.
+        """
         if len(pixels_in_lines) != 2:
             return False, None, None
 

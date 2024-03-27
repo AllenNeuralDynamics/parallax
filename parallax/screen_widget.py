@@ -9,6 +9,7 @@ from .reticle_detect_manager import ReticleDetectManager
 from .no_filter import NoFilter
 
 class ScreenWidget(pg.GraphicsView):
+    """ Screens Class """
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
@@ -196,6 +197,15 @@ class ScreenWidget(pg.GraphicsView):
                 self.camera.set_wb("Blue", val)
         
     def get_camera_setting(self, setting):
+        """Get the specified camera setting value.
+    
+        Args:
+            setting (str): The camera setting to retrieve. 
+                Possible values: "exposure", "gain", "gamma", "wbRed", "wbBlue".
+        
+        Returns:
+            float: The value of the specified camera setting.
+        """
         val = 0
         if self.camera:
             if setting == "exposure":
@@ -211,9 +221,13 @@ class ScreenWidget(pg.GraphicsView):
         return val
 
     def get_camera_color_type(self):
+        """Get the color type of the camera.
+    
+        Returns:
+            str: The color type of the camera.
+        """
         if self.camera:
             return self.camera.device_color_type
-
 
     def image_clicked(self, event):
         """
@@ -225,11 +239,13 @@ class ScreenWidget(pg.GraphicsView):
             self.zoom_out()
 
     def select(self, pos):
+        """Select a position and emit the selected coordinates."""
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
         self.selected.emit(*self.get_selected())
 
     def select2(self, pos):
+        """Select a second position and make the click target visible."""
         self.click_target2.setPos(pos)
         self.click_target2.setVisible(True)
 
@@ -250,38 +266,46 @@ class ScreenWidget(pg.GraphicsView):
             self.refresh()
 
     def run_reticle_detection(self):
+        """Run reticle detection by stopping the filter and starting the reticle detector."""
         self.filter.stop()
         self.reticleDetector.start()
     
     def run_probe_detection(self):
+        """Run probe detection by stopping the filter and starting the probe detector."""
         self.filter.stop()
         self.probeDetector.start()
     
     def run_no_filter(self):
+        """Run without any filter by stopping the reticle detector and probe detector."""
         self.reticleDetector.stop()
         self.probeDetector.stop()
         self.filter.start()
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist):
+        """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
         self.reticle_coords = [x_coords, y_coords]
         self.mtx = mtx
         self.dist = dist
 
     def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
+        """Store the found probe coordinates and related information."""
         self.probe_detect_last_timestamp = timestamp
         self.probe_detect_last_sn = probe_sn
         self.stage_info = stage_info
         self.probe_detect_last_coords = tip_coords
 
     def get_last_detect_probe_info(self):
+        """Get the last detected probe information."""
         return self.probe_detect_last_timestamp, \
                 self.probe_detect_last_sn, \
                 self.probe_detect_last_coords
 
     def get_camera_intrinsic(self):
+        """Get the camera intrinsic parameters."""
         return self.mtx, self.dist
     
     def get_reticle_coords(self):
+        """Get the reticle coordinates."""
         return self.reticle_coords
 
     def get_selected(self):

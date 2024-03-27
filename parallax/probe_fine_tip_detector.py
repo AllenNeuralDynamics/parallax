@@ -9,6 +9,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeFineTipDetector:
+    """Class for detecting the fine tip of the probe in an image."""
     def __init__(self):
         self.img = None
         self.tip = (0,0)
@@ -18,6 +19,7 @@ class ProbeFineTipDetector:
         self.img_fname = None
 
     def _preprocess_image(self):
+        """Preprocess the image for tip detection."""
         self.img = cv2.GaussianBlur(self.img, (7, 7), 0)
         sharpened_image = cv2.Laplacian(self.img, cv2.CV_64F)
         sharpened_image = np.uint8(np.absolute(sharpened_image))
@@ -26,6 +28,10 @@ class ProbeFineTipDetector:
         self.img = cv2.erode(self.img, kernel_ellipse_3, iterations=1)
 
     def _is_valid(self):
+        """Check if the image is valid for tip detection.
+        Returns:
+            bool: True if the image is valid, False otherwise.
+        """
         height, width = self.img.shape[:2]
         boundary_img = np.zeros_like(self.img)
         cv2.rectangle(boundary_img, (0, 0), (width-1, height-1), 255, 1)
@@ -49,6 +55,11 @@ class ProbeFineTipDetector:
         return True
 
     def _detect_closest_centroid(self):
+        """Detect the closest centroid to the tip.
+        
+        Returns:
+            tuple: Coordinates of the closest centroid.
+        """
         cx, cy = self.tip[0], self.tip[1]
         closest_centroid = (cx, cy)
         min_distance = float('inf')
@@ -72,6 +83,14 @@ class ProbeFineTipDetector:
         return closest_centroid
 
     def _get_direction_tip(self, contour):
+        """Get the tip coordinates based on the direction.
+        
+        Args:
+            contour (numpy.ndarray): Contour of the tip.
+            
+        Returns:
+            tuple: Coordinates of the tip based on the direction.
+        """
         tip = (0,0)
         if self.direction == "S":
             tip = max(contour, key=lambda point: point[0][1])[0]
@@ -93,6 +112,7 @@ class ProbeFineTipDetector:
         return tip
     
     def _register(self, img, tip, offset_x=0, offset_y=0, direction=None, img_fname=None):
+        """Register the image, tip coordinates, offsets, direction, and filename."""
         self.img = img
         self.tip = tip
         self.offset_x = offset_x
@@ -101,6 +121,7 @@ class ProbeFineTipDetector:
         self.img_fname = img_fname
     
     def get_precise_tip(self, img, tip, offset_x=0, offset_y=0, direction=None, img_fname=None):
+        """Get the precise tip coordinates from the image."""
         self._register(img, tip, offset_x=offset_x, offset_y=offset_y, direction=direction, img_fname=img_fname)
         self._preprocess_image()
         if not self._is_valid():

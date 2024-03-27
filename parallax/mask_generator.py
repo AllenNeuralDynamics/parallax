@@ -9,21 +9,25 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class MaskGenerator:
+    """Class for generating a mask from an image."""
     def __init__(self):
         self.img = None
         self.original_size = (None, None)
         self.is_reticle_exist = None
 
     def _resize_and_blur(self):
+        """Resize and blur the image."""
         if len(self.img.shape) > 2:
             self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
         self.img = cv2.resize(self.img, (400, 300))
         self.img = cv2.GaussianBlur(self.img, (9, 9), 0)
 
     def _apply_threshold(self):
+        """Apply binary threshold to the image."""
         _, self.img = cv2.threshold(self.img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     def _keep_largest_contour(self):
+        """Keep the largest contour in the image."""
         contours, _ = cv2.findContours(self.img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) >= 2:
             largest_contour = max(contours, key=cv2.contourArea)
@@ -32,6 +36,7 @@ class MaskGenerator:
                     self.img = cv2.drawContours(self.img, [contour], -1, (0, 0, 0), -1)
 
     def _apply_morphological_operations(self):
+        """Apply morphological operations to the image."""
         kernels = [cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8)),
                    cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))]
         
@@ -44,16 +49,23 @@ class MaskGenerator:
         self.img = cv2.bitwise_not(self.img)  # Re-invert image back
 
     def _remove_small_contours(self):
+        """Remove small contours from the image."""
         contours, _ = cv2.findContours(self.img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for contour in contours:
             if cv2.contourArea(contour) < 50 * 50:
                 self.img = cv2.drawContours(self.img, [contour], -1, (0, 0, 0), -1)
 
     def _finalize_image(self):
+        """Resize the image back to its original size."""
         self.img = cv2.resize(self.img, self.original_size)
         self.img = cv2.convertScaleAbs(self.img)
 
     def _is_reticle_frame(self):
+        """Check if the image contains a reticle frame.
+        
+        Returns:
+            bool: True if the image contains a reticle frame, False otherwise.
+        """
         img = cv2.normalize(self.img, None, 0, 255, cv2.NORM_MINMAX)
         img = img.astype(np.uint8)
 
@@ -69,6 +81,14 @@ class MaskGenerator:
         return self.is_reticle_exist
     
     def process(self, img):
+        """Process the input image and generate a mask.
+        
+        Args:
+            img (numpy.ndarray): Input image.
+            
+        Returns:
+            numpy.ndarray: Generated mask image.
+        """
         if img is None:
             logger.debug("Input image of ReticleFrameDetection is None.")
             return None

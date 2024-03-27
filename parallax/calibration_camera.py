@@ -29,7 +29,7 @@ imtx = np.array([[1.52e+04, 0.0e+00, 2e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
 
-# TODO cv2.CALIB_FIX_FOCAL_LENGTH
+# Intrinsic flag
 myflags1 = cv2.CALIB_USE_INTRINSIC_GUESS | \
             cv2.CALIB_FIX_FOCAL_LENGTH | \
             cv2.CALIB_FIX_PRINCIPAL_POINT | \
@@ -50,6 +50,7 @@ idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
 SIZE = (4000,3000)
 
 class CalibrationCamera:
+    """Class for intrinsic calibration."""
     def __init__(self):
         self.n_interest_pixels = 15
         self.imgpoints = None
@@ -57,15 +58,28 @@ class CalibrationCamera:
         pass
 
     def _get_changed_data_format(self, x_axis, y_axis):
+        """Change data format for calibration.
+        Args:
+            x_axis (list): X-axis coordinates.
+            y_axis (list): Y-axis coordinates.
+        Returns:
+            numpy.ndarray: Reshaped coordinates.
+        """
         x_axis = np.array(x_axis)
         y_axis = np.array(y_axis)
         coords_lines =  np.vstack([x_axis, y_axis])
         nCoords_per_axis = self.n_interest_pixels * 2 + 1
-        #print(x_axis.shape, y_axis.shape, coords_lines.shape)
         coords_lines_reshaped = coords_lines.reshape((nCoords_per_axis*2, 2)).astype(np.float32)
         return coords_lines_reshaped
     
     def _process_reticle_points(self, x_axis, y_axis):
+        """Process reticle points for calibration.
+        Args:
+            x_axis (list): X-axis coordinates.
+            y_axis (list): Y-axis coordinates.
+        Returns:
+            tuple: Image points and object points.
+        """
         self.objpoints = []
         self.imgpoints = []
 
@@ -77,8 +91,14 @@ class CalibrationCamera:
         self.imgpoints = np.array(self.imgpoints)
         return self.imgpoints, self.objpoints
 
-    #def calibrate_camera(self, x_axis, y_axis):   
     def calibrate_camera(self, x_axis, y_axis):
+        """Calibrate camera Intrinsic.
+        Args:
+            x_axis (list): X-axis coordinates.
+            y_axis (list): Y-axis coordinates.
+        Returns:
+            tuple: Calibration results (ret, mtx, dist).
+        """
         self._process_reticle_points(x_axis, y_axis)
         ret, self.mtx, self.dist, self.rvecs, self.tvecs = cv2.calibrateCamera(self.objpoints, self.imgpoints, \
                                             SIZE, imtx, idist, flags=myflags1, criteria=CRIT)
@@ -94,6 +114,10 @@ class CalibrationCamera:
         return ret, self.mtx, self.dist
 
     def get_origin_xyz(self):
+        """Get origin(0,0) and axis points(in x, y, z coords) in image coordinates.
+        Returns:
+            tuple: Origin, x-axis, y-axis, z-axis points.
+        """
         axis = np.float32([[3,0,0], [0,3,0], [0,0,3]]).reshape(-1,3)
         # Find the rotation and translation vectors.
         # Output rotation vector (see Rodrigues ) that, together with tvec, 
@@ -110,6 +134,7 @@ class CalibrationCamera:
             return None
         
 class CalibrationStereo(CalibrationCamera):
+    """Class for stereo camera calibration."""
     def __init__(self, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
         self.n_interest_pixels = 15
         self.camA = camA
@@ -124,7 +149,11 @@ class CalibrationStereo(CalibrationCamera):
         self.P_A, self.P_B = None, None
 
     def calibrate_stereo(self):
+        """Calibrate stereo cameras.
         
+        Returns:
+            tuple: Stereo calibration results (retval, R_AB, T_AB, E_AB, F_AB).
+        """
         self.retval, _, _, _, _, self.R_AB, self.T_AB, self.E_AB, self.F_AB = \
             cv2.stereoCalibrate(self.objpoints, 
             self.imgpointsA, 
@@ -151,6 +180,15 @@ class CalibrationStereo(CalibrationCamera):
         return self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB
     
     def _matching_camera_order(self, camA, coordA, camB, coordB):
+        """Match camera order based on initialization order.
+        Args:
+            camA (str): Camera A name.
+            coordA (tuple): Coordinates from camera A.
+            camB (str): Camera B name.
+            coordB (tuple): Coordinates from camera B.
+        Returns:
+            tuple: Matched camera order and coordinates.
+        """
         if self.camA == camA:
             return camA, coordA, camB, coordB
         
@@ -158,12 +196,28 @@ class CalibrationStereo(CalibrationCamera):
             return camB, coordB, camA, coordA
         
     def triangulation(self, P_1, P_2, imgpoints_1, imgpoints_2):
+        """Triangulate 3D points from stereo image points.
+        Args:
+            P_1 (numpy.ndarray): Projection matrix of camera 1.
+            P_2 (numpy.ndarray): Projection matrix of camera 2.
+            imgpoints_1 (numpy.ndarray): Image points from camera 1.
+            imgpoints_2 (numpy.ndarray): Image points from camera 2.
+        Returns:
+            numpy.ndarray: Triangulated 3D points.
+        """
         points_4d_hom= cv2.triangulatePoints(P_1, P_2, imgpoints_1.T, imgpoints_2.T)
         points_3d_hom = points_4d_hom / points_4d_hom[3]
         points_3d_hom = points_3d_hom.T
         return points_3d_hom[:,:3]
     
     def change_coords_system_from_camA_to_global(self, points_3d_AB):
+        """
+        Change coordinate system from camera A to global using solvePnPRansac()
+        Args:
+            points_3d_AB (numpy.ndarray): 3D points in camera A coordinate system.
+        Returns:
+            numpy.ndarray: 3D points in global coordinate system.
+        """        
         _, rvecs, tvecs, _ = cv2.solvePnPRansac(self.objpoints, self.imgpointsA, self.mtxA, self.distA)
         # Convert rotation vectors to rotation matrices
         rmat, _ = cv2.Rodrigues(rvecs)
@@ -175,6 +229,14 @@ class CalibrationStereo(CalibrationCamera):
         return points_3d_G
     
     def change_coords_system_from_camA_to_global_iterative(self, points_3d_AB):
+        """Change coordinate system from camera A to global using iterative method.
+        
+        Args:
+            points_3d_AB (numpy.ndarray): 3D points in camera A coordinate system.
+            
+        Returns:
+            numpy.ndarray: 3D points in global coordinate system.
+        """
         solvePnP_method = cv2.SOLVEPNP_ITERATIVE
         _, rvecs, tvecs = cv2.solvePnP(self.objpoints, self.imgpointsA, self.mtxA, self.distA, flags=solvePnP_method)
         # Convert rotation vectors to rotation matrices
@@ -187,10 +249,25 @@ class CalibrationStereo(CalibrationCamera):
         return points_3d_G
 
     def change_coords_system_from_camA_to_global_savedRT(self, points_3d_AB):
+        """Change coordinate system from camera A to global using saved rotation and translation.
+        Args:
+            points_3d_AB (numpy.ndarray): 3D points in camera A coordinate system.
+        Returns:
+            numpy.ndarray: 3D points in global coordinate system.
+        """
         points_3d_G = np.dot(self.rmat_inv, points_3d_AB.T).T + self.tvecs_inv.T
         return points_3d_G
 
     def get_global_coords(self, camA, coordA, camB, coordB):
+        """Get global coordinates from stereo image coordinates.
+        Args:
+            camA (str): Camera A name.
+            coordA (tuple): Coordinates from camera A.
+            camB (str): Camera B name.
+            coordB (tuple): Coordinates from camera B.
+        Returns:
+            numpy.ndarray: 3D points in global coordinate system.
+        """
         camA, coordA, camB, coordB = self._matching_camera_order(camA, coordA, camB, coordB)
         coordA = np.array(coordA).astype(np.float32)
         coordB = np.array(coordB).astype(np.float32)
@@ -203,6 +280,15 @@ class CalibrationStereo(CalibrationCamera):
         return points_3d_G
     
     def test(self, camA, coordA, camB, coordB):
+        """Test stereo calibration.
+        Args:
+            camA (str): Camera A name.
+            coordA (tuple): Coordinates from camera A.
+            camB (str): Camera B name.
+            coordB (tuple): Coordinates from camera B.
+        Returns:
+            numpy.ndarray: Predicted 3D points in global coordinate system.
+        """
         camA, coordA, camB, coordB = self._matching_camera_order(camA, coordA, camB, coordB)
         points_3d_AB = self.triangulation(self.P_B, self.P_A, self.imgpointsB, self.imgpointsA)
         np.set_printoptions(suppress=True, precision=8) 
@@ -217,6 +303,7 @@ class CalibrationStereo(CalibrationCamera):
         return points_3d_G
     
     def test_pixel_error(self):
+        """Test pixel reprojection error."""
         mean_error = 0
         for i in range(len(self.objpoints)):
             imgpointsA_converted = np.array(self.imgpointsA[i], dtype=np.float32).reshape(-1,2)

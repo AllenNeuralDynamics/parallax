@@ -12,6 +12,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
+    """Finding diff image using Current and Background Comparison"""
     def __init__(self, ProbeDetector, original_size, resized_size, reticle_zone=None):
         UtilsCoords.__init__(self, original_size, resized_size)
         UtilsCrops.__init__(self)
@@ -30,9 +31,24 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         self.crop_init = 50
         
     def update_reticle_zone(self, reticle_zone):
+        """Update the reticle zone.
+        
+        Args:
+            reticle_zone (numpy.ndarray): Reticle zone image.
+        """
         self.reticle_zone = reticle_zone
         
     def first_cmp(self, curr_img, mask, org_img, img_fname=None):
+        """Perform first comparison
+        Args:
+            curr_img (numpy.ndarray): Current image.
+            mask (numpy.ndarray): Mask image.
+            org_img (numpy.ndarray): Original image.
+            img_fname (str, optional): Image filename. Defaults to None.
+            
+        Returns:
+            bool: True if probe is detected, False otherwise.
+        """        
         logger.debug("CurrBgCmpProcessor::first_cmp")
         ret = False
         self.img_fname = img_fname
@@ -51,6 +67,15 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         return ret
 
     def update_cmp(self, curr_img, mask, org_img, img_fname=None):
+        """Update the comparison.
+        Args:
+            curr_img (numpy.ndarray): Current image.
+            mask (numpy.ndarray): Mask image.
+            org_img (numpy.ndarray): Original image.
+            img_fname (str, optional): Image filename. Defaults to None.
+        Returns:
+            bool: True if probe is detected and precise tip is found, False otherwise.
+        """
         ret = False
         self.img_fname = img_fname
         self.mask = mask
@@ -69,6 +94,7 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         return ret and ret_precise_tip
     
     def _update_bg(self):
+        """Update the background image."""
         kernel = np.ones((3, 3), np.uint8)
         self.diff_img_crop = cv2.dilate(self.diff_img_crop, kernel, iterations=1)
         
@@ -99,9 +125,14 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
 
     def _update_crop(self):
+        """Update the crop region.
+        
+        Returns:
+            bool: True if probe is detected, False otherwise.
+        """
         #Draw
-        diff_img_ = self.diff_img.copy()
-        diff_img_ = cv2.cvtColor(diff_img_, cv2.COLOR_GRAY2BGR)
+        #diff_img_ = self.diff_img.copy()
+        #diff_img_ = cv2.cvtColor(diff_img_, cv2.COLOR_GRAY2BGR)
 
         ret = False
         crop_size = self.crop_init
@@ -115,7 +146,7 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
                                                     hough_minLineLength=hough_minLineLength_adpative, maxLineGap=3,\
                                                     offset_x = left, offset_y = top, img_fname=self.img_fname)
             
-            cv2.rectangle(diff_img_, (left, top), (right, bottom), (155, 155, 0), 5)  # Green rectangle
+            #cv2.rectangle(diff_img_, (left, top), (right, bottom), (155, 155, 0), 5)  # Green rectangle
             
             if ret and crop_utils.is_point_on_crop_region(self.ProbeDetector.probe_tip, top, bottom, left, right, buffer=5):            
                 ret = False
@@ -141,9 +172,17 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         return ret
         
     def _is_point_in_reticle_region(self, image, point):
+        """Check if a point is in the reticle region."""
         return image[point[1], point[0]] == 255
 
     def _get_precise_tip(self, org_img):
+        """Get precise probe tip on original size image 
+        Args:
+            org_img (numpy.ndarray): Original image.
+            
+        Returns:
+            bool: True if precise tip is found, False otherwise.
+        """
         coords_utils = UtilsCoords(self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
         probe_fine_tip = ProbeFineTipDetector()
         crop_utils = UtilsCrops()
@@ -166,15 +205,24 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         return ret
 
     def _get_binary(self, curr_img):
+        """Get binary image.
+        Args:
+            curr_img (numpy.ndarray): Current image.
+        Returns:
+            numpy.ndarray: Binary image.
+        """
         curr_img = cv2.adaptiveThreshold(curr_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 17, 2)
         curr_img = cv2.bitwise_not(curr_img)
         return curr_img
     
     def _create_bg(self, curr_img):
-         self.bg = cv2.bitwise_not(curr_img)
+        """Create background image."""
+        self.bg = cv2.bitwise_not(curr_img)
 
     def _preprocess_diff_image(self, curr_img):
+        """Preprocess difference image."""
         self.diff_img = cv2.bitwise_and(curr_img, self.bg, mask=self.mask)
     
     def _detect_probe(self):
+        """Detect probe in difference image."""
         return self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)

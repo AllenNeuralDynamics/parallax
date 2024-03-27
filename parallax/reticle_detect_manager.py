@@ -3,7 +3,7 @@ import numpy as np
 import time
 import logging
 
-from PyQt5.QtCore import pyqtSignal, Qt, QObject, QThread
+from PyQt5.QtCore import pyqtSignal, QObject, QThread
 from .reticle_detection import ReticleDetection
 from .mask_generator import MaskGenerator
 from .reticle_detection_coords_interests import ReticleDetectCoordsInterest
@@ -15,6 +15,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ReticleDetectManager(QObject):
+    """Reticle detection class"""
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
@@ -25,6 +26,7 @@ class ReticleDetectManager(QObject):
         found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray) 
 
         def __init__(self, name):
+            """Initialize the worker"""
             QObject.__init__(self)
             self.name = name
             self.running = False
@@ -40,11 +42,22 @@ class ReticleDetectManager(QObject):
             self.calibrationCamera = CalibrationCamera()
                 
         def update_frame(self, frame):
+            """Update the frame to be processed."""
             self.frame = frame
             if self.new is False: # Deal with one frame at a time. This may cause the frame drop
                 self.new = True
 
         def draw(self, frame, x_axis_coords, y_axis_coords):
+            """Draw the coordinates on the frame.
+            
+            Args:
+                frame (numpy.ndarray): Input frame.
+                x_axis_coords (numpy.ndarray): X-axis coordinates.
+                y_axis_coords (numpy.ndarray): Y-axis coordinates.
+                
+            Returns:
+                numpy.ndarray: Frame with coordinates drawn.
+            """
             if x_axis_coords is None or y_axis_coords is None:
                 return frame
             for pixel in x_axis_coords:
@@ -56,12 +69,14 @@ class ReticleDetectManager(QObject):
             return frame
         
         def draw_xyz(self, frame, origin, x, y, z):
+            """Draw the XYZ axes on the frame."""
             frame = cv2.line(frame, origin, x, (0, 0, 255), 3)  # Blue line
             frame = cv2.line(frame, origin, y, (0, 255, 0), 3)  # Green line
             frame = cv2.line(frame, origin, z, (255, 0, ), 3)  # Red line
             return frame
         
         def process(self, frame):
+            """Process the frame for reticle detection."""
             #cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
             ret, frame_, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
             if ret:
@@ -81,18 +96,23 @@ class ReticleDetectManager(QObject):
                 return self.frame_success
 
         def stop_running(self):
+            """Stop the worker from running."""
             self.running = False
 
         def start_running(self):
+            """Start the worker running."""
             self.running = True
 
         def start_detection(self):
+            """Start the reticle detection."""
             self.is_detection_on = True
 
         def stop_detection(self):
+            """Stop the reticle detection."""
             self.is_detection_on = False
 
         def run(self):
+            """Run the worker thread."""
             while self.running:
                 if self.new:
                     self.frame = self.process(self.frame)
@@ -102,12 +122,14 @@ class ReticleDetectManager(QObject):
             self.finished.emit()
 
     def __init__(self):
+        """Initialize the reticle detection manager."""
         super().__init__()
         self.worker = None
         self.thread = None
         self.init_thread()
     
     def init_thread(self):
+        """Initialize the worker thread."""
         #if self.thread is not None:
         #    self.clean()  # Clean up existing thread and worker before reinitializing
         self.thread = QThread()
@@ -122,19 +144,26 @@ class ReticleDetectManager(QObject):
         self.thread.finished.connect(self.thread.deleteLater)
 
     def process(self, frame):
+        """Process the frame using the worker.
+        Args:
+            frame (numpy.ndarray): Input frame.
+        """
         if self.worker is not None:
             self.worker.update_frame(frame)
     
     def start(self):
+        """Start the reticle detection manager."""
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
         self.thread.start()
     
     def stop(self):
+        """Stop the reticle detection manager."""
         if self.worker is not None:
             self.worker.stop_running()
 
     def clean(self):
+        """Clean up the reticle detection manager."""
         if self.worker is not None:
             self.worker.stop_running()
         if self.thread is not None:
@@ -142,4 +171,5 @@ class ReticleDetectManager(QObject):
             self.thread.wait()
 
     def __del__(self):
+        """Destructor for the reticle detection manager."""
         self.clean()

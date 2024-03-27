@@ -1,5 +1,4 @@
-from PyQt5.QtCore import QObject, pyqtSignal
-import time
+from PyQt5.QtCore import QObject
 import logging
 import numpy as np
 import cv2
@@ -12,6 +11,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeCalibration(QObject):
+    """Class for probe calibration."""
     def __init__(self, stage_listener):
         super().__init__()
         self.stage_listener = stage_listener
@@ -24,31 +24,54 @@ class ProbeCalibration(QObject):
         self.error_min = 1000
         
     def clear(self):
+        """Clear the local points, global points, and transform matrix."""
         self.local_points = []
         self.global_points = []
         self.transform_matrix = None
         
     def update(self, stage):
+        """Update the local and global points.
+        Args:
+            stage (Stage): Stage object containing stage coordinates.
+        """
         local_point = np.array([stage.stage_x, stage.stage_y, stage.stage_z])
         self.local_points.append(local_point)
         global_point = np.array([stage.stage_x_global, stage.stage_y_global, stage.stage_z_global])
         self.global_points.append(global_point)
 
+        """
         csv_file_name = 'debug/points.csv'
         with open(csv_file_name, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(['Local Point', *local_point, 'Global Point', *global_point])
-        
+        """
+
     def is_enough_points(self):
+        """Check if there are enough points for calibration.
+        
+        Returns:
+            bool: True if there are enough points, False otherwise.
+        """
         logger.debug(f"n local points {len(self.local_points)}, inlier {np.sum(self.inliers)}")
         return True
     
     def reshape_array(self):
+        """Reshape local and global points arrays.
+        
+        Returns:
+            tuple: Reshaped local points and global points arrays.
+        """
         local_points = np.array(self.local_points)
         global_points = np.array(self.global_points)
         return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
 
     def _test_cmp_truth_expect(self, stage, transform_matrix):
+        """Test the transform matrix by comparing the transformed point with the expected global point.
+        
+        Args:
+            stage (Stage): Stage object containing stage coordinates.
+            transform_matrix (numpy.ndarray): Transform matrix.
+        """
         local_point = np.array([stage.stage_x, stage.stage_y, stage.stage_z, 1])
         global_point = np.array([stage.stage_x_global, stage.stage_y_global, stage.stage_z_global])
         
@@ -65,6 +88,11 @@ class ProbeCalibration(QObject):
         logger.debug(f"local points: {local_point}")
 
     def local_global_transform(self, stage):
+        """Perform local to global transformation.
+        
+        Args:
+            stage (Stage): Stage object containing stage coordinates.
+        """
         self.update(stage)
         if self.is_enough_points():
             local_points, global_points = self.reshape_array()

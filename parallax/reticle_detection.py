@@ -13,6 +13,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ReticleDetection:
+    """Class for detecting reticle lines and coordinates."""
     def __init__(self, IMG_SIZE, reticle_frame_detector):
         self.image_size = IMG_SIZE
         self.reticle_frame_detector = reticle_frame_detector
@@ -57,7 +58,6 @@ class ReticleDetection:
             m = (y2 - y1) / (x2 - x1)
             b = y1 - m * x1
 
-
         if m == np.inf:
             cv2.line(reticle_points, (x_vert, 0), (x_vert, height), (255, 255, 255), 35)
         else:
@@ -66,6 +66,17 @@ class ReticleDetection:
             cv2.line(reticle_points, (0, y_start), (width, y_end), (255, 255, 255), 35)
     
     def _ransac_detect_lines(self, img):
+        """Detect lines using RANSAC algorithm.
+        
+        Args:
+            img (numpy.ndarray): Input image.
+            
+        Returns:
+            tuple: (ret, inlier_lines, inlier_pixels)
+                - ret (bool): True if two lines are detected, False otherwise.
+                - inlier_lines (list): List of detected line models.
+                - inlier_pixels (list): List of inlier pixel coordinates for each line.
+        """
         inlier_lines = []
         inlier_pixels = []
 
@@ -122,11 +133,28 @@ class ReticleDetection:
         return len(inlier_lines)==2, inlier_lines, inlier_pixels
     
     def _fit_line(self, pixels):
+        """Fit a line to the given pixels.
+        
+        Args:
+            pixels (numpy.ndarray): Pixel coordinates.
+            
+        Returns:
+            tuple: (slope, intercept) of the fitted line.
+        """
         x_coords, y_coords = zip(*pixels)
         slope, intercept, _, _, _ = linregress(x_coords, y_coords)
         return slope, intercept
 
     def _find_intersection(self, line1, line2):
+        """Find the intersection point of two lines.
+        
+        Args:
+            line1 (tuple): (slope, intercept) of the first line.
+            line2 (tuple): (slope, intercept) of the second line.
+            
+        Returns:
+            tuple or None: (x, y) coordinates of the intersection point if it exists, None otherwise.
+        """
         slope1, intercept1 = line1
         slope2, intercept2 = line2
 
@@ -138,6 +166,15 @@ class ReticleDetection:
         return int(round(x_intersect)), int(round(y_intersect))
         
     def _get_center_coords_index(self, center, coords):
+        """Get the index of the center coordinates in the given coordinates.
+        
+        Args:
+            center (tuple): Center coordinates (x, y).
+            coords (numpy.ndarray): Array of coordinates.
+            
+        Returns:
+            int or None: Index of the center coordinates in the coords array, None if not found.
+        """
         x_center, y_center = center
         for i in range(-4, 5):
             for j in range(-4, 5):
@@ -148,6 +185,16 @@ class ReticleDetection:
         return None
 
     def _get_pixels_interest(self, center, coords, dist=10):
+        """Get the pixels of interest around the center coordinates.
+        
+        Args:
+            center (tuple): Center coordinates (x, y).
+            coords (numpy.ndarray): Array of coordinates.
+            dist (int): Distance from the center to select pixels of interest. Defaults to 10.
+            
+        Returns:
+            numpy.ndarray or None: Selected pixels of interest, None if center is not found.
+        """
         center_index = self._get_center_coords_index(center, coords)
         if center_index is None:
             return
@@ -157,6 +204,12 @@ class ReticleDetection:
         return coords[start_index:end_index]
 
     def _find_reticle_coords(self, pixels_in_lines):
+        """Find the reticle coordinates from the pixels in lines.
+        Args:
+            pixels_in_lines (list): List of pixel coordinates for each line.
+        Returns:
+            list: List of pixel coordinates of interest for each line.
+        """
         if len(pixels_in_lines) != 2:
             raise ValueError("Function requires exactly two lines")
 
@@ -172,6 +225,14 @@ class ReticleDetection:
         return coords_interest
 
     def _eroding(self, img):
+        """Erode the image until the desired contour conditions are met.
+        
+        Args:
+            img (numpy.ndarray): Input image.
+            
+        Returns:
+            numpy.ndarray: Eroded image.
+        """
         kernel_ellipse_3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         counter = 100
         while counter > 0:
@@ -189,6 +250,14 @@ class ReticleDetection:
         return img
 
     def _get_centroid(self, contours):
+        """Get the centroid of each contour.
+        
+        Args:
+            contours (list): List of contours.
+            
+        Returns:
+            list: List of centroid coordinates for each contour.
+        """
         centroids = []
         for contour in contours:
             M = cv2.moments(contour)
@@ -203,6 +272,14 @@ class ReticleDetection:
         pass
     
     def _sort_points(self, points):
+        """Sort the points based on the dimension with greater median distance.
+        
+        Args:
+            points (numpy.ndarray): Array of points.
+            
+        Returns:
+            numpy.ndarray: Sorted points.
+        """
         # Calculate differences between consecutive points
         diffs = np.diff(points, axis=0)
         x_diffs = diffs[:, 0]
@@ -223,6 +300,15 @@ class ReticleDetection:
         return sorted_points
 
     def _estimate_missing_points(self, points, threshold_factor=1.5):
+        """Estimate missing points in the given points based on the average distance.
+        
+        Args:
+            points (numpy.ndarray): Array of points.
+            threshold_factor (float): Factor to determine the threshold for large gaps. Defaults to 1.5.
+            
+        Returns:
+            numpy.ndarray: Array of estimated missing points.
+        """
         points = self._sort_points(points)
 
         # Calculate the Euclidean distances between consecutive points
@@ -248,6 +334,18 @@ class ReticleDetection:
         return np.array(missing_points)
 
     def _add_missing_pixels(self, bg, lines, line_pixels):
+        """Add missing pixels to the line pixels based on the estimated missing points.
+        
+        Args:
+            bg (numpy.ndarray): Background image.
+            lines (list): List of line models.
+            line_pixels (list): List of pixel coordinates for each line.
+            
+        Returns:
+            tuple: (bg, refined_pixels)
+                - bg (numpy.ndarray): Background image with missing points drawn.
+                - refined_pixels (list): List of refined pixel coordinates for each line.
+        """
         refined_pixels = []
 
         for line_model, pixels in zip(lines, line_pixels):
@@ -279,6 +377,19 @@ class ReticleDetection:
         return bg, refined_pixels
     
     def _refine_pixels(self, bg, lines, line_pixels):
+        """Refine the pixel coordinates fitting into lines based on the line models.
+    
+        Args:
+            bg (numpy.ndarray): Background image.
+            lines (list): List of line models.
+            line_pixels (list): List of pixel coordinates for each line.
+            
+        Returns:
+            tuple: (bg, lines, refined_pixels)
+                - bg (numpy.ndarray): Background image with refined pixels drawn.
+                - lines (list): List of line models.
+                - refined_pixels (list): List of refined pixel coordinates for each line.
+        """
         refined_pixels = []
         
         for line_model, pixels in zip(lines, line_pixels):
@@ -304,7 +415,14 @@ class ReticleDetection:
         return bg, lines, refined_pixels
 
     def get_reticle_zone(self, img):
-        """Main method to get reticle zone."""
+        """Get the reticle zone from the image.
+    
+        Args:
+            img (numpy.ndarray): Input image.
+            
+        Returns:
+            numpy.ndarray or None: Reticle zone image if reticle exists, None otherwise.
+        """
         bg = self._preprocess_image(img)
         bg = cv2.resize(bg, self.image_size)
         masked = self._apply_mask(bg)
@@ -341,6 +459,18 @@ class ReticleDetection:
         return ret, img, inliner_lines, inliner_lines_pixels
     
     def get_coords(self, img):
+        """Detect coordinates using morphological operations.
+    
+        Args:
+            img (numpy.ndarray): Input image.
+            
+        Returns:
+            tuple: (ret, img, inliner_lines, inliner_lines_pixels)
+                - ret (bool): True if coordinates are detected, False otherwise.
+                - img (numpy.ndarray): Processed image.
+                - inliner_lines (list): List of inlier line models.
+                - inliner_lines_pixels (list): List of inlier pixel coordinates for each line.
+        """
         bg = self._preprocess_image(img)
         masked = self._apply_mask(bg)
         #if self.mask is not None:

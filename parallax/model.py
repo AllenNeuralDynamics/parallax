@@ -4,6 +4,7 @@ from .camera import list_cameras, close_cameras, MockCamera, PySpinCamera
 from .stage_listener import StageInfo, Stage
 
 class Model(QObject):
+    """Model class to handle cameras, stages, and calibration data."""
     msg_posted = pyqtSignal(str)
     accutest_point_reached = pyqtSignal()
 
@@ -44,6 +45,7 @@ class Model(QObject):
 
     @property
     def ncameras(self):
+        """Get the number of cameras."""
         return len(self.cameras)
 
     def set_last_object_point(self, obj_point):

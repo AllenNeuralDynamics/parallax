@@ -7,6 +7,7 @@ from .stage_ui import StageUI
 import os
 
 class StageWidget(QWidget):
+    """Widget for stage control and calibration."""
     def __init__(self, model, ui_dir, screen_widgets):
         super().__init__()
         self.model = model
@@ -28,6 +29,7 @@ class StageWidget(QWidget):
         self.probeCalibration = ProbeCalibration(self.stageListener)
     
     def reticle_detection_button_handler(self):
+        """Handle the reticle detection button click."""
         if self.reticle_calibration_btn.isChecked():
             self.reticle_calibration_btn.setStyleSheet(
                 "color: gray;"
@@ -81,6 +83,7 @@ class StageWidget(QWidget):
                 self.calibrationStereo.test(cam_names[0], img_coords[0], cam_names[1], img_coords[1])
     
     def reticle_detect_all_screen(self):
+        """Detect reticle coordinates on all screens."""
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
             if coords is None:
@@ -102,6 +105,7 @@ class StageWidget(QWidget):
             self.model.add_camera_intrinsic(camera_name, mtx, dist)
 
     def probe_detection_button_handler(self):
+        """Handle the probe detection button click."""
         if self.probe_calibration_btn.isChecked():
             self.probe_calibration_btn.setStyleSheet(
                 "color: gray;"
@@ -129,6 +133,7 @@ class StageWidget(QWidget):
             """)
 
     def probe_detect_all_screen(self):
+        """Detect probe coordinates on all screens."""
         timestamp_cmp, sn_cmp = None, None
         cam_names = []
         tip_coords = []

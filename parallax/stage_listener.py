@@ -17,6 +17,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class StageInfo(QObject):
+    """Class for retrieving stage information."""
     def __init__(self, url):
         super().__init__()
         self.url = url
@@ -24,6 +25,11 @@ class StageInfo(QObject):
         self.stages_sn = []
 
     def get_instances(self):
+        """Get the instances of the stages.
+        
+        Returns:
+            list: List of stage instances.
+        """
         stages = []
         try:
             response = requests.get(self.url, timeout=5)
@@ -44,6 +50,7 @@ class StageInfo(QObject):
         return stages
 
 class Stage(QObject):
+    """Class representing a stage."""
     def __init__(self, stage_info = None):
         QObject.__init__(self)
         if stage_info is not None:
@@ -57,6 +64,7 @@ class Stage(QObject):
             self.stage_z_global = None
 
 class Worker(QObject):
+    """Worker class for fetching stage data."""
     dataChanged = pyqtSignal(dict)
     stage_moving = pyqtSignal(dict)
     stage_not_moving = pyqtSignal(dict)
@@ -76,7 +84,11 @@ class Worker(QObject):
         self.is_error_log_printed = False
         
     def start(self, interval=1000):
-        """Main Worker Thread: This thread periodically checks for significant changes in the stage information."""
+        """Start the worker thread.
+        
+        Args:
+            interval (int): Interval in milliseconds. Defaults to 1000.
+        """
         self.timer.start(interval)
 
     def stop(self):
@@ -84,6 +96,7 @@ class Worker(QObject):
         self.timer.stop()
 
     def print_trouble_shooting_msg(self):
+        """Print the troubleshooting message."""
         print("Trouble Shooting: ")
         print("1. Check New Scale Stage connection.")
         print("2. Enable Http Server: 'http://localhost:8080/'")
@@ -159,6 +172,7 @@ class Worker(QObject):
         return False
 
 class StageListener(QObject):
+    """Class for listening to stage updates."""
     probeCalibRequest = pyqtSignal(QObject)
 
     def __init__(self, model, stage_ui):
@@ -177,12 +191,20 @@ class StageListener(QObject):
         self.stage_global_data = None
     
     def start(self):
-        # Move worker to the thread and setup signals
+        """Start the stage listener."""
         if self.model.nStages != 0:
             self.worker.moveToThread(self.thread)
             self.thread.start()
 
     def get_last_moved_time(self, millisecond=False):
+        """Get the last moved time of the stage.
+        
+        Args:
+            millisecond (bool): Include milliseconds in the timestamp. Defaults to False.
+            
+        Returns:
+            str: Last moved time as a string.
+        """
         ts = time.time()
         dt = datetime.fromtimestamp(ts)
         if millisecond:
@@ -193,9 +215,20 @@ class StageListener(QObject):
                                               dt.hour, dt.minute, dt.second)
         
     def append_to_buffer(self, ts, stage):
+        """Append stage data to the buffer.
+        
+        Args:
+            ts (str): Timestamp.
+            stage (Stage): Stage object.
+        """
         self.buffer_ts_local_coords.append((ts, [stage.stage_x, stage.stage_y, stage.stage_z]))
 
     def handleDataChange(self, probe):
+        """Handle changes in stage data.
+        
+        Args:
+            probe (dict): Probe data.
+        """
         # Format the current timestamp
         self.timestamp_local = self.get_last_moved_time(millisecond=True)
         
@@ -222,11 +255,19 @@ class StageListener(QObject):
         #logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
     
     def _change_time_format(self, str_time):
+        """Change the time format from string to datetime."""
         fmt = "%Y%m%d-%H%M%S.%f"
         date_time = datetime.strptime(str_time, fmt)
         return date_time
 
     def _find_closest_local_coords(self):
+        """Find the closest local coordinates based on the image capture timestamp.
+        
+        Returns:
+            tuple: (closest_ts, closest_coords)
+                - closest_ts (str): Closest timestamp.
+                - closest_coords (list): Closest local coordinates.
+        """
         closest_ts = None
         closest_coords = None
         # Initialize a variable to track the smallest time difference
@@ -249,6 +290,13 @@ class StageListener(QObject):
         return closest_ts, closest_coords
 
     def handleGlobalDataChange(self, sn, coords, ts_img_captured):
+        """Handle changes in global stage data.
+        
+        Args:
+            sn (str): Serial number of the stage.
+            coords (list): Global coordinates.
+            ts_img_captured (str): Timestamp of the captured image.
+        """
         self.ts_img_captured = self._change_time_format(ts_img_captured)
         ts_local_coords, local_coords = self._find_closest_local_coords()
 
@@ -287,11 +335,21 @@ class StageListener(QObject):
                 self.stage_ui.updateStageGlobalCoords()
 
     def stageMovingStatus(self, probe):
+        """Handle stage moving status.
+        
+        Args:
+            probe (dict): Probe data.
+        """
         sn = probe['SerialNumber']
         for probeDetector in self.model.probeDetectors:
             probeDetector.start_detection(sn)
 
     def stageNotMovingStatus(self, probe):
+        """Handle not moving probe status.
+        
+        Args:
+            probe (dict): Probe data.
+        """
         sn = probe['SerialNumber']
         for probeDetector in self.model.probeDetectors:
             probeDetector.stop_detection(sn)
