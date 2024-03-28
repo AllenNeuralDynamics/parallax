@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>parallax.calibration_camera &mdash; Parallax 0.37.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=f5ec9bd4"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Parallax
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Parallax</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../parallax.html">parallax</a></li>
+      <li class="breadcrumb-item active">parallax.calibration_camera</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for parallax.calibration_camera</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Module for camera calibration and stereo calibration.</span>
+<span class="sd">This module provides classes for intrinsic camera calibration (`CalibrationCamera`)</span>
+<span class="sd">and stereo camera calibration (`CalibrationStereo`).</span>
+<span class="sd">Classes:</span>
+<span class="sd">-CalibrationCamera: Class for intrinsic camera calibration.</span>
+<span class="sd">-CalibrationStereo: Class for stereo camera calibration.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">cv2</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="c1"># Set logger name</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="c1"># Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;PyQt5.uic.uiparser&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;PyQt5.uic.properties&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+<span class="c1"># Objectpoints</span>
+<span class="n">WORLD_SCALE</span> <span class="o">=</span> <span class="mf">0.2</span>   <span class="c1"># 200 um per tick mark --&gt; Translation matrix will be in mm</span>
+<span class="n">X_COORDS_HALF</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">Y_COORDS_HALF</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">X_COORDS</span> <span class="o">=</span> <span class="n">X_COORDS_HALF</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="n">Y_COORDS</span> <span class="o">=</span> <span class="n">Y_COORDS_HALF</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+<span class="n">OBJPOINTS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">X_COORDS</span> <span class="o">+</span> <span class="n">Y_COORDS</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">OBJPOINTS</span><span class="p">[:</span><span class="n">X_COORDS</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">X_COORDS_HALF</span><span class="p">,</span> <span class="n">X_COORDS_HALF</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># For x-coordinates</span>
+<span class="n">OBJPOINTS</span><span class="p">[</span><span class="n">X_COORDS</span><span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="n">Y_COORDS_HALF</span><span class="p">,</span> <span class="n">Y_COORDS_HALF</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">OBJPOINTS</span> <span class="o">=</span> <span class="n">OBJPOINTS</span> <span class="o">*</span> <span class="n">WORLD_SCALE</span>
+<span class="n">OBJPOINTS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">OBJPOINTS</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">CENTER_INDEX_X</span> <span class="o">=</span> <span class="n">X_COORDS_HALF</span>
+<span class="n">CENTER_INDEX_Y</span> <span class="o">=</span> <span class="n">X_COORDS</span> <span class="o">+</span> <span class="n">Y_COORDS_HALF</span> 
+
+<span class="c1"># Calibration</span>
+<span class="n">CRIT</span> <span class="o">=</span> <span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">TERM_CRITERIA_EPS</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1e-11</span><span class="p">)</span>
+<span class="n">imtx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.52e+04</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">2e+03</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.52e+04</span><span class="p">,</span> <span class="mf">1.5e+03</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.0e+00</span><span class="p">]],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="c1"># Intrinsic flag</span>
+<span class="n">myflags1</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_USE_INTRINSIC_GUESS</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_FOCAL_LENGTH</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_PRINCIPAL_POINT</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_ASPECT_RATIO</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_K1</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_K2</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_K3</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_TANGENT_DIST</span>
+
+<span class="n">myflags2</span> <span class="o">=</span>   <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_PRINCIPAL_POINT</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_USE_INTRINSIC_GUESS</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_ASPECT_RATIO</span> <span class="o">|</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_FOCAL_LENGTH</span>
+
+<span class="n">idist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span> <span class="p">]],</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">SIZE</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4000</span><span class="p">,</span><span class="mi">3000</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CalibrationCamera"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationCamera">[docs]</a><span class="k">class</span> <span class="nc">CalibrationCamera</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for intrinsic calibration.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the CalibrationCamera object&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_interest_pixels</span> <span class="o">=</span> <span class="mi">15</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_get_changed_data_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change data format for calibration.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x_axis (list): X-axis coordinates.</span>
+<span class="sd">            y_axis (list): Y-axis coordinates.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Reshaped coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x_axis</span><span class="p">)</span>
+        <span class="n">y_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_axis</span><span class="p">)</span>
+        <span class="n">coords_lines</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">])</span>
+        <span class="n">nCoords_per_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interest_pixels</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">coords_lines_reshaped</span> <span class="o">=</span> <span class="n">coords_lines</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nCoords_per_axis</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coords_lines_reshaped</span>
+    
+    <span class="k">def</span> <span class="nf">_process_reticle_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process reticle points for calibration.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            x_axis (list): X-axis coordinates.</span>
+<span class="sd">            y_axis (list): Y-axis coordinates.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Image points and object points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">coords_lines_foramtted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_changed_data_format</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coords_lines_foramtted</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">OBJPOINTS</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span>
+
+<div class="viewcode-block" id="CalibrationCamera.calibrate_camera"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationCamera.calibrate_camera">[docs]</a>    <span class="k">def</span> <span class="nf">calibrate_camera</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calibrate camera Intrinsic.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x_axis (list): X-axis coordinates.</span>
+<span class="sd">            y_axis (list): Y-axis coordinates.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Calibration results (ret, mtx, dist).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_reticle_points</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">)</span>
+        <span class="n">ret</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rvecs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tvecs</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">calibrateCamera</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span><span class="p">,</span> \
+                                            <span class="n">SIZE</span><span class="p">,</span> <span class="n">imtx</span><span class="p">,</span> <span class="n">idist</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">myflags1</span><span class="p">,</span> <span class="n">criteria</span><span class="o">=</span><span class="n">CRIT</span><span class="p">)</span>
+         
+        <span class="n">formatted_mtxt</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">val</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">row</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">formatted_dist</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">val</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;A reproj error: </span><span class="si">{</span><span class="n">ret</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Intrinsic: </span><span class="si">{</span><span class="n">formatted_mtxt</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Distortion: </span><span class="si">{</span><span class="n">formatted_dist</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Focal length: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">1.85</span><span class="o">/</span><span class="mi">1000</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">distancesA</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span> <span class="k">for</span> <span class="n">vec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tvecs</span><span class="p">]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Distance from camera to world center: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">distancesA</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span></div>
+
+<div class="viewcode-block" id="CalibrationCamera.get_origin_xyz"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationCamera.get_origin_xyz">[docs]</a>    <span class="k">def</span> <span class="nf">get_origin_xyz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get origin (0,0) and axis points (in x, y, z coords) in image coordinates.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Origin, x-axis, y-axis, z-axis points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">([[</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">3</span><span class="p">]])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+        <span class="c1"># Find the rotation and translation vectors.</span>
+        <span class="c1"># Output rotation vector (see Rodrigues ) that, together with tvec, </span>
+        <span class="c1"># brings points from the model coordinate system to the camera coordinate system.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">solvePnPRansac</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="p">)</span>
+            <span class="n">imgpts</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">projectPoints</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span><span class="p">)</span>
+            <span class="n">origin</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">CENTER_INDEX_X</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">imgpts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">imgpts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">imgpts</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">origin</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div></div>
+        
+<div class="viewcode-block" id="CalibrationStereo"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo">[docs]</a><span class="k">class</span> <span class="nc">CalibrationStereo</span><span class="p">(</span><span class="n">CalibrationCamera</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class for stereo camera calibration.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camA</span><span class="p">,</span> <span class="n">imgpointsA</span><span class="p">,</span> <span class="n">intrinsicA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">imgpointsB</span><span class="p">,</span> <span class="n">intrinsicB</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the CalibrationStereo object&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_interest_pixels</span> <span class="o">=</span> <span class="mi">15</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camA</span> <span class="o">=</span> <span class="n">camA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camB</span> <span class="o">=</span> <span class="n">camB</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_reticle_points</span><span class="p">(</span><span class="n">imgpointsA</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">imgpointsA</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_reticle_points</span><span class="p">(</span><span class="n">imgpointsB</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">imgpointsB</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtxA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distA</span> <span class="o">=</span> <span class="n">intrinsicA</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">intrinsicA</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtxB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distB</span> <span class="o">=</span> <span class="n">intrinsicB</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">intrinsicB</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">criteria</span> <span class="o">=</span> <span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">TERM_CRITERIA_EPS</span> <span class="o">+</span> <span class="n">cv2</span><span class="o">.</span><span class="n">TERM_CRITERIA_MAX_ITER</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_INTRINSIC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retval</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">F_AB</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">P_A</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">P_B</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="CalibrationStereo.calibrate_stereo"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo.calibrate_stereo">[docs]</a>    <span class="k">def</span> <span class="nf">calibrate_stereo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calibrate stereo cameras.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Stereo calibration results (retval, R_AB, T_AB, E_AB, F_AB).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retval</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">F_AB</span> <span class="o">=</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">stereoCalibrate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">,</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsA</span><span class="p">,</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsB</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mtxA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distB</span><span class="p">,</span> <span class="n">SIZE</span><span class="p">,</span> 
+            <span class="n">criteria</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">criteria</span><span class="p">,</span>
+            <span class="n">flags</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">== Stereo Calibration ==&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;AB&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">retval</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;R: </span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">R_AB</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;T: </span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">T_AB</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">T_AB</span><span class="p">))</span>
+
+        <span class="n">formatted_F</span> <span class="o">=</span> <span class="s2">&quot;F_AB:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">val</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">row</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">F_AB</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">formatted_E</span> <span class="o">=</span> <span class="s2">&quot;E_AB:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">val</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">row</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_AB</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">formatted_F</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">formatted_E</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">P_A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxA</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">))))</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">P_B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxB</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">R_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_AB</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retval</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">T_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">E_AB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">F_AB</span></div>
+    
+    <span class="k">def</span> <span class="nf">_matching_camera_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Match camera order based on initialization order.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            camA (str): Camera A name.</span>
+<span class="sd">            coordA (tuple): Coordinates from camera A.</span>
+<span class="sd">            camB (str): Camera B name.</span>
+<span class="sd">            coordB (tuple): Coordinates from camera B.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Matched camera order and coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">camA</span> <span class="o">==</span> <span class="n">camA</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">camA</span> <span class="o">==</span> <span class="n">camB</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span><span class="p">,</span> <span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span>
+        
+<div class="viewcode-block" id="CalibrationStereo.triangulation"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo.triangulation">[docs]</a>    <span class="k">def</span> <span class="nf">triangulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P_1</span><span class="p">,</span> <span class="n">P_2</span><span class="p">,</span> <span class="n">imgpoints_1</span><span class="p">,</span> <span class="n">imgpoints_2</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Triangulate 3D points from stereo image points.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            P_1 (numpy.ndarray): Projection matrix of camera 1.</span>
+<span class="sd">            P_2 (numpy.ndarray): Projection matrix of camera 2.</span>
+<span class="sd">            imgpoints_1 (numpy.ndarray): Image points from camera 1.</span>
+<span class="sd">            imgpoints_2 (numpy.ndarray): Image points from camera 2.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Triangulated 3D points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">points_4d_hom</span><span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">triangulatePoints</span><span class="p">(</span><span class="n">P_1</span><span class="p">,</span> <span class="n">P_2</span><span class="p">,</span> <span class="n">imgpoints_1</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">imgpoints_2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">points_3d_hom</span> <span class="o">=</span> <span class="n">points_4d_hom</span> <span class="o">/</span> <span class="n">points_4d_hom</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">points_3d_hom</span> <span class="o">=</span> <span class="n">points_3d_hom</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">return</span> <span class="n">points_3d_hom</span><span class="p">[:,:</span><span class="mi">3</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="CalibrationStereo.change_coords_system_from_camA_to_global"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo.change_coords_system_from_camA_to_global">[docs]</a>    <span class="k">def</span> <span class="nf">change_coords_system_from_camA_to_global</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_3d_AB</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Change coordinate system from camera A to global using solvePnPRansac().</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            points_3d_AB (numpy.ndarray): 3D points in camera A coordinate system.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: 3D points in global coordinate system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">solvePnPRansac</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distA</span><span class="p">)</span>
+        <span class="c1"># Convert rotation vectors to rotation matrices</span>
+        <span class="n">rmat</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Rodrigues</span><span class="p">(</span><span class="n">rvecs</span><span class="p">)</span>
+        <span class="c1"># Invert the rotation and translation</span>
+        <span class="n">rmat_inv</span> <span class="o">=</span> <span class="n">rmat</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># Transpose of rotation matrix is its inverse</span>
+        <span class="n">tvecs_inv</span> <span class="o">=</span> <span class="o">-</span><span class="n">rmat_inv</span> <span class="o">@</span> <span class="n">tvecs</span>
+        <span class="c1"># Transform the points</span>
+        <span class="n">points_3d_G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rmat_inv</span><span class="p">,</span> <span class="n">points_3d_AB</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">tvecs_inv</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">return</span> <span class="n">points_3d_G</span></div>
+    
+<div class="viewcode-block" id="CalibrationStereo.change_coords_system_from_camA_to_global_iterative"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo.change_coords_system_from_camA_to_global_iterative">[docs]</a>    <span class="k">def</span> <span class="nf">change_coords_system_from_camA_to_global_iterative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_3d_AB</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Change coordinate system from camera A to global using iterative method.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            points_3d_AB (numpy.ndarray): 3D points in camera A coordinate system.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: 3D points in global coordinate system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">solvePnP_method</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">SOLVEPNP_ITERATIVE</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">solvePnP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distA</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">solvePnP_method</span><span class="p">)</span>
+        <span class="c1"># Convert rotation vectors to rotation matrices</span>
+        <span class="n">rmat</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Rodrigues</span><span class="p">(</span><span class="n">rvecs</span><span class="p">)</span>
+        <span class="c1"># Invert the rotation and translation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rmat_inv</span> <span class="o">=</span> <span class="n">rmat</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># Transpose of rotation matrix is its inverse</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tvecs_inv</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">rmat_inv</span> <span class="o">@</span> <span class="n">tvecs</span>
+        <span class="c1"># Transform the points</span>
+        <span class="n">points_3d_G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rmat_inv</span><span class="p">,</span> <span class="n">points_3d_AB</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tvecs_inv</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">return</span> <span class="n">points_3d_G</span></div>
+
+<div class="viewcode-block" id="CalibrationStereo.change_coords_system_from_camA_to_global_savedRT"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo.change_coords_system_from_camA_to_global_savedRT">[docs]</a>    <span class="k">def</span> <span class="nf">change_coords_system_from_camA_to_global_savedRT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_3d_AB</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Change coordinate system from camera A to global using saved rotation and translation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            points_3d_AB (numpy.ndarray): 3D points in camera A coordinate system.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: 3D points in global coordinate system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">points_3d_G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rmat_inv</span><span class="p">,</span> <span class="n">points_3d_AB</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tvecs_inv</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">return</span> <span class="n">points_3d_G</span></div>
+
+<div class="viewcode-block" id="CalibrationStereo.get_global_coords"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo.get_global_coords">[docs]</a>    <span class="k">def</span> <span class="nf">get_global_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get global coordinates from stereo image coordinates.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            camA (str): Camera A name.</span>
+<span class="sd">            coordA (tuple): Coordinates from camera A.</span>
+<span class="sd">            camB (str): Camera B name.</span>
+<span class="sd">            coordB (tuple): Coordinates from camera B.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: 3D points in global coordinate system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_matching_camera_order</span><span class="p">(</span><span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span><span class="p">)</span>
+        <span class="n">coordA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coordA</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">coordB</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coordB</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">points_3d_AB</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangulation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">P_B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">P_A</span><span class="p">,</span> <span class="n">coordB</span><span class="p">,</span> <span class="n">coordA</span><span class="p">)</span>
+        <span class="c1">#points_3d_G = self.change_coords_system_from_camA_to_global(points_3d_AB)</span>
+        <span class="c1">#points_3d_G = self.change_coords_system_from_camA_to_global_iterative(points_3d_AB)</span>
+        <span class="n">points_3d_G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_coords_system_from_camA_to_global_savedRT</span><span class="p">(</span><span class="n">points_3d_AB</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;points_3d_G: </span><span class="si">{</span><span class="n">points_3d_G</span><span class="si">}</span><span class="s2">, coordA: </span><span class="si">{</span><span class="n">coordA</span><span class="si">}</span><span class="s2">, coordB: </span><span class="si">{</span><span class="n">coordB</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">points_3d_G</span></div>
+    
+<div class="viewcode-block" id="CalibrationStereo.test"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo.test">[docs]</a>    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test stereo calibration.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            camA (str): Camera A name.</span>
+<span class="sd">            coordA (tuple): Coordinates from camera A.</span>
+<span class="sd">            camB (str): Camera B name.</span>
+<span class="sd">            coordB (tuple): Coordinates from camera B.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Predicted 3D points in global coordinate system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_matching_camera_order</span><span class="p">(</span><span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span><span class="p">)</span>
+        <span class="n">points_3d_AB</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangulation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">P_B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">P_A</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsA</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">suppress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span> 
+
+        <span class="n">points_3d_G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_coords_system_from_camA_to_global_iterative</span><span class="p">(</span><span class="n">points_3d_AB</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=solvePnP SOLVEPNP_ITERATIVE=&quot;</span><span class="p">)</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">points_3d_G</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(Reprojection error) Object points L2 diff: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Object points predict:</span><span class="se">\n</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">points_3d_G</span><span class="p">,</span><span class="w"> </span><span class="n">decimals</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_pixel_error</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">points_3d_G</span></div>
+    
+<div class="viewcode-block" id="CalibrationStereo.test_pixel_error"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationStereo.test_pixel_error">[docs]</a>    <span class="k">def</span> <span class="nf">test_pixel_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test pixel reprojection error.&quot;&quot;&quot;</span>
+        <span class="n">mean_error</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">)):</span>
+            <span class="n">imgpointsA_converted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imgpointsA</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">solvePnP_method</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">SOLVEPNP_ITERATIVE</span>
+            <span class="n">retval</span><span class="p">,</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">solvePnP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">imgpointsA_converted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distA</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">solvePnP_method</span><span class="p">)</span>
+            <span class="n">imgpoints2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">projectPoints</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distA</span><span class="p">)</span>
+            
+            <span class="n">imgpoints2_reshaped</span> <span class="o">=</span> <span class="n">imgpoints2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> 
+            <span class="n">error</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">imgpointsA_converted</span><span class="p">,</span> <span class="n">imgpoints2_reshaped</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">NORM_L2</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">imgpoints2</span><span class="p">)</span>
+            <span class="n">mean_error</span> <span class="o">+=</span> <span class="n">error</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(Reprojection error) Pixel L2 diff A: </span><span class="si">{</span><span class="n">mean_error</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">)</span><span class="si">}</span><span class="s2"> pixels&quot;</span><span class="p">)</span>
+
+        <span class="n">mean_error</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">)):</span>
+            <span class="n">imgpointsB_converted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imgpointsB</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">solvePnP_method</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">SOLVEPNP_ITERATIVE</span>
+            <span class="n">retval</span><span class="p">,</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">solvePnP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">imgpointsB_converted</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distB</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">solvePnP_method</span><span class="p">)</span>
+            <span class="n">imgpoints2</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">projectPoints</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distB</span><span class="p">)</span>
+            <span class="n">imgpoints2_reshaped</span> <span class="o">=</span> <span class="n">imgpoints2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> 
+            <span class="n">error</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">imgpointsB_converted</span><span class="p">,</span> <span class="n">imgpoints2_reshaped</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">NORM_L2</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">imgpoints2</span><span class="p">)</span>
+            <span class="n">mean_error</span> <span class="o">+=</span> <span class="n">error</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(Reprojection error) Pixel L2 diff B: </span><span class="si">{</span><span class="n">mean_error</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">)</span><span class="si">}</span><span class="s2"> pixels&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Hanna Lee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

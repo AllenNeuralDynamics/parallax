@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>parallax &mdash; Parallax 0.37.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=f5ec9bd4"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="parallax package" href="parallax.html" />
+    <link rel="prev" title="Welcome to Parallax’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Parallax
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">parallax</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html">parallax package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run-parallax.html">run-parallax module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Parallax</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">parallax</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="parallax">
+<h1>parallax<a class="headerlink" href="#parallax" title="Permalink to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="parallax.html">parallax package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.calibration_camera">parallax.calibration_camera module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationCamera"><code class="docutils literal notranslate"><span class="pre">CalibrationCamera</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationCamera.calibrate_camera"><code class="docutils literal notranslate"><span class="pre">CalibrationCamera.calibrate_camera()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationCamera.get_origin_xyz"><code class="docutils literal notranslate"><span class="pre">CalibrationCamera.get_origin_xyz()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo.calibrate_stereo"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo.calibrate_stereo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo.change_coords_system_from_camA_to_global"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo.change_coords_system_from_camA_to_global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo.change_coords_system_from_camA_to_global_iterative"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo.change_coords_system_from_camA_to_global_iterative()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo.change_coords_system_from_camA_to_global_savedRT"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo.change_coords_system_from_camA_to_global_savedRT()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo.get_global_coords"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo.get_global_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo.test"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo.test()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo.test_pixel_error"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo.test_pixel_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.calibration_camera.CalibrationStereo.triangulation"><code class="docutils literal notranslate"><span class="pre">CalibrationStereo.triangulation()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.camera">parallax.camera module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera"><code class="docutils literal notranslate"><span class="pre">MockCamera</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.begin_continuous_acquisition"><code class="docutils literal notranslate"><span class="pre">MockCamera.begin_continuous_acquisition()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.get_last_capture_time"><code class="docutils literal notranslate"><span class="pre">MockCamera.get_last_capture_time()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.get_last_image_data"><code class="docutils literal notranslate"><span class="pre">MockCamera.get_last_image_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.n_cameras"><code class="docutils literal notranslate"><span class="pre">MockCamera.n_cameras</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.name"><code class="docutils literal notranslate"><span class="pre">MockCamera.name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.save_last_image"><code class="docutils literal notranslate"><span class="pre">MockCamera.save_last_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.set_exposure"><code class="docutils literal notranslate"><span class="pre">MockCamera.set_exposure()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.set_gain"><code class="docutils literal notranslate"><span class="pre">MockCamera.set_gain()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.set_gamma"><code class="docutils literal notranslate"><span class="pre">MockCamera.set_gamma()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.set_wb"><code class="docutils literal notranslate"><span class="pre">MockCamera.set_wb()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.MockCamera.stop"><code class="docutils literal notranslate"><span class="pre">MockCamera.stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera"><code class="docutils literal notranslate"><span class="pre">PySpinCamera</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.begin_continuous_acquisition"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.begin_continuous_acquisition()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.begin_singleframe_acquisition"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.begin_singleframe_acquisition()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.camera_info"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.camera_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.cameras"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.cameras</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.capture"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.capture()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.capture_loop"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.capture_loop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.close_cameras"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.close_cameras()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.disable_gamma"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.disable_gamma()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.end_singleframe_acquisition"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.end_singleframe_acquisition()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.get_exposure"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.get_exposure()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.get_gain"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.get_gain()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.get_last_capture_time"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.get_last_capture_time()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.get_last_image"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.get_last_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.get_last_image_data"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.get_last_image_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.get_last_image_data_singleFrame"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.get_last_image_data_singleFrame()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.get_wb"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.get_wb()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.list_cameras"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.list_cameras()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.name"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.pyspin_cameras"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.pyspin_cameras</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.pyspin_instance"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.pyspin_instance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.save_last_image"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.save_last_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.save_recording"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.save_recording()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.set_exposure"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.set_exposure()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.set_gain"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.set_gain()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.set_gamma"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.set_gamma()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.set_wb"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.set_wb()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.stop"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.PySpinCamera.stop_recording"><code class="docutils literal notranslate"><span class="pre">PySpinCamera.stop_recording()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource"><code class="docutils literal notranslate"><span class="pre">VideoSource</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.begin_continuous_acquisition"><code class="docutils literal notranslate"><span class="pre">VideoSource.begin_continuous_acquisition()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.get_last_image_data"><code class="docutils literal notranslate"><span class="pre">VideoSource.get_last_image_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.name"><code class="docutils literal notranslate"><span class="pre">VideoSource.name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.save_last_image"><code class="docutils literal notranslate"><span class="pre">VideoSource.save_last_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.set_exposure"><code class="docutils literal notranslate"><span class="pre">VideoSource.set_exposure()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.set_gain"><code class="docutils literal notranslate"><span class="pre">VideoSource.set_gain()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.set_gamma"><code class="docutils literal notranslate"><span class="pre">VideoSource.set_gamma()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.set_wb"><code class="docutils literal notranslate"><span class="pre">VideoSource.set_wb()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.camera.VideoSource.stop"><code class="docutils literal notranslate"><span class="pre">VideoSource.stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.camera.close_cameras"><code class="docutils literal notranslate"><span class="pre">close_cameras()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.camera.list_cameras"><code class="docutils literal notranslate"><span class="pre">list_cameras()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.curr_bg_cmp_processor">parallax.curr_bg_cmp_processor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.curr_bg_cmp_processor.CurrBgCmpProcessor"><code class="docutils literal notranslate"><span class="pre">CurrBgCmpProcessor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.curr_bg_cmp_processor.CurrBgCmpProcessor.first_cmp"><code class="docutils literal notranslate"><span class="pre">CurrBgCmpProcessor.first_cmp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.curr_bg_cmp_processor.CurrBgCmpProcessor.update_cmp"><code class="docutils literal notranslate"><span class="pre">CurrBgCmpProcessor.update_cmp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.curr_bg_cmp_processor.CurrBgCmpProcessor.update_reticle_zone"><code class="docutils literal notranslate"><span class="pre">CurrBgCmpProcessor.update_reticle_zone()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.curr_prev_cmp_processor">parallax.curr_prev_cmp_processor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.curr_prev_cmp_processor.CurrPrevCmpProcessor"><code class="docutils literal notranslate"><span class="pre">CurrPrevCmpProcessor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.curr_prev_cmp_processor.CurrPrevCmpProcessor.first_cmp"><code class="docutils literal notranslate"><span class="pre">CurrPrevCmpProcessor.first_cmp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.curr_prev_cmp_processor.CurrPrevCmpProcessor.update_cmp"><code class="docutils literal notranslate"><span class="pre">CurrPrevCmpProcessor.update_cmp()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.main_window_wip">parallax.main_window_wip module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow"><code class="docutils literal notranslate"><span class="pre">MainWindow</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.column_changed_handler"><code class="docutils literal notranslate"><span class="pre">MainWindow.column_changed_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.createNewGroupBox"><code class="docutils literal notranslate"><span class="pre">MainWindow.createNewGroupBox()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.create_settings_menu"><code class="docutils literal notranslate"><span class="pre">MainWindow.create_settings_menu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.dir_setting_handler"><code class="docutils literal notranslate"><span class="pre">MainWindow.dir_setting_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.display_microscope"><code class="docutils literal notranslate"><span class="pre">MainWindow.display_microscope()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.display_mock_camera"><code class="docutils literal notranslate"><span class="pre">MainWindow.display_mock_camera()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.load_mainWindow_settings"><code class="docutils literal notranslate"><span class="pre">MainWindow.load_mainWindow_settings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.load_settings_item"><code class="docutils literal notranslate"><span class="pre">MainWindow.load_settings_item()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.record_button_handler"><code class="docutils literal notranslate"><span class="pre">MainWindow.record_button_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.refresh"><code class="docutils literal notranslate"><span class="pre">MainWindow.refresh()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.refresh_cameras"><code class="docutils literal notranslate"><span class="pre">MainWindow.refresh_cameras()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.refresh_stages"><code class="docutils literal notranslate"><span class="pre">MainWindow.refresh_stages()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.save_user_configs"><code class="docutils literal notranslate"><span class="pre">MainWindow.save_user_configs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.show_settings_menu"><code class="docutils literal notranslate"><span class="pre">MainWindow.show_settings_menu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.start_button_handler"><code class="docutils literal notranslate"><span class="pre">MainWindow.start_button_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.update_groupbox_name"><code class="docutils literal notranslate"><span class="pre">MainWindow.update_groupbox_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.update_screen"><code class="docutils literal notranslate"><span class="pre">MainWindow.update_screen()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.update_setting_menu"><code class="docutils literal notranslate"><span class="pre">MainWindow.update_setting_menu()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.main_window_wip.MainWindow.update_user_configs_settingMenu"><code class="docutils literal notranslate"><span class="pre">MainWindow.update_user_configs_settingMenu()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.mask_generator">parallax.mask_generator module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.mask_generator.MaskGenerator"><code class="docutils literal notranslate"><span class="pre">MaskGenerator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.mask_generator.MaskGenerator.process"><code class="docutils literal notranslate"><span class="pre">MaskGenerator.process()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.model">parallax.model module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.model.Model"><code class="docutils literal notranslate"><span class="pre">Model</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.accutest_point_reached"><code class="docutils literal notranslate"><span class="pre">Model.accutest_point_reached</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.add_calibration"><code class="docutils literal notranslate"><span class="pre">Model.add_calibration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.add_camera_extrinsic"><code class="docutils literal notranslate"><span class="pre">Model.add_camera_extrinsic()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.add_camera_intrinsic"><code class="docutils literal notranslate"><span class="pre">Model.add_camera_intrinsic()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.add_coords_axis"><code class="docutils literal notranslate"><span class="pre">Model.add_coords_axis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.add_mock_cameras"><code class="docutils literal notranslate"><span class="pre">Model.add_mock_cameras()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.add_probe_detector"><code class="docutils literal notranslate"><span class="pre">Model.add_probe_detector()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.add_stage"><code class="docutils literal notranslate"><span class="pre">Model.add_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.add_video_source"><code class="docutils literal notranslate"><span class="pre">Model.add_video_source()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.clean"><code class="docutils literal notranslate"><span class="pre">Model.clean()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.clear_lcorr"><code class="docutils literal notranslate"><span class="pre">Model.clear_lcorr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.clear_rcorr"><code class="docutils literal notranslate"><span class="pre">Model.clear_rcorr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.get_camera_extrinsic"><code class="docutils literal notranslate"><span class="pre">Model.get_camera_extrinsic()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.get_camera_intrinsic"><code class="docutils literal notranslate"><span class="pre">Model.get_camera_intrinsic()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.get_coords_axis"><code class="docutils literal notranslate"><span class="pre">Model.get_coords_axis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.init_stages"><code class="docutils literal notranslate"><span class="pre">Model.init_stages()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.msg_posted"><code class="docutils literal notranslate"><span class="pre">Model.msg_posted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.ncameras"><code class="docutils literal notranslate"><span class="pre">Model.ncameras</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.save_all_camera_frames"><code class="docutils literal notranslate"><span class="pre">Model.save_all_camera_frames()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.scan_for_cameras"><code class="docutils literal notranslate"><span class="pre">Model.scan_for_cameras()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.scan_for_usb_stages"><code class="docutils literal notranslate"><span class="pre">Model.scan_for_usb_stages()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.set_calibration"><code class="docutils literal notranslate"><span class="pre">Model.set_calibration()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.set_last_image_point"><code class="docutils literal notranslate"><span class="pre">Model.set_last_image_point()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.set_last_object_point"><code class="docutils literal notranslate"><span class="pre">Model.set_last_object_point()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.set_lcorr"><code class="docutils literal notranslate"><span class="pre">Model.set_lcorr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.model.Model.set_rcorr"><code class="docutils literal notranslate"><span class="pre">Model.set_rcorr()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.no_filter">parallax.no_filter module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter"><code class="docutils literal notranslate"><span class="pre">NoFilter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.Worker"><code class="docutils literal notranslate"><span class="pre">NoFilter.Worker</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.clean"><code class="docutils literal notranslate"><span class="pre">NoFilter.clean()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.frame_processed"><code class="docutils literal notranslate"><span class="pre">NoFilter.frame_processed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.init_thread"><code class="docutils literal notranslate"><span class="pre">NoFilter.init_thread()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.name"><code class="docutils literal notranslate"><span class="pre">NoFilter.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.process"><code class="docutils literal notranslate"><span class="pre">NoFilter.process()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.start"><code class="docutils literal notranslate"><span class="pre">NoFilter.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.stop"><code class="docutils literal notranslate"><span class="pre">NoFilter.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.no_filter.NoFilter.thread_deleted"><code class="docutils literal notranslate"><span class="pre">NoFilter.thread_deleted()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.probe_calibration">parallax.probe_calibration module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.probe_calibration.ProbeCalibration"><code class="docutils literal notranslate"><span class="pre">ProbeCalibration</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_calibration.ProbeCalibration.clear"><code class="docutils literal notranslate"><span class="pre">ProbeCalibration.clear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_calibration.ProbeCalibration.is_enough_points"><code class="docutils literal notranslate"><span class="pre">ProbeCalibration.is_enough_points()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_calibration.ProbeCalibration.local_global_transform"><code class="docutils literal notranslate"><span class="pre">ProbeCalibration.local_global_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_calibration.ProbeCalibration.reshape_array"><code class="docutils literal notranslate"><span class="pre">ProbeCalibration.reshape_array()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_calibration.ProbeCalibration.update"><code class="docutils literal notranslate"><span class="pre">ProbeCalibration.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.probe_detect_manager">parallax.probe_detect_manager module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.Worker"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.Worker</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.clean"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.clean()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.found_coords"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.found_coords</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.found_coords_print"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.found_coords_print()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.frame_processed"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.frame_processed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.init_thread"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.init_thread()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.name"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.process"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.process()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.start"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.start_detection"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.start_detection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.stop"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detect_manager.ProbeDetectManager.stop_detection"><code class="docutils literal notranslate"><span class="pre">ProbeDetectManager.stop_detection()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.probe_detector">parallax.probe_detector module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.probe_detector.ProbeDetector"><code class="docutils literal notranslate"><span class="pre">ProbeDetector</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detector.ProbeDetector.first_detect_probe"><code class="docutils literal notranslate"><span class="pre">ProbeDetector.first_detect_probe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_detector.ProbeDetector.update_probe"><code class="docutils literal notranslate"><span class="pre">ProbeDetector.update_probe()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.probe_fine_tip_detector">parallax.probe_fine_tip_detector module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.probe_fine_tip_detector.ProbeFineTipDetector"><code class="docutils literal notranslate"><span class="pre">ProbeFineTipDetector</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.probe_fine_tip_detector.ProbeFineTipDetector.get_precise_tip"><code class="docutils literal notranslate"><span class="pre">ProbeFineTipDetector.get_precise_tip()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.recording_manager">parallax.recording_manager module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.recording_manager.RecordingManager"><code class="docutils literal notranslate"><span class="pre">RecordingManager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.recording_manager.RecordingManager.save_last_image"><code class="docutils literal notranslate"><span class="pre">RecordingManager.save_last_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.recording_manager.RecordingManager.save_recording"><code class="docutils literal notranslate"><span class="pre">RecordingManager.save_recording()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.recording_manager.RecordingManager.stop_recording"><code class="docutils literal notranslate"><span class="pre">RecordingManager.stop_recording()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.reticle_detect_manager">parallax.reticle_detect_manager module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.Worker"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.Worker</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.clean"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.clean()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.found_coords"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.found_coords</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.frame_processed"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.frame_processed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.init_thread"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.init_thread()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.name"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.process"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.process()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.start"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detect_manager.ReticleDetectManager.stop"><code class="docutils literal notranslate"><span class="pre">ReticleDetectManager.stop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.reticle_detection">parallax.reticle_detection module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.reticle_detection.ReticleDetection"><code class="docutils literal notranslate"><span class="pre">ReticleDetection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detection.ReticleDetection.coords_detect_morph"><code class="docutils literal notranslate"><span class="pre">ReticleDetection.coords_detect_morph()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detection.ReticleDetection.get_coords"><code class="docutils literal notranslate"><span class="pre">ReticleDetection.get_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detection.ReticleDetection.get_reticle_zone"><code class="docutils literal notranslate"><span class="pre">ReticleDetection.get_reticle_zone()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.reticle_detection_coords_interests">parallax.reticle_detection_coords_interests module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.reticle_detection_coords_interests.ReticleDetectCoordsInterest"><code class="docutils literal notranslate"><span class="pre">ReticleDetectCoordsInterest</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.reticle_detection_coords_interests.ReticleDetectCoordsInterest.get_coords_interest"><code class="docutils literal notranslate"><span class="pre">ReticleDetectCoordsInterest.get_coords_interest()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.screen_widget">parallax.screen_widget module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.screen_widget.ClickableImage"><code class="docutils literal notranslate"><span class="pre">ClickableImage</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ClickableImage.mouseClickEvent"><code class="docutils literal notranslate"><span class="pre">ClickableImage.mouseClickEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ClickableImage.mouse_clicked"><code class="docutils literal notranslate"><span class="pre">ClickableImage.mouse_clicked</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget"><code class="docutils literal notranslate"><span class="pre">ScreenWidget</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.clear_selected"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.clear_selected()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.cleared"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.cleared</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.found_probe_coords"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.found_probe_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.found_reticle_coords"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.found_reticle_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.get_camera_color_type"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.get_camera_color_type()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.get_camera_intrinsic"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.get_camera_intrinsic()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.get_camera_name"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.get_camera_name()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.get_camera_setting"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.get_camera_setting()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.get_last_detect_probe_info"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.get_last_detect_probe_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.get_reticle_coords"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.get_reticle_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.get_selected"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.get_selected()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.image_clicked"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.image_clicked()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.is_camera"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.is_camera()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.probe_coords_detected"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.probe_coords_detected</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.refresh"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.refresh()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.refresh_single_frame"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.refresh_single_frame()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.reticle_coords_detected"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.reticle_coords_detected</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.run_no_filter"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.run_no_filter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.run_probe_detection"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.run_probe_detection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.run_reticle_detection"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.run_reticle_detection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.save_image"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.save_image()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.save_recording"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.save_recording()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.select"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.select()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.select2"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.select2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.selected"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.selected</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.set_camera"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.set_camera()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.set_camera_setting"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.set_camera_setting()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.set_data"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.set_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.set_image_item_from_data"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.set_image_item_from_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.single_acquisition_camera"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.single_acquisition_camera()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.start_acquisition_camera"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.start_acquisition_camera()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.stop_acquisition_camera"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.stop_acquisition_camera()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.stop_recording"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.stop_recording()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.stop_single_acquisition_camera"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.stop_single_acquisition_camera()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.wheelEvent"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.wheelEvent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.screen_widget.ScreenWidget.zoom_out"><code class="docutils literal notranslate"><span class="pre">ScreenWidget.zoom_out()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.stage_listener">parallax.stage_listener module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.stage_listener.Stage"><code class="docutils literal notranslate"><span class="pre">Stage</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageInfo"><code class="docutils literal notranslate"><span class="pre">StageInfo</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageInfo.get_instances"><code class="docutils literal notranslate"><span class="pre">StageInfo.get_instances()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener"><code class="docutils literal notranslate"><span class="pre">StageListener</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener.append_to_buffer"><code class="docutils literal notranslate"><span class="pre">StageListener.append_to_buffer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener.get_last_moved_time"><code class="docutils literal notranslate"><span class="pre">StageListener.get_last_moved_time()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener.handleDataChange"><code class="docutils literal notranslate"><span class="pre">StageListener.handleDataChange()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener.handleGlobalDataChange"><code class="docutils literal notranslate"><span class="pre">StageListener.handleGlobalDataChange()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener.probeCalibRequest"><code class="docutils literal notranslate"><span class="pre">StageListener.probeCalibRequest</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener.stageMovingStatus"><code class="docutils literal notranslate"><span class="pre">StageListener.stageMovingStatus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener.stageNotMovingStatus"><code class="docutils literal notranslate"><span class="pre">StageListener.stageNotMovingStatus()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.StageListener.start"><code class="docutils literal notranslate"><span class="pre">StageListener.start()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker"><code class="docutils literal notranslate"><span class="pre">Worker</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.dataChanged"><code class="docutils literal notranslate"><span class="pre">Worker.dataChanged</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.fetchData"><code class="docutils literal notranslate"><span class="pre">Worker.fetchData()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.isSignificantChange"><code class="docutils literal notranslate"><span class="pre">Worker.isSignificantChange()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.isSmallChange"><code class="docutils literal notranslate"><span class="pre">Worker.isSmallChange()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.print_trouble_shooting_msg"><code class="docutils literal notranslate"><span class="pre">Worker.print_trouble_shooting_msg()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.stage_moving"><code class="docutils literal notranslate"><span class="pre">Worker.stage_moving</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.stage_not_moving"><code class="docutils literal notranslate"><span class="pre">Worker.stage_not_moving</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.start"><code class="docutils literal notranslate"><span class="pre">Worker.start()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_listener.Worker.stop"><code class="docutils literal notranslate"><span class="pre">Worker.stop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.stage_ui">parallax.stage_ui module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.stage_ui.StageUI"><code class="docutils literal notranslate"><span class="pre">StageUI</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_ui.StageUI.get_selected_stage_sn"><code class="docutils literal notranslate"><span class="pre">StageUI.get_selected_stage_sn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_ui.StageUI.updateStageGlobalCoords"><code class="docutils literal notranslate"><span class="pre">StageUI.updateStageGlobalCoords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_ui.StageUI.updateStageLocalCoords"><code class="docutils literal notranslate"><span class="pre">StageUI.updateStageLocalCoords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_ui.StageUI.updateStageSN"><code class="docutils literal notranslate"><span class="pre">StageUI.updateStageSN()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_ui.StageUI.update_stage_selector"><code class="docutils literal notranslate"><span class="pre">StageUI.update_stage_selector()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.stage_widget">parallax.stage_widget module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.stage_widget.StageWidget"><code class="docutils literal notranslate"><span class="pre">StageWidget</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_widget.StageWidget.probe_detect_all_screen"><code class="docutils literal notranslate"><span class="pre">StageWidget.probe_detect_all_screen()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_widget.StageWidget.probe_detection_button_handler"><code class="docutils literal notranslate"><span class="pre">StageWidget.probe_detection_button_handler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_widget.StageWidget.reticle_detect_all_screen"><code class="docutils literal notranslate"><span class="pre">StageWidget.reticle_detect_all_screen()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.stage_widget.StageWidget.reticle_detection_button_handler"><code class="docutils literal notranslate"><span class="pre">StageWidget.reticle_detection_button_handler()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax.utils">parallax.utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.utils.UtilsCoords"><code class="docutils literal notranslate"><span class="pre">UtilsCoords</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.utils.UtilsCoords.scale_coords_to_original"><code class="docutils literal notranslate"><span class="pre">UtilsCoords.scale_coords_to_original()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.utils.UtilsCrops"><code class="docutils literal notranslate"><span class="pre">UtilsCrops</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.utils.UtilsCrops.calculate_crop_region"><code class="docutils literal notranslate"><span class="pre">UtilsCrops.calculate_crop_region()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="parallax.html#parallax.utils.UtilsCrops.is_point_on_crop_region"><code class="docutils literal notranslate"><span class="pre">UtilsCrops.is_point_on_crop_region()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallax.html#module-parallax">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="parallax.html#parallax.get_image_file"><code class="docutils literal notranslate"><span class="pre">get_image_file()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="run-parallax.html">run-parallax module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">setup module</a></li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Parallax’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="parallax.html" class="btn btn-neutral float-right" title="parallax package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Hanna Lee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

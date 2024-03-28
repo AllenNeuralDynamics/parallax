@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>parallax.utils &mdash; Parallax 0.37.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=f5ec9bd4"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Parallax
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Parallax</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../parallax.html">parallax</a></li>
+      <li class="breadcrumb-item active">parallax.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for parallax.utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module provides utility classes for manipulating coordinates and calculating</span>
+<span class="sd">crop regions within images. </span>
+<span class="sd">- UtilsCoords: scaling coordinates between original and resized images</span>
+<span class="sd">- UtilsCrops: calculating crop regions based on specified criteria.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="UtilsCoords"><a class="viewcode-back" href="../../parallax.html#parallax.utils.UtilsCoords">[docs]</a><span class="k">class</span> <span class="nc">UtilsCoords</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility class for coordinate scaling.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_size</span><span class="p">,</span> <span class="n">resized_size</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the UtilsCoords object.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            original_size (tuple): Original size of the image (width, height).</span>
+<span class="sd">            resized_size (tuple): Resized size of the image (width, height).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_size</span> <span class="o">=</span> <span class="n">original_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resized_size</span> <span class="o">=</span> <span class="n">resized_size</span>
+
+<div class="viewcode-block" id="UtilsCoords.scale_coords_to_original"><a class="viewcode-back" href="../../parallax.html#parallax.utils.UtilsCoords.scale_coords_to_original">[docs]</a>    <span class="k">def</span> <span class="nf">scale_coords_to_original</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tip</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale coordinates from resized image to original image.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tip (tuple): Coordinates of the tip (x, y) in the resized image.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Scaled coordinates of the tip (x, y) in the original image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">tip</span>
+        <span class="n">original_width</span><span class="p">,</span> <span class="n">original_height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_size</span>
+        <span class="n">resized_width</span><span class="p">,</span> <span class="n">resized_height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resized_size</span>
+
+        <span class="n">scale_x</span> <span class="o">=</span> <span class="n">original_width</span> <span class="o">/</span> <span class="n">resized_width</span>
+        <span class="n">scale_y</span> <span class="o">=</span> <span class="n">original_height</span> <span class="o">/</span> <span class="n">resized_height</span>
+
+        <span class="n">original_x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">scale_x</span><span class="p">)</span>
+        <span class="n">original_y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">y</span> <span class="o">*</span> <span class="n">scale_y</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">original_x</span><span class="p">,</span> <span class="n">original_y</span></div></div>
+
+<div class="viewcode-block" id="UtilsCrops"><a class="viewcode-back" href="../../parallax.html#parallax.utils.UtilsCrops">[docs]</a><span class="k">class</span> <span class="nc">UtilsCrops</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility class for calculating crop regions.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the UtilsCrops object.&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="UtilsCrops.calculate_crop_region"><a class="viewcode-back" href="../../parallax.html#parallax.utils.UtilsCrops.calculate_crop_region">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_crop_region</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tip</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">crop_size</span><span class="p">,</span> <span class="n">IMG_SIZE</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the crop region based on tip and base coordinates.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tip (tuple): Coordinates of the tip (x, y).</span>
+<span class="sd">            base (tuple): Coordinates of the base (x, y).</span>
+<span class="sd">            crop_size (int): Size of the crop region.</span>
+<span class="sd">            IMG_SIZE (tuple): Size of the image (width, height).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Crop region coordinates (top, bottom, left, right).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tip_x</span><span class="p">,</span> <span class="n">tip_y</span> <span class="o">=</span> <span class="n">tip</span>
+        <span class="n">base_x</span><span class="p">,</span> <span class="n">base_y</span> <span class="o">=</span> <span class="n">base</span>
+        <span class="n">top</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">tip_y</span><span class="p">,</span> <span class="n">base_y</span><span class="p">)</span> <span class="o">-</span> <span class="n">crop_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">bottom</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">tip_y</span><span class="p">,</span> <span class="n">base_y</span><span class="p">)</span> <span class="o">+</span> <span class="n">crop_size</span><span class="p">,</span> <span class="n">IMG_SIZE</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">tip_x</span><span class="p">,</span> <span class="n">base_x</span><span class="p">)</span> <span class="o">-</span> <span class="n">crop_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">tip_x</span><span class="p">,</span> <span class="n">base_x</span><span class="p">)</span> <span class="o">+</span> <span class="n">crop_size</span><span class="p">,</span> <span class="n">IMG_SIZE</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">top</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span></div>
+
+<div class="viewcode-block" id="UtilsCrops.is_point_on_crop_region"><a class="viewcode-back" href="../../parallax.html#parallax.utils.UtilsCrops.is_point_on_crop_region">[docs]</a>    <span class="k">def</span> <span class="nf">is_point_on_crop_region</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="n">top</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if a point is on the crop region boundary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            point (tuple): Coordinates of the point (x, y).</span>
+<span class="sd">            top (int): Top coordinate of the crop region.</span>
+<span class="sd">            bottom (int): Bottom coordinate of the crop region.</span>
+<span class="sd">            left (int): Left coordinate of the crop region.</span>
+<span class="sd">            right (int): Right coordinate of the crop region.</span>
+<span class="sd">            buffer (int): Buffer size around the crop region boundary. Defaults to 5.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the point is on the crop region boundary, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">point</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">top</span> <span class="o">-</span> <span class="n">buffer</span> <span class="o">&lt;=</span> <span class="n">y</span> <span class="o">&lt;=</span> <span class="n">top</span> <span class="o">+</span> <span class="n">buffer</span><span class="p">)</span> <span class="ow">or</span> \
+               <span class="p">(</span><span class="n">bottom</span> <span class="o">-</span> <span class="n">buffer</span> <span class="o">&lt;=</span> <span class="n">y</span> <span class="o">&lt;=</span> <span class="n">bottom</span> <span class="o">+</span> <span class="n">buffer</span><span class="p">)</span> <span class="ow">or</span> \
+               <span class="p">(</span><span class="n">left</span> <span class="o">-</span> <span class="n">buffer</span> <span class="o">&lt;=</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">left</span> <span class="o">+</span> <span class="n">buffer</span><span class="p">)</span> <span class="ow">or</span> \
+               <span class="p">(</span><span class="n">right</span> <span class="o">-</span> <span class="n">buffer</span> <span class="o">&lt;=</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">right</span> <span class="o">+</span> <span class="n">buffer</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Hanna Lee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
