@@ -51,12 +51,14 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
     def first_cmp(self, curr_img, prev_img, mask, org_img, img_fname=None):
         """Perform first comparison.
+
         Args:
             curr_img (numpy.ndarray): Current image.
             prev_img (numpy.ndarray): Previous image.
             mask (numpy.ndarray): Mask image.
             org_img (numpy.ndarray): Original image.
             img_fname (str, optional): Image filename. Defaults to None.
+
         Returns:
             bool: True if probe is detected, False otherwise.
         """
@@ -75,12 +77,14 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
     
     def update_cmp(self, curr_img, prev_img, mask, org_img, img_fname=None):
         """Update the comparison.
+
         Args:
             curr_img (numpy.ndarray): Current image.
             prev_img (numpy.ndarray): Previous image.
             mask (numpy.ndarray): Mask image.
             org_img (numpy.ndarray): Original image.
             img_fname (str, optional): Image filename. Defaults to None.
+
         Returns:
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
@@ -99,6 +103,7 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
     
     def _update_crop(self):
         """Update the crop region.
+
         Returns:
             bool: True if probe is detected, False otherwise.
         """    
@@ -139,8 +144,10 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
     def _get_precise_tip(self, org_img):
         """Get precise probe tip using original image
+
         Args:
             org_img (numpy.ndarray): Original image.
+
         Returns:
             bool: True if precise tip is found, False otherwise.
         """
@@ -167,6 +174,7 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
           
     def _detect_probe(self):
         """Detect probe in difference image.
+
         Returns:
             bool: True if probe is detected, False otherwise.
         """
@@ -174,6 +182,7 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
     def _preprocess_diff_images(self, curr_img, prev_img):
         """Subtract current image from previous image to find differences.
+
         Args:
             curr_img (numpy.ndarray): Current image.
             prev_img (numpy.ndarray): Previous image.
@@ -184,6 +193,7 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
     def _apply_threshold(self):
         """Apply threshold to suppress shadows and check significant differences.
+
         Returns:
             bool: True if significant differences are found, False otherwise.
         """

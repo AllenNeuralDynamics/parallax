@@ -13,9 +13,9 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class RecordingManager:
-    """ RecordingManager manages snapshot saving and video recording """
+    """RecordingManager manages snapshot saving and video recording"""
     def __init__(self, model):
-        """ Initialize recording manager """
+        """Initialize recording manager"""
         self.model = model
         self.recording_camera_list = []
 
@@ -48,7 +48,6 @@ class RecordingManager:
     def save_recording(self, save_path, screen_widgets):
         """
         Initiates recording for all active camera feeds.
-
         Records video from all active camera feeds and saves them to a specified directory.
         The directory path is taken from the label showing the current save directory.
         """

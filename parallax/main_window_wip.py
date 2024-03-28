@@ -267,7 +267,6 @@ class MainWindow(QMainWindow):
     def createNewGroupBox(self, rows, cols, mock=False, screen_index=None):
         """
         Create a new group box widget representing a microscope, and add it to the grid layout.
-
         This function is responsible for generating a unique name for the microscope, creating a group box to
         represent it, adding a screen widget for camera display, a settings button, and configuring their
         properties and layouts. It also adds the group box to the grid layout at the specified row and column
@@ -278,7 +277,7 @@ class MainWindow(QMainWindow):
         - cols (int): The column index in the grid layout where the group box should be added.
         - mock (bool, optional): If True, a mock camera will be associated with this microscope. Default is False.
         - screen_index (int, optional): The index of the camera in the model's camera list to be associated
-                                        with this microscope. Required if mock is False.
+        with this microscope. Required if mock is False.
         """
         # Generate unique names based on row and column indices
         newNameMicroscope = ""
@@ -659,8 +658,8 @@ class MainWindow(QMainWindow):
 
         Returns:
         dict or any: The requested settings. If item is None, a dictionary of the entire category is returned.
-                    If item is specified, the value of the setting item is returned. If the requested category
-                    or item is not found, None is returned.
+        If item is specified, the value of the setting item is returned. If the requested category
+        or item is not found, None is returned.
         """
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as file:

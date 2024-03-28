@@ -62,15 +62,16 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         
     def first_cmp(self, curr_img, mask, org_img, img_fname=None):
         """Perform first comparison
+
         Args:
             curr_img (numpy.ndarray): Current image.
             mask (numpy.ndarray): Mask image.
             org_img (numpy.ndarray): Original image.
             img_fname (str, optional): Image filename. Defaults to None.
-            
+
         Returns:
             bool: True if probe is detected, False otherwise.
-        """        
+        """
         logger.debug("CurrBgCmpProcessor::first_cmp")
         ret = False
         self.img_fname = img_fname
@@ -90,11 +91,13 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
     def update_cmp(self, curr_img, mask, org_img, img_fname=None):
         """Update the comparison.
+
         Args:
             curr_img (numpy.ndarray): Current image.
             mask (numpy.ndarray): Mask image.
             org_img (numpy.ndarray): Original image.
             img_fname (str, optional): Image filename. Defaults to None.
+
         Returns:
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
@@ -148,7 +151,7 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
     def _update_crop(self):
         """Update the crop region.
-        
+
         Returns:
             bool: True if probe is detected, False otherwise.
         """
@@ -198,10 +201,10 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         return image[point[1], point[0]] == 255
 
     def _get_precise_tip(self, org_img):
-        """Get precise probe tip on original size image 
+        """Get precise probe tip on original size image
         Args:
             org_img (numpy.ndarray): Original image.
-            
+
         Returns:
             bool: True if precise tip is found, False otherwise.
         """

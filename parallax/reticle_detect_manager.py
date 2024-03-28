@@ -55,12 +55,12 @@ class ReticleDetectManager(QObject):
 
         def draw(self, frame, x_axis_coords, y_axis_coords):
             """Draw the coordinates on the frame.
-            
+
             Args:
                 frame (numpy.ndarray): Input frame.
                 x_axis_coords (numpy.ndarray): X-axis coordinates.
                 y_axis_coords (numpy.ndarray): Y-axis coordinates.
-                
+
             Returns:
                 numpy.ndarray: Frame with coordinates drawn.
             """
@@ -151,6 +151,7 @@ class ReticleDetectManager(QObject):
 
     def process(self, frame):
         """Process the frame using the worker.
+
         Args:
             frame (numpy.ndarray): Input frame.
         """

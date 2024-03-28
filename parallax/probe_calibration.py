@@ -37,6 +37,7 @@ class ProbeCalibration(QObject):
         
     def update(self, stage):
         """Update the local and global points.
+
         Args:
             stage (Stage): Stage object containing stage coordinates.
         """

@@ -555,10 +555,11 @@ class PySpinCamera:
     def stop(self, clean=False):
         """
         Cleans up resources associated with the camera and video recording.
-        Note: 
+
+        Note:
             Do not change the order of codes without refering PySpin manual.
             They are ordered by PySpin Camera Init / Turn off sequence. 
-        """  
+        """
         if self.running:
             self.running = False
             self.capture_thread.join()

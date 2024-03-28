@@ -54,7 +54,7 @@ class ProbeDetectManager(QObject):
 
         def update_sn(self, sn):
             """Update the serial number and initialize probe detectors.
-            
+
             Args:
                 sn (str): Serial number.
             """
@@ -77,7 +77,7 @@ class ProbeDetectManager(QObject):
                 
         def update_frame(self, frame, timestamp):
             """Update the frame and timestamp.
-            
+
             Args:
                 frame (numpy.ndarray): Input frame.
                 timestamp (str): Timestamp of the frame.
@@ -88,12 +88,13 @@ class ProbeDetectManager(QObject):
 
         def process(self, frame, timestamp):
             """Process the frame for probe detection.
-                1. First run currPrevCmpProcess 
-                2. If it fails on 1, run currBgCmpProcess
+            1. First run currPrevCmpProcess 
+            2. If it fails on 1, run currBgCmpProcess
+
             Args:
                 frame (numpy.ndarray): Input frame.
                 timestamp (str): Timestamp of the frame.
-                
+
             Returns:
                 tuple: Processed frame and timestamp.
             """
@@ -189,6 +190,7 @@ class ProbeDetectManager(QObject):
 
     def process(self, frame, timestamp):
         """Process the frame using the worker.
+
         Args:
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
@@ -198,6 +200,7 @@ class ProbeDetectManager(QObject):
     
     def found_coords_print(self, timestamp, sn, pixel_coords):
         """Emit the found coordinates signal.
+
         Args:
             timestamp (str): Timestamp of the frame.
             sn (str): Serial number.
@@ -222,6 +225,7 @@ class ProbeDetectManager(QObject):
 
     def start_detection(self, sn):       # Call from stage listener.
         """Start the probe detection for a specific serial number.
+
         Args:
             sn (str): Serial number.
         """
@@ -231,6 +235,7 @@ class ProbeDetectManager(QObject):
     
     def stop_detection(self, sn):       # Call from stage listener.
         """Stop the probe detection for a specific serial number.
+
         Args:
             sn (str): Serial number.
         """

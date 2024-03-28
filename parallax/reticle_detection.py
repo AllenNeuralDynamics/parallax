@@ -1,10 +1,9 @@
 """ ReticleDetection for identifying reticle coordinates in microscopy images
+
 Process: 
 - preprocessing, masking, and morphological operations
-- Utilizes adaptive thresholding, Gaussian blurring, and RANSAC 
-    for line detection, line drawing, and pixel refinement
+- Utilizes adaptive thresholding, Gaussian blurring, and RANSAC for line detection, line drawing, and pixel refinement
 - Supports line intersection and missing point estimation
-
 """
 from scipy.stats import linregress
 from skimage.measure import LineModelND, ransac

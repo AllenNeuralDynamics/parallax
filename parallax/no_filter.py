@@ -34,6 +34,7 @@ class NoFilter(QObject):
 
         def process(self, frame):
             """Process nothing (no filter) and emit the frame_processed signal.
+
             Args:
                 frame: The frame to be processed.
             """
@@ -64,7 +65,7 @@ class NoFilter(QObject):
         self.init_thread()
 
     def init_thread(self):
-        """ Initialize or reinitialize the worker and thread """
+        """Initialize or reinitialize the worker and thread"""
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)

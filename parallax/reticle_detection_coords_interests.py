@@ -25,10 +25,10 @@ class ReticleDetectCoordsInterest(QObject):
     
     def _fit_line(self, pixels):
         """Fit a line to the given pixels.
-        
+
         Args:
             pixels (list): List of pixel coordinates.
-            
+
         Returns:
             tuple: Slope and intercept of the fitted line.
         """
@@ -38,11 +38,11 @@ class ReticleDetectCoordsInterest(QObject):
 
     def _find_intersection(self, line1, line2):
         """Find the intersection point of two lines.
-        
+
         Args:
             line1 (tuple): Slope and intercept of the first line.
             line2 (tuple): Slope and intercept of the second line.
-            
+
         Returns:
             tuple or None: Coordinates of the intersection point if it exists, None otherwise.
         """
