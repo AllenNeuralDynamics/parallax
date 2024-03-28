@@ -1,9 +1,7 @@
-parallax
-========
+Parallax Moduels
+========================
 
 .. toctree::
    :maxdepth: 4
 
    parallax
-   run-parallax
-   setup

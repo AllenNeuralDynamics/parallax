@@ -10,6 +10,7 @@ Welcome to Parallax's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   ReadMe
    modules
 
 Indices and tables
