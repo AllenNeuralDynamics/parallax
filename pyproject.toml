@@ -4,6 +4,9 @@ build-backend = "setuptools.build_meta"
  
 [project]
 name = "parallax"
+authors = [
+  { name="Hanna Lee", email="hanna.lee@alleninstitute.org" },
+]
 description = "GUI software for photogrammetry-assisted probe targeting in electrophysiology"
 license =  {text = "Allen Institute Software License"}
 readme = "README.md"
