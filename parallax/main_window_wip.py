@@ -18,7 +18,7 @@ from PyQt5.uic import loadUi
 from .screen_widget import ScreenWidget
 from .recording_manager import RecordingManager
 from .stage_widget import StageWidget
-from . import ui_dir
+#from . import ui_dir
 from functools import partial
 import json
 import os
@@ -31,6 +31,8 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
 # User Preferences (Data directory, UI config..) setting file
+package_dir = os.path.dirname(os.path.abspath(__file__))
+ui_dir = os.path.join(os.path.dirname(package_dir), 'ui')
 SETTINGS_FILE = 'settings.json'
 
 # Main application window

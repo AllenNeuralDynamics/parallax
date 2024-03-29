@@ -8,16 +8,26 @@ from parallax.main_window_wip import MainWindow as MainWindowV2
 import atexit
 import argparse
 import logging
+import os
 
 def setup_logging():
     """Set up logging to file."""
     logger = logging.getLogger()
     logger.handlers.clear()
     logger.setLevel(logging.WARNING)
-    with open('parallax_debug.log', 'w') as log_file:
+    
+    # Create the directory if it doesn't exist
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    debug_dir = os.path.join(os.path.dirname(package_dir), 'debug')
+    os.makedirs(debug_dir, exist_ok=True)
+    
+    log_file_path = os.path.join(debug_dir, 'parallax_debug.log')
+    
+    with open(log_file_path, 'w') as log_file:
         # Clear the log file
         pass
-    log_handler = logging.FileHandler('parallax_debug.log')
+    
+    log_handler = logging.FileHandler(log_file_path)
     log_handler.setLevel(logging.DEBUG)
     log_handler.setFormatter(
         logging.Formatter(fmt='%(asctime)s:%(name)s:%(levelname)s: %(message)s')
@@ -30,7 +40,6 @@ if __name__ == '__main__':
     # Parse command line arguments to configure application behavior
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dummy', action='store_true', help='Dummy mode for testing without hardware')
-    parser.add_argument('-v2', '--version2', action='store_true', help='Use version 2 of the main window interface')
     args = parser.parse_args()
 
     # Print a message if running in dummy mode (no hardware interaction)
@@ -42,14 +51,8 @@ if __name__ == '__main__':
 
     # Initialize the Qt application
     app = QApplication([])
-
-    # Decide which main window version to use based on command-line arguments
-    if args.version2:
-        model = Model(version="V2")  # Initialize the data model with version "V2"
-        main_window = MainWindowV2(model, dummy=args.dummy)  # Version 2 of the main window
-    else:
-        # Placeholder for handling other versions or default behavior
-        pass
+    model = Model(version="V2")  # Initialize the data model with version "V2"
+    main_window = MainWindowV2(model, dummy=args.dummy)  # Version 2 of the main window
 
     # Show the main window on screen
     main_window.show()
@@ -58,6 +61,5 @@ if __name__ == '__main__':
 
     # Register cleanup functions to be called on program termination
     atexit.register(model.clean)  # Clean up resources used by the model
-    if args.version2:
-        # Save user configurations on exit, specific to version 2 of the main window
-        atexit.register(main_window.save_user_configs)
+    # Save user configurations on exit, specific to version 2 of the main window
+    atexit.register(main_window.save_user_configs)

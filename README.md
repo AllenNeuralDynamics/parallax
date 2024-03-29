@@ -13,8 +13,7 @@ Parallax is a graphical user interface designed to streamline the process of set
 ### Installation
 1. Clone the repository:
 ```bash
-git clone https://github.com/AllenNeuralDynamics/parallax.git
-cd parallax
+pip install parallax
 ```
 
 2. Create virtual environment and activate it:
@@ -31,18 +30,12 @@ source venv/bin/activate
 
 3. Install Dependencies:
 ```bash
-pip install .
+python -m pip install -e .
 ```
 
 ### Running Parallax
-- Old Version: Stable version featuring dual camera display, camera calibration with a checkerboard, coordinate system transformation, and manipulation of probe locations in x, y, z coordinates.
 ```bash
-python run-parallax.py
-```
-
-- New Version: Currently under development; allows snapshots and recording of an arbitrary number of camera displays.
-```bash
-python run-parallax.py -v2
+python -m parallax
 ```
 
 ### Additional Setup for Linux and Mac OS

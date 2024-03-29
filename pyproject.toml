@@ -27,8 +27,8 @@ dependencies = [
     "requests"
    ]
  
-[tool.setuptools.packages.find]
-where = ["parallax"]
+[tool.setuptools]
+packages = ["parallax", "ui", "img"]
  
 [tool.setuptools.dynamic]
 version = {attr = "parallax.__version__"}
@@ -42,13 +42,12 @@ linters = [
     'interrogate',
     'isort'
 ]
- 
+
 [tool.interrogate]
-exclude = ["setup.py"]
 fail-under = 100
  
 [tool.codespell]
-skip = ".git,*.json"
+skip = ".git,*.json,*.log"
  
 [tool]
 homepage = "https://github.com/AllenNeuralDynamics/parallax"
