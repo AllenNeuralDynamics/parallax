@@ -18,9 +18,8 @@ from PyQt5.uic import loadUi
 from .screen_widget import ScreenWidget
 from .recording_manager import RecordingManager
 from .stage_widget import StageWidget
-#from . import ui_dir
+from .user_setting_manager import UserSettingsManager
 from functools import partial
-import json
 import os
 import logging
 
@@ -68,8 +67,9 @@ class MainWindow(QMainWindow):
         self.refresh_stages()
         logger.debug(f"stages: {self.model.stages}")
         
+        self.user_setting = UserSettingsManager()
         # Load column configuration from user preferences
-        self.nColumn = self.load_settings_item("main", "nColumn")
+        self.nColumn = self.user_setting.load_settings_item("main", "nColumn")
         if self.nColumn is None or 0:
             self.nColumn = 1
         if self.model.nPySpinCameras:
@@ -86,8 +86,12 @@ class MainWindow(QMainWindow):
         QApplication.setFont(fira_code_font)
 
         # Load existing user preferences
-        self.load_mainWindow_settings()
-
+        nColumn, directory, width, height = self.load_mainWindow_settings()
+        self.nColumnsSpinBox.setValue(nColumn)  
+        self.dirLabel.setText(directory) 
+        if width is not None and height is not None:
+            self.resize(width, height)
+                        
         # Attach directory selection event handler for saving files
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
 
@@ -366,21 +370,21 @@ class MainWindow(QMainWindow):
                                              screen_index, settingMenu.snComboBox.currentText()))
         
         # Custom name
-        customName = self.load_settings_item(sn, "customName")  # Default name on init
+        customName = self.user_setting.load_settings_item(sn, "customName")  # Default name on init
         customName = customName if customName else newNameMicroscope
         settingMenu.customName.setText(customName)
         self.update_groupbox_name(microscopeGrp, customName)    # Update GroupBox name
         # Name) If custom name is changed, change the groupBox name. 
         settingMenu.customName.textChanged.connect(lambda: self.update_groupbox_name(microscopeGrp, \
                                                                             settingMenu.customName.text()))
-        settingMenu.customName.textChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+        settingMenu.customName.textChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
                                                             "customName", settingMenu.customName.text()))
         
         # Exposure
         settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
                                                                 val = settingMenu.expSlider.value()*1000))
         settingMenu.expSlider.valueChanged.connect(lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value()))
-        settingMenu.expSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+        settingMenu.expSlider.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
                             "exp", settingMenu.expSlider.value()))       
         settingMenu.expAuto.clicked.connect(lambda: settingMenu.expSlider.setValue(\
                             int(screen.get_camera_setting(setting = "exposure")/1000)))
@@ -389,7 +393,7 @@ class MainWindow(QMainWindow):
         settingMenu.gainSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gain",\
                                                                 val = settingMenu.gainSlider.value()))
         settingMenu.gainSlider.valueChanged.connect(lambda: settingMenu.gainNum.setNum(settingMenu.gainSlider.value()))
-        settingMenu.gainSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+        settingMenu.gainSlider.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
                             "gain", settingMenu.gainSlider.value()))
         settingMenu.gainAuto.clicked.connect(lambda: settingMenu.gainSlider.setValue(\
                             screen.get_camera_setting(setting = "gain")))
@@ -399,11 +403,11 @@ class MainWindow(QMainWindow):
                                                                 val = settingMenu.gammaSlider.value()/100))
         settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setText(
                             "{:.2f}".format(settingMenu.gammaSlider.value()/100)))
-        settingMenu.gammaSlider.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+        settingMenu.gammaSlider.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
                             "gamma", settingMenu.gammaSlider.value()))
         settingMenu.gammaAuto.clicked.connect(lambda: settingMenu.gammaSlider.setEnabled(
                             not settingMenu.gammaSlider.isEnabled()))
-        settingMenu.gammaAuto.clicked.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", \
+        settingMenu.gammaAuto.clicked.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", \
                             settingMenu.gammaSlider.isEnabled()))
                             
         # W/B
@@ -414,7 +418,7 @@ class MainWindow(QMainWindow):
                                                                 val = settingMenu.wbSliderBlue.value()/100))
         settingMenu.wbSliderBlue.valueChanged.connect(lambda: settingMenu.wbNumBlue.setText(\
                         "{:.2f}".format(settingMenu.wbSliderBlue.value()/100)))
-        settingMenu.wbSliderBlue.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+        settingMenu.wbSliderBlue.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
                         "wbBlue", settingMenu.wbSliderBlue.value()))
         settingMenu.wbAuto.clicked.connect(lambda: settingMenu.wbSliderBlue.setValue(\
                         screen.get_camera_setting(setting = "wbBlue")*100))
@@ -424,7 +428,7 @@ class MainWindow(QMainWindow):
                                                                 val = settingMenu.wbSliderRed.value()/100))
         settingMenu.wbSliderRed.valueChanged.connect(lambda: settingMenu.wbNumRed.setText(\
                         "{:.2f}".format(settingMenu.wbSliderRed.value()/100)))
-        settingMenu.wbSliderRed.valueChanged.connect(lambda: self.update_user_configs_settingMenu(microscopeGrp, \
+        settingMenu.wbSliderRed.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
                         "wbRed", settingMenu.wbSliderRed.value()))
         settingMenu.wbAuto.clicked.connect(lambda: settingMenu.wbSliderRed.setValue(\
                         screen.get_camera_setting(setting = "wbRed")*100))
@@ -546,7 +550,7 @@ class MainWindow(QMainWindow):
         # Display the S/N of camera 
         sn = screen.get_camera_name()
         # Load the saved settings
-        saved_settings = self.load_settings_item(sn)
+        saved_settings = self.user_setting.load_settings_item(sn)
         if saved_settings:
             # If saved settings are found, update the sliders in the settings menu with the saved values
             settingMenu.expSlider.setValue(saved_settings.get('exp', 15))
@@ -580,8 +584,8 @@ class MainWindow(QMainWindow):
             settingMenu.gainAuto.click()
             settingMenu.wbAuto.click()
             settingMenu.expAuto.click()
-            self.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", True)
-            self.update_user_configs_settingMenu(microscopeGrp, "gamma", settingMenu.gammaSlider.value())
+            self.user_setting.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", True)
+            self.user_setting.update_user_configs_settingMenu(microscopeGrp, "gamma", settingMenu.gammaSlider.value())
             
     def dir_setting_handler(self):
         """
@@ -601,122 +605,5 @@ class MainWindow(QMainWindow):
             self.dirLabel.setText(directory)
         
     def save_user_configs(self):
-        """
-        This method saves user configurations, such as column configuration and directory path,
-        to a JSON file. This ensures that user preferences are preserved and can be reloaded
-        the next time the application is started.
+        self.user_setting.save_user_configs()
 
-        The method reads the current settings from a file (if it exists), updates the settings
-        with the current user configurations, and then writes the updated settings back to the file.
-        """
-        # Read current settings from file
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
-                settings = json.load(file)
-        else:
-            settings = {}
-
-        settings["main"] = {
-            "nColumn": self.nColumnsSpinBox.value(),
-            "directory": self.dirLabel.text(),
-            "width": self.width(),
-            "height": self.height(),  
-        }
-        with open(SETTINGS_FILE, 'w') as file:
-            json.dump(settings, file)
-
-    def load_mainWindow_settings(self):
-        """
-        This method is responsible for loading the main window settings from a JSON file when the application starts.
-        The settings include the number of columns in the main window, the directory path for saving files, and the
-        dimensions of the main window. If the settings file does not exist, the method logs a debug message indicating
-        that the settings file was not found.
-
-        The purpose of this method is to enhance user experience by preserving user preferences across sessions, allowing
-        the application to remember the user's settings and adjust the interface accordingly when it is restarted.
-        """
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
-                settings = json.load(file)
-                if "main" in settings:
-                    main_settings = settings["main"]
-                    self.nColumnsSpinBox.setValue(main_settings.get("nColumn", 2))  
-                    self.dirLabel.setText(main_settings.get("directory", "")) 
-                    width = main_settings.get("width", 1400)
-                    height = main_settings.get("height", 1000)
-                    if width is not None and height is not None:
-                        self.resize(width, height)
-        else:
-            logger.debug("load_settings: Settings file not found.")
-
-    def load_settings_item(self, category, item=None):
-        """
-        It provides a flexible way to retrieve settings, whether it be a single setting
-        item or an entire category of settings.
-
-        Parameters:
-        category (str): The category of settings to retrieve from the settings file.
-        item (str, optional): The specific setting item to retrieve from the category. Defaults to None.
-
-        Returns:
-        dict or any: The requested settings. If item is None, a dictionary of the entire category is returned.
-        If item is specified, the value of the setting item is returned. If the requested category
-        or item is not found, None is returned.
-        """
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
-                settings = json.load(file)
-                if category in settings:
-                    if item is not None:
-                        if item in settings[category]:
-                            return settings[category][item]
-                        else:
-                            logger.debug(f"load_settings_item: Item '{item}' not found in settings.")
-                            return None
-                    return settings[category]
-                else:
-                    logger.debug(f"load_settings_item: Section '{category}' not found in settings.")
-                    return None
-        else:
-            logger.debug("load_settings_item: Settings file not found.")
-            return None
-
-    def update_user_configs_settingMenu(self, microscopeGrp, item, val):
-        """
-        Update the user configurations in the settings menu for a specific camera.
-
-        This method is used to save the user's changes to camera settings in a JSON file. The changes
-        could be made through sliders or other input fields in the settings menu associated with
-        a microscope group box. When a user changes a setting, this method is called to update
-        the saved settings for the camera currently associated with the given microscope group box.
-
-        Parameters:
-        - microscopeGrp (QGroupBox): The microscope group box associated with the settings menu to be updated.
-        - item (str): The name of the setting item to be updated (e.g., 'exposure', 'gain').
-        - val (int/float/str): The new value of the setting item.
-        """
-
-        # Find the screen within this microscopeGrp
-        screen = microscopeGrp.findChild(ScreenWidget, "Screen")
-
-        # Display the S/N of camera 
-        sn = screen.get_camera_name()
-
-        # Read current settings from file
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
-                settings = json.load(file)
-        else:
-            settings = {}
-
-        # Update settings with values from the settingMenu of current screen
-        if sn not in settings:
-            settings[sn] = {}
-        settings[sn][item] = val
-
-        # Write updated settings back to file
-        with open(SETTINGS_FILE, 'w') as file:
-            json.dump(settings, file)
-
-  
-        

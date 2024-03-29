@@ -1,3 +1,4 @@
+from .screen_widget import ScreenWidget
 import json
 import os
 import logging
