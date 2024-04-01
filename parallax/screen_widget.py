@@ -11,6 +11,14 @@ from .reticle_detect_manager import ReticleDetectManager
 from .no_filter import NoFilter
 import pyqtgraph as pg
 import cv2
+import logging
+
+# Set logger name
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ScreenWidget(pg.GraphicsView):
     """ Screens Class """
@@ -125,14 +133,10 @@ class ScreenWidget(pg.GraphicsView):
         """
         Set the data displayed in the screen widget.
         """
-        if self.model.version == "V1":
-            self.filter.process(data)
-            self.detector.process(data)
-        else:
-            self.filter.process(data)
-            self.reticleDetector.process(data)
-            captured_time = self.camera.get_last_capture_time(millisecond=True) #TODO
-            self.probeDetector.process(data, captured_time)
+        self.filter.process(data)
+        self.reticleDetector.process(data)
+        captured_time = self.camera.get_last_capture_time(millisecond=True) #TODO
+        self.probeDetector.process(data, captured_time)
     
     def is_camera(self):
         """
@@ -262,12 +266,8 @@ class ScreenWidget(pg.GraphicsView):
     def set_camera(self, camera):
         """
         Set the camera.
-        If V1, refresh the image displayed in the screen widget.
-        For V2, refresh the image displayed in seperate function.
         """
         self.camera = camera
-        if self.model.version == "V1":
-            self.refresh()
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""

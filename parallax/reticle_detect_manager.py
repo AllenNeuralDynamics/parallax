@@ -15,9 +15,10 @@ import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
 class ReticleDetectManager(QObject):
     """Reticle detection class"""
@@ -129,6 +130,7 @@ class ReticleDetectManager(QObject):
 
     def __init__(self):
         """Initialize the reticle detection manager."""
+        logger.debug("Init reticle detect manager")
         super().__init__()
         self.worker = None
         self.thread = None
