@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
-SETTINGS_FILE = 'settings.json'
-
 class UserSettingsManager:
-    def __init__(self, settings_file=SETTINGS_FILE):
+    def __init__(self):
+        package_dir = os.path.dirname(os.path.abspath(__file__))
+        ui_dir = os.path.join(os.path.dirname(package_dir), 'ui')
+        settings_file = os.path.join(ui_dir, 'settings.json')
         self.settings_file = settings_file
         self.settings = self.load_settings()
 
@@ -23,7 +24,7 @@ class UserSettingsManager:
                 return json.load(file)
         return {}
 
-    def save_user_configs(self):
+    def save_user_configs(self, nColumn, directory, width, height):
         """
         This method saves user configurations, such as column configuration and directory path,
         to a JSON file. This ensures that user preferences are preserved and can be reloaded
@@ -33,19 +34,19 @@ class UserSettingsManager:
         with the current user configurations, and then writes the updated settings back to the file.
         """
         # Read current settings from file
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
+        if os.path.exists(self.settings_file):
+            with open(self.settings_file, 'r') as file:
                 settings = json.load(file)
         else:
             settings = {}
 
         settings["main"] = {
-            "nColumn": self.nColumnsSpinBox.value(),
-            "directory": self.dirLabel.text(),
-            "width": self.width(),
-            "height": self.height(),  
+            "nColumn": nColumn,
+            "directory": directory,
+            "width": width,
+            "height":height,  
         }
-        with open(SETTINGS_FILE, 'w') as file:
+        with open(self.settings_file, 'w') as file:
             json.dump(settings, file)
 
     def load_mainWindow_settings(self):
@@ -58,18 +59,16 @@ class UserSettingsManager:
         The purpose of this method is to enhance user experience by preserving user preferences across sessions, allowing
         the application to remember the user's settings and adjust the interface accordingly when it is restarted.
         """
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
-                settings = json.load(file)
-                if "main" in settings:
-                    main_settings = settings["main"]
-                    nColumn = main_settings.get("nColumn", 2)
-                    directory = main_settings.get("directory", "")
-                    width = main_settings.get("width", 1400)
-                    height = main_settings.get("height", 1000)
-                    return nColumn, directory, width, height
+        if "main" in self.settings:
+            main_settings = self.settings["main"]
+            nColumn = main_settings.get("nColumn", 1)
+            directory = main_settings.get("directory", "")
+            width = main_settings.get("width", 1400)
+            height = main_settings.get("height", 1000)
+            return nColumn, directory, width, height
         else:
             logger.debug("load_settings: Settings file not found.")
+            return 1, "", 1400, 1000
 
     def load_settings_item(self, category, item=None):
         """
@@ -85,8 +84,8 @@ class UserSettingsManager:
         If item is specified, the value of the setting item is returned. If the requested category
         or item is not found, None is returned.
         """
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
+        if os.path.exists(self.settings_file):
+            with open(self.settings_file, 'r') as file:
                 settings = json.load(file)
                 if category in settings:
                     if item is not None:
@@ -125,8 +124,8 @@ class UserSettingsManager:
         sn = screen.get_camera_name()
 
         # Read current settings from file
-        if os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'r') as file:
+        if os.path.exists(self.settings_file):
+            with open(self.settings_file, 'r') as file:
                 settings = json.load(file)
         else:
             settings = {}
@@ -137,5 +136,5 @@ class UserSettingsManager:
         settings[sn][item] = val
 
         # Write updated settings back to file
-        with open(SETTINGS_FILE, 'w') as file:
+        with open(self.settings_file, 'w') as file:
             json.dump(settings, file)

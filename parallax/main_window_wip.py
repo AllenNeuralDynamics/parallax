@@ -86,8 +86,8 @@ class MainWindow(QMainWindow):
         QApplication.setFont(fira_code_font)
 
         # Load existing user preferences
-        nColumn, directory, width, height = self.load_mainWindow_settings()
-        self.nColumnsSpinBox.setValue(nColumn)  
+        nColumn, directory, width, height = self.user_setting.load_mainWindow_settings()
+        self.nColumnsSpinBox.setValue(nColumn)
         self.dirLabel.setText(directory) 
         if width is not None and height is not None:
             self.resize(width, height)
@@ -605,5 +605,9 @@ class MainWindow(QMainWindow):
             self.dirLabel.setText(directory)
         
     def save_user_configs(self):
-        self.user_setting.save_user_configs()
+        nColumn = self.nColumnsSpinBox.value()
+        directory = self.dirLabel.text()
+        width = self.width()
+        height = self.height()
+        self.user_setting.save_user_configs(nColumn, directory, width, height)
 

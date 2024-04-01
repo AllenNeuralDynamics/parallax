@@ -20,20 +20,18 @@ def setup_logging():
     package_dir = os.path.dirname(os.path.abspath(__file__))
     debug_dir = os.path.join(os.path.dirname(package_dir), 'debug')
     os.makedirs(debug_dir, exist_ok=True)
-    
     log_file_path = os.path.join(debug_dir, 'parallax_debug.log')
-    
+
     with open(log_file_path, 'w') as log_file:
         # Clear the log file
         pass
     
     log_handler = logging.FileHandler(log_file_path)
-    log_handler.setLevel(logging.DEBUG)
+    log_handler.setLevel(logging.WARNING)
     log_handler.setFormatter(
         logging.Formatter(fmt='%(asctime)s:%(name)s:%(levelname)s: %(message)s')
     )
-    logger.addHandler(log_handler)
-
+    logger.addHandler(log_handler)    
 
 # Main function to run the Parallax application
 if __name__ == '__main__':
