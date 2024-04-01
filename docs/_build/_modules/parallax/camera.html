@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>parallax.camera &mdash; Parallax 0.37.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=f5ec9bd4"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Parallax
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html">Welcome to Parallax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#installing-and-upgrading">Installing and Upgrading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#running-parallax">Running Parallax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Parallax Moduels</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Parallax</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">parallax.camera</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for parallax.camera</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">PySpinCamera: A class to interface with cameras using the PySpin library.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">cv2</span>
+
+<span class="c1"># Initialize the logger</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">supported_camera_models</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;BFS-U3-120S4C&quot;</span><span class="p">,</span> <span class="s2">&quot;BFS-U3-04S2M&quot;</span><span class="p">]</span>
+
+<span class="c1"># Check for the availability of the PySpin library</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">PySpin</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">PySpin</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Could not import PySpin.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="list_cameras"><a class="viewcode-back" href="../../parallax.html#parallax.camera.list_cameras">[docs]</a><span class="k">def</span> <span class="nf">list_cameras</span><span class="p">(</span><span class="n">dummy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">&quot;V1&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    List available cameras.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters:</span>
+<span class="sd">    - dummy (bool): If True, lists only mock cameras. Default is False.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">    - list: List of available PySpin cameras.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Init version, V1: original, V2: WIP with new GUI</span>
+    <span class="k">global</span> <span class="n">VERSION</span>
+    <span class="n">VERSION</span> <span class="o">=</span> <span class="n">version</span>
+
+    <span class="k">global</span> <span class="n">pyspin_cameras</span><span class="p">,</span> <span class="n">pyspin_instance</span>
+    <span class="n">cameras</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dummy</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">PySpin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cameras</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">PySpinCamera</span><span class="o">.</span><span class="n">list_cameras</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">cameras</span></div>
+
+<div class="viewcode-block" id="close_cameras"><a class="viewcode-back" href="../../parallax.html#parallax.camera.close_cameras">[docs]</a><span class="k">def</span> <span class="nf">close_cameras</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Close all available cameras.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">PySpin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">PySpinCamera</span><span class="o">.</span><span class="n">close_cameras</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PySpinCamera"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera">[docs]</a><span class="k">class</span> <span class="nc">PySpinCamera</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents a camera managed by the PySpin library.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pyspin_cameras</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pyspin_instance</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">cameras</span> <span class="o">=</span> <span class="p">[]</span>
+ 
+<div class="viewcode-block" id="PySpinCamera.list_cameras"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.list_cameras">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">list_cameras</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        List available PySpin cameras.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">        - list: List of available PySpin cameras.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_instance</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">System</span><span class="o">.</span><span class="n">GetInstance</span><span class="p">()</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_cameras</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_instance</span><span class="o">.</span><span class="n">GetCameras</span><span class="p">()</span>
+        <span class="n">ncameras</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_cameras</span><span class="o">.</span><span class="n">GetSize</span><span class="p">()</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">cameras</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncameras</span><span class="p">):</span>
+            <span class="n">camera_pyspin</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_cameras</span><span class="o">.</span><span class="n">GetByIndex</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">camera</span> <span class="o">=</span> <span class="n">PySpinCamera</span><span class="p">(</span><span class="n">camera_pyspin</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">camera</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">cameras</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">camera</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">camera</span><span class="o">.</span><span class="n">stop</span><span class="p">(</span><span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">cameras</span></div>
+
+    <span class="c1"># Class method to close all PySpin cameras</span>
+<div class="viewcode-block" id="PySpinCamera.close_cameras"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.close_cameras">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">close_cameras</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Release resources and close all PySpin cameras.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;cleaning up SpinSDK&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">camera</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">cameras</span><span class="p">:</span>
+            <span class="n">camera</span><span class="o">.</span><span class="n">stop</span><span class="p">(</span><span class="n">clean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_cameras</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_cameras</span><span class="o">.</span><span class="n">Clear</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_instance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">pyspin_instance</span><span class="o">.</span><span class="n">ReleaseInstance</span><span class="p">()</span></div>
+        
+    <span class="c1"># Constructor for PySpinCamera</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camera_pyspin</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a PySpinCamera instance.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters:</span>
+<span class="sd">        - camera_pyspin: The underlying PySpin camera object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span> <span class="o">=</span> <span class="n">camera_pyspin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tldnm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">GetTLDeviceNodeMap</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">Init</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">GetNodeMap</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_filled</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_cleared</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_output</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_on</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_idle</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame_rate</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">device_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">DeviceModelName</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">camera_color_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_model</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">camera_color_type</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">=</span> <span class="s2">&quot;Mono&quot;</span>
+        <span class="k">elif</span> <span class="n">camera_color_type</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">=</span> <span class="s2">&quot;Color&quot;</span>
+        <span class="k">elif</span> <span class="n">camera_color_type</span> <span class="o">==</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">=</span> <span class="s2">&quot;Polarized&quot;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Polarized Camera model not supported.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Not supported camera type.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">sn_only</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="c1"># set BufferHandlingMode to NewestOnly (necessary to update the image)</span>
+        <span class="n">s_nodemap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">GetTLStreamNodeMap</span><span class="p">()</span>
+        <span class="n">node_bufferhandling_mode</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CEnumerationPtr</span><span class="p">(</span><span class="n">s_nodemap</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s1">&#39;StreamBufferHandlingMode&#39;</span><span class="p">))</span>
+        <span class="n">node_newestonly</span> <span class="o">=</span> <span class="n">node_bufferhandling_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s1">&#39;NewestOnly&#39;</span><span class="p">)</span>
+        <span class="n">node_newestonly_mode</span> <span class="o">=</span> <span class="n">node_newestonly</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="n">node_bufferhandling_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="n">node_newestonly_mode</span><span class="p">)</span>
+        
+        <span class="c1"># Set White Balance</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">==</span> <span class="s2">&quot;Color&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CEnumerationPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;BalanceWhiteAuto&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode_off</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Off&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode_on</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Continuous&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode_on</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>      <span class="c1"># Default: Auto mode on </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CEnumerationPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;BalanceRatioSelector&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_wb</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CFloatPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;BalanceRatio&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode_red</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Red&quot;</span><span class="p">)</span>     <span class="c1"># Red Channel    </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode_blue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Blue&quot;</span><span class="p">)</span>   <span class="c1"># Blue Channel </span>
+
+        <span class="c1"># set exposure time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CEnumerationPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;ExposureAuto&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode_off</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Off&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode_on</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Continuous&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode_on</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>        <span class="c1"># Default: Auto mode on </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_exptime</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CFloatPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;ExposureTime&quot;</span><span class="p">))</span>
+
+        <span class="c1"># set gain</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CEnumerationPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;GainAuto&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode_off</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Off&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode_on</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Continuous&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gain</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CFloatPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;Gain&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode_on</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>      <span class="c1"># Default: Auto mode on    </span>
+
+        <span class="c1"># set gamma  </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gammaenable_mode</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CBooleanPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;GammaEnable&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gammaenable_mode</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>                <span class="c1"># Default: Gammal Enable on </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gamma</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CFloatPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;Gamma&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gamma</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="mf">0.8</span><span class="p">)</span>  
+
+        <span class="c1"># set pixel format</span>
+        <span class="n">node_pixelformat</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CEnumerationPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s2">&quot;PixelFormat&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixelformat</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">==</span> <span class="s2">&quot;Mono&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixelformat</span> <span class="o">=</span> <span class="s2">&quot;Mono&quot;</span>
+            <span class="n">entry_pixelformat_mono8</span> <span class="o">=</span> <span class="n">node_pixelformat</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;Mono8&quot;</span><span class="p">)</span>
+            <span class="n">node_pixelformat</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="n">entry_pixelformat_mono8</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">==</span> <span class="s2">&quot;Color&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pixelformat</span> <span class="o">=</span> <span class="s2">&quot;BayerRG8&quot;</span>
+            <span class="n">entry_pixelformat_bayerRG8</span> <span class="o">=</span> <span class="n">node_pixelformat</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s2">&quot;BayerRG8&quot;</span><span class="p">)</span>
+            <span class="n">node_pixelformat</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="n">entry_pixelformat_bayerRG8</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>
+
+        <span class="c1"># acquisition on initialization             </span>
+        <span class="k">if</span> <span class="n">VERSION</span> <span class="o">==</span> <span class="s2">&quot;V1&quot;</span><span class="p">:</span>
+            <span class="c1"># begin acquisition</span>
+            <span class="c1"># V1: Start continuous acquisition on initialization. </span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">begin_continuous_acquisition</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">VERSION</span> <span class="o">==</span> <span class="s2">&quot;V2&quot;</span><span class="p">:</span>
+            <span class="c1"># V2: Start continous acquisition when &#39;Start&#39; button is toggled and end acquisition when untoggled.</span>
+            <span class="c1"># On initialization, start onetime acquisition to get one frame. </span>
+            <span class="k">pass</span>
+        
+<div class="viewcode-block" id="PySpinCamera.set_wb"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.set_wb">[docs]</a>    <span class="k">def</span> <span class="nf">set_wb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span> <span class="n">wb</span><span class="o">=</span><span class="mf">1.2</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the white balance of the camera.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - wb (float): The desired white balance value. min:1.8, max:2.5</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">==</span> <span class="s2">&quot;Color&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode_off</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">channel</span> <span class="o">==</span> <span class="s2">&quot;Red&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode_red</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_wb</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="n">wb</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">channel</span> <span class="o">==</span> <span class="s2">&quot;Blue&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode_blue</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_wb</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="n">wb</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+    
+<div class="viewcode-block" id="PySpinCamera.get_wb"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.get_wb">[docs]</a>    <span class="k">def</span> <span class="nf">get_wb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the gamma of the camera for the auto mode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">==</span> <span class="s2">&quot;Color&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_wbauto_mode_on</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span> <span class="c1"># Set continous for mono camera</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">channel</span> <span class="o">==</span> <span class="s2">&quot;Red&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode_red</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_wb</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>                
+            <span class="k">elif</span> <span class="n">channel</span> <span class="o">==</span> <span class="s2">&quot;Blue&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_balanceratio_mode_blue</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_wb</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span></div>
+        
+<div class="viewcode-block" id="PySpinCamera.set_gamma"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.set_gamma">[docs]</a>    <span class="k">def</span> <span class="nf">set_gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the gamma correction of the camera.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - gamma (float): The desired gamma value. min:0.25 max:1.25</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gammaenable_mode</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gamma</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.disable_gamma"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.disable_gamma">[docs]</a>    <span class="k">def</span> <span class="nf">disable_gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Disable the gamma of the camera.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gammaenable_mode</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.set_gain"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.set_gain">[docs]</a>    <span class="k">def</span> <span class="nf">set_gain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="mf">20.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the gain of the camera.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - gain (float): The desired gain value. min:0, max:27.0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode_off</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gain</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="n">gain</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.get_gain"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.get_gain">[docs]</a>    <span class="k">def</span> <span class="nf">get_gain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the gain of the camera for the auto mode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">initial_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_gain</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_gainauto_mode_on</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span> <span class="c1"># Set continous for mono camera</span>
+
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># Wait for a short period</span>
+        <span class="n">updated_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_gain</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">updated_val</span> <span class="o">!=</span> <span class="n">initial_val</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">updated_val</span>  <span class="c1"># Return the updated value if there&#39;s a change</span>
+
+        <span class="k">return</span> <span class="n">initial_val</span>  <span class="c1"># Return the initial value if no change is detected</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.set_exposure"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.set_exposure">[docs]</a>    <span class="k">def</span> <span class="nf">set_exposure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expTime</span><span class="o">=</span><span class="mi">16000</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the exposure time of the camera.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - expTime (int): The desired exposure time in microseconds. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode_off</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>   <span class="c1"># Return back to manual mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_exptime</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="n">expTime</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="PySpinCamera.get_exposure"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.get_exposure">[docs]</a>    <span class="k">def</span> <span class="nf">get_exposure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the exposure time of the camera for the auto mode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">initial_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_exptime</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_expauto_mode_on</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span>    <span class="c1"># Enable the Auto mode</span>
+        
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># Wait for a short period</span>
+        <span class="n">updated_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_exptime</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">updated_val</span> <span class="o">!=</span> <span class="n">initial_val</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">updated_val</span>  <span class="c1"># Return the updated value if there&#39;s a change</span>
+        
+        <span class="k">return</span> <span class="n">initial_val</span>  <span class="c1"># Return the initial value if no change is detected</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.name"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sn_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves the name and serial number of the camera.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - sn_only (bool): Whether to return only the serial number.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - str: The device model and serial number or just the serial number.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="n">sn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">DeviceSerialNumber</span><span class="p">()</span>
+        <span class="n">device_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">DeviceModelName</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">sn_only</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sn</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> (Serial # </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">device_model</span><span class="p">,</span> <span class="n">sn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.begin_singleframe_acquisition"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.begin_singleframe_acquisition">[docs]</a>    <span class="k">def</span> <span class="nf">begin_singleframe_acquisition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Begings a single Frame image acquisition. </span>
+<span class="sd">        &quot;&quot;&quot;</span>  
+        <span class="c1"># set acquisition mode to singleFrame</span>
+        <span class="n">node_acquisition_mode</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CEnumerationPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s1">&#39;AcquisitionMode&#39;</span><span class="p">))</span>
+        <span class="n">node_acquisition_mode_singleframe</span> <span class="o">=</span> <span class="n">node_acquisition_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s1">&#39;SingleFrame&#39;</span><span class="p">)</span>
+        <span class="n">acquisition_mode_singleframe</span> <span class="o">=</span> <span class="n">node_acquisition_mode_singleframe</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="n">node_acquisition_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="n">acquisition_mode_singleframe</span><span class="p">)</span>
+
+        <span class="c1"># Begin Acquisition: Image acquisition must be ended when no more images are needed.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">BeginAcquisition</span><span class="p">()</span> 
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Begin Single Frame Acquisition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">sn_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capture_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">capture</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capture_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+        
+<div class="viewcode-block" id="PySpinCamera.end_singleframe_acquisition"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.end_singleframe_acquisition">[docs]</a>    <span class="k">def</span> <span class="nf">end_singleframe_acquisition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; End Acquisition &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_cleared</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capture_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">EndAcquisition</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_cleared</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_filled</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.begin_continuous_acquisition"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.begin_continuous_acquisition">[docs]</a>    <span class="k">def</span> <span class="nf">begin_continuous_acquisition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Begins the image acquisition process in continuous mode and starts the capture loop in a separate thread.</span>
+<span class="sd">        &quot;&quot;&quot;</span>    
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: camera is already running&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># set acquisition mode continuous (continuous stream of images)</span>
+        <span class="n">node_acquisition_mode</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CEnumerationPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s1">&#39;AcquisitionMode&#39;</span><span class="p">))</span>
+        <span class="n">node_acquisition_mode_continuous</span> <span class="o">=</span> <span class="n">node_acquisition_mode</span><span class="o">.</span><span class="n">GetEntryByName</span><span class="p">(</span><span class="s1">&#39;Continuous&#39;</span><span class="p">)</span>
+        <span class="n">acquisition_mode_continuous</span> <span class="o">=</span> <span class="n">node_acquisition_mode_continuous</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="n">node_acquisition_mode</span><span class="o">.</span><span class="n">SetIntValue</span><span class="p">(</span><span class="n">acquisition_mode_continuous</span><span class="p">)</span>
+
+        <span class="c1"># Begin Acquisition: Image acquisition must be ended when no more images are needed.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">BeginAcquisition</span><span class="p">()</span> 
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BeginAcquisition </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">sn_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capture_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">capture_loop</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capture_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.capture_loop"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.capture_loop">[docs]</a>    <span class="k">def</span> <span class="nf">capture_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Continuous loop to capture images while the camera is running.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">capture</span><span class="p">()</span></div>
+            <span class="c1"># print(&quot;.&quot;, end=&quot;&quot;,flush=True)</span>
+
+<div class="viewcode-block" id="PySpinCamera.capture"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.capture">[docs]</a>    <span class="k">def</span> <span class="nf">capture</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Captures an image and checks for its completeness. </span>
+<span class="sd">        If video recording is enabled, writes the image to the video file.</span>
+
+<span class="sd">        *** NOTES ***</span>
+<span class="sd">        Capturing an image houses images on the camera buffer.</span>
+<span class="sd">        Trying to capture an image that does not exist will hang the camera.</span>
+<span class="sd">        Using-statements help ensure that images are released.</span>
+<span class="sd">        If too many images remain unreleased, the buffer will fill, </span>
+<span class="sd">        causing the camera to hang. </span>
+<span class="sd">        Images can also be released manually by calling Release().</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Timestamp for the current capture</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_capture_time</span> <span class="o">=</span> <span class="n">ts</span>
+
+        <span class="c1"># Retrieve the next image from the camera</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">GetNextImage</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span>
+    
+        <span class="k">while</span> <span class="n">image</span><span class="o">.</span><span class="n">IsIncomplete</span><span class="p">():</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>
+        
+        <span class="c1"># Release the previous image from the buffer if it exists</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span><span class="o">.</span><span class="n">Release</span><span class="p">()</span>
+            <span class="k">except</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">SpinnakerException</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Spinnaker Exception: Couldn&#39;t release last image&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Update the last captured image reference</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_filled</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+        <span class="c1"># Record the image if video recording is active     </span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_on</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_idle</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            
+            <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_image_data</span><span class="p">()</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_RGB2BGR</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">video_output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_idle</span><span class="o">.</span><span class="n">set</span><span class="p">()</span></div>
+        
+<div class="viewcode-block" id="PySpinCamera.get_last_capture_time"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.get_last_capture_time">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_capture_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">millisecond</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the timestamp of the last captured image in a formatted string.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - str: Timestamp in the format &#39;YYYYMMDD-HHMMSS&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_capture_time</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">millisecond</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%04d%02d%02d</span><span class="s1">-</span><span class="si">%02d%02d%02d</span><span class="s1">.</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                        <span class="n">dt</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">second</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">microsecond</span> <span class="o">//</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%04d%02d%02d</span><span class="s1">-</span><span class="si">%02d%02d%02d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                                              <span class="n">dt</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">second</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.save_last_image"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.save_last_image">[docs]</a>    <span class="k">def</span> <span class="nf">save_last_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">isTimestamp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_name</span><span class="o">=</span><span class="s2">&quot;Microscope_&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves the last captured image to the specified file path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - filepath (str): Directory to save the image.</span>
+<span class="sd">        - isTimestamp (bool): Whether to append a timestamp to the filename.</span>
+<span class="sd">        - custom_name (str): Custom prefix for the filename. S/N is set as custom name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">image_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.png&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">custom_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_capture_time</span><span class="p">())</span> \
+            <span class="k">if</span> <span class="n">isTimestamp</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.png&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">custom_name</span><span class="p">)</span>
+        <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving image to </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving image to </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Save the image</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">image_converted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_image_data</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">image_converted</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Convert the image from RGB to BGR</span>
+                <span class="n">image_converted</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">image_converted</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_RGB2BGR</span><span class="p">)</span>
+                <span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">full_path</span><span class="p">,</span> <span class="n">image_converted</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Image not found or couldn&#39;t be retrieved.&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;An error occurred while saving the image: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.get_last_image"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.get_last_image">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the last captured image.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - PySpin.Image: The last captured image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span></div>
+
+    <span class="c1"># Get the last captured image data as a numpy array</span>
+<div class="viewcode-block" id="PySpinCamera.get_last_image_data"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.get_last_image_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_image_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the last captured image data as a numpy array.</span>
+<span class="sd">        Shape: (height, width, 3) for RGB,  (height, width) for mono</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - numpy.ndarray: Image data in array format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Wait until last_image is not None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_filled</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">frame_image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span><span class="o">.</span><span class="n">GetNDArray</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelformat</span> <span class="o">==</span> <span class="s2">&quot;BayerRG8&quot;</span><span class="p">:</span>
+            <span class="n">frame_image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">frame_image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BayerRG2BGR</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">frame_image</span></div>
+
+    <span class="c1"># Get the last captured image data as a numpy array</span>
+<div class="viewcode-block" id="PySpinCamera.get_last_image_data_singleFrame"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.get_last_image_data_singleFrame">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_image_data_singleFrame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the last captured image data as a numpy array.</span>
+<span class="sd">        Shape: (height, width, 3) for RGB,  (height, width) for mono</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - numpy.ndarray: Image data in array format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Wait until last_image is not None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_filled</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">frame_image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span><span class="o">.</span><span class="n">GetNDArray</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixelformat</span> <span class="o">==</span> <span class="s2">&quot;BayerRG8&quot;</span><span class="p">:</span>
+            <span class="n">frame_image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">frame_image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BayerRG2BGR</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_image_cleared</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">frame_image</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.camera_info"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.camera_info">[docs]</a>    <span class="k">def</span> <span class="nf">camera_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves and logs the camera&#39;s essential information such as frame dimensions and channels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Gather camera details</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">Height</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">Width</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">channels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span><span class="o">.</span><span class="n">GetNumChannels</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;An error occurred while getting channel info: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;camera frame width: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="si">}</span><span class="s2">, height: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="si">}</span><span class="s2">, channels: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Set frame rate equal to the current acquisition frame rate (Hz)</span>
+        <span class="n">nodeFramerate</span> <span class="o">=</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">CFloatPtr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_map</span><span class="o">.</span><span class="n">GetNode</span><span class="p">(</span><span class="s1">&#39;AcquisitionFrameRate&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">IsAvailable</span><span class="p">(</span><span class="n">nodeFramerate</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">PySpin</span><span class="o">.</span><span class="n">IsReadable</span><span class="p">(</span><span class="n">nodeFramerate</span><span class="p">)):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Unable to retrieve frame rate. Aborting...&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frame_rate</span> <span class="o">=</span> <span class="n">nodeFramerate</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Frame rate to be set to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">frame_rate</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.save_recording"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.save_recording">[docs]</a>    <span class="k">def</span> <span class="nf">save_recording</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">isTimestamp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_name</span><span class="o">=</span><span class="s2">&quot;Microscope_&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Begins video recording and saves the video to the specified file path.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - filepath (str): Directory to save the video.</span>
+<span class="sd">        - isTimestamp (bool): Whether to append a timestamp to the filename.</span>
+<span class="sd">        - custom_name (str): Custom prefix for the filename.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Formulate the video name based on the input parameters</span>
+        <span class="n">video_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.avi&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">custom_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_capture_time</span><span class="p">())</span> \
+            <span class="k">if</span> <span class="n">isTimestamp</span> <span class="k">else</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.avi&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">custom_name</span><span class="p">)</span>
+        <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">video_name</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving video to </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Try saving video to </span><span class="si">{</span><span class="n">full_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Update camera details</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">camera_info</span><span class="p">()</span>
+
+        <span class="c1"># Begin the video recording with appropriate configurations</span>
+        <span class="n">fourcc</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoWriter_fourcc</span><span class="p">(</span><span class="o">*</span><span class="s1">&#39;XVID&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_output</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoWriter</span><span class="p">(</span><span class="n">full_path</span><span class="p">,</span> <span class="n">fourcc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame_rate</span><span class="p">,</span> \
+                                            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">),</span> <span class="kc">True</span><span class="p">)</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_on</span><span class="o">.</span><span class="n">set</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PySpinCamera.stop_recording"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.stop_recording">[docs]</a>    <span class="k">def</span> <span class="nf">stop_recording</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stops the ongoing video capture process and releases video resources.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_on</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_idle</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_idle</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">video_output</span><span class="o">.</span><span class="n">release</span><span class="p">()</span></div>
+
+    <span class="c1"># Clean up the camera</span>
+<div class="viewcode-block" id="PySpinCamera.stop"><a class="viewcode-back" href="../../parallax.html#parallax.camera.PySpinCamera.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Cleans up resources associated with the camera and video recording.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Do not change the order of codes without refering PySpin manual.</span>
+<span class="sd">            They are ordered by PySpin Camera Init / Turn off sequence. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">capture_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">camera</span><span class="o">.</span><span class="n">EndAcquisition</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_image</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_image_filled</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">video_recording_on</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stop_recording</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">clean</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">camera</span></div></div>
+
+<span class="c1"># Class for simulating a mock camera</span>
+<div class="viewcode-block" id="MockCamera"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera">[docs]</a><span class="k">class</span> <span class="nc">MockCamera</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Mock Camera showing salts and pepper noise images &quot;&quot;&quot;</span>
+    <span class="n">n_cameras</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize a mock camera with a unique name &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;MockCamera</span><span class="si">{</span><span class="n">MockCamera</span><span class="o">.</span><span class="n">n_cameras</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">MockCamera</span><span class="o">.</span><span class="n">n_cameras</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># Create mock image data with random values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3000</span><span class="p">,</span> <span class="mi">4000</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;ubyte&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_next_frame</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device_color_type</span> <span class="o">=</span> <span class="kc">None</span>
+        
+<div class="viewcode-block" id="MockCamera.name"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sn_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the name of the mock camera &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span></div>
+
+<div class="viewcode-block" id="MockCamera.get_last_image_data"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.get_last_image_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_image_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return last image as numpy array with shape (height, width, 3) for RGB or (height, width) for mono. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_next_frame</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_next_frame</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_next_frame</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">frame</span></div>
+    
+<div class="viewcode-block" id="MockCamera.save_last_image"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.save_last_image">[docs]</a>    <span class="k">def</span> <span class="nf">save_last_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">isTimestamp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_name</span><span class="o">=</span><span class="s2">&quot;MockCamera_&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This is MockCamera. Cannot capture the image&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="MockCamera.set_wb"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.set_wb">[docs]</a>    <span class="k">def</span> <span class="nf">set_wb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wb</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is MockCamera. Setting is not appliable&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="MockCamera.set_gamma"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.set_gamma">[docs]</a>    <span class="k">def</span> <span class="nf">set_gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is MockCamera. Setting is not appliable&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="MockCamera.set_gain"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.set_gain">[docs]</a>    <span class="k">def</span> <span class="nf">set_gain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="mf">25.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is MockCamera. Setting is not appliable&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="MockCamera.set_exposure"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.set_exposure">[docs]</a>    <span class="k">def</span> <span class="nf">set_exposure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expTime</span><span class="o">=</span><span class="mi">16000</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is MockCamera. Setting is not appliable&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is MockCamera. Stop&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+    
+<div class="viewcode-block" id="MockCamera.begin_continuous_acquisition"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.begin_continuous_acquisition">[docs]</a>    <span class="k">def</span> <span class="nf">begin_continuous_acquisition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="MockCamera.get_last_capture_time"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.get_last_capture_time">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_capture_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">millisecond</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="k">return</span> </div>
+    
+<div class="viewcode-block" id="MockCamera.stop"><a class="viewcode-back" href="../../parallax.html#parallax.camera.MockCamera.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="k">return</span></div></div>
+    
+<div class="viewcode-block" id="VideoSource"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource">[docs]</a><span class="k">class</span> <span class="nc">VideoSource</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Video Source &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize a video source with a given filename &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cap</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoCapture</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+
+<div class="viewcode-block" id="VideoSource.name"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sn_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the name of the video source &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span></div>
+
+<div class="viewcode-block" id="VideoSource.get_last_image_data"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.get_last_image_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_image_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Read the last captured frame from the video source &quot;&quot;&quot;</span>
+        <span class="n">ret</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cap</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ret</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">frame</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If the video has ended, reset the video source to the beginning</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cap</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">CAP_PROP_POS_FRAMES</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="mi">4000</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;ubyte&#39;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="VideoSource.save_last_image"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.save_last_image">[docs]</a>    <span class="k">def</span> <span class="nf">save_last_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">isTimestamp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">custom_name</span><span class="o">=</span><span class="s2">&quot;VideoSource_&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This is from Video Source. Cannot capture the image&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="VideoSource.set_wb"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.set_wb">[docs]</a>    <span class="k">def</span> <span class="nf">set_wb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wb</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is VideoSource. Setting is not appliable&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="VideoSource.set_gamma"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.set_gamma">[docs]</a>    <span class="k">def</span> <span class="nf">set_gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is VideoSource. Setting is not appliable&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+
+<div class="viewcode-block" id="VideoSource.set_gain"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.set_gain">[docs]</a>    <span class="k">def</span> <span class="nf">set_gain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="mf">25.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is VideoSource. Setting is not appliable&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="VideoSource.set_exposure"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.set_exposure">[docs]</a>    <span class="k">def</span> <span class="nf">set_exposure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expTime</span><span class="o">=</span><span class="mi">125000</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;This is VideoSource. Setting is not appliable&quot;</span><span class="p">)</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="VideoSource.begin_continuous_acquisition"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.begin_continuous_acquisition">[docs]</a>    <span class="k">def</span> <span class="nf">begin_continuous_acquisition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="k">return</span></div>
+    
+<div class="viewcode-block" id="VideoSource.stop"><a class="viewcode-back" href="../../parallax.html#parallax.camera.VideoSource.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clean</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Dummy function &quot;&quot;&quot;</span>
+        <span class="k">return</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Hanna Lee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
