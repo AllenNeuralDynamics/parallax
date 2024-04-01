@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>parallax.reticle_detection &mdash; Parallax 0.37.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=f5ec9bd4"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Parallax
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html">Welcome to Parallax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#installing-and-upgrading">Installing and Upgrading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#running-parallax">Running Parallax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Parallax Moduels</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Parallax</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">parallax.reticle_detection</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for parallax.reticle_detection</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; ReticleDetection for identifying reticle coordinates in microscopy images</span>
+
+<span class="sd">Process: </span>
+<span class="sd">- preprocessing, masking, and morphological operations</span>
+<span class="sd">- Utilizes adaptive thresholding, Gaussian blurring, and RANSAC for line detection, line drawing, and pixel refinement</span>
+<span class="sd">- Supports line intersection and missing point estimation</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">linregress</span>
+<span class="kn">from</span> <span class="nn">skimage.measure</span> <span class="kn">import</span> <span class="n">LineModelND</span><span class="p">,</span> <span class="n">ransac</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">cv2</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="c1"># Set logger name</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="c1"># Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;PyQt5.uic.uiparser&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;PyQt5.uic.properties&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ReticleDetection"><a class="viewcode-back" href="../../parallax.html#parallax.reticle_detection.ReticleDetection">[docs]</a><span class="k">class</span> <span class="nc">ReticleDetection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for detecting reticle lines and coordinates.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">IMG_SIZE</span><span class="p">,</span> <span class="n">reticle_frame_detector</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize Reticle Detection object &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_size</span> <span class="o">=</span> <span class="n">IMG_SIZE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reticle_frame_detector</span> <span class="o">=</span> <span class="n">reticle_frame_detector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_preprocess_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert image to grayscale, blur, and resize.&quot;&quot;&quot;</span>
+        <span class="c1"># Check if image is already grayscale</span>
+        <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># Check if image has 3 channels</span>
+            <span class="n">bg</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2GRAY</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bg</span> <span class="o">=</span> <span class="n">img</span>
+
+        <span class="n">bg</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">11</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bg</span>
+
+    <span class="k">def</span> <span class="nf">_apply_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply the mask to the image.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reticle_frame_detector</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_and</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_draw_reticle_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">pixels_in_lines</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Draw lines on the reticle points based on detected pixels.&quot;&quot;&quot;</span>
+        <span class="n">reticle_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_size</span>
+
+        <span class="k">for</span> <span class="n">pixels_in_line</span> <span class="ow">in</span> <span class="n">pixels_in_lines</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_draw_line</span><span class="p">(</span><span class="n">reticle_points</span><span class="p">,</span> <span class="n">pixels_in_line</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">)</span>
+
+        <span class="c1">#cv2.imwrite(&quot;debug/reticle_zone.jpg&quot;, reticle_points)</span>
+        <span class="k">return</span> <span class="n">reticle_points</span>
+
+    <span class="k">def</span> <span class="nf">_draw_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reticle_points</span><span class="p">,</span> <span class="n">pixels_in_line</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Draw a single line across the reticle points.&quot;&quot;&quot;</span>
+        <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">pixels_in_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">pixels_in_line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                
+        <span class="k">if</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Prevent division by zero</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="n">x_vert</span> <span class="o">=</span> <span class="n">x1</span>  <span class="c1"># Vertical line x-coordinate</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="p">(</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span><span class="p">)</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">-</span> <span class="n">m</span> <span class="o">*</span> <span class="n">x1</span>
+
+        <span class="k">if</span> <span class="n">m</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">:</span>
+            <span class="n">cv2</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">reticle_points</span><span class="p">,</span> <span class="p">(</span><span class="n">x_vert</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="n">x_vert</span><span class="p">,</span> <span class="n">height</span><span class="p">),</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">),</span> <span class="mi">35</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="mi">0</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span>
+            <span class="n">y_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">m</span> <span class="o">*</span> <span class="n">width</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span>
+            <span class="n">cv2</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">reticle_points</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_start</span><span class="p">),</span> <span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">y_end</span><span class="p">),</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">),</span> <span class="mi">35</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_ransac_detect_lines</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Detect lines using RANSAC algorithm.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            img (numpy.ndarray): Input image.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: (ret, inlier_lines, inlier_pixels)</span>
+<span class="sd">                - ret (bool): True if two lines are detected, False otherwise.</span>
+<span class="sd">                - inlier_lines (list): List of detected line models.</span>
+<span class="sd">                - inlier_pixels (list): List of inlier pixel coordinates for each line.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">inlier_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">inlier_pixels</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">img</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">inlier_lines</span><span class="p">,</span> <span class="n">inlier_pixels</span>
+
+        <span class="c1"># Draw</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># Grayscale image</span>
+            <span class="n">img_color</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_GRAY2BGR</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Color image</span>
+            <span class="n">img_color</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">contours</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_EXTERNAL</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
+        <span class="n">centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_centroid</span><span class="p">(</span><span class="n">contours</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">centroids</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;points for rasac line detection are less than 10&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">inlier_lines</span><span class="p">,</span> <span class="n">inlier_pixels</span>
+        
+        <span class="n">max_trials</span> <span class="o">=</span> <span class="mi">7000</span>
+        <span class="n">residual_threshold</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">50</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">inlier_lines</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">counter</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">)</span>
+                <span class="n">model_robust</span><span class="p">,</span> <span class="n">inliers</span> <span class="o">=</span> <span class="n">ransac</span><span class="p">(</span><span class="n">centroids</span><span class="p">,</span> 
+                                               <span class="n">LineModelND</span><span class="p">,</span> 
+                                               <span class="n">min_samples</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> 
+                                               <span class="n">residual_threshold</span><span class="o">=</span><span class="n">residual_threshold</span><span class="p">,</span> 
+                                               <span class="n">max_trials</span><span class="o">=</span><span class="n">max_trials</span><span class="p">)</span>
+            <span class="n">inlier_points</span> <span class="o">=</span> <span class="n">centroids</span><span class="p">[</span><span class="n">inliers</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inlier_points</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">20</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;residual_threshold: </span><span class="si">{</span><span class="n">residual_threshold</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">inlier_pixels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inlier_points</span><span class="p">)</span>
+                <span class="n">inlier_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">model_robust</span><span class="p">)</span>
+                <span class="n">centroids</span> <span class="o">=</span> <span class="n">centroids</span><span class="p">[</span><span class="o">~</span><span class="n">inliers</span><span class="p">]</span>
+                <span class="n">max_trials</span> <span class="o">=</span> <span class="mi">7000</span>
+                <span class="n">residual_threshold</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="n">counter</span> <span class="o">=</span> <span class="mi">50</span>   <span class="c1"># Reset counter</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">max_trials</span> <span class="o">+=</span> <span class="mi">2000</span>                  <span class="c1"># if not found, run RASAC again</span>
+                <span class="n">counter</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">residual_threshold</span> <span class="o">&lt;=</span> <span class="mi">15</span><span class="p">:</span>
+                    <span class="n">residual_threshold</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">continue</span>
+
+        <span class="c1"># Draw the centroids</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        for points in inlier_pixels:</span>
+<span class="sd">            for point in points:</span>
+<span class="sd">                cv2.circle(img_color, (int(point[0]), int(point[1])), 1, (0, 0, 255), -1)  # Draw green circles</span>
+<span class="sd">        cv2.imwrite(&quot;debug/centroid.jpg&quot;, img_color)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">inlier_lines</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">,</span> <span class="n">inlier_lines</span><span class="p">,</span> <span class="n">inlier_pixels</span>
+    
+    <span class="k">def</span> <span class="nf">_fit_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fit a line to the given pixels.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            pixels (numpy.ndarray): Pixel coordinates.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: (slope, intercept) of the fitted line.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_coords</span><span class="p">,</span> <span class="n">y_coords</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">pixels</span><span class="p">)</span>
+        <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">linregress</span><span class="p">(</span><span class="n">x_coords</span><span class="p">,</span> <span class="n">y_coords</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span>
+
+    <span class="k">def</span> <span class="nf">_find_intersection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line1</span><span class="p">,</span> <span class="n">line2</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find the intersection point of two lines.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            line1 (tuple): (slope, intercept) of the first line.</span>
+<span class="sd">            line2 (tuple): (slope, intercept) of the second line.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple or None: (x, y) coordinates of the intersection point if it exists, None otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">slope1</span><span class="p">,</span> <span class="n">intercept1</span> <span class="o">=</span> <span class="n">line1</span>
+        <span class="n">slope2</span><span class="p">,</span> <span class="n">intercept2</span> <span class="o">=</span> <span class="n">line2</span>
+
+        <span class="k">if</span> <span class="n">slope1</span> <span class="o">==</span> <span class="n">slope2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># No intersection (parallel lines)</span>
+
+        <span class="n">x_intersect</span> <span class="o">=</span> <span class="p">(</span><span class="n">intercept2</span> <span class="o">-</span> <span class="n">intercept1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">slope1</span> <span class="o">-</span> <span class="n">slope2</span><span class="p">)</span>
+        <span class="n">y_intersect</span> <span class="o">=</span> <span class="n">slope1</span> <span class="o">*</span> <span class="n">x_intersect</span> <span class="o">+</span> <span class="n">intercept1</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">x_intersect</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">y_intersect</span><span class="p">))</span>
+        
+    <span class="k">def</span> <span class="nf">_get_center_coords_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the index of the center coordinates in the given coordinates.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            center (tuple): Center coordinates (x, y).</span>
+<span class="sd">            coords (numpy.ndarray): Array of coordinates.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            int or None: Index of the center coordinates in the coords array, None if not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_center</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">=</span> <span class="n">center</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+                <span class="n">test_center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_center</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="n">y_center</span> <span class="o">+</span> <span class="n">j</span><span class="p">])</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">coords</span> <span class="o">==</span> <span class="n">test_center</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_get_pixels_interest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the pixels of interest around the center coordinates.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            center (tuple): Center coordinates (x, y).</span>
+<span class="sd">            coords (numpy.ndarray): Array of coordinates.</span>
+<span class="sd">            dist (int): Distance from the center to select pixels of interest. Defaults to 10.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray or None: Selected pixels of interest, None if center is not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">center_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_center_coords_index</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">center_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        
+        <span class="n">start_index</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">center_index</span> <span class="o">-</span> <span class="n">dist</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">end_index</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">center_index</span> <span class="o">+</span> <span class="n">dist</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="p">[</span><span class="n">start_index</span><span class="p">:</span><span class="n">end_index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_find_reticle_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixels_in_lines</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find the reticle coordinates from the pixels in lines.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            pixels_in_lines (list): List of pixel coordinates for each line.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list: List of pixel coordinates of interest for each line.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pixels_in_lines</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Function requires exactly two lines&quot;</span><span class="p">)</span>
+
+        <span class="n">line1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fit_line</span><span class="p">(</span><span class="n">pixels_in_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">line2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fit_line</span><span class="p">(</span><span class="n">pixels_in_lines</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">center_point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_intersection</span><span class="p">(</span><span class="n">line1</span><span class="p">,</span> <span class="n">line2</span><span class="p">)</span>
+
+        <span class="n">coords_interest</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pixels_in_line</span> <span class="ow">in</span> <span class="n">pixels_in_lines</span><span class="p">:</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pixels_interest</span><span class="p">(</span><span class="n">center_point</span><span class="p">,</span> <span class="n">pixels_in_line</span><span class="p">)</span>
+            <span class="n">coords_interest</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">coords_interest</span>
+
+    <span class="k">def</span> <span class="nf">_eroding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Erode the image until the desired contour conditions are met.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            img (numpy.ndarray): Input image.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Eroded image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kernel_ellipse_3</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getStructuringElement</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_ELLIPSE</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="k">while</span> <span class="n">counter</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">contours</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_EXTERNAL</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">contours</span><span class="p">:</span>
+                <span class="k">break</span>
+            
+            <span class="n">largest_contour</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">contours</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">)</span>
+            <span class="n">largest_contour_area</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">largest_contour</span><span class="p">)</span>
+            <span class="k">if</span> <span class="mi">50</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">contours</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">300</span> <span class="ow">and</span> <span class="n">largest_contour_area</span> <span class="o">&lt;</span> <span class="mi">30</span><span class="o">*</span><span class="mi">30</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">erode</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">kernel_ellipse_3</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">morphologyEx</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_OPEN</span><span class="p">,</span> <span class="n">kernel_ellipse_3</span><span class="p">)</span>
+            <span class="n">counter</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">img</span>
+
+    <span class="k">def</span> <span class="nf">_get_centroid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">contours</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the centroid of each contour.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            contours (list): List of contours.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list: List of centroid coordinates for each contour.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">centroids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">contour</span> <span class="ow">in</span> <span class="n">contours</span><span class="p">:</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">moments</span><span class="p">(</span><span class="n">contour</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">M</span><span class="p">[</span><span class="s2">&quot;m00&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cX</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">M</span><span class="p">[</span><span class="s2">&quot;m10&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">M</span><span class="p">[</span><span class="s2">&quot;m00&quot;</span><span class="p">])</span>
+                <span class="n">cY</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">M</span><span class="p">[</span><span class="s2">&quot;m01&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">M</span><span class="p">[</span><span class="s2">&quot;m00&quot;</span><span class="p">])</span>
+                <span class="n">centroids</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">cX</span><span class="p">,</span> <span class="n">cY</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">centroids</span>
+    
+    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Delete the instance &quot;&quot;&quot;</span>
+        <span class="c1">#print(&quot;ReticleDetection Object destroyed&quot;)</span>
+        <span class="k">pass</span>
+    
+    <span class="k">def</span> <span class="nf">_sort_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sort the points based on the dimension with greater median distance.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            points (numpy.ndarray): Array of points.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Sorted points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Calculate differences between consecutive points</span>
+        <span class="n">diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">x_diffs</span> <span class="o">=</span> <span class="n">diffs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">y_diffs</span> <span class="o">=</span> <span class="n">diffs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Compute median distances for x and y</span>
+        <span class="n">median_x_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">x_diffs</span><span class="p">))</span>
+        <span class="n">median_y_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y_diffs</span><span class="p">))</span>
+
+        <span class="c1"># Determine which dimension has greater median distance</span>
+        <span class="k">if</span> <span class="n">median_x_diff</span> <span class="o">&gt;</span> <span class="n">median_y_diff</span><span class="p">:</span>
+            <span class="c1"># Sort points based on x component if x has greater median distance</span>
+            <span class="n">sorted_points</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">points</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Sort points based on y component if y has greater median distance</span>
+            <span class="n">sorted_points</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="o">-</span><span class="n">points</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])]</span>
+
+        <span class="k">return</span> <span class="n">sorted_points</span>
+
+    <span class="k">def</span> <span class="nf">_estimate_missing_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">threshold_factor</span><span class="o">=</span><span class="mf">1.5</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Estimate missing points in the given points based on the average distance.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            points (numpy.ndarray): Array of points.</span>
+<span class="sd">            threshold_factor (float): Factor to determine the threshold for large gaps. Defaults to 1.5.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Array of estimated missing points.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sort_points</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+
+        <span class="c1"># Calculate the Euclidean distances between consecutive points</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># Estimate the average distance</span>
+        <span class="n">average_distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span>
+
+        <span class="c1"># Identify large gaps</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">threshold_factor</span> <span class="o">*</span> <span class="n">average_distance</span>
+        <span class="n">large_gaps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">distances</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Estimate missing points in the large gaps</span>
+        <span class="n">missing_points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">gap_index</span> <span class="ow">in</span> <span class="n">large_gaps</span><span class="p">:</span>
+            <span class="n">start_point</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="n">gap_index</span><span class="p">]</span>
+            <span class="n">end_point</span> <span class="o">=</span> <span class="n">points</span><span class="p">[</span><span class="n">gap_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">num_missing</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">distances</span><span class="p">[</span><span class="n">gap_index</span><span class="p">]</span> <span class="o">/</span> <span class="n">average_distance</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_missing</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">missing_point</span> <span class="o">=</span> <span class="n">start_point</span> <span class="o">+</span> <span class="p">(</span><span class="n">end_point</span> <span class="o">-</span> <span class="n">start_point</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_missing</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="n">missing_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">missing_point</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">missing_points</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_missing_pixels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="n">lines</span><span class="p">,</span> <span class="n">line_pixels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add missing pixels to the line pixels based on the estimated missing points.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            bg (numpy.ndarray): Background image.</span>
+<span class="sd">            lines (list): List of line models.</span>
+<span class="sd">            line_pixels (list): List of pixel coordinates for each line.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: (bg, refined_pixels)</span>
+<span class="sd">                - bg (numpy.ndarray): Background image with missing points drawn.</span>
+<span class="sd">                - refined_pixels (list): List of refined pixel coordinates for each line.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">refined_pixels</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">line_model</span><span class="p">,</span> <span class="n">pixels</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">line_pixels</span><span class="p">):</span>
+            <span class="n">pixels_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span>
+            <span class="n">missing_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_estimate_missing_points</span><span class="p">(</span><span class="n">pixels_array</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">missing_points</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">missing_points</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">missing_points</span> <span class="o">=</span> <span class="n">missing_points</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># Reshape to 2D if it&#39;s flat but not empty</span>
+            <span class="k">elif</span> <span class="n">missing_points</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">missing_points_adjusted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>  <span class="c1"># Handle empty case</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">missing_points_adjusted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">x</span><span class="p">,</span> <span class="n">line_model</span><span class="o">.</span><span class="n">predict_y</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">]))[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">missing_points</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]])</span>
+
+            <span class="c1"># Combine original and adjusted missing points</span>
+            <span class="k">if</span> <span class="n">missing_points_adjusted</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">full_line_pixels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">pixels_array</span><span class="p">,</span> <span class="n">missing_points_adjusted</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">full_line_pixels</span> <span class="o">=</span> <span class="n">pixels_array</span>
+                
+            <span class="n">full_line_pixels</span> <span class="o">=</span> <span class="n">full_line_pixels</span><span class="p">[</span><span class="n">full_line_pixels</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">argsort</span><span class="p">()]</span>  <span class="c1"># Sort by x-coordinate</span>
+            <span class="n">full_line_pixels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">full_line_pixels</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">refined_pixels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_line_pixels</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing_points_adjusted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">pixel</span> <span class="ow">in</span> <span class="n">missing_points_adjusted</span><span class="p">:</span>
+                    <span class="n">pt</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span> <span class="k">for</span> <span class="n">coordinate</span> <span class="ow">in</span> <span class="n">pixel</span><span class="p">)</span>
+                    <span class="n">cv2</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">pt</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">255</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  
+                    
+        <span class="k">return</span> <span class="n">bg</span><span class="p">,</span> <span class="n">refined_pixels</span>
+    
+    <span class="k">def</span> <span class="nf">_refine_pixels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="n">lines</span><span class="p">,</span> <span class="n">line_pixels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Refine the pixel coordinates fitting into lines based on the line models.</span>
+<span class="sd">    </span>
+<span class="sd">        Args:</span>
+<span class="sd">            bg (numpy.ndarray): Background image.</span>
+<span class="sd">            lines (list): List of line models.</span>
+<span class="sd">            line_pixels (list): List of pixel coordinates for each line.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: (bg, lines, refined_pixels)</span>
+<span class="sd">                - bg (numpy.ndarray): Background image with refined pixels drawn.</span>
+<span class="sd">                - lines (list): List of line models.</span>
+<span class="sd">                - refined_pixels (list): List of refined pixel coordinates for each line.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">refined_pixels</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">line_model</span><span class="p">,</span> <span class="n">pixels</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">line_pixels</span><span class="p">):</span>
+            <span class="n">origin</span><span class="p">,</span> <span class="n">direction</span> <span class="o">=</span> <span class="n">line_model</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">line_model</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># Draw</span>
+            <span class="n">point1</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">origin</span> <span class="o">+</span> <span class="o">-</span><span class="mi">2000</span> <span class="o">*</span> <span class="n">direction</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>  <span class="c1"># Extend the line</span>
+            <span class="n">point2</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">origin</span> <span class="o">+</span> <span class="mi">2000</span> <span class="o">*</span> <span class="n">direction</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>  <span class="c1"># Extend the line</span>
+            <span class="n">cv2</span><span class="o">.</span><span class="n">line</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">point1</span><span class="p">,</span> <span class="n">point2</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> 
+            <span class="n">pixels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pixels</span><span class="p">)</span>
+            <span class="n">to_pixels</span> <span class="o">=</span> <span class="n">pixels</span> <span class="o">-</span> <span class="n">origin</span>
+            <span class="n">proj_lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">to_pixels</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+            <span class="n">proj_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">proj_lengths</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span> <span class="o">+</span> <span class="n">origin</span>
+
+            <span class="n">proj_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">proj_points</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+            <span class="n">refined_pixels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proj_points</span><span class="p">)</span>
+
+        <span class="c1"># Draw</span>
+        <span class="k">for</span> <span class="n">refined_pixels_per_line</span> <span class="ow">in</span> <span class="n">refined_pixels</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">pixel</span> <span class="ow">in</span> <span class="n">refined_pixels_per_line</span><span class="p">:</span>
+                    <span class="n">pt</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">pixel</span><span class="p">)</span>
+                    <span class="n">cv2</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">pt</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1">#cv2.imwrite(&quot;debug/refined_pixels.jpg&quot;, bg)</span>
+        <span class="k">return</span> <span class="n">bg</span><span class="p">,</span> <span class="n">lines</span><span class="p">,</span> <span class="n">refined_pixels</span>
+
+<div class="viewcode-block" id="ReticleDetection.get_reticle_zone"><a class="viewcode-back" href="../../parallax.html#parallax.reticle_detection.ReticleDetection.get_reticle_zone">[docs]</a>    <span class="k">def</span> <span class="nf">get_reticle_zone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the reticle zone from the image.</span>
+<span class="sd">    </span>
+<span class="sd">        Args:</span>
+<span class="sd">            img (numpy.ndarray): Input image.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray or None: Reticle zone image if reticle exists, None otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_preprocess_image</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="n">bg</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_size</span><span class="p">)</span>
+        <span class="n">masked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask</span><span class="p">(</span><span class="n">bg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reticle_frame_detector</span><span class="o">.</span><span class="n">is_reticle_exist</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">pixels_in_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords_detect_morph</span><span class="p">(</span><span class="n">bg</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_draw_reticle_lines</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">pixels_in_lines</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+    
+<div class="viewcode-block" id="ReticleDetection.coords_detect_morph"><a class="viewcode-back" href="../../parallax.html#parallax.reticle_detection.ReticleDetection.coords_detect_morph">[docs]</a>    <span class="k">def</span> <span class="nf">coords_detect_morph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies morphological operations and adaptive thresholding </span>
+<span class="sd">        to detect coordinates in an image. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">img_color</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_GRAY2BGR</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3000</span><span class="p">,</span><span class="mi">4000</span><span class="p">):</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">adaptiveThreshold</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">ADAPTIVE_THRESH_GAUSSIAN_C</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_BINARY</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">adaptiveThreshold</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">ADAPTIVE_THRESH_GAUSSIAN_C</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_BINARY</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">medianBlur</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_not</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">kernel_ellipse_5</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getStructuringElement</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_ELLIPSE</span><span class="p">,(</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+        <span class="n">kernel_ellipse_3</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">getStructuringElement</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_ELLIPSE</span><span class="p">,(</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">morphologyEx</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">MORPH_CLOSE</span><span class="p">,</span> <span class="n">kernel_ellipse_5</span><span class="p">)</span>
+
+        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eroding</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="c1">#cv2.imwrite(&quot;debug/after_eroding.jpg&quot;, img)</span>
+        <span class="n">ret</span><span class="p">,</span> <span class="n">inliner_lines</span><span class="p">,</span> <span class="n">inliner_lines_pixels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ransac_detect_lines</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;n of inliner lines: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">inliner_lines_pixels</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Draw</span>
+        <span class="k">for</span> <span class="n">inliner_lines_pixel</span> <span class="ow">in</span> <span class="n">inliner_lines_pixels</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">pixel</span> <span class="ow">in</span> <span class="n">inliner_lines_pixel</span><span class="p">:</span>
+                    <span class="n">pt</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">pixel</span><span class="p">)</span>
+                    <span class="n">cv2</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span><span class="n">img_color</span><span class="p">,</span> <span class="n">pt</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  
+        <span class="c1">#cv2.imwrite(&quot;debug/inliner_pixels.jpg&quot;, img_color)</span>
+        
+        <span class="k">return</span> <span class="n">ret</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">inliner_lines</span><span class="p">,</span> <span class="n">inliner_lines_pixels</span></div>
+    
+<div class="viewcode-block" id="ReticleDetection.get_coords"><a class="viewcode-back" href="../../parallax.html#parallax.reticle_detection.ReticleDetection.get_coords">[docs]</a>    <span class="k">def</span> <span class="nf">get_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Detect coordinates using morphological operations.</span>
+<span class="sd">    </span>
+<span class="sd">        Args:</span>
+<span class="sd">            img (numpy.ndarray): Input image.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: (ret, img, inliner_lines, inliner_lines_pixels)</span>
+<span class="sd">                - ret (bool): True if coordinates are detected, False otherwise.</span>
+<span class="sd">                - img (numpy.ndarray): Processed image.</span>
+<span class="sd">                - inliner_lines (list): List of inlier line models.</span>
+<span class="sd">                - inliner_lines_pixels (list): List of inlier pixel coordinates for each line.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_preprocess_image</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="n">masked</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_mask</span><span class="p">(</span><span class="n">bg</span><span class="p">)</span>
+        <span class="c1">#if self.mask is not None:</span>
+        <span class="c1">#    cv2.imwrite(&quot;debug/mask.jpg&quot;, self.mask)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reticle_frame_detector</span><span class="o">.</span><span class="n">is_reticle_exist</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="n">inliner_lines</span><span class="p">,</span> <span class="n">pixels_in_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords_detect_morph</span><span class="p">(</span><span class="n">bg</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;nLines: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pixels_in_lines</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1">#if len(pixels_in_lines) == 2:</span>
+            <span class="k">if</span> <span class="n">ret</span><span class="p">:</span>
+                <span class="n">bg</span><span class="p">,</span> <span class="n">inliner_lines</span><span class="p">,</span> <span class="n">pixels_in_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_refine_pixels</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">inliner_lines</span><span class="p">,</span> <span class="n">pixels_in_lines</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;detect: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pixels_in_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pixels_in_lines</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">)</span>
+                <span class="n">bg</span><span class="p">,</span> <span class="n">pixels_in_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_missing_pixels</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">inliner_lines</span><span class="p">,</span> <span class="n">pixels_in_lines</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;interpolate: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pixels_in_lines</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">pixels_in_lines</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="c1">#cv2.imwrite(&quot;debug/added_missing_points.jpg&quot;, bg)</span>
+            <span class="k">return</span> <span class="n">ret</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="n">inliner_lines</span><span class="p">,</span> <span class="n">pixels_in_lines</span>
+        
+        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    def is_distance_tip_reticle_threshold(self, probe, reticle, thresh=10):</span>
+<span class="sd">        tip_x, tip_y = probe[&quot;tip_coords&quot;]</span>
+<span class="sd">        dist_transform = cv2.distanceTransform(reticle, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)</span>
+<span class="sd">        # Get the distance at the tip location</span>
+<span class="sd">        distance_at_tip = dist_transform[int(tip_y), int(tip_x)]</span>
+<span class="sd">        print(&quot;distance_at_tip: &quot;, distance_at_tip)</span>
+<span class="sd">        return distance_at_tip &gt; thresh</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Hanna Lee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

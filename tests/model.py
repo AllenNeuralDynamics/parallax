@@ -1,3 +1,4 @@
+""" Test for model """
 #!/usr/bin/env python -i
 from parallax.model import Model
 

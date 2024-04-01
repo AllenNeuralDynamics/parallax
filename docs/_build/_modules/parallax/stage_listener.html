@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>parallax.stage_listener &mdash; Parallax 0.37.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=f5ec9bd4"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Parallax
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html">Welcome to Parallax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#installing-and-upgrading">Installing and Upgrading</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#running-parallax">Running Parallax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Parallax Moduels</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Parallax</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">parallax.stage_listener</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for parallax.stage_listener</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provides classes to manage stage data fetching, representation, and updates in microscopy </span>
+<span class="sd">applications, using PyQt5 for threading and signals, and requests for HTTP requests.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">PyQt5.QtCore</span> <span class="kn">import</span> <span class="n">QObject</span><span class="p">,</span> <span class="n">pyqtSignal</span><span class="p">,</span> <span class="n">QThread</span><span class="p">,</span> <span class="n">QTimer</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="c1"># Set logger name</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="c1"># Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;PyQt5.uic.uiparser&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;PyQt5.uic.properties&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StageInfo"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageInfo">[docs]</a><span class="k">class</span> <span class="nc">StageInfo</span><span class="p">(</span><span class="n">QObject</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for retrieving stage information.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize StageInfo thread &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nStages</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stages_sn</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="StageInfo.get_instances"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageInfo.get_instances">[docs]</a>    <span class="k">def</span> <span class="nf">get_instances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the instances of the stages.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list: List of stage instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">stages</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nStages</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Probes&quot;</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nStages</span><span class="p">):</span>
+                    <span class="n">stage</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;ProbeArray&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stages_sn</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stage</span><span class="p">[</span><span class="s2">&quot;SerialNumber&quot;</span><span class="p">])</span>
+                    <span class="n">stages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stage</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">HttpServer for stages not enabled: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;* Trouble Shooting: &quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1. Check New Scale Stage connection.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2. Enable Http Server: &#39;http://localhost:8080/&#39;&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3. Click &#39;Connect&#39; on New Scale SW&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">stages</span></div></div>
+
+<div class="viewcode-block" id="Stage"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.Stage">[docs]</a><span class="k">class</span> <span class="nc">Stage</span><span class="p">(</span><span class="n">QObject</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class representing a stage.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage_info</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize Stage thread &quot;&quot;&quot;</span>
+        <span class="n">QObject</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stage_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sn</span> <span class="o">=</span> <span class="n">stage_info</span><span class="p">[</span><span class="s2">&quot;SerialNumber&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">stage_info</span><span class="p">[</span><span class="s2">&quot;Id&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_x</span> <span class="o">=</span> <span class="n">stage_info</span><span class="p">[</span><span class="s2">&quot;Stage_X&quot;</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_y</span> <span class="o">=</span> <span class="n">stage_info</span><span class="p">[</span><span class="s2">&quot;Stage_Y&quot;</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_z</span> <span class="o">=</span> <span class="n">stage_info</span><span class="p">[</span><span class="s2">&quot;Stage_Z&quot;</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_x_global</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_y_global</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_z_global</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="Worker"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.Worker">[docs]</a><span class="k">class</span> <span class="nc">Worker</span><span class="p">(</span><span class="n">QObject</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Worker class for fetching stage data.&quot;&quot;&quot;</span>
+    <span class="n">dataChanged</span> <span class="o">=</span> <span class="n">pyqtSignal</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">stage_moving</span> <span class="o">=</span> <span class="n">pyqtSignal</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">stage_not_moving</span> <span class="o">=</span> <span class="n">pyqtSignal</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize worker thread &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">url</span> <span class="o">=</span> <span class="n">url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer</span> <span class="o">=</span> <span class="n">QTimer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer</span><span class="o">.</span><span class="n">timeout</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fetchData</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_stage_info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_bigmove_stage_info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_bigmove_detected_time</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_low_freq_interval</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_high_freq_interval</span> <span class="o">=</span> <span class="mi">10</span>    <span class="c1"># TODO</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_interval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_low_freq_interval</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_idle_time</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_error_log_printed</span> <span class="o">=</span> <span class="kc">False</span>
+        
+<div class="viewcode-block" id="Worker.start"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.Worker.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the worker thread.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            interval (int): Interval in milliseconds. Defaults to 1000.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Worker.stop"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.Worker.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop the timer.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Worker.print_trouble_shooting_msg"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.Worker.print_trouble_shooting_msg">[docs]</a>    <span class="k">def</span> <span class="nf">print_trouble_shooting_msg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Print the troubleshooting message.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trouble Shooting: &quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1. Check New Scale Stage connection.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2. Enable Http Server: &#39;http://localhost:8080/&#39;&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3. Click &#39;Connect&#39; on New Scale SW&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Worker.fetchData"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.Worker.fetchData">[docs]</a>    <span class="k">def</span> <span class="nf">fetchData</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fetches content from the URL and checks for significant changes.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>        
+            <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>   
+                <span class="n">data</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;Probes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_error_log_printed</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">is_error_log_printed</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Stage is not connected to New Scale SW&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">print_trouble_shooting_msg</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">selected_probe</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;SelectedProbe&quot;</span><span class="p">]</span>
+                    <span class="n">probe</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;ProbeArray&quot;</span><span class="p">][</span><span class="n">selected_probe</span><span class="p">]</span>  
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_stage_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="c1"># Initial </span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">last_stage_info</span> <span class="o">=</span> <span class="n">probe</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">last_bigmove_stage_info</span> <span class="o">=</span> <span class="n">probe</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">dataChanged</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_interval</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_high_freq_interval</span><span class="p">:</span>
+                        <span class="c1"># Update</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">isSmallChange</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+                        <span class="c1"># If last updated move (in 30um) is more than 1 sec ago, swith to w/ low freq</span>
+                        <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_bigmove_detected_time</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_idle_time</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;low freq mode&quot;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">curr_interval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_low_freq_interval</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_interval</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">stage_not_moving</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+
+                    <span class="c1"># If moves more than 30um, check w/ high freq</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSignificantChange</span><span class="p">(</span><span class="n">probe</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_interval</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_low_freq_interval</span><span class="p">:</span>
+                            <span class="c1"># 10 msec mode</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;high freq mode&quot;</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">curr_interval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_high_freq_interval</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">curr_interval</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">stage_moving</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">probe</span><span class="p">)</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">is_error_log_printed</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to access </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">url</span><span class="si">}</span><span class="s2">. Status code: </span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_error_log_printed</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_error_log_printed</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">HttpServer for stages not enabled: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">print_trouble_shooting_msg</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Worker.isSignificantChange"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.Worker.isSignificantChange">[docs]</a>    <span class="k">def</span> <span class="nf">isSignificantChange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_stage_info</span><span class="p">,</span> <span class="n">stage_threshold</span><span class="o">=</span><span class="mf">0.005</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the change in any axis exceeds the threshold.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Stage_X&#39;</span><span class="p">,</span> <span class="s1">&#39;Stage_Y&#39;</span><span class="p">,</span> <span class="s1">&#39;Stage_Z&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">current_stage_info</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_bigmove_stage_info</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">stage_threshold</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_bigmove_detected_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_bigmove_stage_info</span> <span class="o">=</span> <span class="n">current_stage_info</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+    
+<div class="viewcode-block" id="Worker.isSmallChange"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.Worker.isSmallChange">[docs]</a>    <span class="k">def</span> <span class="nf">isSmallChange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_stage_info</span><span class="p">,</span> <span class="n">stage_threshold</span><span class="o">=</span><span class="mf">0.0005</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the change in any axis exceeds the threshold.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Stage_X&#39;</span><span class="p">,</span> <span class="s1">&#39;Stage_Y&#39;</span><span class="p">,</span> <span class="s1">&#39;Stage_Z&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">current_stage_info</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_stage_info</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">stage_threshold</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dataChanged</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">current_stage_info</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last_stage_info</span> <span class="o">=</span> <span class="n">current_stage_info</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div></div>
+
+<div class="viewcode-block" id="StageListener"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageListener">[docs]</a><span class="k">class</span> <span class="nc">StageListener</span><span class="p">(</span><span class="n">QObject</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for listening to stage updates.&quot;&quot;&quot;</span>
+    <span class="n">probeCalibRequest</span> <span class="o">=</span> <span class="n">pyqtSignal</span><span class="p">(</span><span class="n">QObject</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">stage_ui</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize Stage Listener object &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestamp_local</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp_img_captured</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">worker</span> <span class="o">=</span> <span class="n">Worker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stage_listener_url</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thread</span> <span class="o">=</span> <span class="n">QThread</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_ui</span> <span class="o">=</span> <span class="n">stage_ui</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">started</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">start</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">dataChanged</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">handleDataChange</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">stage_moving</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stageMovingStatus</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">stage_not_moving</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stageNotMovingStatus</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_ts_local_coords</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">buffer_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span> <span class="o">=</span> <span class="kc">None</span>
+    
+<div class="viewcode-block" id="StageListener.start"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageListener.start">[docs]</a>    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the stage listener.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">nStages</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">moveToThread</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="StageListener.get_last_moved_time"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageListener.get_last_moved_time">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_moved_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">millisecond</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the last moved time of the stage.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            millisecond (bool): Include milliseconds in the timestamp. Defaults to False.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Last moved time as a string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ts</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">millisecond</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%04d%02d%02d</span><span class="s1">-</span><span class="si">%02d%02d%02d</span><span class="s1">.</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                        <span class="n">dt</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">second</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">microsecond</span> <span class="o">//</span> <span class="mi">1000</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%04d%02d%02d</span><span class="s1">-</span><span class="si">%02d%02d%02d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+                                              <span class="n">dt</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">second</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="StageListener.append_to_buffer"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageListener.append_to_buffer">[docs]</a>    <span class="k">def</span> <span class="nf">append_to_buffer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">stage</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append stage data to the buffer.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            ts (str): Timestamp.</span>
+<span class="sd">            stage (Stage): Stage object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_ts_local_coords</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ts</span><span class="p">,</span> <span class="p">[</span><span class="n">stage</span><span class="o">.</span><span class="n">stage_x</span><span class="p">,</span> <span class="n">stage</span><span class="o">.</span><span class="n">stage_y</span><span class="p">,</span> <span class="n">stage</span><span class="o">.</span><span class="n">stage_z</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="StageListener.handleDataChange"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageListener.handleDataChange">[docs]</a>    <span class="k">def</span> <span class="nf">handleDataChange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle changes in stage data.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            probe (dict): Probe data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Format the current timestamp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestamp_local</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_moved_time</span><span class="p">(</span><span class="n">millisecond</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="nb">id</span> <span class="o">=</span> <span class="n">probe</span><span class="p">[</span><span class="s1">&#39;Id&#39;</span><span class="p">]</span>
+        <span class="n">sn</span> <span class="o">=</span> <span class="n">probe</span><span class="p">[</span><span class="s1">&#39;SerialNumber&#39;</span><span class="p">]</span>
+        <span class="n">local_coords_x</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">probe</span><span class="p">[</span><span class="s1">&#39;Stage_X&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">local_coords_y</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">probe</span><span class="p">[</span><span class="s1">&#39;Stage_Y&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">local_coords_z</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">probe</span><span class="p">[</span><span class="s1">&#39;Stage_Z&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># update into model</span>
+        <span class="n">moving_stage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sn</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">moving_stage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">moving_stage</span><span class="o">.</span><span class="n">stage_x</span> <span class="o">=</span> <span class="n">local_coords_x</span>
+            <span class="n">moving_stage</span><span class="o">.</span><span class="n">stage_y</span> <span class="o">=</span> <span class="n">local_coords_y</span>
+            <span class="n">moving_stage</span><span class="o">.</span><span class="n">stage_z</span> <span class="o">=</span> <span class="n">local_coords_z</span>
+
+        <span class="c1"># Update to buffer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_to_buffer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timestamp_local</span><span class="p">,</span> <span class="n">moving_stage</span><span class="p">)</span>
+
+        <span class="c1"># Update into UI</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage_ui</span><span class="o">.</span><span class="n">get_selected_stage_sn</span><span class="p">()</span> <span class="o">==</span> <span class="n">sn</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_ui</span><span class="o">.</span><span class="n">updateStageLocalCoords</span><span class="p">()</span></div>
+        <span class="c1">#logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())</span>
+    
+    <span class="k">def</span> <span class="nf">_change_time_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_time</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Change the time format from string to datetime.&quot;&quot;&quot;</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">-%H%M%S.</span><span class="si">%f</span><span class="s2">&quot;</span>
+        <span class="n">date_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">str_time</span><span class="p">,</span> <span class="n">fmt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">date_time</span>
+
+    <span class="k">def</span> <span class="nf">_find_closest_local_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find the closest local coordinates based on the image capture timestamp.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: (closest_ts, closest_coords)</span>
+<span class="sd">                - closest_ts (str): Closest timestamp.</span>
+<span class="sd">                - closest_coords (list): Closest local coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">closest_ts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">closest_coords</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># Initialize a variable to track the smallest time difference</span>
+        <span class="c1"># Use a large initial value</span>
+        <span class="n">smallest_time_diff</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">ts</span><span class="p">,</span> <span class="n">local_coords</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer_ts_local_coords</span><span class="p">:</span>
+            <span class="n">ts_datetime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_change_time_format</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+            <span class="n">time_diff</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_img_captured</span> <span class="o">-</span> <span class="n">ts_datetime</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">time_diff</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="c1"># Ensure we&#39;re not exceeding the global timestamp and the time difference is the smallest so far</span>
+            <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">time_diff</span> <span class="o">&lt;</span> <span class="n">smallest_time_diff</span><span class="p">:</span>
+                <span class="n">smallest_time_diff</span> <span class="o">=</span> <span class="n">time_diff</span>
+                <span class="n">closest_ts</span> <span class="o">=</span> <span class="n">ts</span>
+                <span class="n">closest_coords</span> <span class="o">=</span> <span class="n">local_coords</span>
+
+        <span class="k">return</span> <span class="n">closest_ts</span><span class="p">,</span> <span class="n">closest_coords</span>
+
+<div class="viewcode-block" id="StageListener.handleGlobalDataChange"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageListener.handleGlobalDataChange">[docs]</a>    <span class="k">def</span> <span class="nf">handleGlobalDataChange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sn</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">ts_img_captured</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle changes in global stage data.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            sn (str): Serial number of the stage.</span>
+<span class="sd">            coords (list): Global coordinates.</span>
+<span class="sd">            ts_img_captured (str): Timestamp of the captured image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_img_captured</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_change_time_format</span><span class="p">(</span><span class="n">ts_img_captured</span><span class="p">)</span>
+        <span class="n">ts_local_coords</span><span class="p">,</span> <span class="n">local_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_closest_local_coords</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">timestamp local:</span><span class="si">{</span><span class="n">ts_local_coords</span><span class="si">}</span><span class="s2"> img_captured:</span><span class="si">{</span><span class="n">ts_img_captured</span><span class="si">}</span><span class="s2">&quot;</span> <span class="p">)</span>
+        <span class="n">global_coords_x</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">global_coords_y</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">global_coords_z</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stage_info</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">stage_info</span><span class="p">[</span><span class="s2">&quot;SerialNumber&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sn</span>
+            <span class="n">stage_info</span><span class="p">[</span><span class="s2">&quot;Id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">stage_info</span><span class="p">[</span><span class="s1">&#39;Stage_X&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">local_coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">stage_info</span><span class="p">[</span><span class="s1">&#39;Stage_Y&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">local_coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">stage_info</span><span class="p">[</span><span class="s1">&#39;Stage_Z&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">local_coords</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span> <span class="o">=</span> <span class="n">Stage</span><span class="p">(</span><span class="n">stage_info</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">local_coords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sn</span> <span class="o">=</span> <span class="n">sn</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span><span class="o">.</span><span class="n">stage_x</span> <span class="o">=</span>  <span class="n">local_coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span><span class="o">.</span><span class="n">stage_y</span> <span class="o">=</span>  <span class="n">local_coords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span><span class="o">.</span><span class="n">stage_z</span> <span class="o">=</span>  <span class="n">local_coords</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span><span class="o">.</span><span class="n">stage_x_global</span> <span class="o">=</span> <span class="n">global_coords_x</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span><span class="o">.</span><span class="n">stage_y_global</span> <span class="o">=</span> <span class="n">global_coords_y</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span><span class="o">.</span><span class="n">stage_z_global</span> <span class="o">=</span> <span class="n">global_coords_z</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">probeCalibRequest</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stage_global_data</span><span class="p">)</span>
+        
+            <span class="c1"># Update into UI</span>
+            <span class="n">moving_stage</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">moving_stage</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">moving_stage</span><span class="o">.</span><span class="n">stage_x_global</span> <span class="o">=</span> <span class="n">global_coords_x</span>
+                <span class="n">moving_stage</span><span class="o">.</span><span class="n">stage_y_global</span> <span class="o">=</span> <span class="n">global_coords_y</span>
+                <span class="n">moving_stage</span><span class="o">.</span><span class="n">stage_z_global</span> <span class="o">=</span> <span class="n">global_coords_z</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage_ui</span><span class="o">.</span><span class="n">get_selected_stage_sn</span><span class="p">()</span> <span class="o">==</span> <span class="n">sn</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stage_ui</span><span class="o">.</span><span class="n">updateStageGlobalCoords</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="StageListener.stageMovingStatus"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageListener.stageMovingStatus">[docs]</a>    <span class="k">def</span> <span class="nf">stageMovingStatus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle stage moving status.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            probe (dict): Probe data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sn</span> <span class="o">=</span> <span class="n">probe</span><span class="p">[</span><span class="s1">&#39;SerialNumber&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">probeDetector</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">probeDetectors</span><span class="p">:</span>
+            <span class="n">probeDetector</span><span class="o">.</span><span class="n">start_detection</span><span class="p">(</span><span class="n">sn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StageListener.stageNotMovingStatus"><a class="viewcode-back" href="../../parallax.html#parallax.stage_listener.StageListener.stageNotMovingStatus">[docs]</a>    <span class="k">def</span> <span class="nf">stageNotMovingStatus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">probe</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle not moving probe status.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            probe (dict): Probe data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sn</span> <span class="o">=</span> <span class="n">probe</span><span class="p">[</span><span class="s1">&#39;SerialNumber&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">probeDetector</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">probeDetectors</span><span class="p">:</span>
+            <span class="n">probeDetector</span><span class="o">.</span><span class="n">stop_detection</span><span class="p">(</span><span class="n">sn</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Hanna Lee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

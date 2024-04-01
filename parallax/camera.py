@@ -1,3 +1,6 @@
+"""
+PySpinCamera: A class to interface with cameras using the PySpin library.
+"""
 import time
 import datetime
 import threading
@@ -63,7 +66,7 @@ class PySpinCamera:
             cls.pyspin_instance = PySpin.System.GetInstance()
         cls.pyspin_cameras = cls.pyspin_instance.GetCameras()
         ncameras = cls.pyspin_cameras.GetSize()
-           
+
         cls.cameras = []
         for i in range(ncameras):
             camera_pyspin = cls.pyspin_cameras.GetByIndex(i)
@@ -130,7 +133,7 @@ class PySpinCamera:
         else:
             print("Not supported camera type.")
             return None
-        print(self.device_model, self.device_color_type)
+        print(self.device_model, self.device_color_type, self.name(sn_only=True))
 
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()
@@ -326,7 +329,7 @@ class PySpinCamera:
         self.capture_thread.start()
         
     def end_singleframe_acquisition(self):
-        # End Acquisition
+        """ End Acquisition """
         self.last_image_cleared.wait()
         self.capture_thread.join()
         self.camera.EndAcquisition()
@@ -407,7 +410,7 @@ class PySpinCamera:
             self.video_output.write(frame)
             self.video_recording_idle.set()
         
-    def get_last_capture_time(self):
+    def get_last_capture_time(self, millisecond=False):
         """
         Returns the timestamp of the last captured image in a formatted string.
 
@@ -416,7 +419,11 @@ class PySpinCamera:
         """
         ts = self.last_capture_time
         dt = datetime.datetime.fromtimestamp(ts)
-        return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
+        if millisecond:
+            return '%04d%02d%02d-%02d%02d%02d.%03d' % (dt.year, dt.month, dt.day,
+                        dt.hour, dt.minute, dt.second, dt.microsecond // 1000)
+        else:
+            return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
                                               dt.hour, dt.minute, dt.second)
 
     def save_last_image(self, filepath, isTimestamp=False, custom_name="Microscope_"):
@@ -548,10 +555,11 @@ class PySpinCamera:
     def stop(self, clean=False):
         """
         Cleans up resources associated with the camera and video recording.
-        Note: 
+
+        Note:
             Do not change the order of codes without refering PySpin manual.
             They are ordered by PySpin Camera Init / Turn off sequence. 
-        """  
+        """
         if self.running:
             self.running = False
             self.capture_thread.join()
@@ -567,9 +575,10 @@ class PySpinCamera:
 
 # Class for simulating a mock camera
 class MockCamera:
+    """ Mock Camera showing salts and pepper noise images """
     n_cameras = 0
     def __init__(self):
-        # Initialize a mock camera with a unique name
+        """ Initialize a mock camera with a unique name """
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
         # Create mock image data with random values
@@ -578,7 +587,7 @@ class MockCamera:
         self.device_color_type = None
         
     def name(self, sn_only=False):
-        # Get the name of the mock camera
+        """ Get the name of the mock camera """
         return self._name
 
     def get_last_image_data(self):
@@ -590,50 +599,61 @@ class MockCamera:
         return frame
     
     def save_last_image(self, filepath, isTimestamp=False, custom_name="MockCamera_"):
-        # TODO
+        """ Dummy function """
         print("This is MockCamera. Cannot capture the image")
         return
     
     def set_wb(self, wb=2.0):
+        """ Dummy function """
         logger.info("This is MockCamera. Setting is not appliable")
         return
     
     def set_gamma(self, gamma=1.0):
+        """ Dummy function """
         logger.info("This is MockCamera. Setting is not appliable")
         return
 
     def set_gain(self, gain=25.0):
+        """ Dummy function """
         logger.info("This is MockCamera. Setting is not appliable")
         return
     
     def set_exposure(self, expTime=16000):
+        """ Dummy function """
         logger.info("This is MockCamera. Setting is not appliable")
         return
 
     def stop(self, clean=False):
+        """ Dummy function """
         logger.info("This is MockCamera. Stop")
         return
     
     def begin_continuous_acquisition(self):
+        """ Dummy function """
         return
     
+    def get_last_capture_time(self, millisecond=False):
+        """ Dummy function """
+        return 
+    
     def stop(self, clean=False):
+        """ Dummy function """
         return
     
 class VideoSource:
-
+    """ Video Source """
     def __init__(self, filename):
-        # Initialize a video source with a given filename
+        """ Initialize a video source with a given filename """
         self.filename = filename
         self._name = os.path.basename(self.filename)
         self.cap = cv2.VideoCapture(self.filename)
 
     def name(self, sn_only=False):
-        # Get the name of the video source
+        """ Get the name of the video source """
         return self._name
 
     def get_last_image_data(self):
-        # Read the last captured frame from the video source
+        """ Read the last captured frame from the video source """
         ret, frame = self.cap.read()
         if ret:
             return frame
@@ -643,28 +663,34 @@ class VideoSource:
             return np.random.randint(0, 255, size=(3000, 4000), dtype='ubyte')
         
     def save_last_image(self, filepath, isTimestamp=False, custom_name="VideoSource_"):
-        # TODO
+        """ Dummy function """
         print("This is from Video Source. Cannot capture the image")
         return
     
     def set_wb(self, wb=2.0):
+        """ Dummy function """
         logger.info("This is VideoSource. Setting is not appliable")
         return
     
     def set_gamma(self, gamma=1.0):
+        """ Dummy function """
         logger.info("This is VideoSource. Setting is not appliable")
         return
 
     def set_gain(self, gain=25.0):
+        """ Dummy function """
         logger.info("This is VideoSource. Setting is not appliable")
         return
     
     def set_exposure(self, expTime=125000):
+        """ Dummy function """
         logger.info("This is VideoSource. Setting is not appliable")
         return
     
     def begin_continuous_acquisition(self):
+        """ Dummy function """
         return
     
     def stop(self, clean=False):
+        """ Dummy function """
         return

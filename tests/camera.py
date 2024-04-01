@@ -1,3 +1,4 @@
+""" Test for camera """
 #!/usr/bin/env python -i
 from parallax.camera import list_cameras, close_cameras
 
