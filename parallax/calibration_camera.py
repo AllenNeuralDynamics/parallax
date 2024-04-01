@@ -140,7 +140,9 @@ class CalibrationCamera:
         # Output rotation vector (see Rodrigues ) that, together with tvec, 
         # brings points from the model coordinate system to the camera coordinate system.
         if self.objpoints is not None:
-            _, rvecs, tvecs, _ = cv2.solvePnPRansac(self.objpoints, self.imgpoints, self.mtx, self.dist)
+            #_, rvecs, tvecs, _ = cv2.solvePnPRansac(self.objpoints, self.imgpoints, self.mtx, self.dist)
+            solvePnP_method = cv2.SOLVEPNP_ITERATIVE
+            _, rvecs, tvecs = cv2.solvePnP(self.objpoints, self.imgpoints, self.mtx, self.dist, flags=solvePnP_method)
             imgpts, _ = cv2.projectPoints(axis, rvecs, tvecs, self.mtx, self.dist)
             origin = tuple(self.imgpoints[0][CENTER_INDEX_X].ravel().astype(int))
             x = tuple(imgpts[0].ravel().astype(int))

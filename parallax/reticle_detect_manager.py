@@ -78,7 +78,7 @@ class ReticleDetectManager(QObject):
             """Draw the XYZ axes on the frame."""
             frame = cv2.line(frame, origin, x, (0, 0, 255), 3)  # Blue line
             frame = cv2.line(frame, origin, y, (0, 255, 0), 3)  # Green line
-            frame = cv2.line(frame, origin, z, (255, 0, ), 3)  # Red line
+            frame = cv2.line(frame, origin, z, (255, 0, 0), 3)  # Red line
             return frame
         
         def process(self, frame):
@@ -123,8 +123,8 @@ class ReticleDetectManager(QObject):
                 if self.new:
                     self.frame = self.process(self.frame)
                     self.frame_processed.emit(self.frame)
-                self.new = False
                 time.sleep(0.001)
+                self.new = False
             self.finished.emit()
 
     def __init__(self):
