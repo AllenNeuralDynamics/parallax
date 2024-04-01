@@ -44,7 +44,7 @@ class ReticleDetectManager(QObject):
             self.frame_success = None
 
             self.mask_detect = MaskGenerator()
-            self.reticleDetector = ReticleDetection(self.IMG_SIZE_ORIGINAL, self.mask_detect)
+            self.reticleDetector = ReticleDetection(self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name)
             self.coordsInterests = ReticleDetectCoordsInterest()
             self.calibrationCamera = CalibrationCamera()
                 
@@ -98,8 +98,10 @@ class ReticleDetectManager(QObject):
                     frame = self.draw(frame, x_axis_coords, y_axis_coords)
                 self.frame_success = frame
             if self.frame_success is None:
+                logger.debug(f"{ self.name} reticle detection fail ")
                 return frame
             else: 
+                logger.debug(f"{ self.name} reticle detection success ")
                 return self.frame_success
 
         def stop_running(self):
@@ -124,17 +126,20 @@ class ReticleDetectManager(QObject):
                 if self.new:
                     self.frame = self.process(self.frame)
                     self.frame_processed.emit(self.frame)
-                time.sleep(0.001)
                 self.new = False
+                time.sleep(0.001)
             self.finished.emit()
 
-    def __init__(self):
+        def set_name(self, name):
+            self.name = name
+
+    def __init__(self, camera_name):
         """Initialize the reticle detection manager."""
         logger.debug("Init reticle detect manager")
         super().__init__()
         self.worker = None
+        self.name = camera_name
         self.thread = None
-        self.init_thread()
     
     def init_thread(self):
         """Initialize the worker thread."""
@@ -150,6 +155,7 @@ class ReticleDetectManager(QObject):
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
+        logger.debug(f"init camera name: {self.name}")
 
     def process(self, frame):
         """Process the frame using the worker.
@@ -170,6 +176,12 @@ class ReticleDetectManager(QObject):
         """Stop the reticle detection manager."""
         if self.worker is not None:
             self.worker.stop_running()
+
+    def set_name(self, camera_name):
+        self.name = camera_name
+        if self.worker is not None:
+            self.worker.set_name(self.name)
+        logger.debug(f"camera name: {self.name}")
 
     def clean(self):
         """Clean up the reticle detection manager."""

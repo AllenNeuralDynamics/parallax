@@ -65,6 +65,7 @@ class ScreenWidget(pg.GraphicsView):
 
         # camera
         self.camera = camera
+        camera_name = self.get_camera_name()
         self.focochan = None
 
         # No filter
@@ -72,7 +73,7 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.frame_processed.connect(self.set_image_item_from_data)
 
         # Reticle Detection
-        self.reticleDetector = ReticleDetectManager()
+        self.reticleDetector = ReticleDetectManager(camera_name)
         self.reticleDetector.frame_processed.connect(self.set_image_item_from_data)
         self.reticleDetector.found_coords.connect(self.found_reticle_coords)
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
@@ -270,6 +271,7 @@ class ScreenWidget(pg.GraphicsView):
         Set the camera.
         """
         self.camera = camera
+        self.reticleDetector.set_name(self.get_camera_name())
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
