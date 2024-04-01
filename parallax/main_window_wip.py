@@ -26,8 +26,8 @@ import logging
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 # User Preferences (Data directory, UI config..) setting file
 package_dir = os.path.dirname(os.path.abspath(__file__))
