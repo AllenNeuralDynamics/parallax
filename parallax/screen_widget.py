@@ -27,7 +27,7 @@ class ScreenWidget(pg.GraphicsView):
     reticle_coords_detected = pyqtSignal()
     probe_coords_detected = pyqtSignal()
 
-    def __init__(self, filename=None, model=None, parent=None):
+    def __init__(self, camera, filename=None, model=None, parent=None):
         """ Init screen widget object """
         super().__init__(parent=parent)
         self.filename = filename
@@ -63,9 +63,11 @@ class ScreenWidget(pg.GraphicsView):
         self.probe_detect_last_sn = None
         self.probe_detect_last_coords = None
 
-        self.camera = None
+        # camera
+        self.camera = camera
         self.focochan = None
 
+        # No filter
         self.filter = NoFilter()
         self.filter.frame_processed.connect(self.set_image_item_from_data)
 

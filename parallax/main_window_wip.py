@@ -304,16 +304,13 @@ class MainWindow(QMainWindow):
         verticalLayout.setObjectName(u"verticalLayout")
         
         # Add screens
-        screen = ScreenWidget(model=self.model, parent=microscopeGrp)
+        if mock:
+            screen = ScreenWidget(self.model.cameras[0], model=self.model, parent=microscopeGrp)
+        else:
+            screen = ScreenWidget(self.model.cameras[screen_index], model=self.model, parent=microscopeGrp)
         screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
         
-        # Add camera on screen
-        if mock: 
-            screen.set_camera(self.model.cameras[0])
-        else:
-            screen.set_camera(self.model.cameras[screen_index]) # set screen.camera = model.camera 
-
         # Add setting button
         settingButton = QToolButton(microscopeGrp)
         settingButton.setObjectName(f"Setting")
