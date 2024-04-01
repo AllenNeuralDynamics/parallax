@@ -13,7 +13,7 @@ Parallax is a graphical user interface designed to streamline the process of set
 ### Installation
 1. Clone the repository:
 ```bash
-pip install parallax
+git clone https://github.com/AllenNeuralDynamics/parallax.git
 ```
 
 2. Create virtual environment and activate it:
