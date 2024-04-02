@@ -311,22 +311,23 @@ class MainWindow(QMainWindow):
         screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
         
-        # Add setting button
-        settingButton = QToolButton(microscopeGrp)
-        settingButton.setObjectName(f"Setting")
-        settingButton.setFont(font_grpbox)
-        settingButton.setCheckable(True)
-        self.create_settings_menu(microscopeGrp, newNameMicroscope, screen, screen_index)
-        settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
-        verticalLayout.addWidget(settingButton)
-        
+        if mock is False:
+            # Add setting button
+            settingButton = QToolButton(microscopeGrp)
+            settingButton.setObjectName(f"Setting")
+            settingButton.setFont(font_grpbox)
+            settingButton.setCheckable(True)
+            self.create_settings_menu(microscopeGrp, newNameMicroscope, screen, screen_index)
+            settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
+            verticalLayout.addWidget(settingButton)
+            settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
+       
+            # Load setting file from JSON
+            self.update_setting_menu(microscopeGrp)
+
         # Add widget to the gridlayout
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
-        settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
-       
-        # Load setting file from JSON
-        self.update_setting_menu(microscopeGrp)
-
+        
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
 
