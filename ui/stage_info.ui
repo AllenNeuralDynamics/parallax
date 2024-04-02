@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>193</width>
+    <width>394</width>
     <height>794</height>
    </rect>
   </property>
@@ -19,42 +19,25 @@
      <property name="verticalSpacing">
       <number>10</number>
      </property>
-     <item row="11" column="1" alignment="Qt::AlignRight">
-      <widget class="QLabel" name="global_coords_z">
-       <property name="text">
-        <string>-</string>
+     <item row="16" column="0" colspan="4">
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
        </property>
-      </widget>
-     </item>
-     <item row="11" column="2">
-      <widget class="QLabel" name="label_18">
-       <property name="text">
-        <string> μm</string>
-       </property>
-      </widget>
-     </item>
-     <item row="9" column="1" alignment="Qt::AlignRight">
-      <widget class="QLabel" name="global_coords_x">
-       <property name="text">
-        <string>-</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="maximumSize">
+       <property name="sizeHint" stdset="0">
         <size>
-         <width>16777215</width>
-         <height>16777215</height>
+         <width>20</width>
+         <height>50</height>
         </size>
        </property>
+      </spacer>
+     </item>
+     <item row="6" column="2" alignment="Qt::AlignRight">
+      <widget class="QLabel" name="local_coords_z">
        <property name="text">
-        <string>  X:</string>
+        <string>-</string>
        </property>
       </widget>
-     </item>
-     <item row="1" column="0" colspan="3">
-      <widget class="QComboBox" name="stage_selector"/>
      </item>
      <item row="6" column="0">
       <widget class="QLabel" name="label_11">
@@ -63,7 +46,127 @@
        </property>
       </widget>
      </item>
-     <item row="14" column="0" colspan="3">
+     <item row="11" column="2" alignment="Qt::AlignRight">
+      <widget class="QLabel" name="global_coords_z">
+       <property name="text">
+        <string>-</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="2" alignment="Qt::AlignRight">
+      <widget class="QLabel" name="global_coords_x">
+       <property name="text">
+        <string>-</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0" colspan="4">
+      <widget class="QLabel" name="local_coords">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>70</height>
+        </size>
+       </property>
+       <property name="text">
+        <string> Local coords</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0" colspan="4">
+      <widget class="QLabel" name="global_coords">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>70</height>
+        </size>
+       </property>
+       <property name="text">
+        <string> Global coords</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="2" alignment="Qt::AlignRight">
+      <widget class="QLabel" name="local_coords_y">
+       <property name="text">
+        <string>-</string>
+       </property>
+      </widget>
+     </item>
+     <item row="11" column="3">
+      <widget class="QLabel" name="label_18">
+       <property name="text">
+        <string> μm</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="3">
+      <widget class="QLabel" name="label_17">
+       <property name="text">
+        <string> μm</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="3">
+      <widget class="QLabel" name="label_14">
+       <property name="text">
+        <string> μm</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="3">
+      <widget class="QLabel" name="label_13">
+       <property name="minimumSize">
+        <size>
+         <width>50</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>50</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string> μm</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="3">
+      <widget class="QLabel" name="label_15">
+       <property name="maximumSize">
+        <size>
+         <width>40</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string> μm</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0" colspan="4">
+      <widget class="QLabel" name="label_3">
+       <property name="maximumSize">
+        <size>
+         <width>150</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>  X:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="14" column="0" colspan="4">
       <widget class="QPushButton" name="reticle_calibration_btn">
        <property name="enabled">
         <bool>true</bool>
@@ -85,153 +188,48 @@ QPushButton#reticle_calibratoin_btn:checked {
        </property>
       </widget>
      </item>
-     <item row="9" column="0">
-      <widget class="QLabel" name="label_5">
+     <item row="11" column="0">
+      <widget class="QLabel" name="label_7">
        <property name="text">
-        <string>  X:</string>
+        <string>  Z:</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="0" colspan="3">
-      <widget class="QLabel" name="local_coords">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>70</height>
-        </size>
-       </property>
+     <item row="12" column="0" colspan="4">
+      <widget class="QLabel" name="label_4">
        <property name="text">
-        <string> Local coords</string>
+        <string/>
        </property>
       </widget>
      </item>
-     <item row="5" column="2">
-      <widget class="QLabel" name="label_14">
+     <item row="13" column="0" colspan="4">
+      <widget class="QPushButton" name="probe_calibration_btn">
+       <property name="styleSheet">
+        <string notr="true">QPushButton#probe_calibratoin_btn:checked {
+	color: gray;
+	background-color: #ffaaaa;
+}
+</string>
+       </property>
        <property name="text">
-        <string> μm</string>
+        <string>Probe Calibration</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="10" column="1" alignment="Qt::AlignRight">
+     <item row="1" column="0" colspan="4">
+      <widget class="QComboBox" name="stage_selector"/>
+     </item>
+     <item row="10" column="2" alignment="Qt::AlignRight">
       <widget class="QLabel" name="global_coords_y">
        <property name="text">
         <string>-</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="2">
-      <widget class="QLabel" name="label_13">
-       <property name="minimumSize">
-        <size>
-         <width>50</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>50</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string> μm</string>
-       </property>
-      </widget>
-     </item>
-     <item row="10" column="2">
-      <widget class="QLabel" name="label_17">
-       <property name="text">
-        <string> μm</string>
-       </property>
-      </widget>
-     </item>
-     <item row="9" column="2">
-      <widget class="QLabel" name="label_16">
-       <property name="text">
-        <string> μm</string>
-       </property>
-      </widget>
-     </item>
-     <item row="10" column="0">
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>  Y:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="15" column="0" colspan="3">
-      <spacer name="verticalSpacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>50</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item row="6" column="1" alignment="Qt::AlignRight">
-      <widget class="QLabel" name="local_coords_z">
-       <property name="text">
-        <string>-</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="2">
-      <widget class="QLabel" name="label_15">
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string> μm</string>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="0" colspan="3">
-      <widget class="QLabel" name="global_coords">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>70</height>
-        </size>
-       </property>
-       <property name="text">
-        <string> Global coords</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0" colspan="2">
-      <widget class="QLabel" name="stage_sn">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>50</height>
-        </size>
-       </property>
-       <property name="text">
-        <string> SN</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1" alignment="Qt::AlignRight">
-      <widget class="QLabel" name="local_coords_x">
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>-</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0" colspan="3">
+     <item row="0" column="0" colspan="4">
       <widget class="QLabel" name="label">
        <property name="minimumSize">
         <size>
@@ -244,21 +242,34 @@ QPushButton#reticle_calibratoin_btn:checked {
        </property>
       </widget>
      </item>
-     <item row="5" column="1" alignment="Qt::AlignRight">
-      <widget class="QLabel" name="local_coords_y">
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_10">
        <property name="text">
-        <string>-</string>
+        <string>  Y:</string>
        </property>
       </widget>
      </item>
-     <item row="11" column="0">
-      <widget class="QLabel" name="label_7">
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>16777215</height>
+        </size>
+       </property>
        <property name="text">
-        <string>  Z:</string>
+        <string>  X:</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
+     <item row="10" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>  Y:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
       <widget class="QPushButton" name="pushButton">
        <property name="maximumSize">
         <size>
@@ -274,47 +285,92 @@ QPushButton#reticle_calibratoin_btn:checked {
        </property>
       </widget>
      </item>
-     <item row="7" column="0" colspan="3">
-      <widget class="QLabel" name="label_3">
+     <item row="15" column="0">
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::MinimumExpanding</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="9" column="3">
+      <widget class="QLabel" name="label_16">
+       <property name="text">
+        <string> μm</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="2" alignment="Qt::AlignRight">
+      <widget class="QLabel" name="local_coords_x">
        <property name="maximumSize">
         <size>
-         <width>150</width>
+         <width>16777215</width>
          <height>16777215</height>
         </size>
        </property>
        <property name="text">
-        <string/>
+        <string>-</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_10">
+     <item row="2" column="0" colspan="3">
+      <widget class="QLabel" name="stage_sn">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>50</height>
+        </size>
+       </property>
        <property name="text">
-        <string>  Y:</string>
+        <string> SN</string>
        </property>
       </widget>
      </item>
-     <item row="12" column="0" colspan="3">
-      <widget class="QLabel" name="label_4">
+     <item row="15" column="3">
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::MinimumExpanding</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="15" column="1">
+      <widget class="QPushButton" name="acceptButton">
        <property name="text">
-        <string/>
+        <string>Accept </string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normalon>resources/check.png</normalon>
+        </iconset>
        </property>
       </widget>
      </item>
-     <item row="13" column="0" colspan="3">
-      <widget class="QPushButton" name="probe_calibration_btn">
-       <property name="styleSheet">
-        <string notr="true">QPushButton#probe_calibratoin_btn:checked {
-	color: gray;
-	background-color: #ffaaaa;
-}
-</string>
-       </property>
+     <item row="15" column="2">
+      <widget class="QPushButton" name="rejectButton">
        <property name="text">
-        <string>Probe Calibration</string>
+        <string>Reject</string>
        </property>
-       <property name="checkable">
-        <bool>true</bool>
+       <property name="icon">
+        <iconset>
+         <normalon>resources/x.png</normalon>
+        </iconset>
        </property>
       </widget>
      </item>

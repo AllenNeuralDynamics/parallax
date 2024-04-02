@@ -295,6 +295,9 @@ class ScreenWidget(pg.GraphicsView):
         self.mtx = mtx
         self.dist = dist
 
+    def reset_reticle_coords(self):
+        self.reticle_coords = None
+
     def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""
         self.probe_detect_last_timestamp = timestamp

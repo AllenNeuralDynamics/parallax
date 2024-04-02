@@ -129,6 +129,7 @@ class ReticleDetectManager(QObject):
                 self.new = False
                 time.sleep(0.001)
             self.finished.emit()
+            logger.debug(f"thread finished {self.name}")
 
         def set_name(self, name):
             self.name = name
@@ -171,6 +172,7 @@ class ReticleDetectManager(QObject):
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
         self.thread.start()
+        logger.debug(f"thread started {self.name}")
     
     def stop(self):
         """Stop the reticle detection manager."""

@@ -487,9 +487,9 @@ class ReticleDetection:
         """
         bg = self._preprocess_image(img)
         masked = self._apply_mask(bg)
-        
-        if self.mask is not None:
-            cv2.imwrite("debug/mask.jpg", self.mask)
+
+        #if self.mask is not None:
+        #    cv2.imwrite("debug/mask.jpg", self.mask)
 
         if self.reticle_frame_detector.is_reticle_exist:
             ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(bg)
