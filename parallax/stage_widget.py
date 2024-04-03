@@ -43,11 +43,14 @@ class StageWidget(QWidget):
         
         # Stage widget
         self.stageUI = StageUI(self.model, self)
+        self.probe_calibration_btn.setEnabled(False)
         self.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
         # Start refreshing stage info
         self.stageListener = StageListener(self.model, self.stageUI)
         self.stageListener.start()
         self.probeCalibration = ProbeCalibration(self.stageListener)
+
+        self.filter = "no_filter"
         
     def reticle_detection_button_handler(self):
         """Handle the reticle detection button click."""
@@ -76,10 +79,11 @@ class StageWidget(QWidget):
         # Stop reticle detectoin, and run no filter
         self.reticle_calibration_timer.stop()
 
-        for screen in self.screen_widgets:
-            if self.reticle_detection_status != "accepted":
+        if self.reticle_detection_status != "accepted":
+            for screen in self.screen_widgets:
                 screen.reticle_coords_detected.disconnect(self.reticle_detect_all_screen)
                 screen.run_no_filter()
+            self.filter = "no_filter"
 
         # Hide Accept and Reject Button
         self.acceptButton.hide() 
@@ -95,6 +99,9 @@ class StageWidget(QWidget):
             }
         """)
         self.reticle_detection_status = "default"
+        if self.probe_calibration_btn.isEnabled():        
+            # Disable probe calibration
+            self.probe_detect_default_status()
 
     def overwrite_popup_window(self):
         message = f"Are you sure you want to overwrite the current reticle position?"
@@ -134,6 +141,7 @@ class StageWidget(QWidget):
             screen.reset_reticle_coords()  # screen.reticle_coords = None
             screen.reticle_coords_detected.connect(self.reticle_detect_all_screen)
             screen.run_reticle_detection()
+        self.filter = "reticle_detection"
 
         # Hide Accept and Reject Button
         self.acceptButton.hide() 
@@ -177,11 +185,16 @@ class StageWidget(QWidget):
         for screen in self.screen_widgets:
             screen.reticle_coords_detected.disconnect(self.reticle_detect_all_screen)
             screen.run_no_filter()
+        self.filter = "no_filter"
 
         # Enable reticle_calibration_btn button
         if not self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(True)
         logger.debug(self.reticle_detection_status)
+
+        # Enable probe calibration
+        if not self.probe_calibration_btn.isEnabled():   
+            self.probe_calibration_btn.setEnabled(True)
 
     def calibrate_stereo(self):
         # Streo Camera Calibration
@@ -275,20 +288,31 @@ class StageWidget(QWidget):
             for screen in self.screen_widgets:
                 screen.probe_coords_detected.connect(self.probe_detect_all_screen)
                 screen.run_probe_detection()
+            self.filter = "probe_detection"
         
         else:
+            self.probe_detect_default_status()
+
+    def probe_detect_default_status(self):
+        self.probe_calibration_btn.setStyleSheet("""
+            QPushButton {
+                color: white;
+                background-color: black;
+            }
+            QPushButton:hover {
+                background-color: #641e1e;
+            }
+        """)
+                
+        self.probe_calibration_btn.setChecked(False)
+        if self.reticle_detection_status == "default":
+            print("probe_calibration_btn disabled")
+            self.probe_calibration_btn.setEnabled(False)
+    
+        if self.filter == "probe_detection":
             for screen in self.screen_widgets:
                 screen.probe_coords_detected.disconnect(self.probe_detect_all_screen)
                 screen.run_no_filter()
-            
-            self.probeCalibration.clear()
 
-            self.probe_calibration_btn.setStyleSheet("""
-                QPushButton {
-                    color: white;
-                    background-color: black;
-                }
-                QPushButton:hover {
-                    background-color: #641e1e;
-                }
-            """)
+            self.filter = "no_filter"
+            self.probeCalibration.clear()

@@ -46,12 +46,11 @@ class ProbeCalibration(QObject):
         global_point = np.array([stage.stage_x_global, stage.stage_y_global, stage.stage_z_global])
         self.global_points.append(global_point)
 
-        """
         csv_file_name = 'debug/points.csv'
         with open(csv_file_name, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(['Local Point', *local_point, 'Global Point', *global_point])
-        """
+        
 
     def is_enough_points(self):
         """Check if there are enough points for calibration.
