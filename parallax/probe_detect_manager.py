@@ -108,7 +108,7 @@ class ProbeDetectManager(QObject):
             mask = self.mask_detect.process(resized_img)
 
             if self.mask_detect.is_reticle_exist and self.reticle_zone is None:
-                reticle = ReticleDetection(self.IMG_SIZE, self.mask_detect)
+                reticle = ReticleDetection(self.IMG_SIZE, self.mask_detect, self.name)
                 self.reticle_zone = reticle.get_reticle_zone(frame)
                 self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
             
@@ -168,11 +168,12 @@ class ProbeDetectManager(QObject):
             print("probe_detect_manager running done")
             self.finished.emit()
 
-    def __init__(self, stages):
+    def __init__(self, stages, camera_name):
         """ Initialize ProbeDetectManager object """
         super().__init__()
         self.stages = stages
         self.worker = None
+        self.name = camera_name
         self.thread = None
         self.init_thread()
 
