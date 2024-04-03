@@ -32,10 +32,20 @@ CENTER_INDEX_Y = X_COORDS + Y_COORDS_HALF
 
 # Calibration
 CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-11)
+"""
 imtx = np.array([[1.52e+04, 0.0e+00, 2e+03],
                 [0.0e+00, 1.52e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
+idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
+                    dtype=np.float32)
+"""
+imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.515e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
+                    dtype=np.float32)
 
 # Intrinsic flag
 myflags1 = cv2.CALIB_USE_INTRINSIC_GUESS | \
@@ -52,8 +62,6 @@ myflags2 =   cv2.CALIB_FIX_PRINCIPAL_POINT | \
             cv2.CALIB_FIX_ASPECT_RATIO | \
             cv2.CALIB_FIX_FOCAL_LENGTH
 
-idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
-                    dtype=np.float32)
 SIZE = (4000,3000)
 
 class CalibrationCamera:
