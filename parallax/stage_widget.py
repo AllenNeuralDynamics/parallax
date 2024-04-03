@@ -5,8 +5,7 @@ to manage calibration data and provides UI functionalities for reticle and probe
 and camera calibration. The class integrates with PyQt5 for the UI, handling UI loading, 
 initializing components, and linking user actions to calibration processes.
 """
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QWidget, QMessageBox
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import QTimer
 from .stage_listener import StageListener
@@ -26,33 +25,30 @@ class StageWidget(QWidget):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
-        
-        ui = os.path.join(ui_dir, "stage_info.ui")
-        loadUi(ui, self)
+        loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(400)
-        self.stageUI = StageUI(self.model, self)
         
-        # Hide Accept and Reject Button
+        # Reticle Widget
+        self.reticle_detection_status = None    # options: default, process, detected, accepted
+        self.reticle_calibration_btn.clicked.connect(self.reticle_detection_button_handler)
+        self.calibrationStereo = None
+        # Hide Accept and Reject Button in Reticle Detection
         self.acceptButton.hide() 
         self.rejectButton.hide() 
         self.acceptButton.clicked.connect(self.reticle_detect_accept_detected_status)
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
-
-        # Reticle and probe Calibration
-        self.reticle_detection_status = None    # options: default, process, detected, accepted
-        self.reticle_calibration_btn.clicked.connect(self.reticle_detection_button_handler)
-        self.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
-        self.calibrationStereo = None
-
         # Add a QTimer for delayed check
         self.reticle_calibration_timer = QTimer(self)
         self.reticle_calibration_timer.timeout.connect(self.reticle_detect_default_status)
         
+        # Stage widget
+        self.stageUI = StageUI(self.model, self)
+        self.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
         # Start refreshing stage info
         self.stageListener = StageListener(self.model, self.stageUI)
         self.stageListener.start()
         self.probeCalibration = ProbeCalibration(self.stageListener)
-    
+        
     def reticle_detection_button_handler(self):
         """Handle the reticle detection button click."""
         logger.debug(f"\n reticle_detection_button_handler {self.reticle_detection_status}")
@@ -233,34 +229,6 @@ class StageWidget(QWidget):
             self.model.add_coords_axis(camera_name, coords)
             self.model.add_camera_intrinsic(camera_name, mtx, dist)
 
-    def probe_detection_button_handler(self):
-        """Handle the probe detection button click."""
-        if self.probe_calibration_btn.isChecked():
-            self.probe_calibration_btn.setStyleSheet(
-                "color: gray;"
-                "background-color: #ffaaaa;"
-            )
-            for screen in self.screen_widgets:
-                screen.probe_coords_detected.connect(self.probe_detect_all_screen)
-                screen.run_probe_detection()
-        
-        else:
-            for screen in self.screen_widgets:
-                screen.probe_coords_detected.disconnect(self.probe_detect_all_screen)
-                screen.run_no_filter()
-            
-            self.probeCalibration.clear()
-
-            self.probe_calibration_btn.setStyleSheet("""
-                QPushButton {
-                    color: white;
-                    background-color: black;
-                }
-                QPushButton:hover {
-                    background-color: #641e1e;
-                }
-            """)
-
     def probe_detect_all_screen(self):
         """Detect probe coordinates on all screens."""
         timestamp_cmp, sn_cmp = None, None
@@ -296,3 +264,31 @@ class StageWidget(QWidget):
         # All screen has the same timestamp. Proceed the triangulation
         global_coords = self.calibrationStereo.get_global_coords(cam_names[0], tip_coords[0], cam_names[1], tip_coords[1])
         self.stageListener.handleGlobalDataChange(sn, global_coords, timestamp)
+
+    def probe_detection_button_handler(self):
+        """Handle the probe detection button click."""
+        if self.probe_calibration_btn.isChecked():
+            self.probe_calibration_btn.setStyleSheet(
+                "color: gray;"
+                "background-color: #ffaaaa;"
+            )
+            for screen in self.screen_widgets:
+                screen.probe_coords_detected.connect(self.probe_detect_all_screen)
+                screen.run_probe_detection()
+        
+        else:
+            for screen in self.screen_widgets:
+                screen.probe_coords_detected.disconnect(self.probe_detect_all_screen)
+                screen.run_no_filter()
+            
+            self.probeCalibration.clear()
+
+            self.probe_calibration_btn.setStyleSheet("""
+                QPushButton {
+                    color: white;
+                    background-color: black;
+                }
+                QPushButton:hover {
+                    background-color: #641e1e;
+                }
+            """)
