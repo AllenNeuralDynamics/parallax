@@ -275,16 +275,19 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
+        logger.debug("run_reticle_detection")
         self.filter.stop()
         self.reticleDetector.start()
     
     def run_probe_detection(self):
         """Run probe detection by stopping the filter and starting the probe detector."""
+        logger.debug("run_probe_detection")
         self.filter.stop()
         self.probeDetector.start()
     
     def run_no_filter(self):
         """Run without any filter by stopping the reticle detector and probe detector."""
+        logger.debug("run_no_filter")
         self.reticleDetector.stop()
         self.probeDetector.stop()
         self.filter.start()
