@@ -52,6 +52,9 @@ class StageWidget(QWidget):
         self.reticle_calibration_btn = self.reticle_calib_widget.findChild(QPushButton, "reticle_calibration_btn")
         self.acceptButton = self.reticle_calib_widget.findChild(QPushButton, "acceptButton")
         self.rejectButton = self.reticle_calib_widget.findChild(QPushButton, "rejectButton")
+        self.calib_x = self.probe_calib_widget.findChild(QPushButton, "calib_x")
+        self.calib_y = self.probe_calib_widget.findChild(QPushButton, "calib_y")
+        self.calib_z = self.probe_calib_widget.findChild(QPushButton, "calib_z")
 
         # Reticle Widget
         self.reticle_detection_status = None    # options: default, process, detected, accepted
@@ -74,6 +77,14 @@ class StageWidget(QWidget):
         self.stageListener = StageListener(self.model, self.stageUI)
         self.stageListener.start()
         self.probeCalibration = ProbeCalibration(self.stageListener)
+        # Hide X, Y, and Z Buttons in Probe Detection
+        self.calib_x.hide() 
+        self.calib_y.hide()
+        self.calib_z.hide()
+        self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
+        self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
+        self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
+        self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.probe_detection_status = None    # options: default, process, x_y_z_detected, accepted
 
         self.filter = "no_filter"
@@ -304,14 +315,32 @@ class StageWidget(QWidget):
         global_coords = self.calibrationStereo.get_global_coords(cam_names[0], tip_coords[0], cam_names[1], tip_coords[1])
         self.stageListener.handleGlobalDataChange(sn, global_coords, timestamp)
 
+    def probe_overwrite_popup_window(self):
+        message = f"Are you sure you want to overwrite the current probe position?"
+        response = QMessageBox.warning(self, "Reticle Detection Failed", message, 
+                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        # Check which button was clicked
+        if response == QMessageBox.Yes:
+            logger.debug("User clicked Yes.")
+            return True
+        else:
+            logger.debug("User clicked No.")
+            return False
+
     def probe_detection_button_handler(self):
         """Handle the probe detection button click."""
         if self.probe_calibration_btn.isChecked():
             self.probe_detect_process_status()
         else:
-            self.probe_detect_default_status()
+            response = self.probe_overwrite_popup_window()
+            if response:
+                self.probe_detect_default_status()
+            else:
+                # Keep the last calibration result
+                self.probe_calibration_btn.setChecked(True)
 
-    def probe_detect_default_status(self):
+    def probe_detect_default_status(self):    
         self.probe_detection_status = "default"
         self.probe_calibration_btn.setStyleSheet("""
             QPushButton {
@@ -322,11 +351,14 @@ class StageWidget(QWidget):
                 background-color: #641e1e;
             }
         """)
-                
+        self.hide_x_y_z()
+        self.probeCalibration.reset_calib()
+        self.reset_calib_status()
+
         self.probe_calibration_btn.setChecked(False)
         if self.reticle_detection_status == "default":
             self.probe_calibration_btn.setEnabled(False)
-    
+        
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:
                 screen.probe_coords_detected.disconnect(self.probe_detect_all_screen)
@@ -334,14 +366,92 @@ class StageWidget(QWidget):
 
             self.filter = "no_filter"
             self.probeCalibration.clear()
-
-    def probe_detect_process_status(self):
+        
+    def probe_detect_process_status(self):    
         self.probe_detection_status = "process"
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
             "background-color: #bc9e44;"
         )
+        self.calib_x.show()
+        self.calib_y.show()
+        self.calib_z.show()
+
         for screen in self.screen_widgets:
             screen.probe_coords_detected.connect(self.probe_detect_all_screen)
             screen.run_probe_detection()
         self.filter = "probe_detection"
+
+        # message
+        message = f"Move probe at leas X mm along X, Y, and Z axes"
+        QMessageBox.information(self, "Probe calibration info", message)
+
+    def probe_detect_accepted_status(self):
+        self.probe_detection_status = "accepted"
+        self.probe_calibration_btn.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
+        self.hide_x_y_z()
+
+    def hide_x_y_z(self):
+        if self.calib_x.isVisible():
+            self.calib_x.hide()
+            # Change the button to green.
+            self.calib_x.setStyleSheet(
+            "color: white;"
+            "background-color: black;"
+        )
+        if self.calib_y.isVisible():
+            self.calib_y.hide()
+            # Change the button to green.
+            self.calib_y.setStyleSheet(
+            "color: white;"
+            "background-color: black;"
+        )
+        if self.calib_z.isVisible():
+            self.calib_z.hide()
+            # Change the button to green.
+            self.calib_z.setStyleSheet(
+            "color: white;"
+            "background-color: black;"
+        )
+            
+    def calib_x_complete(self):
+        if self.calib_x.isVisible():
+            # Change the button to green.
+            self.calib_x.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
+        self.calib_status_x = True
+        if self.is_calib_success():
+            self.probe_detect_accepted_status()
+    
+    def calib_y_complete(self):
+        if self.calib_y.isVisible():
+            # Change the button to green.
+            self.calib_y.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
+        self.calib_status_y = True
+        if self.is_calib_success():
+            self.probe_detect_accepted_status()
+    
+    def calib_z_complete(self):
+        if self.calib_z.isVisible():
+            # Change the button to green.
+            self.calib_z.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
+        self.calib_status_z = True
+        if self.is_calib_success():
+            self.probe_detect_accepted_status()
+
+    def is_calib_success(self):
+        return self.calib_status_x and self.calib_status_y and self.calib_status_z
+
+    def reset_calib_status(self):
+        self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False

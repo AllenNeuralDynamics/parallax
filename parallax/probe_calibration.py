@@ -3,7 +3,7 @@ ProbeCalibration transforms probe coordinates from local to global space"
 - local space: Stage coordinates
 - global space: Reticle coordinates
 """
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QObject, pyqtSignal
 import logging
 import numpy as np
 import cv2
@@ -16,6 +16,10 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeCalibration(QObject):
+    calib_complete_x = pyqtSignal()
+    calib_complete_y = pyqtSignal()
+    calib_complete_z = pyqtSignal()
+
     """Class for probe calibration."""
     def __init__(self, stage_listener):
         """ Initialize the Probe Calibration object. """
@@ -28,7 +32,10 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.transform_matrix = None
         self.error_min = 1000
-        
+
+        # Test signal
+        self.reset_calib()
+
     def clear(self):
         """Clear the local points, global points, and transform matrix."""
         self.local_points = []
@@ -51,6 +58,32 @@ class ProbeCalibration(QObject):
             writer = csv.writer(file)
             writer.writerow(['Local Point', *local_point, 'Global Point', *global_point])
         
+        # Test signal
+        self.min_x, self.max_x = min(self.min_x, stage.stage_x), max(self.max_x, stage.stage_x)
+        self.min_y, self.max_y = min(self.min_y, stage.stage_y), max(self.max_y, stage.stage_y)
+        self.min_z, self.max_z = min(self.min_z, stage.stage_z), max(self.max_z, stage.stage_z)
+
+        if not self.signal_emitted_x:
+            if self.max_x - self.min_x >= 100:
+                print("x dff", self.max_x - self.min_x )
+                self.calib_complete_x.emit()
+                self.signal_emitted_x = True
+        if not self.signal_emitted_y:
+            if self.max_y - self.min_y >= 100:
+                print("y dff", self.max_y - self.min_y )
+                self.calib_complete_y.emit()
+                self.signal_emitted_y = True
+        if not self.signal_emitted_z:
+            if self.max_z - self.min_z >= 100:
+                print("z dff", self.max_z - self.min_z )
+                self.calib_complete_z.emit()
+                self.signal_emitted_z = True
+
+    def reset_calib(self):
+        self.min_x, self.max_x = float('inf'), float('-inf')
+        self.min_y, self.max_y = float('inf'), float('-inf')
+        self.min_z, self.max_z = float('inf'), float('-inf')
+        self.signal_emitted_x, self.signal_emitted_y, self.signal_emitted_z = False, False, False
 
     def is_enough_points(self):
         """Check if there are enough points for calibration.

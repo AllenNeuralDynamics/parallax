@@ -69,6 +69,9 @@
     </item>
     <item row="1" column="2" alignment="Qt::AlignTop">
      <widget class="QPushButton" name="calib_y">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -101,6 +104,9 @@
     </item>
     <item row="1" column="3" alignment="Qt::AlignTop">
      <widget class="QPushButton" name="calib_z">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -120,6 +126,9 @@
     </item>
     <item row="1" column="1" alignment="Qt::AlignTop">
      <widget class="QPushButton" name="calib_x">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="minimumSize">
        <size>
         <width>0</width>
