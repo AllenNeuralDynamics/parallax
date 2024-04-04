@@ -5,7 +5,7 @@ to manage calibration data and provides UI functionalities for reticle and probe
 and camera calibration. The class integrates with PyQt5 for the UI, handling UI loading, 
 initializing components, and linking user actions to calibration processes.
 """
-from PyQt5.QtWidgets import QWidget, QMessageBox
+from PyQt5.QtWidgets import QWidget, QMessageBox, QPushButton, QSpacerItem, QSizePolicy
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import QTimer
 from .stage_listener import StageListener
@@ -27,7 +27,32 @@ class StageWidget(QWidget):
         self.screen_widgets = screen_widgets
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(400)
+                
+        # Load reticle_calib.ui into its placeholder
+        self.reticle_calib_widget = QWidget()  # Create a new widget
+        loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self.reticle_calib_widget)
+        # Assuming reticleCalibPlaceholder is the name of an empty widget designated as a placeholder in your stage_info.ui
+        self.stage_status_ui.layout().addWidget(self.reticle_calib_widget)  # Add it to the placeholder's layout
+        self.reticle_calib_widget.setMinimumSize(0, 150)
+
+        # Load probe_calib.ui into its placeholder
+        self.probe_calib_widget = QWidget()  # Create a new widget
+        loadUi(os.path.join(ui_dir, "probe_calib.ui"), self.probe_calib_widget)
+        # Assuming probeCalibPlaceholder is the name of an empty widget designated as a placeholder in your stage_info.ui
+        self.stage_status_ui.layout().addWidget(self.probe_calib_widget)  # Add it to the placeholder's layout
+        self.probe_calib_widget.setMinimumSize(0, 150) 
         
+        # Create a vertical spacer with expanding policy
+        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        # Add the spacer to the layout
+        self.stage_status_ui.addItem(spacer)
+
+        # Access probe_calibration_btn
+        self.probe_calibration_btn = self.probe_calib_widget.findChild(QPushButton, "probe_calibration_btn")
+        self.reticle_calibration_btn = self.reticle_calib_widget.findChild(QPushButton, "reticle_calibration_btn")
+        self.acceptButton = self.reticle_calib_widget.findChild(QPushButton, "acceptButton")
+        self.rejectButton = self.reticle_calib_widget.findChild(QPushButton, "rejectButton")
+
         # Reticle Widget
         self.reticle_detection_status = None    # options: default, process, detected, accepted
         self.reticle_calibration_btn.clicked.connect(self.reticle_detection_button_handler)
@@ -311,6 +336,7 @@ class StageWidget(QWidget):
             self.probeCalibration.clear()
 
     def probe_detect_process_status(self):
+        self.probe_detection_status = "process"
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
             "background-color: #bc9e44;"
