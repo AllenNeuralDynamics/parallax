@@ -49,9 +49,10 @@ class StageWidget(QWidget):
         self.stageListener = StageListener(self.model, self.stageUI)
         self.stageListener.start()
         self.probeCalibration = ProbeCalibration(self.stageListener)
+        self.probe_detection_status = None    # options: default, process, x_y_z_detected, accepted
 
         self.filter = "no_filter"
-        
+
     def reticle_detection_button_handler(self):
         """Handle the reticle detection button click."""
         logger.debug(f"\n reticle_detection_button_handler {self.reticle_detection_status}")
@@ -281,19 +282,12 @@ class StageWidget(QWidget):
     def probe_detection_button_handler(self):
         """Handle the probe detection button click."""
         if self.probe_calibration_btn.isChecked():
-            self.probe_calibration_btn.setStyleSheet(
-                "color: gray;"
-                "background-color: #ffaaaa;"
-            )
-            for screen in self.screen_widgets:
-                screen.probe_coords_detected.connect(self.probe_detect_all_screen)
-                screen.run_probe_detection()
-            self.filter = "probe_detection"
-        
+            self.probe_detect_process_status()
         else:
             self.probe_detect_default_status()
 
     def probe_detect_default_status(self):
+        self.probe_detection_status = "default"
         self.probe_calibration_btn.setStyleSheet("""
             QPushButton {
                 color: white;
@@ -306,7 +300,6 @@ class StageWidget(QWidget):
                 
         self.probe_calibration_btn.setChecked(False)
         if self.reticle_detection_status == "default":
-            print("probe_calibration_btn disabled")
             self.probe_calibration_btn.setEnabled(False)
     
         if self.filter == "probe_detection":
@@ -316,3 +309,13 @@ class StageWidget(QWidget):
 
             self.filter = "no_filter"
             self.probeCalibration.clear()
+
+    def probe_detect_process_status(self):
+        self.probe_calibration_btn.setStyleSheet(
+            "color: white;"
+            "background-color: #bc9e44;"
+        )
+        for screen in self.screen_widgets:
+            screen.probe_coords_detected.connect(self.probe_detect_all_screen)
+            screen.run_probe_detection()
+        self.filter = "probe_detection"
