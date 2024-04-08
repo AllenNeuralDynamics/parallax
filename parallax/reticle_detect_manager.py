@@ -46,7 +46,7 @@ class ReticleDetectManager(QObject):
             self.mask_detect = MaskGenerator()
             self.reticleDetector = ReticleDetection(self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name)
             self.coordsInterests = ReticleDetectCoordsInterest()
-            self.calibrationCamera = CalibrationCamera()
+            self.calibrationCamera = CalibrationCamera(self.name)
                 
         def update_frame(self, frame):
             """Update the frame to be processed."""

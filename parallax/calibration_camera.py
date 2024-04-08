@@ -66,13 +66,13 @@ SIZE = (4000,3000)
 
 class CalibrationCamera:
     """Class for intrinsic calibration."""
-    def __init__(self):
+    def __init__(self, camera_name):
         """Initialize the CalibrationCamera object"""
+        self.name = camera_name
         self.n_interest_pixels = 15
         self.imgpoints = None
         self.objpoints = None
-        pass
-
+        
     def _get_changed_data_format(self, x_axis, y_axis):
         """
         Change data format for calibration.
