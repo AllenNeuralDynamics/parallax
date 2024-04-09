@@ -90,7 +90,9 @@ class ReticleDetectManager(QObject):
                 ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
             if ret:
                 # Draw
-                ret, mtx, dist = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords)
+                #ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
+                #if not ret:
+                ret, mtx, dist = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords) 
                 if ret:
                     self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist)
                     origin, x, y, z = self.calibrationCamera.get_origin_xyz()
