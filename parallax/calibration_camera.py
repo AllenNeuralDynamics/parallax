@@ -39,12 +39,20 @@ imtx = np.array([[1.52e+04, 0.0e+00, 2e+03],
                 dtype=np.float32)
 idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
                     dtype=np.float32)
-"""
+
 imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
                 [0.0e+00, 1.515e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
 idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
+                    dtype=np.float32)
+"""
+imtx = np.array([[1.54e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.54e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00      , 1.0e+00]],
+                dtype=np.float32)
+
+idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
                     dtype=np.float32)
 
 # Intrinsic flag
@@ -135,6 +143,29 @@ class CalibrationCamera:
         distancesA = [np.linalg.norm(vec) for vec in self.tvecs]
         logger.debug(f"Distance from camera to world center: {np.mean(distancesA)}")
         return ret, self.mtx, self.dist
+
+    def get_predefined_intrinsic(self, x_axis, y_axis):
+        self._process_reticle_points(x_axis, y_axis)
+        if self.name == "22517664":
+            self.mtx = np.array([[1.520480e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.520480e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+            self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
+                                dtype=np.float32)
+            return True, self.mtx, self.dist
+        
+        elif self.name == "22433200":
+            self.mtx = np.array([[1.507121e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.507121e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+            self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
+                                dtype=np.float32)
+            return True, self.mtx, self.dist
+        
+        else:
+            return False, None, None
 
     def get_origin_xyz(self):
         """
@@ -275,6 +306,9 @@ class CalibrationStereo(CalibrationCamera):
         """
         solvePnP_method = cv2.SOLVEPNP_ITERATIVE
         _, rvecs, tvecs = cv2.solvePnP(self.objpoints, self.imgpointsA, self.mtxA, self.distA, flags=solvePnP_method)
+        logger.debug("solvePnP")
+        logger.debug(rvecs)
+        logger.debug(tvecs)
         # Convert rotation vectors to rotation matrices
         rmat, _ = cv2.Rodrigues(rvecs)
         # Invert the rotation and translation
@@ -332,13 +366,15 @@ class CalibrationStereo(CalibrationCamera):
             numpy.ndarray: Predicted 3D points in global coordinate system.
         """
         camA, coordA, camB, coordB = self._matching_camera_order(camA, coordA, camB, coordB)
+        logger.debug("coordA", coordA)
+        logger.debug("coordB", coordB)
         points_3d_AB = self.triangulation(self.P_B, self.P_A, self.imgpointsB, self.imgpointsA)
         np.set_printoptions(suppress=True, precision=8) 
 
         points_3d_G = self.change_coords_system_from_camA_to_global_iterative(points_3d_AB)
         print("\n=solvePnP SOLVEPNP_ITERATIVE=")
         err = np.sqrt(np.sum((points_3d_G - self.objpoints)**2, axis=1))
-        print(f"(Reprojection error) Object points L2 diff: {np.mean(err)}")
+        print(f"(Reprojection error) Object points L2 diff: {np.mean(err)} mm2")
         print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
         self.test_pixel_error()
