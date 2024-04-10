@@ -84,6 +84,7 @@ class StageWidget(QWidget):
         self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
         self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
         self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
+        self.probeCalibration.calib_complete.connect(self.probe_detect_accepted_status)
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.probe_detection_status = None    # options: default, process, x_y_z_detected, accepted
 
@@ -353,7 +354,7 @@ class StageWidget(QWidget):
         """)
         self.hide_x_y_z()
         self.probeCalibration.reset_calib()
-        self.reset_calib_status()
+        #self.reset_calib_status()
 
         self.probe_calibration_btn.setChecked(False)
         if self.reticle_detection_status == "default":
@@ -366,6 +367,9 @@ class StageWidget(QWidget):
 
             self.filter = "no_filter"
             self.probeCalibration.clear()
+
+        # update global coords
+        self.stageListener.requestClearGlobalDataTransformM()
         
     def probe_detect_process_status(self):    
         self.probe_detection_status = "process"
@@ -386,14 +390,23 @@ class StageWidget(QWidget):
         message = f"Move probe at leas X mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
-    def probe_detect_accepted_status(self):
+    def probe_detect_accepted_status(self, stage_sn, transformation_matrix):
         self.probe_detection_status = "accepted"
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
             "background-color: #84c083;"
         )
         self.hide_x_y_z()
+        if self.filter == "probe_detection":
+            for screen in self.screen_widgets:
+                screen.probe_coords_detected.disconnect(self.probe_detect_all_screen)
+                screen.run_no_filter()
 
+            self.filter = "no_filter"
+
+        # update global coords
+        self.stageListener.requestUpdateGlobalDataTransformM(stage_sn, transformation_matrix)
+        
     def hide_x_y_z(self):
         if self.calib_x.isVisible():
             self.calib_x.hide()
@@ -424,9 +437,11 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
+        """
         self.calib_status_x = True
         if self.is_calib_success():
             self.probe_detect_accepted_status()
+        """
     
     def calib_y_complete(self):
         if self.calib_y.isVisible():
@@ -435,10 +450,13 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
+            
+        """
         self.calib_status_y = True
         if self.is_calib_success():
             self.probe_detect_accepted_status()
-    
+        """
+            
     def calib_z_complete(self):
         if self.calib_z.isVisible():
             # Change the button to green.
@@ -446,6 +464,8 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
+        
+        """
         self.calib_status_z = True
         if self.is_calib_success():
             self.probe_detect_accepted_status()
@@ -455,3 +475,5 @@ class StageWidget(QWidget):
 
     def reset_calib_status(self):
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
+
+        """

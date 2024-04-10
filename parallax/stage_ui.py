@@ -79,6 +79,9 @@ class StageUI(QWidget):
                     self.ui.global_coords_y.setText(str(self.selected_stage.stage_y_global))
                     self.ui.global_coords_z.setText(str(self.selected_stage.stage_z_global))
                 else:
-                    self.ui.global_coords_x.setText('-')
-                    self.ui.global_coords_y.setText('-')
-                    self.ui.global_coords_z.setText('-')                    
+                    self.updateStageGlobalCoords_default()              
+
+    def updateStageGlobalCoords_default(self):
+        self.ui.global_coords_x.setText('-')
+        self.ui.global_coords_y.setText('-')
+        self.ui.global_coords_z.setText('-')    
