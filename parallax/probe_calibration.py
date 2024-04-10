@@ -34,13 +34,13 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        self.threshold_min_mix = 1000 #TODO
+        self.threshold_min_mix = 1500 #TODO
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
-        self.threshold_matrix = np.array([[0.00002, 0.00002, 0.00002, 100.0], #TODO
-                                            [0.00002, 0.00002, 0.00002, 100.0],
-                                            [0.00002, 0.00002, 0.00002, 100.0],
+        self.threshold_matrix = np.array([[0.00002, 0.00002, 0.00002, 50.0], #TODO
+                                            [0.00002, 0.00002, 0.00002, 50.0],
+                                            [0.00002, 0.00002, 0.00002, 50.0],
                                             [0.0, 0.0, 0.0, 0.0]])
-        self.LR_err_L2_threshold = 50 #TODO
+        self.LR_err_L2_threshold = 20 #TODO
         self._create_file()
     
         # Test signal
