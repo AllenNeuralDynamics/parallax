@@ -204,6 +204,7 @@ class ReticleDetectManager(QObject):
         self.worker = None  # Clear the reference to the worker
 
     def onThreadDestroyed(self):
+        """ Flag if thread is deleted """
         self.threadDeleted = True
 
     def __del__(self):
