@@ -12,6 +12,7 @@ import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
@@ -376,8 +377,8 @@ class CalibrationStereo(CalibrationCamera):
             numpy.ndarray: Predicted 3D points in global coordinate system.
         """
         camA, coordA, camB, coordB = self._matching_camera_order(camA, coordA, camB, coordB)
-        logger.debug("coordA", coordA)
-        logger.debug("coordB", coordB)
+        logger.debug(f"coordA: {coordA}")
+        logger.debug(f"coordB: {coordB}")
         points_3d_AB = self.triangulation(self.P_B, self.P_A, self.imgpointsB, self.imgpointsA)
         np.set_printoptions(suppress=True, precision=8) 
 
@@ -400,8 +401,12 @@ class CalibrationStereo(CalibrationCamera):
             imgpoints2, _ = cv2.projectPoints(self.objpoints[i], rvecs, tvecs, self.mtxA, self.distA)
             
             imgpoints2_reshaped = imgpoints2.reshape(-1,2) 
-            error = cv2.norm(imgpointsA_converted, imgpoints2_reshaped, cv2.NORM_L2) / len(imgpoints2)
-            mean_error += error
+            differences = imgpointsA_converted - imgpoints2_reshaped
+            distances = np.sqrt(np.sum(np.square(differences), axis=1))
+            average_L2_distance = np.mean(distances)
+            mean_error += average_L2_distance
+            logger.debug("A pixel diff")
+            logger.debug(imgpointsA_converted-imgpoints2_reshaped)
         print(f"(Reprojection error) Pixel L2 diff A: {mean_error / len(self.objpoints)} pixels")
 
         mean_error = 0
@@ -410,7 +415,12 @@ class CalibrationStereo(CalibrationCamera):
             solvePnP_method = cv2.SOLVEPNP_ITERATIVE
             retval, rvecs, tvecs = cv2.solvePnP(self.objpoints[i], imgpointsB_converted, self.mtxB, self.distB, flags=solvePnP_method)
             imgpoints2, _ = cv2.projectPoints(self.objpoints[i], rvecs, tvecs, self.mtxB, self.distB)
+            
             imgpoints2_reshaped = imgpoints2.reshape(-1,2) 
-            error = cv2.norm(imgpointsB_converted, imgpoints2_reshaped, cv2.NORM_L2) / len(imgpoints2)
-            mean_error += error
+            differences = imgpointsB_converted - imgpoints2_reshaped
+            distances = np.sqrt(np.sum(np.square(differences), axis=1))
+            average_L2_distance = np.mean(distances)
+            mean_error += average_L2_distance
+            logger.debug("B pixel diff")
+            logger.debug(imgpointsB_converted-imgpoints2_reshaped)
         print(f"(Reprojection error) Pixel L2 diff B: {mean_error / len(self.objpoints)} pixels")

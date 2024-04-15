@@ -15,7 +15,7 @@ import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
@@ -81,7 +81,50 @@ class ReticleDetectManager(QObject):
             frame = cv2.line(frame, origin, y, (0, 255, 0), 3)  # Green line
             frame = cv2.line(frame, origin, z, (255, 0, 0), 3)  # Red line
             return frame
-        
+
+        def draw_calibration_info(self, frame, ret, mtx, dist):
+            """
+            Draw calibration information on the frame.
+            
+            Parameters:
+            - frame: The image frame on which to draw.
+            - ret: Boolean indicating if calibration was successful.
+            - mtx: The camera matrix obtained from calibration.
+            - dist: The distortion coefficients obtained from calibration.
+            """
+            
+            # Starting position for the text
+            offset_start = 50
+            line_height = 60
+            
+            # Basic settings for the text
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 1.5
+            font_color = (255, 255, 255)  # White color
+            line_type = 2
+            
+            # Status text
+            status_text = f"Overall RMS re-projection error: {ret}"
+            cv2.putText(frame, status_text, (10, offset_start), font, font_scale, font_color, line_type)
+            
+            # Camera matrix text
+            mtx_lines = [
+                f"Camera Matrix:",
+                f"[{mtx[0][0]:.2f}, {mtx[0][1]:.2f}, {mtx[0][2]:.2f}]",
+                f"[{mtx[1][0]:.2f}, {mtx[1][1]:.2f}, {mtx[1][2]:.2f}]",
+                f"[{mtx[2][0]:.2f}, {mtx[2][1]:.2f}, {mtx[2][2]:.2f}]"
+            ]
+            # Draw each line of the camera matrix
+            for i, line in enumerate(mtx_lines):
+                cv2.putText(frame, line, (10, offset_start+line_height + i * line_height), 
+                            font, font_scale, font_color, line_type)
+                
+            # Distortion coefficients text
+            dist_text = f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, {dist[0][2]:.4f}, {dist[0][3]:.4f} {dist[0][4]:.4f}]"
+            cv2.putText(frame, dist_text, (10, offset_start + line_height*5), font, font_scale, font_color, line_type)
+            
+            return frame
+
         def process(self, frame):
             """Process the frame for reticle detection."""
             #cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
@@ -89,15 +132,17 @@ class ReticleDetectManager(QObject):
             if ret:
                 ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
             if ret:
-                # Draw
+                # TODO
                 #ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
                 #if not ret:
                 ret, mtx, dist = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords) 
                 if ret:
+                    # Draw
                     self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist)
                     origin, x, y, z = self.calibrationCamera.get_origin_xyz()
                     frame = self.draw_xyz(frame, origin, x, y, z)
                     frame = self.draw(frame, x_axis_coords, y_axis_coords)
+                    frame = self.draw_calibration_info(frame, ret, mtx, dist)
                 self.frame_success = frame
             if self.frame_success is None:
                 logger.debug(f"{ self.name} reticle detection fail ")
