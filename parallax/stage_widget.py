@@ -32,7 +32,7 @@ class StageWidget(QWidget):
         self.model = model
         self.screen_widgets = screen_widgets
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
-        self.setMaximumWidth(400)
+        self.setMaximumWidth(420)
                 
         # Load reticle_calib.ui into its placeholder
         self.reticle_calib_widget = QWidget()  # Create a new widget
