@@ -46,6 +46,12 @@ linters = [
     'isort'
 ]
 
+docs = [
+    'Sphinx',
+    'sphinx-jinja',
+    'furo'
+]
+
 [tool.interrogate]
 fail-under = 100
  

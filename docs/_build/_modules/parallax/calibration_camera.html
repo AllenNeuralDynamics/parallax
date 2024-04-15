@@ -1,80 +1,202 @@
-<!DOCTYPE html>
-<html class="writer-html5" lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parallax.calibration_camera &mdash; Parallax 0.37.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
+    <!-- Generated with Sphinx 7.1.2 and Furo 2024.01.29 -->
+        <title>parallax.calibration_camera - Parallax 0.37.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
   
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
   
-        <script src="../../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=f5ec9bd4"></script>
-        <script src="../../_static/doctools.js?v=888ff710"></script>
-        <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
-    <script src="../../_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" /> 
-</head>
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
 
-          
-          
-          <a href="../../index.html" class="icon icon-home">
-            Parallax
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
-</div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">Parallax 0.37.1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  
+  <span class="sidebar-brand-text">Parallax 0.37.1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html">Welcome to Parallax</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#installing-and-upgrading">Installing and Upgrading</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../ReadMe.html#running-parallax">Running Parallax</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../modules.html">Parallax Moduels</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../modules.html">Parallax Moduels</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Parallax Moduels</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../parallax.html">parallax package</a></li>
+</ul>
+</li>
 </ul>
 
-        </div>
-      </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">Parallax</a>
-      </nav>
-
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">parallax.calibration_camera</li>
-      <li class="wy-breadcrumbs-aside">
-      </li>
-  </ul>
-  <hr/>
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
-  <h1>Source code for parallax.calibration_camera</h1><div class="highlight"><pre>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for parallax.calibration_camera</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Module for camera calibration and stereo calibration.</span>
 <span class="sd">This module provides classes for intrinsic camera calibration (`CalibrationCamera`)</span>
@@ -109,10 +231,28 @@
 
 <span class="c1"># Calibration</span>
 <span class="n">CRIT</span> <span class="o">=</span> <span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">TERM_CRITERIA_EPS</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">1e-11</span><span class="p">)</span>
-<span class="n">imtx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.52e+04</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">2e+03</span><span class="p">],</span>
-                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.52e+04</span><span class="p">,</span> <span class="mf">1.5e+03</span><span class="p">],</span>
-                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.0e+00</span><span class="p">]],</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">imtx = np.array([[1.52e+04, 0.0e+00, 2e+03],</span>
+<span class="sd">                [0.0e+00, 1.52e+04, 1.5e+03],</span>
+<span class="sd">                [0.0e+00, 0.0e+00, 1.0e+00]],</span>
+<span class="sd">                dtype=np.float32)</span>
+<span class="sd">idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],</span>
+<span class="sd">                    dtype=np.float32)</span>
+
+<span class="sd">imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],</span>
+<span class="sd">                [0.0e+00, 1.515e+04, 1.5e+03],</span>
+<span class="sd">                [0.0e+00, 0.0e+00, 1.0e+00]],</span>
+<span class="sd">                dtype=np.float32)</span>
+<span class="sd">idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],</span>
+<span class="sd">                    dtype=np.float32)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">imtx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.54e+04</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">2e+03</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.54e+04</span><span class="p">,</span> <span class="mf">1.5e+03</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">0.0e+00</span>      <span class="p">,</span> <span class="mf">1.0e+00</span><span class="p">]],</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="n">idist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span> <span class="p">]],</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
 <span class="c1"># Intrinsic flag</span>
 <span class="n">myflags1</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_USE_INTRINSIC_GUESS</span> <span class="o">|</span> \
@@ -129,19 +269,17 @@
             <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_ASPECT_RATIO</span> <span class="o">|</span> \
             <span class="n">cv2</span><span class="o">.</span><span class="n">CALIB_FIX_FOCAL_LENGTH</span>
 
-<span class="n">idist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span><span class="p">,</span> <span class="mf">0e+00</span> <span class="p">]],</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <span class="n">SIZE</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4000</span><span class="p">,</span><span class="mi">3000</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CalibrationCamera"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationCamera">[docs]</a><span class="k">class</span> <span class="nc">CalibrationCamera</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Class for intrinsic calibration.&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">camera_name</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the CalibrationCamera object&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">camera_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_interest_pixels</span> <span class="o">=</span> <span class="mi">15</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">imgpoints</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">pass</span>
-
+        
     <span class="k">def</span> <span class="nf">_get_changed_data_format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Change data format for calibration.</span>
@@ -204,6 +342,39 @@
         <span class="n">distancesA</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vec</span><span class="p">)</span> <span class="k">for</span> <span class="n">vec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tvecs</span><span class="p">]</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Distance from camera to world center: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">distancesA</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ret</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span></div>
+
+<div class="viewcode-block" id="CalibrationCamera.get_predefined_intrinsic"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationCamera.get_predefined_intrinsic">[docs]</a>    <span class="k">def</span> <span class="nf">get_predefined_intrinsic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fetches predefined intrinsic camera parameters for specific models.</span>
+<span class="sd">        Parameters:</span>
+<span class="sd">        - x_axis (int or float): The x-axis value for reticle processing.</span>
+<span class="sd">        - y_axis (int or float): The y-axis value for reticle processing.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - A tuple of (bool, numpy.ndarray or None, numpy.ndarray or None) representing success status,</span>
+<span class="sd">        intrinsic matrix, and distortion coefficients respectively.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_reticle_points</span><span class="p">(</span><span class="n">x_axis</span><span class="p">,</span> <span class="n">y_axis</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;22517664&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.520480e+04</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">2e+03</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.520480e+04</span><span class="p">,</span> <span class="mf">1.5e+03</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.0e+00</span><span class="p">]],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">8.26</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00</span><span class="p">,</span> <span class="o">-</span><span class="mf">63.01</span><span class="p">]],</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span>
+        
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;22433200&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.507121e+04</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">2e+03</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.507121e+04</span><span class="p">,</span> <span class="mf">1.5e+03</span><span class="p">],</span>
+                <span class="p">[</span><span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">0.0e+00</span><span class="p">,</span> <span class="mf">1.0e+00</span><span class="p">]],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.90</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">200.94</span><span class="p">]],</span>
+                                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dist</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="CalibrationCamera.get_origin_xyz"><a class="viewcode-back" href="../../parallax.html#parallax.calibration_camera.CalibrationCamera.get_origin_xyz">[docs]</a>    <span class="k">def</span> <span class="nf">get_origin_xyz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -344,6 +515,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">solvePnP_method</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">SOLVEPNP_ITERATIVE</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">rvecs</span><span class="p">,</span> <span class="n">tvecs</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">solvePnP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtxA</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">distA</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">solvePnP_method</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;solvePnP&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">rvecs</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">tvecs</span><span class="p">)</span>
         <span class="c1"># Convert rotation vectors to rotation matrices</span>
         <span class="n">rmat</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Rodrigues</span><span class="p">(</span><span class="n">rvecs</span><span class="p">)</span>
         <span class="c1"># Invert the rotation and translation</span>
@@ -401,13 +575,15 @@
 <span class="sd">            numpy.ndarray: Predicted 3D points in global coordinate system.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_matching_camera_order</span><span class="p">(</span><span class="n">camA</span><span class="p">,</span> <span class="n">coordA</span><span class="p">,</span> <span class="n">camB</span><span class="p">,</span> <span class="n">coordB</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;coordA&quot;</span><span class="p">,</span> <span class="n">coordA</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;coordB&quot;</span><span class="p">,</span> <span class="n">coordB</span><span class="p">)</span>
         <span class="n">points_3d_AB</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangulation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">P_B</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">P_A</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsB</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imgpointsA</span><span class="p">)</span>
         <span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">suppress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span> 
 
         <span class="n">points_3d_G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">change_coords_system_from_camA_to_global_iterative</span><span class="p">(</span><span class="n">points_3d_AB</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=solvePnP SOLVEPNP_ITERATIVE=&quot;</span><span class="p">)</span>
         <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">points_3d_G</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(Reprojection error) Object points L2 diff: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(Reprojection error) Object points L2 diff: </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="si">}</span><span class="s2"> mm2&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Object points predict:</span><span class="se">\n</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">points_3d_G</span><span class="p">,</span><span class="w"> </span><span class="n">decimals</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">test_pixel_error</span><span class="p">()</span>
@@ -438,32 +614,40 @@
             <span class="n">mean_error</span> <span class="o">+=</span> <span class="n">error</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(Reprojection error) Pixel L2 diff B: </span><span class="si">{</span><span class="n">mean_error</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">objpoints</span><span class="p">)</span><span class="si">}</span><span class="s2"> pixels&quot;</span><span class="p">)</span></div></div>
 </pre></div>
-
-           </div>
-          </div>
-          <footer>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright 2024, Hanna Lee.</p>
-  </div>
-
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
-
-</footer>
-        </div>
+        </article>
       </div>
-    </section>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, Hanna Lee
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
   </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
-
-</body>
+</div><script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=f5ec9bd4"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
 </html>
