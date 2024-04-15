@@ -5,7 +5,7 @@ to manage calibration data and provides UI functionalities for reticle and probe
 and camera calibration. The class integrates with PyQt5 for the UI, handling UI loading, 
 initializing components, and linking user actions to calibration processes.
 """
-from PyQt5.QtWidgets import QWidget, QMessageBox, QPushButton, QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QMessageBox, QPushButton, QLabel, QSpacerItem, QSizePolicy
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import QTimer
 from .stage_listener import StageListener
@@ -58,6 +58,7 @@ class StageWidget(QWidget):
         self.reticle_calibration_btn = self.reticle_calib_widget.findChild(QPushButton, "reticle_calibration_btn")
         self.acceptButton = self.reticle_calib_widget.findChild(QPushButton, "acceptButton")
         self.rejectButton = self.reticle_calib_widget.findChild(QPushButton, "rejectButton")
+        self.calibrationResultLabel = self.reticle_calib_widget.findChild(QLabel, "calibrationResultLabel")
         self.calib_x = self.probe_calib_widget.findChild(QPushButton, "calib_x")
         self.calib_y = self.probe_calib_widget.findChild(QPushButton, "calib_y")
         self.calib_z = self.probe_calib_widget.findChild(QPushButton, "calib_z")
@@ -148,6 +149,7 @@ class StageWidget(QWidget):
             }
         """)
         self.reticle_detection_status = "default"
+        self.calibrationResultLabel.setText("")
         if self.probe_calibration_btn.isEnabled():        
             # Disable probe calibration
             self.probe_detect_default_status()
@@ -246,7 +248,12 @@ class StageWidget(QWidget):
         self.acceptButton.hide() 
         self.rejectButton.hide() 
 
-        self.calibrate_stereo()
+        result = self.calibrate_stereo()
+        if result:
+            self.calibrationResultLabel.setText(
+                f"<span style='color:green;'><small>Coords Reproj RMSE: </small>"
+                f"<span style='color:green;'>{result:.3f} mm²</span>"
+            )
 
         for screen in self.screen_widgets:
             screen.reticle_coords_detected.disconnect(self.reticle_detect_all_screen)
@@ -290,7 +297,12 @@ class StageWidget(QWidget):
             self.model.add_camera_extrinsic(cam_names[0], cam_names[1], retval, R_AB, T_AB, E_AB, F_AB)
 
             # Test
-            self.calibrationStereo.test(cam_names[0], img_coords[0], cam_names[1], img_coords[1])
+            err = self.calibrationStereo.test_performance(cam_names[0], img_coords[0], cam_names[1], img_coords[1])
+            return err
+        else:
+            return None
+
+         
 
     def reticle_detect_all_screen(self):
         """

@@ -364,7 +364,7 @@ class CalibrationStereo(CalibrationCamera):
         logger.debug(f"points_3d_G: {points_3d_G}, coordA: {coordA}, coordB: {coordB}")
         return points_3d_G
     
-    def test(self, camA, coordA, camB, coordB):
+    def test_performance(self, camA, coordA, camB, coordB):
         """Test stereo calibration.
 
         Args:
@@ -385,11 +385,12 @@ class CalibrationStereo(CalibrationCamera):
         points_3d_G = self.change_coords_system_from_camA_to_global_iterative(points_3d_AB)
         print("\n=solvePnP SOLVEPNP_ITERATIVE=")
         err = np.sqrt(np.sum((points_3d_G - self.objpoints)**2, axis=1))
-        print(f"(Reprojection error) Object points L2 diff: {np.mean(err)} mm2")
+        average_L2_distance = np.mean(err)
+        print(f"(Reprojection error) Object points L2 diff: {average_L2_distance} mm²")
         print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
         self.test_pixel_error()
-        return points_3d_G
+        return average_L2_distance
     
     def test_pixel_error(self):
         """Test pixel reprojection error."""
