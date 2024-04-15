@@ -145,6 +145,16 @@ class CalibrationCamera:
         return ret, self.mtx, self.dist
 
     def get_predefined_intrinsic(self, x_axis, y_axis):
+        """
+        Fetches predefined intrinsic camera parameters for specific models.
+        Parameters:
+        - x_axis (int or float): The x-axis value for reticle processing.
+        - y_axis (int or float): The y-axis value for reticle processing.
+
+        Returns:
+        - A tuple of (bool, numpy.ndarray or None, numpy.ndarray or None) representing success status,
+        intrinsic matrix, and distortion coefficients respectively.
+        """
         self._process_reticle_points(x_axis, y_axis)
         if self.name == "22517664":
             self.mtx = np.array([[1.520480e+04, 0.0e+00, 2e+03],

@@ -19,6 +19,18 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeCalibration(QObject):
+    """
+    Handles the transformation of probe coordinates from local (stage) to global (reticle) space.
+
+    Attributes:
+        calib_complete_x (pyqtSignal): Signal emitted when calibration in the X direction is complete.
+        calib_complete_y (pyqtSignal): Signal emitted when calibration in the Y direction is complete.
+        calib_complete_z (pyqtSignal): Signal emitted when calibration in the Z direction is complete.
+        calib_complete (pyqtSignal): General signal emitted when calibration is fully complete.
+
+    Args:
+        stage_listener (QObject): The stage listener object that emits signals related to stage movements.
+    """
     calib_complete_x = pyqtSignal()
     calib_complete_y = pyqtSignal()
     calib_complete_z = pyqtSignal()
@@ -26,7 +38,9 @@ class ProbeCalibration(QObject):
 
     """Class for probe calibration."""
     def __init__(self, stage_listener):
-        """ Initialize the Probe Calibration object. """
+        """
+        Initializes the ProbeCalibration object with a given stage listener.
+        """
         super().__init__()
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
@@ -47,6 +61,9 @@ class ProbeCalibration(QObject):
         self.reset_calib()
 
     def reset_calib(self):
+        """
+        Resets calibration to its initial state, clearing any stored min and max values.
+        """
         self.min_x, self.max_x = float('inf'), float('-inf')
         self.min_y, self.max_y = float('inf'), float('-inf')
         self.min_z, self.max_z = float('inf'), float('-inf')
@@ -54,6 +71,9 @@ class ProbeCalibration(QObject):
         self.signal_emitted_x, self.signal_emitted_y, self.signal_emitted_z = False, False, False
 
     def _create_file(self):
+        """
+        Creates or clears the CSV file used to store local and global points during calibration.
+        """
         package_dir = os.path.dirname(os.path.abspath(__file__))
         debug_dir = os.path.join(os.path.dirname(package_dir), 'debug')
         os.makedirs(debug_dir, exist_ok=True)
@@ -71,11 +91,19 @@ class ProbeCalibration(QObject):
             writer.writerow(column_names)
 
     def clear(self):
-        """Clear the local points, global points, and transform matrix."""
+        """
+        Clears all stored data and resets the transformation matrix to its default state.
+        """
         self._create_file()
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
     
     def _get_local_global_points(self):
+        """
+        Retrieves local and global points from the CSV file as numpy arrays.
+
+        Returns:
+            tuple: A tuple containing arrays of local points and global points.
+        """
         self.df = pd.read_csv(self.csv_file)
         # Extract local and global points
         local_points = self.df[['local_x', 'local_y', 'local_z']].values
@@ -83,6 +111,16 @@ class ProbeCalibration(QObject):
         return local_points, global_points
 
     def _get_transM_LR(self, local_points, global_points):
+        """
+        Computes the transformation matrix from local to global coordinates.
+
+        Args:
+            local_points (np.array): Array of local points.
+            global_points (np.array): Array of global points.
+
+        Returns:
+            tuple: Linear regression model and transformation matrix.
+        """
         local_points_with_bias = np.hstack([local_points, np.ones((local_points.shape[0], 1))])
 
         # Train the linear regression model
@@ -101,15 +139,21 @@ class ProbeCalibration(QObject):
         return model, transformation_matrix
 
     def _update_local_global_point(self):
-        #local_point = np.array([stage.stage_x, stage.stage_y, stage.stage_z])
-        #global_point = np.array([stage.stage_x_global, stage.stage_y_global, stage.stage_z_global])
-
+        """
+        Updates the CSV file with a new set of local and global points from the current stage position.
+        """
         with open(self.csv_file, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 
                              self.stage.stage_x_global, self.stage.stage_y_global, self.stage.stage_z_global])
 
     def _is_criteria_met_transM(self):
+        """
+        Checks if the transformation matrix has stabilized within certain thresholds.
+
+        Returns:
+            bool: True if the criteria are met, otherwise False.
+        """
         diff_matrix = np.abs(self.transM_LR - self.transM_LR_prev)
         if np.all(diff_matrix <= self.threshold_matrix): 
             return True
@@ -117,6 +161,12 @@ class ProbeCalibration(QObject):
             return False
 
     def _is_criteria_met_points_min_max(self):
+        """
+        Checks if the range of collected points in each direction exceeds minimum thresholds.
+
+        Returns:
+            bool: True if sufficient range is achieved, otherwise False.
+        """
         self.min_x, self.max_x = min(self.min_x, self.stage.stage_x), max(self.max_x, self.stage.stage_x)
         self.min_y, self.max_y = min(self.min_y, self.stage.stage_y), max(self.max_y, self.stage.stage_y)
         self.min_z, self.max_z = min(self.min_z, self.stage.stage_z), max(self.max_z, self.stage.stage_z)
@@ -134,11 +184,23 @@ class ProbeCalibration(QObject):
             return False
 
     def _apply_transformation(self):
+        """
+        Applies the calculated transformation matrix to convert a local point to global coordinates.
+
+        Returns:
+            np.array: The transformed global point.
+        """
         local_point = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 1])
         global_point = np.dot(self.transM_LR, local_point)
         return global_point[:3]
 
     def _is_criteria_met_l2_error(self):
+        """
+        Evaluates if the L2 error between the transformed point and the actual global point is within threshold.
+
+        Returns:
+            bool: True if the error is within threshold, otherwise False.
+        """
         transformed_point = self._apply_transformation()
         global_point = np.array([self.stage.stage_x_global, self.stage.stage_y_global, self.stage.stage_z_global])
         LR_err_L2 = np.linalg.norm(transformed_point - global_point)
@@ -148,6 +210,10 @@ class ProbeCalibration(QObject):
             return False
 
     def _enough_points_emit_signal(self):
+        """
+        Emits calibration complete signals based on the sufficiency of point ranges in each direction.
+        """
+
         if not self.signal_emitted_x and self.max_x - self.min_x > self.threshold_min_mix:
             self.calib_complete_x.emit()
             self.signal_emitted_x = True
@@ -181,10 +247,11 @@ class ProbeCalibration(QObject):
         return False
     
     def update(self, stage):
-        """Update the local and global points.
+        """
+        Main method to update calibration with a new stage position and check if calibration is complete.
 
         Args:
-            stage (Stage): Stage object containing stage coordinates.
+            stage (Stage): The current stage object with new position data.
         """
         # update points in the file
         self.stage = stage
@@ -198,75 +265,17 @@ class ProbeCalibration(QObject):
         if ret:
             self.calib_complete.emit(self.stage.sn , self.transM_LR)
             logger.debug(f"complete probe calibration {self.stage.sn}, {self.transM_LR}")
-            pass
-            #self.model_LR, self.transM_LR
     
     def reshape_array(self):
-        """Reshape local and global points arrays.
-        
+        """
+        Reshapes arrays of local and global points for processing.
+
         Returns:
-            tuple: Reshaped local points and global points arrays.
+            tuple: Reshaped local and global points arrays.
         """
         local_points = np.array(self.local_points)
         global_points = np.array(self.global_points)
         return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
-
-    def _test_cmp_truth_expect(self, stage, transform_matrix):
-        """Test the transform matrix by comparing the transformed point with the expected global point.
-        
-        Args:
-            stage (Stage): Stage object containing stage coordinates.
-            transform_matrix (numpy.ndarray): Transform matrix.
-        """
-        local_point = np.array([stage.stage_x, stage.stage_y, stage.stage_z, 1])
-        global_point = np.array([stage.stage_x_global, stage.stage_y_global, stage.stage_z_global])
-        
-        transformed_point = np.dot(transform_matrix, local_point)[:3] 
-        error = np.linalg.norm(transformed_point - global_point)
-        
-        if error < 5 and len(self.local_points) > 30:
-            self.error_min = error
-
-        logger.debug(f"Error (Euclidean distance): {error:.5f}, min_error: {self.error_min:.5f}")
-        logger.debug(f"Transformed point: {transformed_point}")
-        logger.debug(f"Expected global point: {global_point}")
-        logger.debug(f"local points: {local_point}")
-
-    def local_global_transform(self, stage):
-        """Perform local to global transformation.
-        
-        Args:
-            stage (Stage): Stage object containing stage coordinates.
-        """
-        
-        """
-        if self.is_enough_points():
-            local_points, global_points = self.reshape_array()
-            retval, transform_matrix, self.inliers = cv2.estimateAffine3D(local_points, global_points, \
-                                                            ransacThreshold = 30, confidence=0.995)
-            
-            # TODO
-            # cv2.estimateAffine3D : Affine Transform (include scale factor)
-            # Algorithms to test : cv::SOLVEPNP_ITERATIVE (Intiric == I, get only R|t), (No scale)
-            # Algorithms to test :Liear Regresson (Minimize dist, include scale factor)
-        
-        if retval and transform_matrix is not None:
-            self._test_cmp_truth_expect(stage, transform_matrix)
-            logger.debug("========================")
-            local_point = np.array([10346.5, 14720.0, 8270.5, 1])
-            global_point = np.array([0.0, 0.0, 0.0])
-            transformed_point = np.dot(transform_matrix, local_point)[:3]
-            error = np.linalg.norm(transformed_point - global_point)
-            logger.debug(f"test. error: {error}")
-            logger.debug(f"Transformed point: {transformed_point}")
-            logger.debug(self.transform_matrix)
-
-            if error < 50:
-                logger.debug(transform_matrix)
-        """
-
-
-        pass
 
 
 

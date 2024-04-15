@@ -43,7 +43,6 @@ class MainWindow(QMainWindow):
     components, camera and stage management, and recording functionality.
     """
     def __init__(self, model, dummy=False):
-        QMainWindow.__init__(self) # Initialize the QMainWindow
         """
         Initialize the MainWindow.
         
@@ -51,6 +50,7 @@ class MainWindow(QMainWindow):
             model (object): The data model for the application.
             dummy (bool, optional): Flag indicating whether to run in dummy mode. Defaults to False.
         """
+        QMainWindow.__init__(self) # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
         # self.model.clean() TBD call to close the camera when there was abnormal program exit in previous run.
@@ -603,6 +603,14 @@ class MainWindow(QMainWindow):
             self.dirLabel.setText(directory)
         
     def save_user_configs(self):
+        """
+        Saves user configuration settings to a persistent storage.
+
+        This method retrieves current configuration values from the UI, including
+        the number of columns (nColumn), directory path (directory), and the window's
+        width and height. It then passes these values to the `save_user_configs` method
+        of the `user_setting` object to be saved.
+        """
         nColumn = self.nColumnsSpinBox.value()
         directory = self.dirLabel.text()
         width = self.width()

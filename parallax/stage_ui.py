@@ -82,6 +82,12 @@ class StageUI(QWidget):
                     self.updateStageGlobalCoords_default()              
 
     def updateStageGlobalCoords_default(self):
+        """
+        Resets the global coordinates displayed in the UI to default placeholders.
+
+        This method is used to clear the display of global coordinates in the user interface,
+        setting them back to a default placeholder value ('-').
+        """
         self.ui.global_coords_x.setText('-')
         self.ui.global_coords_y.setText('-')
         self.ui.global_coords_z.setText('-')    

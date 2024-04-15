@@ -21,7 +21,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
 class ReticleDetectManager(QObject):
-    """Reticle detection class"""
+    """ Reticle detection class """
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
@@ -134,6 +134,7 @@ class ReticleDetectManager(QObject):
             logger.debug(f"thread finished {self.name}")
 
         def set_name(self, name):
+            """ Set name as camera serial number. """
             self.name = name
 
     def __init__(self, camera_name):
@@ -182,6 +183,7 @@ class ReticleDetectManager(QObject):
             self.worker.stop_running()
 
     def set_name(self, camera_name):
+        """Set camera name."""
         self.name = camera_name
         if self.worker is not None:
             self.worker.set_name(self.name)

@@ -265,6 +265,20 @@ class StageListener(QObject):
                 self._updateGlobalDataTransformM(sn, moving_stage, transM)
             
     def _updateGlobalDataTransformM(self, sn, moving_stage, transM):
+        """
+        Applies a transformation matrix to the local coordinates of a moving stage and updates its global coordinates.
+
+        Args:
+            sn (str): The serial number of the moving stage.
+            moving_stage (Stage): An object representing the moving stage, with attributes for its local and global coordinates.
+            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix used to convert local coordinates
+                                to global coordinates.
+
+        Effects:
+            - Updates the moving_stage object's `stage_x_global`, `stage_y_global`, and `stage_z_global` attributes with the
+            transformed global coordinates.
+            - If the moving stage is the currently selected stage in the UI, triggers an update of the global coordinates display.
+        """
          # Transform
         local_point = np.array([moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z, 1])
         global_point = np.dot(transM, local_point)
@@ -279,36 +293,29 @@ class StageListener(QObject):
             self.stage_ui.updateStageGlobalCoords()
     
     def requestUpdateGlobalDataTransformM(self, sn, transM):
+        """
+        Stores or updates a transformation matrix for a specific stage identified by its serial number.
+        This method updates an internal dictionary, `transM_dict`, mapping stage serial numbers to their
+        corresponding transformation matrices.
+
+        Args:
+            sn (str): The serial number of the stage.
+            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix for the specified stage.
+        """
         self.transM_dict[sn] = transM
         logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM}")
         
     def requestClearGlobalDataTransformM(self):
+        """
+        Clears all stored transformation matrices and resets the UI to default global coordinates.
+
+        Effects:
+            - Clears `transM_dict`, removing all stored transformation matrices.
+            - Triggers a UI update to reset the display of global coordinates to default values.
+        """
         self.transM_dict = {}
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
-
-    """
-    def updateGlobalDataTransformM(self, sn, transM):
-        moving_stage = self.model.stages.get(sn)
-        
-        if moving_stage is not None:
-            local_coords_x = moving_stage.stage_x
-            local_coords_y = moving_stage.stage_y
-            local_coords_z = moving_stage.stage_z
-
-            # Transform
-            local_point = np.array([local_coords_x, local_coords_y, local_coords_z, 1])
-            global_point = np.dot(transM, local_point)
-            global_point =  global_point[:3]
-            logger.debug(sn, global_point)
-
-            # Update into UI
-            moving_stage.stage_x_global = global_point[0]
-            moving_stage.stage_y_global = global_point[1]
-            moving_stage.stage_z_global = global_point[2]
-            if self.stage_ui.get_selected_stage_sn() == sn:
-                self.stage_ui.updateStageGlobalCoords()
-    """
 
     def _change_time_format(self, str_time):
         """Change the time format from string to datetime."""

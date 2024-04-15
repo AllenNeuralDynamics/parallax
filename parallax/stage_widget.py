@@ -21,7 +21,13 @@ logger.setLevel(logging.DEBUG)
 class StageWidget(QWidget):
     """Widget for stage control and calibration."""
     def __init__(self, model, ui_dir, screen_widgets):
-        """ Initializes the StageWidget instance. """
+        """ Initializes the StageWidget instance. 
+
+        Parameters:
+            model: The data model used for storing calibration and stage information.
+            ui_dir (str): The directory path where UI files are located.
+            screen_widgets (list): A list of ScreenWidget instances for reticle and probe detection.
+        """
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
@@ -91,7 +97,9 @@ class StageWidget(QWidget):
         self.filter = "no_filter"
 
     def reticle_detection_button_handler(self):
-        """Handle the reticle detection button click."""
+        """
+        Handles clicks on the reticle detection button, initiating or canceling reticle detection.
+        """
         logger.debug(f"\n reticle_detection_button_handler {self.reticle_detection_status}")
         if self.reticle_calibration_btn.isChecked():
             # Run reticle detectoin
@@ -107,6 +115,9 @@ class StageWidget(QWidget):
                     self.reticle_calibration_btn.setChecked(True)
     
     def reticle_detect_default_status(self):
+        """
+        Resets the reticle detection process to its default state and updates the UI accordingly.
+        """
         # Enable reticle_calibration_btn button
         if not self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(True)
@@ -142,6 +153,12 @@ class StageWidget(QWidget):
             self.probe_detect_default_status()
 
     def overwrite_popup_window(self):
+        """
+        Displays a confirmation dialog to decide whether to overwrite the current reticle position.
+        
+        Returns:
+            bool: True if the user chooses to overwrite, False otherwise.
+        """
         message = f"Are you sure you want to overwrite the current reticle position?"
         response = QMessageBox.warning(self, "Reticle Detection Failed", message, 
                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
@@ -155,6 +172,9 @@ class StageWidget(QWidget):
             return False
     
     def reticle_detect_fail_popup_window(self):
+        """
+        Displays a warning dialog indicating the failure of reticle detection on one or more cameras.
+        """
         coords_detect_fail_cameras = []
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
@@ -166,6 +186,9 @@ class StageWidget(QWidget):
         QMessageBox.warning(self, "Reticle Detection Failed", message)
 
     def reticle_detect_process_status(self):
+        """
+        Updates the UI and internal state to reflect that the reticle detection process is underway.
+        """
         # Disable reticle_calibration_btn button
         if self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(False)
@@ -190,8 +213,10 @@ class StageWidget(QWidget):
         self.reticle_calibration_timer.start(10000)
         logger.debug(self.reticle_detection_status)
 
-
     def reticle_detect_detected_status(self):
+        """
+        Updates the UI and internal state to reflect that the reticle has been detected.
+        """
         # Found the coords
         self.reticle_detection_status = "detected"
         self.reticle_calibration_timer.stop()
@@ -207,6 +232,9 @@ class StageWidget(QWidget):
         )
 
     def reticle_detect_accept_detected_status(self):
+        """
+        Finalizes the reticle detection process, accepting the detected reticle position and updating the UI accordingly.
+        """
         self.reticle_detection_status = "accepted"
         
         # Change the button to green.
@@ -235,6 +263,9 @@ class StageWidget(QWidget):
             self.probe_calibration_btn.setEnabled(True)
 
     def calibrate_stereo(self):
+        """
+        Performs stereo calibration using the detected reticle positions and updates the model with the calibration data.
+        """
         # Streo Camera Calibration
         if len(self.model.coords_axis) >=2 and len(self.model.camera_intrinsic) >=2:
             img_coords = []
@@ -262,6 +293,10 @@ class StageWidget(QWidget):
             self.calibrationStereo.test(cam_names[0], img_coords[0], cam_names[1], img_coords[1])
 
     def reticle_detect_all_screen(self):
+        """
+        Checks all screens for reticle detection results and updates the status based on whether the reticle
+        has been detected on all screens.
+        """
         """Detect reticle coordinates on all screens."""
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
@@ -317,6 +352,12 @@ class StageWidget(QWidget):
         self.stageListener.handleGlobalDataChange(sn, global_coords, timestamp)
 
     def probe_overwrite_popup_window(self):
+        """
+        Displays a confirmation dialog asking the user if they want to overwrite the current probe position.
+
+        Returns:
+            bool: True if the user confirms the overwrite, False otherwise.
+        """
         message = f"Are you sure you want to overwrite the current probe position?"
         response = QMessageBox.warning(self, "Reticle Detection Failed", message, 
                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
@@ -341,7 +382,11 @@ class StageWidget(QWidget):
                 # Keep the last calibration result
                 self.probe_calibration_btn.setChecked(True)
 
-    def probe_detect_default_status(self):    
+    def probe_detect_default_status(self):
+        """
+        Resets the probe detection status to its default state and updates the UI to reflect this change.
+        This method is called after completing or aborting the probe detection process.
+        """
         self.probe_detection_status = "default"
         self.probe_calibration_btn.setStyleSheet("""
             QPushButton {
@@ -371,7 +416,10 @@ class StageWidget(QWidget):
         # update global coords
         self.stageListener.requestClearGlobalDataTransformM()
         
-    def probe_detect_process_status(self):    
+    def probe_detect_process_status(self): 
+        """
+        Updates the UI and internal state to reflect that the probe detection process is underway.
+        """   
         self.probe_detection_status = "process"
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
@@ -391,6 +439,14 @@ class StageWidget(QWidget):
         QMessageBox.information(self, "Probe calibration info", message)
 
     def probe_detect_accepted_status(self, stage_sn, transformation_matrix):
+        """
+        Finalizes the probe detection process, accepting the detected probe position and updating the UI accordingly.
+        Additionally, it updates the model with the transformation matrix obtained from the calibration.
+
+        Parameters:
+            stage_sn (str): The serial number of the stage for which the probe position is accepted.
+            transformation_matrix (np.ndarray): The transformation matrix obtained from the probe calibration process.
+        """
         self.probe_detection_status = "accepted"
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
@@ -408,6 +464,10 @@ class StageWidget(QWidget):
         self.stageListener.requestUpdateGlobalDataTransformM(stage_sn, transformation_matrix)
         
     def hide_x_y_z(self):
+        """
+        Hides the X, Y, and Z calibration buttons and updates their styles to indicate that the calibration for
+        each axis has been completed.
+        """
         if self.calib_x.isVisible():
             self.calib_x.hide()
             # Change the button to green.
@@ -431,19 +491,20 @@ class StageWidget(QWidget):
         )
             
     def calib_x_complete(self):
+        """
+        Updates the UI to indicate that the calibration for the X-axis is complete.
+        """
         if self.calib_x.isVisible():
             # Change the button to green.
             self.calib_x.setStyleSheet(
             "color: white;"
             "background-color: #84c083;"
         )
-        """
-        self.calib_status_x = True
-        if self.is_calib_success():
-            self.probe_detect_accepted_status()
-        """
     
     def calib_y_complete(self):
+        """
+        Updates the UI to indicate that the calibration for the Y-axis is complete.
+        """
         if self.calib_y.isVisible():
             # Change the button to green.
             self.calib_y.setStyleSheet(
@@ -451,29 +512,13 @@ class StageWidget(QWidget):
             "background-color: #84c083;"
         )
             
-        """
-        self.calib_status_y = True
-        if self.is_calib_success():
-            self.probe_detect_accepted_status()
-        """
-            
     def calib_z_complete(self):
+        """
+        Updates the UI to indicate that the calibration for the Z-axis is complete.
+        """
         if self.calib_z.isVisible():
             # Change the button to green.
             self.calib_z.setStyleSheet(
             "color: white;"
             "background-color: #84c083;"
         )
-        
-        """
-        self.calib_status_z = True
-        if self.is_calib_success():
-            self.probe_detect_accepted_status()
-
-    def is_calib_success(self):
-        return self.calib_status_x and self.calib_status_y and self.calib_status_z
-
-    def reset_calib_status(self):
-        self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
-
-        """
