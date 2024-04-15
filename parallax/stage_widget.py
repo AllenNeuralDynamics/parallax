@@ -199,7 +199,7 @@ class StageWidget(QWidget):
             "background-color: #ffaaaa;"
         )
         for screen in self.screen_widgets:
-            screen.reset_reticle_coords()  # screen.reticle_coords = None
+            screen.reset_reticle_coords()  
             screen.reticle_coords_detected.connect(self.reticle_detect_all_screen)
             screen.run_reticle_detection()
         self.filter = "reticle_detection"

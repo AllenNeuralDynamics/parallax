@@ -15,7 +15,7 @@ import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
@@ -147,18 +147,21 @@ class ReticleDetectManager(QObject):
     
     def init_thread(self):
         """Initialize the worker thread."""
-        #if self.thread is not None:
-        #    self.clean()  # Clean up existing thread and worker before reinitializing
+        if self.thread is not None:
+            self.clean()  # Clean up existing thread and worker before reinitializing
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.destroyed.connect(self.onThreadDestroyed)
+        self.threadDeleted = False
+
         self.worker.frame_processed.connect(self.frame_processed)
         self.worker.found_coords.connect(self.found_coords) 
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
         logger.debug(f"init camera name: {self.name}")
 
     def process(self, frame):
@@ -190,12 +193,18 @@ class ReticleDetectManager(QObject):
         logger.debug(f"camera name: {self.name}")
 
     def clean(self):
-        """Clean up the reticle detection manager."""
+        """Safely clean up the reticle detection manager."""
+        logger.debug("Cleaning the thread")
         if self.worker is not None:
-            self.worker.stop_running()
-        if self.thread is not None:
-            self.thread.quit()
-            self.thread.wait()
+            self.worker.stop_running()  # Signal the worker to stop
+        if not self.threadDeleted and self.thread.isRunning():
+            self.thread.quit()  # Ask the thread to quit
+            self.thread.wait()  # Wait for the thread to finish
+        self.thread = None  # Clear the reference to the thread
+        self.worker = None  # Clear the reference to the worker
+
+    def onThreadDestroyed(self):
+        self.threadDeleted = True
 
     def __del__(self):
         """Destructor for the reticle detection manager."""
