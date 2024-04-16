@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>541</width>
-    <height>180</height>
+    <height>784</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,16 +16,29 @@
   <widget class="QWidget" name="gridLayoutWidget">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>20</y>
-     <width>341</width>
-     <height>101</height>
+     <x>10</x>
+     <y>10</y>
+     <width>361</width>
+     <height>694</height>
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <property name="verticalSpacing">
      <number>1</number>
     </property>
+    <item row="1" column="4">
+     <spacer name="horizontalSpacer_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
     <item row="0" column="0" colspan="5" alignment="Qt::AlignHCenter|Qt::AlignTop">
      <widget class="QPushButton" name="probe_calibration_btn">
       <property name="sizePolicy">
@@ -54,8 +67,8 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="4">
-     <spacer name="horizontalSpacer_2">
+    <item row="1" column="0">
+     <spacer name="horizontalSpacer">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -66,6 +79,28 @@
        </size>
       </property>
      </spacer>
+    </item>
+    <item row="1" column="1" alignment="Qt::AlignTop">
+     <widget class="QPushButton" name="calib_x">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>40</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>30</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>X</string>
+      </property>
+     </widget>
     </item>
     <item row="1" column="2" alignment="Qt::AlignTop">
      <widget class="QPushButton" name="calib_y">
@@ -89,19 +124,6 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="0">
-     <spacer name="horizontalSpacer">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
     <item row="1" column="3" alignment="Qt::AlignTop">
      <widget class="QPushButton" name="calib_z">
       <property name="enabled">
@@ -124,25 +146,19 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="1" alignment="Qt::AlignTop">
-     <widget class="QPushButton" name="calib_x">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
+    <item row="2" column="0" colspan="5">
+     <widget class="QLabel" name="probeCalibrationLabel">
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>40</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>30</width>
-        <height>16777215</height>
+        <height>600</height>
        </size>
       </property>
       <property name="text">
-       <string>X</string>
+       <string/>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
       </property>
      </widget>
     </item>

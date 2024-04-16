@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>671</width>
-    <height>381</height>
+    <height>522</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -24,8 +24,8 @@
     <rect>
      <x>30</x>
      <y>10</y>
-     <width>351</width>
-     <height>244</height>
+     <width>332</width>
+     <height>494</height>
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
@@ -129,11 +129,11 @@
      </spacer>
     </item>
     <item row="2" column="0" colspan="4">
-     <widget class="QLabel" name="calibrationResultLabel">
+     <widget class="QLabel" name="reticleCalibResultLabel">
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>150</height>
+        <height>400</height>
        </size>
       </property>
       <property name="text">

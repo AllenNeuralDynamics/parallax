@@ -14,6 +14,7 @@ from .calibration_camera import CalibrationStereo
 from .stage_ui import StageUI
 import os
 import logging
+import  numpy as np
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -32,21 +33,21 @@ class StageWidget(QWidget):
         self.model = model
         self.screen_widgets = screen_widgets
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
-        self.setMaximumWidth(420)
+        self.setMaximumWidth(380)
                 
         # Load reticle_calib.ui into its placeholder
         self.reticle_calib_widget = QWidget()  # Create a new widget
         loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self.reticle_calib_widget)
         # Assuming reticleCalibPlaceholder is the name of an empty widget designated as a placeholder in your stage_info.ui
         self.stage_status_ui.layout().addWidget(self.reticle_calib_widget)  # Add it to the placeholder's layout
-        self.reticle_calib_widget.setMinimumSize(0, 150)
+        self.reticle_calib_widget.setMinimumSize(0, 160)
 
         # Load probe_calib.ui into its placeholder
         self.probe_calib_widget = QWidget()  # Create a new widget
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self.probe_calib_widget)
         # Assuming probeCalibPlaceholder is the name of an empty widget designated as a placeholder in your stage_info.ui
         self.stage_status_ui.layout().addWidget(self.probe_calib_widget)  # Add it to the placeholder's layout
-        self.probe_calib_widget.setMinimumSize(0, 150) 
+        self.probe_calib_widget.setMinimumSize(0, 450) 
         
         # Create a vertical spacer with expanding policy
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
@@ -58,10 +59,11 @@ class StageWidget(QWidget):
         self.reticle_calibration_btn = self.reticle_calib_widget.findChild(QPushButton, "reticle_calibration_btn")
         self.acceptButton = self.reticle_calib_widget.findChild(QPushButton, "acceptButton")
         self.rejectButton = self.reticle_calib_widget.findChild(QPushButton, "rejectButton")
-        self.calibrationResultLabel = self.reticle_calib_widget.findChild(QLabel, "calibrationResultLabel")
+        self.reticleCalibrationLabel = self.reticle_calib_widget.findChild(QLabel, "reticleCalibResultLabel")
         self.calib_x = self.probe_calib_widget.findChild(QPushButton, "calib_x")
         self.calib_y = self.probe_calib_widget.findChild(QPushButton, "calib_y")
         self.calib_z = self.probe_calib_widget.findChild(QPushButton, "calib_z")
+        self.probeCalibrationLabel = self.probe_calib_widget.findChild(QLabel, "probeCalibrationLabel")
 
         # Reticle Widget
         self.reticle_detection_status = None    # options: default, process, detected, accepted
@@ -92,6 +94,7 @@ class StageWidget(QWidget):
         self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
         self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
         self.probeCalibration.calib_complete.connect(self.probe_detect_accepted_status)
+        self.probeCalibration.transM_info.connect(self.update_probe_calib_status)
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.probe_detection_status = None    # options: default, process, x_y_z_detected, accepted
 
@@ -149,7 +152,7 @@ class StageWidget(QWidget):
             }
         """)
         self.reticle_detection_status = "default"
-        self.calibrationResultLabel.setText("")
+        self.reticleCalibrationLabel.setText("")
         if self.probe_calibration_btn.isEnabled():        
             # Disable probe calibration
             self.probe_detect_default_status()
@@ -250,8 +253,8 @@ class StageWidget(QWidget):
 
         result = self.calibrate_stereo()
         if result:
-            self.calibrationResultLabel.setText(
-                f"<span style='color:green;'><small>Coords Reproj RMSE: </small>"
+            self.reticleCalibrationLabel.setText(
+                f"<span style='color:green;'><small>Coords Reproj RMSE:<br></small>"
                 f"<span style='color:green;'>{result:.3f} mm²</span>"
             )
 
@@ -303,7 +306,6 @@ class StageWidget(QWidget):
             return None
 
          
-
     def reticle_detect_all_screen(self):
         """
         Checks all screens for reticle detection results and updates the status based on whether the reticle
@@ -410,6 +412,7 @@ class StageWidget(QWidget):
             }
         """)
         self.hide_x_y_z()
+        self.probeCalibrationLabel.setText("")
         self.probeCalibration.reset_calib()
         #self.reset_calib_status()
 
@@ -447,7 +450,7 @@ class StageWidget(QWidget):
         self.filter = "probe_detection"
 
         # message
-        message = f"Move probe at leas X mm along X, Y, and Z axes"
+        message = f"Move probe at leas 20 mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
     def probe_detect_accepted_status(self, stage_sn, transformation_matrix):
@@ -534,3 +537,52 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
+    def update_probe_calib_status_transM(self, transformation_matrix):
+        # Extract the rotation matrix (top-left 3x3)
+        R = transformation_matrix[:3, :3]
+        # Extract the translation vector (top 3 elements of the last column)
+        T = transformation_matrix[:3, 3]
+                
+        # Set the formatted string as the label's text
+        content = (
+            f"<span style='color:yellow;'><small>"
+            f"[Transformation Matrix]<br></small></span>"
+            f"<span style='color:green;'><small><b>R:</b><br>"
+            f" {R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f},<br>"
+            f" {R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f},<br>"
+            f" {R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f},<br>"
+            f"<b>T:</b><br>"
+            f" {T[0]:.0f}, {T[1]:.0f}, {T[2]:.0f}<br>"
+            f"</small></span>"
+        )
+        return content
+
+    def update_probe_calib_status_L2(self, L2_err):
+        content = (
+            f"<span style='color:yellow;'><small>[L2 distance]<br></small></span>"
+            f"<span style='color:green;'><small> {L2_err:.3f}<br>"
+            f"</small></span>"
+        )
+        return content
+
+    def update_probe_calib_status_distance_traveled(self, dist_traveled):
+        x, y, z = dist_traveled[0], dist_traveled[1], dist_traveled[2]
+        content = (
+            f"<span style='color:yellow;'><small>[Distance traveled (µm)]<br></small></span>"
+            f"<span style='color:green;'><small>"
+            f"x: {x} y: {y} z: {z}<br>"
+            f"</small></span>"
+        )
+        return content
+
+    def update_probe_calib_status(self, transformation_matrix, L2_err, dist_traveled):
+        content_transM = self.update_probe_calib_status_transM(transformation_matrix)
+        content_L2 = self.update_probe_calib_status_L2(L2_err)
+        content_L2_travel = self.update_probe_calib_status_distance_traveled(dist_traveled)
+        # Ensure HTML content is properly combined
+        full_content = content_transM + content_L2 + content_L2_travel
+
+        self.probeCalibrationLabel.setText(full_content)
+
+
+        

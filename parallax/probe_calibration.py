@@ -35,6 +35,7 @@ class ProbeCalibration(QObject):
     calib_complete_y = pyqtSignal()
     calib_complete_z = pyqtSignal()
     calib_complete = pyqtSignal(str, object)
+    transM_info = pyqtSignal(object, float, object)
 
     """Class for probe calibration."""
     def __init__(self, stage_listener):
@@ -48,7 +49,7 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        self.threshold_min_mix = 1500 #TODO
+        self.threshold_min_mix = 2000 #TODO 
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.threshold_matrix = np.array([[0.00002, 0.00002, 0.00002, 50.0], #TODO
                                             [0.00002, 0.00002, 0.00002, 50.0],
@@ -160,6 +161,11 @@ class ProbeCalibration(QObject):
         else:
             return False
 
+    def _update_min_max_x_y_z(self):
+        self.min_x, self.max_x = min(self.min_x, self.stage.stage_x), max(self.max_x, self.stage.stage_x)
+        self.min_y, self.max_y = min(self.min_y, self.stage.stage_y), max(self.max_y, self.stage.stage_y)
+        self.min_z, self.max_z = min(self.min_z, self.stage.stage_z), max(self.max_z, self.stage.stage_z)
+
     def _is_criteria_met_points_min_max(self):
         """
         Checks if the range of collected points in each direction exceeds minimum thresholds.
@@ -167,10 +173,7 @@ class ProbeCalibration(QObject):
         Returns:
             bool: True if sufficient range is achieved, otherwise False.
         """
-        self.min_x, self.max_x = min(self.min_x, self.stage.stage_x), max(self.max_x, self.stage.stage_x)
-        self.min_y, self.max_y = min(self.min_y, self.stage.stage_y), max(self.max_y, self.stage.stage_y)
-        self.min_z, self.max_z = min(self.min_z, self.stage.stage_z), max(self.max_z, self.stage.stage_z)
-
+        
         if self.max_x - self.min_x > self.threshold_min_mix \
             or self.max_y - self.min_y > self.threshold_min_mix \
             or self.max_z - self.min_z > self.threshold_min_mix:
@@ -194,6 +197,13 @@ class ProbeCalibration(QObject):
         global_point = np.dot(self.transM_LR, local_point)
         return global_point[:3]
 
+    def _l2_error_current_point(self):
+        transformed_point = self._apply_transformation()
+        global_point = np.array([self.stage.stage_x_global, self.stage.stage_y_global, self.stage.stage_z_global])
+        LR_err_L2 = np.linalg.norm(transformed_point - global_point)
+
+        return LR_err_L2
+
     def _is_criteria_met_l2_error(self):
         """
         Evaluates if the L2 error between the transformed point and the actual global point is within threshold.
@@ -201,10 +211,7 @@ class ProbeCalibration(QObject):
         Returns:
             bool: True if the error is within threshold, otherwise False.
         """
-        transformed_point = self._apply_transformation()
-        global_point = np.array([self.stage.stage_x_global, self.stage.stage_y_global, self.stage.stage_z_global])
-        LR_err_L2 = np.linalg.norm(transformed_point - global_point)
-        if LR_err_L2 <= self.LR_err_L2_threshold:
+        if self.LR_err_L2_current <= self.LR_err_L2_threshold:
             return True
         else:
             return False
@@ -213,7 +220,6 @@ class ProbeCalibration(QObject):
         """
         Emits calibration complete signals based on the sufficiency of point ranges in each direction.
         """
-
         if not self.signal_emitted_x and self.max_x - self.min_x > self.threshold_min_mix:
             self.calib_complete_x.emit()
             self.signal_emitted_x = True
@@ -229,8 +235,7 @@ class ProbeCalibration(QObject):
         
         Returns:
             bool: True if there are enough points, False otherwise.
-        """
-        
+        """ 
         # End Criteria: 
         # 1. distance maxX-minX, maxY-minY, maxZ-minZ
         # 2. transM_LR difference in some epsilon value
@@ -246,6 +251,12 @@ class ProbeCalibration(QObject):
         self.transM_LR_prev = self.transM_LR
         return False
     
+    def _update_info_ui(self):
+        x_diff = self.max_x - self.min_x
+        y_diff = self.max_y - self.min_y
+        z_diff = self.max_z - self.min_z
+        self.transM_info.emit(self.transM_LR, self.LR_err_L2_current, np.array([x_diff, y_diff, z_diff]))
+
     def update(self, stage):
         """
         Main method to update calibration with a new stage position and check if calibration is complete.
@@ -259,9 +270,14 @@ class ProbeCalibration(QObject):
         # get whole list of local and global points in pd format
         local_points, global_points = self._get_local_global_points()
         self.model_LR, self.transM_LR = self._get_transM_LR(local_points, global_points)
-        ret = self._is_enough_points()
+        self.LR_err_L2_current = self._l2_error_current_point() 
+        self._update_min_max_x_y_z()  # update min max x,y,z 
+
+        # update transformation matrix and averall LR in UI
+        self._update_info_ui()
 
         # if ret, send the signal
+        ret = self._is_enough_points()
         if ret:
             self.calib_complete.emit(self.stage.sn , self.transM_LR)
             logger.debug(f"complete probe calibration {self.stage.sn}, {self.transM_LR}")
@@ -276,6 +292,7 @@ class ProbeCalibration(QObject):
         local_points = np.array(self.local_points)
         global_points = np.array(self.global_points)
         return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
+    
 
 
 
