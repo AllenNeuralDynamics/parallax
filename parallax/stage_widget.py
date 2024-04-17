@@ -255,7 +255,7 @@ class StageWidget(QWidget):
         if result:
             self.reticleCalibrationLabel.setText(
                 f"<span style='color:green;'><small>Coords Reproj RMSE:<br></small>"
-                f"<span style='color:green;'>{result:.3f} mm²</span>"
+                f"<span style='color:green;'>{result*1000:.1f} µm³</span>"
             )
 
         for screen in self.screen_widgets:

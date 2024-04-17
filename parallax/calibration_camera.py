@@ -384,9 +384,11 @@ class CalibrationStereo(CalibrationCamera):
 
         points_3d_G = self.change_coords_system_from_camA_to_global_iterative(points_3d_AB)
         print("\n=solvePnP SOLVEPNP_ITERATIVE=")
-        err = np.sqrt(np.sum((points_3d_G - self.objpoints)**2, axis=1))
-        average_L2_distance = np.mean(err)
-        print(f"(Reprojection error) Object points L2 diff: {average_L2_distance} mm²")
+        differences = points_3d_G - self.objpoints[0]
+        squared_distances = np.sum(np.square(differences), axis=1)
+        euclidean_distances = np.sqrt(squared_distances)
+        average_L2_distance = np.mean(euclidean_distances)
+        print(f"(Reprojection error) Object points L2 diff: {average_L2_distance*1000} µm³")
         print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
         self.test_pixel_error()
