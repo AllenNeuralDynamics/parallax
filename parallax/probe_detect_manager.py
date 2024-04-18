@@ -87,7 +87,7 @@ class ProbeDetectManager(QObject):
             self.timestamp = timestamp
 
         def process(self, frame, timestamp):
-            """Process the frame for probe detection.
+            """ Process the frame for probe detection.
             1. First run currPrevCmpProcess 
             2. If it fails on 1, run currBgCmpProcess
 
@@ -105,15 +105,15 @@ class ProbeDetectManager(QObject):
         
             resized_img = cv2.resize(gray_img, self.IMG_SIZE)
             self.curr_img = cv2.GaussianBlur(resized_img, (9, 9), 0)
-            mask = self.mask_detect.process(resized_img)
+            mask = self.mask_detect.process(resized_img)                # Generate Mask
 
             if self.mask_detect.is_reticle_exist and self.reticle_zone is None:
                 reticle = ReticleDetection(self.IMG_SIZE, self.mask_detect, self.name)
-                self.reticle_zone = reticle.get_reticle_zone(frame)
+                self.reticle_zone = reticle.get_reticle_zone(frame)     # Generate X and Y Coordinates zone
                 self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
             
             if self.prev_img is not None:
-                if self.probeDetect.angle is None: # Detect for the first time
+                if self.probeDetect.angle is None:  # Detecting probe for the first time
                     ret = self.currPrevCmpProcess.first_cmp(self.curr_img, self.prev_img, mask, gray_img)
                     if ret is False:
                         ret = self.currBgCmpProcess.first_cmp(self.curr_img, mask, gray_img)
@@ -121,19 +121,17 @@ class ProbeDetectManager(QObject):
                         logger.debug("First detect")
                         logger.debug(f"angle: {self.probeDetect.angle}, tip: {self.probeDetect.probe_tip}, \
                                                                 base: {self.probeDetect.probe_base}")
-                else:
+                else:                               # Tracking for the known probe
                     ret = self.currPrevCmpProcess.update_cmp(self.curr_img, self.prev_img, mask, gray_img)
                     if ret is False:
                         ret = self.currBgCmpProcess.update_cmp(self.curr_img, mask, gray_img)
             
-                    # Draw
-                    if ret:
+                    if ret:     # Found
                         self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
-                        cv2.circle(frame, self.probeDetect.probe_tip_org, 3, (255, 255, 0), -1)
+                        cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0), -1)
 
                 if ret:
                     self.prev_img = self.curr_img
-
             else:
                 self.prev_img = self.curr_img
 

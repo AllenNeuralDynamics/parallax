@@ -494,7 +494,6 @@ class ReticleDetection:
         if self.reticle_frame_detector.is_reticle_exist:
             ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(bg)
             logger.debug(f"{self.name} nLines: {len(pixels_in_lines)}")
-            #if len(pixels_in_lines) == 2:
             if ret:
                 bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
                 logger.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
