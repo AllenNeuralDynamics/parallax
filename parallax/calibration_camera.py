@@ -48,8 +48,8 @@ imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
 idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
                     dtype=np.float32)
 """
-imtx = np.array([[1.512e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.512e+04, 1.5e+03],
+imtx = np.array([[1.519e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.519e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
 
@@ -364,6 +364,25 @@ class CalibrationStereo(CalibrationCamera):
         logger.debug(f"points_3d_G: {points_3d_G}, coordA: {coordA}, coordB: {coordB}")
         return points_3d_G
     
+    def test_x_y_z_performance(self, points_3d_G):
+        # Calculate the differences for each dimension
+        differences_x = points_3d_G[:, 0] - self.objpoints[0, :, 0]
+        differences_y = points_3d_G[:, 1] - self.objpoints[0, :, 1]
+        differences_z = points_3d_G[:, 2] - self.objpoints[0, :, 2]
+
+        # Calculate the mean squared differences for each dimension
+        mean_squared_diff_x = np.mean(np.square(differences_x))
+        mean_squared_diff_y = np.mean(np.square(differences_y))
+        mean_squared_diff_z = np.mean(np.square(differences_z))
+
+        # If required, calculate the L2 norm (Euclidean distance) for each dimension
+        average_l2_x = np.sqrt(mean_squared_diff_x)
+        average_l2_y = np.sqrt(mean_squared_diff_y)
+        average_l2_z = np.sqrt(mean_squared_diff_z)
+
+        print(f"x: {average_l2_x*1000}µm³, y: {average_l2_y*1000}µm³, z:{average_l2_z*1000}µm³")
+
+
     def test_performance(self, camA, coordA, camB, coordB):
         """Test stereo calibration.
 
@@ -389,6 +408,7 @@ class CalibrationStereo(CalibrationCamera):
         euclidean_distances = np.sqrt(squared_distances)
         average_L2_distance = np.mean(euclidean_distances)
         print(f"(Reprojection error) Object points L2 diff: {average_L2_distance*1000} µm³")
+        self.test_x_y_z_performance(points_3d_G)
         print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
         self.test_pixel_error()
@@ -405,7 +425,8 @@ class CalibrationStereo(CalibrationCamera):
             
             imgpoints2_reshaped = imgpoints2.reshape(-1,2) 
             differences = imgpointsA_converted - imgpoints2_reshaped
-            distances = np.sqrt(np.sum(np.square(differences), axis=1))
+            squared_distances = np.sum(np.square(differences), axis=1)
+            distances = np.sqrt(squared_distances)
             average_L2_distance = np.mean(distances)
             mean_error += average_L2_distance
             logger.debug("A pixel diff")
