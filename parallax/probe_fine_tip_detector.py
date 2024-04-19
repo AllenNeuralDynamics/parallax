@@ -134,7 +134,7 @@ class ProbeFineTipDetector:
             return False
 
         self.tip = self._detect_closest_centroid()
-        cv2.circle(self.img, (self.tip[0]-offset_x, self.tip[1]-offset_y), 1, (255, 255, 0), -1)
+        #cv2.circle(self.img, (self.tip[0]-offset_x, self.tip[1]-offset_y), 1, (255, 255, 0), -1)
 
         # Save the final image with the detected tip
         #output_fname = os.path.basename(self.img_fname).replace('.', '_3_tip.')
