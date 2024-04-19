@@ -374,8 +374,19 @@ class ReticleDetection:
                 full_line_pixels = np.vstack((pixels_array, missing_points_adjusted))
             else:
                 full_line_pixels = pixels_array
-                
-            full_line_pixels = full_line_pixels[full_line_pixels[:, 0].argsort()]  # Sort by x-coordinate
+            
+            # Sort pixels
+            # Calculate the ranges for x and y coordinates
+            minX, maxX = full_line_pixels[:, 0].min(), full_line_pixels[:, 0].max()
+            minY, maxY = full_line_pixels[:, 1].min(), full_line_pixels[:, 1].max()
+            # Determine the sorting order based on the comparison of ranges
+            if maxX - minX > maxY - minY:
+                # If range of x is greater, sort by x-coordinate
+                full_line_pixels = full_line_pixels[full_line_pixels[:, 0].argsort()]
+            else:
+                # Otherwise, sort by y-coordinate
+                full_line_pixels = full_line_pixels[full_line_pixels[:, 1].argsort()]
+
             full_line_pixels = np.around(full_line_pixels).astype(int)
             refined_pixels.append(full_line_pixels)
 
