@@ -10,6 +10,8 @@ parallax/*.png
 data
 training
 env
+gitkey
+gitkey.pub
 
 # Distribution / packaging
 *.egg-info
