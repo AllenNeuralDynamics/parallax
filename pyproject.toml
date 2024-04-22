@@ -32,7 +32,7 @@ dependencies = [
  
 [tool.setuptools]
 packages = ["parallax", "ui", "img"]
- 
+
 [tool.setuptools.dynamic]
 version = {attr = "parallax.__version__"}
 readme = {file = "README.md"}
