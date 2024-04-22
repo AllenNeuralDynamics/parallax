@@ -166,10 +166,10 @@ class ProbeDetectManager(QObject):
             print("probe_detect_manager running done")
             self.finished.emit()
 
-    def __init__(self, stages, camera_name):
+    def __init__(self, model, camera_name):
         """ Initialize ProbeDetectManager object """
         super().__init__()
-        self.stages = stages
+        self.model = model
         self.worker = None
         self.name = camera_name
         self.thread = None
@@ -205,7 +205,7 @@ class ProbeDetectManager(QObject):
             sn (str): Serial number.
             pixel_coords (tuple): Pixel coordinates of the probe tip.
         """
-        moving_stage = self.stages.get(sn)
+        moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:
             stage_info = (moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z)
         #print(timestamp, sn, stage_info, pixel_coords)

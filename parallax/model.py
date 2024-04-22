@@ -33,7 +33,6 @@ class Model(QObject):
 
         # coords axis
         self.coords_axis = {}
-        
         self.camera_intrinsic = {}
         self.camera_extrinsic = {}
         self.calibration = None
@@ -117,6 +116,10 @@ class Model(QObject):
     def add_stage(self, stage):
         """Add a stage."""
         self.stages[stage.sn] = stage
+
+    def get_stage(self, stage_sn):
+        """Get a stage."""
+        return self.stages.get(stage_sn)
 
     def add_probe_detector(self, probeDetector):
         """Add a probe detector."""

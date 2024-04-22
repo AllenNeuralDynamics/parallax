@@ -79,7 +79,7 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
 
         # Probe Detection
-        self.probeDetector = ProbeDetectManager(self.model.stages, camera_name)
+        self.probeDetector = ProbeDetectManager(self.model, camera_name)
         self.model.add_probe_detector(self.probeDetector)
         self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
         self.probeDetector.found_coords.connect(self.found_probe_coords)
