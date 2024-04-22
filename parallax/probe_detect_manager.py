@@ -31,14 +31,16 @@ class ProbeDetectManager(QObject):
         frame_processed = pyqtSignal(object)
         found_coords = pyqtSignal(str, str, tuple)
 
-        def __init__(self, name):
+        def __init__(self, name, model):
             """ Initialize Worker object """
             QObject.__init__(self)
+            self.model = model
             self.name = name
             self.running = False
             self.is_detection_on = False
             self.new = False
             self.frame = None
+            self.reticle_coords = self.model.get_coords_axis(self.name)
 
             # TODO move to model structure
             self.prev_img = None
@@ -153,6 +155,13 @@ class ProbeDetectManager(QObject):
             """Stop the probe detection."""
             self.is_detection_on = False
 
+        def process_draw_reticle(self, frame):
+            if self.reticle_coords is not None:
+                for coords in self.reticle_coords:
+                    for x, y in coords:
+                        cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)
+            return frame
+
         def run(self):
             """Run the worker thread."""
             print("probe_detect_manager running ")
@@ -160,6 +169,7 @@ class ProbeDetectManager(QObject):
                 if self.new:
                     if self.is_detection_on:
                         self.frame, self.timestamp = self.process(self.frame, self.timestamp)
+                    self.frame = self.process_draw_reticle(self.frame)
                     self.frame_processed.emit(self.frame)
                     self.new = False
                 time.sleep(0.001)
@@ -178,7 +188,7 @@ class ProbeDetectManager(QObject):
     def init_thread(self):
         """Initialize the worker thread."""
         self.thread = QThread()
-        self.worker = self.Worker(self.name)
+        self.worker = self.Worker(self.name, self.model)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.frame_processed.connect(self.frame_processed)
