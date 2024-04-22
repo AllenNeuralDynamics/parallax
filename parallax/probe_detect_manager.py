@@ -12,6 +12,7 @@ from .curr_bg_cmp_processor import CurrBgCmpProcessor
 import cv2
 import time
 import logging
+import numpy as np
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -157,9 +158,15 @@ class ProbeDetectManager(QObject):
 
         def process_draw_reticle(self, frame):
             if self.reticle_coords is not None:
-                for coords in self.reticle_coords:
-                    for x, y in coords:
-                        cv2.circle(frame, (x, y), 2, (0, 255, 0), -1)
+                for idx, coords in enumerate(self.reticle_coords):
+                    # Normalize indices to 0-255 for colormap application.
+                    indices = np.linspace(0, 255, len(coords), endpoint=True, dtype=np.uint8)
+                    # Apply 'jet' colormap to x-coords, 'winter' to the y-coords.
+                    colormap = cv2.applyColorMap(indices, cv2.COLORMAP_JET if idx == 0 else cv2.COLORMAP_WINTER)
+                    
+                    for point_idx, (x, y) in enumerate(coords):
+                        color = colormap[point_idx][0].tolist()
+                        cv2.circle(frame, (x, y), 2, color, -1)
             return frame
 
         def run(self):
