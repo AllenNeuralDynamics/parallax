@@ -46,11 +46,6 @@ class Model(QObject):
         self.obj_point_last = None
         self.transforms = {}
 
-    @property
-    def ncameras(self):
-        """Get the number of cameras."""
-        return len(self.cameras)
-
     def set_last_object_point(self, obj_point):
         """Set the last object point."""
         self.obj_point_last = obj_point
