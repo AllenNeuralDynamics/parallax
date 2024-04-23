@@ -49,7 +49,7 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        self.threshold_min_mix = 2000 #TODO 
+        self.threshold_min_max = 2000 #TODO 
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.threshold_matrix = np.array([[0.00002, 0.00002, 0.00002, 50.0], #TODO
                                             [0.00002, 0.00002, 0.00002, 50.0],
@@ -174,14 +174,14 @@ class ProbeCalibration(QObject):
             bool: True if sufficient range is achieved, otherwise False.
         """
         
-        if self.max_x - self.min_x > self.threshold_min_mix \
-            or self.max_y - self.min_y > self.threshold_min_mix \
-            or self.max_z - self.min_z > self.threshold_min_mix:
+        if self.max_x - self.min_x > self.threshold_min_max \
+            or self.max_y - self.min_y > self.threshold_min_max \
+            or self.max_z - self.min_z > self.threshold_min_max:
             self._enough_points_emit_signal()
 
-        if self.max_x - self.min_x > self.threshold_min_mix \
-            and self.max_y - self.min_y > self.threshold_min_mix \
-            and self.max_z - self.min_z > self.threshold_min_mix:
+        if self.max_x - self.min_x > self.threshold_min_max \
+            and self.max_y - self.min_y > self.threshold_min_max \
+            and self.max_z - self.min_z > self.threshold_min_max:
             return True
         else:
             return False
@@ -220,13 +220,13 @@ class ProbeCalibration(QObject):
         """
         Emits calibration complete signals based on the sufficiency of point ranges in each direction.
         """
-        if not self.signal_emitted_x and self.max_x - self.min_x > self.threshold_min_mix:
+        if not self.signal_emitted_x and self.max_x - self.min_x > self.threshold_min_max:
             self.calib_complete_x.emit()
             self.signal_emitted_x = True
-        if not self.signal_emitted_y and self.max_y - self.min_y > self.threshold_min_mix:
+        if not self.signal_emitted_y and self.max_y - self.min_y > self.threshold_min_max:
             self.calib_complete_y.emit()
             self.signal_emitted_y = True
-        if not self.signal_emitted_z and self.max_z - self.min_z > self.threshold_min_mix:
+        if not self.signal_emitted_z and self.max_z - self.min_z > self.threshold_min_max:
             self.calib_complete_z.emit()
             self.signal_emitted_z = True
 
