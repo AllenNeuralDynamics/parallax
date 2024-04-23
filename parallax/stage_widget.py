@@ -450,7 +450,7 @@ class StageWidget(QWidget):
         self.filter = "probe_detection"
 
         # message
-        message = f"Move probe at leas 20 mm along X, Y, and Z axes"
+        message = f"Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
     def probe_detect_accepted_status(self, stage_sn, transformation_matrix):
