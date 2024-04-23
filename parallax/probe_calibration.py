@@ -274,7 +274,7 @@ class ProbeCalibration(QObject):
         self.LR_err_L2_current = self._l2_error_current_point() 
         self._update_min_max_x_y_z()  # update min max x,y,z 
 
-        # update transformation matrix and averall LR in UI
+        # update transformation matrix and overall LR in UI
         self._update_info_ui()
 
         # if ret, send the signal
