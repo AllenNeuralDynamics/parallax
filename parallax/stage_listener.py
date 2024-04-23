@@ -5,12 +5,14 @@ applications, using PyQt5 for threading and signals, and requests for HTTP reque
 from PyQt5.QtCore import QObject, pyqtSignal, QThread, QTimer
 from datetime import datetime
 from collections import deque
+import numpy as np
 import requests
 import time
 import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -191,6 +193,7 @@ class StageListener(QObject):
         self.buffer_size = 20
         self.buffer_ts_local_coords = deque(maxlen=self.buffer_size)
         self.stage_global_data = None
+        self.transM_dict = {}
     
     def start(self):
         """Start the stage listener."""
@@ -255,7 +258,65 @@ class StageListener(QObject):
         if self.stage_ui.get_selected_stage_sn() == sn:
             self.stage_ui.updateStageLocalCoords()
         #logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
+
+        if sn in self.transM_dict:
+            transM = self.transM_dict[sn]
+            if transM is not None:
+                self._updateGlobalDataTransformM(sn, moving_stage, transM)
+            
+    def _updateGlobalDataTransformM(self, sn, moving_stage, transM):
+        """
+        Applies a transformation matrix to the local coordinates of a moving stage and updates its global coordinates.
+
+        Args:
+            sn (str): The serial number of the moving stage.
+            moving_stage (Stage): An object representing the moving stage, with attributes for its local and global coordinates.
+            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix used to convert local coordinates
+                                to global coordinates.
+
+        Effects:
+            - Updates the moving_stage object's `stage_x_global`, `stage_y_global`, and `stage_z_global` attributes with the
+            transformed global coordinates.
+            - If the moving stage is the currently selected stage in the UI, triggers an update of the global coordinates display.
+        """
+         # Transform
+        local_point = np.array([moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z, 1])
+        global_point = np.dot(transM, local_point)
+        global_point =  np.around(global_point[:3], decimals=1)
+        logger.debug(f"_updateGlobalDataTransformM: {sn}, {global_point}")
+
+        # Update into UI
+        moving_stage.stage_x_global = global_point[0]
+        moving_stage.stage_y_global = global_point[1]
+        moving_stage.stage_z_global = global_point[2]
+        if self.stage_ui.get_selected_stage_sn() == sn:
+            self.stage_ui.updateStageGlobalCoords()
     
+    def requestUpdateGlobalDataTransformM(self, sn, transM):
+        """
+        Stores or updates a transformation matrix for a specific stage identified by its serial number.
+        This method updates an internal dictionary, `transM_dict`, mapping stage serial numbers to their
+        corresponding transformation matrices.
+
+        Args:
+            sn (str): The serial number of the stage.
+            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix for the specified stage.
+        """
+        self.transM_dict[sn] = transM
+        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM}")
+        
+    def requestClearGlobalDataTransformM(self):
+        """
+        Clears all stored transformation matrices and resets the UI to default global coordinates.
+
+        Effects:
+            - Clears `transM_dict`, removing all stored transformation matrices.
+            - Triggers a UI update to reset the display of global coordinates to default values.
+        """
+        self.transM_dict = {}
+        self.stage_ui.updateStageGlobalCoords_default()
+        logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
+
     def _change_time_format(self, str_time):
         """Change the time format from string to datetime."""
         fmt = "%Y%m%d-%H%M%S.%f"
@@ -291,7 +352,7 @@ class StageListener(QObject):
 
         return closest_ts, closest_coords
 
-    def handleGlobalDataChange(self, sn, coords, ts_img_captured):
+    def handleGlobalDataChange(self, sn, global_coords, ts_img_captured):
         """Handle changes in global stage data.
         
         Args:
@@ -303,9 +364,9 @@ class StageListener(QObject):
         ts_local_coords, local_coords = self._find_closest_local_coords()
 
         logger.debug(f"\ntimestamp local:{ts_local_coords} img_captured:{ts_img_captured}" )
-        global_coords_x = round(coords[0][0]*1000, 1)
-        global_coords_y = round(coords[0][1]*1000, 1)
-        global_coords_z = round(coords[0][2]*1000, 1)
+        global_coords_x = round(global_coords[0][0]*1000, 1)
+        global_coords_y = round(global_coords[0][1]*1000, 1)
+        global_coords_z = round(global_coords[0][2]*1000, 1)
         
         if self.stage_global_data is None:
             stage_info = {}
@@ -318,6 +379,7 @@ class StageListener(QObject):
         
         if local_coords is not None:
             self.sn = sn
+            self.stage_global_data.sn = sn
             self.stage_global_data.stage_x =  local_coords[0]
             self.stage_global_data.stage_y =  local_coords[1]
             self.stage_global_data.stage_z =  local_coords[2]

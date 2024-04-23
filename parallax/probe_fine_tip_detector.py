@@ -29,8 +29,8 @@ class ProbeFineTipDetector:
         sharpened_image = cv2.Laplacian(self.img, cv2.CV_64F)
         sharpened_image = np.uint8(np.absolute(sharpened_image))
         _, self.img = cv2.threshold(self.img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        kernel_ellipse_3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        self.img = cv2.erode(self.img, kernel_ellipse_3, iterations=1)
+        #kernel_ellipse_3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)) #TODO
+        #self.img = cv2.erode(self.img, kernel_ellipse_3, iterations=1)
 
     def _is_valid(self):
         """Check if the image is valid for tip detection.
@@ -78,7 +78,6 @@ class ProbeFineTipDetector:
 
         for contour in contours:
             tip = self._get_direction_tip(contour)
-            #print(tip)
             tip_x, tip_y = tip[0] + self.offset_x, tip[1] + self.offset_y
             distance = np.sqrt((tip_x - cx)**2 + (tip_y - cy)**2)
             if distance < min_distance:
@@ -128,12 +127,14 @@ class ProbeFineTipDetector:
     def get_precise_tip(self, img, tip, offset_x=0, offset_y=0, direction=None, img_fname=None):
         """Get the precise tip coordinates from the image."""
         self._register(img, tip, offset_x=offset_x, offset_y=offset_y, direction=direction, img_fname=img_fname)
+
         self._preprocess_image()
         if not self._is_valid():
             logger.debug("Boundary check failed.")
             return False
 
         self.tip = self._detect_closest_centroid()
+        #cv2.circle(self.img, (self.tip[0]-offset_x, self.tip[1]-offset_y), 1, (255, 255, 0), -1)
 
         # Save the final image with the detected tip
         #output_fname = os.path.basename(self.img_fname).replace('.', '_3_tip.')

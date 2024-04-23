@@ -12,6 +12,7 @@ import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
@@ -32,10 +33,28 @@ CENTER_INDEX_Y = X_COORDS + Y_COORDS_HALF
 
 # Calibration
 CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-11)
+"""
 imtx = np.array([[1.52e+04, 0.0e+00, 2e+03],
                 [0.0e+00, 1.52e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
+idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
+                    dtype=np.float32)
+
+imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.515e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
+                    dtype=np.float32)
+"""
+imtx = np.array([[1.519e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.519e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+
+idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
+                    dtype=np.float32)
 
 # Intrinsic flag
 myflags1 = cv2.CALIB_USE_INTRINSIC_GUESS | \
@@ -52,19 +71,17 @@ myflags2 =   cv2.CALIB_FIX_PRINCIPAL_POINT | \
             cv2.CALIB_FIX_ASPECT_RATIO | \
             cv2.CALIB_FIX_FOCAL_LENGTH
 
-idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
-                    dtype=np.float32)
 SIZE = (4000,3000)
 
 class CalibrationCamera:
     """Class for intrinsic calibration."""
-    def __init__(self):
+    def __init__(self, camera_name):
         """Initialize the CalibrationCamera object"""
+        self.name = camera_name
         self.n_interest_pixels = 15
         self.imgpoints = None
         self.objpoints = None
-        pass
-
+        
     def _get_changed_data_format(self, x_axis, y_axis):
         """
         Change data format for calibration.
@@ -127,6 +144,39 @@ class CalibrationCamera:
         distancesA = [np.linalg.norm(vec) for vec in self.tvecs]
         logger.debug(f"Distance from camera to world center: {np.mean(distancesA)}")
         return ret, self.mtx, self.dist
+
+    def get_predefined_intrinsic(self, x_axis, y_axis):
+        """
+        Fetches predefined intrinsic camera parameters for specific models.
+        Parameters:
+        - x_axis (int or float): The x-axis value for reticle processing.
+        - y_axis (int or float): The y-axis value for reticle processing.
+
+        Returns:
+        - A tuple of (bool, numpy.ndarray or None, numpy.ndarray or None) representing success status,
+        intrinsic matrix, and distortion coefficients respectively.
+        """
+        self._process_reticle_points(x_axis, y_axis)
+        if self.name == "22517664":
+            self.mtx = np.array([[1.520480e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.520480e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+            self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
+                                dtype=np.float32)
+            return True, self.mtx, self.dist
+        
+        elif self.name == "22433200":
+            self.mtx = np.array([[1.507121e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.507121e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+            self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
+                                dtype=np.float32)
+            return True, self.mtx, self.dist
+        
+        else:
+            return False, None, None
 
     def get_origin_xyz(self):
         """
@@ -267,6 +317,9 @@ class CalibrationStereo(CalibrationCamera):
         """
         solvePnP_method = cv2.SOLVEPNP_ITERATIVE
         _, rvecs, tvecs = cv2.solvePnP(self.objpoints, self.imgpointsA, self.mtxA, self.distA, flags=solvePnP_method)
+        logger.debug("solvePnP")
+        logger.debug(rvecs)
+        logger.debug(tvecs)
         # Convert rotation vectors to rotation matrices
         rmat, _ = cv2.Rodrigues(rvecs)
         # Invert the rotation and translation
@@ -311,7 +364,26 @@ class CalibrationStereo(CalibrationCamera):
         logger.debug(f"points_3d_G: {points_3d_G}, coordA: {coordA}, coordB: {coordB}")
         return points_3d_G
     
-    def test(self, camA, coordA, camB, coordB):
+    def test_x_y_z_performance(self, points_3d_G):
+        # Calculate the differences for each dimension
+        differences_x = points_3d_G[:, 0] - self.objpoints[0, :, 0]
+        differences_y = points_3d_G[:, 1] - self.objpoints[0, :, 1]
+        differences_z = points_3d_G[:, 2] - self.objpoints[0, :, 2]
+
+        # Calculate the mean squared differences for each dimension
+        mean_squared_diff_x = np.mean(np.square(differences_x))
+        mean_squared_diff_y = np.mean(np.square(differences_y))
+        mean_squared_diff_z = np.mean(np.square(differences_z))
+
+        # If required, calculate the L2 norm (Euclidean distance) for each dimension
+        average_l2_x = np.sqrt(mean_squared_diff_x)
+        average_l2_y = np.sqrt(mean_squared_diff_y)
+        average_l2_z = np.sqrt(mean_squared_diff_z)
+
+        print(f"x: {average_l2_x*1000}µm³, y: {average_l2_y*1000}µm³, z:{average_l2_z*1000}µm³")
+
+
+    def test_performance(self, camA, coordA, camB, coordB):
         """Test stereo calibration.
 
         Args:
@@ -324,17 +396,23 @@ class CalibrationStereo(CalibrationCamera):
             numpy.ndarray: Predicted 3D points in global coordinate system.
         """
         camA, coordA, camB, coordB = self._matching_camera_order(camA, coordA, camB, coordB)
+        logger.debug(f"coordA: {coordA}")
+        logger.debug(f"coordB: {coordB}")
         points_3d_AB = self.triangulation(self.P_B, self.P_A, self.imgpointsB, self.imgpointsA)
         np.set_printoptions(suppress=True, precision=8) 
 
         points_3d_G = self.change_coords_system_from_camA_to_global_iterative(points_3d_AB)
         print("\n=solvePnP SOLVEPNP_ITERATIVE=")
-        err = np.sqrt(np.sum((points_3d_G - self.objpoints)**2, axis=1))
-        print(f"(Reprojection error) Object points L2 diff: {np.mean(err)}")
+        differences = points_3d_G - self.objpoints[0]
+        squared_distances = np.sum(np.square(differences), axis=1)
+        euclidean_distances = np.sqrt(squared_distances)
+        average_L2_distance = np.mean(euclidean_distances)
+        print(f"(Reprojection error) Object points L2 diff: {average_L2_distance*1000} µm³")
+        self.test_x_y_z_performance(points_3d_G)
         print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
         self.test_pixel_error()
-        return points_3d_G
+        return average_L2_distance
     
     def test_pixel_error(self):
         """Test pixel reprojection error."""
@@ -346,8 +424,13 @@ class CalibrationStereo(CalibrationCamera):
             imgpoints2, _ = cv2.projectPoints(self.objpoints[i], rvecs, tvecs, self.mtxA, self.distA)
             
             imgpoints2_reshaped = imgpoints2.reshape(-1,2) 
-            error = cv2.norm(imgpointsA_converted, imgpoints2_reshaped, cv2.NORM_L2) / len(imgpoints2)
-            mean_error += error
+            differences = imgpointsA_converted - imgpoints2_reshaped
+            squared_distances = np.sum(np.square(differences), axis=1)
+            distances = np.sqrt(squared_distances)
+            average_L2_distance = np.mean(distances)
+            mean_error += average_L2_distance
+            logger.debug("A pixel diff")
+            logger.debug(imgpointsA_converted-imgpoints2_reshaped)
         print(f"(Reprojection error) Pixel L2 diff A: {mean_error / len(self.objpoints)} pixels")
 
         mean_error = 0
@@ -356,7 +439,12 @@ class CalibrationStereo(CalibrationCamera):
             solvePnP_method = cv2.SOLVEPNP_ITERATIVE
             retval, rvecs, tvecs = cv2.solvePnP(self.objpoints[i], imgpointsB_converted, self.mtxB, self.distB, flags=solvePnP_method)
             imgpoints2, _ = cv2.projectPoints(self.objpoints[i], rvecs, tvecs, self.mtxB, self.distB)
+            
             imgpoints2_reshaped = imgpoints2.reshape(-1,2) 
-            error = cv2.norm(imgpointsB_converted, imgpoints2_reshaped, cv2.NORM_L2) / len(imgpoints2)
-            mean_error += error
+            differences = imgpointsB_converted - imgpoints2_reshaped
+            distances = np.sqrt(np.sum(np.square(differences), axis=1))
+            average_L2_distance = np.mean(distances)
+            mean_error += average_L2_distance
+            logger.debug("B pixel diff")
+            logger.debug(imgpointsB_converted-imgpoints2_reshaped)
         print(f"(Reprojection error) Pixel L2 diff B: {mean_error / len(self.objpoints)} pixels")

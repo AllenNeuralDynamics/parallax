@@ -351,7 +351,7 @@ class ProbeDetector:
         return ret
 
     
-    def update_probe(self, img, mask, contour_thresh=20, hough_minLineLength=200, maxLineGap=20, offset_x = 0, offset_y = 0, img_fname=None):
+    def update_probe(self, img, mask, contour_thresh=20, hough_minLineLength=200, maxLineGap=10, offset_x = 0, offset_y = 0, img_fname=None):
         """Update the probe detection in the image."""
         ret = False
         img = self._contour_preprocessing(img, thresh=contour_thresh, remove_noise=False)

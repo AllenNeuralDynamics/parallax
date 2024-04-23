@@ -10,4 +10,22 @@ parallax/*.png
 data
 training
 env
+gitkey
+gitkey.pub
+
+# Distribution / packaging
 *.egg-info
+build/
+debug/
+wheels/
+lib/
+dist/
+
+# Sphinx documentation
+docs/_build/
+
+# User-settings
+ui/settings.json
+
+# Environments
+venv/

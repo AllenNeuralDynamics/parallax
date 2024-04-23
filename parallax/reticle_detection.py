@@ -21,11 +21,12 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ReticleDetection:
     """Class for detecting reticle lines and coordinates."""
-    def __init__(self, IMG_SIZE, reticle_frame_detector):
+    def __init__(self, IMG_SIZE, reticle_frame_detector, camera_name):
         """ Initialize Reticle Detection object """
         self.image_size = IMG_SIZE
         self.reticle_frame_detector = reticle_frame_detector
         self.mask = None
+        self.name = camera_name
 
     def _preprocess_image(self, img):
         """Convert image to grayscale, blur, and resize."""
@@ -373,8 +374,19 @@ class ReticleDetection:
                 full_line_pixels = np.vstack((pixels_array, missing_points_adjusted))
             else:
                 full_line_pixels = pixels_array
-                
-            full_line_pixels = full_line_pixels[full_line_pixels[:, 0].argsort()]  # Sort by x-coordinate
+            
+            # Sort pixels
+            # Calculate the ranges for x and y coordinates
+            minX, maxX = full_line_pixels[:, 0].min(), full_line_pixels[:, 0].max()
+            minY, maxY = full_line_pixels[:, 1].min(), full_line_pixels[:, 1].max()
+            # Determine the sorting order based on the comparison of ranges
+            if maxX - minX > maxY - minY:
+                # If range of x is greater, sort by x-coordinate
+                full_line_pixels = full_line_pixels[full_line_pixels[:, 0].argsort()]
+            else:
+                # Otherwise, sort by y-coordinate
+                full_line_pixels = full_line_pixels[full_line_pixels[:, 1].argsort()]
+
             full_line_pixels = np.around(full_line_pixels).astype(int)
             refined_pixels.append(full_line_pixels)
 
@@ -486,18 +498,18 @@ class ReticleDetection:
         """
         bg = self._preprocess_image(img)
         masked = self._apply_mask(bg)
+
         #if self.mask is not None:
         #    cv2.imwrite("debug/mask.jpg", self.mask)
 
         if self.reticle_frame_detector.is_reticle_exist:
             ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(bg)
-            logger.debug(f"nLines: {len(pixels_in_lines)}")
-            #if len(pixels_in_lines) == 2:
+            logger.debug(f"{self.name} nLines: {len(pixels_in_lines)}")
             if ret:
                 bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
-                logger.debug(f"detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
+                logger.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
                 bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
-                logger.debug(f"interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
+                logger.debug(f"{self.name} interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
                 #cv2.imwrite("debug/added_missing_points.jpg", bg)
             return ret, bg, inliner_lines, pixels_in_lines
         

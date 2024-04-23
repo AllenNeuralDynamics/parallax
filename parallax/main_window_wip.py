@@ -26,8 +26,8 @@ import logging
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 # User Preferences (Data directory, UI config..) setting file
 package_dir = os.path.dirname(os.path.abspath(__file__))
@@ -43,7 +43,6 @@ class MainWindow(QMainWindow):
     components, camera and stage management, and recording functionality.
     """
     def __init__(self, model, dummy=False):
-        QMainWindow.__init__(self) # Initialize the QMainWindow
         """
         Initialize the MainWindow.
         
@@ -51,6 +50,7 @@ class MainWindow(QMainWindow):
             model (object): The data model for the application.
             dummy (bool, optional): Flag indicating whether to run in dummy mode. Defaults to False.
         """
+        QMainWindow.__init__(self) # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
         # self.model.clean() TBD call to close the camera when there was abnormal program exit in previous run.
@@ -304,32 +304,30 @@ class MainWindow(QMainWindow):
         verticalLayout.setObjectName(u"verticalLayout")
         
         # Add screens
-        screen = ScreenWidget(model=self.model, parent=microscopeGrp)
+        if mock:
+            screen = ScreenWidget(self.model.cameras[0], model=self.model, parent=microscopeGrp)
+        else:
+            screen = ScreenWidget(self.model.cameras[screen_index], model=self.model, parent=microscopeGrp)
         screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
         
-        # Add camera on screen
-        if mock: 
-            screen.set_camera(self.model.cameras[0])
-        else:
-            screen.set_camera(self.model.cameras[screen_index]) # set screen.camera = model.camera 
+        if mock is False:
+            # Add setting button
+            settingButton = QToolButton(microscopeGrp)
+            settingButton.setObjectName(f"Setting")
+            settingButton.setFont(font_grpbox)
+            settingButton.setCheckable(True)
+            self.create_settings_menu(microscopeGrp, newNameMicroscope, screen, screen_index)
+            settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
+            verticalLayout.addWidget(settingButton)
+            settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
+       
+            # Load setting file from JSON
+            self.update_setting_menu(microscopeGrp)
 
-        # Add setting button
-        settingButton = QToolButton(microscopeGrp)
-        settingButton.setObjectName(f"Setting")
-        settingButton.setFont(font_grpbox)
-        settingButton.setCheckable(True)
-        self.create_settings_menu(microscopeGrp, newNameMicroscope, screen, screen_index)
-        settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
-        verticalLayout.addWidget(settingButton)
-        
         # Add widget to the gridlayout
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
-        settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
-       
-        # Load setting file from JSON
-        self.update_setting_menu(microscopeGrp)
-
+        
         # Add the new microscopeGrpBox instance to the list
         self.screen_widgets.append(screen) 
 
@@ -605,6 +603,14 @@ class MainWindow(QMainWindow):
             self.dirLabel.setText(directory)
         
     def save_user_configs(self):
+        """
+        Saves user configuration settings to a persistent storage.
+
+        This method retrieves current configuration values from the UI, including
+        the number of columns (nColumn), directory path (directory), and the window's
+        width and height. It then passes these values to the `save_user_configs` method
+        of the `user_setting` object to be saved.
+        """
         nColumn = self.nColumnsSpinBox.value()
         directory = self.dirLabel.text()
         width = self.width()

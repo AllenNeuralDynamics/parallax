@@ -7,6 +7,7 @@ import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -17,7 +18,7 @@ class MaskGenerator:
         """ Initialize mask generator object """
         self.img = None
         self.original_size = (None, None)
-        self.is_reticle_exist = None
+        self.is_reticle_exist = True #TODO
 
     def _resize_and_blur(self):
         """Resize and blur the image."""
@@ -72,7 +73,7 @@ class MaskGenerator:
         """
         img = cv2.normalize(self.img, None, 0, 255, cv2.NORM_MINMAX)
         img = img.astype(np.uint8)
-
+        
         hist = cv2.calcHist([img], [0], None, [255], [0, 255])
         hist = cv2.GaussianBlur(hist, (91,91), 0)
         hist_smoothed = hist.squeeze() 
@@ -109,6 +110,6 @@ class MaskGenerator:
         self._apply_threshold()
         self._keep_largest_contour()
         self._apply_morphological_operations()
-        self._finalize_image()
+        self._finalize_image()   # Resize to oiginal size
 
         return self.img

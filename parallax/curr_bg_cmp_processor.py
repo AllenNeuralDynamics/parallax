@@ -168,7 +168,7 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
             self.diff_img_crop = self.diff_img[top:bottom, left:right]
             hough_minLineLength_adpative = 60 + int(crop_size/self.crop_init)*5
             ret = self.ProbeDetector.update_probe(self.diff_img_crop, self.mask, \
-                                                    hough_minLineLength=hough_minLineLength_adpative, maxLineGap=3,\
+                                                    hough_minLineLength=hough_minLineLength_adpative, maxLineGap=0,\
                                                     offset_x = left, offset_y = top, img_fname=self.img_fname)
             
             #cv2.rectangle(diff_img_, (left, top), (right, bottom), (155, 155, 0), 5)  # Green rectangle

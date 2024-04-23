@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
  
 [project]
-name = "parallax"
+name = "parallax-app"
 authors = [
   { name="Hanna Lee", email="hanna.lee@alleninstitute.org" },
 ]
@@ -16,23 +16,23 @@ requires-python = "~=3.8"
 classifiers = [
     "Programming Language :: Python :: 3"
 ]
- 
+
 dependencies = [
     "pip",
     "PyQt5>=5.15",
     "pyqtgraph",
-    "opencv-python-headless",
     "opencv-python",
     "spinnaker-python", 
     "scipy",
     "pandas",
     "scikit-image",
-    "requests"
+    "requests",
+    "scikit-learn"
    ]
  
 [tool.setuptools]
 packages = ["parallax", "ui", "img"]
- 
+
 [tool.setuptools.dynamic]
 version = {attr = "parallax.__version__"}
 readme = {file = "README.md"}
@@ -44,6 +44,12 @@ linters = [
     'flake8',
     'interrogate',
     'isort'
+]
+
+docs = [
+    'Sphinx',
+    'sphinx-jinja',
+    'furo'
 ]
 
 [tool.interrogate]
