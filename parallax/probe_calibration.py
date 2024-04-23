@@ -157,7 +157,6 @@ class ProbeCalibration(QObject):
         """
         diff_matrix = np.abs(self.transM_LR - self.transM_LR_prev)
         if np.all(diff_matrix <= self.threshold_matrix): 
-            logger.debug("_is_criteria_met_transM True")
             return True
         else:
             return False
@@ -183,7 +182,6 @@ class ProbeCalibration(QObject):
         if self.max_x - self.min_x > self.threshold_min_max \
             and self.max_y - self.min_y > self.threshold_min_max \
             and self.max_z - self.min_z > self.threshold_min_max:
-            logger.debug("_is_criteria_met_points_min_max True")
             return True
         else:
             return False
@@ -214,7 +212,6 @@ class ProbeCalibration(QObject):
             bool: True if the error is within threshold, otherwise False.
         """
         if self.LR_err_L2_current <= self.LR_err_L2_threshold:
-            logger.debug("_is_criteria_met_l2_error True")
             return True
         else:
             return False
