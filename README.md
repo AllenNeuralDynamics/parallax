@@ -11,9 +11,13 @@ Parallax is a graphical user interface designed to streamline the process of set
 
 
 ### Installation
-1. Clone the repository:
+1. To install the latest version:
 ```bash
-git clone https://github.com/AllenNeuralDynamics/parallax.git
+pip install parallax-app
+```
+To upgrate to the latest version:
+```bash
+pip install parallax-app --upgrade
 ```
 
 2. Create virtual environment and activate it:

@@ -20,7 +20,14 @@ Installing and Upgrading
 
 .. code-block:: bash
 
-   git clone https://github.com/AllenNeuralDynamics/parallax.git
+   pip install parallax-app
+
+To upgrate to the latest version:
+
+.. code-block:: bash
+
+   pip install parallax-app --upgrade
+
 
 2. Create virtual environment and activate it:
 
