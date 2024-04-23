@@ -110,6 +110,6 @@ class MaskGenerator:
         self._apply_threshold()
         self._keep_largest_contour()
         self._apply_morphological_operations()
-        self._finalize_image()   # Resize to oiginal size
+        self._finalize_image()   # Resize to original size
 
         return self.img

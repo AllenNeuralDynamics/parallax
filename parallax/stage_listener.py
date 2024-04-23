@@ -129,7 +129,7 @@ class Worker(QObject):
                     if self.curr_interval == self._high_freq_interval:
                         # Update
                         self.isSmallChange(probe)
-                        # If last updated move (in 30um) is more than 1 sec ago, swith to w/ low freq
+                        # If last updated move (in 30um) is more than 1 sec ago, switch to w/ low freq
                         current_time = time.time()
                         if current_time - self.last_bigmove_detected_time >= self._idle_time:
                             logger.debug("low freq mode")

@@ -191,7 +191,7 @@ class PySpinCamera:
             # V1: Start continuous acquisition on initialization. 
             self.begin_continuous_acquisition()
         elif VERSION == "V2":
-            # V2: Start continous acquisition when 'Start' button is toggled and end acquisition when untoggled.
+            # V2: Start continuous acquisition when 'Start' button is toggled and end acquisition when untoggled.
             # On initialization, start onetime acquisition to get one frame. 
             pass
         
@@ -218,7 +218,7 @@ class PySpinCamera:
         Get the gamma of the camera for the auto mode.
         """
         if self.device_color_type == "Color":
-            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue()) # Set continous for mono camera
+            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue()) # Set continuous for mono camera
             time.sleep(0.5)
             if channel == "Red":
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
@@ -262,7 +262,7 @@ class PySpinCamera:
         Get the gain of the camera for the auto mode.
         """
         initial_val = self.node_gain.GetValue()
-        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue()) # Set continous for mono camera
+        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue()) # Set continuous for mono camera
 
         time.sleep(0.5)  # Wait for a short period
         updated_val = self.node_gain.GetValue()
@@ -557,7 +557,7 @@ class PySpinCamera:
         Cleans up resources associated with the camera and video recording.
 
         Note:
-            Do not change the order of codes without refering PySpin manual.
+            Do not change the order of codes without referring PySpin manual.
             They are ordered by PySpin Camera Init / Turn off sequence. 
         """
         if self.running:
@@ -605,22 +605,22 @@ class MockCamera:
     
     def set_wb(self, wb=2.0):
         """ Dummy function """
-        logger.info("This is MockCamera. Setting is not appliable")
+        logger.info("This is MockCamera. Setting is not applicable")
         return
     
     def set_gamma(self, gamma=1.0):
         """ Dummy function """
-        logger.info("This is MockCamera. Setting is not appliable")
+        logger.info("This is MockCamera. Setting is not applicable")
         return
 
     def set_gain(self, gain=25.0):
         """ Dummy function """
-        logger.info("This is MockCamera. Setting is not appliable")
+        logger.info("This is MockCamera. Setting is not applicable")
         return
     
     def set_exposure(self, expTime=16000):
         """ Dummy function """
-        logger.info("This is MockCamera. Setting is not appliable")
+        logger.info("This is MockCamera. Setting is not applicable")
         return
 
     def stop(self, clean=False):
@@ -669,22 +669,22 @@ class VideoSource:
     
     def set_wb(self, wb=2.0):
         """ Dummy function """
-        logger.info("This is VideoSource. Setting is not appliable")
+        logger.info("This is VideoSource. Setting is not applicable")
         return
     
     def set_gamma(self, gamma=1.0):
         """ Dummy function """
-        logger.info("This is VideoSource. Setting is not appliable")
+        logger.info("This is VideoSource. Setting is not applicable")
         return
 
     def set_gain(self, gain=25.0):
         """ Dummy function """
-        logger.info("This is VideoSource. Setting is not appliable")
+        logger.info("This is VideoSource. Setting is not applicable")
         return
     
     def set_exposure(self, expTime=125000):
         """ Dummy function """
-        logger.info("This is VideoSource. Setting is not appliable")
+        logger.info("This is VideoSource. Setting is not applicable")
         return
     
     def begin_continuous_acquisition(self):
