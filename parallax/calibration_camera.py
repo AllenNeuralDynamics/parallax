@@ -1,6 +1,6 @@
 """
 Module for camera calibration and stereo calibration.
-This module provides classes for intrinsic camera calibration 
+This module provides classes for intrinsic camera calibration
 (`CalibrationCamera`) and stereo camera calibration (`CalibrationStereo`).
 Classes:
 -CalibrationCamera: Class for intrinsic camera calibration.
@@ -55,8 +55,7 @@ imtx = np.array([[1.519e+04, 0.0e+00, 2e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
 
-idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
-                    dtype=np.float32)
+idist = np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32)
 
 # Intrinsic flag
 myflags1 = (
@@ -152,16 +151,16 @@ class CalibrationCamera:
             criteria=CRIT,
         )
 
-        formatted_mtxt = (
+        format_mtxt = (
             "\n".join(
                 [" ".join([f"{val:.2f}" for val in row]) for row in self.mtx]
             )
             + "\n"
         )
-        formatted_dist = " ".join([f"{val:.2f}" for val in self.dist[0]]) + "\n"
+        format_dist = " ".join([f"{val:.2f}" for val in self.dist[0]]) + "\n"
         logger.debug(f"A reproj error: {ret}")
-        logger.debug(f"Intrinsic: {formatted_mtxt}\n")
-        logger.debug(f"Distortion: {formatted_dist}\n")
+        logger.debug(f"Intrinsic: {format_mtxt}\n")
+        logger.debug(f"Distortion: {format_dist}\n")
         logger.debug(f"Focal length: {self.mtx[0][0]*1.85/1000}")
         distancesA = [np.linalg.norm(vec) for vec in self.tvecs]
         logger.debug(
@@ -345,10 +344,11 @@ class CalibrationStereo(CalibrationCamera):
 
     def change_coords_system_from_camA_to_global(self, points_3d_AB):
         """
-        Change coordinate system from camera A to global using solvePnPRansac().
+        Change coordinate system from camera A to global using solvePnPRansac.
 
         Args:
-            points_3d_AB (numpy.ndarray): 3D points in camera A coordinate system.
+            points_3d_AB (numpy.ndarray):
+            3D points in camera A coordinate system.
 
         Returns:
             numpy.ndarray: 3D points in global coordinate system.
@@ -370,7 +370,7 @@ class CalibrationStereo(CalibrationCamera):
         using iterative method.
 
         Args:
-            points_3d_AB (numpy.ndarray): 
+            points_3d_AB (numpy.ndarray):
             3D points in camera A coordinate system.
 
         Returns:
@@ -397,11 +397,11 @@ class CalibrationStereo(CalibrationCamera):
         return points_3d_G
 
     def change_coords_system_from_camA_to_global_savedRT(self, points_3d_AB):
-        """Change coordinate system from camera A to global 
+        """Change coordinate system from camera A to global
         using saved rotation and translation.
 
         Args:
-            points_3d_AB (numpy.ndarray): 
+            points_3d_AB (numpy.ndarray):
             3D points in camera A coordinate system.
 
         Returns:
@@ -449,12 +449,12 @@ class CalibrationStereo(CalibrationCamera):
         mean_squared_diff_z = np.mean(np.square(differences_z))
 
         # Calculate the L2 norm (Euclidean distance) for each dimension
-        average_l2_x = np.sqrt(mean_squared_diff_x)
-        average_l2_y = np.sqrt(mean_squared_diff_y)
-        average_l2_z = np.sqrt(mean_squared_diff_z)
+        l2_x = np.sqrt(mean_squared_diff_x)
+        l2_y = np.sqrt(mean_squared_diff_y)
+        l2_z = np.sqrt(mean_squared_diff_z)
 
         print(
-            f"x: {average_l2_x*1000}µm³, y: {average_l2_y*1000}µm³, z:{average_l2_z*1000}µm³"
+            f"x: {l2_x*1000}µm³, y: {l2_y*1000}µm³, z:{l2_z*1000}µm³"
         )
 
     def test_performance(self, camA, coordA, camB, coordB):
@@ -488,7 +488,8 @@ class CalibrationStereo(CalibrationCamera):
         euclidean_distances = np.sqrt(squared_distances)
         average_L2_distance = np.mean(euclidean_distances)
         print(
-            f"(Reprojection error) Object points L2 diff: {average_L2_distance*1000} µm³"
+            f"(Reprojection error) Object points L2 diff: \
+            {average_L2_distance*1000} µm³"
         )
         self.test_x_y_z_performance(points_3d_G)
         print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")

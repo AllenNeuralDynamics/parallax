@@ -82,7 +82,6 @@ class PySpinCamera:
             else:
                 camera.stop(clean=True)
 
-        # cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
         return cls.cameras
 
     # Class method to close all PySpin cameras

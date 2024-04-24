@@ -32,7 +32,9 @@ def setup_logging():
     log_handler = logging.FileHandler(log_file_path)
     log_handler.setLevel(logging.DEBUG)
     log_handler.setFormatter(
-        logging.Formatter(fmt="%(asctime)s:%(name)s:%(levelname)s: %(message)s")
+        logging.Formatter(
+            fmt="%(asctime)s:%(name)s:%(levelname)s: %(message)s"
+        )
     )
     logger.addHandler(log_handler)
 

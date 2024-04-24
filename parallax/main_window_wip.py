@@ -1,5 +1,6 @@
 """
-This script defines the main components of the application including the main window, UI elements,
+This script defines the main components of the application
+including the main window, UI elements,
 camera and stage management, and recording functionality.
 
 Modules imported:
@@ -44,7 +45,8 @@ class MainWindow(QMainWindow):
     """
     The main window of the application.
 
-    This class represents the main window of the application and handles the user interface
+    This class represents the main window of the application
+    and handles the user interface
     components, camera and stage management, and recording functionality.
     """
 
@@ -54,13 +56,13 @@ class MainWindow(QMainWindow):
 
         Args:
             model (object): The data model for the application.
-            dummy (bool, optional): Flag indicating whether to run in dummy mode. Defaults to False.
+            dummy (bool, optional): Flag indicating whether
+            to run in dummy mode. Defaults to False.
         """
         QMainWindow.__init__(self)  # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
-        # self.model.clean() TBD call to close the camera when there was abnormal program exit in previous run.
-
+        
         # Initialize an empty list to keep track of microscopeGrp widgets instances
         self.screen_widgets = []
         self.recording_camera_list = []

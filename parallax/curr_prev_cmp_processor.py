@@ -1,15 +1,19 @@
 """
-CurrPrevCmpProcessor: Module for finding the difference image using Current Previous Comparison.
+CurrPrevCmpProcessor: Module for finding the difference image 
+using Current Previous Comparison.
 
-This module provides classes and methods for processing images to detect differences between a current image and a previous image, with the aim of detecting a probe and its tip.
+This module provides classes and methods for processing images
+to detect differences between a current image and a previous image, with the aim of detecting a probe and its tip.
 
 Classes:
-    - CurrPrevCmpProcessor: Main class for performing the comparison and detecting the probe.
+    - CurrPrevCmpProcessor: Main class for performing
+      the comparison and detecting the probe.
 
 Usage:
     - Initialize an instance of CurrPrevCmpProcessor with necessary parameters.
     - Use the first_cmp() method to perform the initial comparison.
-    - Use the update_cmp() method to update the comparison and detect changes over time.
+    - Use the update_cmp() method to update the comparison
+      and detect changes over time.
 """
 
 import logging
@@ -23,7 +27,7 @@ from .utils import UtilsCoords, UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
+# Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
