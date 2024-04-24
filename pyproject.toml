@@ -38,6 +38,10 @@ version = {attr = "parallax.__version__"}
 readme = {file = "README.md"}
  
 [project.optional-dependencies]
+dev = [
+    'parallax-app[linters]'
+]
+
 linters = [
     'codespell',
     'coverage',
