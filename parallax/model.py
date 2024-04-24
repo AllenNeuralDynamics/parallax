@@ -53,10 +53,6 @@ class Model(QObject):
         """Set the last object point."""
         self.obj_point_last = obj_point
 
-    def set_last_image_point(self, lcorr, rcorr):
-        """Set the last image point."""
-        self.img_point_last = (lcorr + rcorr)
-
     def add_calibration(self, cal):
         """Add a calibration."""
         self.calibrations[cal.name] = cal
