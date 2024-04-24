@@ -29,3 +29,4 @@ ui/settings.json
 
 # Environments
 venv/
+.venv/
