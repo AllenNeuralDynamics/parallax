@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+
 class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
     """Finding diff image using Current and Background Comparison"""
     def __init__(self, ProbeDetector, original_size, resized_size, reticle_zone=None):

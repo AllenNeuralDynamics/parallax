@@ -1,13 +1,15 @@
 """
 PySpinCamera: A class to interface with cameras using the PySpin library.
 """
-import time
+
 import datetime
-import threading
-import numpy as np
 import logging
 import os
+import threading
+import time
+
 import cv2
+import numpy as np
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
@@ -19,6 +21,7 @@ try:
 except ImportError:
     PySpin = None
     logger.warn("Could not import PySpin.")
+
 
 def list_cameras(dummy=False, version="V1"):
     """
@@ -41,19 +44,22 @@ def list_cameras(dummy=False, version="V1"):
             cameras.extend(PySpinCamera.list_cameras())
     return cameras
 
+
 def close_cameras():
     """Close all available cameras."""
     if PySpin is not None:
         PySpinCamera.close_cameras()
 
+
 class PySpinCamera:
     """
     Represents a camera managed by the PySpin library.
     """
+
     pyspin_cameras = None
     pyspin_instance = None
     cameras = []
- 
+
     @classmethod
     def list_cameras(cls):
         """
@@ -75,7 +81,7 @@ class PySpinCamera:
                 cls.cameras.append(camera)
             else:
                 camera.stop(clean=True)
-        
+
         # cls.cameras = [PySpinCamera(cls.pyspin_cameras.GetByIndex(i)) for i in range(ncameras)]
         return cls.cameras
 
@@ -92,7 +98,7 @@ class PySpinCamera:
             cls.pyspin_cameras.Clear()
         if cls.pyspin_instance is not None:
             cls.pyspin_instance.ReleaseInstance()
-        
+
     # Constructor for PySpinCamera
     def __init__(self, camera_pyspin):
         """
@@ -121,12 +127,12 @@ class PySpinCamera:
         
         self.device_model = self.camera.DeviceModelName()
         self.device_color_type = None
-        camera_color_type = self.device_model.split('-')[2][-1]
-        if camera_color_type == 'M':
+        camera_color_type = self.device_model.split("-")[2][-1]
+        if camera_color_type == "M":
             self.device_color_type = "Mono"
-        elif camera_color_type == 'C':
+        elif camera_color_type == "C":
             self.device_color_type = "Color"
-        elif camera_color_type == 'P':
+        elif camera_color_type == "P":
             self.device_color_type = "Polarized"
             print("Polarized Camera model not supported.")
             return None
@@ -141,7 +147,7 @@ class PySpinCamera:
         node_newestonly = node_bufferhandling_mode.GetEntryByName('NewestOnly')
         node_newestonly_mode = node_newestonly.GetValue()
         node_bufferhandling_mode.SetIntValue(node_newestonly_mode)
-        
+
         # Set White Balance
         if self.device_color_type == "Color":
             self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
@@ -169,9 +175,9 @@ class PySpinCamera:
 
         # set gamma  
         self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
-        self.node_gammaenable_mode.SetValue(True)                # Default: Gammal Enable on 
+        self.node_gammaenable_mode.SetValue(True)  # Default: Gammal Enable on
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
-        self.node_gamma.SetValue(0.8)  
+        self.node_gamma.SetValue(0.8)
 
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
@@ -185,16 +191,16 @@ class PySpinCamera:
             entry_pixelformat_bayerRG8 = node_pixelformat.GetEntryByName("BayerRG8")
             node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
 
-        # acquisition on initialization             
+        # acquisition on initialization
         if VERSION == "V1":
             # begin acquisition
-            # V1: Start continuous acquisition on initialization. 
+            # V1: Start continuous acquisition on initialization.
             self.begin_continuous_acquisition()
         elif VERSION == "V2":
             # V2: Start continuous acquisition when 'Start' button is toggled and end acquisition when untoggled.
-            # On initialization, start onetime acquisition to get one frame. 
+            # On initialization, start onetime acquisition to get one frame.
             pass
-        
+
     def set_wb(self, channel, wb=1.2):
         """
         Sets the white balance of the camera.
@@ -212,7 +218,7 @@ class PySpinCamera:
                 self.node_wb.SetValue(wb)
         else:
             pass
-    
+
     def get_wb(self, channel):
         """
         Get the gamma of the camera for the auto mode.
@@ -223,14 +229,14 @@ class PySpinCamera:
             if channel == "Red":
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
                 time.sleep(0.5)
-                return self.node_wb.GetValue()                
+                return self.node_wb.GetValue()
             elif channel == "Blue":
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
                 time.sleep(0.5)
                 return self.node_wb.GetValue()
         else:
             return -1
-        
+
     def set_gamma(self, gamma=1.0):
         """
         Sets the gamma correction of the camera.
@@ -280,7 +286,7 @@ class PySpinCamera:
         """
         self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())   # Return back to manual mode
         self.node_exptime.SetValue(expTime)
-    
+
     def get_exposure(self):
         """
         Get the exposure time of the camera for the auto mode.
@@ -292,7 +298,7 @@ class PySpinCamera:
         updated_val = self.node_exptime.GetValue()
         if updated_val != initial_val:
             return updated_val  # Return the updated value if there's a change
-        
+
         return initial_val  # Return the initial value if no change is detected
 
     def name(self, sn_only=False):
@@ -304,18 +310,18 @@ class PySpinCamera:
 
         Returns:
         - str: The device model and serial number or just the serial number.
-        """        
+        """
         sn = self.camera.DeviceSerialNumber()
         device_model = self.camera.DeviceModelName()
         if sn_only:
             return sn
         else:
-            return '%s (Serial # %s)' % (device_model, sn)
+            return "%s (Serial # %s)" % (device_model, sn)
 
     def begin_singleframe_acquisition(self):
         """
-        Begings a single Frame image acquisition. 
-        """  
+        Begings a single Frame image acquisition.
+        """
         # set acquisition mode to singleFrame
         node_acquisition_mode = PySpin.CEnumerationPtr(self.node_map.GetNode('AcquisitionMode'))
         node_acquisition_mode_singleframe = node_acquisition_mode.GetEntryByName('SingleFrame')
@@ -323,13 +329,13 @@ class PySpinCamera:
         node_acquisition_mode.SetIntValue(acquisition_mode_singleframe)
 
         # Begin Acquisition: Image acquisition must be ended when no more images are needed.
-        self.camera.BeginAcquisition() 
+        self.camera.BeginAcquisition()
         print(f"Begin Single Frame Acquisition {self.name(sn_only=True)} ")
         self.capture_thread = threading.Thread(target=self.capture, daemon=False)
         self.capture_thread.start()
-        
+
     def end_singleframe_acquisition(self):
-        """ End Acquisition """
+        """End Acquisition"""
         self.last_image_cleared.wait()
         self.capture_thread.join()
         self.camera.EndAcquisition()
@@ -340,7 +346,7 @@ class PySpinCamera:
     def begin_continuous_acquisition(self):
         """
         Begins the image acquisition process in continuous mode and starts the capture loop in a separate thread.
-        """    
+        """
         if self.running:
             print("Error: camera is already running")
             return -1
@@ -352,7 +358,7 @@ class PySpinCamera:
         node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
 
         # Begin Acquisition: Image acquisition must be ended when no more images are needed.
-        self.camera.BeginAcquisition() 
+        self.camera.BeginAcquisition()
         logger.debug(f"BeginAcquisition {self.name(sn_only=True)} ")
         self.running = True
         self.capture_thread = threading.Thread(target=self.capture_loop, daemon=True)
@@ -368,15 +374,15 @@ class PySpinCamera:
 
     def capture(self):
         """
-        Captures an image and checks for its completeness. 
+        Captures an image and checks for its completeness.
         If video recording is enabled, writes the image to the video file.
 
         *** NOTES ***
         Capturing an image houses images on the camera buffer.
         Trying to capture an image that does not exist will hang the camera.
         Using-statements help ensure that images are released.
-        If too many images remain unreleased, the buffer will fill, 
-        causing the camera to hang. 
+        If too many images remain unreleased, the buffer will fill,
+        causing the camera to hang.
         Images can also be released manually by calling Release().
         """
         # Timestamp for the current capture
@@ -385,10 +391,10 @@ class PySpinCamera:
 
         # Retrieve the next image from the camera
         image = self.camera.GetNextImage(1000)
-    
+
         while image.IsIncomplete():
             time.sleep(0.001)
-        
+
         # Release the previous image from the buffer if it exists
         if self.last_image is not None:
             try:
@@ -400,16 +406,16 @@ class PySpinCamera:
         self.last_image = image
         self.last_image_filled.set()
 
-        # Record the image if video recording is active     
-        if self.video_recording_on.is_set(): 
+        # Record the image if video recording is active
+        if self.video_recording_on.is_set():
             self.video_recording_idle.clear()
-            
+
             frame = self.get_last_image_data()
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
             self.video_output.write(frame)
             self.video_recording_idle.set()
-        
+
     def get_last_capture_time(self, millisecond=False):
         """
         Returns the timestamp of the last captured image in a formatted string.
@@ -537,7 +543,7 @@ class PySpinCamera:
         self.camera_info()
 
         # Begin the video recording with appropriate configurations
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        fourcc = cv2.VideoWriter_fourcc(*"XVID")
         self.video_output = cv2.VideoWriter(full_path, fourcc, self.frame_rate, \
                                             (self.width, self.height), True) 
         self.video_recording_on.set()
@@ -558,7 +564,7 @@ class PySpinCamera:
 
         Note:
             Do not change the order of codes without referring PySpin manual.
-            They are ordered by PySpin Camera Init / Turn off sequence. 
+            They are ordered by PySpin Camera Init / Turn off sequence.
         """
         if self.running:
             self.running = False
@@ -569,14 +575,17 @@ class PySpinCamera:
 
         if self.video_recording_on.is_set():
             self.stop_recording()
-        
+
         if clean:
             del self.camera
 
+
 # Class for simulating a mock camera
 class MockCamera:
-    """ Mock Camera showing salts and pepper noise images """
+    """Mock Camera showing salts and pepper noise images"""
+
     n_cameras = 0
+
     def __init__(self):
         """ Initialize a mock camera with a unique name """
         self._name = f"MockCamera{MockCamera.n_cameras}"
@@ -585,7 +594,7 @@ class MockCamera:
         self.data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype='ubyte')
         self._next_frame = 0
         self.device_color_type = None
-        
+
     def name(self, sn_only=False):
         """ Get the name of the mock camera """
         return self._name
@@ -597,100 +606,102 @@ class MockCamera:
         frame = self.data[self._next_frame]
         self._next_frame = (self._next_frame + 1) % self.data.shape[0]
         return frame
-    
+
     def save_last_image(self, filepath, isTimestamp=False, custom_name="MockCamera_"):
         """ Dummy function """
         print("This is MockCamera. Cannot capture the image")
         return
-    
+
     def set_wb(self, wb=2.0):
         """ Dummy function """
         logger.info("This is MockCamera. Setting is not applicable")
         return
-    
+
     def set_gamma(self, gamma=1.0):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is MockCamera. Setting is not applicable")
         return
 
     def set_gain(self, gain=25.0):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is MockCamera. Setting is not applicable")
         return
-    
+
     def set_exposure(self, expTime=16000):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is MockCamera. Setting is not applicable")
         return
 
     def stop(self, clean=False):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is MockCamera. Stop")
         return
-    
+
     def begin_continuous_acquisition(self):
-        """ Dummy function """
+        """Dummy function"""
         return
-    
+
     def get_last_capture_time(self, millisecond=False):
-        """ Dummy function """
-        return 
-    
-    def stop(self, clean=False):
-        """ Dummy function """
+        """Dummy function"""
         return
-    
+
+    def stop(self, clean=False):
+        """Dummy function"""
+        return
+
+
 class VideoSource:
-    """ Video Source """
+    """Video Source"""
+
     def __init__(self, filename):
-        """ Initialize a video source with a given filename """
+        """Initialize a video source with a given filename"""
         self.filename = filename
         self._name = os.path.basename(self.filename)
         self.cap = cv2.VideoCapture(self.filename)
 
     def name(self, sn_only=False):
-        """ Get the name of the video source """
+        """Get the name of the video source"""
         return self._name
 
     def get_last_image_data(self):
-        """ Read the last captured frame from the video source """
+        """Read the last captured frame from the video source"""
         ret, frame = self.cap.read()
         if ret:
             return frame
         else:
             # If the video has ended, reset the video source to the beginning
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            return np.random.randint(0, 255, size=(3000, 4000), dtype='ubyte')
-        
+            return np.random.randint(0, 255, size=(3000, 4000), dtype="ubyte")
+
     def save_last_image(self, filepath, isTimestamp=False, custom_name="VideoSource_"):
-        """ Dummy function """
+        """Dummy function"""
         print("This is from Video Source. Cannot capture the image")
         return
-    
+
     def set_wb(self, wb=2.0):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is VideoSource. Setting is not applicable")
         return
-    
+
     def set_gamma(self, gamma=1.0):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is VideoSource. Setting is not applicable")
         return
 
     def set_gain(self, gain=25.0):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is VideoSource. Setting is not applicable")
         return
-    
+
     def set_exposure(self, expTime=125000):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is VideoSource. Setting is not applicable")
         return
-    
+
     def begin_continuous_acquisition(self):
-        """ Dummy function """
+        """Dummy function"""
         return
-    
+
     def stop(self, clean=False):
-        """ Dummy function """
+        """Dummy function"""
         return

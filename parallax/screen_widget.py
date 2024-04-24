@@ -4,14 +4,17 @@ Provides ScreenWidget for image interaction in microscopy apps, supporting image
 point selection, and zooming. It integrates with probe and reticle detection managers 
 for real-time processing and offers camera control functions.
 """
-from PyQt5.QtCore import pyqtSignal, Qt
+
+import logging
+
+import cv2
+import pyqtgraph as pg
 from PyQt5 import QtCore
+from PyQt5.QtCore import Qt, pyqtSignal
+
+from .no_filter import NoFilter
 from .probe_detect_manager import ProbeDetectManager
 from .reticle_detect_manager import ReticleDetectManager
-from .no_filter import NoFilter
-import pyqtgraph as pg
-import cv2
-import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -20,15 +23,17 @@ logger.setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+
 class ScreenWidget(pg.GraphicsView):
-    """ Screens Class """
+    """Screens Class"""
+
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
     probe_coords_detected = pyqtSignal()
 
     def __init__(self, camera, filename=None, model=None, parent=None):
-        """ Init screen widget object """
+        """Init screen widget object"""
         super().__init__(parent=parent)
         self.filename = filename
         self.model = model
@@ -39,7 +44,7 @@ class ScreenWidget(pg.GraphicsView):
         self.view_box.invertY()
 
         self.image_item = ClickableImage()
-        self.image_item.axisOrder = 'row-major'
+        self.image_item.axisOrder = "row-major"
         self.view_box.addItem(self.image_item)
         self.image_item.mouse_clicked.connect(self.image_clicked)
 
@@ -102,7 +107,7 @@ class ScreenWidget(pg.GraphicsView):
         """
         if self.camera:
             self.camera.begin_continuous_acquisition()
-    
+
     def stop_acquisition_camera(self):
         """
         Stop the camera acquisition. (Continuously)
@@ -124,7 +129,7 @@ class ScreenWidget(pg.GraphicsView):
         """
         if self.camera:
             self.camera.begin_singleframe_acquisition()
-    
+
     def stop_single_acquisition_camera(self):
         """
         Stop the camera acquisition. (Single Frame)
@@ -140,7 +145,7 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.process(data)
         captured_time = self.camera.get_last_capture_time(millisecond=True) #TODO
         self.probeDetector.process(data, captured_time)
-    
+
     def is_camera(self):
         """
         Return True if the camera is 'Blackfly' camera.
@@ -152,7 +157,7 @@ class ScreenWidget(pg.GraphicsView):
         """
         Return the name of the camera.
         """
-        return self.camera.name(sn_only=True) if self.camera else None 
+        return self.camera.name(sn_only=True) if self.camera else None
 
     def clear_selected(self):
         """
@@ -167,14 +172,14 @@ class ScreenWidget(pg.GraphicsView):
         """
         if self.camera:
             self.camera.save_last_image(filepath, isTimestamp, name)
-            
+
     def save_recording(self, filepath, isTimestamp=False, name="Microscope_"):
         """
-        Save the recording frames that are displayed from camera. 
+        Save the recording frames that are displayed from camera.
         """
         if self.camera:
             self.camera.save_recording(filepath, isTimestamp, name)
-    
+
     def stop_recording(self):
         """
         Stop the recording.
@@ -183,13 +188,13 @@ class ScreenWidget(pg.GraphicsView):
             self.camera.stop_recording()
 
     def set_image_item_from_data(self, data):
-        """ display image from data """
+        """display image from data"""
         self.image_item.setImage(data, autoLevels=False)
 
     def set_camera_setting(self, setting, val):
         """
         Set the camera settings. (exposure, gain, gamma, wb)
-        
+
         exposure (int): min: 90,000(10fps) max: 250,000(4fps)
         gain (float): The desired gain value. min:0, max:27.0
         wb (float): The desired white balance value. min:1.8, max:2.5
@@ -206,14 +211,14 @@ class ScreenWidget(pg.GraphicsView):
                 self.camera.set_wb("Red", val)
             elif setting == "wbBlue":
                 self.camera.set_wb("Blue", val)
-        
+
     def get_camera_setting(self, setting):
         """Get the specified camera setting value.
-    
+
         Args:
-            setting (str): The camera setting to retrieve. 
+            setting (str): The camera setting to retrieve.
                 Possible values: "exposure", "gain", "gamma", "wbRed", "wbBlue".
-        
+
         Returns:
             float: The value of the specified camera setting.
         """
@@ -233,7 +238,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def get_camera_color_type(self):
         """Get the color type of the camera.
-    
+
         Returns:
             str: The color type of the camera.
         """
@@ -244,9 +249,9 @@ class ScreenWidget(pg.GraphicsView):
         """
         Handle the image click event.
         """
-        if event.button() == QtCore.Qt.MouseButton.LeftButton:            
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.select(event.pos())
-        elif event.button() == QtCore.Qt.MouseButton.MiddleButton:            
+        elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.zoom_out()
 
     def select(self, pos):
@@ -278,13 +283,13 @@ class ScreenWidget(pg.GraphicsView):
         logger.debug("run_reticle_detection")
         self.filter.stop()
         self.reticleDetector.start()
-    
+
     def run_probe_detection(self):
         """Run probe detection by stopping the filter and starting the probe detector."""
         logger.debug("run_probe_detection")
         self.filter.stop()
         self.probeDetector.start()
-    
+
     def run_no_filter(self):
         """Run without any filter by stopping the reticle detector and probe detector."""
         logger.debug("run_no_filter")
@@ -318,7 +323,7 @@ class ScreenWidget(pg.GraphicsView):
     def get_camera_intrinsic(self):
         """Get the camera intrinsic parameters."""
         return self.mtx, self.dist
-    
+
     def get_reticle_coords(self):
         """Get the reticle coordinates."""
         return self.reticle_coords
@@ -348,9 +353,12 @@ class ScreenWidget(pg.GraphicsView):
         else:
             super().wheelEvent(e)
 
+
 class ClickableImage(pg.ImageItem):
-    """ This class captures mouse click events on images. """
+    """This class captures mouse click events on images."""
+
     mouse_clicked = pyqtSignal(object)
+
     def mouseClickEvent(self, ev):
         """
         Handle the mouse click event.

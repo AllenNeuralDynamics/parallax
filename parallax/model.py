@@ -1,18 +1,21 @@
 """
 The Model class is the core component for managing cameras, stages, and calibration data.
 """
-from PyQt5.QtCore import pyqtSignal
+
 from PyQt5.QtCore import QObject, pyqtSignal
-from .camera import list_cameras, close_cameras, MockCamera, PySpinCamera
-from .stage_listener import StageInfo, Stage
+
+from .camera import MockCamera, PySpinCamera, close_cameras, list_cameras
+from .stage_listener import Stage, StageInfo
+
 
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""
+
     msg_posted = pyqtSignal(str)
     accutest_point_reached = pyqtSignal()
 
     def __init__(self, version="V1"):
-        """ Initialize model object """
+        """Initialize model object"""
         QObject.__init__(self)
         self.version = version
         # camera
@@ -26,7 +29,7 @@ class Model(QObject):
         self.nStages = 0
         self.init_stages()
         self.elevators = {}
-        self.stage_listener_url = 'http://localhost:8080/'
+        self.stage_listener_url = "http://localhost:8080/"
 
         # probe detector
         self.probeDetectors = []
@@ -37,11 +40,11 @@ class Model(QObject):
         self.camera_extrinsic = {}
         self.calibration = None
         self.calibrations = {}
-    
+
         self.cal_in_progress = False
         self.accutest_in_progress = False
         self.lcorr, self.rcorr = False, False
-        
+
         self.img_point_last = None
         self.obj_point_last = None
         self.transforms = {}
@@ -93,7 +96,7 @@ class Model(QObject):
 
     def scan_for_cameras(self):
         """Scan for cameras."""
-        self.cameras = list_cameras(version = self.version) + self.cameras
+        self.cameras = list_cameras(version=self.version) + self.cameras
         self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
         self.nMockCameras = len([camera for camera in self.cameras if isinstance(camera, MockCamera)])
         self.nPySpinCameras = len([camera for camera in self.cameras if isinstance(camera, PySpinCamera)])
@@ -104,7 +107,7 @@ class Model(QObject):
         instances = stage_info.get_instances()
         self.init_stages()
         for instance in instances:
-            stage = Stage(stage_info = instance)
+            stage = Stage(stage_info=instance)
             self.add_stage(stage)
         self.nStages = len(self.stages)
 
@@ -135,26 +138,23 @@ class Model(QObject):
     def get_camera_intrinsic(self, camera_name):
         """Get camera intrinsic parameters."""
         return self.camera_intrinsic.get(camera_name)
-    
+
     def add_camera_extrinsic(self, name1, name2, retVal, R, T, E, F):
         """Add camera extrinsic parameters."""
-        self.camera_extrinsic[name1+"-"+name2] = [retVal, R, T, E, F]
+        self.camera_extrinsic[name1 + "-" + name2] = [retVal, R, T, E, F]
 
     def get_camera_extrinsic(self, name1, name2):
         """Get camera extrinsic parameters."""
-        return self.camera_extrinsic.get(name1+"-"+name2)
-    
+        return self.camera_extrinsic.get(name1 + "-" + name2)
+
     def clean(self):
         """Clean up."""
         close_cameras()
 
     def save_all_camera_frames(self):
         """Save all camera frames."""
-        for i,camera in enumerate(self.cameras):
+        for i, camera in enumerate(self.cameras):
             if camera.last_image:
                 filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
                 camera.save_last_image(filename)
-                self.msg_log.post('Saved camera frame: %s' % filename)
-
-
-
+                self.msg_log.post("Saved camera frame: %s" % filename)

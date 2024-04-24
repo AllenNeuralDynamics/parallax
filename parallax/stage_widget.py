@@ -5,24 +5,30 @@ to manage calibration data and provides UI functionalities for reticle and probe
 and camera calibration. The class integrates with PyQt5 for the UI, handling UI loading, 
 initializing components, and linking user actions to calibration processes.
 """
-from PyQt5.QtWidgets import QWidget, QMessageBox, QPushButton, QLabel, QSpacerItem, QSizePolicy
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import QTimer
-from .stage_listener import StageListener
-from .probe_calibration import ProbeCalibration
-from .calibration_camera import CalibrationStereo
-from .stage_ui import StageUI
-import os
+
 import logging
-import  numpy as np
+import os
+
+import numpy as np
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import (QLabel, QMessageBox, QPushButton, QSizePolicy,
+                             QSpacerItem, QWidget)
+from PyQt5.uic import loadUi
+
+from .calibration_camera import CalibrationStereo
+from .probe_calibration import ProbeCalibration
+from .stage_listener import StageListener
+from .stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class StageWidget(QWidget):
     """Widget for stage control and calibration."""
+
     def __init__(self, model, ui_dir, screen_widgets):
-        """ Initializes the StageWidget instance. 
+        """Initializes the StageWidget instance.
 
         Parameters:
             model: The data model used for storing calibration and stage information.
@@ -34,7 +40,7 @@ class StageWidget(QWidget):
         self.screen_widgets = screen_widgets
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(380)
-                
+
         # Load reticle_calib.ui into its placeholder
         self.reticle_calib_widget = QWidget()  # Create a new widget
         loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self.reticle_calib_widget)
@@ -70,14 +76,15 @@ class StageWidget(QWidget):
         self.reticle_calibration_btn.clicked.connect(self.reticle_detection_button_handler)
         self.calibrationStereo = None
         # Hide Accept and Reject Button in Reticle Detection
-        self.acceptButton.hide() 
-        self.rejectButton.hide() 
+        self.acceptButton.hide()
+        self.rejectButton.hide()
         self.acceptButton.clicked.connect(self.reticle_detect_accept_detected_status)
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
         # Add a QTimer for delayed check
         self.reticle_calibration_timer = QTimer(self)
         self.reticle_calibration_timer.timeout.connect(self.reticle_detect_default_status)
         
+
         # Stage widget
         self.stageUI = StageUI(self.model, self)
         self.probe_calibration_btn.setEnabled(False)
@@ -87,7 +94,7 @@ class StageWidget(QWidget):
         self.stageListener.start()
         self.probeCalibration = ProbeCalibration(self.stageListener)
         # Hide X, Y, and Z Buttons in Probe Detection
-        self.calib_x.hide() 
+        self.calib_x.hide()
         self.calib_y.hide()
         self.calib_z.hide()
         self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
@@ -113,11 +120,11 @@ class StageWidget(QWidget):
                 response = self.overwrite_popup_window()
                 if response:
                     # Overwrite the result
-                    self.reticle_detect_default_status()    
+                    self.reticle_detect_default_status()
                 else:
                     # Keep the last calibration result
                     self.reticle_calibration_btn.setChecked(True)
-    
+
     def reticle_detect_default_status(self):
         """
         Resets the reticle detection process to its default state and updates the UI accordingly.
@@ -128,7 +135,7 @@ class StageWidget(QWidget):
 
         if self.reticle_detection_status == "process":
             self.reticle_detect_fail_popup_window()
-            
+
         # Stop reticle detectoin, and run no filter
         self.reticle_calibration_timer.stop()
 
@@ -139,10 +146,11 @@ class StageWidget(QWidget):
             self.filter = "no_filter"
 
         # Hide Accept and Reject Button
-        self.acceptButton.hide() 
-        self.rejectButton.hide() 
-        
-        self.reticle_calibration_btn.setStyleSheet("""
+        self.acceptButton.hide()
+        self.rejectButton.hide()
+
+        self.reticle_calibration_btn.setStyleSheet(
+            """
             QPushButton {
                 color: white;
                 background-color: black;
@@ -153,21 +161,21 @@ class StageWidget(QWidget):
         """)
         self.reticle_detection_status = "default"
         self.reticleCalibrationLabel.setText("")
-        if self.probe_calibration_btn.isEnabled():        
+        if self.probe_calibration_btn.isEnabled():
             # Disable probe calibration
             self.probe_detect_default_status()
 
     def overwrite_popup_window(self):
         """
         Displays a confirmation dialog to decide whether to overwrite the current reticle position.
-        
+
         Returns:
             bool: True if the user chooses to overwrite, False otherwise.
         """
         message = f"Are you sure you want to overwrite the current reticle position?"
         response = QMessageBox.warning(self, "Reticle Detection Failed", message, 
                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        
+
         # Check which button was clicked
         if response == QMessageBox.Yes:
             logger.debug("User clicked Yes.")
@@ -175,7 +183,7 @@ class StageWidget(QWidget):
         else:
             logger.debug("User clicked No.")
             return False
-    
+
     def reticle_detect_fail_popup_window(self):
         """
         Displays a warning dialog indicating the failure of reticle detection on one or more cameras.
@@ -197,21 +205,21 @@ class StageWidget(QWidget):
         # Disable reticle_calibration_btn button
         if self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(False)
-        
+
         # Run reticle detectoin
         self.reticle_calibration_btn.setStyleSheet(
             "color: gray;"
             "background-color: #ffaaaa;"
         )
         for screen in self.screen_widgets:
-            screen.reset_reticle_coords()  
+            screen.reset_reticle_coords()
             screen.reticle_coords_detected.connect(self.reticle_detect_all_screen)
             screen.run_reticle_detection()
         self.filter = "reticle_detection"
 
         # Hide Accept and Reject Button
-        self.acceptButton.hide() 
-        self.rejectButton.hide() 
+        self.acceptButton.hide()
+        self.rejectButton.hide()
 
         # Start the timer for 10 seconds to check the status later
         self.reticle_detection_status = "process"
@@ -227,8 +235,8 @@ class StageWidget(QWidget):
         self.reticle_calibration_timer.stop()
 
         # Show Accept and Reject Button
-        self.acceptButton.show() 
-        self.rejectButton.show() 
+        self.acceptButton.show()
+        self.rejectButton.show()
 
         # Change the button to brown.
         self.reticle_calibration_btn.setStyleSheet(
@@ -526,7 +534,8 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
-            
+
+
     def calib_z_complete(self):
         """
         Updates the UI to indicate that the calibration for the Z-axis is complete.
@@ -537,12 +546,13 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
+
     def update_probe_calib_status_transM(self, transformation_matrix):
         # Extract the rotation matrix (top-left 3x3)
         R = transformation_matrix[:3, :3]
         # Extract the translation vector (top 3 elements of the last column)
         T = transformation_matrix[:3, 3]
-                
+
         # Set the formatted string as the label's text
         content = (
             f"<span style='color:yellow;'><small>"
@@ -583,6 +593,3 @@ class StageWidget(QWidget):
         full_content = content_transM + content_L2 + content_L2_travel
 
         self.probeCalibrationLabel.setText(full_content)
-
-
-        

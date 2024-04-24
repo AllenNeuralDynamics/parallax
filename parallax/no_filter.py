@@ -3,16 +3,21 @@ NoFilter serves as a pass-through component in a frame processing pipeline,
 employing a worker-thread model to asynchronously handle frames without modification, 
 facilitating integration and optional processing steps.
 """
-from PyQt5.QtCore import pyqtSignal, QObject, QThread
+
 import time
+
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
+
 
 class NoFilter(QObject):
     """Class representing no filter."""
+
     name = "None"
     frame_processed = pyqtSignal(object)
 
     class Worker(QObject):
         """Worker class for processing frames in a separate thread."""
+
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
 
@@ -25,7 +30,7 @@ class NoFilter(QObject):
 
         def update_frame(self, frame):
             """Update the frame to be processed.
-        
+
             Args:
                 frame: The frame to be processed.
             """
@@ -69,19 +74,19 @@ class NoFilter(QObject):
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
-        
+
         self.thread.started.connect(self.worker.run)
         self.worker.frame_processed.connect(self.frame_processed.emit)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(lambda: self.thread_deleted)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
-        
+
         self.thread.start()
 
     def process(self, frame):
         """Process the frame using the worker.
-    
+
         Args:
             frame: The frame to be processed.
         """
@@ -96,7 +101,7 @@ class NoFilter(QObject):
         """Stop the filter by stopping the worker."""
         if self.worker is not None:
             self.worker.stop_running()
-    
+
     def clean(self):
         """Clean up the filter by stopping the worker and waiting for the thread to finish."""
         if self.worker is not None:

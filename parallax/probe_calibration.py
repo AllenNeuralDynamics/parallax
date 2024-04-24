@@ -3,13 +3,15 @@ ProbeCalibration transforms probe coordinates from local to global space"
 - local space: Stage coordinates
 - global space: Reticle coordinates
 """
-from PyQt5.QtCore import QObject, pyqtSignal
-from sklearn.linear_model import LinearRegression
+
+import csv
 import logging
+import os
+
 import numpy as np
 import pandas as pd
-import csv
-import os
+from PyQt5.QtCore import QObject, pyqtSignal
+from sklearn.linear_model import LinearRegression
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -17,6 +19,7 @@ logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+
 
 class ProbeCalibration(QObject):
     """
@@ -31,6 +34,7 @@ class ProbeCalibration(QObject):
     Args:
         stage_listener (QObject): The stage listener object that emits signals related to stage movements.
     """
+
     calib_complete_x = pyqtSignal()
     calib_complete_y = pyqtSignal()
     calib_complete_z = pyqtSignal()
@@ -38,6 +42,7 @@ class ProbeCalibration(QObject):
     transM_info = pyqtSignal(object, float, object)
 
     """Class for probe calibration."""
+
     def __init__(self, stage_listener):
         """
         Initializes the ProbeCalibration object with a given stage listener.
@@ -49,15 +54,15 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        self.threshold_min_max = 2000 #TODO 
+        self.threshold_min_max = 2000  # TODO
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.threshold_matrix = np.array([[0.00002, 0.00002, 0.00002, 50.0], #TODO
                                             [0.00002, 0.00002, 0.00002, 50.0],
                                             [0.00002, 0.00002, 0.00002, 50.0],
                                             [0.0, 0.0, 0.0, 0.0]])
-        self.LR_err_L2_threshold = 20 #TODO
+        self.LR_err_L2_threshold = 20  # TODO
         self._create_file()
-    
+
         # Test signal
         self.reset_calib()
 
@@ -65,10 +70,10 @@ class ProbeCalibration(QObject):
         """
         Resets calibration to its initial state, clearing any stored min and max values.
         """
-        self.min_x, self.max_x = float('inf'), float('-inf')
-        self.min_y, self.max_y = float('inf'), float('-inf')
-        self.min_z, self.max_z = float('inf'), float('-inf')
-        self.transM_LR_prev = np.zeros((4,4), dtype=np.float64)
+        self.min_x, self.max_x = float("inf"), float("-inf")
+        self.min_y, self.max_y = float("inf"), float("-inf")
+        self.min_z, self.max_z = float("inf"), float("-inf")
+        self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
         self.signal_emitted_x, self.signal_emitted_y, self.signal_emitted_z = False, False, False
 
     def _create_file(self):
@@ -76,16 +81,16 @@ class ProbeCalibration(QObject):
         Creates or clears the CSV file used to store local and global points during calibration.
         """
         package_dir = os.path.dirname(os.path.abspath(__file__))
-        debug_dir = os.path.join(os.path.dirname(package_dir), 'debug')
+        debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
         os.makedirs(debug_dir, exist_ok=True)
-        self.csv_file = os.path.join(debug_dir, 'points.csv')
+        self.csv_file = os.path.join(debug_dir, "points.csv")
 
         # Check if the file exists and remove it if it does
         if os.path.exists(self.csv_file):
             os.remove(self.csv_file)
 
         # Create a new file and write column names
-        with open(self.csv_file, 'w', newline='') as file:
+        with open(self.csv_file, "w", newline="") as file:
             writer = csv.writer(file)
             # Define column names
             column_names = ['local_x', 'local_y', 'local_z', 'global_x', 'global_y', 'global_z']
@@ -97,7 +102,7 @@ class ProbeCalibration(QObject):
         """
         self._create_file()
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
-    
+
     def _get_local_global_points(self):
         """
         Retrieves local and global points from the CSV file as numpy arrays.
@@ -107,8 +112,8 @@ class ProbeCalibration(QObject):
         """
         self.df = pd.read_csv(self.csv_file)
         # Extract local and global points
-        local_points = self.df[['local_x', 'local_y', 'local_z']].values
-        global_points = self.df[['global_x', 'global_y', 'global_z']].values
+        local_points = self.df[["local_x", "local_y", "local_z"]].values
+        global_points = self.df[["global_x", "global_y", "global_z"]].values
         return local_points, global_points
 
     def _get_transM_LR(self, local_points, global_points):
@@ -136,14 +141,14 @@ class ProbeCalibration(QObject):
         transformation_matrix = np.hstack([weights, bias.reshape(-1, 1)])
         # Adding the extra row to complete the affine transformation matrix
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
-        
+
         return model, transformation_matrix
 
     def _update_local_global_point(self):
         """
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
-        with open(self.csv_file, 'a', newline='') as file:
+        with open(self.csv_file, "a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 
                              self.stage.stage_x_global, self.stage.stage_y_global, self.stage.stage_z_global])
@@ -156,7 +161,7 @@ class ProbeCalibration(QObject):
             bool: True if the criteria are met, otherwise False.
         """
         diff_matrix = np.abs(self.transM_LR - self.transM_LR_prev)
-        if np.all(diff_matrix <= self.threshold_matrix): 
+        if np.all(diff_matrix <= self.threshold_matrix):
             return True
         else:
             return False
@@ -232,11 +237,11 @@ class ProbeCalibration(QObject):
 
     def _is_enough_points(self):
         """Check if there are enough points for calibration.
-        
+
         Returns:
             bool: True if there are enough points, False otherwise.
-        """ 
-        # End Criteria: 
+        """
+        # End Criteria:
         # 1. distance maxX-minX, maxY-minY, maxZ-minZ
         # 2. transM_LR difference in some epsilon value
         # 3. L2 error (Global and Exp) is less than some values (e.g. 20 mincrons)
@@ -248,7 +253,7 @@ class ProbeCalibration(QObject):
 
         self.transM_LR_prev = self.transM_LR
         return False
-    
+
     def _update_info_ui(self):
         x_diff = self.max_x - self.min_x
         y_diff = self.max_y - self.min_y
@@ -268,8 +273,8 @@ class ProbeCalibration(QObject):
         # get whole list of local and global points in pd format
         local_points, global_points = self._get_local_global_points()
         self.model_LR, self.transM_LR = self._get_transM_LR(local_points, global_points)
-        self.LR_err_L2_current = self._l2_error_current_point() 
-        self._update_min_max_x_y_z()  # update min max x,y,z 
+        self.LR_err_L2_current = self._l2_error_current_point()
+        self._update_min_max_x_y_z()  # update min max x,y,z
 
         # update transformation matrix and overall LR in UI
         self._update_info_ui()
@@ -277,9 +282,9 @@ class ProbeCalibration(QObject):
         # if ret, send the signal
         ret = self._is_enough_points()
         if ret:
-            self.calib_complete.emit(self.stage.sn , self.transM_LR)
+            self.calib_complete.emit(self.stage.sn, self.transM_LR)
             logger.debug(f"complete probe calibration {self.stage.sn}, {self.transM_LR}")
-    
+
     def reshape_array(self):
         """
         Reshapes arrays of local and global points for processing.
@@ -290,9 +295,3 @@ class ProbeCalibration(QObject):
         local_points = np.array(self.local_points)
         global_points = np.array(self.global_points)
         return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
-    
-
-
-
-
-        

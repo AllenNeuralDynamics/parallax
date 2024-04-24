@@ -3,10 +3,12 @@ ProbeDetector identifies probe tip and base in images using contour processing
 and Hough Line Transform, with gradient analysis for refinement and directional 
 checks to ensure accuracy.
 """
-import numpy as np
-import cv2
+
 import logging
 from collections import Counter
+
+import cv2
+import numpy as np
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -14,21 +16,23 @@ logger = logging.getLogger(__name__)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+
 class ProbeDetector:
     """Class for detecting the probe in an image."""
+
     def __init__(self, sn, IMG_SIZE, angle_step=9):
-        """ Initialize Probe Detector object """
+        """Initialize Probe Detector object"""
         self.sn = sn
         self.IMG_SIZE = IMG_SIZE
         self.angle_step = angle_step
         self.angle = None
-        self.probe_tip, self.probe_base = (0,0), (0,0)
-        self.probe_tip_org = (0,0)
+        self.probe_tip, self.probe_base = (0, 0), (0, 0)
+        self.probe_tip_org = (0, 0)
         self.probe_tip_direction = "S"
         self.gradients = []
         self.angle_step_bins, self.angle_step_bins_with_neighbor = [], []
         self._init_gradient_bins()
-    
+
     def _init_gradient_bins(self):
         """Initialize gradient bins."""
         self.angle_step_bins = np.arange(0, 180 + self.angle_step, self.angle_step)
@@ -41,7 +45,7 @@ class ProbeDetector:
         """
         index = np.argmin(np.abs(self.angle_step_bins - gradient))
         return self.angle_step_bins[index]
-    
+
     def _find_neighboring_gradients(self, target_angle):
         """Find the neighboring gradients.
         Args:
@@ -72,7 +76,7 @@ class ProbeDetector:
         if cv2.contourArea(largest_contour) < thresh:
             logger.debug(f"get_probe:: largest_contour is less than threshold {cv2.contourArea(largest_contour)}" )
             return None
-        if remove_noise: 
+        if remove_noise:
             for contour in contours:
                 if cv2.contourArea(contour) < noise_threshold*noise_threshold:  # Remove Noise
                     img = cv2.drawContours(img, [contour], -1, (0, 0, 0), -1)
@@ -109,10 +113,10 @@ class ProbeDetector:
                 return "W"
             else:
                 return "Unknown"
-            
+
     def _hough_line_first_detection(self, img, minLineLength=150, maxLineGap=40):
         """Perform Hough line detection for the first time.
-        
+
         Args:
             img (numpy.ndarray): Input image.
             minLineLength (int): Minimum length of the line. Defaults to 150.
@@ -127,17 +131,17 @@ class ProbeDetector:
         found_ret = False
         self.gradients = []
         max_y, min_y = 0, img.shape[0]
-        lowest_point = (0,0)
-        highest_point = (0,0)
+        lowest_point = (0, 0)
+        highest_point = (0, 0)
         line_segments = cv2.HoughLinesP(img, 1, np.pi/180, 100, minLineLength=minLineLength, maxLineGap=maxLineGap)
         
         # Draw the line segments
         if line_segments is not None:
-            #logger.debug(len(line_segments)) 
+            # logger.debug(len(line_segments))
             if (len(line_segments)) >= 30:
                 logger.debug("hough_line_detection:: Too many line detected. Possibly Plane image ")
                 return None, highest_point, lowest_point
-            
+
             for line in line_segments:
                 x2, y2, x1, y1 = line[0]
                 # Calculate the gradient
@@ -159,7 +163,7 @@ class ProbeDetector:
                 if y2 <= min_y:
                     min_y = y2
                     highest_point = (x2, y2)
-        
+
         if len(self.gradients) > 0:
             if self._is_distance_in_thres(highest_point, lowest_point):
                 logger.debug(f"Distance between tip and base is too close {highest_point} {lowest_point}")
@@ -177,7 +181,7 @@ class ProbeDetector:
             img (numpy.ndarray): Input image.
             minLineLength (int): Minimum length of the line. Defaults to 50.
             maxLineGap (int): Maximum gap between line segments. Defaults to 9.
-            
+
         Returns:
             tuple: (found_ret, highest_point, lowest_point)
                 - found_ret (bool): Flag indicating if the probe is found.
@@ -188,27 +192,27 @@ class ProbeDetector:
         updated_gradient = self.angle
         max_y, min_y = 0, img.shape[0]
         line_segments = cv2.HoughLinesP(img, 1, np.pi/180, 50, minLineLength=minLineLength, maxLineGap=maxLineGap)
-        found_ret, lowest_point, highest_point = False, (0,0), (0,0)
-        
+        found_ret, lowest_point, highest_point = False, (0, 0), (0, 0)
+
         # Find the neighboring gradients
         gradient_index = np.where(self.angle_step_bins == self.angle)
-        
+
         if gradient_index is None:
             return found_ret, highest_point, lowest_point
-        
+
         # Check if gradient_index is not empty
         if gradient_index[0].size == 0:
             return found_ret, highest_point, lowest_point
-    
+
         gradient_index = gradient_index[0][0]
         neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index+3]
         
         # Draw the line segments
-        if line_segments is not None: 
+        if line_segments is not None:
             if (len(line_segments)) >= 30:
                 logger.debug("get_tip_hough_line_detection:: Too many line detected. Possibly Plane image")
                 return found_ret, highest_point, lowest_point
-        
+
             for line in line_segments:
                 x2, y2, x1, y1 = line[0]
                 # Calculate the gradient
@@ -217,7 +221,7 @@ class ProbeDetector:
                 gradient += 180
                 gradient %= 180
                 representing_gradient = self._find_represent_gradient(gradient)
-                
+
                 if representing_gradient in neighboring_gradients:
                     self.gradients.append(representing_gradient)
                     found_ret = True
@@ -233,36 +237,36 @@ class ProbeDetector:
                     if y2 <= min_y:
                         min_y = y2
                         highest_point = (x2, y2)
-            
+
             if found_ret is False:
-                return found_ret, highest_point, lowest_point      
+                return found_ret, highest_point, lowest_point
         else:
             logger.debug("get_tip_hough_line_detection:: Not found the line")
             return found_ret, highest_point, lowest_point
-        
+
         if found_ret:
             if self._is_distance_in_thres(highest_point, lowest_point):
                 logger.debug(f"Distance between tip and base is too close, {highest_point} {lowest_point}")
                 return False, highest_point, lowest_point
-    
+
             gradient_counts = Counter(self.gradients)
             updated_gradient, _ = gradient_counts.most_common(1)[0]
             logger.debug(f"target angle: {self.angle}, updated_detected: {updated_gradient}, neighbor: {neighboring_gradients}" )
-            #logger.debug(gradient_counts)
+            # logger.debug(gradient_counts)
             self.angle = updated_gradient
             return found_ret, highest_point, lowest_point
         else:
             return found_ret, highest_point, lowest_point
-        
+
     def _get_probe_point(self, mask, p1, p2, img_fname=None):
         """Get the probe tip and base points.
-        
+
         Args:
             mask (numpy.ndarray): Mask image.
             p1 (tuple): First point coordinates.
             p2 (tuple): Second point coordinates.
             img_fname (str, optional): Image filename. Defaults to None.
-            
+
         Returns:
             tuple: (probe_tip, probe_base)
                 - probe_tip (tuple): Coordinates of the probe tip.
@@ -284,36 +288,36 @@ class ProbeDetector:
         dist_p2 = dist_transform[p2[1], p2[0]]
         logger.debug(f"dist_p1: {dist_p1}, dist_p2: {dist_p2}")
         if dist_p1 > dist_p2:
-            return p1, p2       # Return order: probe_tip, probe_base
+            return p1, p2  # Return order: probe_tip, probe_base
         else:
             return p2, p1
     
     def _get_probe_point_known_direction(self, highest_point, lowest_point, direction="S"):
         """Get the probe tip and base points based on known direction.
-        
+
         Args:
             highest_point (tuple): Coordinates of the highest point.
             lowest_point (tuple): Coordinates of the lowest point.
             direction (str): Direction of the probe. Defaults to "S".
-            
+
         Returns:
             tuple: (probe_tip, probe_base)
                 - probe_tip (tuple): Coordinates of the probe tip.
                 - probe_base (tuple): Coordinates of the probe base.
         """
         if direction in ["S", "W", "SW", "SE"]:
-            return lowest_point, highest_point 
+            return lowest_point, highest_point
         else:
             return highest_point, lowest_point
-    
+
     def _is_distance_in_thres(self, point1, point2, thres=50):
         """Check if the distance between two points is within a threshold.
-        
+
         Args:
             point1 (tuple): Coordinates of the first point.
             point2 (tuple): Coordinates of the second point.
             thres (int): Distance threshold. Defaults to 50.
-            
+
         Returns:
             bool: True if the distance is within the threshold, False otherwise.
         """
@@ -324,7 +328,7 @@ class ProbeDetector:
     # Get the gradient / pixel points of probe at first time
     def first_detect_probe(self, img, mask, contour_thresh=50, hough_minLineLength=130, offset_x = 0, offset_y = 0):
         """Detect the probe in the image for the first time.
-        
+
         Args:
             img (numpy.ndarray): Input image.
             mask (numpy.ndarray): Mask image.
@@ -332,7 +336,7 @@ class ProbeDetector:
             hough_minLineLength (int): Minimum length of the line for Hough transform. Defaults to 130.
             offset_x (int): X-offset for probe coordinates.
             offset_y (int): Y-offset for probe coordinates.
-            
+
         Returns:
             bool: True if the probe is detected, False otherwise.
         """
@@ -340,6 +344,7 @@ class ProbeDetector:
         img = self._contour_preprocessing(img, thresh=contour_thresh)
         if img is None:
             return ret
+
         
         ret, highest_point, lowest_point = self._hough_line_first_detection(img, minLineLength=hough_minLineLength, maxLineGap=50) # update self.angle
         if ret:
@@ -347,7 +352,7 @@ class ProbeDetector:
             self.probe_tip_direction = self._get_probe_direction(self.probe_tip, self.probe_base)
             self.probe_tip = (self.probe_tip[0] + offset_x, self.probe_tip[1] + offset_y)
             self.probe_base = (self.probe_base[0] + offset_x, self.probe_base[1] + offset_y)
-            logger.debug(f"tip : {self.probe_tip}, base: {self.probe_base}" )
+            logger.debug(f"tip : {self.probe_tip}, base: {self.probe_base}")
         return ret
 
     
@@ -372,6 +377,7 @@ class ProbeDetector:
                 self.probe_tip, self.probe_base = self._get_probe_point(mask, highest_point, lowest_point)
                 self.probe_tip_direction = self._get_probe_direction(self.probe_tip, self.probe_base)
                 
+
                 """
                 print(self.probe_tip, self.probe_base, self.probe_tip_direction)
                 mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
@@ -383,5 +389,5 @@ class ProbeDetector:
         else:
             logger.debug("update_probe:: get_tip_hough_line_detection fail")
             return False
-        
+
         return ret

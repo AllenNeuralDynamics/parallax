@@ -3,16 +3,19 @@ ProbeDetectManager coordinates probe detection in images, leveraging PyQt thread
 and signals for real-time processing. It handles frame updates, detection, 
 and result communication, utilizing components like MaskGenerator and ProbeDetector.
 """
-from PyQt5.QtCore import pyqtSignal, QObject, QThread
-from .mask_generator import MaskGenerator
-from .reticle_detection import ReticleDetection
-from .probe_detector import ProbeDetector
-from .curr_prev_cmp_processor import CurrPrevCmpProcessor
-from .curr_bg_cmp_processor import CurrBgCmpProcessor
-import cv2
-import time
+
 import logging
+import time
+
+import cv2
 import numpy as np
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
+
+from .curr_bg_cmp_processor import CurrBgCmpProcessor
+from .curr_prev_cmp_processor import CurrPrevCmpProcessor
+from .mask_generator import MaskGenerator
+from .probe_detector import ProbeDetector
+from .reticle_detection import ReticleDetection
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -20,20 +23,23 @@ logger = logging.getLogger(__name__)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+
 class ProbeDetectManager(QObject):
     """Manager class for probe detection."""
+
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(str, str, tuple, tuple)
 
     class Worker(QObject):
         """Worker class for probe detection."""
+
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
         found_coords = pyqtSignal(str, str, tuple)
 
         def __init__(self, name, model):
-            """ Initialize Worker object """
+            """Initialize Worker object"""
             QObject.__init__(self)
             self.model = model
             self.name = name
@@ -51,7 +57,7 @@ class ProbeDetectManager(QObject):
             self.sn = None
 
             self.IMG_SIZE = (1000, 750)
-            self.IMG_SIZE_ORIGINAL = (4000, 3000) # TODO
+            self.IMG_SIZE_ORIGINAL = (4000, 3000)  # TODO
             self.CROP_INIT = 50
             self.mask_detect = MaskGenerator()
 
@@ -77,7 +83,7 @@ class ProbeDetectManager(QObject):
                     self.currBgCmpProcess = self.probes[self.sn]['currBgCmpProcess']
                 else: 
                     pass
-                
+
         def update_frame(self, frame, timestamp):
             """Update the frame and timestamp.
 
@@ -90,8 +96,8 @@ class ProbeDetectManager(QObject):
             self.timestamp = timestamp
 
         def process(self, frame, timestamp):
-            """ Process the frame for probe detection.
-            1. First run currPrevCmpProcess 
+            """Process the frame for probe detection.
+            1. First run currPrevCmpProcess
             2. If it fails on 1, run currBgCmpProcess
 
             Args:
@@ -105,16 +111,16 @@ class ProbeDetectManager(QObject):
                 gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
                 gray_img = frame
-        
+
             resized_img = cv2.resize(gray_img, self.IMG_SIZE)
             self.curr_img = cv2.GaussianBlur(resized_img, (9, 9), 0)
-            mask = self.mask_detect.process(resized_img)                # Generate Mask
+            mask = self.mask_detect.process(resized_img)  # Generate Mask
 
             if self.mask_detect.is_reticle_exist and self.reticle_zone is None:
                 reticle = ReticleDetection(self.IMG_SIZE, self.mask_detect, self.name)
                 self.reticle_zone = reticle.get_reticle_zone(frame)     # Generate X and Y Coordinates zone
                 self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
-            
+
             if self.prev_img is not None:
                 if self.probeDetect.angle is None:  # Detecting probe for the first time
                     ret = self.currPrevCmpProcess.first_cmp(self.curr_img, self.prev_img, mask, gray_img)
@@ -184,7 +190,7 @@ class ProbeDetectManager(QObject):
             self.finished.emit()
 
     def __init__(self, model, camera_name):
-        """ Initialize ProbeDetectManager object """
+        """Initialize ProbeDetectManager object"""
         super().__init__()
         self.model = model
         self.worker = None
@@ -225,7 +231,7 @@ class ProbeDetectManager(QObject):
         moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:
             stage_info = (moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z)
-        #print(timestamp, sn, stage_info, pixel_coords)
+        # print(timestamp, sn, stage_info, pixel_coords)
         self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
 
     def start(self):
@@ -239,7 +245,7 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.stop_running()
 
-    def start_detection(self, sn):       # Call from stage listener.
+    def start_detection(self, sn):  # Call from stage listener.
         """Start the probe detection for a specific serial number.
 
         Args:
@@ -248,8 +254,8 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.update_sn(sn)
             self.worker.start_detection()
-    
-    def stop_detection(self, sn):       # Call from stage listener.
+
+    def stop_detection(self, sn):  # Call from stage listener.
         """Stop the probe detection for a specific serial number.
 
         Args:

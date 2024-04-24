@@ -1,6 +1,9 @@
 """
 MaskGenerator: Generates a mask from an input image using various image processing techniques.
 """
+
+import logging
+
 import cv2
 import numpy as np
 import logging
@@ -12,13 +15,15 @@ logger.setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+
 class MaskGenerator:
     """Class for generating a mask from an image."""
+
     def __init__(self):
-        """ Initialize mask generator object """
+        """Initialize mask generator object"""
         self.img = None
         self.original_size = (None, None)
-        self.is_reticle_exist = True #TODO
+        self.is_reticle_exist = True  # TODO
 
     def _resize_and_blur(self):
         """Resize and blur the image."""
@@ -47,7 +52,7 @@ class MaskGenerator:
         
         self.img = cv2.morphologyEx(self.img, cv2.MORPH_CLOSE, kernels[0])
         self.img = cv2.erode(self.img, kernels[1], iterations=1)
-        
+
         self.img = cv2.bitwise_not(self.img)  # Invert image to prepare for dilate and final operations
         self._remove_small_contours()
         self.img = cv2.dilate(self.img, kernels[1], iterations=1)
@@ -67,16 +72,16 @@ class MaskGenerator:
 
     def _is_reticle_frame(self):
         """Check if the image contains a reticle frame.
-        
+
         Returns:
             bool: True if the image contains a reticle frame, False otherwise.
         """
         img = cv2.normalize(self.img, None, 0, 255, cv2.NORM_MINMAX)
         img = img.astype(np.uint8)
-        
+
         hist = cv2.calcHist([img], [0], None, [255], [0, 255])
-        hist = cv2.GaussianBlur(hist, (91,91), 0)
-        hist_smoothed = hist.squeeze() 
+        hist = cv2.GaussianBlur(hist, (91, 91), 0)
+        hist_smoothed = hist.squeeze()
         peaks = np.where((hist_smoothed[:-2] < hist_smoothed[1:-1]) & 
                     (hist_smoothed[1:-1] > hist_smoothed[2:]) & 
                     (hist_smoothed[1:-1] > 300))[0] + 1
@@ -84,20 +89,20 @@ class MaskGenerator:
         self.is_reticle_exist = True if len(peaks) >= 2 else False
         logger.debug(f"is_reticle_exist: {self.is_reticle_exist}")
         return self.is_reticle_exist
-    
+
     def process(self, img):
         """Process the input image and generate a mask.
-        
+
         Args:
             img (numpy.ndarray): Input image.
-            
+
         Returns:
             numpy.ndarray: Generated mask image.
         """
         if img is None:
             logger.debug("Input image of ReticleFrameDetection is None.")
             return None
-        
+
         # Convert image to grayscale if it is not already
         if len(img.shape) == 3 and img.shape[2] == 3:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -110,6 +115,6 @@ class MaskGenerator:
         self._apply_threshold()
         self._keep_largest_contour()
         self._apply_morphological_operations()
-        self._finalize_image()   # Resize to original size
+        self._finalize_image()  # Resize to original size
 
         return self.img
