@@ -12,11 +12,13 @@ Usage:
     - Use the first_cmp() method to perform the initial comparison.
     - Use the update_cmp() method to update the comparison and detect changes over time.
 """
-from .utils import UtilsCoords, UtilsCrops
-from .probe_fine_tip_detector import ProbeFineTipDetector 
+import logging
+
 import cv2
 import numpy as np
-import logging
+
+from .probe_fine_tip_detector import ProbeFineTipDetector
+from .utils import UtilsCoords, UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)

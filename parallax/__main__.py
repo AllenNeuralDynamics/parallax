@@ -6,9 +6,10 @@ import atexit
 import logging
 import os
 
+from PyQt5.QtWidgets import QApplication
+
 from parallax.main_window_wip import MainWindow as MainWindowV2
 from parallax.model import Model
-from PyQt5.QtWidgets import QApplication
 
 
 def setup_logging():
