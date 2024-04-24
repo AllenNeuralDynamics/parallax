@@ -79,14 +79,18 @@ class ScreenWidget(pg.GraphicsView):
 
         # Reticle Detection
         self.reticleDetector = ReticleDetectManager(camera_name)
-        self.reticleDetector.frame_processed.connect(self.set_image_item_from_data)
+        self.reticleDetector.frame_processed.connect(
+            self.set_image_item_from_data
+        )
         self.reticleDetector.found_coords.connect(self.found_reticle_coords)
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
 
         # Probe Detection
         self.probeDetector = ProbeDetectManager(self.model, camera_name)
         self.model.add_probe_detector(self.probeDetector)
-        self.probeDetector.frame_processed.connect(self.set_image_item_from_data)
+        self.probeDetector.frame_processed.connect(
+            self.set_image_item_from_data
+        )
         self.probeDetector.found_coords.connect(self.found_probe_coords)
         self.probeDetector.found_coords.connect(self.probe_coords_detected)
 
@@ -143,7 +147,7 @@ class ScreenWidget(pg.GraphicsView):
         """
         self.filter.process(data)
         self.reticleDetector.process(data)
-        captured_time = self.camera.get_last_capture_time(millisecond=True) #TODO
+        captured_time = self.camera.get_last_capture_time(millisecond=True)
         self.probeDetector.process(data, captured_time)
 
     def is_camera(self):
@@ -316,9 +320,11 @@ class ScreenWidget(pg.GraphicsView):
 
     def get_last_detect_probe_info(self):
         """Get the last detected probe information."""
-        return self.probe_detect_last_timestamp, \
-                self.probe_detect_last_sn, \
-                self.probe_detect_last_coords
+        return (
+            self.probe_detect_last_timestamp,
+            self.probe_detect_last_sn,
+            self.probe_detect_last_coords,
+        )
 
     def get_camera_intrinsic(self):
         """Get the camera intrinsic parameters."""

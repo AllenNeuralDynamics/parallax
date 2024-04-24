@@ -94,8 +94,20 @@ class Model(QObject):
         """Scan for cameras."""
         self.cameras = list_cameras(version=self.version) + self.cameras
         self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
-        self.nMockCameras = len([camera for camera in self.cameras if isinstance(camera, MockCamera)])
-        self.nPySpinCameras = len([camera for camera in self.cameras if isinstance(camera, PySpinCamera)])
+        self.nMockCameras = len(
+            [
+                camera
+                for camera in self.cameras
+                if isinstance(camera, MockCamera)
+            ]
+        )
+        self.nPySpinCameras = len(
+            [
+                camera
+                for camera in self.cameras
+                if isinstance(camera, PySpinCamera)
+            ]
+        )
 
     def scan_for_usb_stages(self):
         """Scan for USB stages."""

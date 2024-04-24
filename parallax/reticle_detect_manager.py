@@ -36,7 +36,9 @@ class ReticleDetectManager(QObject):
 
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray) 
+        found_coords = pyqtSignal(
+            np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        )
 
         def __init__(self, name):
             """Initialize the worker"""
@@ -46,18 +48,21 @@ class ReticleDetectManager(QObject):
             self.is_detection_on = False
             self.new = False
             self.frame = None
-            self.IMG_SIZE_ORIGINAL = (4000, 3000) # TODO
+            self.IMG_SIZE_ORIGINAL = (4000, 3000)  # TODO
             self.frame_success = None
 
             self.mask_detect = MaskGenerator()
-            self.reticleDetector = ReticleDetection(self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name)
+            self.reticleDetector = ReticleDetection(
+                self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name
+            )
             self.coordsInterests = ReticleDetectCoordsInterest()
             self.calibrationCamera = CalibrationCamera(self.name)
 
         def update_frame(self, frame):
             """Update the frame to be processed."""
             self.frame = frame
-            if self.new is False: # Deal with one frame at a time. This may cause the frame drop
+            # Deal with one frame at a time. This may cause the frame drop
+            if self.new is False:
                 self.new = True
 
         def draw(self, frame, x_axis_coords, y_axis_coords):
@@ -111,8 +116,16 @@ class ReticleDetectManager(QObject):
 
             # Status text
             status_text = f"Overall RMS re-projection error: {ret}"
-            cv2.putText(frame, status_text, (10, offset_start), font, font_scale, font_color, line_type)
-            
+            cv2.putText(
+                frame,
+                status_text,
+                (10, offset_start),
+                font,
+                font_scale,
+                font_color,
+                line_type,
+            )
+
             # Camera matrix text
             mtx_lines = [
                 f"Camera Matrix:",
@@ -122,31 +135,55 @@ class ReticleDetectManager(QObject):
             ]
             # Draw each line of the camera matrix
             for i, line in enumerate(mtx_lines):
-                cv2.putText(frame, line, (10, offset_start+line_height + i * line_height), 
-                            font, font_scale, font_color, line_type)
-                
+                cv2.putText(
+                    frame,
+                    line,
+                    (10, offset_start + line_height + i * line_height),
+                    font,
+                    font_scale,
+                    font_color,
+                    line_type,
+                )
 
             # Distortion coefficients text
-            dist_text = f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, {dist[0][2]:.4f}, {dist[0][3]:.4f} {dist[0][4]:.4f}]"
-            cv2.putText(frame, dist_text, (10, offset_start + line_height*5), font, font_scale, font_color, line_type)
-            
+            dist_text = f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, \
+                {dist[0][2]:.4f}, {dist[0][3]:.4f} {dist[0][4]:.4f}]"
+            cv2.putText(
+                frame,
+                dist_text,
+                (10, offset_start + line_height * 5),
+                font,
+                font_scale,
+                font_color,
+                line_type,
+            )
 
             return frame
 
         def process(self, frame):
             """Process the frame for reticle detection."""
             # cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
-            ret, frame_, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
+            ret, frame_, _, inliner_lines_pixels = (
+                self.reticleDetector.get_coords(frame)
+            )
             if ret:
-                ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
+                ret, x_axis_coords, y_axis_coords = (
+                    self.coordsInterests.get_coords_interest(
+                        inliner_lines_pixels
+                    )
+                )
             if ret:
                 # TODO
                 # ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
                 # if not ret:
-                ret, mtx, dist = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords) 
+                ret, mtx, dist = self.calibrationCamera.calibrate_camera(
+                    x_axis_coords, y_axis_coords
+                )
                 if ret:
                     # Draw
-                    self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist)
+                    self.found_coords.emit(
+                        x_axis_coords, y_axis_coords, mtx, dist
+                    )
                     origin, x, y, z = self.calibrationCamera.get_origin_xyz()
                     frame = self.draw_xyz(frame, origin, x, y, z)
                     frame = self.draw(frame, x_axis_coords, y_axis_coords)

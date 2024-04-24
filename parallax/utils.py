@@ -83,7 +83,9 @@ class UtilsCrops:
             bool: True if the point is on the crop region boundary, False otherwise.
         """
         x, y = point
-        return (top - buffer <= y <= top + buffer) or \
-               (bottom - buffer <= y <= bottom + buffer) or \
-               (left - buffer <= x <= left + buffer) or \
-               (right - buffer <= x <= right + buffer)
+        return (
+            (top - buffer <= y <= top + buffer)
+            or (bottom - buffer <= y <= bottom + buffer)
+            or (left - buffer <= x <= left + buffer)
+            or (right - buffer <= x <= right + buffer)
+        )

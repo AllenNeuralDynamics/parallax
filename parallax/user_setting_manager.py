@@ -122,11 +122,15 @@ class UserSettingsManager:
                         if item in settings[category]:
                             return settings[category][item]
                         else:
-                            logger.debug(f"load_settings_item: Item '{item}' not found in settings.")
+                            logger.debug(
+                                f"load_settings_item: Item '{item}' not found in settings."
+                            )
                             return None
                     return settings[category]
                 else:
-                    logger.debug(f"load_settings_item: Section '{category}' not found in settings.")
+                    logger.debug(
+                        f"load_settings_item: Section '{category}' not found in settings."
+                    )
                     return None
         else:
             logger.debug("load_settings_item: Settings file not found.")

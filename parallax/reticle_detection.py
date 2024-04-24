@@ -72,11 +72,23 @@ class ReticleDetection:
             b = y1 - m * x1
 
         if m == np.inf:
-            cv2.line(reticle_points, (x_vert, 0), (x_vert, height), (255, 255, 255), 35)
+            cv2.line(
+                reticle_points,
+                (x_vert, 0),
+                (x_vert, height),
+                (255, 255, 255),
+                35,
+            )
         else:
             y_start = int(m * 0 + b)
             y_end = int(m * width + b)
-            cv2.line(reticle_points, (0, y_start), (width, y_end), (255, 255, 255), 35)
+            cv2.line(
+                reticle_points,
+                (0, y_start),
+                (width, y_end),
+                (255, 255, 255),
+                35,
+            )
 
     def _ransac_detect_lines(self, img):
         """Detect lines using RANSAC algorithm.
@@ -102,7 +114,9 @@ class ReticleDetection:
         else:  # Color image
             img_color = img.copy()
 
-        contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
         centroids = np.array(self._get_centroid(contours))
         if len(centroids) < 10:
             logger.debug("points for rasac line detection are less than 10")
@@ -114,11 +128,13 @@ class ReticleDetection:
         while len(inlier_lines) < 2 and counter > 0:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
-                model_robust, inliers = ransac(centroids, 
-                                               LineModelND, 
-                                               min_samples=9, 
-                                               residual_threshold=residual_threshold, 
-                                               max_trials=max_trials)
+                model_robust, inliers = ransac(
+                    centroids,
+                    LineModelND,
+                    min_samples=9,
+                    residual_threshold=residual_threshold,
+                    max_trials=max_trials,
+                )
             inlier_points = centroids[inliers]
             if len(inlier_points) >= 20:
                 logger.debug(f"residual_threshold: {residual_threshold}")
@@ -249,7 +265,9 @@ class ReticleDetection:
         kernel_ellipse_3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         counter = 100
         while counter > 0:
-            contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours, _ = cv2.findContours(
+                img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
             if not contours:
                 break
 
@@ -340,9 +358,13 @@ class ReticleDetection:
         for gap_index in large_gaps:
             start_point = points[gap_index]
             end_point = points[gap_index + 1]
-            num_missing = int(round(distances[gap_index] / average_distance)) - 1
+            num_missing = (
+                int(round(distances[gap_index] / average_distance)) - 1
+            )
             for i in range(1, num_missing + 1):
-                missing_point = start_point + (end_point - start_point) * (i / (num_missing + 1))
+                missing_point = start_point + (end_point - start_point) * (
+                    i / (num_missing + 1)
+                )
                 missing_points.append(np.round(missing_point))
 
         return np.array(missing_points)
@@ -371,25 +393,42 @@ class ReticleDetection:
             elif missing_points.size == 0:
                 missing_points_adjusted = np.array([])  # Handle empty case
             else:
-                missing_points_adjusted = np.array([(x, line_model.predict_y(np.array([x]))[0]) for x in missing_points[:, 0]])
+                missing_points_adjusted = np.array(
+                    [
+                        (x, line_model.predict_y(np.array([x]))[0])
+                        for x in missing_points[:, 0]
+                    ]
+                )
 
             # Combine original and adjusted missing points
             if missing_points_adjusted.size > 0:
-                full_line_pixels = np.vstack((pixels_array, missing_points_adjusted))
+                full_line_pixels = np.vstack(
+                    (pixels_array, missing_points_adjusted)
+                )
             else:
                 full_line_pixels = pixels_array
 
             # Sort pixels
             # Calculate the ranges for x and y coordinates
-            minX, maxX = full_line_pixels[:, 0].min(), full_line_pixels[:, 0].max()
-            minY, maxY = full_line_pixels[:, 1].min(), full_line_pixels[:, 1].max()
+            minX, maxX = (
+                full_line_pixels[:, 0].min(),
+                full_line_pixels[:, 0].max(),
+            )
+            minY, maxY = (
+                full_line_pixels[:, 1].min(),
+                full_line_pixels[:, 1].max(),
+            )
             # Determine the sorting order based on the comparison of ranges
             if maxX - minX > maxY - minY:
                 # If range of x is greater, sort by x-coordinate
-                full_line_pixels = full_line_pixels[full_line_pixels[:, 0].argsort()]
+                full_line_pixels = full_line_pixels[
+                    full_line_pixels[:, 0].argsort()
+                ]
             else:
                 # Otherwise, sort by y-coordinate
-                full_line_pixels = full_line_pixels[full_line_pixels[:, 1].argsort()]
+                full_line_pixels = full_line_pixels[
+                    full_line_pixels[:, 1].argsort()
+                ]
 
             full_line_pixels = np.around(full_line_pixels).astype(int)
             refined_pixels.append(full_line_pixels)
@@ -419,13 +458,15 @@ class ReticleDetection:
 
         for line_model, pixels in zip(lines, line_pixels):
             origin, direction = line_model.params[0], line_model.params[1]
-            # Draw
-            point1 = tuple((origin + -2000 * direction).astype(int))  # Extend the line
-            point2 = tuple((origin + 2000 * direction).astype(int))  # Extend the line
+            # Extend the line
+            point1 = tuple((origin + -2000 * direction).astype(int))  
+            point2 = tuple((origin + 2000 * direction).astype(int))
             cv2.line(bg, point1, point2, (0, 0, 255), 1)
             pixels = np.array(pixels)
             to_pixels = pixels - origin
-            proj_lengths = np.dot(to_pixels, direction) / np.linalg.norm(direction)**2
+            proj_lengths = (
+                np.dot(to_pixels, direction) / np.linalg.norm(direction) ** 2
+            )
             proj_points = np.outer(proj_lengths, direction) + origin
 
             proj_points = np.round(proj_points).astype(int)
@@ -464,9 +505,23 @@ class ReticleDetection:
         """
         img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         if img.shape == (3000, 4000):
-            img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 13, 2)
+            img = cv2.adaptiveThreshold(
+                img,
+                255,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY,
+                13,
+                2,
+            )
         else:
-            img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 3)
+            img = cv2.adaptiveThreshold(
+                img,
+                255,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY,
+                11,
+                3,
+            )
         img = cv2.medianBlur(img, 5)
         img = cv2.bitwise_not(img, mask=self.mask)
         kernel_ellipse_5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))

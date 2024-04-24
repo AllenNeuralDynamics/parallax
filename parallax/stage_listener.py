@@ -224,11 +224,24 @@ class StageListener(QObject):
         ts = time.time()
         dt = datetime.fromtimestamp(ts)
         if millisecond:
-            return '%04d%02d%02d-%02d%02d%02d.%03d' % (dt.year, dt.month, dt.day,
-                        dt.hour, dt.minute, dt.second, dt.microsecond // 1000)
+            return "%04d%02d%02d-%02d%02d%02d.%03d" % (
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+                dt.microsecond // 1000,
+            )
         else:
-            return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
-                                              dt.hour, dt.minute, dt.second)
+            return "%04d%02d%02d-%02d%02d%02d" % (
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+            )
 
     def append_to_buffer(self, ts, stage):
         """Append stage data to the buffer.
@@ -237,7 +250,9 @@ class StageListener(QObject):
             ts (str): Timestamp.
             stage (Stage): Stage object.
         """
-        self.buffer_ts_local_coords.append((ts, [stage.stage_x, stage.stage_y, stage.stage_z]))
+        self.buffer_ts_local_coords.append(
+            (ts, [stage.stage_x, stage.stage_y, stage.stage_z])
+        )
 
     def handleDataChange(self, probe):
         """Handle changes in stage data.
@@ -291,7 +306,14 @@ class StageListener(QObject):
             - If the moving stage is the currently selected stage in the UI, triggers an update of the global coordinates display.
         """
         # Transform
-        local_point = np.array([moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z, 1])
+        local_point = np.array(
+            [
+                moving_stage.stage_x,
+                moving_stage.stage_y,
+                moving_stage.stage_z,
+                1,
+            ]
+        )
         global_point = np.dot(transM, local_point)
         global_point = np.around(global_point[:3], decimals=1)
         logger.debug(f"_updateGlobalDataTransformM: {sn}, {global_point}")
@@ -374,7 +396,9 @@ class StageListener(QObject):
         self.ts_img_captured = self._change_time_format(ts_img_captured)
         ts_local_coords, local_coords = self._find_closest_local_coords()
 
-        logger.debug(f"\ntimestamp local:{ts_local_coords} img_captured:{ts_img_captured}" )
+        logger.debug(
+            f"\ntimestamp local:{ts_local_coords} img_captured:{ts_img_captured}"
+        )
         global_coords_x = round(global_coords[0][0] * 1000, 1)
         global_coords_y = round(global_coords[0][1] * 1000, 1)
         global_coords_z = round(global_coords[0][2] * 1000, 1)

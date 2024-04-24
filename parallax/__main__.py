@@ -1,6 +1,7 @@
 """
 Parallax: A GUI application for controlling hardware devices.
 """
+
 import argparse
 import atexit
 import logging

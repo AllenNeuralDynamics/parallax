@@ -70,18 +70,28 @@ class ProbeDetectManager(QObject):
             if sn not in self.probes.keys():
                 self.sn = sn
                 self.probeDetect = ProbeDetector(self.sn, self.IMG_SIZE)
-                self.currPrevCmpProcess = CurrPrevCmpProcessor(self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-                self.currBgCmpProcess = CurrBgCmpProcessor(self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-                self.probes[self.sn] = {'probeDetector': self.probeDetect,
-                              'currPrevCmpProcess': self.currPrevCmpProcess,
-                              'currBgCmpProcess': self.currBgCmpProcess}
+                self.currPrevCmpProcess = CurrPrevCmpProcessor(
+                    self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                )
+                self.currBgCmpProcess = CurrBgCmpProcessor(
+                    self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                )
+                self.probes[self.sn] = {
+                    "probeDetector": self.probeDetect,
+                    "currPrevCmpProcess": self.currPrevCmpProcess,
+                    "currBgCmpProcess": self.currBgCmpProcess,
+                }
             else:
                 if sn != self.sn:
                     self.sn = sn
-                    self.probeDetect = self.probes[self.sn]['probeDetector']
-                    self.currPrevCmpProcess = self.probes[self.sn]['currPrevCmpProcess']
-                    self.currBgCmpProcess = self.probes[self.sn]['currBgCmpProcess']
-                else: 
+                    self.probeDetect = self.probes[self.sn]["probeDetector"]
+                    self.currPrevCmpProcess = self.probes[self.sn][
+                        "currPrevCmpProcess"
+                    ]
+                    self.currBgCmpProcess = self.probes[self.sn][
+                        "currBgCmpProcess"
+                    ]
+                else:
                     pass
 
         def update_frame(self, frame, timestamp):
@@ -117,27 +127,52 @@ class ProbeDetectManager(QObject):
             mask = self.mask_detect.process(resized_img)  # Generate Mask
 
             if self.mask_detect.is_reticle_exist and self.reticle_zone is None:
-                reticle = ReticleDetection(self.IMG_SIZE, self.mask_detect, self.name)
-                self.reticle_zone = reticle.get_reticle_zone(frame)     # Generate X and Y Coordinates zone
+                reticle = ReticleDetection(
+                    self.IMG_SIZE, self.mask_detect, self.name
+                )
+                self.reticle_zone = reticle.get_reticle_zone(
+                    frame
+                )  # Generate X and Y Coordinates zone
                 self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
 
             if self.prev_img is not None:
-                if self.probeDetect.angle is None:  # Detecting probe for the first time
-                    ret = self.currPrevCmpProcess.first_cmp(self.curr_img, self.prev_img, mask, gray_img)
+                if (
+                    self.probeDetect.angle is None
+                ):  # Detecting probe for the first time
+                    ret = self.currPrevCmpProcess.first_cmp(
+                        self.curr_img, self.prev_img, mask, gray_img
+                    )
                     if ret is False:
-                        ret = self.currBgCmpProcess.first_cmp(self.curr_img, mask, gray_img)
+                        ret = self.currBgCmpProcess.first_cmp(
+                            self.curr_img, mask, gray_img
+                        )
                     if ret:
                         logger.debug("First detect")
-                        logger.debug(f"angle: {self.probeDetect.angle}, tip: {self.probeDetect.probe_tip}, \
-                                                                base: {self.probeDetect.probe_base}")
-                else:                               # Tracking for the known probe
-                    ret = self.currPrevCmpProcess.update_cmp(self.curr_img, self.prev_img, mask, gray_img)
+                        logger.debug(
+                            f"angle: {self.probeDetect.angle}, \
+                            tip: {self.probeDetect.probe_tip}, \
+                            base: {self.probeDetect.probe_base}"
+                        )
+                else:  # Tracking for the known probe
+                    ret = self.currPrevCmpProcess.update_cmp(
+                        self.curr_img, self.prev_img, mask, gray_img
+                    )
                     if ret is False:
-                        ret = self.currBgCmpProcess.update_cmp(self.curr_img, mask, gray_img)
-            
-                    if ret:     # Found
-                        self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
-                        cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0), -1)
+                        ret = self.currBgCmpProcess.update_cmp(
+                            self.curr_img, mask, gray_img
+                        )
+
+                    if ret:  # Found
+                        self.found_coords.emit(
+                            timestamp, self.sn, self.probeDetect.probe_tip_org
+                        )
+                        cv2.circle(
+                            frame,
+                            self.probeDetect.probe_tip_org,
+                            5,
+                            (255, 255, 0),
+                            -1,
+                        )
 
                 if ret:
                     self.prev_img = self.curr_img
@@ -166,10 +201,15 @@ class ProbeDetectManager(QObject):
             if self.reticle_coords is not None:
                 for idx, coords in enumerate(self.reticle_coords):
                     # Normalize indices to 0-255 for colormap application.
-                    indices = np.linspace(0, 255, len(coords), endpoint=True, dtype=np.uint8)
+                    indices = np.linspace(
+                        0, 255, len(coords), endpoint=True, dtype=np.uint8
+                    )
                     # Apply 'jet' colormap to x-coords, 'winter' to the y-coords.
-                    colormap = cv2.applyColorMap(indices, cv2.COLORMAP_JET if idx == 0 else cv2.COLORMAP_WINTER)
-                    
+                    colormap = cv2.applyColorMap(
+                        indices,
+                        cv2.COLORMAP_JET if idx == 0 else cv2.COLORMAP_WINTER,
+                    )
+
                     for point_idx, (x, y) in enumerate(coords):
                         color = colormap[point_idx][0].tolist()
                         cv2.circle(frame, (x, y), 2, color, -1)
@@ -181,7 +221,9 @@ class ProbeDetectManager(QObject):
             while self.running:
                 if self.new:
                     if self.is_detection_on:
-                        self.frame, self.timestamp = self.process(self.frame, self.timestamp)
+                        self.frame, self.timestamp = self.process(
+                            self.frame, self.timestamp
+                        )
                     self.frame = self.process_draw_reticle(self.frame)
                     self.frame_processed.emit(self.frame)
                     self.new = False
@@ -219,7 +261,7 @@ class ProbeDetectManager(QObject):
         """
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
-    
+
     def found_coords_print(self, timestamp, sn, pixel_coords):
         """Emit the found coordinates signal.
 
@@ -230,7 +272,11 @@ class ProbeDetectManager(QObject):
         """
         moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:
-            stage_info = (moving_stage.stage_x, moving_stage.stage_y, moving_stage.stage_z)
+            stage_info = (
+                moving_stage.stage_x,
+                moving_stage.stage_y,
+                moving_stage.stage_z,
+            )
         # print(timestamp, sn, stage_info, pixel_coords)
         self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
 

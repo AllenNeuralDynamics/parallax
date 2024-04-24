@@ -56,10 +56,14 @@ class ProbeCalibration(QObject):
         self.stage = None
         self.threshold_min_max = 2000  # TODO
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
-        self.threshold_matrix = np.array([[0.00002, 0.00002, 0.00002, 50.0], #TODO
-                                            [0.00002, 0.00002, 0.00002, 50.0],
-                                            [0.00002, 0.00002, 0.00002, 50.0],
-                                            [0.0, 0.0, 0.0, 0.0]])
+        self.threshold_matrix = np.array(
+            [
+                [0.00002, 0.00002, 0.00002, 50.0],  # TODO
+                [0.00002, 0.00002, 0.00002, 50.0],
+                [0.00002, 0.00002, 0.00002, 50.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]
+        )
         self.LR_err_L2_threshold = 20  # TODO
         self._create_file()
 
@@ -74,7 +78,9 @@ class ProbeCalibration(QObject):
         self.min_y, self.max_y = float("inf"), float("-inf")
         self.min_z, self.max_z = float("inf"), float("-inf")
         self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
-        self.signal_emitted_x, self.signal_emitted_y, self.signal_emitted_z = False, False, False
+        self.signal_emitted_x = False
+        self.signal_emitted_y = False
+        self.signal_emitted_z = False
 
     def _create_file(self):
         """
@@ -93,7 +99,14 @@ class ProbeCalibration(QObject):
         with open(self.csv_file, "w", newline="") as file:
             writer = csv.writer(file)
             # Define column names
-            column_names = ['local_x', 'local_y', 'local_z', 'global_x', 'global_y', 'global_z']
+            column_names = [
+                "local_x",
+                "local_y",
+                "local_z",
+                "global_x",
+                "global_y",
+                "global_z",
+            ]
             writer.writerow(column_names)
 
     def clear(self):
@@ -127,14 +140,17 @@ class ProbeCalibration(QObject):
         Returns:
             tuple: Linear regression model and transformation matrix.
         """
-        local_points_with_bias = np.hstack([local_points, np.ones((local_points.shape[0], 1))])
+        local_points_with_bias = np.hstack(
+            [local_points, np.ones((local_points.shape[0], 1))]
+        )
 
         # Train the linear regression model
-        model = LinearRegression(fit_intercept=False) 
+        model = LinearRegression(fit_intercept=False)
         model.fit(local_points_with_bias, global_points)
 
         # Weights and Bias
-        weights = model.coef_[:, :-1] # All but last column, which are the weights
+        # All but last column, which are the weights
+        weights = model.coef_[:, :-1]
         bias = model.coef_[:, -1] # Last column, which is the bias
 
         # Combine weights and bias to form the transformation matrix
@@ -150,8 +166,16 @@ class ProbeCalibration(QObject):
         """
         with open(self.csv_file, "a", newline="") as file:
             writer = csv.writer(file)
-            writer.writerow([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 
-                             self.stage.stage_x_global, self.stage.stage_y_global, self.stage.stage_z_global])
+            writer.writerow(
+                [
+                    self.stage.stage_x,
+                    self.stage.stage_y,
+                    self.stage.stage_z,
+                    self.stage.stage_x_global,
+                    self.stage.stage_y_global,
+                    self.stage.stage_z_global,
+                ]
+            )
 
     def _is_criteria_met_transM(self):
         """
@@ -167,9 +191,15 @@ class ProbeCalibration(QObject):
             return False
 
     def _update_min_max_x_y_z(self):
-        self.min_x, self.max_x = min(self.min_x, self.stage.stage_x), max(self.max_x, self.stage.stage_x)
-        self.min_y, self.max_y = min(self.min_y, self.stage.stage_y), max(self.max_y, self.stage.stage_y)
-        self.min_z, self.max_z = min(self.min_z, self.stage.stage_z), max(self.max_z, self.stage.stage_z)
+        self.min_x, self.max_x = min(self.min_x, self.stage.stage_x), max(
+            self.max_x, self.stage.stage_x
+        )
+        self.min_y, self.max_y = min(self.min_y, self.stage.stage_y), max(
+            self.max_y, self.stage.stage_y
+        )
+        self.min_z, self.max_z = min(self.min_z, self.stage.stage_z), max(
+            self.max_z, self.stage.stage_z
+        )
 
     def _is_criteria_met_points_min_max(self):
         """
@@ -198,13 +228,21 @@ class ProbeCalibration(QObject):
         Returns:
             np.array: The transformed global point.
         """
-        local_point = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 1])
+        local_point = np.array(
+            [self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 1]
+        )
         global_point = np.dot(self.transM_LR, local_point)
         return global_point[:3]
 
     def _l2_error_current_point(self):
         transformed_point = self._apply_transformation()
-        global_point = np.array([self.stage.stage_x_global, self.stage.stage_y_global, self.stage.stage_z_global])
+        global_point = np.array(
+            [
+                self.stage.stage_x_global,
+                self.stage.stage_y_global,
+                self.stage.stage_z_global,
+            ]
+        )
         LR_err_L2 = np.linalg.norm(transformed_point - global_point)
 
         return LR_err_L2
@@ -225,13 +263,22 @@ class ProbeCalibration(QObject):
         """
         Emits calibration complete signals based on the sufficiency of point ranges in each direction.
         """
-        if not self.signal_emitted_x and self.max_x - self.min_x > self.threshold_min_max:
+        if (
+            not self.signal_emitted_x
+            and self.max_x - self.min_x > self.threshold_min_max
+        ):
             self.calib_complete_x.emit()
             self.signal_emitted_x = True
-        if not self.signal_emitted_y and self.max_y - self.min_y > self.threshold_min_max:
+        if (
+            not self.signal_emitted_y
+            and self.max_y - self.min_y > self.threshold_min_max
+        ):
             self.calib_complete_y.emit()
             self.signal_emitted_y = True
-        if not self.signal_emitted_z and self.max_z - self.min_z > self.threshold_min_max:
+        if (
+            not self.signal_emitted_z
+            and self.max_z - self.min_z > self.threshold_min_max
+        ):
             self.calib_complete_z.emit()
             self.signal_emitted_z = True
 
@@ -258,7 +305,11 @@ class ProbeCalibration(QObject):
         x_diff = self.max_x - self.min_x
         y_diff = self.max_y - self.min_y
         z_diff = self.max_z - self.min_z
-        self.transM_info.emit(self.transM_LR, self.LR_err_L2_current, np.array([x_diff, y_diff, z_diff]))
+        self.transM_info.emit(
+            self.transM_LR,
+            self.LR_err_L2_current,
+            np.array([x_diff, y_diff, z_diff]),
+        )
 
     def update(self, stage):
         """
@@ -272,7 +323,9 @@ class ProbeCalibration(QObject):
         self._update_local_global_point()
         # get whole list of local and global points in pd format
         local_points, global_points = self._get_local_global_points()
-        self.model_LR, self.transM_LR = self._get_transM_LR(local_points, global_points)
+        self.model_LR, self.transM_LR = self._get_transM_LR(
+            local_points, global_points
+        )
         self.LR_err_L2_current = self._l2_error_current_point()
         self._update_min_max_x_y_z()  # update min max x,y,z
 
@@ -283,7 +336,9 @@ class ProbeCalibration(QObject):
         ret = self._is_enough_points()
         if ret:
             self.calib_complete.emit(self.stage.sn, self.transM_LR)
-            logger.debug(f"complete probe calibration {self.stage.sn}, {self.transM_LR}")
+            logger.debug(
+                f"complete probe calibration {self.stage.sn}, {self.transM_LR}"
+            )
 
     def reshape_array(self):
         """

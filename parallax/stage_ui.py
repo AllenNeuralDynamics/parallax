@@ -22,8 +22,12 @@ class StageUI(QWidget):
         self.updateStageGlobalCoords()
 
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
-        self.ui.stage_selector.currentIndexChanged.connect(self.updateStageLocalCoords)
-        self.ui.stage_selector.currentIndexChanged.connect(self.updateStageGlobalCoords)
+        self.ui.stage_selector.currentIndexChanged.connect(
+            self.updateStageLocalCoords
+        )
+        self.ui.stage_selector.currentIndexChanged.connect(
+            self.updateStageGlobalCoords
+        )
 
     def get_selected_stage_sn(self):
         """Get the serial number of the selected stage.
@@ -78,9 +82,15 @@ class StageUI(QWidget):
                 if self.selected_stage.stage_x_global is not None \
                 and self.selected_stage.stage_y_global is not None \
                 and self.selected_stage.stage_z_global is not None:
-                    self.ui.global_coords_x.setText(str(self.selected_stage.stage_x_global))
-                    self.ui.global_coords_y.setText(str(self.selected_stage.stage_y_global))
-                    self.ui.global_coords_z.setText(str(self.selected_stage.stage_z_global))
+                    self.ui.global_coords_x.setText(
+                        str(self.selected_stage.stage_x_global)
+                    )
+                    self.ui.global_coords_y.setText(
+                        str(self.selected_stage.stage_y_global)
+                    )
+                    self.ui.global_coords_z.setText(
+                        str(self.selected_stage.stage_z_global)
+                    )
                 else:
                     self.updateStageGlobalCoords_default()
 

@@ -1,5 +1,6 @@
 """
-MaskGenerator: Generates a mask from an input image using various image processing techniques.
+MaskGenerator: Generates a mask from an input image 
+using various image processing techniques.
 """
 
 import logging
@@ -10,7 +11,7 @@ import numpy as np
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
+# Set the logging level for PyQt5.uic.uiparser/properties.
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
@@ -33,16 +34,22 @@ class MaskGenerator:
 
     def _apply_threshold(self):
         """Apply binary threshold to the image."""
-        _, self.img = cv2.threshold(self.img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        _, self.img = cv2.threshold(
+            self.img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+        )
 
     def _keep_largest_contour(self):
         """Keep the largest contour in the image."""
-        contours, _ = cv2.findContours(self.img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            self.img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
         if len(contours) >= 2:
             largest_contour = max(contours, key=cv2.contourArea)
             for contour in contours:
                 if contour is not largest_contour:
-                    self.img = cv2.drawContours(self.img, [contour], -1, (0, 0, 0), -1)
+                    self.img = cv2.drawContours(
+                        self.img, [contour], -1, (0, 0, 0), -1
+                    )
 
     def _apply_morphological_operations(self):
         """Apply morphological operations to the image."""
@@ -52,17 +59,22 @@ class MaskGenerator:
         self.img = cv2.morphologyEx(self.img, cv2.MORPH_CLOSE, kernels[0])
         self.img = cv2.erode(self.img, kernels[1], iterations=1)
 
-        self.img = cv2.bitwise_not(self.img)  # Invert image to prepare for dilate and final operations
+        # Invert image to prepare for dilate and final operations
+        self.img = cv2.bitwise_not(self.img)
         self._remove_small_contours()
         self.img = cv2.dilate(self.img, kernels[1], iterations=1)
         self.img = cv2.bitwise_not(self.img)  # Re-invert image back
 
     def _remove_small_contours(self):
         """Remove small contours from the image."""
-        contours, _ = cv2.findContours(self.img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            self.img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
         for contour in contours:
             if cv2.contourArea(contour) < 50 * 50:
-                self.img = cv2.drawContours(self.img, [contour], -1, (0, 0, 0), -1)
+                self.img = cv2.drawContours(
+                    self.img, [contour], -1, (0, 0, 0), -1
+                )
 
     def _finalize_image(self):
         """Resize the image back to its original size."""

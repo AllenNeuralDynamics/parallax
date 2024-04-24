@@ -26,10 +26,10 @@ except ImportError:
 def list_cameras(dummy=False, version="V1"):
     """
     List available cameras.
-    
+
     Parameters:
     - dummy (bool): If True, lists only mock cameras. Default is False.
-    
+
     Returns:
     - list: List of available PySpin cameras.
     """
@@ -64,7 +64,7 @@ class PySpinCamera:
     def list_cameras(cls):
         """
         List available PySpin cameras.
-        
+
         Returns:
         - list: List of available PySpin cameras.
         """
@@ -103,7 +103,7 @@ class PySpinCamera:
     def __init__(self, camera_pyspin):
         """
         Initialize a PySpinCamera instance.
-        
+
         Parameters:
         - camera_pyspin: The underlying PySpin camera object.
         """
@@ -112,7 +112,7 @@ class PySpinCamera:
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
-        
+
         self.last_image = None
         self.last_image_filled = threading.Event()
         self.last_image_cleared = threading.Event()
@@ -124,7 +124,7 @@ class PySpinCamera:
         self.width = None
         self.channels = None
         self.frame_rate = None
-        
+
         self.device_model = self.camera.DeviceModelName()
         self.device_color_type = None
         camera_color_type = self.device_model.split("-")[2][-1]
@@ -139,48 +139,90 @@ class PySpinCamera:
         else:
             print("Not supported camera type.")
             return None
-        print(self.device_model, self.device_color_type, self.name(sn_only=True))
+        print(
+            self.device_model, self.device_color_type, self.name(sn_only=True)
+        )
 
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()
-        node_bufferhandling_mode = PySpin.CEnumerationPtr(s_nodemap.GetNode('StreamBufferHandlingMode'))
-        node_newestonly = node_bufferhandling_mode.GetEntryByName('NewestOnly')
+        node_bufferhandling_mode = PySpin.CEnumerationPtr(
+            s_nodemap.GetNode("StreamBufferHandlingMode")
+        )
+        node_newestonly = node_bufferhandling_mode.GetEntryByName("NewestOnly")
         node_newestonly_mode = node_newestonly.GetValue()
         node_bufferhandling_mode.SetIntValue(node_newestonly_mode)
 
         # Set White Balance
         if self.device_color_type == "Color":
-            self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
-            self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
-            self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName("Continuous")
-            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue())      # Default: Auto mode on 
-            self.node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
-            self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
-            self.node_balanceratio_mode_red = self.node_balanceratio_mode.GetEntryByName("Red")     # Red Channel    
-            self.node_balanceratio_mode_blue = self.node_balanceratio_mode.GetEntryByName("Blue")   # Blue Channel 
+            self.node_wbauto_mode = PySpin.CEnumerationPtr(
+                self.node_map.GetNode("BalanceWhiteAuto")
+            )
+            self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName(
+                "Off"
+            )
+            self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName(
+                "Continuous"
+            )
+            self.node_wbauto_mode.SetIntValue(
+                self.node_wbauto_mode_on.GetValue()
+            )  # Default: Auto mode on
+            self.node_balanceratio_mode = PySpin.CEnumerationPtr(
+                self.node_map.GetNode("BalanceRatioSelector")
+            )
+            self.node_wb = PySpin.CFloatPtr(
+                self.node_map.GetNode("BalanceRatio")
+            )
+            self.node_balanceratio_mode_red = (
+                self.node_balanceratio_mode.GetEntryByName("Red")
+            )  # Red Channel
+            self.node_balanceratio_mode_blue = (
+                self.node_balanceratio_mode.GetEntryByName("Blue")
+            )  # Blue Channel
 
         # set exposure time
-        self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
-        self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
-        self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
-        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())        # Default: Auto mode on 
-        self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
+        self.node_expauto_mode = PySpin.CEnumerationPtr(
+            self.node_map.GetNode("ExposureAuto")
+        )
+        self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName(
+            "Off"
+        )
+        self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName(
+            "Continuous"
+        )
+        self.node_expauto_mode.SetIntValue(
+            self.node_expauto_mode_on.GetValue()
+        )  # Default: Auto mode on
+        self.node_exptime = PySpin.CFloatPtr(
+            self.node_map.GetNode("ExposureTime")
+        )
 
         # set gain
-        self.node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
-        self.node_gainauto_mode_off = self.node_gainauto_mode.GetEntryByName("Off")
-        self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName("Continuous")
+        self.node_gainauto_mode = PySpin.CEnumerationPtr(
+            self.node_map.GetNode("GainAuto")
+        )
+        self.node_gainauto_mode_off = self.node_gainauto_mode.GetEntryByName(
+            "Off"
+        )
+        self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName(
+            "Continuous"
+        )
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
-        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())      # Default: Auto mode on    
+        self.node_gainauto_mode.SetIntValue(
+            self.node_gainauto_mode_on.GetValue()
+        )  # Default: Auto mode on
 
-        # set gamma  
-        self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
+        # set gamma
+        self.node_gammaenable_mode = PySpin.CBooleanPtr(
+            self.node_map.GetNode("GammaEnable")
+        )
         self.node_gammaenable_mode.SetValue(True)  # Default: Gammal Enable on
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
         self.node_gamma.SetValue(0.8)
 
         # set pixel format
-        node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
+        node_pixelformat = PySpin.CEnumerationPtr(
+            self.node_map.GetNode("PixelFormat")
+        )
         self.pixelformat = None
         if self.device_color_type == "Mono":
             self.pixelformat = "Mono"
@@ -188,7 +230,9 @@ class PySpinCamera:
             node_pixelformat.SetIntValue(entry_pixelformat_mono8.GetValue())
         elif self.device_color_type == "Color":
             self.pixelformat = "BayerRG8"
-            entry_pixelformat_bayerRG8 = node_pixelformat.GetEntryByName("BayerRG8")
+            entry_pixelformat_bayerRG8 = node_pixelformat.GetEntryByName(
+                "BayerRG8"
+            )
             node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
 
         # acquisition on initialization
@@ -209,12 +253,18 @@ class PySpinCamera:
         - wb (float): The desired white balance value. min:1.8, max:2.5
         """
         if self.device_color_type == "Color":
-            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_off.GetValue())
+            self.node_wbauto_mode.SetIntValue(
+                self.node_wbauto_mode_off.GetValue()
+            )
             if channel == "Red":
-                self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
+                self.node_balanceratio_mode.SetIntValue(
+                    self.node_balanceratio_mode_red.GetValue()
+                )
                 self.node_wb.SetValue(wb)
             elif channel == "Blue":
-                self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
+                self.node_balanceratio_mode.SetIntValue(
+                    self.node_balanceratio_mode_blue.GetValue()
+                )
                 self.node_wb.SetValue(wb)
         else:
             pass
@@ -224,14 +274,20 @@ class PySpinCamera:
         Get the gamma of the camera for the auto mode.
         """
         if self.device_color_type == "Color":
-            self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue()) # Set continuous for mono camera
+            self.node_wbauto_mode.SetIntValue(
+                self.node_wbauto_mode_on.GetValue()
+            )  # Set continuous for mono camera
             time.sleep(0.5)
             if channel == "Red":
-                self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
+                self.node_balanceratio_mode.SetIntValue(
+                    self.node_balanceratio_mode_red.GetValue()
+                )
                 time.sleep(0.5)
                 return self.node_wb.GetValue()
             elif channel == "Blue":
-                self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
+                self.node_balanceratio_mode.SetIntValue(
+                    self.node_balanceratio_mode_blue.GetValue()
+                )
                 time.sleep(0.5)
                 return self.node_wb.GetValue()
         else:
@@ -260,7 +316,9 @@ class PySpinCamera:
         Args:
         - gain (float): The desired gain value. min:0, max:27.0
         """
-        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_off.GetValue())
+        self.node_gainauto_mode.SetIntValue(
+            self.node_gainauto_mode_off.GetValue()
+        )
         self.node_gain.SetValue(gain)
 
     def get_gain(self):
@@ -268,7 +326,9 @@ class PySpinCamera:
         Get the gain of the camera for the auto mode.
         """
         initial_val = self.node_gain.GetValue()
-        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue()) # Set continuous for mono camera
+        self.node_gainauto_mode.SetIntValue(
+            self.node_gainauto_mode_on.GetValue()
+        )  # Set continuous for mono camera
 
         time.sleep(0.5)  # Wait for a short period
         updated_val = self.node_gain.GetValue()
@@ -282,9 +342,11 @@ class PySpinCamera:
         Sets the exposure time of the camera.
 
         Args:
-        - expTime (int): The desired exposure time in microseconds. 
+        - expTime (int): The desired exposure time in microseconds.
         """
-        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())   # Return back to manual mode
+        self.node_expauto_mode.SetIntValue(
+            self.node_expauto_mode_off.GetValue()
+        )  # Return back to manual mode
         self.node_exptime.SetValue(expTime)
 
     def get_exposure(self):
@@ -292,8 +354,10 @@ class PySpinCamera:
         Get the exposure time of the camera for the auto mode.
         """
         initial_val = self.node_exptime.GetValue()
-        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())    # Enable the Auto mode
-        
+        self.node_expauto_mode.SetIntValue(
+            self.node_expauto_mode_on.GetValue()
+        )  # Enable the Auto mode
+
         time.sleep(0.5)  # Wait for a short period
         updated_val = self.node_exptime.GetValue()
         if updated_val != initial_val:
@@ -323,15 +387,23 @@ class PySpinCamera:
         Begings a single Frame image acquisition.
         """
         # set acquisition mode to singleFrame
-        node_acquisition_mode = PySpin.CEnumerationPtr(self.node_map.GetNode('AcquisitionMode'))
-        node_acquisition_mode_singleframe = node_acquisition_mode.GetEntryByName('SingleFrame')
-        acquisition_mode_singleframe = node_acquisition_mode_singleframe.GetValue()
+        node_acquisition_mode = PySpin.CEnumerationPtr(
+            self.node_map.GetNode("AcquisitionMode")
+        )
+        node_acquisition_mode_singleframe = (
+            node_acquisition_mode.GetEntryByName("SingleFrame")
+        )
+        acquisition_mode_singleframe = (
+            node_acquisition_mode_singleframe.GetValue()
+        )
         node_acquisition_mode.SetIntValue(acquisition_mode_singleframe)
 
         # Begin Acquisition: Image acquisition must be ended when no more images are needed.
         self.camera.BeginAcquisition()
         print(f"Begin Single Frame Acquisition {self.name(sn_only=True)} ")
-        self.capture_thread = threading.Thread(target=self.capture, daemon=False)
+        self.capture_thread = threading.Thread(
+            target=self.capture, daemon=False
+        )
         self.capture_thread.start()
 
     def end_singleframe_acquisition(self):
@@ -352,16 +424,24 @@ class PySpinCamera:
             return -1
 
         # set acquisition mode continuous (continuous stream of images)
-        node_acquisition_mode = PySpin.CEnumerationPtr(self.node_map.GetNode('AcquisitionMode'))
-        node_acquisition_mode_continuous = node_acquisition_mode.GetEntryByName('Continuous')
-        acquisition_mode_continuous = node_acquisition_mode_continuous.GetValue()
+        node_acquisition_mode = PySpin.CEnumerationPtr(
+            self.node_map.GetNode("AcquisitionMode")
+        )
+        node_acquisition_mode_continuous = node_acquisition_mode.GetEntryByName(
+            "Continuous"
+        )
+        acquisition_mode_continuous = (
+            node_acquisition_mode_continuous.GetValue()
+        )
         node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
 
         # Begin Acquisition: Image acquisition must be ended when no more images are needed.
         self.camera.BeginAcquisition()
         logger.debug(f"BeginAcquisition {self.name(sn_only=True)} ")
         self.running = True
-        self.capture_thread = threading.Thread(target=self.capture_loop, daemon=True)
+        self.capture_thread = threading.Thread(
+            target=self.capture_loop, daemon=True
+        )
         self.capture_thread.start()
 
     def capture_loop(self):
@@ -426,23 +506,42 @@ class PySpinCamera:
         ts = self.last_capture_time
         dt = datetime.datetime.fromtimestamp(ts)
         if millisecond:
-            return '%04d%02d%02d-%02d%02d%02d.%03d' % (dt.year, dt.month, dt.day,
-                        dt.hour, dt.minute, dt.second, dt.microsecond // 1000)
+            return "%04d%02d%02d-%02d%02d%02d.%03d" % (
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+                dt.microsecond // 1000,
+            )
         else:
-            return '%04d%02d%02d-%02d%02d%02d' % (dt.year, dt.month, dt.day,
-                                              dt.hour, dt.minute, dt.second)
+            return "%04d%02d%02d-%02d%02d%02d" % (
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+            )
 
-    def save_last_image(self, filepath, isTimestamp=False, custom_name="Microscope_"):
+    def save_last_image(
+        self, filepath, isTimestamp=False, custom_name="Microscope_"
+    ):
         """
         Saves the last captured image to the specified file path.
 
         Args:
         - filepath (str): Directory to save the image.
         - isTimestamp (bool): Whether to append a timestamp to the filename.
-        - custom_name (str): Custom prefix for the filename. S/N is set as custom name.
+        - custom_name (str): Custom prefix for the filename. 
+        S/N is set as custom name.
         """
-        image_name = "{}_{}.png".format(custom_name, self.get_last_capture_time()) \
-            if isTimestamp else "{}.png".format(custom_name)
+        image_name = (
+            "{}_{}.png".format(custom_name, self.get_last_capture_time())
+            if isTimestamp
+            else "{}.png".format(custom_name)
+        )
         full_path = os.path.join(filepath, image_name)
         logger.debug(f"Saving image to {full_path}")
         print(f"Saving image to {full_path}")
@@ -452,7 +551,9 @@ class PySpinCamera:
             image_converted = self.get_last_image_data()
             if image_converted is not None:
                 # Convert the image from RGB to BGR
-                image_converted = cv2.cvtColor(image_converted, cv2.COLOR_RGB2BGR)
+                image_converted = cv2.cvtColor(
+                    image_converted, cv2.COLOR_RGB2BGR
+                )
                 cv2.imwrite(full_path, image_converted)
             else:
                 logger.error("Image not found or couldn't be retrieved.")
@@ -503,7 +604,8 @@ class PySpinCamera:
 
     def camera_info(self):
         """
-        Retrieves and logs the camera's essential information such as frame dimensions and channels.
+        Retrieves and logs the camera's essential information 
+        such as frame dimensions and channels.
         """
         # Gather camera details
         self.height = self.camera.Height()
@@ -513,17 +615,25 @@ class PySpinCamera:
                 self.channels = self.last_image.GetNumChannels()
         except Exception as e:
             logger.error(f"An error occurred while getting channel info: {e}")
-        logger.info(f"camera frame width: {self.width}, height: {self.width}, channels: {self.channels}")
+        logger.info(
+            f"camera frame width: {self.width}, height: {self.width}, channels: {self.channels}"
+        )
 
         # Set frame rate equal to the current acquisition frame rate (Hz)
-        nodeFramerate = PySpin.CFloatPtr(self.node_map.GetNode('AcquisitionFrameRate'))
-        if (not PySpin.IsAvailable(nodeFramerate)) or (not PySpin.IsReadable(nodeFramerate)):
-            logger.error('Unable to retrieve frame rate. Aborting...')
+        nodeFramerate = PySpin.CFloatPtr(
+            self.node_map.GetNode("AcquisitionFrameRate")
+        )
+        if (not PySpin.IsAvailable(nodeFramerate)) or (
+            not PySpin.IsReadable(nodeFramerate)
+        ):
+            logger.error("Unable to retrieve frame rate. Aborting...")
             return -1
         self.frame_rate = nodeFramerate.GetValue()
         logger.info(f"Frame rate to be set to {self.frame_rate}")
 
-    def save_recording(self, filepath, isTimestamp=False, custom_name="Microscope_"):
+    def save_recording(
+        self, filepath, isTimestamp=False, custom_name="Microscope_"
+    ):
         """
         Begins video recording and saves the video to the specified file path.
 
@@ -533,8 +643,11 @@ class PySpinCamera:
         - custom_name (str): Custom prefix for the filename.
         """
         # Formulate the video name based on the input parameters
-        video_name = "{}_{}.avi".format(custom_name, self.get_last_capture_time()) \
-            if isTimestamp else "{}.avi".format(custom_name)
+        video_name = (
+            "{}_{}.avi".format(custom_name, self.get_last_capture_time())
+            if isTimestamp
+            else "{}.avi".format(custom_name)
+        )
         full_path = os.path.join(filepath, video_name)
         print(f"Saving video to {full_path}")
         logger.debug(f"Try saving video to {full_path}")
@@ -544,8 +657,9 @@ class PySpinCamera:
 
         # Begin the video recording with appropriate configurations
         fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        self.video_output = cv2.VideoWriter(full_path, fourcc, self.frame_rate, \
-                                            (self.width, self.height), True) 
+        self.video_output = cv2.VideoWriter(
+            full_path, fourcc, self.frame_rate, (self.width, self.height), True
+        )
         self.video_recording_on.set()
 
     def stop_recording(self):
@@ -587,33 +701,38 @@ class MockCamera:
     n_cameras = 0
 
     def __init__(self):
-        """ Initialize a mock camera with a unique name """
+        """Initialize a mock camera with a unique name"""
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
         # Create mock image data with random values
-        self.data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype='ubyte')
+        self.data = np.random.randint(
+            0, 255, size=(5, 3000, 4000), dtype="ubyte"
+        )
         self._next_frame = 0
         self.device_color_type = None
 
     def name(self, sn_only=False):
-        """ Get the name of the mock camera """
+        """Get the name of the mock camera"""
         return self._name
 
     def get_last_image_data(self):
         """
-        Return last image as numpy array with shape (height, width, 3) for RGB or (height, width) for mono. 
+        Return last image as numpy array with shape (height, width, 3) for RGB
+		or (height, width) for mono.
         """
         frame = self.data[self._next_frame]
         self._next_frame = (self._next_frame + 1) % self.data.shape[0]
         return frame
 
-    def save_last_image(self, filepath, isTimestamp=False, custom_name="MockCamera_"):
-        """ Dummy function """
+    def save_last_image(
+        self, filepath, isTimestamp=False, custom_name="MockCamera_"
+    ):
+        """Dummy function"""
         print("This is MockCamera. Cannot capture the image")
         return
 
     def set_wb(self, wb=2.0):
-        """ Dummy function """
+        """Dummy function"""
         logger.info("This is MockCamera. Setting is not applicable")
         return
 
@@ -673,7 +792,9 @@ class VideoSource:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             return np.random.randint(0, 255, size=(3000, 4000), dtype="ubyte")
 
-    def save_last_image(self, filepath, isTimestamp=False, custom_name="VideoSource_"):
+    def save_last_image(
+        self, filepath, isTimestamp=False, custom_name="VideoSource_"
+    ):
         """Dummy function"""
         print("This is from Video Source. Cannot capture the image")
         return
