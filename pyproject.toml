@@ -56,7 +56,22 @@ docs = [
     'furo'
 ]
 
+[tool.coverage.run]
+omit = [
+    "*__init__*"
+]
+source = ["parallax", "tests"]
+
+[tool.coverage.report]
+exclude_lines = ["if __name__ == .__main__.:", "pragma: no cover"]
+fail_under = 100
+
+[tool.isort]
+line_length = 120
+profile = "black"
+
 [tool.interrogate]
+exclude = ["setup.py", "docs", "build"]
 fail-under = 100
  
 [tool.codespell]
