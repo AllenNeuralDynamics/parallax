@@ -11,12 +11,7 @@ Parallax is a graphical user interface designed to streamline the process of set
 
 
 ### Installation
-1. Clone the repository:
-```bash
-git clone https://github.com/AllenNeuralDynamics/parallax.git
-```
-
-2. Create virtual environment and activate it:
+1. Create virtual environment and activate it:
 - On Windows:
 ```bash
 python -m venv venv
@@ -28,14 +23,38 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-3. Install Dependencies:
+2. To install the latest version:
 ```bash
-python -m pip install -e .
+pip install parallax-app
+```
+To upgrate to the latest version:
+```bash
+pip install parallax-app --upgrade
 ```
 
 ### Running Parallax
 ```bash
 python -m parallax
+```
+
+### Development mode
+1. Clone the repository:
+```bash
+git clone https://github.com/AllenNeuralDynamics/parallax.git
+```
+2. Install Dependencies:
+```bash
+pip install -e .[dev]
+```
+
+### Documentation
+1. To install the dependencies:
+```bash
+pip install -e .[docs]
+```
+2. Then to create the documentation html files, run:
+```bash
+sphinx-build -b html docs/ docs/_build
 ```
 
 ### Additional Setup for Linux and Mac OS

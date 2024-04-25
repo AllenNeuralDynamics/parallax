@@ -1,5 +1,6 @@
 """
-This script defines the main components of the application including the main window, UI elements,
+This script defines the main components of the application
+including the main window, UI elements,
 camera and stage management, and recording functionality.
 
 Modules imported:
@@ -9,64 +10,73 @@ Modules imported:
 Classes:
 - MainWindow: Represents the main window of the application.
 """
-# Import required PyQt5 modules and other libraries
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QFileDialog, QScrollArea, QSplitter, QGridLayout
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QToolButton
-from PyQt5.QtCore import QCoreApplication, QStandardPaths, QTimer, QPoint
+
+import logging
+import os
+from functools import partial
+
+from PyQt5.QtCore import QCoreApplication, QPoint, QStandardPaths, QTimer
 from PyQt5.QtGui import QFont, QFontDatabase
+# Import required PyQt5 modules and other libraries
+from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout, QGroupBox,
+                             QMainWindow, QScrollArea, QSplitter, QToolButton,
+                             QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
-from .screen_widget import ScreenWidget
+
 from .recording_manager import RecordingManager
+from .screen_widget import ScreenWidget
 from .stage_widget import StageWidget
 from .user_setting_manager import UserSettingsManager
-from functools import partial
-import os
-import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
+# Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 # User Preferences (Data directory, UI config..) setting file
 package_dir = os.path.dirname(os.path.abspath(__file__))
-ui_dir = os.path.join(os.path.dirname(package_dir), 'ui')
-SETTINGS_FILE = 'settings.json'
+ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
+SETTINGS_FILE = "settings.json"
+
 
 # Main application window
 class MainWindow(QMainWindow):
     """
     The main window of the application.
-    
-    This class represents the main window of the application and handles the user interface
+
+    This class represents the main window of the application
+    and handles the user interface
     components, camera and stage management, and recording functionality.
     """
+
     def __init__(self, model, dummy=False):
         """
         Initialize the MainWindow.
-        
+
         Args:
             model (object): The data model for the application.
-            dummy (bool, optional): Flag indicating whether to run in dummy mode. Defaults to False.
+            dummy (bool, optional): Flag indicating whether
+            to run in dummy mode. Defaults to False.
         """
-        QMainWindow.__init__(self) # Initialize the QMainWindow
+        QMainWindow.__init__(self)  # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
-        # self.model.clean() TBD call to close the camera when there was abnormal program exit in previous run.
-
+        
         # Initialize an empty list to keep track of microscopeGrp widgets instances
         self.screen_widgets = []
         self.recording_camera_list = []
-        
+
         # Update camera information
         self.refresh_cameras()
-        logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
-    
+        logger.debug(
+            f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
+        )
+
         # Update stage information
         self.refresh_stages()
         logger.debug(f"stages: {self.model.stages}")
-        
+
         self.user_setting = UserSettingsManager()
         # Load column configuration from user preferences
         self.nColumn = self.user_setting.load_settings_item("main", "nColumn")
@@ -80,18 +90,22 @@ class MainWindow(QMainWindow):
         loadUi(ui, self)
 
         # Load Fira Code font
-        fira_code_font_path = os.path.join(ui_dir, "font/FiraCode-VariableFont_wght.ttf")
+        fira_code_font_path = os.path.join(
+            ui_dir, "font/FiraCode-VariableFont_wght.ttf"
+        )
         QFontDatabase.addApplicationFont(fira_code_font_path)
-        fira_code_font = QFont("Fira Code Light", 10) # Setting font size to 10
+        fira_code_font = QFont("Fira Code Light", 10)  # Setting font size to 10
         QApplication.setFont(fira_code_font)
 
         # Load existing user preferences
-        nColumn, directory, width, height = self.user_setting.load_mainWindow_settings()
+        nColumn, directory, width, height = (
+            self.user_setting.load_mainWindow_settings()
+        )
         self.nColumnsSpinBox.setValue(nColumn)
-        self.dirLabel.setText(directory) 
+        self.dirLabel.setText(directory)
         if width is not None and height is not None:
             self.resize(width, height)
-                        
+
         # Attach directory selection event handler for saving files
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
 
@@ -99,7 +113,9 @@ class MainWindow(QMainWindow):
         self.nColumnsSpinBox.setMaximum(max(self.model.nPySpinCameras, 1))
         self.nColumnsSpinBox.setValue(self.nColumn)
         if self.model.nPySpinCameras:
-            self.nColumnsSpinBox.valueChanged.connect(self.column_changed_handler)
+            self.nColumnsSpinBox.valueChanged.connect(
+                self.column_changed_handler
+            )
 
         # Refreshing the settingMenu while it is toggled
         self.settings_refresh_timer = QTimer()
@@ -114,8 +130,8 @@ class MainWindow(QMainWindow):
 
         # Dynamically generate Microscope display
         if self.model.nPySpinCameras:
-            self.display_microscope() # Attach screen widget
-        else: # Display only mock camera
+            self.display_microscope()  # Attach screen widget
+        else:  # Display only mock camera
             self.display_mock_camera()
 
         # Stage_widget
@@ -125,14 +141,19 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.stage_widget)
         self.verticalLayout_4.addWidget(splitter)
 
-        # Start button. If toggled, start camera acquisition  
+        # Start button. If toggled, start camera acquisition
         self.startButton.clicked.connect(self.start_button_handler)
-        
+
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
-        self.snapshotButton.clicked.connect(lambda: \
-                self.recordingManager.save_last_image(self.dirLabel.text(), self.screen_widgets))
-        self.recordButton.clicked.connect(self.record_button_handler)       # Recording video button
+        self.snapshotButton.clicked.connect(
+            lambda: self.recordingManager.save_last_image(
+                self.dirLabel.text(), self.screen_widgets
+            )
+        )
+        self.recordButton.clicked.connect(
+            self.record_button_handler
+        )  # Recording video button
 
         # Refreshing the screen timer
         self.refresh_timer = QTimer()
@@ -140,7 +161,7 @@ class MainWindow(QMainWindow):
 
         # Toggle start button on init
         self.start_button_handler()
-    
+
     def refresh_cameras(self):
         """
         This method is responsible for scanning for available cameras and updating the camera list.
@@ -154,10 +175,12 @@ class MainWindow(QMainWindow):
             try:
                 self.model.scan_for_cameras()
             except Exception as e:
-                    print(f" Something still holds a reference to the camera.\n {e}")
+                print(
+                    f" Something still holds a reference to the camera.\n {e}"
+                )
 
     def refresh_stages(self):
-        """ Search for connected stages """
+        """Search for connected stages"""
         if not self.dummy:
             self.model.scan_for_usb_stages()
 
@@ -167,21 +190,21 @@ class MainWindow(QMainWindow):
         If the record button is checked, start recording. Otherwise, stop recording.
         """
         if self.recordButton.isChecked():
-            save_path = self.dirLabel.text() 
+            save_path = self.dirLabel.text()
             self.recordingManager.save_recording(save_path, self.screen_widgets)
         else:
             self.recordingManager.stop_recording(self.screen_widgets)
-            
+
     def start_button_handler(self):
         """
         Handles the start button press event.
-        
+
         If the start button is checked, initiate acquisition from all cameras and start refreshing images.
         If unchecked, stop acquisition from all cameras and stop refreshing images.
         """
         # Initialize the list to keep track of cameras that have been started or stopped
         refresh_camera_list = []
-        
+
         # Check if the start button is toggled on
         if self.startButton.isChecked():
             print("\nRefreshing Screen")
@@ -191,21 +214,21 @@ class MainWindow(QMainWindow):
                 if camera_name not in refresh_camera_list:
                     screen.start_acquisition_camera()
                     refresh_camera_list.append(camera_name)
-            
+
             # Refreshing images to display screen
             self.refresh_timer.start(125)
 
-            # Start button is checked, enable record and snapshot button. 
+            # Start button is checked, enable record and snapshot button.
             self.recordButton.setEnabled(True)
             self.snapshotButton.setEnabled(True)
 
-        else:  
+        else:
             print("Stop Refreshing Screen")
-            # Start button is unchecked, disable record and snapshot button. 
+            # Start button is unchecked, disable record and snapshot button.
             self.recordButton.setEnabled(False)
             self.recordButton.setChecked(False)
             self.snapshotButton.setEnabled(False)
-            
+
             # Stop Refresh: stop refreshing images to display screen
             if self.refresh_timer.isActive():
                 self.refresh_timer.stop()
@@ -218,10 +241,10 @@ class MainWindow(QMainWindow):
                     refresh_camera_list.append(camera_name)
 
     def refresh(self):
-        """ Refreshing from framebuffer to screen"""
+        """Refreshing from framebuffer to screen"""
         for screen in self.screen_widgets:
-            screen.refresh()        # Refresh the screens
-        
+            screen.refresh()  # Refresh the screens
+
     def display_mock_camera(self):
         """Display mock camera when there is no detected camera."""
         self.createNewGroupBox(0, 0, mock=True)
@@ -229,16 +252,20 @@ class MainWindow(QMainWindow):
     def display_microscope(self):
         """Dynamically arrange Microscopes based on camera count and column configuration."""
         # Calculate rows and columns
-        rows, cols, cnt = self.model.nPySpinCameras//self.nColumn, self.nColumn, 0
+        rows, cols, cnt = (
+            self.model.nPySpinCameras // self.nColumn,
+            self.nColumn,
+            0,
+        )
         rows += 1 if self.model.nPySpinCameras % cols else 0
         # Create grid of Microscope displays
-        for row_idx  in range(0, rows):
-            for col_idx  in range(0, cols):
+        for row_idx in range(0, rows):
+            for col_idx in range(0, cols):
                 if cnt < self.model.nPySpinCameras:
                     self.createNewGroupBox(row_idx, col_idx, screen_index=cnt)
                     cnt += 1
                 else:
-                    break # Stop when all Microscopes are displayed
+                    break  # Stop when all Microscopes are displayed
 
     def column_changed_handler(self, val):
         """Rearrange the layout of Microscopes when the column number changes."""
@@ -247,22 +274,24 @@ class MainWindow(QMainWindow):
         # Detach the identified widgets
         for i in range(self.gridLayout.count()):
             widget = self.gridLayout.itemAt(i).widget()
-            if isinstance(widget, QGroupBox):  # Ensure we're handling the correct type of widget
+            if isinstance(
+                widget, QGroupBox
+            ):  # Ensure we're handling the correct type of widget
                 camera_screen_list.append(widget)
 
         # Detach the identified widgets
         for widget in camera_screen_list:
             self.gridLayout.removeWidget(widget)
-            widget.hide() # Temporarily hide the widget
+            widget.hide()  # Temporarily hide the widget
 
         # Calculate new rows and columns layout
-        rows, cols, cnt = self.model.nPySpinCameras//val, val, 0
+        rows, cols, cnt = self.model.nPySpinCameras // val, val, 0
         rows += 1 if self.model.nPySpinCameras % cols else 0
 
         # Reattach widgets in the new layout
-        for row_idx  in range(0, rows):
-            for col_idx  in range(0, cols):
-                if cnt < len(camera_screen_list): 
+        for row_idx in range(0, rows):
+            for col_idx in range(0, cols):
+                if cnt < len(camera_screen_list):
                     widget = camera_screen_list[cnt]
                     self.gridLayout.addWidget(widget, row_idx, col_idx, 1, 1)
                     widget.show()  # Make the widget visible again
@@ -293,51 +322,67 @@ class MainWindow(QMainWindow):
         else:
             newNameMicroscope = f"Microscope_{screen_index+1}"
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
-       
+
         # Construct and configure the Microscope widget
         microscopeGrp.setObjectName(newNameMicroscope)
-        microscopeGrp.setStyleSheet(u"background-color: rgb(58, 58, 58);")
+        microscopeGrp.setStyleSheet("background-color: rgb(58, 58, 58);")
         font_grpbox = QFont()
         font_grpbox.setPointSize(9)  # Setting font size to 9
         microscopeGrp.setFont(font_grpbox)
         verticalLayout = QVBoxLayout(microscopeGrp)
-        verticalLayout.setObjectName(u"verticalLayout")
-        
+        verticalLayout.setObjectName("verticalLayout")
+
         # Add screens
         if mock:
-            screen = ScreenWidget(self.model.cameras[0], model=self.model, parent=microscopeGrp)
+            screen = ScreenWidget(
+                self.model.cameras[0], model=self.model, parent=microscopeGrp
+            )
         else:
-            screen = ScreenWidget(self.model.cameras[screen_index], model=self.model, parent=microscopeGrp)
+            screen = ScreenWidget(
+                self.model.cameras[screen_index],
+                model=self.model,
+                parent=microscopeGrp,
+            )
         screen.setObjectName(f"Screen")
         verticalLayout.addWidget(screen)
-        
+
         if mock is False:
             # Add setting button
             settingButton = QToolButton(microscopeGrp)
             settingButton.setObjectName(f"Setting")
             settingButton.setFont(font_grpbox)
             settingButton.setCheckable(True)
-            self.create_settings_menu(microscopeGrp, newNameMicroscope, screen, screen_index)
-            settingButton.toggled.connect(lambda checked: self.show_settings_menu(settingButton, checked))
+            self.create_settings_menu(
+                microscopeGrp, newNameMicroscope, screen, screen_index
+            )
+            settingButton.toggled.connect(
+                lambda checked: self.show_settings_menu(settingButton, checked)
+            )
             verticalLayout.addWidget(settingButton)
-            settingButton.setText(QCoreApplication.translate("MainWindow", u"SETTINGS \u25ba", None))
-       
+            settingButton.setText(
+                QCoreApplication.translate(
+                    "MainWindow", "SETTINGS \u25ba", None
+                )
+            )
+
             # Load setting file from JSON
             self.update_setting_menu(microscopeGrp)
 
         # Add widget to the gridlayout
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
-        
-        # Add the new microscopeGrpBox instance to the list
-        self.screen_widgets.append(screen) 
 
-    def create_settings_menu(self, microscopeGrp, newNameMicroscope, screen, screen_index):
+        # Add the new microscopeGrpBox instance to the list
+        self.screen_widgets.append(screen)
+
+    def create_settings_menu(
+        self, microscopeGrp, newNameMicroscope, screen, screen_index
+    ):
         """
         Create the settings menu for each Microscope widget.
 
-        This function initializes the settings menu UI, loads it with necessary data, 
-        and associates the relevant signals with their slots. 
-        The settings menu is hidden by default and will be shown 
+        This function initializes the settings menu UI, loads it with necessary data,
+        and associates the relevant signals with their slots.
+        The settings menu is hidden by default and will be shown
         when the user toggles the settings button.
 
         Parameters:
@@ -350,13 +395,15 @@ class MainWindow(QMainWindow):
         settingMenu = QWidget(microscopeGrp)
         setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
         loadUi(setting_ui, settingMenu)
-        settingMenu.setObjectName("SettingsMenu")        
+        settingMenu.setObjectName("SettingsMenu")
         settingMenu.hide()  # Hide the menu by default
-        
+
         # S/N
-        for sn in self.model.cameras_sn:        # Add the list of cameras (serial number) in ComboBox
+        # Add the list of cameras (serial number) in ComboBox
+        for sn in self.model.cameras_sn:        
             settingMenu.snComboBox.addItem(sn) 
-        sn = screen.get_camera_name()           # Select the sn for the current screen
+        # Select the sn for the current screen
+        sn = screen.get_camera_name()           
         index = settingMenu.snComboBox.findText(sn)
         if index >= 0:
             settingMenu.snComboBox.setCurrentIndex(index)
@@ -364,73 +411,147 @@ class MainWindow(QMainWindow):
             logger.error("SN not found in the list")
 
         # If serial number is changed, connect to update_screen function and update setting menu
-        settingMenu.snComboBox.currentIndexChanged.connect(lambda: self.update_screen(screen, \
-                                             screen_index, settingMenu.snComboBox.currentText()))
-        
+        settingMenu.snComboBox.currentIndexChanged.connect(
+            lambda: self.update_screen(
+                screen, screen_index, settingMenu.snComboBox.currentText()
+            )
+        )
+
         # Custom name
-        customName = self.user_setting.load_settings_item(sn, "customName")  # Default name on init
+        customName = self.user_setting.load_settings_item(
+            sn, "customName"
+        )  # Default name on init
         customName = customName if customName else newNameMicroscope
         settingMenu.customName.setText(customName)
-        self.update_groupbox_name(microscopeGrp, customName)    # Update GroupBox name
-        # Name) If custom name is changed, change the groupBox name. 
-        settingMenu.customName.textChanged.connect(lambda: self.update_groupbox_name(microscopeGrp, \
-                                                                            settingMenu.customName.text()))
-        settingMenu.customName.textChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
-                                                            "customName", settingMenu.customName.text()))
-        
+        self.update_groupbox_name(
+            microscopeGrp, customName
+        )  # Update GroupBox name
+        # Name) If custom name is changed, change the groupBox name.
+        settingMenu.customName.textChanged.connect(
+            lambda: self.update_groupbox_name(
+                microscopeGrp, settingMenu.customName.text()
+            )
+        )
+        settingMenu.customName.textChanged.connect(
+            lambda: self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "customName", settingMenu.customName.text()
+            )
+        )
+
         # Exposure
-        settingMenu.expSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "exposure",\
-                                                                val = settingMenu.expSlider.value()*1000))
-        settingMenu.expSlider.valueChanged.connect(lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value()))
-        settingMenu.expSlider.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
-                            "exp", settingMenu.expSlider.value()))       
-        settingMenu.expAuto.clicked.connect(lambda: settingMenu.expSlider.setValue(\
-                            int(screen.get_camera_setting(setting = "exposure")/1000)))
+        settingMenu.expSlider.valueChanged.connect(
+            lambda: screen.set_camera_setting(
+                setting="exposure", val=settingMenu.expSlider.value() * 1000
+            )
+        )
+        settingMenu.expSlider.valueChanged.connect(
+            lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value())
+        )
+        settingMenu.expSlider.valueChanged.connect(
+            lambda: self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "exp", settingMenu.expSlider.value()
+            )
+        )
+        settingMenu.expAuto.clicked.connect(
+            lambda: settingMenu.expSlider.setValue(
+                int(screen.get_camera_setting(setting="exposure") / 1000)
+            )
+        )
 
         # Gain
-        settingMenu.gainSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gain",\
-                                                                val = settingMenu.gainSlider.value()))
-        settingMenu.gainSlider.valueChanged.connect(lambda: settingMenu.gainNum.setNum(settingMenu.gainSlider.value()))
-        settingMenu.gainSlider.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
-                            "gain", settingMenu.gainSlider.value()))
-        settingMenu.gainAuto.clicked.connect(lambda: settingMenu.gainSlider.setValue(\
-                            screen.get_camera_setting(setting = "gain")))
+        settingMenu.gainSlider.valueChanged.connect(
+            lambda: screen.set_camera_setting(
+                setting="gain", val=settingMenu.gainSlider.value()
+            )
+        )
+        settingMenu.gainSlider.valueChanged.connect(
+            lambda: settingMenu.gainNum.setNum(settingMenu.gainSlider.value())
+        )
+        settingMenu.gainSlider.valueChanged.connect(
+            lambda: self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "gain", settingMenu.gainSlider.value()
+            )
+        )
+        settingMenu.gainAuto.clicked.connect(
+            lambda: settingMenu.gainSlider.setValue(
+                screen.get_camera_setting(setting="gain")
+            )
+        )
 
         # Gamma
-        settingMenu.gammaSlider.valueChanged.connect(lambda: screen.set_camera_setting(setting = "gamma",\
-                                                                val = settingMenu.gammaSlider.value()/100))
-        settingMenu.gammaSlider.valueChanged.connect(lambda: settingMenu.gammaNum.setText(
-                            "{:.2f}".format(settingMenu.gammaSlider.value()/100)))
-        settingMenu.gammaSlider.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
-                            "gamma", settingMenu.gammaSlider.value()))
-        settingMenu.gammaAuto.clicked.connect(lambda: settingMenu.gammaSlider.setEnabled(
-                            not settingMenu.gammaSlider.isEnabled()))
-        settingMenu.gammaAuto.clicked.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", \
-                            settingMenu.gammaSlider.isEnabled()))
-                            
+        settingMenu.gammaSlider.valueChanged.connect(
+            lambda: screen.set_camera_setting(
+                setting="gamma", val=settingMenu.gammaSlider.value() / 100
+            )
+        )
+        settingMenu.gammaSlider.valueChanged.connect(
+            lambda: settingMenu.gammaNum.setText(
+                "{:.2f}".format(settingMenu.gammaSlider.value() / 100)
+            )
+        )
+        settingMenu.gammaSlider.valueChanged.connect(
+            lambda: self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "gamma", settingMenu.gammaSlider.value()
+            )
+        )
+        settingMenu.gammaAuto.clicked.connect(
+            lambda: settingMenu.gammaSlider.setEnabled(
+                not settingMenu.gammaSlider.isEnabled()
+            )
+        )
+        settingMenu.gammaAuto.clicked.connect(
+            lambda: self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "gammaAuto", settingMenu.gammaSlider.isEnabled()
+            )
+        )
+
         # W/B
         settingLayout = settingMenu.layout()
         settingLayout.addWidget(settingMenu.wbAuto, 5, 1, 2, 1)
         # Blue Channel
-        settingMenu.wbSliderBlue.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wbBlue",\
-                                                                val = settingMenu.wbSliderBlue.value()/100))
-        settingMenu.wbSliderBlue.valueChanged.connect(lambda: settingMenu.wbNumBlue.setText(\
-                        "{:.2f}".format(settingMenu.wbSliderBlue.value()/100)))
-        settingMenu.wbSliderBlue.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
-                        "wbBlue", settingMenu.wbSliderBlue.value()))
-        settingMenu.wbAuto.clicked.connect(lambda: settingMenu.wbSliderBlue.setValue(\
-                        screen.get_camera_setting(setting = "wbBlue")*100))
-        
+        settingMenu.wbSliderBlue.valueChanged.connect(
+            lambda: screen.set_camera_setting(
+                setting="wbBlue", val=settingMenu.wbSliderBlue.value() / 100
+            )
+        )
+        settingMenu.wbSliderBlue.valueChanged.connect(
+            lambda: settingMenu.wbNumBlue.setText(
+                "{:.2f}".format(settingMenu.wbSliderBlue.value() / 100)
+            )
+        )
+        settingMenu.wbSliderBlue.valueChanged.connect(
+            lambda: self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "wbBlue", settingMenu.wbSliderBlue.value()
+            )
+        )
+        settingMenu.wbAuto.clicked.connect(
+            lambda: settingMenu.wbSliderBlue.setValue(
+                screen.get_camera_setting(setting="wbBlue") * 100
+            )
+        )
+
         # Red Channel
-        settingMenu.wbSliderRed.valueChanged.connect(lambda: screen.set_camera_setting(setting = "wbRed",\
-                                                                val = settingMenu.wbSliderRed.value()/100))
-        settingMenu.wbSliderRed.valueChanged.connect(lambda: settingMenu.wbNumRed.setText(\
-                        "{:.2f}".format(settingMenu.wbSliderRed.value()/100)))
-        settingMenu.wbSliderRed.valueChanged.connect(lambda: self.user_setting.update_user_configs_settingMenu(microscopeGrp, \
-                        "wbRed", settingMenu.wbSliderRed.value()))
-        settingMenu.wbAuto.clicked.connect(lambda: settingMenu.wbSliderRed.setValue(\
-                        screen.get_camera_setting(setting = "wbRed")*100))
-        
+        settingMenu.wbSliderRed.valueChanged.connect(
+            lambda: screen.set_camera_setting(
+                setting="wbRed", val=settingMenu.wbSliderRed.value() / 100
+            )
+        )
+        settingMenu.wbSliderRed.valueChanged.connect(
+            lambda: settingMenu.wbNumRed.setText(
+                "{:.2f}".format(settingMenu.wbSliderRed.value() / 100)
+            )
+        )
+        settingMenu.wbSliderRed.valueChanged.connect(
+            lambda: self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "wbRed", settingMenu.wbSliderRed.value()
+            )
+        )
+        settingMenu.wbAuto.clicked.connect(
+            lambda: settingMenu.wbSliderRed.setValue(
+                screen.get_camera_setting(setting="wbRed") * 100
+            )
+        )
+
     def update_screen(self, screen, screen_index, selected_sn):
         """
         Update the screen with a new camera based on the selected serial number.
@@ -445,22 +566,32 @@ class MainWindow(QMainWindow):
         - selected_sn (str): The serial number of the camera selected to be associated with the microscope.
         """
         # Camera lists that currently attached on the model.
-        camera_list = {camera.name(sn_only=True): camera for camera in self.model.cameras}
+        camera_list = {
+            camera.name(sn_only=True): camera for camera in self.model.cameras
+        }
 
         # Get the prev camera lists displaying on the screen
         prev_camera, curr_camera = screen.get_camera_name(), selected_sn
-        prev_lists = [screen.get_camera_name() for screen in self.screen_widgets if screen.get_camera_name()]
-        if 0 <= screen_index < len(prev_lists):  # Ensure screen_index is within valid range
+        prev_lists = [
+            screen.get_camera_name()
+            for screen in self.screen_widgets
+            if screen.get_camera_name()
+        ]
+        if (
+            0 <= screen_index < len(prev_lists)
+        ):  # Ensure screen_index is within valid range
             curr_list = prev_lists[:]
             curr_list.pop(screen_index)
             curr_list.insert(screen_index, curr_camera)
         else:
             logger.error(f"Invalid screen index: {screen_index}")
-        logger.debug(f"prev_list: {prev_lists}")    
+        logger.debug(f"prev_list: {prev_lists}")
         logger.debug(f"curr_list: {curr_list}")
 
         # Handle updates based on the current state of the application
-        if self.startButton.isChecked():        # If the 'Start' button is enabled (continuous acquisition mode)
+        if (
+            self.startButton.isChecked()
+        ):  # If the 'Start' button is enabled (continuous acquisition mode)
             if set(prev_lists) == set(curr_list):
                 # If the list of cameras hasn't changed, just update the current screen's camera
                 screen.set_camera(camera_list.get(curr_camera))
@@ -491,7 +622,7 @@ class MainWindow(QMainWindow):
         - microscopeGrp (QGroupBox): The group box representing the microscope.
         - customName (str): The custom name to set as the title and object name of the group box.
         """
-        if customName: 
+        if customName:
             microscopeGrp.setTitle(customName)
             microscopeGrp.setObjectName(customName)
 
@@ -511,22 +642,34 @@ class MainWindow(QMainWindow):
         microscopeGrp = settingButton.parent()
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
-        self.settings_refresh_timer.timeout.connect(partial(self.update_setting_menu, microscopeGrp))
+        self.settings_refresh_timer.timeout.connect(
+            partial(self.update_setting_menu, microscopeGrp)
+        )
 
         if is_checked:
-            # If the settings button is checked, start the settings refresh timer and show the settings menu
-            self.settings_refresh_timer.start(100)      # update setting menu every 0.1 sec
+            # If the settings button is checked, start the settings refresh 
+            # timer and show the settings menu
+            # update setting menu every 0.1 sec
+            self.settings_refresh_timer.start(100)      
             
+
             # Show the setting menu next to setting button
             button_position = settingButton.mapToGlobal(settingButton.pos())
             menu_x = button_position.x() + settingButton.width()
             menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()
-            menu_y = settingButton.y() + settingButton.height() - settingMenu.height()
-            logger.debug(f"(SettingMenu) coordinates of setting menu: x: {menu_x}, y: {menu_y}")
+            menu_y = (
+                settingButton.y()
+                + settingButton.height()
+                - settingMenu.height()
+            )
+            logger.debug(
+                f"(SettingMenu) coordinates of setting menu: x: {menu_x}, y: {menu_y}"
+            )
             settingMenu.move(menu_x, menu_y)
             settingMenu.show()
         else:
-            # If the settings button is unchecked, stop the settings refresh timer and hide the settings menu
+            # If the settings button is unchecked, stop the settings 
+            # refresh timer and hide the settings menu
             self.settings_refresh_timer.stop()
             settingMenu.hide()
 
@@ -540,25 +683,27 @@ class MainWindow(QMainWindow):
         Parameters:
         - microscopeGrp (QGroupBox): The microscope group box associated with the settings menu to be updated.
         """
-        
+
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
         screen = microscopeGrp.findChild(ScreenWidget, "Screen")
 
-        # Display the S/N of camera 
+        # Display the S/N of camera
         sn = screen.get_camera_name()
         # Load the saved settings
         saved_settings = self.user_setting.load_settings_item(sn)
         if saved_settings:
             # If saved settings are found, update the sliders in the settings menu with the saved values
-            settingMenu.expSlider.setValue(saved_settings.get('exp', 15))
-            settingMenu.gainSlider.setValue(saved_settings.get('gain', 20))
+            settingMenu.expSlider.setValue(saved_settings.get("exp", 15))
+            settingMenu.gainSlider.setValue(saved_settings.get("gain", 20))
 
             # Gamma
-            gammaAuto = saved_settings.get('gammaAuto', None)
+            gammaAuto = saved_settings.get("gammaAuto", None)
             if gammaAuto == True:
                 settingMenu.gammaSlider.setEnabled(True)
-                settingMenu.gammaSlider.setValue(saved_settings.get('gamma', 100))
+                settingMenu.gammaSlider.setValue(
+                    saved_settings.get("gamma", 100)
+                )
             elif gammaAuto == False:
                 settingMenu.gammaSlider.setEnabled(False)
             else:
@@ -569,8 +714,12 @@ class MainWindow(QMainWindow):
                 settingMenu.wbAuto.setDisabled(False)
                 settingMenu.wbSliderRed.setDisabled(False)
                 settingMenu.wbSliderBlue.setDisabled(False)
-                settingMenu.wbSliderRed.setValue(saved_settings.get('wbRed', 1.2))
-                settingMenu.wbSliderBlue.setValue(saved_settings.get('wbBlue', 2.8))
+                settingMenu.wbSliderRed.setValue(
+                    saved_settings.get("wbRed", 1.2)
+                )
+                settingMenu.wbSliderBlue.setValue(
+                    saved_settings.get("wbBlue", 2.8)
+                )
             elif screen.get_camera_color_type() == "Mono":
                 settingMenu.wbAuto.setDisabled(True)
                 settingMenu.wbSliderRed.setDisabled(True)
@@ -578,13 +727,17 @@ class MainWindow(QMainWindow):
                 settingMenu.wbNumRed.setText("--")
                 settingMenu.wbNumBlue.setText("--")
 
-        else: 
+        else:
             settingMenu.gainAuto.click()
             settingMenu.wbAuto.click()
             settingMenu.expAuto.click()
-            self.user_setting.update_user_configs_settingMenu(microscopeGrp, "gammaAuto", True)
-            self.user_setting.update_user_configs_settingMenu(microscopeGrp, "gamma", settingMenu.gammaSlider.value())
-            
+            self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "gammaAuto", True
+            )
+            self.user_setting.update_user_configs_settingMenu(
+                microscopeGrp, "gamma", settingMenu.gammaSlider.value()
+            )
+
     def dir_setting_handler(self):
         """
         This method handles the selection of a directory for saving files. It opens a dialog that allows
@@ -595,13 +748,17 @@ class MainWindow(QMainWindow):
         simple and intuitive way to specify the location where files should be saved.
         """
         # Fetch the default documents directory path
-        documents_dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
+        documents_dir = QStandardPaths.writableLocation(
+            QStandardPaths.DocumentsLocation
+        )
         # Open a dialog to allow the user to select a directory
-        directory = QFileDialog.getExistingDirectory(self, "Select Directory", documents_dir)
+        directory = QFileDialog.getExistingDirectory(
+            self, "Select Directory", documents_dir
+        )
         # If a directory is chosen, update the label to display the chosen path
         if directory:
             self.dirLabel.setText(directory)
-        
+
     def save_user_configs(self):
         """
         Saves user configuration settings to a persistent storage.
@@ -616,4 +773,3 @@ class MainWindow(QMainWindow):
         width = self.width()
         height = self.height()
         self.user_setting.save_user_configs(nColumn, directory, width, height)
-

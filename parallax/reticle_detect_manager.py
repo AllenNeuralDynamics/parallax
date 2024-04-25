@@ -3,15 +3,18 @@ Manages reticle detection in images through a worker thread, integrating line de
 masking, coordinate analysis, and camera calibration. Uses PyQt's signals 
 for thread-safe operations and real-time processing feedback.
 """
-from PyQt5.QtCore import pyqtSignal, QObject, QThread
-from .reticle_detection import ReticleDetection
-from .mask_generator import MaskGenerator
-from .reticle_detection_coords_interests import ReticleDetectCoordsInterest
-from .calibration_camera import CalibrationCamera
+
+import logging
+import time
+
 import cv2
 import numpy as np
-import time
-import logging
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
+
+from .calibration_camera import CalibrationCamera
+from .mask_generator import MaskGenerator
+from .reticle_detection import ReticleDetection
+from .reticle_detection_coords_interests import ReticleDetectCoordsInterest
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -20,17 +23,22 @@ logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
+
 class ReticleDetectManager(QObject):
-    """ Reticle detection class """
+    """Reticle detection class"""
+
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
 
     class Worker(QObject):
-        """ Reticle detection Worker Thread """
+        """Reticle detection Worker Thread"""
+
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray) 
+        found_coords = pyqtSignal(
+            np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        )
 
         def __init__(self, name):
             """Initialize the worker"""
@@ -40,18 +48,21 @@ class ReticleDetectManager(QObject):
             self.is_detection_on = False
             self.new = False
             self.frame = None
-            self.IMG_SIZE_ORIGINAL = (4000, 3000) # TODO
+            self.IMG_SIZE_ORIGINAL = (4000, 3000)  # TODO
             self.frame_success = None
 
             self.mask_detect = MaskGenerator()
-            self.reticleDetector = ReticleDetection(self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name)
+            self.reticleDetector = ReticleDetection(
+                self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name
+            )
             self.coordsInterests = ReticleDetectCoordsInterest()
             self.calibrationCamera = CalibrationCamera(self.name)
-                
+
         def update_frame(self, frame):
             """Update the frame to be processed."""
             self.frame = frame
-            if self.new is False: # Deal with one frame at a time. This may cause the frame drop
+            # Deal with one frame at a time. This may cause the frame drop
+            if self.new is False:
                 self.new = True
 
         def draw(self, frame, x_axis_coords, y_axis_coords):
@@ -74,7 +85,7 @@ class ReticleDetectManager(QObject):
                 pt = tuple(pixel)
                 cv2.circle(frame, pt, 7, (0, 255, 255), -1)
             return frame
-        
+
         def draw_xyz(self, frame, origin, x, y, z):
             """Draw the XYZ axes on the frame."""
             frame = cv2.line(frame, origin, x, (0, 0, 255), 3)  # Blue line
@@ -85,28 +96,36 @@ class ReticleDetectManager(QObject):
         def draw_calibration_info(self, frame, ret, mtx, dist):
             """
             Draw calibration information on the frame.
-            
+
             Parameters:
             - frame: The image frame on which to draw.
             - ret: Boolean indicating if calibration was successful.
             - mtx: The camera matrix obtained from calibration.
             - dist: The distortion coefficients obtained from calibration.
             """
-            
+
             # Starting position for the text
             offset_start = 50
             line_height = 60
-            
+
             # Basic settings for the text
             font = cv2.FONT_HERSHEY_SIMPLEX
             font_scale = 1.5
             font_color = (255, 255, 255)  # White color
             line_type = 2
-            
+
             # Status text
             status_text = f"Overall RMS re-projection error: {ret}"
-            cv2.putText(frame, status_text, (10, offset_start), font, font_scale, font_color, line_type)
-            
+            cv2.putText(
+                frame,
+                status_text,
+                (10, offset_start),
+                font,
+                font_scale,
+                font_color,
+                line_type,
+            )
+
             # Camera matrix text
             mtx_lines = [
                 f"Camera Matrix:",
@@ -116,29 +135,55 @@ class ReticleDetectManager(QObject):
             ]
             # Draw each line of the camera matrix
             for i, line in enumerate(mtx_lines):
-                cv2.putText(frame, line, (10, offset_start+line_height + i * line_height), 
-                            font, font_scale, font_color, line_type)
-                
+                cv2.putText(
+                    frame,
+                    line,
+                    (10, offset_start + line_height + i * line_height),
+                    font,
+                    font_scale,
+                    font_color,
+                    line_type,
+                )
+
             # Distortion coefficients text
-            dist_text = f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, {dist[0][2]:.4f}, {dist[0][3]:.4f} {dist[0][4]:.4f}]"
-            cv2.putText(frame, dist_text, (10, offset_start + line_height*5), font, font_scale, font_color, line_type)
-            
+            dist_text = f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, \
+                {dist[0][2]:.4f}, {dist[0][3]:.4f} {dist[0][4]:.4f}]"
+            cv2.putText(
+                frame,
+                dist_text,
+                (10, offset_start + line_height * 5),
+                font,
+                font_scale,
+                font_color,
+                line_type,
+            )
+
             return frame
 
         def process(self, frame):
             """Process the frame for reticle detection."""
-            #cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
-            ret, frame_, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
+            # cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
+            ret, frame_, _, inliner_lines_pixels = (
+                self.reticleDetector.get_coords(frame)
+            )
             if ret:
-                ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
+                ret, x_axis_coords, y_axis_coords = (
+                    self.coordsInterests.get_coords_interest(
+                        inliner_lines_pixels
+                    )
+                )
             if ret:
                 # TODO
-                #ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
-                #if not ret:
-                ret, mtx, dist = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords) 
+                # ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
+                # if not ret:
+                ret, mtx, dist = self.calibrationCamera.calibrate_camera(
+                    x_axis_coords, y_axis_coords
+                )
                 if ret:
                     # Draw
-                    self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist)
+                    self.found_coords.emit(
+                        x_axis_coords, y_axis_coords, mtx, dist
+                    )
                     origin, x, y, z = self.calibrationCamera.get_origin_xyz()
                     frame = self.draw_xyz(frame, origin, x, y, z)
                     frame = self.draw(frame, x_axis_coords, y_axis_coords)
@@ -147,7 +192,7 @@ class ReticleDetectManager(QObject):
             if self.frame_success is None:
                 logger.debug(f"{ self.name} reticle detection fail ")
                 return frame
-            else: 
+            else:
                 logger.debug(f"{ self.name} reticle detection success ")
                 return self.frame_success
 
@@ -179,7 +224,7 @@ class ReticleDetectManager(QObject):
             logger.debug(f"thread finished {self.name}")
 
         def set_name(self, name):
-            """ Set name as camera serial number. """
+            """Set name as camera serial number."""
             self.name = name
 
     def __init__(self, camera_name):
@@ -189,7 +234,7 @@ class ReticleDetectManager(QObject):
         self.worker = None
         self.name = camera_name
         self.thread = None
-    
+
     def init_thread(self):
         """Initialize the worker thread."""
         if self.thread is not None:
@@ -204,7 +249,7 @@ class ReticleDetectManager(QObject):
         self.threadDeleted = False
 
         self.worker.frame_processed.connect(self.frame_processed)
-        self.worker.found_coords.connect(self.found_coords) 
+        self.worker.found_coords.connect(self.found_coords)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         logger.debug(f"init camera name: {self.name}")
@@ -217,14 +262,14 @@ class ReticleDetectManager(QObject):
         """
         if self.worker is not None:
             self.worker.update_frame(frame)
-    
+
     def start(self):
         """Start the reticle detection manager."""
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
         self.thread.start()
         logger.debug(f"thread started {self.name}")
-    
+
     def stop(self):
         """Stop the reticle detection manager."""
         if self.worker is not None:
@@ -249,7 +294,7 @@ class ReticleDetectManager(QObject):
         self.worker = None  # Clear the reference to the worker
 
     def onThreadDestroyed(self):
-        """ Flag if thread is deleted """
+        """Flag if thread is deleted"""
         self.threadDeleted = True
 
     def __del__(self):

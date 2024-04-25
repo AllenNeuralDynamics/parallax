@@ -5,8 +5,10 @@ crop regions within images.
 - UtilsCrops: calculating crop regions based on specified criteria.
 """
 
+
 class UtilsCoords:
     """Utility class for coordinate scaling."""
+
     def __init__(self, original_size, resized_size):
         """Initialize the UtilsCoords object.
 
@@ -38,8 +40,10 @@ class UtilsCoords:
 
         return original_x, original_y
 
+
 class UtilsCrops:
     """Utility class for calculating crop regions."""
+
     def __init__(self):
         """Initialize the UtilsCrops object."""
         pass
@@ -79,7 +83,9 @@ class UtilsCrops:
             bool: True if the point is on the crop region boundary, False otherwise.
         """
         x, y = point
-        return (top - buffer <= y <= top + buffer) or \
-               (bottom - buffer <= y <= bottom + buffer) or \
-               (left - buffer <= x <= left + buffer) or \
-               (right - buffer <= x <= right + buffer)
+        return (
+            (top - buffer <= y <= top + buffer)
+            or (bottom - buffer <= y <= bottom + buffer)
+            or (left - buffer <= x <= left + buffer)
+            or (right - buffer <= x <= right + buffer)
+        )
