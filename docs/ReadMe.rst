@@ -76,7 +76,7 @@ Documentation
 
    pip install -e .[docs]
 
-2. Then to create the documentatio html files, run:
+2. Then to create the documentation html files, run:
 
 .. code-block:: bash
 

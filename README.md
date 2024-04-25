@@ -52,7 +52,7 @@ pip install -e .[dev]
 ```bash
 pip install -e .[docs]
 ```
-2. Then to create the documentatio html files, run:
+2. Then to create the documentation html files, run:
 ```bash
 sphinx-build -b html docs/ docs/_build
 ```
