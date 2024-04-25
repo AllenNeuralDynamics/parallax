@@ -27,8 +27,5 @@ docs/_build/
 # User-settings
 ui/settings.json
 
-# Unit test / coverage reports
-.coverage
-
 # Environments
 venv/

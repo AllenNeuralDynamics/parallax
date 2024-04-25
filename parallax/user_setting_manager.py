@@ -11,24 +11,20 @@ Example:
     nColumn, directory, width, height = settings_manager.load_mainWindow_settings()
     settings_manager.save_user_configs(nColumn, directory, width, height)
 """
-
-import json
-import logging
-import os
-
 from .screen_widget import ScreenWidget
+import json
+import os
+import logging
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-# Set the logging level for PyQt5.uic.uiparser/properties
+# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
-
 class UserSettingsManager:
-    "UserSettingsManager class"
-
+    " UserSettingsManager class"
     def __init__(self):
         """
         Initialize the UserSettingsManager by setting the path to the settings file.
@@ -36,8 +32,8 @@ class UserSettingsManager:
         loaded upon initialization.
         """
         package_dir = os.path.dirname(os.path.abspath(__file__))
-        ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-        settings_file = os.path.join(ui_dir, "settings.json")
+        ui_dir = os.path.join(os.path.dirname(package_dir), 'ui')
+        settings_file = os.path.join(ui_dir, 'settings.json')
         self.settings_file = settings_file
         self.settings = self.load_settings()
 
@@ -50,7 +46,7 @@ class UserSettingsManager:
             dictionary if the settings file does not exist or cannot be read.
         """
         if os.path.exists(self.settings_file):
-            with open(self.settings_file, "r") as file:
+            with open(self.settings_file, 'r') as file:
                 return json.load(file)
         return {}
 
@@ -69,7 +65,7 @@ class UserSettingsManager:
         """
         # Read current settings from file
         if os.path.exists(self.settings_file):
-            with open(self.settings_file, "r") as file:
+            with open(self.settings_file, 'r') as file:
                 settings = json.load(file)
         else:
             settings = {}
@@ -78,9 +74,9 @@ class UserSettingsManager:
             "nColumn": nColumn,
             "directory": directory,
             "width": width,
-            "height": height,
+            "height":height,  
         }
-        with open(self.settings_file, "w") as file:
+        with open(self.settings_file, 'w') as file:
             json.dump(settings, file)
 
     def load_mainWindow_settings(self):
@@ -115,22 +111,18 @@ class UserSettingsManager:
             The requested settings item(s). Returns None if the category or item does not exist.
         """
         if os.path.exists(self.settings_file):
-            with open(self.settings_file, "r") as file:
+            with open(self.settings_file, 'r') as file:
                 settings = json.load(file)
                 if category in settings:
                     if item is not None:
                         if item in settings[category]:
                             return settings[category][item]
                         else:
-                            logger.debug(
-                                f"load_settings_item: Item '{item}' not found in settings."
-                            )
+                            logger.debug(f"load_settings_item: Item '{item}' not found in settings.")
                             return None
                     return settings[category]
                 else:
-                    logger.debug(
-                        f"load_settings_item: Section '{category}' not found in settings."
-                    )
+                    logger.debug(f"load_settings_item: Section '{category}' not found in settings.")
                     return None
         else:
             logger.debug("load_settings_item: Settings file not found.")
@@ -153,12 +145,12 @@ class UserSettingsManager:
         # Find the screen within this microscopeGrp
         screen = microscopeGrp.findChild(ScreenWidget, "Screen")
 
-        # Display the S/N of camera
+        # Display the S/N of camera 
         sn = screen.get_camera_name()
 
         # Read current settings from file
         if os.path.exists(self.settings_file):
-            with open(self.settings_file, "r") as file:
+            with open(self.settings_file, 'r') as file:
                 settings = json.load(file)
         else:
             settings = {}
@@ -169,5 +161,5 @@ class UserSettingsManager:
         settings[sn][item] = val
 
         # Write updated settings back to file
-        with open(self.settings_file, "w") as file:
+        with open(self.settings_file, 'w') as file:
             json.dump(settings, file)

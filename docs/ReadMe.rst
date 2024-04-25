@@ -16,7 +16,14 @@ Prerequisites
 Installing and Upgrading
 =========================
 
-1. Create virtual environment and activate it:
+1. To install the latest version:
+
+.. code-block:: bash
+
+   git clone https://github.com/AllenNeuralDynamics/parallax.git
+
+2. Create virtual environment and activate it:
+
 - On Windows:
 
 .. code-block:: bash
@@ -31,17 +38,12 @@ Installing and Upgrading
    python -m venv venv
    source venv/bin/activate
 
-2. To install the latest version:
+3. Install Dependencies:
 
 .. code-block:: bash
 
-   pip install parallax-app
+   python -m pip install -e.
 
-To upgrate to the latest version:
-
-.. code-block:: bash
-
-   pip install parallax-app --upgrade
 
 Running Parallax
 =========================
@@ -49,36 +51,3 @@ Running Parallax
 .. code-block:: bash
 
    python -m parallax
-
-   
-Development mode
-=========================
-
-1. Clone the repository:
-
-.. code-block:: bash
-
-   git clone https://github.com/AllenNeuralDynamics/parallax.git
-
-2. Install Dependencies:
-
-.. code-block:: bash
-
-   pip install -e .[dev]
-
-
-Documentation
-=========================
-
-1. To install the dependencies:
-
-.. code-block:: bash
-
-   pip install -e .[docs]
-
-2. Then to create the documentation html files, run:
-
-.. code-block:: bash
-
-   sphinx-build -b html docs/ docs/_build
-
