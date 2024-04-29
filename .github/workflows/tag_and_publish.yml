@@ -3,7 +3,7 @@ name: Tag and Publish
 on:
   push:
     branches:
-      - main
+      - CICD_and_minor_updates
 
 jobs:
   build-and-release:
@@ -34,6 +34,8 @@ jobs:
         id: get_version
         run: |
           echo "RELEASE_VERSION=$(python -c 'import parallax; print(parallax.__version__)')" >> $GITHUB_ENV
+          echo "$RELEASE_VERSION"
+          echo "Set RELEASE_VERSION to ${{ env.RELEASE_VERSION }}"
 
       - name: Create Git tag
         run: |
