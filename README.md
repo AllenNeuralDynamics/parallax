@@ -4,14 +4,15 @@
 
 Parallax is a graphical user interface designed to streamline the process of setting up and performing acute *in vivo* electrophysiology experiments.
 
+User documentation available on [here](https://parallax.readthedocs.io/en/latest/).
 
 ### Prerequisites
-- Python~=3.8 (Recommended to install via [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
+- **Python~=3.8** (Recommended to install via [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - PySpin (for Linux or Mac OS users)
 
 
 ### Installation
-1. Create virtual environment and activate it:
+1. Create virtual environment using **Python version 3.8** and activate it:
 - On Windows:
 ```bash
 python -m venv venv
@@ -68,4 +69,4 @@ Windows):
 If you encounter any issues or would like to contribute to the project, please check out our issues page on GitHub.
 
 ### License
-Parallax is licensed under the Allen Institute Software License. For more details, see the LICENSE file.
+Parallax is licensed under the MIT License. For more details, see the LICENSE file.
