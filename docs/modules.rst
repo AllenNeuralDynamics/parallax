@@ -1,4 +1,4 @@
-Parallax Moduels
+Parallax Modules
 ========================
 
 .. toctree::

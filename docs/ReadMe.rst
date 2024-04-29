@@ -9,14 +9,14 @@ Parallax is a graphical user interface designed to streamline the process of set
 
 Prerequisites
 =========================
-- Python~=3.8 (Recommended to install via [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
+- **Python~=3.8** (Recommended to install via [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
 - PySpin (for Linux or Mac OS users)
 
 
 Installing and Upgrading
 =========================
 
-1. Create virtual environment and activate it:
+1. Create virtual environment using **Python version 3.8** and activate it:
 - On Windows:
 
 .. code-block:: bash
