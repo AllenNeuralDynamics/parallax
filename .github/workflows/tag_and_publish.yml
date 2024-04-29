@@ -14,9 +14,6 @@ jobs:
         with:
           fetch-depth: '0'  # Fetch all history to manage tags correctly
 
-      - name: Pull latest changes
-        run: git pull origin main
-
       - name: Set up Python
         uses: actions/setup-python@v2  # Corrected from checkout to setup-python
         with:
