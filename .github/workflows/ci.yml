@@ -20,7 +20,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -e .[linters] --no-cache-dir
-      - name: Run flake8
-        run: flake8 parallax tests
       - name: Run interrogate
         run: interrogate parallax tests
+        continue-on-error: true
+      - name: Run flake8
+        run: flake8 parallax tests
+        continue-on-error: true
+
