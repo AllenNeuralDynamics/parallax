@@ -3,7 +3,7 @@ name: Tag and Publish
 on:
   push:
     branches:
-      - CICD_and_minor_updates
+      - main
 
 jobs:
   build-and-release:
