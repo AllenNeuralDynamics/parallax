@@ -22,7 +22,6 @@ dependencies = [
     "PyQt5>=5.15",
     "pyqtgraph",
     "opencv-python",
-    "spinnaker-python", 
     "scipy",
     "pandas",
     "scikit-image",
@@ -40,6 +39,10 @@ readme = {file = "README.md"}
 [project.optional-dependencies]
 dev = [
     'parallax-app[linters]'
+]
+
+camera = [
+    "spinnaker-python"
 ]
 
 linters = [
