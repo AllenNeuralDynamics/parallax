@@ -12,10 +12,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: '0'  # Fetch all history to manage tags correctly
+          fetch-depth: '0'  
 
       - name: Set up Python
-        uses: actions/setup-python@v2  # Corrected from checkout to setup-python
+        uses: actions/setup-python@v2  
         with:
           python-version: '3.8'
 
@@ -53,7 +53,7 @@ jobs:
           pip install setuptools wheel twine build
 
       - name: Install project
-        run: pip install -e .  # Install your project in editable mode
+        run: pip install -e . 
 
       - name: Build package
         run: |
