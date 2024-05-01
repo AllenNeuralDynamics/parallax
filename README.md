@@ -33,6 +33,11 @@ To upgrate to the latest version:
 pip install parallax-app --upgrade
 ```
 
+3. To install camera interface:
+```bash
+pip install parallax-app[camera]
+```
+
 ### Running Parallax
 ```bash
 python -m parallax

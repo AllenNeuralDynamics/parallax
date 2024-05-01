@@ -18,7 +18,7 @@ from .reticle_detection_coords_interests import ReticleDetectCoordsInterest
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
@@ -51,7 +51,7 @@ class ReticleDetectManager(QObject):
             self.IMG_SIZE_ORIGINAL = (4000, 3000)  # TODO
             self.frame_success = None
 
-            self.mask_detect = MaskGenerator()
+            self.mask_detect = MaskGenerator(initial_detect = True)
             self.reticleDetector = ReticleDetection(
                 self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name
             )
@@ -166,20 +166,27 @@ class ReticleDetectManager(QObject):
             ret, frame_, _, inliner_lines_pixels = (
                 self.reticleDetector.get_coords(frame)
             )
-            if ret:
+            if not ret:
+                logger.debug(f"{ self.name} get_coords fails ")
+            else:
                 ret, x_axis_coords, y_axis_coords = (
                     self.coordsInterests.get_coords_interest(
                         inliner_lines_pixels
                     )
                 )
-            if ret:
+
+            if not ret:
+                logger.debug(f"{ self.name} get_coords_interest fails ")
+            else:
                 # TODO
                 # ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
                 # if not ret:
                 ret, mtx, dist = self.calibrationCamera.calibrate_camera(
                     x_axis_coords, y_axis_coords
                 )
-                if ret:
+                if not ret:
+                    logger.debug(f"{ self.name} calibrate_camera fails ")
+                else:
                     # Draw
                     self.found_coords.emit(
                         x_axis_coords, y_axis_coords, mtx, dist
@@ -189,11 +196,12 @@ class ReticleDetectManager(QObject):
                     frame = self.draw(frame, x_axis_coords, y_axis_coords)
                     frame = self.draw_calibration_info(frame, ret, mtx, dist)
                 self.frame_success = frame
+            
             if self.frame_success is None:
                 logger.debug(f"{ self.name} reticle detection fail ")
                 return frame
             else:
-                logger.debug(f"{ self.name} reticle detection success ")
+                logger.debug(f"{ self.name} reticle detection success \n")
                 return self.frame_success
 
         def stop_running(self):
