@@ -75,7 +75,9 @@ class ReticleDetectCoordsInterest(QObject):
         x_center, y_center = center
         for i in range(-5, 6):  # Range from -5 to 5
             for j in range(-5, 6):  # Range from -5 to 5
-                test_center = np.array([x_center + i, y_center + j])
+                test_center = np.array(
+                    [x_center + i, y_center + j], dtype=coords.dtype
+                )
                 result = np.where((coords == test_center).all(axis=1))
                 if len(result[0]) > 0:  # Check if the element was found
                     return result[0][0]  # Return the first occurrence index
@@ -93,6 +95,7 @@ class ReticleDetectCoordsInterest(QObject):
         """
         center_index = self._get_center_coords_index(center, coords)
         if center_index is None:
+            logger.debug("Center coordinates not found.")
             return
 
         coords[center_index] = center  # Replace center to center point we gets
@@ -162,10 +165,16 @@ class ReticleDetectCoordsInterest(QObject):
         for pixels_in_line in pixels_in_lines:
             coords = self._get_pixels_interest(center_point, pixels_in_line)
             if coords is None or len(coords) < self.n_interest_pixels * 2 + 1:
+                logger.debug(f"_get_pixels_interest fails.")
+                if coords is None:
+                    logger.debug(f"coords: None")
+                if coords is not None:
+                    logger.debug(f"length of coords: {len(coords)}")
                 return False, None, None
             coords_interest.append(coords)
 
         ret, x_axis, y_axis = self._get_orientation(coords_interest)
         if ret is False:
+            logger.debug(f"getting orientation of x and y axis fails")
             return False, None, None
         return True, x_axis, y_axis

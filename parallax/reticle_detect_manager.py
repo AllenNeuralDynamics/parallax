@@ -177,12 +177,6 @@ class ReticleDetectManager(QObject):
 
             if not ret:
                 logger.debug(f"{ self.name} get_coords_interest fails ")
-                frame_ = cv2.cvtColor(frame_, cv2.COLOR_GRAY2BGR)
-                for pixel in inliner_lines_pixels[0]:
-                    cv2.circle(frame_, tuple(pixel), 2, (0, 255, 0), -1)
-                for pixel in inliner_lines_pixels[1]:
-                    cv2.circle(frame_, tuple(pixel), 1, (255, 0, 0), -1)
-                cv2.imwrite("debug/reticle_detect_fail.jpg", frame_)
             else:
                 # TODO
                 # ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)

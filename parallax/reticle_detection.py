@@ -17,7 +17,7 @@ from skimage.measure import LineModelND, ransac
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
@@ -407,7 +407,7 @@ class ReticleDetection:
             pixels_array = np.array(pixels)
             missing_points = self._estimate_missing_points(pixels_array)
             x_diff, y_diff = self._get_median_distance_x_y(pixels_array)
-            
+
             if missing_points.ndim == 1 and missing_points.size > 0:
                 missing_points = missing_points.reshape(-1, 2)  # Reshape to 2D if it's flat but not empty
             elif missing_points.size == 0:
@@ -558,6 +558,23 @@ class ReticleDetection:
 
         return ret, img, inliner_lines, inliner_lines_pixels
 
+    def _draw_debug(self, img, pixels_in_lines, filename):
+        if logger.getEffectiveLevel() == logging.DEBUG:        
+            if img.ndim == 2:
+                img_ = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            else:
+                img_ = img.copy()
+
+            if len(pixels_in_lines) == 2:
+                for pt in pixels_in_lines[0]:
+                    cv2.circle(img_, tuple(pt), 2, (0, 255, 0), -1)
+                for pt in pixels_in_lines[1]:
+                    cv2.circle(img_, tuple(pt), 1, (255, 0, 0), -1)
+
+            cv2.imwrite(f"debug/{filename}.jpg", img_)
+        else:
+            return
+
     def get_coords(self, img):
         """Detect coordinates using morphological operations.
 
@@ -572,42 +589,23 @@ class ReticleDetection:
                 - inliner_lines_pixels (list): List of inlier pixel coordinates for each line.
         """
         bg = self._preprocess_image(img)
-        cv2.imwrite("debug/0_bg.jpg", bg)
+        self._draw_debug(bg, [], "0_bg")
         masked = self._apply_mask(bg)
-        cv2.imwrite("debug/masked.jpg", masked)
+        self._draw_debug(masked, [], "1_bg")
 
         ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(masked)
-        bg_ = cv2.cvtColor(bg, cv2.COLOR_GRAY2BGR)
-        for pixel in pixels_in_lines[0]:
-            pt = tuple(pixel)
-            cv2.circle(bg_, pt, 2, (0, 255, 0), -1)
-        for pixel in pixels_in_lines[1]:
-            pt = tuple(pixel)
-            cv2.circle(bg_, pt, 1, (255, 0, 0), -1)
-        cv2.imwrite("debug/1coords_detect_morph.jpg", bg_)
-
-
+        self._draw_debug(bg, pixels_in_lines, "2_detect_morph")
         logger.debug(f"{self.name} nLines: {len(pixels_in_lines)}")
+
         if ret:
             bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
             logger.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
-            for pixel in pixels_in_lines[0]:
-                pt = tuple(pixel)
-                cv2.circle(bg_, pt, 2, (0, 255, 0), -1)
-            for pixel in pixels_in_lines[1]:
-                pt = tuple(pixel)
-                cv2.circle(bg_, pt, 1, (255, 0, 0), -1)
-                cv2.imwrite("debug/2refine_pixels.jpg", bg_)
+            self._draw_debug(bg, pixels_in_lines, "3_refine_pixels")
     
             bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
             logger.debug(f"{self.name} interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
-            for pixel in pixels_in_lines[0]:
-                pt = tuple(pixel)
-                cv2.circle(bg_, pt, 2, (0, 255, 0), -1)
-            for pixel in pixels_in_lines[1]:
-                pt = tuple(pixel)
-                cv2.circle(bg_, pt, 1, (255, 0, 0), -1)
-            cv2.imwrite("debug/3_add_missing_pixels.jpg", bg_)
+            self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
+        
         return ret, bg, inliner_lines, pixels_in_lines
 
     """
