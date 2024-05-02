@@ -577,9 +577,9 @@ class MainWindow(QMainWindow):
             for screen in self.screen_widgets
             if screen.get_camera_name()
         ]
-        if (
-            0 <= screen_index < len(prev_lists)
-        ):  # Ensure screen_index is within valid range
+
+        # Ensure screen_index is within valid range
+        if (0 <= screen_index < len(prev_lists)):  
             curr_list = prev_lists[:]
             curr_list.pop(screen_index)
             curr_list.insert(screen_index, curr_camera)
@@ -589,9 +589,8 @@ class MainWindow(QMainWindow):
         logger.debug(f"curr_list: {curr_list}")
 
         # Handle updates based on the current state of the application
-        if (
-            self.startButton.isChecked()
-        ):  # If the 'Start' button is enabled (continuous acquisition mode)
+        # If the 'Start' button is enabled (continuous acquisition mode)
+        if (self.startButton.isChecked()):  
             if set(prev_lists) == set(curr_list):
                 # If the list of cameras hasn't changed, just update the current screen's camera
                 screen.set_camera(camera_list.get(curr_camera))

@@ -231,6 +231,11 @@ class ProbeDetectManager(QObject):
             print("probe_detect_manager running done")
             self.finished.emit()
 
+        def set_name(self, name):
+            """Set name as camera serial number."""
+            self.name = name
+            self.reticle_coords = self.model.get_coords_axis(self.name)
+
     def __init__(self, model, camera_name):
         """Initialize ProbeDetectManager object"""
         super().__init__()
@@ -309,6 +314,13 @@ class ProbeDetectManager(QObject):
         """
         if self.worker is not None:
             self.worker.stop_detection()
+
+    def set_name(self, camera_name):
+        """Set camera name."""
+        self.name = camera_name
+        if self.worker is not None:
+            self.worker.set_name(self.name)
+        logger.debug(f"camera name: {self.name}")
 
     def clean(self):
         """Clean up the probe detection manager."""

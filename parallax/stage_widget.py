@@ -585,7 +585,7 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: black;"
         )
-            
+
     def calib_x_complete(self):
         """
         Updates the UI to indicate that the calibration for the X-axis is complete.
