@@ -424,7 +424,14 @@ class StageWidget(QWidget):
         global_coords = self.calibrationStereo.get_global_coords(
             cam_names[0], tip_coords[0], cam_names[1], tip_coords[1]
         )
-        self.stageListener.handleGlobalDataChange(sn, global_coords, timestamp)
+        self.stageListener.handleGlobalDataChange(sn,
+                                global_coords,
+                                timestamp,
+                                cam_names[0],
+                                tip_coords[0],
+                                cam_names[1],
+                                tip_coords[1]
+                            )
 
     def probe_overwrite_popup_window(self):
         """

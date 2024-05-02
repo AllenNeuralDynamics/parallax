@@ -106,6 +106,12 @@ class ProbeCalibration(QObject):
                 "global_x",
                 "global_y",
                 "global_z",
+                "ts_local_coords",
+                "ts_img_captured",
+                "cam0",
+                "pt0",
+                "cam1",
+                "pt1"
             ]
             writer.writerow(column_names)
 
@@ -160,22 +166,35 @@ class ProbeCalibration(QObject):
 
         return model, transformation_matrix
 
-    def _update_local_global_point(self):
+    def _update_local_global_point(self, debug_info=None):
         """
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
-        with open(self.csv_file, "a", newline="") as file:
+        with open(self.csv_file, "a", newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(
-                [
-                    self.stage.stage_x,
-                    self.stage.stage_y,
-                    self.stage.stage_z,
-                    self.stage.stage_x_global,
-                    self.stage.stage_y_global,
-                    self.stage.stage_z_global,
-                ]
-            )
+            row_data = [
+                self.stage.stage_x,
+                self.stage.stage_y,
+                self.stage.stage_z,
+                self.stage.stage_x_global,
+                self.stage.stage_y_global,
+                self.stage.stage_z_global,
+            ]
+
+            # Check if debug information needs to be added
+            if debug_info is not None:
+                # Append debug information as needed
+                row_data.extend([
+                    debug_info.get("ts_local_coords", ''),
+                    debug_info.get("ts_img_captured", ''),
+                    debug_info.get("cam0", ''),
+                    debug_info.get("pt0", ''),
+                    debug_info.get("cam1", ''),
+                    debug_info.get("pt1", '')
+                ])
+
+            # Write the complete row to the CSV
+            writer.writerow(row_data)
 
     def _is_criteria_met_transM(self):
         """
@@ -311,7 +330,7 @@ class ProbeCalibration(QObject):
             np.array([x_diff, y_diff, z_diff]),
         )
 
-    def update(self, stage):
+    def update(self, stage, debug_info=None):
         """
         Main method to update calibration with a new stage position and check if calibration is complete.
 
@@ -320,7 +339,7 @@ class ProbeCalibration(QObject):
         """
         # update points in the file
         self.stage = stage
-        self._update_local_global_point()
+        self._update_local_global_point(debug_info)
         # get whole list of local and global points in pd format
         local_points, global_points = self._get_local_global_points()
         self.model_LR, self.transM_LR = self._get_transM_LR(
