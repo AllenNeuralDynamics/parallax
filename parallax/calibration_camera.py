@@ -259,6 +259,31 @@ class CalibrationStereo(CalibrationCamera):
         self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB = None, None, None, None, None 
         self.P_A, self.P_B = None, None
 
+    def print_calibrate_stereo_results(self):
+        if self.retval is None or self.R_AB is None or self.T_AB is None:
+            return
+        print("\n== Stereo Calibration ==")
+        print("AB")
+        print(self.retval)
+        print(f"R: \n{self.R_AB}")
+        print(f"T: \n{self.T_AB}")
+        print(np.linalg.norm(self.T_AB))
+
+        if self.F_AB is None or self.E_AB is None:
+            return
+        formatted_F = (
+            "F_AB:\n"
+            + "\n".join(
+                [" ".join([f"{val:.5f}" for val in row]) for row in self.F_AB]
+            ) + "\n")
+        formatted_E = (
+            "E_AB:\n"
+            + "\n".join(
+                [" ".join([f"{val:.5f}" for val in row]) for row in self.E_AB]
+            ) + "\n")
+        print(formatted_F)
+        print(formatted_E)
+
     def calibrate_stereo(self):
         """Calibrate stereo cameras.
 
@@ -279,27 +304,6 @@ class CalibrationStereo(CalibrationCamera):
                 flags=self.flags,
             )
         )
-
-        print("\n== Stereo Calibration ==")
-        print("AB")
-        print(self.retval)
-        print(f"R: \n{self.R_AB}")
-        print(f"T: \n{self.T_AB}")
-        print(np.linalg.norm(self.T_AB))
-
-        formatted_F = (
-            "F_AB:\n"
-            + "\n".join(
-                [" ".join([f"{val:.5f}" for val in row]) for row in self.F_AB]
-            ) + "\n")
-        formatted_E = (
-            "E_AB:\n"
-            + "\n".join(
-                [" ".join([f"{val:.5f}" for val in row]) for row in self.E_AB]
-            ) + "\n")
-        print(formatted_F)
-        print(formatted_E)
-
         self.P_A = self.mtxA @ np.hstack((np.eye(3), np.zeros((3, 1))))
         self.P_B = self.mtxB @ np.hstack((self.R_AB, self.T_AB.reshape(-1, 1)))
 
@@ -457,7 +461,7 @@ class CalibrationStereo(CalibrationCamera):
             f"x: {l2_x*1000}µm³, y: {l2_y*1000}µm³, z:{l2_z*1000}µm³"
         )
 
-    def test_performance(self, camA, coordA, camB, coordB):
+    def test_performance(self, camA, coordA, camB, coordB, print_results=False):
         """Test stereo calibration.
 
         Args:
@@ -482,19 +486,21 @@ class CalibrationStereo(CalibrationCamera):
         points_3d_G = self.change_coords_system_from_camA_to_global_iterative(
             points_3d_AB
         )
-        print("\n=solvePnP SOLVEPNP_ITERATIVE=")
+        
         differences = points_3d_G - self.objpoints[0]
         squared_distances = np.sum(np.square(differences), axis=1)
         euclidean_distances = np.sqrt(squared_distances)
         average_L2_distance = np.mean(euclidean_distances)
-        print(
-            f"(Reprojection error) Object points L2 diff: \
-            {average_L2_distance*1000} µm³"
-        )
-        self.test_x_y_z_performance(points_3d_G)
-        print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
+        if print_results:
+            print("\n=solvePnP SOLVEPNP_ITERATIVE=")
+            print(
+                f"(Reprojection error) Object points L2 diff: \
+                {average_L2_distance*1000} µm³"
+            )
+            self.test_x_y_z_performance(points_3d_G)
+            print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
-        self.test_pixel_error()
+            self.test_pixel_error()
         return average_L2_distance
 
     def test_pixel_error(self):
