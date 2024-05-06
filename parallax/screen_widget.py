@@ -15,6 +15,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from .no_filter import NoFilter
 from .probe_detect_manager import ProbeDetectManager
 from .reticle_detect_manager import ReticleDetectManager
+from .axis_filter import AxisFilter
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -76,6 +77,10 @@ class ScreenWidget(pg.GraphicsView):
         # No filter
         self.filter = NoFilter()
         self.filter.frame_processed.connect(self.set_image_item_from_data)
+
+        # Axis Filter
+        self.axisFilter = AxisFilter(camera_name)
+        self.axisFilter.frame_processed.connect(self.set_image_item_from_data)
 
         # Reticle Detection
         self.reticleDetector = ReticleDetectManager(camera_name)
@@ -146,6 +151,7 @@ class ScreenWidget(pg.GraphicsView):
         Set the data displayed in the screen widget.
         """
         self.filter.process(data)
+        self.axisFilter.process(data)
         self.reticleDetector.process(data)
         captured_time = self.camera.get_last_capture_time(millisecond=True)
         self.probeDetector.process(data, captured_time)
@@ -254,7 +260,10 @@ class ScreenWidget(pg.GraphicsView):
         Handle the image click event.
         """
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
-            self.select(event.pos())
+            x, y = event.pos().x(), event.pos().y()
+            x, y = int(round(x)), int(round(y))
+            self.select((x,y))
+            print(f"Clicked position on {self.get_camera_name()}: ({x}, {y})")
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.zoom_out()
 
@@ -283,6 +292,7 @@ class ScreenWidget(pg.GraphicsView):
         camera_sn = self.get_camera_name()
         self.reticleDetector.set_name(camera_sn)
         self.probeDetector.set_name(camera_sn)
+        self.axisFilter.set_name(camera_sn)
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
@@ -301,7 +311,16 @@ class ScreenWidget(pg.GraphicsView):
         logger.debug("run_no_filter")
         self.reticleDetector.stop()
         self.probeDetector.stop()
+        self.axisFilter.stop()
         self.filter.start()
+
+    def run_axis_filter(self):
+        """Run without any filter by stopping the reticle detector and probe detector."""
+        logger.debug("run_axis_filter")
+        self.filter.stop()
+        self.reticleDetector.stop()
+        logger.debug("reticleDetector stopped")
+        self.axisFilter.start()
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""

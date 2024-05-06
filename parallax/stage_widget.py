@@ -23,7 +23,7 @@ from .stage_listener import StageListener
 from .stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class StageWidget(QWidget):
@@ -87,7 +87,7 @@ class StageWidget(QWidget):
 
         # Reticle Widget
         self.reticle_detection_status = (
-            None  # options: default, process, detected, accepted
+            None  # options: default, process, detected, accepted, request_axis
         )
         self.reticle_calibration_btn.clicked.connect(
             self.reticle_detection_button_handler
@@ -288,11 +288,21 @@ class StageWidget(QWidget):
             "background-color: #bc9e44;"
         )
 
+    def get_positive_x_axis_from_user(self):
+        """Get the positive x-axis coordinate of the reticle from the user."""
+        for screen in self.screen_widgets:
+            screen.reticle_coords_detected.disconnect(
+                self.reticle_detect_two_screens
+            )
+            screen.run_axis_filter()
+        self.filter = "axis_filter"
+
     def reticle_detect_accept_detected_status(self):
         """
         Finalizes the reticle detection process, accepting the detected reticle position and updating the UI accordingly.
         """
         self.reticle_detection_status = "accepted"
+        logger.debug(f"1 self.filter: {self.filter}")
 
         # Change the button to green.
         self.reticle_calibration_btn.setStyleSheet(
@@ -303,6 +313,11 @@ class StageWidget(QWidget):
         self.acceptButton.hide()
         self.rejectButton.hide()
 
+        # TODO Get user input of positive x coordiante of the reticle
+        self.get_positive_x_axis_from_user()
+        logger.debug(f"2 self.filter: {self.filter}")
+
+        # Perform stereo calibration
         result = self.calibrate_stereo()
         if result:
             self.reticleCalibrationLabel.setText(
@@ -310,13 +325,15 @@ class StageWidget(QWidget):
                 f"<span style='color:green;'>{result*1000:.1f} µm³</span>"
             )
 
+        """
         for screen in self.screen_widgets:
             screen.reticle_coords_detected.disconnect(
                 self.reticle_detect_two_screens
             )
             screen.run_no_filter()
         self.filter = "no_filter"
-
+        logger.debug(f"3 self.filter: {self.filter}")
+        """
         # Enable reticle_calibration_btn button
         if not self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(True)
@@ -609,7 +626,7 @@ class StageWidget(QWidget):
                         self.probe_detect_two_screens
                     )
                     screen.run_no_filter()
-
+ 
             self.filter = "no_filter"
             self.probeCalibration.clear()
 
@@ -620,7 +637,7 @@ class StageWidget(QWidget):
         """
         Updates the UI and internal state to reflect that the probe detection process is underway.
         """
-        self.probe_detection_status = "process"
+        self.probe_detection_status = "                                                                                                                                         "
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
             "background-color: #bc9e44;"
