@@ -36,6 +36,7 @@ class Model(QObject):
 
         # coords axis
         self.coords_axis = {}
+        self.pos_x = {}
         self.camera_intrinsic = {}
         self.camera_extrinsic = {}
         self.calibration = None
@@ -131,6 +132,24 @@ class Model(QObject):
         """Add a probe detector."""
         self.probeDetectors.append(probeDetector)
 
+    def reset_coords_intrinsic_extrinsic(self):
+        """Reset coordinates intrinsic extrinsic."""
+        self.coords_axis = {}
+        self.camera_intrinsic = {}
+        self.camera_extrinsic = {}
+    
+    def add_pos_x(self, camera_name, pt):
+        """Add position x."""
+        self.pos_x[camera_name] = pt
+
+    def get_pos_x(self, camera_name):
+        """Add position x."""
+        return self.pos_x.get(camera_name)
+    
+    def reset_pos_x(self):
+        """Reset position x."""
+        self.pos_x = {}
+    
     def add_coords_axis(self, camera_name, coords):
         """Add coordinates axis."""
         self.coords_axis[camera_name] = coords

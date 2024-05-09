@@ -187,7 +187,7 @@ class Worker(QObject):
 class StageListener(QObject):
     """Class for listening to stage updates."""
 
-    probeCalibRequest = pyqtSignal(QObject)
+    probeCalibRequest = pyqtSignal(QObject, dict)
 
     def __init__(self, model, stage_ui):
         """Initialize Stage Listener object"""
@@ -385,7 +385,8 @@ class StageListener(QObject):
 
         return closest_ts, closest_coords
 
-    def handleGlobalDataChange(self, sn, global_coords, ts_img_captured):
+    #def handleGlobalDataChange(self, sn, global_coords, ts_img_captured):
+    def handleGlobalDataChange(self, sn, global_coords, ts_img_captured, cam0, pt0, cam1, pt1):
         """Handle changes in global stage data.
 
         Args:
@@ -422,7 +423,17 @@ class StageListener(QObject):
             self.stage_global_data.stage_y_global = global_coords_y
             self.stage_global_data.stage_z_global = global_coords_z
 
-            self.probeCalibRequest.emit(self.stage_global_data)
+            # Debug info
+            debug_info = {}
+            debug_info["ts_local_coords"] = ts_local_coords
+            debug_info["ts_img_captured"] = ts_img_captured
+            debug_info["cam0"] = cam0
+            debug_info["pt0"] = pt0
+            debug_info["cam1"] = cam1
+            debug_info["pt1"] = pt1
+
+            #self.probeCalibRequest.emit(self.stage_global_data)
+            self.probeCalibRequest.emit(self.stage_global_data, debug_info)
 
             # Update into UI
             moving_stage = self.model.stages.get(sn)

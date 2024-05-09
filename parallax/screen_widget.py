@@ -15,6 +15,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from .no_filter import NoFilter
 from .probe_detect_manager import ProbeDetectManager
 from .reticle_detect_manager import ReticleDetectManager
+from .axis_filter import AxisFilter
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -74,8 +75,12 @@ class ScreenWidget(pg.GraphicsView):
         self.focochan = None
 
         # No filter
-        self.filter = NoFilter()
+        self.filter = NoFilter(camera_name)
         self.filter.frame_processed.connect(self.set_image_item_from_data)
+
+        # Axis Filter
+        self.axisFilter = AxisFilter(self.model, camera_name)
+        self.axisFilter.frame_processed.connect(self.set_image_item_from_data)
 
         # Reticle Detection
         self.reticleDetector = ReticleDetectManager(camera_name)
@@ -146,6 +151,7 @@ class ScreenWidget(pg.GraphicsView):
         Set the data displayed in the screen widget.
         """
         self.filter.process(data)
+        self.axisFilter.process(data)
         self.reticleDetector.process(data)
         captured_time = self.camera.get_last_capture_time(millisecond=True)
         self.probeDetector.process(data, captured_time)
@@ -249,12 +255,19 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             return self.camera.device_color_type
 
+    def send_clicked_position(self, pos):
+        self.axisFilter.clicked_position(pos)
+
     def image_clicked(self, event):
         """
         Handle the image click event.
         """
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
-            self.select(event.pos())
+            x, y = event.pos().x(), event.pos().y()
+            x, y = int(round(x)), int(round(y))
+            self.select((x,y))
+            print(f"Clicked position on {self.get_camera_name()}: ({x}, {y})")
+            self.send_clicked_position((x, y))
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.zoom_out()
 
@@ -280,18 +293,24 @@ class ScreenWidget(pg.GraphicsView):
         Set the camera.
         """
         self.camera = camera
-        self.reticleDetector.set_name(self.get_camera_name())
+        camera_sn = self.get_camera_name()
+        self.reticleDetector.set_name(camera_sn)
+        self.probeDetector.set_name(camera_sn)
+        self.axisFilter.set_name(camera_sn)
+        self.filter.set_name(camera_sn)
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
         logger.debug("run_reticle_detection")
         self.filter.stop()
+        self.axisFilter.stop()
         self.reticleDetector.start()
 
     def run_probe_detection(self):
         """Run probe detection by stopping the filter and starting the probe detector."""
         logger.debug("run_probe_detection")
         self.filter.stop()
+        self.axisFilter.stop()
         self.probeDetector.start()
 
     def run_no_filter(self):
@@ -299,7 +318,16 @@ class ScreenWidget(pg.GraphicsView):
         logger.debug("run_no_filter")
         self.reticleDetector.stop()
         self.probeDetector.stop()
+        self.axisFilter.stop()
         self.filter.start()
+
+    def run_axis_filter(self):
+        """Run without any filter by stopping the reticle detector and probe detector."""
+        logger.debug("run_axis_filter")
+        self.filter.stop()
+        self.reticleDetector.stop()
+        logger.debug("reticleDetector stopped")
+        self.axisFilter.start()
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
@@ -310,6 +338,8 @@ class ScreenWidget(pg.GraphicsView):
     def reset_reticle_coords(self):
         """Reset reticle coordinates."""
         self.reticle_coords = None
+        self.mtx = None
+        self.dist = None
 
     def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""
