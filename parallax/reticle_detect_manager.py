@@ -202,6 +202,7 @@ class ReticleDetectManager(QObject):
                 return frame
             else:
                 logger.debug(f"{ self.name} reticle detection success \n")
+                self.stop_running() # If found, stop processing
                 return self.frame_success
 
         def stop_running(self):
@@ -229,7 +230,6 @@ class ReticleDetectManager(QObject):
                 self.new = False
                 time.sleep(0.001)
             self.finished.emit()
-            logger.debug(f"thread finished {self.name}")
 
         def set_name(self, name):
             """Set name as camera serial number."""
@@ -237,7 +237,7 @@ class ReticleDetectManager(QObject):
 
     def __init__(self, camera_name):
         """Initialize the reticle detection manager."""
-        logger.debug("Init reticle detect manager")
+        logger.debug(f"{self.name} Init reticle detect manager")
         super().__init__()
         self.worker = None
         self.name = camera_name
@@ -253,14 +253,15 @@ class ReticleDetectManager(QObject):
 
         self.thread.started.connect(self.worker.run)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.destroyed.connect(self.onThreadDestroyed)
+        self.thread.destroyed.connect(self.onThreadDestroyed) # Debug msg
         self.threadDeleted = False
 
         self.worker.frame_processed.connect(self.frame_processed)
         self.worker.found_coords.connect(self.found_coords)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
-        logger.debug(f"init camera name: {self.name}")
+        self.worker.destroyed.connect(self.onWorkerDestroyed)
+        logger.debug(f"{self.name} init camera")
 
     def process(self, frame):
         """Process the frame using the worker.
@@ -273,33 +274,46 @@ class ReticleDetectManager(QObject):
 
     def start(self):
         """Start the reticle detection manager."""
+        logger.debug(f"{self.name} Starting thread in {self.__class__.__name__}")
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
         self.thread.start()
-        logger.debug(f"thread started {self.name}")
 
     def stop(self):
         """Stop the reticle detection manager."""
         if self.worker is not None:
             self.worker.stop_running()
+        
+    def onWorkerDestroyed(self):
+        """Cleanup after worker finishes."""
+        logger.debug(f"{self.name} worker finished")
+
+    def onThreadDestroyed(self):
+        """Flag if thread is deleted"""
+        logger.debug(f"{self.name} thread destroyed")
+        self.threadDeleted = True
+        self.thread = None
 
     def set_name(self, camera_name):
         """Set camera name."""
         self.name = camera_name
         if self.worker is not None:
             self.worker.set_name(self.name)
-        logger.debug(f"camera name: {self.name}")
+        logger.debug(f"{self.name} set camera name")
 
     def clean(self):
         """Safely clean up the reticle detection manager."""
-        logger.debug("Cleaning the thread")
+        logger.debug(f"{self.name} Cleaning the thread")
         if self.worker is not None:
             self.worker.stop_running()  # Signal the worker to stop
+        
         if not self.threadDeleted and self.thread.isRunning():
+            logger.debug(f"{self.name} Stopping thread in {self.__class__.__name__}")
             self.thread.quit()  # Ask the thread to quit
             self.thread.wait()  # Wait for the thread to finish
         self.thread = None  # Clear the reference to the thread
         self.worker = None  # Clear the reference to the worker
+        logger.debug(f"{self.name} Cleaned the thread")
 
     def onThreadDestroyed(self):
         """Flag if thread is deleted"""

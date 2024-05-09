@@ -9,7 +9,7 @@ initializing components, and linking user actions to calibration processes.
 import logging
 import os
 import math
-
+import time
 
 import numpy as np
 from PyQt5.QtCore import QTimer
@@ -24,7 +24,6 @@ from .stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
 
 class StageWidget(QWidget):
     """Widget for stage control and calibration."""
@@ -87,7 +86,7 @@ class StageWidget(QWidget):
 
         # Reticle Widget
         self.reticle_detection_status = (
-            None  # options: default, process, detected, accepted, request_axis
+            "default"  # options: default, process, detected, accepted, request_axis
         )
         self.reticle_calibration_btn.clicked.connect(
             self.reticle_detection_button_handler
@@ -105,6 +104,8 @@ class StageWidget(QWidget):
         self.reticle_calibration_timer.timeout.connect(
             self.reticle_detect_default_status
         )
+        self.get_pos_x_from_user_timer = QTimer()
+        self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
 
         # Stage widget
         self.stageUI = StageUI(self.model, self)
@@ -133,6 +134,7 @@ class StageWidget(QWidget):
         self.probe_detection_status = None    # options: default, process, x_y_z_detected, accepted
 
         self.filter = "no_filter"
+        logger.debug(f"filter: {self.filter}")
 
     def reticle_detection_button_handler(self):
         """
@@ -144,7 +146,7 @@ class StageWidget(QWidget):
             self.reticle_detect_process_status()
         else:
             if self.reticle_detection_status == "accepted":
-                response = self.overwrite_popup_window()
+                response = self.reticle_overwrite_popup_window()
                 if response:
                     # Overwrite the result
                     self.reticle_detect_default_status()
@@ -166,13 +168,15 @@ class StageWidget(QWidget):
         # Stop reticle detectoin, and run no filter
         self.reticle_calibration_timer.stop()
 
-        if self.reticle_detection_status != "accepted":
-            for screen in self.screen_widgets:
+        for screen in self.screen_widgets:
+            if self.filter != "no_filter":
+                screen.run_no_filter()
+            if self.reticle_detection_status != "accepted":
                 screen.reticle_coords_detected.disconnect(
                     self.reticle_detect_two_screens
-                )
-                screen.run_no_filter()
-            self.filter = "no_filter"
+                )    
+        self.filter = "no_filter"
+        logger.debug(f"filter: {self.filter}")
 
         # Hide Accept and Reject Button
         self.acceptButton.hide()
@@ -194,7 +198,7 @@ class StageWidget(QWidget):
             # Disable probe calibration
             self.probe_detect_default_status()
 
-    def overwrite_popup_window(self):
+    def reticle_overwrite_popup_window(self):
         """
         Displays a confirmation dialog to decide whether to overwrite the current reticle position.
 
@@ -204,9 +208,10 @@ class StageWidget(QWidget):
         message = (
             f"Are you sure you want to overwrite the current reticle position?"
         )
+        logger.debug(f"Are you sure you want to overwrite the current reticle position?")
         response = QMessageBox.warning(
             self,
-            "Reticle Detection Failed",
+            "Reticle Detection",
             message,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
@@ -260,6 +265,7 @@ class StageWidget(QWidget):
             )
             screen.run_reticle_detection()
         self.filter = "reticle_detection"
+        logger.debug(f"filter: {self.filter}")
 
         # Hide Accept and Reject Button
         self.acceptButton.hide()
@@ -288,18 +294,58 @@ class StageWidget(QWidget):
             "background-color: #bc9e44;"
         )
 
-    def get_positive_x_axis_from_user(self):
+    def select_positive_x_popup_window(self):
+        message = (
+            f"Click positive x-axis on each screen"
+        )
+        QMessageBox.warning(self, "Calibration", message)
+
+    def get_coords_detected_screens(self):
+        coords_detected_cam_name = []
+        for screen in self.screen_widgets:
+            cam_name = screen.get_camera_name()
+            coords = self.model.get_coords_axis(cam_name) 
+            if coords is not None:
+                coords_detected_cam_name.append(cam_name)
+
+        return coords_detected_cam_name
+    
+    def is_positive_x_axis_detected(self):
+        pos_x_detected_screens = []
+        for cam_name in self.coords_detected_screens:
+            pos_x = self.model.get_pos_x(cam_name)
+            if pos_x is not None:
+                pos_x_detected_screens.append(cam_name)
+        
+        return set(self.coords_detected_screens) == set(pos_x_detected_screens)
+    
+    def check_positive_x_axis(self):
+        if self.is_positive_x_axis_detected():
+            self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected
+            # Continue to calibrate stereo
+            self.start_calibrate_streo()
+            self.enable_reticle_probe_calibration_buttons()
+            logger.debug("Positive x-axis detected on all screens.")
+        else:
+            self.coords_detected_screens = self.get_coords_detected_screens()
+            logger.debug("Checking again for user input of positive x-axis...")
+
+    def continue_if_positive_x_axis_from_user(self):
         """Get the positive x-axis coordinate of the reticle from the user."""
         for screen in self.screen_widgets:
             screen.reticle_coords_detected.disconnect(
                 self.reticle_detect_two_screens
             )
             screen.run_axis_filter()
-        self.filter = "axis_filter"
+        
+        self.select_positive_x_popup_window()
+        self.coords_detected_screens = self.get_coords_detected_screens()
+        self.get_pos_x_from_user_timer.start(1000)
 
     def reticle_detect_accept_detected_status(self):
         """
-        Finalizes the reticle detection process, accepting the detected reticle position and updating the UI accordingly.
+        Finalizes the reticle detection process, accepting the detected 
+        reticle position and updating the UI accordingly.
         """
         self.reticle_detection_status = "accepted"
         logger.debug(f"1 self.filter: {self.filter}")
@@ -313,10 +359,23 @@ class StageWidget(QWidget):
         self.acceptButton.hide()
         self.rejectButton.hide()
 
-        # TODO Get user input of positive x coordiante of the reticle
-        self.get_positive_x_axis_from_user()
+        # TODO Get user input of positive x coor distance of the reticle
+        self.continue_if_positive_x_axis_from_user()
         logger.debug(f"2 self.filter: {self.filter}")
+        
+        """
+        for screen in self.screen_widgets:
+            screen.reticle_coords_detected.disconnect(
+                self.reticle_detect_two_screens
+            )
+            screen.run_no_filter()
+        self.filter = "no_filter"
+        logger.debug(f"filter: {self.filter}")
+        self.start_calibrate_streo()
+        self.enable_reticle_probe_calibration_buttons()
+        """
 
+    def start_calibrate_streo(self):
         # Perform stereo calibration
         result = self.calibrate_stereo()
         if result:
@@ -325,15 +384,7 @@ class StageWidget(QWidget):
                 f"<span style='color:green;'>{result*1000:.1f} µm³</span>"
             )
 
-        """
-        for screen in self.screen_widgets:
-            screen.reticle_coords_detected.disconnect(
-                self.reticle_detect_two_screens
-            )
-            screen.run_no_filter()
-        self.filter = "no_filter"
-        logger.debug(f"3 self.filter: {self.filter}")
-        """
+    def enable_reticle_probe_calibration_buttons(self):
         # Enable reticle_calibration_btn button
         if not self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(True)
@@ -567,7 +618,7 @@ class StageWidget(QWidget):
         )
         response = QMessageBox.warning(
             self,
-            "Reticle Detection Failed",
+            "Probe Detection",
             message,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
@@ -628,6 +679,7 @@ class StageWidget(QWidget):
                     screen.run_no_filter()
  
             self.filter = "no_filter"
+            logger.debug(f"filter: {self.filter}")
             self.probeCalibration.clear()
 
         # update global coords
@@ -653,7 +705,10 @@ class StageWidget(QWidget):
                 print(f"Connect probe_detection: {camera_name}")
                 screen.probe_coords_detected.connect(self.probe_detect_two_screens)
                 screen.run_probe_detection()
+            else:
+                screen.run_no_filter()
         self.filter = "probe_detection"
+        logger.debug(f"filter: {self.filter}")
 
         # message
         message = f"Move probe at least 2mm along X, Y, and Z axes"
@@ -685,6 +740,7 @@ class StageWidget(QWidget):
                     screen.run_no_filter()
 
             self.filter = "no_filter"
+            logger.debug(f"filter: {self.filter}")
 
         # update global coords
         self.stageListener.requestUpdateGlobalDataTransformM(

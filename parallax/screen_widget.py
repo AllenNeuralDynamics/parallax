@@ -75,11 +75,11 @@ class ScreenWidget(pg.GraphicsView):
         self.focochan = None
 
         # No filter
-        self.filter = NoFilter()
+        self.filter = NoFilter(camera_name)
         self.filter.frame_processed.connect(self.set_image_item_from_data)
 
         # Axis Filter
-        self.axisFilter = AxisFilter(camera_name)
+        self.axisFilter = AxisFilter(self.model, camera_name)
         self.axisFilter.frame_processed.connect(self.set_image_item_from_data)
 
         # Reticle Detection
@@ -255,6 +255,9 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             return self.camera.device_color_type
 
+    def send_clicked_position(self, pos):
+        self.axisFilter.clicked_position(pos)
+
     def image_clicked(self, event):
         """
         Handle the image click event.
@@ -264,6 +267,7 @@ class ScreenWidget(pg.GraphicsView):
             x, y = int(round(x)), int(round(y))
             self.select((x,y))
             print(f"Clicked position on {self.get_camera_name()}: ({x}, {y})")
+            self.send_clicked_position((x, y))
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.zoom_out()
 
@@ -293,17 +297,20 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.set_name(camera_sn)
         self.probeDetector.set_name(camera_sn)
         self.axisFilter.set_name(camera_sn)
+        self.filter.set_name(camera_sn)
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
         logger.debug("run_reticle_detection")
         self.filter.stop()
+        self.axisFilter.stop()
         self.reticleDetector.start()
 
     def run_probe_detection(self):
         """Run probe detection by stopping the filter and starting the probe detector."""
         logger.debug("run_probe_detection")
         self.filter.stop()
+        self.axisFilter.stop()
         self.probeDetector.start()
 
     def run_no_filter(self):
