@@ -54,7 +54,7 @@ class StageWidget(QWidget):
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self.probe_calib_widget)
         # Assuming probeCalibPlaceholder is the name of an empty widget designated as a placeholder in your stage_info.ui
         self.stage_status_ui.layout().addWidget(self.probe_calib_widget)  # Add it to the placeholder's layout
-        self.probe_calib_widget.setMinimumSize(0, 450) 
+        self.probe_calib_widget.setMinimumSize(0, 300) 
         
         # Create a vertical spacer with expanding policy
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
