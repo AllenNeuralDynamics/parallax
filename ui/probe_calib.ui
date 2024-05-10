@@ -17,9 +17,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>10</y>
-     <width>361</width>
-     <height>694</height>
+     <y>13</y>
+     <width>281</width>
+     <height>691</height>
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
@@ -49,14 +49,14 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>330</width>
-        <height>50</height>
+        <width>200</width>
+        <height>40</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
-        <width>350</width>
-        <height>16777215</height>
+        <width>200</width>
+        <height>40</height>
        </size>
       </property>
       <property name="text">
@@ -88,13 +88,13 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>40</height>
+        <height>30</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>30</width>
-        <height>16777215</height>
+        <height>30</height>
        </size>
       </property>
       <property name="text">
@@ -110,13 +110,13 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>40</height>
+        <height>30</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
         <width>30</width>
-        <height>16777215</height>
+        <height>30</height>
        </size>
       </property>
       <property name="text">
@@ -132,7 +132,7 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>40</height>
+        <height>30</height>
        </size>
       </property>
       <property name="maximumSize">
