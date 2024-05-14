@@ -54,7 +54,7 @@ class StageWidget(QWidget):
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self.probe_calib_widget)
         # Assuming probeCalibPlaceholder is the name of an empty widget designated as a placeholder in your stage_info.ui
         self.stage_status_ui.layout().addWidget(self.probe_calib_widget)  # Add it to the placeholder's layout
-        self.probe_calib_widget.setMinimumSize(0, 420) 
+        self.probe_calib_widget.setMinimumSize(0, 420)
         
         # Create a vertical spacer with expanding policy
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
@@ -264,7 +264,9 @@ class StageWidget(QWidget):
             screen.reticle_coords_detected.connect(
                 self.reticle_detect_two_screens
             )
-            screen.run_reticle_detection()
+            #TODO implement camera calib for mono camera
+            if screen.get_camera_color_type() == "Color": 
+                screen.run_reticle_detection()
         self.filter = "reticle_detection"
         logger.debug(f"filter: {self.filter}")
 
