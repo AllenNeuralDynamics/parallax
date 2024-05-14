@@ -22,20 +22,49 @@
   <widget class="QWidget" name="gridLayoutWidget">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>10</x>
      <y>10</y>
-     <width>252</width>
-     <height>501</height>
+     <width>289</width>
+     <height>502</height>
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <property name="horizontalSpacing">
-     <number>7</number>
+     <number>4</number>
     </property>
     <property name="verticalSpacing">
-     <number>1</number>
+     <number>0</number>
     </property>
-    <item row="1" column="1" alignment="Qt::AlignVCenter">
+    <item row="2" column="0" colspan="4">
+     <widget class="QLabel" name="reticleCalibResultLabel">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>400</height>
+       </size>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignHCenter|Qt::AlignTop</set>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="3">
+     <spacer name="horizontalSpacer_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>10</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="1" column="1">
      <widget class="QPushButton" name="acceptButton">
       <property name="minimumSize">
        <size>
@@ -45,7 +74,7 @@
       </property>
       <property name="maximumSize">
        <size>
-        <width>80</width>
+        <width>125</width>
         <height>30</height>
        </size>
       </property>
@@ -59,15 +88,15 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="3">
-     <spacer name="horizontalSpacer_2">
+    <item row="1" column="0">
+     <spacer name="horizontalSpacer_4">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
       <property name="sizeHint" stdset="0">
        <size>
         <width>20</width>
-        <height>20</height>
+        <height>10</height>
        </size>
       </property>
      </spacer>
@@ -82,7 +111,7 @@
       </property>
       <property name="maximumSize">
        <size>
-        <width>80</width>
+        <width>125</width>
         <height>30</height>
        </size>
       </property>
@@ -96,7 +125,7 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="0" colspan="4" alignment="Qt::AlignHCenter|Qt::AlignTop">
+    <item row="0" column="0" colspan="4">
      <widget class="QPushButton" name="reticle_calibration_btn">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -112,7 +141,7 @@
       </property>
       <property name="maximumSize">
        <size>
-        <width>200</width>
+        <width>300</width>
         <height>40</height>
        </size>
       </property>
@@ -121,35 +150,6 @@
       </property>
       <property name="checkable">
        <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <spacer name="horizontalSpacer_4">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="2" column="0" colspan="4">
-     <widget class="QLabel" name="reticleCalibResultLabel">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>400</height>
-       </size>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignHCenter|Qt::AlignTop</set>
       </property>
      </widget>
     </item>

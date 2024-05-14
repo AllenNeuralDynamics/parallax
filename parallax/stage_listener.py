@@ -267,7 +267,7 @@ class StageListener(QObject):
         sn = probe["SerialNumber"]
         local_coords_x = round(probe["Stage_X"] * 1000, 1)
         local_coords_y = round(probe["Stage_Y"] * 1000, 1)
-        local_coords_z = round(probe["Stage_Z"] * 1000, 1)
+        local_coords_z = 15000 - round(probe["Stage_Z"] * 1000, 1)
 
         # update into model
         moving_stage = self.model.stages.get(sn)
