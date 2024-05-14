@@ -12,7 +12,7 @@ import math
 import time
 
 import numpy as np
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import (QLabel, QMessageBox, QPushButton, QSizePolicy,
                              QSpacerItem, QWidget)
 from PyQt5.uic import loadUi
@@ -40,7 +40,7 @@ class StageWidget(QWidget):
         self.model = model
         self.screen_widgets = screen_widgets
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
-        self.setMaximumWidth(330)
+        self.setMaximumWidth(350)
 
         # Load reticle_calib.ui into its placeholder
         self.reticle_calib_widget = QWidget()  # Create a new widget
@@ -83,6 +83,7 @@ class StageWidget(QWidget):
         self.probeCalibrationLabel = self.probe_calib_widget.findChild(
             QLabel, "probeCalibrationLabel"
         )
+        self.probeCalibrationLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
         # Reticle Widget
         self.reticle_detection_status = (
@@ -819,11 +820,11 @@ class StageWidget(QWidget):
             f"<span style='color:yellow;'><small>"
             f"[Transformation Matrix]<br></small></span>"
             f"<span style='color:green;'><small><b>R:</b><br>"
-            f" {R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f},<br>"
-            f" {R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f},<br>"
-            f" {R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f},<br>"
+            f" [[{R[0][0]:.4f}, {R[0][1]:.4f}, {R[0][2]:.4f}],<br>"
+            f" [{R[1][0]:.4f}, {R[1][1]:.4f}, {R[1][2]:.4f}],<br>"
+            f" [{R[2][0]:.4f}, {R[2][1]:.4f}, {R[2][2]:.4f}]]<br>"
             f"<b>T: </b>"
-            f" {T[0]:.0f}, {T[1]:.0f}, {T[2]:.0f}<br>"
+            f" [{T[0]:.0f}, {T[1]:.0f}, {T[2]:.0f}]<br>"
             f"</small></span>"
         )
         return content
