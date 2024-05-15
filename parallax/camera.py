@@ -390,7 +390,6 @@ class PySpinCamera:
         """
         return self.device_color_type
 
-
     def begin_singleframe_acquisition(self):
         """
         Begings a single Frame image acquisition.

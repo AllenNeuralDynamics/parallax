@@ -844,7 +844,7 @@ class StageWidget(QWidget):
         content = (
             f"<span style='color:yellow;'><small>[Distance traveled (µm)]<br></small></span>"
             f"<span style='color:green;'><small>"
-            f"x: {x} y: {y} z: {z}<br>"
+            f"x: {int(x)} y: {int(y)} z: {int(z)}<br>"
             f"</small></span>"
         )
         return content

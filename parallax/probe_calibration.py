@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -54,7 +55,8 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        self.threshold_min_max = 2000  # TODO
+        self.threshold_min_max = 2500  # TODO
+        self.threshold_min_max_z = 2000  
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.threshold_matrix = np.array(
             [
@@ -100,6 +102,7 @@ class ProbeCalibration(QObject):
             writer = csv.writer(file)
             # Define column names
             column_names = [
+                "sn",
                 "local_x",
                 "local_y",
                 "local_z",
@@ -151,7 +154,8 @@ class ProbeCalibration(QObject):
         )
 
         # Train the linear regression model
-        model = LinearRegression(fit_intercept=False)
+        model = LinearRegression(fit_intercept=False) 
+        #model = Ridge(alpha=1.0, fit_intercept=False) # TODO
         model.fit(local_points_with_bias, global_points)
 
         # Weights and Bias
@@ -164,6 +168,7 @@ class ProbeCalibration(QObject):
         # Adding the extra row to complete the affine transformation matrix
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
+        print(local_points_with_bias.shape, global_points.shape, transformation_matrix.shape)
         return model, transformation_matrix
 
     def _update_local_global_point(self, debug_info=None):
@@ -173,6 +178,7 @@ class ProbeCalibration(QObject):
         with open(self.csv_file, "a", newline='') as file:
             writer = csv.writer(file)
             row_data = [
+                self.stage.sn,
                 self.stage.stage_x,
                 self.stage.stage_y,
                 self.stage.stage_z,
@@ -230,12 +236,12 @@ class ProbeCalibration(QObject):
         
         if self.max_x - self.min_x > self.threshold_min_max \
             or self.max_y - self.min_y > self.threshold_min_max \
-            or self.max_z - self.min_z > self.threshold_min_max:
+            or self.max_z - self.min_z > self.threshold_min_max_z:
             self._enough_points_emit_signal()
 
         if self.max_x - self.min_x > self.threshold_min_max \
             and self.max_y - self.min_y > self.threshold_min_max \
-            and self.max_z - self.min_z > self.threshold_min_max:
+            and self.max_z - self.min_z > self.threshold_min_max_z:
             return True
         else:
             return False
@@ -296,7 +302,7 @@ class ProbeCalibration(QObject):
             self.signal_emitted_y = True
         if (
             not self.signal_emitted_z
-            and self.max_z - self.min_z > self.threshold_min_max
+            and self.max_z - self.min_z > self.threshold_min_max_z
         ):
             self.calib_complete_z.emit()
             self.signal_emitted_z = True
