@@ -110,6 +110,8 @@ class StageWidget(QWidget):
 
         # Stage widget
         self.stageUI = StageUI(self.model, self)
+        self.stageUI.prev_curr_stages.connect(self.update_stages)
+
         self.probe_calibration_btn.setEnabled(False)
         self.probe_calibration_btn.clicked.connect(
             self.probe_detection_button_handler
@@ -131,9 +133,11 @@ class StageWidget(QWidget):
         self.probeCalibration.transM_info.connect(
             self.update_probe_calib_status
         )
+        self.probe_detection_status = "default"    # options: default, process, accepted
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
-        self.probe_detection_status = None    # options: default, process, x_y_z_detected, accepted
+        self.transM, self.L2_err, self.dist_travled = None, None, None
 
+        # Set current filter
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
@@ -647,12 +651,7 @@ class StageWidget(QWidget):
                 # Keep the last calibration result
                 self.probe_calibration_btn.setChecked(True)
 
-    def probe_detect_default_status(self):
-        """
-        Resets the probe detection status to its default state and updates the UI to reflect this change.
-        This method is called after completing or aborting the probe detection process.
-        """
-        self.probe_detection_status = "default"
+    def probe_detect_default_status_ui(self):
         self.probe_calibration_btn.setStyleSheet("""
             QPushButton {
                 color: white;
@@ -663,10 +662,8 @@ class StageWidget(QWidget):
             }
         """)
         self.hide_x_y_z()
+    
         self.probeCalibrationLabel.setText("")
-        self.probeCalibration.reset_calib()
-        # self.reset_calib_status()
-
         self.probe_calibration_btn.setChecked(False)
         if self.reticle_detection_status == "default":
             self.probe_calibration_btn.setEnabled(False)
@@ -685,18 +682,35 @@ class StageWidget(QWidget):
             logger.debug(f"filter: {self.filter}")
             self.probeCalibration.clear()
 
-        # update global coords
-        self.stageListener.requestClearGlobalDataTransformM()
+        # update global coords. Set global_coords to '-' on UI
+        self.stageListener.requestClearGlobalDataTransformM() 
+
+    def probe_detect_default_status(self):
+        """
+        Resets the probe detection status to its default state and updates the UI to reflect this change.
+        This method is called after completing or aborting the probe detection process.
+        """
+        self.probe_detection_status = "default"
+        self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
+        self.transM, self.L2_err, self.dist_travled = None, None, None
+        self.probeCalibration.reset_calib()
+        self.probe_detect_default_status_ui()
 
     def probe_detect_process_status(self):
         """
         Updates the UI and internal state to reflect that the probe detection process is underway.
         """
-        self.probe_detection_status = "                                                                                                                                         "
+        if self.probe_detection_status == "process":
+            return
+        
+        self.probe_detection_status = "process"
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
             "background-color: #bc9e44;"
         )
+        if not self.probe_calibration_btn.isChecked():
+            self.probe_calibration_btn.setChecked(True)
+        
         self.calib_x.show()
         self.calib_y.show()
         self.calib_z.show()
@@ -705,7 +719,7 @@ class StageWidget(QWidget):
         for screen in self.screen_widgets:
             camera_name = screen.get_camera_name()
             if camera_name == self.camA_best or camera_name == self.camB_best:
-                print(f"Connect probe_detection: {camera_name}")
+                print(f"Connect `probe_detection`: {camera_name}")
                 screen.probe_coords_detected.connect(self.probe_detect_two_screens)
                 screen.run_probe_detection()
             else:
@@ -726,11 +740,17 @@ class StageWidget(QWidget):
             stage_sn (str): The serial number of the stage for which the probe position is accepted.
             transformation_matrix (np.ndarray): The transformation matrix obtained from the probe calibration process.
         """
+        if self.probe_detection_status == "accepted":
+            return
+    
         self.probe_detection_status = "accepted"
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
             "background-color: #84c083;"
         )
+        if not self.probe_calibration_btn.isChecked():
+            self.probe_calibration_btn.setChecked(True)
+
         self.hide_x_y_z()
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:
@@ -750,6 +770,21 @@ class StageWidget(QWidget):
             stage_sn, transformation_matrix
         )
 
+    def set_default_x_y_z_style(self):
+        self.calib_x.setStyleSheet(
+            "color: white;"
+            "background-color: black;"
+        )
+        self.calib_y.setStyleSheet(
+            "color: white;"
+            "background-color: black;"
+        )
+
+        self.calib_z.setStyleSheet(
+            "color: white;"
+            "background-color: black;"
+        )
+
     def hide_x_y_z(self):
         """
         Hides the X, Y, and Z calibration buttons and updates their styles to indicate that the calibration for
@@ -757,25 +792,14 @@ class StageWidget(QWidget):
         """
         if self.calib_x.isVisible():
             self.calib_x.hide()
-            # Change the button to green.
-            self.calib_x.setStyleSheet(
-            "color: white;"
-            "background-color: black;"
-        )
+            
         if self.calib_y.isVisible():
             self.calib_y.hide()
-            # Change the button to green.
-            self.calib_y.setStyleSheet(
-            "color: white;"
-            "background-color: black;"
-        )
+             
         if self.calib_z.isVisible():
             self.calib_z.hide()
-            # Change the button to green.
-            self.calib_z.setStyleSheet(
-            "color: white;"
-            "background-color: black;"
-        )
+            
+        self.set_default_x_y_z_style()
 
     def calib_x_complete(self):
         """
@@ -787,6 +811,7 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
+        self.calib_status_x = True
     
     def calib_y_complete(self):
         """
@@ -798,7 +823,7 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
-
+        self.calib_status_y = True
 
     def calib_z_complete(self):
         """
@@ -810,6 +835,7 @@ class StageWidget(QWidget):
             "color: white;"
             "background-color: #84c083;"
         )
+        self.calib_status_z = True
 
     def update_probe_calib_status_transM(self, transformation_matrix):
         # Extract the rotation matrix (top-left 3x3)
@@ -822,11 +848,11 @@ class StageWidget(QWidget):
             f"<span style='color:yellow;'><small>"
             f"[Transformation Matrix]<br></small></span>"
             f"<span style='color:green;'><small><b>R:</b><br>"
-            f" [[{R[0][0]:.4f}, {R[0][1]:.4f}, {R[0][2]:.4f}],<br>"
-            f" [{R[1][0]:.4f}, {R[1][1]:.4f}, {R[1][2]:.4f}],<br>"
-            f" [{R[2][0]:.4f}, {R[2][1]:.4f}, {R[2][2]:.4f}]]<br>"
+            f" [[{R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f}],<br>"
+            f" [{R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f}],<br>"
+            f" [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]<br>"
             f"<b>T: </b>"
-            f" [{T[0]:.0f}, {T[1]:.0f}, {T[2]:.0f}]<br>"
+            f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]<br>"
             f"</small></span>"
         )
         return content
@@ -849,11 +875,74 @@ class StageWidget(QWidget):
         )
         return content
 
-    def update_probe_calib_status(self, transformation_matrix, L2_err, dist_traveled):
-        content_transM = self.update_probe_calib_status_transM(transformation_matrix)
+    def update_probe_calib_status(self, transM, L2_err, dist_traveled):
+        content_transM = self.update_probe_calib_status_transM(transM)
         content_L2 = self.update_probe_calib_status_L2(L2_err)
         content_L2_travel = self.update_probe_calib_status_distance_traveled(dist_traveled)
         # Ensure HTML content is properly combined
         full_content = content_transM + content_L2 + content_L2_travel
-
         self.probeCalibrationLabel.setText(full_content)
+        
+        # TODO
+        self.transM, self.L2_err, self.dist_travled = transM, L2_err, dist_traveled
+
+    def get_stage_info(self):
+        info = {}
+        info['detection_status'] = self.probe_detection_status
+        info['transM'] = self.transM
+        info['L2_err'] = self.L2_err
+        info['dist_traveled'] = self.dist_travled
+        info['status_x'] = self.calib_status_x
+        info['status_y'] = self.calib_status_y
+        info['status_z'] = self.calib_status_z
+        return info
+
+    def update_stage_info(self, info):
+        #self.probe_detection_status = info['detection_status']
+        self.transM = info['transM']
+        self.L2_err = info['L2_err']
+        self.dist_travled = info['dist_traveled']
+        self.calib_status_x = info['status_x']
+        self.calib_status_y = info['status_y']
+        self.calib_status_z = info['status_z']
+
+    def update_stages(self, prev_stage_id, curr_stage_id):
+        print(f"update_stages: {prev_stage_id}, {curr_stage_id}")
+
+        # Save the previous stage's calibration info
+        info = self.get_stage_info()
+        self.model.add_stage_calib_info(prev_stage_id, info)
+        logger.debug(f"Saved stage {prev_stage_id} info: {info}")
+
+        # Load the current stage's calibration info
+        info = self.model.get_stage_calib_info(curr_stage_id)
+        logger.debug(f"Loaded stage {curr_stage_id} info: {info}")
+        if info is not None:
+            self.update_stage_info(info)
+            probe_detection_status = info['detection_status']
+        else:
+            probe_detection_status = "default"
+
+        # Go to the appropriate status based on the info
+        if probe_detection_status == "default":
+            self.probe_detect_default_status()  # Reset the probe detection status
+        elif probe_detection_status == "process":
+            self.probe_detect_process_status()
+            # Update calib status of x, y, z, calib status info
+            self.set_default_x_y_z_style()
+            if self.calib_status_x:
+                self.calib_x_complete()
+            if self.calib_status_y:
+                self.calib_y_complete()
+            if self.calib_status_z:
+                self.calib_z_complete()
+            if self.transM is not None:
+                self.update_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
+            else:
+                self.probeCalibrationLabel.setText("")
+        elif probe_detection_status == "accepted":
+            self.probe_detect_accepted_status(curr_stage_id, self.transM)
+            if self.transM is not None:
+                self.update_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
+
+        self.probe_detection_status = probe_detection_status

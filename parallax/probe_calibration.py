@@ -21,7 +21,6 @@ logger.setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
-
 class ProbeCalibration(QObject):
     """
     Handles the transformation of probe coordinates from local (stage) to global (reticle) space.
@@ -36,9 +35,9 @@ class ProbeCalibration(QObject):
         stage_listener (QObject): The stage listener object that emits signals related to stage movements.
     """
 
-    calib_complete_x = pyqtSignal()
-    calib_complete_y = pyqtSignal()
-    calib_complete_z = pyqtSignal()
+    calib_complete_x = pyqtSignal(str)
+    calib_complete_y = pyqtSignal(str)
+    calib_complete_z = pyqtSignal(str)
     calib_complete = pyqtSignal(str, object)
     transM_info = pyqtSignal(object, float, object)
 
@@ -55,18 +54,26 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        self.threshold_min_max = 2500  # TODO
-        self.threshold_min_max_z = 2000  
-        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
+        self.threshold_min_max = 25  # TODO 2500
+        self.threshold_min_max_z = 20 # 2000
+        self.LR_err_L2_threshold = 1000  # TODO 20
         self.threshold_matrix = np.array(
+            [
+                [0.2, 0.2, 0.2, 5000.0],  # TODO
+                [0.2, 0.2, 0.2, 5000.0],
+                [0.2, 0.2, 0.2, 5000.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]
+        )
+        """
             [
                 [0.00002, 0.00002, 0.00002, 50.0],  # TODO
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.0, 0.0, 0.0, 0.0],
             ]
-        )
-        self.LR_err_L2_threshold = 20  # TODO
+        """
+        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self._create_file()
 
         # Test signal
@@ -168,7 +175,6 @@ class ProbeCalibration(QObject):
         # Adding the extra row to complete the affine transformation matrix
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
-        print(local_points_with_bias.shape, global_points.shape, transformation_matrix.shape)
         return model, transformation_matrix
 
     def _update_local_global_point(self, debug_info=None):
@@ -292,19 +298,19 @@ class ProbeCalibration(QObject):
             not self.signal_emitted_x
             and self.max_x - self.min_x > self.threshold_min_max
         ):
-            self.calib_complete_x.emit()
+            self.calib_complete_x.emit(self.stage.sn)
             self.signal_emitted_x = True
         if (
             not self.signal_emitted_y
             and self.max_y - self.min_y > self.threshold_min_max
         ):
-            self.calib_complete_y.emit()
+            self.calib_complete_y.emit(self.stage.sn)
             self.signal_emitted_y = True
         if (
             not self.signal_emitted_z
             and self.max_z - self.min_z > self.threshold_min_max_z
         ):
-            self.calib_complete_z.emit()
+            self.calib_complete_z.emit(self.stage.sn)
             self.signal_emitted_z = True
 
     def _is_enough_points(self):
