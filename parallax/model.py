@@ -136,6 +136,10 @@ class Model(QObject):
     def get_stage_calib_info(self, stage_sn):
         """Get a stage."""
         return self.stages_calib.get(stage_sn)
+    
+    def reset_stabe_calib_info(self):
+        """Reset stage calibration info."""
+        self.stages_calib = {}
 
     def add_probe_detector(self, probeDetector):
         """Add a probe detector."""
