@@ -39,7 +39,7 @@ class ProbeCalibration(QObject):
     calib_complete_y = pyqtSignal(str)
     calib_complete_z = pyqtSignal(str)
     calib_complete = pyqtSignal(str, object)
-    transM_info = pyqtSignal(object, float, object)
+    transM_info = pyqtSignal(str, object, float, object)
 
     """Class for probe calibration."""
 
@@ -337,6 +337,7 @@ class ProbeCalibration(QObject):
         y_diff = self.max_y - self.min_y
         z_diff = self.max_z - self.min_z
         self.transM_info.emit(
+            self.stage.sn,
             self.transM_LR,
             self.LR_err_L2_current,
             np.array([x_diff, y_diff, z_diff]),

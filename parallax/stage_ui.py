@@ -23,6 +23,7 @@ class StageUI(QWidget):
         self.updateStageLocalCoords()
         self.updateStageGlobalCoords()
         self.previous_stage_id = self._get_current_stage_id()
+        self.update_stage_widget(None, self.previous_stage_id)
 
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
         self.ui.stage_selector.currentIndexChanged.connect(

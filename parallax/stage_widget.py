@@ -136,6 +136,7 @@ class StageWidget(QWidget):
         self.probe_detection_status = "default"    # options: default, process, accepted
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
+        self.selected_stage_id, self.moving_stage_id = None, None
 
         # Set current filter
         self.filter = "no_filter"
@@ -742,7 +743,9 @@ class StageWidget(QWidget):
         """
         if self.probe_detection_status == "accepted":
             return
-    
+        if self.moving_stage_id != self.selected_stage_id:
+            return
+
         self.probe_detection_status = "accepted"
         self.probe_calibration_btn.setStyleSheet(
             "color: white;"
@@ -805,6 +808,9 @@ class StageWidget(QWidget):
         """
         Updates the UI to indicate that the calibration for the X-axis is complete.
         """
+        if self.moving_stage_id != self.selected_stage_id:
+            return
+
         if self.calib_x.isVisible():
             # Change the button to green.
             self.calib_x.setStyleSheet(
@@ -817,6 +823,9 @@ class StageWidget(QWidget):
         """
         Updates the UI to indicate that the calibration for the Y-axis is complete.
         """
+        if self.moving_stage_id != self.selected_stage_id:
+            return
+
         if self.calib_y.isVisible():
             # Change the button to green.
             self.calib_y.setStyleSheet(
@@ -829,6 +838,9 @@ class StageWidget(QWidget):
         """
         Updates the UI to indicate that the calibration for the Z-axis is complete.
         """
+        if self.moving_stage_id != self.selected_stage_id:
+            return
+
         if self.calib_z.isVisible():
             # Change the button to green.
             self.calib_z.setStyleSheet(
@@ -875,16 +887,27 @@ class StageWidget(QWidget):
         )
         return content
 
-    def update_probe_calib_status(self, transM, L2_err, dist_traveled):
+    def display_probe_calib_status(self, transM, L2_err, dist_traveled):
         content_transM = self.update_probe_calib_status_transM(transM)
         content_L2 = self.update_probe_calib_status_L2(L2_err)
         content_L2_travel = self.update_probe_calib_status_distance_traveled(dist_traveled)
-        # Ensure HTML content is properly combined
+        # Display the transformation matrix, L2 error, and distance traveled
         full_content = content_transM + content_L2 + content_L2_travel
         self.probeCalibrationLabel.setText(full_content)
-        
-        # TODO
+
+    def update_probe_calib_status(self, moving_stage_id, transM, L2_err, dist_traveled):
         self.transM, self.L2_err, self.dist_travled = transM, L2_err, dist_traveled
+        self.moving_stage_id = moving_stage_id
+
+        if moving_stage_id == self.selected_stage_id:
+            # If moving stage is the selected stage, update the probe calibration status on UI
+            self.display_probe_calib_status(transM, L2_err, dist_traveled)
+        else:
+            # If moving stage is not the selected stage, save the calibration info
+            content = (
+                f"<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
+            )
+            self.probeCalibrationLabel.setText(content)
 
     def get_stage_info(self):
         info = {}
@@ -908,11 +931,16 @@ class StageWidget(QWidget):
 
     def update_stages(self, prev_stage_id, curr_stage_id):
         print(f"update_stages: {prev_stage_id}, {curr_stage_id}")
+        if prev_stage_id is None or curr_stage_id is None:
+            return
+
+        self.selected_stage_id = curr_stage_id
 
         # Save the previous stage's calibration info
-        info = self.get_stage_info()
-        self.model.add_stage_calib_info(prev_stage_id, info)
-        logger.debug(f"Saved stage {prev_stage_id} info: {info}")
+        if self.moving_stage_id == prev_stage_id:
+            info = self.get_stage_info()
+            self.model.add_stage_calib_info(prev_stage_id, info)
+            logger.debug(f"Saved stage {prev_stage_id} info: {info}")
 
         # Load the current stage's calibration info
         info = self.model.get_stage_calib_info(curr_stage_id)
@@ -937,12 +965,12 @@ class StageWidget(QWidget):
             if self.calib_status_z:
                 self.calib_z_complete()
             if self.transM is not None:
-                self.update_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
+                self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
             else:
                 self.probeCalibrationLabel.setText("")
         elif probe_detection_status == "accepted":
             self.probe_detect_accepted_status(curr_stage_id, self.transM)
             if self.transM is not None:
-                self.update_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
+                self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
 
         self.probe_detection_status = probe_detection_status
