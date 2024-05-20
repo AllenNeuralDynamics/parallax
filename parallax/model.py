@@ -137,7 +137,7 @@ class Model(QObject):
         """Get a stage."""
         return self.stages_calib.get(stage_sn)
     
-    def reset_stabe_calib_info(self):
+    def reset_stage_calib_info(self):
         """Reset stage calibration info."""
         self.stages_calib = {}
 
