@@ -54,25 +54,17 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        self.threshold_min_max = 25  # TODO 2500
-        self.threshold_min_max_z = 20 # 2000
-        self.LR_err_L2_threshold = 1000  # TODO 20
+        self.threshold_min_max = 2500 # TODO
+        self.threshold_min_max_z = 2000
+        self.LR_err_L2_threshold = 20
         self.threshold_matrix = np.array(
-            [
-                [0.2, 0.2, 0.2, 5000.0],  # TODO
-                [0.2, 0.2, 0.2, 5000.0],
-                [0.2, 0.2, 0.2, 5000.0],
-                [0.0, 0.0, 0.0, 0.0],
-            ]
-        )
-        """
             [
                 [0.00002, 0.00002, 0.00002, 50.0],  # TODO
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.0, 0.0, 0.0, 0.0],
             ]
-        """
+        )
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self._create_file()
 
