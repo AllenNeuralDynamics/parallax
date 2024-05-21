@@ -152,7 +152,7 @@ class StageWidget(QWidget):
             # Run reticle detectoin
             self.reticle_detect_process_status()
             # Init probe calibration property 
-            self.probeCalibration.reset_calib()
+            # self.probeCalibration.reset_calib(sn = self.selected_stage_id)
         else:
             if self.reticle_detection_status == "accepted":
                 response = self.reticle_overwrite_popup_window()
@@ -652,7 +652,7 @@ class StageWidget(QWidget):
         else:
             response = self.probe_overwrite_popup_window()
             if response:
-                self.probe_detect_default_status()
+                self.probe_detect_default_status(sn = self.selected_stage_id)
             else:
                 # Keep the last calibration result
                 self.probe_calibration_btn.setChecked(True)
@@ -691,7 +691,7 @@ class StageWidget(QWidget):
         # update global coords. Set global_coords to '-' on UI
         self.stageListener.requestClearGlobalDataTransformM() 
 
-    def probe_detect_default_status(self):
+    def probe_detect_default_status(self, sn = None):
         """
         Resets the probe detection status to its default state and updates the UI to reflect this change.
         This method is called after completing or aborting the probe detection process.
@@ -699,7 +699,7 @@ class StageWidget(QWidget):
         self.probe_detection_status = "default"
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
-        self.probeCalibration.reset_calib()
+        self.probeCalibration.reset_calib(sn = sn)
         self.probe_detect_default_status_ui()
 
     def probe_detect_process_status(self):
@@ -737,7 +737,7 @@ class StageWidget(QWidget):
         message = f"Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
-    def probe_detect_accepted_status(self, stage_sn, transformation_matrix):
+    def probe_detect_accepted_status(self, stage_sn, transformation_matrix, switch_probe = False):
         """
         Finalizes the probe detection process, accepting the detected probe position and updating the UI accordingly.
         Additionally, it updates the model with the transformation matrix obtained from the calibration.
@@ -748,7 +748,7 @@ class StageWidget(QWidget):
         """
         if self.probe_detection_status == "accepted":
             return
-        if self.moving_stage_id != self.selected_stage_id:
+        if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
         self.probe_detection_status = "accepted"
@@ -809,11 +809,11 @@ class StageWidget(QWidget):
             
         self.set_default_x_y_z_style()
 
-    def calib_x_complete(self):
+    def calib_x_complete(self, switch_probe = False):
         """
         Updates the UI to indicate that the calibration for the X-axis is complete.
         """
-        if self.moving_stage_id != self.selected_stage_id:
+        if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
         if self.calib_x.isVisible():
@@ -824,11 +824,11 @@ class StageWidget(QWidget):
         )
         self.calib_status_x = True
     
-    def calib_y_complete(self):
+    def calib_y_complete(self, switch_probe = False):
         """
         Updates the UI to indicate that the calibration for the Y-axis is complete.
         """
-        if self.moving_stage_id != self.selected_stage_id:
+        if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
         if self.calib_y.isVisible():
@@ -839,11 +839,11 @@ class StageWidget(QWidget):
         )
         self.calib_status_y = True
 
-    def calib_z_complete(self):
+    def calib_z_complete(self, switch_probe = False):
         """
         Updates the UI to indicate that the calibration for the Z-axis is complete.
         """
-        if self.moving_stage_id != self.selected_stage_id:
+        if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
         if self.calib_z.isVisible():
@@ -957,23 +957,23 @@ class StageWidget(QWidget):
 
         # Go to the appropriate status based on the info
         if probe_detection_status == "default":
-            self.probe_detect_default_status()  # Reset the probe detection status
+            self.probe_detect_default_status(sn = self.selected_stage_id)  # Reset the probe detection status
         elif probe_detection_status == "process":
             self.probe_detect_process_status()
             # Update calib status of x, y, z, calib status info
             self.set_default_x_y_z_style()
             if self.calib_status_x:
-                self.calib_x_complete()
+                self.calib_x_complete(switch_probe = True)
             if self.calib_status_y:
-                self.calib_y_complete()
+                self.calib_y_complete(switch_probe = True)
             if self.calib_status_z:
-                self.calib_z_complete()
+                self.calib_z_complete(switch_probe = True)
             if self.transM is not None:
                 self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
             else:
                 self.probeCalibrationLabel.setText("")
         elif probe_detection_status == "accepted":
-            self.probe_detect_accepted_status(curr_stage_id, self.transM)
+            self.probe_detect_accepted_status(curr_stage_id, self.transM, switch_probe = True)
             if self.transM is not None:
                 self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
 
