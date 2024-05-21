@@ -117,11 +117,15 @@ class ProbeCalibration(QObject):
             ]
             writer.writerow(column_names)
 
-    def clear(self):
+    def clear(self, sn = None):
         """
         Clears all stored data and resets the transformation matrix to its default state.
         """
-        self._create_file()
+        if sn is None:
+            self._create_file()
+        else:
+            self.df = self.df[self.df["sn"] != sn]
+            self.df.to_csv(self.csv_file, index=False)
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
 
     def _get_local_global_points(self):
@@ -132,9 +136,12 @@ class ProbeCalibration(QObject):
             tuple: A tuple containing arrays of local points and global points.
         """
         self.df = pd.read_csv(self.csv_file)
+        # Filter the DataFrame based on self.stage.sn
+        filtered_df = self.df[self.df["sn"] == self.stage.sn]
         # Extract local and global points
-        local_points = self.df[["local_x", "local_y", "local_z"]].values
-        global_points = self.df[["global_x", "global_y", "global_z"]].values
+        local_points = filtered_df[["local_x", "local_y", "local_z"]].values
+        global_points = filtered_df[["global_x", "global_y", "global_z"]].values
+        
         return local_points, global_points
 
     def _get_transM_LR(self, local_points, global_points):

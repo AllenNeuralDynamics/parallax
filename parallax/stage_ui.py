@@ -22,8 +22,7 @@ class StageUI(QWidget):
         self.updateStageSN()
         self.updateStageLocalCoords()
         self.updateStageGlobalCoords()
-        self.previous_stage_id = self._get_current_stage_id()
-        self.update_stage_widget(None, self.previous_stage_id)
+        self.previous_stage_id = self.get_current_stage_id()
 
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
         self.ui.stage_selector.currentIndexChanged.connect(
@@ -50,7 +49,7 @@ class StageUI(QWidget):
         for stage in self.model.stages.keys():
             self.ui.stage_selector.addItem("Probe " + stage, stage)
 
-    def _get_current_stage_id(self):
+    def get_current_stage_id(self):
         """Get the ID of the currently selected stage.
 
         Returns:
@@ -63,17 +62,18 @@ class StageUI(QWidget):
     def update_stage_widget(self, prev_stage_id, curr_stage_id):
         # signal
         self.prev_curr_stages.emit(prev_stage_id, curr_stage_id)
+        print(f"stage_ui.py prev_stage_id: {prev_stage_id}, curr_stage_id: {curr_stage_id}")
 
     def sendInfoToStageWidget(self):
         """Send the selected stage information to the stage widget."""    
         # Get updated stage_id
-        stage_id = self._get_current_stage_id()
+        stage_id = self.get_current_stage_id()
         self.update_stage_widget(self.previous_stage_id, stage_id)
         self.previous_stage_id = stage_id
 
     def updateStageSN(self):
         """Update the displayed stage serial number."""
-        stage_id = self._get_current_stage_id()
+        stage_id = self.get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.stages.get(stage_id)
             if self.selected_stage:
@@ -81,7 +81,7 @@ class StageUI(QWidget):
 
     def updateStageLocalCoords(self):
         """Update the displayed local coordinates of the selected stage."""
-        stage_id = self._get_current_stage_id()
+        stage_id = self.get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.stages.get(stage_id)
             if self.selected_stage:
@@ -91,7 +91,7 @@ class StageUI(QWidget):
 
     def updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""
-        stage_id = self._get_current_stage_id()
+        stage_id = self.get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.stages.get(stage_id)
             if self.selected_stage:

@@ -111,6 +111,7 @@ class StageWidget(QWidget):
         # Stage widget
         self.stageUI = StageUI(self.model, self)
         self.stageUI.prev_curr_stages.connect(self.update_stages)
+        self.selected_stage_id = self.stageUI.get_current_stage_id()
 
         self.probe_calibration_btn.setEnabled(False)
         self.probe_calibration_btn.clicked.connect(
@@ -136,7 +137,7 @@ class StageWidget(QWidget):
         self.probe_detection_status = "default"    # options: default, process, accepted
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
-        self.selected_stage_id, self.moving_stage_id = None, None
+        self.moving_stage_id = None
 
         # Set current filter
         self.filter = "no_filter"
@@ -204,6 +205,7 @@ class StageWidget(QWidget):
             # Disable probe calibration
             self.probe_detect_default_status()
         self.model.reset_stage_calib_info()
+        self.probeCalibration.clear()
 
     def reticle_overwrite_popup_window(self):
         """
@@ -682,7 +684,7 @@ class StageWidget(QWidget):
  
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
-            self.probeCalibration.clear()
+            self.probeCalibration.clear(self.selected_stage_id)
 
         # update global coords. Set global_coords to '-' on UI
         self.stageListener.requestClearGlobalDataTransformM() 
@@ -900,7 +902,7 @@ class StageWidget(QWidget):
         self.transM, self.L2_err, self.dist_travled = transM, L2_err, dist_traveled
         self.moving_stage_id = moving_stage_id
 
-        if moving_stage_id == self.selected_stage_id:
+        if self.moving_stage_id == self.selected_stage_id:
             # If moving stage is the selected stage, update the probe calibration status on UI
             self.display_probe_calib_status(transM, L2_err, dist_traveled)
         else:
@@ -931,11 +933,10 @@ class StageWidget(QWidget):
         self.calib_status_z = info['status_z']
 
     def update_stages(self, prev_stage_id, curr_stage_id):
-        print(f"update_stages: {prev_stage_id}, {curr_stage_id}")
+        logger.debug(f"update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
+        self.selected_stage_id = curr_stage_id
         if prev_stage_id is None or curr_stage_id is None:
             return
-
-        self.selected_stage_id = curr_stage_id
 
         # Save the previous stage's calibration info
         if self.moving_stage_id == prev_stage_id:
