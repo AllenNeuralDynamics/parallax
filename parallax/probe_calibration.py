@@ -68,20 +68,19 @@ class ProbeCalibration(QObject):
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self._create_file()
 
-        # Test signal
-        self.reset_calib()
-
     def reset_calib(self):
         """
         Resets calibration to its initial state, clearing any stored min and max values.
+        Called from StageWidget.
         """
+        print("reset_calib")
         self.min_x, self.max_x = float("inf"), float("-inf")
         self.min_y, self.max_y = float("inf"), float("-inf")
         self.min_z, self.max_z = float("inf"), float("-inf")
-        self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
         self.signal_emitted_x = False
         self.signal_emitted_y = False
         self.signal_emitted_z = False
+        self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
 
     def _create_file(self):
         """
@@ -124,6 +123,7 @@ class ProbeCalibration(QObject):
         if sn is None:
             self._create_file()
         else:
+            self.df = pd.read_csv(self.csv_file)
             self.df = self.df[self.df["sn"] != sn]
             self.df.to_csv(self.csv_file, index=False)
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None

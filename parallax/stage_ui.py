@@ -62,8 +62,7 @@ class StageUI(QWidget):
     def update_stage_widget(self, prev_stage_id, curr_stage_id):
         # signal
         self.prev_curr_stages.emit(prev_stage_id, curr_stage_id)
-        print(f"stage_ui.py prev_stage_id: {prev_stage_id}, curr_stage_id: {curr_stage_id}")
-
+        
     def sendInfoToStageWidget(self):
         """Send the selected stage information to the stage widget."""    
         # Get updated stage_id

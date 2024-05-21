@@ -151,6 +151,8 @@ class StageWidget(QWidget):
         if self.reticle_calibration_btn.isChecked():
             # Run reticle detectoin
             self.reticle_detect_process_status()
+            # Init probe calibration property 
+            self.probeCalibration.reset_calib()
         else:
             if self.reticle_detection_status == "accepted":
                 response = self.reticle_overwrite_popup_window()
