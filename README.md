@@ -4,7 +4,7 @@
 
 Parallax is a graphical user interface designed to streamline the process of setting up and performing acute *in vivo* electrophysiology experiments.
 
-User documentation available on [here](https://parallax.readthedocs.io/en/latest/).
+User documentation available on [here](https://parallax.readthedocs.io/en/stable/).
 
 ### Prerequisites
 - **Python~=3.8** (Recommended to install via [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
