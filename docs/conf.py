@@ -7,13 +7,14 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import sys
+from parallax import __version__ as version
 
 sys.path.insert(0, os.path.abspath(".."))
 
 project = 'Parallax'
 copyright = '2024, Hanna Lee'
 author = 'Hanna Lee'
-release = '0.37.1'
+release = version # Automatically set version from parallax package
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -217,7 +217,7 @@ class ProbeDetectManager(QObject):
 
         def run(self):
             """Run the worker thread."""
-            print("probe_detect_manager running ")
+            logger.debug("probe_detect_manager running ")
             while self.running:
                 if self.new:
                     if self.is_detection_on:
@@ -228,7 +228,7 @@ class ProbeDetectManager(QObject):
                     self.frame_processed.emit(self.frame)
                     self.new = False
                 time.sleep(0.001)
-            print("probe_detect_manager running done")
+            logger.debug("probe_detect_manager running done")
             self.finished.emit()
 
         def set_name(self, name):

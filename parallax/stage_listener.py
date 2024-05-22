@@ -267,7 +267,7 @@ class StageListener(QObject):
         sn = probe["SerialNumber"]
         local_coords_x = round(probe["Stage_X"] * 1000, 1)
         local_coords_y = round(probe["Stage_Y"] * 1000, 1)
-        local_coords_z = round(probe["Stage_Z"] * 1000, 1)
+        local_coords_z = 15000 - round(probe["Stage_Z"] * 1000, 1)
 
         # update into model
         moving_stage = self.model.stages.get(sn)
@@ -283,7 +283,8 @@ class StageListener(QObject):
         # Update into UI
         if self.stage_ui.get_selected_stage_sn() == sn:
             self.stage_ui.updateStageLocalCoords()
-        # logger.debug(sn, moving_stage.stage_x, self.stage_ui.get_selected_stage_sn())
+        else:
+            logger.warning(f"moving_probe: {sn}, selected_probe: {self.stage_ui.get_selected_stage_sn()}")
 
         if sn in self.transM_dict:
             transM = self.transM_dict[sn]
@@ -316,8 +317,7 @@ class StageListener(QObject):
         )
         global_point = np.dot(transM, local_point)
         global_point = np.around(global_point[:3], decimals=1)
-        logger.debug(f"_updateGlobalDataTransformM: {sn}, {global_point}")
-
+        
         # Update into UI
         moving_stage.stage_x_global = global_point[0]
         moving_stage.stage_y_global = global_point[1]
@@ -338,7 +338,7 @@ class StageListener(QObject):
         self.transM_dict[sn] = transM
         logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM}")
 
-    def requestClearGlobalDataTransformM(self):
+    def requestClearGlobalDataTransformM(self, sn = None):
         """
         Clears all stored transformation matrices and resets the UI to default global coordinates.
 
@@ -346,7 +346,11 @@ class StageListener(QObject):
             - Clears `transM_dict`, removing all stored transformation matrices.
             - Triggers a UI update to reset the display of global coordinates to default values.
         """
-        self.transM_dict = {}
+        if sn is None: # Not specified, clear all (Use case: reticle Dection is reset)
+            self.transM_dict = {}
+        else:
+            if self.transM_dict.get(sn) is not None:
+                self.transM_dict.pop(sn)
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 

@@ -381,6 +381,15 @@ class PySpinCamera:
         else:
             return "%s (Serial # %s)" % (device_model, sn)
 
+    def get_device_color_type(self):
+        """
+        Retrieves the color type of the camera.
+
+        Returns:
+        - str: The color type of the camera.
+        """
+        return self.device_color_type
+
     def begin_singleframe_acquisition(self):
         """
         Begings a single Frame image acquisition.

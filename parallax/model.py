@@ -27,8 +27,8 @@ class Model(QObject):
 
         # stage
         self.nStages = 0
-        self.init_stages()
-        self.elevators = {}
+        self.stages = {}
+        self.stages_calib = {}
         self.stage_listener_url = "http://localhost:8080/"
 
         # probe detector
@@ -81,6 +81,7 @@ class Model(QObject):
     def init_stages(self):
         """Initialize stages."""
         self.stages = {}
+        self.stages_calib = {}
 
     def add_video_source(self, video_source):
         """Add a video source."""
@@ -127,6 +128,18 @@ class Model(QObject):
     def get_stage(self, stage_sn):
         """Get a stage."""
         return self.stages.get(stage_sn)
+
+    def add_stage_calib_info(self, stage_sn, info):
+        """Add a stage."""
+        self.stages_calib[stage_sn] = info
+
+    def get_stage_calib_info(self, stage_sn):
+        """Get a stage."""
+        return self.stages_calib.get(stage_sn)
+    
+    def reset_stage_calib_info(self):
+        """Reset stage calibration info."""
+        self.stages_calib = {}
 
     def add_probe_detector(self, probeDetector):
         """Add a probe detector."""

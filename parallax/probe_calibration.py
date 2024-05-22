@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import Ridge
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -19,7 +20,6 @@ logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
 
 class ProbeCalibration(QObject):
     """
@@ -35,11 +35,11 @@ class ProbeCalibration(QObject):
         stage_listener (QObject): The stage listener object that emits signals related to stage movements.
     """
 
-    calib_complete_x = pyqtSignal()
-    calib_complete_y = pyqtSignal()
-    calib_complete_z = pyqtSignal()
+    calib_complete_x = pyqtSignal(str)
+    calib_complete_y = pyqtSignal(str)
+    calib_complete_z = pyqtSignal(str)
     calib_complete = pyqtSignal(str, object)
-    transM_info = pyqtSignal(object, float, object)
+    transM_info = pyqtSignal(str, object, float, object)
 
     """Class for probe calibration."""
 
@@ -54,8 +54,9 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        self.threshold_min_max = 2000  # TODO
-        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
+        self.threshold_min_max = 2500 
+        self.threshold_min_max_z = 2000
+        self.LR_err_L2_threshold = 20
         self.threshold_matrix = np.array(
             [
                 [0.00002, 0.00002, 0.00002, 50.0],  # TODO
@@ -64,24 +65,31 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
-        self.LR_err_L2_threshold = 20  # TODO
+        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self._create_file()
 
-        # Test signal
-        self.reset_calib()
-
-    def reset_calib(self):
+    def reset_calib(self, sn=None):
         """
         Resets calibration to its initial state, clearing any stored min and max values.
+        Called from StageWidget.
         """
-        self.min_x, self.max_x = float("inf"), float("-inf")
-        self.min_y, self.max_y = float("inf"), float("-inf")
-        self.min_z, self.max_z = float("inf"), float("-inf")
-        self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
-        self.signal_emitted_x = False
-        self.signal_emitted_y = False
-        self.signal_emitted_z = False
+        if sn is not None:
+             self.stages[sn] = {
+            'min_x': float("inf"),
+            'max_x': float("-inf"),
+            'min_y': float("inf"),
+            'max_y': float("-inf"),
+            'min_z': float("inf"),
+            'max_z': float("-inf"),
+            'signal_emitted_x': False,
+            'signal_emitted_y': False,
+            'signal_emitted_z': False
+        }
+        else:
+            self.stages = {}
 
+        self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
+        
     def _create_file(self):
         """
         Creates or clears the CSV file used to store local and global points during calibration.
@@ -100,6 +108,7 @@ class ProbeCalibration(QObject):
             writer = csv.writer(file)
             # Define column names
             column_names = [
+                "sn",
                 "local_x",
                 "local_y",
                 "local_z",
@@ -115,11 +124,16 @@ class ProbeCalibration(QObject):
             ]
             writer.writerow(column_names)
 
-    def clear(self):
+    def clear(self, sn = None):
         """
         Clears all stored data and resets the transformation matrix to its default state.
         """
-        self._create_file()
+        if sn is None:
+            self._create_file()
+        else:
+            self.df = pd.read_csv(self.csv_file)
+            self.df = self.df[self.df["sn"] != sn]
+            self.df.to_csv(self.csv_file, index=False)
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
 
     def _get_local_global_points(self):
@@ -130,9 +144,12 @@ class ProbeCalibration(QObject):
             tuple: A tuple containing arrays of local points and global points.
         """
         self.df = pd.read_csv(self.csv_file)
+        # Filter the DataFrame based on self.stage.sn
+        filtered_df = self.df[self.df["sn"] == self.stage.sn]
         # Extract local and global points
-        local_points = self.df[["local_x", "local_y", "local_z"]].values
-        global_points = self.df[["global_x", "global_y", "global_z"]].values
+        local_points = filtered_df[["local_x", "local_y", "local_z"]].values
+        global_points = filtered_df[["global_x", "global_y", "global_z"]].values
+        
         return local_points, global_points
 
     def _get_transM_LR(self, local_points, global_points):
@@ -151,7 +168,8 @@ class ProbeCalibration(QObject):
         )
 
         # Train the linear regression model
-        model = LinearRegression(fit_intercept=False)
+        model = LinearRegression(fit_intercept=False) 
+        #model = Ridge(alpha=1.0, fit_intercept=False) # TODO
         model.fit(local_points_with_bias, global_points)
 
         # Weights and Bias
@@ -173,6 +191,7 @@ class ProbeCalibration(QObject):
         with open(self.csv_file, "a", newline='') as file:
             writer = csv.writer(file)
             row_data = [
+                self.stage.sn,
                 self.stage.stage_x,
                 self.stage.stage_y,
                 self.stage.stage_z,
@@ -210,35 +229,36 @@ class ProbeCalibration(QObject):
             return False
 
     def _update_min_max_x_y_z(self):
-        self.min_x, self.max_x = min(self.min_x, self.stage.stage_x), max(
-            self.max_x, self.stage.stage_x
-        )
-        self.min_y, self.max_y = min(self.min_y, self.stage.stage_y), max(
-            self.max_y, self.stage.stage_y
-        )
-        self.min_z, self.max_z = min(self.min_z, self.stage.stage_z), max(
-            self.max_z, self.stage.stage_z
-        )
+        sn = self.stage.sn
+        if sn not in self.stages:
+            self.stages[sn] = {
+                'min_x': float("inf"), 'max_x': float("-inf"),
+                'min_y': float("inf"), 'max_y': float("-inf"),
+                'min_z': float("inf"), 'max_z': float("-inf")
+            }
 
+        self.stages[sn]['min_x'] = min(self.stages[sn]['min_x'], self.stage.stage_x)
+        self.stages[sn]['max_x'] = max(self.stages[sn]['max_x'], self.stage.stage_x)
+        self.stages[sn]['min_y'] = min(self.stages[sn]['min_y'], self.stage.stage_y)
+        self.stages[sn]['max_y'] = max(self.stages[sn]['max_y'], self.stage.stage_y)
+        self.stages[sn]['min_z'] = min(self.stages[sn]['min_z'], self.stage.stage_z)
+        self.stages[sn]['max_z'] = max(self.stages[sn]['max_z'], self.stage.stage_z)
+       
     def _is_criteria_met_points_min_max(self):
-        """
-        Checks if the range of collected points in each direction exceeds minimum thresholds.
-
-        Returns:
-            bool: True if sufficient range is achieved, otherwise False.
-        """
+        sn = self.stage.sn
+        if sn is not None and sn in self.stages:
+            stage_data = self.stages[sn]
         
-        if self.max_x - self.min_x > self.threshold_min_max \
-            or self.max_y - self.min_y > self.threshold_min_max \
-            or self.max_z - self.min_z > self.threshold_min_max:
-            self._enough_points_emit_signal()
+            if (stage_data['max_x'] - stage_data['min_x'] > self.threshold_min_max or
+                stage_data['max_y'] - stage_data['min_y'] > self.threshold_min_max or
+                stage_data['max_z'] - stage_data['min_z'] > self.threshold_min_max_z):
+                self._enough_points_emit_signal()
 
-        if self.max_x - self.min_x > self.threshold_min_max \
-            and self.max_y - self.min_y > self.threshold_min_max \
-            and self.max_z - self.min_z > self.threshold_min_max:
-            return True
-        else:
-            return False
+            if (stage_data['max_x'] - stage_data['min_x'] > self.threshold_min_max and
+                stage_data['max_y'] - stage_data['min_y'] > self.threshold_min_max and
+                stage_data['max_z'] - stage_data['min_z'] > self.threshold_min_max_z):
+                return True
+        return False
 
     def _apply_transformation(self):
         """
@@ -282,24 +302,31 @@ class ProbeCalibration(QObject):
         """
         Emits calibration complete signals based on the sufficiency of point ranges in each direction.
         """
-        if (
-            not self.signal_emitted_x
-            and self.max_x - self.min_x > self.threshold_min_max
-        ):
-            self.calib_complete_x.emit()
-            self.signal_emitted_x = True
-        if (
-            not self.signal_emitted_y
-            and self.max_y - self.min_y > self.threshold_min_max
-        ):
-            self.calib_complete_y.emit()
-            self.signal_emitted_y = True
-        if (
-            not self.signal_emitted_z
-            and self.max_z - self.min_z > self.threshold_min_max
-        ):
-            self.calib_complete_z.emit()
-            self.signal_emitted_z = True
+        sn = self.stage.sn
+        if sn is not None and sn in self.stages:
+            stage_data = self.stages[sn]
+
+            if (
+                not stage_data.get('signal_emitted_x', False)
+                and stage_data['max_x'] - stage_data['min_x'] > self.threshold_min_max
+            ):
+                self.calib_complete_x.emit(sn)
+                stage_data['signal_emitted_x'] = True
+            if (
+                not stage_data.get('signal_emitted_y', False)
+                and stage_data['max_y'] - stage_data['min_y'] > self.threshold_min_max
+            ):
+                self.calib_complete_y.emit(sn)
+                stage_data['signal_emitted_y'] = True
+            if (
+                not stage_data.get('signal_emitted_z', False)
+                and stage_data['max_z'] - stage_data['min_z'] > self.threshold_min_max_z
+            ):
+                self.calib_complete_z.emit(sn)
+                stage_data['signal_emitted_z'] = True
+            
+            # Update self.stages with the new signal emitted status
+            self.stages[sn] = stage_data
 
     def _is_enough_points(self):
         """Check if there are enough points for calibration.
@@ -321,14 +348,31 @@ class ProbeCalibration(QObject):
         return False
 
     def _update_info_ui(self):
+        """
         x_diff = self.max_x - self.min_x
         y_diff = self.max_y - self.min_y
         z_diff = self.max_z - self.min_z
         self.transM_info.emit(
+            self.stage.sn,
             self.transM_LR,
             self.LR_err_L2_current,
             np.array([x_diff, y_diff, z_diff]),
         )
+        """
+        sn = self.stage.sn
+        if sn is not None and sn in self.stages:
+            stage_data = self.stages[sn]
+            
+            x_diff = stage_data['max_x'] - stage_data['min_x']
+            y_diff = stage_data['max_y'] - stage_data['min_y']
+            z_diff = stage_data['max_z'] - stage_data['min_z']
+            
+            self.transM_info.emit(
+                sn,
+                self.transM_LR,
+                self.LR_err_L2_current,
+                np.array([x_diff, y_diff, z_diff]),
+            )
 
     def update(self, stage, debug_info=None):
         """
