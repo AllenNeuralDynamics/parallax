@@ -62,6 +62,7 @@ class ProbeCalibration(QObject):
                 [0.00002, 0.00002, 0.00002, 50.0],  # TODO
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.00002, 0.00002, 0.00002, 50.0],
+                [0.0, 0.0, 0.0, 0.0],
             ]
         )
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
