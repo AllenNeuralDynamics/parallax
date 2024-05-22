@@ -678,7 +678,7 @@ class StageWidget(QWidget):
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
                 if camera_name == self.camA_best or camera_name == self.camB_best:
-                    print(f"Disconnect probe_detection: {camera_name}")
+                    logger.debug(f"Disconnect probe_detection: {camera_name}")
                     screen.probe_coords_detected.disconnect(
                         self.probe_detect_two_screens
                     )
@@ -725,7 +725,7 @@ class StageWidget(QWidget):
         for screen in self.screen_widgets:
             camera_name = screen.get_camera_name()
             if camera_name == self.camA_best or camera_name == self.camB_best:
-                print(f"Connect `probe_detection`: {camera_name}")
+                logger.debug(f"Connect `probe_detection`: {camera_name}")
                 screen.probe_coords_detected.connect(self.probe_detect_two_screens)
                 screen.run_probe_detection()
             else:
@@ -764,7 +764,7 @@ class StageWidget(QWidget):
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
                 if camera_name == self.camA_best or camera_name == self.camB_best:
-                    print(f"Disconnect probe_detection: {camera_name}")
+                    logger.debug(f"Disconnect probe_detection: {camera_name}")
                     screen.probe_coords_detected.disconnect(
                         self.probe_detect_two_screens
                     )

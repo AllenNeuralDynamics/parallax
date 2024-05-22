@@ -76,16 +76,6 @@ class ProbeCalibration(QObject):
         Resets calibration to its initial state, clearing any stored min and max values.
         Called from StageWidget.
         """
-        print("reset_calib")
-        """
-        self.min_x, self.max_x = float("inf"), float("-inf")
-        self.min_y, self.max_y = float("inf"), float("-inf")
-        self.min_z, self.max_z = float("inf"), float("-inf")
-        self.signal_emitted_x = False
-        self.signal_emitted_y = False
-        self.signal_emitted_z = False
-        self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
-        """
         if sn is not None:
              self.stages[sn] = {
             'min_x': float("inf"),
@@ -242,18 +232,6 @@ class ProbeCalibration(QObject):
             return False
 
     def _update_min_max_x_y_z(self):
-        
-        """
-        self.min_x, self.max_x = min(self.min_x, self.stage.stage_x), max(
-            self.max_x, self.stage.stage_x
-        )
-        self.min_y, self.max_y = min(self.min_y, self.stage.stage_y), max(
-            self.max_y, self.stage.stage_y
-        )
-        self.min_z, self.max_z = min(self.min_z, self.stage.stage_z), max(
-            self.max_z, self.stage.stage_z
-        )
-        """
         sn = self.stage.sn
         if sn not in self.stages:
             self.stages[sn] = {
@@ -270,26 +248,6 @@ class ProbeCalibration(QObject):
         self.stages[sn]['max_z'] = max(self.stages[sn]['max_z'], self.stage.stage_z)
        
     def _is_criteria_met_points_min_max(self):
-        """
-        Checks if the range of collected points in each direction exceeds minimum thresholds.
-
-        Returns:
-            bool: True if sufficient range is achieved, otherwise False.
-        """
-        """
-        if self.max_x - self.min_x > self.threshold_min_max \
-            or self.max_y - self.min_y > self.threshold_min_max \
-            or self.max_z - self.min_z > self.threshold_min_max_z:
-            self._enough_points_emit_signal()
-
-        if self.max_x - self.min_x > self.threshold_min_max \
-            and self.max_y - self.min_y > self.threshold_min_max \
-            and self.max_z - self.min_z > self.threshold_min_max_z:
-            return True
-        else:
-            return False
-        """
-        
         sn = self.stage.sn
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]
@@ -346,26 +304,6 @@ class ProbeCalibration(QObject):
     def _enough_points_emit_signal(self):
         """
         Emits calibration complete signals based on the sufficiency of point ranges in each direction.
-        """
-        """
-        if (
-            not self.signal_emitted_x
-            and self.max_x - self.min_x > self.threshold_min_max
-        ):
-            self.calib_complete_x.emit(self.stage.sn)
-            self.signal_emitted_x = True
-        if (
-            not self.signal_emitted_y
-            and self.max_y - self.min_y > self.threshold_min_max
-        ):
-            self.calib_complete_y.emit(self.stage.sn)
-            self.signal_emitted_y = True
-        if (
-            not self.signal_emitted_z
-            and self.max_z - self.min_z > self.threshold_min_max_z
-        ):
-            self.calib_complete_z.emit(self.stage.sn)
-            self.signal_emitted_z = True
         """
         sn = self.stage.sn
         if sn is not None and sn in self.stages:
