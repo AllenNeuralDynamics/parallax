@@ -657,7 +657,7 @@ class StageWidget(QWidget):
                 # Keep the last calibration result
                 self.probe_calibration_btn.setChecked(True)
 
-    def probe_detect_default_status_ui(self):
+    def probe_detect_default_status_ui(self, sn = None):
         self.probe_calibration_btn.setStyleSheet("""
             QPushButton {
                 color: white;
@@ -688,8 +688,8 @@ class StageWidget(QWidget):
             logger.debug(f"filter: {self.filter}")
             self.probeCalibration.clear(self.selected_stage_id)
 
-        # update global coords. Set global_coords to '-' on UI
-        self.stageListener.requestClearGlobalDataTransformM() 
+        # update global coords. Set  to '-' on UI
+        self.stageListener.requestClearGlobalDataTransformM(sn = sn)  # TODO
 
     def probe_detect_default_status(self, sn = None):
         """
@@ -700,7 +700,7 @@ class StageWidget(QWidget):
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
         self.probeCalibration.reset_calib(sn = sn)
-        self.probe_detect_default_status_ui()
+        self.probe_detect_default_status_ui(sn = sn)
 
     def probe_detect_process_status(self):
         """
@@ -941,10 +941,10 @@ class StageWidget(QWidget):
             return
 
         # Save the previous stage's calibration info
-        if self.moving_stage_id == prev_stage_id:
-            info = self.get_stage_info()
-            self.model.add_stage_calib_info(prev_stage_id, info)
-            logger.debug(f"Saved stage {prev_stage_id} info: {info}")
+        #if self.moving_stage_id == prev_stage_id: # TODO
+        info = self.get_stage_info()
+        self.model.add_stage_calib_info(prev_stage_id, info)
+        logger.debug(f"Saved stage {prev_stage_id} info: {info}")
 
         # Load the current stage's calibration info
         info = self.model.get_stage_calib_info(curr_stage_id)

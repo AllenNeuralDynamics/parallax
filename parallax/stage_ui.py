@@ -92,7 +92,7 @@ class StageUI(QWidget):
         """Update the displayed global coordinates of the selected stage."""
         stage_id = self.get_current_stage_id()
         if stage_id:
-            self.selected_stage = self.model.stages.get(stage_id)
+            self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
                 if self.selected_stage.stage_x_global is not None \
                 and self.selected_stage.stage_y_global is not None \
