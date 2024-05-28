@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import Ridge
+from coords_transformation import RotationTransformation
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -183,6 +183,22 @@ class ProbeCalibration(QObject):
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
         return model, transformation_matrix
+    
+    def _get_transM_LR_orthogonal(self, local_points, global_points):
+        """
+        Computes the transformation matrix from local to global coordinates using orthogonal distance regression.
+        Args:
+            local_points (np.array): Array of local points.
+            global_points (np.array): Array of global points.
+        Returns:
+            tuple: Linear regression model and transformation matrix.
+        """
+        transformer = RotationTransformation()
+        origin, R = transformer.fit_params(local_points, global_points)
+        transformation_matrix = np.hstack([R, origin.reshape(-1, 1)])
+        transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
+
+        return transformation_matrix
 
     def _update_local_global_point(self, debug_info=None):
         """
@@ -386,9 +402,11 @@ class ProbeCalibration(QObject):
         self._update_local_global_point(debug_info)
         # get whole list of local and global points in pd format
         local_points, global_points = self._get_local_global_points()
-        self.model_LR, self.transM_LR = self._get_transM_LR(
-            local_points, global_points
-        )
+        
+        if len(local_points) < 3 or len(global_points) < 3:
+            return
+        self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points)
+        
         self.LR_err_L2_current = self._l2_error_current_point()
         self._update_min_max_x_y_z()  # update min max x,y,z
 
