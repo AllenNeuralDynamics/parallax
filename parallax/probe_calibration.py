@@ -48,6 +48,7 @@ class ProbeCalibration(QObject):
         Initializes the ProbeCalibration object with a given stage listener.
         """
         super().__init__()
+        self.transformer = RotationTransformation()
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
         self.stages = {}
@@ -193,8 +194,8 @@ class ProbeCalibration(QObject):
         Returns:
             tuple: Linear regression model and transformation matrix.
         """
-        transformer = RotationTransformation()
-        origin, R = transformer.fit_params(local_points, global_points)
+
+        origin, R = self.transformer.fit_params(local_points, global_points)
         transformation_matrix = np.hstack([R, origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
@@ -364,17 +365,6 @@ class ProbeCalibration(QObject):
         return False
 
     def _update_info_ui(self):
-        """
-        x_diff = self.max_x - self.min_x
-        y_diff = self.max_y - self.min_y
-        z_diff = self.max_z - self.min_z
-        self.transM_info.emit(
-            self.stage.sn,
-            self.transM_LR,
-            self.LR_err_L2_current,
-            np.array([x_diff, y_diff, z_diff]),
-        )
-        """
         sn = self.stage.sn
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]

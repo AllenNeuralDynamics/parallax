@@ -686,8 +686,9 @@ class StageWidget(QWidget):
  
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
-            self.probeCalibration.clear(self.selected_stage_id)
 
+        # Reset the probe calibration status
+        self.probeCalibration.clear(self.selected_stage_id)
         # update global coords. Set  to '-' on UI
         self.stageListener.requestClearGlobalDataTransformM(sn = sn)
 
