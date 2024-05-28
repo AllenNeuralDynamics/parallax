@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import Ridge
+from coords_transformation import RotationTransformation
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -48,6 +48,7 @@ class ProbeCalibration(QObject):
         Initializes the ProbeCalibration object with a given stage listener.
         """
         super().__init__()
+        self.transformer = RotationTransformation()
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
         self.stages = {}
@@ -149,7 +150,7 @@ class ProbeCalibration(QObject):
         # Extract local and global points
         local_points = filtered_df[["local_x", "local_y", "local_z"]].values
         global_points = filtered_df[["global_x", "global_y", "global_z"]].values
-        
+
         return local_points, global_points
 
     def _get_transM_LR(self, local_points, global_points):
@@ -183,11 +184,31 @@ class ProbeCalibration(QObject):
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
         return model, transformation_matrix
+    
+    def _get_transM_LR_orthogonal(self, local_points, global_points):
+        """
+        Computes the transformation matrix from local to global coordinates using orthogonal distance regression.
+        Args:
+            local_points (np.array): Array of local points.
+            global_points (np.array): Array of global points.
+        Returns:
+            tuple: Linear regression model and transformation matrix.
+        """
+
+        origin, R = self.transformer.fit_params(local_points, global_points)
+        transformation_matrix = np.hstack([R, origin.reshape(-1, 1)])
+        transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
+
+        return transformation_matrix
 
     def _update_local_global_point(self, debug_info=None):
         """
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
+        # Check if stage_z_global is under 10 microns
+        if self.stage.stage_z_global < 10:
+            return  # Do not update if condition is met (to avoid noise)
+        
         with open(self.csv_file, "a", newline='') as file:
             writer = csv.writer(file)
             row_data = [
@@ -348,17 +369,6 @@ class ProbeCalibration(QObject):
         return False
 
     def _update_info_ui(self):
-        """
-        x_diff = self.max_x - self.min_x
-        y_diff = self.max_y - self.min_y
-        z_diff = self.max_z - self.min_z
-        self.transM_info.emit(
-            self.stage.sn,
-            self.transM_LR,
-            self.LR_err_L2_current,
-            np.array([x_diff, y_diff, z_diff]),
-        )
-        """
         sn = self.stage.sn
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]
@@ -386,9 +396,11 @@ class ProbeCalibration(QObject):
         self._update_local_global_point(debug_info)
         # get whole list of local and global points in pd format
         local_points, global_points = self._get_local_global_points()
-        self.model_LR, self.transM_LR = self._get_transM_LR(
-            local_points, global_points
-        )
+        
+        if len(local_points) < 3 or len(global_points) < 3:
+            return
+        self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points)
+        
         self.LR_err_L2_current = self._l2_error_current_point()
         self._update_min_max_x_y_z()  # update min max x,y,z
 
