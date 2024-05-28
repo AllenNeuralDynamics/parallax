@@ -150,7 +150,7 @@ class ProbeCalibration(QObject):
         # Extract local and global points
         local_points = filtered_df[["local_x", "local_y", "local_z"]].values
         global_points = filtered_df[["global_x", "global_y", "global_z"]].values
-        
+
         return local_points, global_points
 
     def _get_transM_LR(self, local_points, global_points):
@@ -205,6 +205,10 @@ class ProbeCalibration(QObject):
         """
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
+        # Check if stage_z_global is under 10 microns
+        if self.stage.stage_z_global < 10:
+            return  # Do not update if condition is met (to avoid noise)
+        
         with open(self.csv_file, "a", newline='') as file:
             writer = csv.writer(file)
             row_data = [
