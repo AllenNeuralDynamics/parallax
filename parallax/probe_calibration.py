@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from sklearn.linear_model import LinearRegression
-from coords_transformation import RotationTransformation
+from .coords_transformation import RotationTransformation
 
 # Set logger name
 logger = logging.getLogger(__name__)
