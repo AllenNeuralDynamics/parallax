@@ -459,7 +459,7 @@ class StageWidget(QWidget):
                 err, instance, retval, R_AB, T_AB, E_AB, F_AB = self.get_results_calibrate_stereo(
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
-                print(f"camA: {camA} camB: {camB} err: {err}")
+                print(f"camera pair: {camA}-{camB}, err: {err}")
                 if err < min_err:
                     self.calibrationStereo = instance
                     min_err = err
