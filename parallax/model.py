@@ -14,10 +14,11 @@ class Model(QObject):
     msg_posted = pyqtSignal(str)
     accutest_point_reached = pyqtSignal()
 
-    def __init__(self, version="V1"):
+    def __init__(self, version="V1", bundle_adjustment=False):
         """Initialize model object"""
         QObject.__init__(self)
         self.version = version
+        self.bundle_adjustment = bundle_adjustment
         # camera
         self.cameras = []
         self.cameras_sn = []

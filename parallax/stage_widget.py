@@ -576,6 +576,7 @@ class StageWidget(QWidget):
     def probe_detect_two_screens(self):
         """Detect probe coordinates on all screens."""
         timestamp_cmp, sn_cmp = None, None
+        cam_probe_coords = {}
 
         if self.calibrationStereo is None:
             print("Camera calibration has not done")
@@ -604,6 +605,12 @@ class StageWidget(QWidget):
                     tip_coordsA = tip_coord
                 else:
                     tip_coordsB = tip_coord
+            else:
+                if self.model.bundle_adjustment:
+                    print("Setting up bundle adjustment...")
+                    # TODO add the other camera info
+                    #cam_probe_coords[camera_name] = tip_coord
+                pass
 
         # All screen has the same timestamp. Proceed the triangulation
         global_coords = self.calibrationStereo.get_global_coords(

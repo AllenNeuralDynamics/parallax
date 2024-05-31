@@ -401,7 +401,7 @@ class StageListener(QObject):
         self.ts_img_captured = self._change_time_format(ts_img_captured)
         ts_local_coords, local_coords = self._find_closest_local_coords()
 
-        logger.debug(
+        logger.info(
             f"\ntimestamp local:{ts_local_coords} img_captured:{ts_img_captured}"
         )
         global_coords_x = round(global_coords[0][0] * 1000, 1)
