@@ -533,6 +533,7 @@ class StageWidget(QWidget):
         timestamp_cmp, sn_cmp = None, None
         cam_names = []
         tip_coords = []
+        other_cams = {}
 
         if self.calibrationStereo is None:
             print("Camera calibration has not done")
@@ -570,13 +571,14 @@ class StageWidget(QWidget):
                                 cam_names[0],
                                 tip_coords[0],
                                 cam_names[1],
-                                tip_coords[1]
+                                tip_coords[1], 
+                                other_cams = other_cams
                             )
 
-    def probe_detect_two_screens(self):
+    def probe_detect_on_screens(self):
         """Detect probe coordinates on all screens."""
         timestamp_cmp, sn_cmp = None, None
-        cam_probe_coords = {}
+        other_cams = {}
 
         if self.calibrationStereo is None:
             print("Camera calibration has not done")
@@ -584,9 +586,8 @@ class StageWidget(QWidget):
 
         for screen in self.screen_widgets:
             camera_name = screen.get_camera_name()
-            if camera_name == self.camA_best or camera_name == self.camB_best:
+            if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                 timestamp, sn, tip_coord = screen.get_last_detect_probe_info()
-
                 if (sn is None) or (tip_coord is None) or (timestamp is None):
                     return
 
@@ -601,30 +602,29 @@ class StageWidget(QWidget):
                 else:  # if sn is different between screens, return
                     if sn_cmp != sn:
                         return
+
                 if camera_name == self.camA_best:
                     tip_coordsA = tip_coord
-                else:
+                elif camera_name == self.camB_best:
                     tip_coordsB = tip_coord
-            else:
-                if self.model.bundle_adjustment:
-                    print("Setting up bundle adjustment...")
-                    # TODO add the other camera info
-                    #cam_probe_coords[camera_name] = tip_coord
-                pass
+                elif self.model.bundle_adjustment:
+                    other_cams[camera_name] = tip_coord
 
-        # All screen has the same timestamp. Proceed the triangulation
+        # All screens have the same timestamp. Proceed with triangulation
         global_coords = self.calibrationStereo.get_global_coords(
             self.camA_best, tip_coordsA, self.camB_best, tip_coordsB
         )
 
-        self.stageListener.handleGlobalDataChange(sn,
-                                global_coords,
-                                timestamp,
-                                self.camA_best, 
-                                tip_coordsA, 
-                                self.camB_best, 
-                                tip_coordsB
-                            )
+        self.stageListener.handleGlobalDataChange(
+            sn_cmp,
+            global_coords,
+            timestamp_cmp,
+            self.camA_best, 
+            tip_coordsA, 
+            self.camB_best, 
+            tip_coordsB, 
+            other_cams=other_cams
+    )
 
     def probe_overwrite_popup_window(self):
         """
@@ -687,7 +687,7 @@ class StageWidget(QWidget):
                 if camera_name == self.camA_best or camera_name == self.camB_best:
                     logger.debug(f"Disconnect probe_detection: {camera_name}")
                     screen.probe_coords_detected.disconnect(
-                        self.probe_detect_two_screens
+                        self.probe_detect_on_screens
                     )
                     screen.run_no_filter()
  
@@ -732,9 +732,9 @@ class StageWidget(QWidget):
         # Connect with only reticle detected screens
         for screen in self.screen_widgets:
             camera_name = screen.get_camera_name()
-            if camera_name == self.camA_best or camera_name == self.camB_best:
+            if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                 logger.debug(f"Connect `probe_detection`: {camera_name}")
-                screen.probe_coords_detected.connect(self.probe_detect_two_screens)
+                screen.probe_coords_detected.connect(self.probe_detect_on_screens)
                 screen.run_probe_detection()
             else:
                 screen.run_no_filter()
@@ -771,10 +771,10 @@ class StageWidget(QWidget):
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
-                if camera_name == self.camA_best or camera_name == self.camB_best:
+                if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                     logger.debug(f"Disconnect probe_detection: {camera_name}")
                     screen.probe_coords_detected.disconnect(
-                        self.probe_detect_two_screens
+                        self.probe_detect_on_screens
                     )
                     screen.run_no_filter()
 
@@ -921,6 +921,7 @@ class StageWidget(QWidget):
                 f"<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
             )
             self.probeCalibrationLabel.setText(content)
+        print("update text on UI")
 
     def get_stage_info(self):
         info = {}

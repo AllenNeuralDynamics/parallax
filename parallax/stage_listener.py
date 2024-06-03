@@ -389,8 +389,7 @@ class StageListener(QObject):
 
         return closest_ts, closest_coords
 
-    #def handleGlobalDataChange(self, sn, global_coords, ts_img_captured):
-    def handleGlobalDataChange(self, sn, global_coords, ts_img_captured, cam0, pt0, cam1, pt1):
+    def handleGlobalDataChange(self, sn, global_coords, ts_img_captured, cam0, pt0, cam1, pt1, other_cams={}):
         """Handle changes in global stage data.
 
         Args:
@@ -401,7 +400,7 @@ class StageListener(QObject):
         self.ts_img_captured = self._change_time_format(ts_img_captured)
         ts_local_coords, local_coords = self._find_closest_local_coords()
 
-        logger.info(
+        logger.debug(
             f"\ntimestamp local:{ts_local_coords} img_captured:{ts_img_captured}"
         )
         global_coords_x = round(global_coords[0][0] * 1000, 1)
@@ -435,8 +434,10 @@ class StageListener(QObject):
             debug_info["pt0"] = pt0
             debug_info["cam1"] = cam1
             debug_info["pt1"] = pt1
-
-            #self.probeCalibRequest.emit(self.stage_global_data)
+            for i, (other_cam_sn, pt_on_other_cam) in enumerate(other_cams.items()):
+                debug_info[f"cam{i+2}"] = other_cam_sn
+                debug_info[f"pt{i+2}"] = pt_on_other_cam
+                
             self.probeCalibRequest.emit(self.stage_global_data, debug_info)
 
             # Update into UI

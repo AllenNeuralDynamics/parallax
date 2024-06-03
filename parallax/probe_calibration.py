@@ -232,6 +232,14 @@ class ProbeCalibration(QObject):
                     debug_info.get("cam1", ''),
                     debug_info.get("pt1", '')
                 ])
+                # Add the other camera information dynamically
+                i = 2
+                while f"cam{i}" in debug_info:
+                    row_data.extend([
+                        debug_info.get(f"cam{i}", ''),
+                        debug_info.get(f"pt{i}", '')
+                    ])
+                    i += 1
 
             # Write the complete row to the CSV
             writer.writerow(row_data)
