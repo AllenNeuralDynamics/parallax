@@ -60,11 +60,11 @@ class RotationTransformation:
 
         return error_values
 
-    def total_error(self, x, measured_pts, global_pts, reflect_z=False):
+    def avg_error(self, x, measured_pts, global_pts, reflect_z=False):
         """Calculates the total error for the optimization."""
         error_values = self.func(x, measured_pts, global_pts, reflect_z)
-        total_error = np.sum(error_values**2)
-        return total_error
+        ave_error = np.sum(error_values**2)/len(error_values)
+        return ave_error
 
     def fit_params(self, measured_pts, global_pts):
         """Fits parameters to minimize the error defined in func"""
@@ -74,15 +74,14 @@ class RotationTransformation:
         
         # Optimize without reflection
         res1 = leastsq(self.func, x0, args=(measured_pts, global_pts, False))
-        total_error1 = self.total_error(res1[0], measured_pts, global_pts, False)
+        avg_error1 = self.avg_error(res1[0], measured_pts, global_pts, False)
 
         # Optimize with reflection
         res2 = leastsq(self.func, x0, args=(measured_pts, global_pts, True))
-        total_error2 = self.total_error(res2[0], measured_pts, global_pts, True)
+        avg_error2 = self.avg_error(res2[0], measured_pts, global_pts, True)
 
         # Select the transformation with the smaller total error
-        print(f"no_reflect: {total_error1}, reflect: {total_error2}")
-        if total_error1 < total_error2:
+        if avg_error1 < avg_error2:
             rez = res1[0]
             R = self.combineAngles(rez[2], rez[1], rez[0], reflect_z=False)
         else:

@@ -86,8 +86,7 @@ class StageUI(QWidget):
             if self.selected_stage:
                 self.ui.local_coords_x.setText(str(self.selected_stage.stage_x))
                 self.ui.local_coords_y.setText(str(self.selected_stage.stage_y))
-                self.ui.local_coords_z.setText(str(self.selected_stage.stage_z)) # TODO
-                #self.ui.local_coords_z.setText(str(15000 - self.selected_stage.stage_z))
+                self.ui.local_coords_z.setText(str(self.selected_stage.stage_z))
 
     def updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""
