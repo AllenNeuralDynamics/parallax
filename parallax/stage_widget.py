@@ -460,6 +460,9 @@ class StageWidget(QWidget):
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
                 print(f"camera pair: {camA}-{camB}, err: {err}")
+                logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {err} ===")
+                logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
+                
                 if err < min_err:
                     self.calibrationStereo = instance
                     min_err = err
@@ -475,7 +478,7 @@ class StageWidget(QWidget):
         print("\n== intrinsics ==")
         print(f" cam {self.camA_best}:\n  {itmxA_best}")
         print(f" cam {self.camB_best}:\n  {itmxB_best}")
-        self.calibrationStereo.print_calibrate_stereo_results()
+        self.calibrationStereo.print_calibrate_stereo_results(self.camA_best, self.camB_best)
         err = self.calibrationStereo.test_performance(
             self.camA_best, coordsA_best, self.camB_best, coordsB_best, print_results=True
             )
@@ -921,7 +924,6 @@ class StageWidget(QWidget):
                 f"<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
             )
             self.probeCalibrationLabel.setText(content)
-        print("update text on UI")
 
     def get_stage_info(self):
         info = {}

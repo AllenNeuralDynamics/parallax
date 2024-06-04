@@ -259,11 +259,11 @@ class CalibrationStereo(CalibrationCamera):
         self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB = None, None, None, None, None 
         self.P_A, self.P_B = None, None
 
-    def print_calibrate_stereo_results(self):
+    def print_calibrate_stereo_results(self, camA_sn, camB_sn):
         if self.retval is None or self.R_AB is None or self.T_AB is None:
             return
         print("\n== Stereo Calibration ==")
-        print("AB")
+        print(f"Pair: {camA_sn}-{camB_sn}")
         print(self.retval)
         print(f"R: \n{self.R_AB}")
         print(f"T: \n{self.T_AB}")
@@ -275,7 +275,7 @@ class CalibrationStereo(CalibrationCamera):
             "F_AB:\n"
             + "\n".join(
                 [" ".join([f"{val:.5f}" for val in row]) for row in self.F_AB]
-            ) + "\n")
+            ))
         formatted_E = (
             "E_AB:\n"
             + "\n".join(
