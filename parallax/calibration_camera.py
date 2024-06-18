@@ -14,7 +14,7 @@ import numpy as np
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
@@ -50,6 +50,7 @@ imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
 idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
                     dtype=np.float32)
 """
+
 imtx = np.array([[1.519e+04, 0.0e+00, 2e+03],
                 [0.0e+00, 1.519e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
@@ -388,9 +389,24 @@ class CalibrationStereo(CalibrationCamera):
             self.distA,
             flags=solvePnP_method,
         )
-        logger.debug("solvePnP")
-        logger.debug(rvecs)
-        logger.debug(tvecs)
+        logger.debug(f"=== CamA, World to Camera transformation ====")
+        logger.debug(f"rvecs: {rvecs}")
+        logger.debug(f"tvecs: {tvecs}")
+
+        # Test =====================================
+        _, rvecsB, tvecsB = cv2.solvePnP(
+            self.objpoints,
+            self.imgpointsB,
+            self.mtxB,
+            self.distB,
+            flags=solvePnP_method,
+        )
+        logger.debug(f"=== CamB, World to Camera transformation ====")
+        logger.debug(f"rvecs: {rvecsB}")
+        logger.debug(f"tvecs: {tvecsB}")
+        # ==========================================
+
+
         # Convert rotation vectors to rotation matrices
         rmat, _ = cv2.Rodrigues(rvecs)
         # Invert the rotation and translation
@@ -476,8 +492,8 @@ class CalibrationStereo(CalibrationCamera):
         camA, coordA, camB, coordB = self._matching_camera_order(
             camA, coordA, camB, coordB
         )
-        logger.debug(f"coordA: {coordA}")
-        logger.debug(f"coordB: {coordB}")
+        logger.debug(f"camA: {camA}, coordA: {coordA}")
+        logger.debug(f"camB: {camB}, coordB: {coordB}")
         points_3d_AB = self.triangulation(
             self.P_B, self.P_A, self.imgpointsB, self.imgpointsA
         )
