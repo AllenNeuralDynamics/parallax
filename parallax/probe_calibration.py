@@ -56,11 +56,11 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.stage = None
         self.threshold_min_max = 2500 
-        self.threshold_min_max_z = 2000
+        self.threshold_min_max_z = 1000
         self.LR_err_L2_threshold = 20
         self.threshold_matrix = np.array(
             [
-                [0.00002, 0.00002, 0.00002, 50.0],  # TODO
+                [0.00002, 0.00002, 0.00002, 50.0], 
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.0, 0.0, 0.0, 0.0],
@@ -170,7 +170,6 @@ class ProbeCalibration(QObject):
 
         # Train the linear regression model
         model = LinearRegression(fit_intercept=False) 
-        #model = Ridge(alpha=1.0, fit_intercept=False) # TODO
         model.fit(local_points_with_bias, global_points)
 
         # Weights and Bias
@@ -185,6 +184,35 @@ class ProbeCalibration(QObject):
 
         return model, transformation_matrix
     
+    def _get_l2_distance(self, local_points, global_points, R, t):
+        global_coords_exp = R @ local_points.T + t.reshape(-1, 1)
+        global_coords_exp = global_coords_exp.T
+
+        l2_distance = np.linalg.norm(global_points - global_coords_exp, axis=1)
+        mean_l2_distance = np.mean(l2_distance)
+        std_l2_distance = np.std(l2_distance)
+        logger.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
+
+        return l2_distance
+
+    def _remove_outliers(self, local_points, global_points, R, t):
+        # Get the l2 distance
+        l2_distance = self._get_l2_distance(local_points, global_points, self.R, self.origin)
+
+        # Remove outliers
+        threshold = 40
+
+        # Filter out points where L2 distance is greater than the threshold
+        valid_indices = l2_distance <= threshold
+        filtered_local_points = local_points[valid_indices]
+        filtered_global_points = global_points[valid_indices]
+
+        logger.debug(f"  (noise removed) -> \
+                     {np.mean(l2_distance[valid_indices])}, \
+                     {np.std(l2_distance[valid_indices])}")
+
+        return filtered_local_points, filtered_global_points
+
     def _get_transM_LR_orthogonal(self, local_points, global_points):
         """
         Computes the transformation matrix from local to global coordinates using orthogonal distance regression.
@@ -194,9 +222,14 @@ class ProbeCalibration(QObject):
         Returns:
             tuple: Linear regression model and transformation matrix.
         """
+        if len(local_points) > 80 and self.R is not None and self.origin is not None:
+            local_points, global_points = self._remove_outliers(local_points, global_points, self.R, self.origin)
+            pass
 
-        origin, R = self.transformer.fit_params(local_points, global_points)
-        transformation_matrix = np.hstack([R, origin.reshape(-1, 1)])
+        if len(local_points) < 3 or len(global_points) < 3:
+            return None
+        self.origin, self.R = self.transformer.fit_params(local_points, global_points)
+        transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
         return transformation_matrix
@@ -405,9 +438,9 @@ class ProbeCalibration(QObject):
         # get whole list of local and global points in pd format
         local_points, global_points = self._get_local_global_points()
         
-        if len(local_points) < 3 or len(global_points) < 3:
-            return
         self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points)
+        if self.transM_LR is None:
+            return
         
         self.LR_err_L2_current = self._l2_error_current_point()
         self._update_min_max_x_y_z()  # update min max x,y,z
