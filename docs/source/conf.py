@@ -7,13 +7,17 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import sys
+from datetime import date
 from parallax import __version__ as version
 
 sys.path.insert(0, os.path.abspath(".."))
 
+INSTITUTE_NAME = "Allen Institute for Neural Dynamics"
+
 project = 'Parallax'
-copyright = '2024, Hanna Lee'
-author = 'Hanna Lee'
+current_year = date.today().year
+copyright = f"{current_year}, {INSTITUTE_NAME}"
+author = INSTITUTE_NAME
 release = version # Automatically set version from parallax package
 
 # -- General configuration ---------------------------------------------------
@@ -25,9 +29,14 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
-
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
 html_static_path = ['_static']
+html_title = project
+html_favicon = "_static/favicon.ico"
+html_theme_options = {
+    "light_logo": "light-logo.svg",
+    "dark_logo": "dark-logo.svg",
+}
