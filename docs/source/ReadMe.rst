@@ -1,7 +1,7 @@
 Welcome to Parallax
 =========================
 
-.. image:: ../ui/ParallaxReadME.jpg
+.. image:: ../../ui/ParallaxReadME.jpg
    :alt: Parallax
 
 Parallax is a graphical user interface designed to streamline the process of setting up and performing acute in vivo electrophysiology experiments.
@@ -88,5 +88,5 @@ Documentation
 
 .. code-block:: bash
 
-   sphinx-build -b html docs/ docs/_build
+   sphinx-build -b html docs/source docs/_build
 
