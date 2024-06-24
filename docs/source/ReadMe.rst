@@ -1,92 +1,88 @@
 Welcome to Parallax
-=========================
+====================
 
 .. image:: ../../ui/ParallaxReadME.jpg
    :alt: Parallax
 
 Parallax is a graphical user interface designed to streamline the process of setting up and performing acute in vivo electrophysiology experiments.
 
-
 Prerequisites
-=========================
-- **Python~=3.8** (Recommended to install via [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
-- PySpin (for Linux or Mac OS users)
+--------------
+   - **Python~=3.8** (Recommended to install via `Anaconda`_ or `Miniconda`_)
+      - Python 3.8 is required for the Spinnaker library.
+   - PySpin (for Linux or Mac OS users)
 
+   .. _Anaconda: https://www.anaconda.com/products/individual
+   .. _Miniconda: https://docs.conda.io/en/latest/miniconda.html
 
 Installing and Upgrading
-=========================
+-------------------------
+   1. Create a virtual environment using **Python 3.8** and activate it:
 
-1. Create virtual environment using **Python version 3.8** and activate it:
-- On Windows:
+      - On Windows:
 
-.. code-block:: bash
+      .. code-block:: bash
 
-   python -m venv venv
-   ./venv/Scripts/activate
+         python -m venv venv
+         .\venv\Scripts\activate
 
-- On Linux/Mac:
+      - On Linux/Mac:
 
-.. code-block:: bash
+      .. code-block:: bash
 
-   python -m venv venv
-   source venv/bin/activate
+         python -m venv venv
+         source venv/bin/activate
 
-2. To install the latest version:
+   2. Install the latest version:
 
-.. code-block:: bash
+      .. code-block:: bash
 
-   pip install parallax-app
+         pip install parallax-app
 
-To upgrate to the latest version:
+      To upgrade to the latest version:
 
-.. code-block:: bash
+      .. code-block:: bash
 
-   pip install parallax-app --upgrade
+         pip install parallax-app --upgrade
 
+   3. To install the camera interface:
 
-3. To install camera interface:
+      .. code-block:: bash
 
-.. code-block:: bash
-   
-   pip install parallax-app[camera]
-
+         pip install parallax-app[camera]
 
 Running Parallax
-=========================
+----------------
+   .. code-block:: bash
 
-.. code-block:: bash
+      python -m parallax
 
-   python -m parallax
+Other Things to Note
+---------------------
+**Development Mode**
 
-   
-Development mode
-=========================
+   1. Clone the repository:
 
-1. Clone the repository:
+      .. code-block:: bash
 
-.. code-block:: bash
+         git clone https://github.com/AllenNeuralDynamics/parallax.git
 
-   git clone https://github.com/AllenNeuralDynamics/parallax.git
+   2. Install dependencies:
 
-2. Install Dependencies:
+      .. code-block:: bash
 
-.. code-block:: bash
+         pip install -e .[dev]
 
-   pip install -e .[dev]
+**Documentation**
 
+   1. Install dependencies:
 
-Documentation
-=========================
+      .. code-block:: bash
 
-1. To install the dependencies:
+         pip install -e .[docs]
 
-.. code-block:: bash
+   2. Create the documentation HTML files:
 
-   pip install -e .[docs]
+      .. code-block:: bash
 
-2. Then to create the documentation html files, run:
-
-.. code-block:: bash
-
-   sphinx-build -b html docs/source docs/_build
-
+         sphinx-build -b html docs/source docs/_build
