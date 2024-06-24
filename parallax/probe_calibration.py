@@ -211,7 +211,7 @@ class ProbeCalibration(QObject):
                      {np.mean(l2_distance[valid_indices])}, \
                      {np.std(l2_distance[valid_indices])}")
 
-        return filtered_local_points, filtered_global_points
+        return filtered_local_points, filtered_global_points, valid_indices
 
     def _get_transM_LR_orthogonal(self, local_points, global_points):
         """
@@ -223,7 +223,7 @@ class ProbeCalibration(QObject):
             tuple: Linear regression model and transformation matrix.
         """
         if len(local_points) > 80 and self.R is not None and self.origin is not None:
-            local_points, global_points = self._remove_outliers(local_points, global_points, self.R, self.origin)
+            local_points, global_points, _ = self._remove_outliers(local_points, global_points, self.R, self.origin)
             pass
 
         if len(local_points) < 3 or len(global_points) < 3:
@@ -455,6 +455,34 @@ class ProbeCalibration(QObject):
             logger.debug(
                 f"complete probe calibration {self.stage.sn}, {self.transM_LR}"
             )
+
+            # Filter the DataFrame based on self.stage.sn
+            filtered_df = self.df[self.df["sn"] == self.stage.sn]
+            
+            # Remove outliers
+            filtered_local_points, filtered_global_points, valid_indices = self._remove_outliers(
+                filtered_df[['local_x', 'local_y', 'local_z']].values,
+                filtered_df[['global_x', 'global_y', 'global_z']].values,
+                self.R, self.origin
+            )
+            
+            # Update the filtered DataFrame with valid points
+            filtered_df = filtered_df[valid_indices]
+            self._save_filtered_points(filtered_df)
+
+    def _save_filtered_points(self, filtered_df):
+        """
+        Save the filtered points back to the CSV file.
+
+        Args:
+            filtered_df (pd.DataFrame): DataFrame containing filtered local and global points.
+        """
+        # Save the updated DataFrame back to the CSV file
+        package_dir = os.path.dirname(os.path.abspath(__file__))
+        debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
+        os.makedirs(debug_dir, exist_ok=True)
+        csv_file = os.path.join(debug_dir, f"points_{self.stage.sn}_inlier.csv")
+        filtered_df.to_csv(csv_file, index=False)
 
     def reshape_array(self):
         """
