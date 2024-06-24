@@ -21,6 +21,7 @@ from .calibration_camera import CalibrationStereo
 from .probe_calibration import ProbeCalibration
 from .stage_listener import StageListener
 from .stage_ui import StageUI
+from .bundle_adjustmnet import BundleAdjustment
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -479,6 +480,18 @@ class StageWidget(QWidget):
             )
         return err
     
+    def calibrate_all_cameras(self, cam_names, intrinsics, img_coords):
+        print(cam_names)
+        BA_problems = []
+        for i in range(len(cam_names)):
+            cam, coords, itmx = cam_names[i], img_coords[i], intrinsics[i]
+            
+            # BundleAdjustment
+            BA_problem = BundleAdjustment(cam, coords, itmx)
+            BA_problems.append(BA_problem)
+
+        pass
+
     def calibrate_cameras(self):
         """
         Performs stereo calibration using the detected reticle positions and updates the model with the calibration data.
@@ -493,8 +506,11 @@ class StageWidget(QWidget):
         if len(cam_names) < 2:
             return None
         
-        # Perform stereo calibration
-        err = self.calibrate_stereo(cam_names, intrinsics, img_coords)
+        if not self.model.bundle_adjustment:
+            # Perform stereo calibration
+            err = self.calibrate_stereo(cam_names, intrinsics, img_coords)
+        else:
+            err = self.calibrate_all_cameras(cam_names, intrinsics, img_coords)
 
         return err
 
