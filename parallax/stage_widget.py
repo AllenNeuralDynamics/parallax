@@ -336,7 +336,7 @@ class StageWidget(QWidget):
         if self.is_positive_x_axis_detected():
             self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected
             # Continue to calibrate stereo
-            self.start_calibrate_streo()
+            self.start_calibrate()
             self.enable_reticle_probe_calibration_buttons()
             logger.debug("Positive x-axis detected on all screens.")
         else:
@@ -388,7 +388,7 @@ class StageWidget(QWidget):
         self.enable_reticle_probe_calibration_buttons()
         """
 
-    def start_calibrate_streo(self):
+    def start_calibrate(self):
         # Perform stereo calibration
         result = self.calibrate_stereo()
         if result:
