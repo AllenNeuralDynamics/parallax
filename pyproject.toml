@@ -26,7 +26,8 @@ dependencies = [
     "pandas",
     "scikit-image",
     "requests",
-    "scikit-learn"
+    "scikit-learn",
+    "pyceres"
    ]
  
 [tool.setuptools]
