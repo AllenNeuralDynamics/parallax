@@ -390,7 +390,7 @@ class StageWidget(QWidget):
 
     def start_calibrate(self):
         # Perform stereo calibration
-        result = self.calibrate_stereo()
+        result = self.calibrate_cameras()
         if result:
             self.reticleCalibrationLabel.setText(
                 f"<span style='color:green;'><small>Coords Reproj RMSE:<br></small>"
@@ -419,21 +419,11 @@ class StageWidget(QWidget):
         err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB) # Test
         return err, calibrationStereo, retval, R_AB, T_AB, E_AB, F_AB
         
-    def calibrate_stereo(self):
-        """
-        Performs stereo calibration using the detected reticle positions and updates the model with the calibration data.
-        """
-        if len(self.model.coords_axis) < 2 and len(self.model.camera_intrinsic) < 2:
-            return None
-    
-        # Streo Camera Calibration
-        min_err = math.inf
-        self.calibrationStereo = None
-        self.camA_best, self.camB_best = None, None
-        img_coords = []
-        intrinsics = []
+    def get_cameras_lists(self):
         cam_names = []
-
+        intrinsics = []
+        img_coords = []
+    
         # Get coords and intrinsic parameters from the screens
         for screen in self.screen_widgets:
             camera_name = screen.get_camera_name()
@@ -443,11 +433,15 @@ class StageWidget(QWidget):
                 cam_names.append(camera_name)
                 img_coords.append(coords)
                 intrinsics.append(intrinsic)
-
-        # Ensure there are at least two cameras  
-        if len(cam_names) < 2:
-            return None
         
+        return cam_names, intrinsics, img_coords
+
+    def calibrate_stereo(self, cam_names, intrinsics, img_coords):
+        # Streo Camera Calibration
+        min_err = math.inf
+        self.calibrationStereo = None
+        self.camA_best, self.camB_best = None, None
+
         # Perform calibration between pairs of cameras
         print(cam_names)
         for i in range(len(cam_names)-1):
@@ -471,6 +465,7 @@ class StageWidget(QWidget):
                     coordsA_best, coordsB_best = coordsA, coordsB
                     itmxA_best, itmxB_best = itmxA, itmxB
                     
+        # Update the model with the calibration results
         self.model.add_camera_extrinsic(
             self.camA_best, self.camB_best, min_err, R_AB_best, T_AB_best, E_AB_best, F_AB_best
         )
@@ -482,6 +477,25 @@ class StageWidget(QWidget):
         err = self.calibrationStereo.test_performance(
             self.camA_best, coordsA_best, self.camB_best, coordsB_best, print_results=True
             )
+        return err
+    
+    def calibrate_cameras(self):
+        """
+        Performs stereo calibration using the detected reticle positions and updates the model with the calibration data.
+        """
+        if len(self.model.coords_axis) < 2 and len(self.model.camera_intrinsic) < 2:
+            return None
+    
+        # Camera lists
+        cam_names, intrinsics, img_coords = self.get_cameras_lists()
+
+        # Ensure there are at least two cameras  
+        if len(cam_names) < 2:
+            return None
+        
+        # Perform stereo calibration
+        err = self.calibrate_stereo(cam_names, intrinsics, img_coords)
+
         return err
 
     def reticle_detect_all_screen(self):
