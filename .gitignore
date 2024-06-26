@@ -1,6 +1,5 @@
 *.swp
 __pycache__/
-*.jpg
 parallax/*.png
 *.log
 *.npy

@@ -9,6 +9,8 @@ import os
 import sys
 from datetime import date
 from parallax import __version__ as version
+from docutils.parsers.rst import roles
+from docutils import nodes
 
 sys.path.insert(0, os.path.abspath(".."))
 
@@ -40,3 +42,26 @@ html_theme_options = {
     "light_logo": "light-logo.svg",
     "dark_logo": "dark-logo.svg",
 }
+
+# Custom reStructuredText (reST),
+def color_role(name, rawtext, text, lineno, inliner, options={}, content=[], color=None):
+    node = nodes.literal(rawtext, text, classes=[color])
+    return [node], []
+
+def red_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    return color_role(name, rawtext, text, lineno, inliner, options, content, color='red')
+
+def yellow_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    return color_role(name, rawtext, text, lineno, inliner, options, content, color='yellow')
+
+def blue_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+    return color_role(name, rawtext, text, lineno, inliner, options, content, color='blue')
+
+roles.register_local_role('red', red_role)
+roles.register_local_role('yellow', yellow_role)
+roles.register_local_role('blue', blue_role)
+
+html_static_path = ['_static']
+html_css_files = [
+    'custom.css',
+]

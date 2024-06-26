@@ -1,4 +1,4 @@
-Installation Guide
+Getting Started
 ====================
 
 Prerequisites
@@ -6,10 +6,14 @@ Prerequisites
    - **Python~=3.8** 
       - Recommended to install via `Anaconda`_ or `Miniconda`_
       - Python 3.8 is required for the Spinnaker library.
+   - `Pathfinder MPM Software`_ version 2.8.0 or later
+   - `Spinnaker SDK`_ (Recommended)
    - PySpin (for Linux or Mac OS users)
 
    .. _Anaconda: https://www.anaconda.com/products/individual
    .. _Miniconda: https://docs.conda.io/en/latest/miniconda.html
+   .. _Pathfinder MPM Software: https://www.newscaletech.com/multi-probe-micromanipulator/mpm-system-pathfinder-software/
+   .. _Spinnaker SDK: https://www.flir.com/products/spinnaker-sdk/?vertical=machine+vision&segment=iis
 
 Installing and Upgrading
 -------------------------
@@ -46,9 +50,23 @@ Installing and Upgrading
 
 Running Parallax
 ----------------
+1. **Run the Pathfinder MPM Software application** to connect to the manipulator:
+
+   - Run Pathfinder MPM Software (v2.8.0 or later) in administrator mode.
+   - Enable the HTTP server.
+      - Version 2.8.0 of the Pathfinder MPM software includes an HTTP listener that can send probe information to a client program.
+      - Enable the HTTP server in the "MPM System Setup" dialog.
+      - Click the "Enable HTTP Server" checkbox to turn on the service.
+   
+      .. image:: _static/PathfinderHTTPServer.jpg
+         :alt: Enable HTTP server
+
+2. **Run the Parallax application:**
+
    .. code-block:: bash
 
       python -m parallax
+
 
 Other Things to Note
 ---------------------

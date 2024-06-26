@@ -16,9 +16,11 @@ Contents
 ==================
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   ReadMe
+   readMe
+   userGuide
+   FAQ
    modules
 
 Indices and tables
