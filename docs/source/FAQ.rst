@@ -6,6 +6,25 @@ FAQs
 Reticle Detection
 ------------------------
 
+.. _faq_r_0:
+
+- Q. How should the reticle look in the view?
+    
+    Here are some examples of how the reticle should look in the view:
+
+    .. image:: _static/reticleDetection.jpg
+        :scale: 20%
+
+    - Centered and in focus: The reticle should be well-centered in the view, with its center in clear focus.
+
+    - Properly illuminated: The reticle should be evenly lit without any harsh reflections or shadow regions.
+
+    - Appropriate size: The reticle should occupy a significant portion of the view, avoiding being too small or too large.
+
+    - Clear and unobstructed: The reticle surface should be clean, free of debris, dirt, or any obstructions, including probes, that could interfere with detection. 
+
+    - Consistent background: The background should be plain and consistent, without any patterns or irregularities that might affect detection.
+
 .. _faq_r_1:
 
 - Q. Reticle is not detected. What should I do?

@@ -60,6 +60,7 @@ Running Parallax
    
       .. image:: _static/PathfinderHTTPServer.jpg
          :alt: Enable HTTP server
+         :scale: 30%
 
 2. **Run the Parallax application:**
 

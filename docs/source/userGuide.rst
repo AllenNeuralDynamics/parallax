@@ -12,6 +12,7 @@ This page explains how to use the Parallax for basic functions, reticle calibrat
 
 Reticle Calibration
 --------------------
+
 1. Click on the :blue:`Reticle Detection` button.
 
     .. image:: _static/reticleDetection.jpg
@@ -35,6 +36,8 @@ Reticle Calibration
     - Tips: An error under 3.0 µm³ is good. An error under 5.0 µm³ is acceptable.
 
 4. For more details, see the :ref:`FAQs <reticle_detection_faqs>`
+
+    - :ref:`Q. How should the reticle look in the view? <faq_r_0>`
 
     - :ref:`Q. Reticle is not detected. What should I do? <faq_r_1>`
 
