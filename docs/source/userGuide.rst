@@ -10,11 +10,6 @@ During :blue:`Probe Calibration`, the process tracks the probe tip location in t
 This page explains how to use the Parallax for basic functions, reticle calibration, and probe calibration.
 
 
-.. User Interface
-------------------
-
-
-
 Reticle Calibration
 --------------------
 1. Click on the :blue:`Reticle Detection` button.
@@ -41,7 +36,9 @@ Reticle Calibration
 
 4. For more details, see the :ref:`FAQs <reticle_detection_faqs>`
 
-    - :ref:`Reticle is not detected. What should I do? <faq_r_1>`
+    - :ref:`Q. Reticle is not detected. What should I do? <faq_r_1>`
+
+    - :ref:`Q. Reprojection error is too high. How to fix it? <faq_r_2>`
 
 
 Probe Calibration
