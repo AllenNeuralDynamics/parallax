@@ -67,7 +67,7 @@ class Stage(QObject):
             self.name = stage_info["Id"]
             self.stage_x = stage_info["Stage_X"] * 1000
             self.stage_y = stage_info["Stage_Y"] * 1000
-            self.stage_z = stage_info["Stage_Z"] * 1000
+            self.stage_z = 15000 - stage_info["Stage_Z"] * 1000
             self.stage_x_global = None
             self.stage_y_global = None
             self.stage_z_global = None
