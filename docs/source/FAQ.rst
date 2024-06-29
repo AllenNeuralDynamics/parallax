@@ -8,26 +8,26 @@ Reticle Detection
 
 .. _faq_r_0:
 
-- Q. How should the reticle look in the view?
+- **Q. How should the reticle look in the view?**
     
     Here are some examples of how the reticle should look in the view:
 
     .. image:: _static/reticleDetection.jpg
         :scale: 20%
 
-    - Centered and in focus: The reticle should be well-centered in the view, with its center in clear focus.
+    - **Centered and in focus:** The reticle should be well-centered in the view, with its center in clear focus.
 
-    - Properly illuminated: The reticle should be evenly lit without any harsh reflections or shadow regions.
+    - **Properly illuminated:** The reticle should be evenly lit without any harsh reflections or shadow regions.
 
-    - Appropriate size: The reticle should occupy a significant portion of the view, avoiding being too small or too large.
+    - **Appropriate size:** The reticle should occupy a significant portion of the view, avoiding being too small or too large.
 
-    - Clear and unobstructed: The reticle surface should be clean, free of debris, dirt, or any obstructions, including probes, that could interfere with detection. 
+    - **Clear and unobstructed:** The reticle surface should be clean, free of debris, dirt, or any obstructions, including probes, that could interfere with detection. 
 
-    - Consistent background: The background should be plain and consistent, without any patterns or irregularities that might affect detection.
+    - **Consistent background:** The background should be plain and consistent, without any patterns or irregularities that might affect detection.
 
 .. _faq_r_1:
 
-- Q. Reticle is not detected. What should I do?
+- **Q. Reticle is not detected. What should I do?**
     
     Possible Reasons and Solutions:
     
@@ -80,7 +80,7 @@ Reticle Detection
     
         - Solution: Avoid attaching paper tapes or creating patterns on the background. Attaching regular paper to the back of the reticle is recommended.
 
-    8. Too dark background:
+    8. Too dark reticle background:
         
         .. image:: _static/r_problem12.jpg
             :scale: 20%  
@@ -90,11 +90,11 @@ Reticle Detection
 
 .. _faq_r_2:
 
-- Q. Reprojection error is too high. How to fix it?
+- **Q. Reprojection error is too high. How to fix it?**
 
     Possible Reasons and Solutions:
 
-    1. Debris or dirt on the reticle causing misalignment:
+    1. Debris or dirt on the reticle surface causing misalignment:
 
         - Solution: Clean the reticle surface to remove any debris or dirt, which the algorithm may mistakenly identify as part of the reticle.
     
@@ -106,11 +106,30 @@ Reticle Detection
 
         - Solution: Adjust the camera position so that the view is less skewed, and the face of the reticle appears as flat as possible.
 
-.. _probe_detection_faqs:
 
-Probe Detection
+.. _general_faqs:
+
+General Interface
 ------------------------
 
-.. _faq_p_1:
-- What information is showing?
-    - TBD
+.. _faq_g_1:
+
+- **Q. If I turn on Parallax, it shows noisy data on the view and does not display the camera view. What should I do?**
+
+    Parallax is currently under development, and some functions are not stable. If camera resources are not cleared up in the previous session, such as when the app exits forcefully or the camera interface is unplugged, it can cause this issue.
+    
+        .. image:: _static/reset1.jpg
+            :scale: 20%
+    
+    - Solution: Use Spinview to reset the camera resources. Steps to reset the camera resources:
+
+        1. Turn off Parallax.
+        2. Open Spinview and start and stop streaming on all cameras to reset the camera resources.
+        
+            .. image:: _static/reset2.jpg
+                :scale: 30%
+        
+            .. image:: _static/reset3.jpg
+                :scale: 30%
+
+        3. Turn on Parallax again.

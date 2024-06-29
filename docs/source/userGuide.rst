@@ -83,7 +83,3 @@ Probe Calibration
             :scale: 20%
 
 5. Select other probes, if any, to proceed with the calibration.
-
-6. For more details, see the :ref:`FAQs <probe_detection_faqs>`.
-
-    - :ref:`What information is showing? <faq_p_1>`
