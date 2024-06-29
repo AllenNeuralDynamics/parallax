@@ -57,7 +57,8 @@ linters = [
 docs = [
     'Sphinx',
     'sphinx-jinja',
-    'furo'
+    'furo',
+    'docutils'
 ]
 
 [tool.coverage.run]

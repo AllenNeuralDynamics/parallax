@@ -3,14 +3,24 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Parallax's documentation!
-====================================
+Welcome to Parallax
+====================
+
+.. image:: ../../ui/ParallaxReadME.jpg
+   :alt: Parallax
+
+**Parallax** is a graphical user interface designed to streamline the process of setting up and performing acute in vivo electrophysiology experiments.
+
+
+Contents
+==================
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-   ReadMe
+   readMe
+   userGuide
+   FAQ
    modules
 
 Indices and tables
