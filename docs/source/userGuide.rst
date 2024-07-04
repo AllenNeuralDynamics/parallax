@@ -15,7 +15,7 @@ Reticle Calibration
 
 1. Click on the :blue:`Reticle Detection` button.
 
-    .. image:: _static/reticleDetection.jpg
+    .. image:: _static/reticleDetection.JPG
         :alt: reticle detection
 
     - The reticle will be detected and displayed in the camera view.
@@ -24,12 +24,12 @@ Reticle Calibration
 
 2. Click the positive-x coordinate of the reticle on each camera view.
 
-    .. image:: _static/reticleDetection_posX.jpg
+    .. image:: _static/reticleDetection_posX.JPG
         :alt: positive-x coordinate
 
 3. Reprojection error of reticle points will appear.
     
-    .. image:: _static/reticleDetection_result.jpg
+    .. image:: _static/reticleDetection_result.JPG
         :alt: positive-x coordinate
 
     - Tips: An error under 3.0 µm³ is good. An error under 5.0 µm³ is acceptable.
@@ -48,26 +48,26 @@ Probe Calibration
 
 1. Select the stage you would like to calibrate after finishing reticle calibration.
 
-    .. image:: _static/probeSelect.jpg
+    .. image:: _static/probeSelect.JPG
         :alt: probe selection
 
 
 2. Move the probe tip close to the reticle surface and click on the :blue:`Probe Calibration` button.
 
-    .. image:: _static/probeCalib1.jpg
+    .. image:: _static/probeCalib1.JPG
         :alt: probe selection
 
     Tip: Bring the probe tip close to the reticle surface, as the focus in the camera view is set to the reticle. This helps detect the probe tip location more precisely.
     
 3. Move the probe in the x, y, z directions at least 2 mm.
 
-    .. image:: _static/probeCalib2.jpg
+    .. image:: _static/probeCalib2.JPG
         :alt: probe calibration
 
     - Once the probe has traveled far enough along each axis, the UI for the corresponding axis will turn green.
     - Even if all axes are green, additional movement may be necessary to improve the fit between the local motor coordinates and the global 3D points.
 
-        .. image:: _static/probeCalib3.jpg
+        .. image:: _static/probeCalib3.JPG
             :alt: probe trajectory
             :scale: 20%
 
@@ -76,7 +76,7 @@ Probe Calibration
     - Global coordinates show the probe tip location in the reticle coordinate system.
     - Tip: Try to hit a known point, such as the center of the reticle, to check the accuracy of the probe calibration.
     
-        .. image:: _static/probeCalib4.jpg
+        .. image:: _static/probeCalib4.JPG
             :alt: probe calibration
             :scale: 20%
 
