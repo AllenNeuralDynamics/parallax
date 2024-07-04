@@ -58,7 +58,7 @@ Running Parallax
       - Enable the HTTP server in the "MPM System Setup" dialog.
       - Click the "Enable HTTP Server" checkbox to turn on the service.
    
-      .. image:: _static/PathfinderHTTPServer.jpg
+      .. image:: _static/PathfinderHTTPServer.JPG
          :alt: Enable HTTP server
          :scale: 30%
 
