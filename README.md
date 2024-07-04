@@ -25,16 +25,19 @@ conda activate parallax
 
 2. To install Parallax into a fresh environment, run:
 ```bash
-pip install parallax-app[camera]
+pip install parallax-app
 ```
-*Note:* The camera option installs the Spinnaker Python library along with the
-Parallax app. This is needed to interface with FLIR cameras (currently the 
-only supported camera brand).
 
-3. To upgrade to the latest version, run:
+To upgrade to the latest version, run:
 ```bash
 pip install parallax-app --upgrade
 ```
+
+3. To install the camera interface:
+```bash
+pip install parallax-app[camera]
+```
+
 #### Additional Setup for Linux and macOS
 * Download the Spinnaker SDK package for your system [here](https://flir.app.boxcn.net/v/SpinnakerSDK)
 * Follow the installation instructions in the README
