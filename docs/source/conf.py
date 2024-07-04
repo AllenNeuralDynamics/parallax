@@ -8,7 +8,6 @@
 import os
 import sys
 from datetime import date
-from parallax import __version__ as version
 from docutils.parsers.rst import roles
 from docutils import nodes
 
@@ -20,7 +19,7 @@ project = 'Parallax'
 current_year = date.today().year
 copyright = f"{current_year}, {INSTITUTE_NAME}"
 author = INSTITUTE_NAME
-release = version # Automatically set version from parallax package
+release = "0.0.1" # Automatically set version from parallax package
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
