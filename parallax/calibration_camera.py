@@ -21,8 +21,8 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
 # Objectpoints
 WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
-X_COORDS_HALF = 15
-Y_COORDS_HALF = 15
+X_COORDS_HALF = 10
+Y_COORDS_HALF = 10
 X_COORDS = X_COORDS_HALF * 2 + 1
 Y_COORDS = Y_COORDS_HALF * 2 + 1
 OBJPOINTS = np.zeros((X_COORDS + Y_COORDS, 3), np.float32)
@@ -85,7 +85,7 @@ class CalibrationCamera:
     def __init__(self, camera_name):
         """Initialize the CalibrationCamera object"""
         self.name = camera_name
-        self.n_interest_pixels = 15
+        self.n_interest_pixels = X_COORDS_HALF
         self.imgpoints = None
         self.objpoints = None
 
@@ -245,7 +245,7 @@ class CalibrationStereo(CalibrationCamera):
     def __init__(
         self, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
         """Initialize the CalibrationStereo object"""
-        self.n_interest_pixels = 15
+        self.n_interest_pixels = X_COORDS_HALF
         self.camA = camA
         self.camB = camB
         self.imgpointsA, self.objpoints = self._process_reticle_points(
