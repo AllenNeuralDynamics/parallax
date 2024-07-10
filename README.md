@@ -2,54 +2,58 @@
 
 ![Parallax](ui/ParallaxReadME.JPG)
 
-Parallax is a graphical user interface designed to streamline the process of setting up and performing acute *in vivo* electrophysiology experiments.
+Parallax is a graphical user interface designed to streamline the process of 
+setting up and performing acute *in vivo* electrophysiology experiments.
 
-User documentation available on [here](https://parallax.readthedocs.io/en/stable/).
+**Documentation**: [parallax.readthedocs.io](https://parallax.readthedocs.io/en/stable/).
 
 ### Prerequisites
-- **Python~=3.8** (Recommended to install via [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
+- **Python==3.8** (Recommended to install via 
+[Anaconda](https://www.anaconda.com/products/individual) or 
+[Miniconda](https://docs.conda.io/en/latest/miniconda.html))
   -  Python 3.8 is required for the Spinnaker library.
 - PySpin (for Linux or Mac OS users)
 
 
 ### Installation
-1. Create virtual environment using **Python version 3.8** and activate it:
+1. Create a virtual environment with **Python 3.8** and activate it:
 - On Windows:
 ```bash
-python -m venv venv
-./venv/Scripts/activate
-```
-- On Linux/Mac:
-```bash
-python -m venv venv
-source venv/bin/activate
+conda create -n parallax python=3.8
+conda activate parallax
 ```
 
-2. To install the latest version:
+2. To install Parallax into a fresh environment, run:
 ```bash
 pip install parallax-app
 ```
-To upgrate to the latest version:
+
+To upgrade to the latest version, run:
 ```bash
 pip install parallax-app --upgrade
 ```
 
-3. To install camera interface:
+3. To install the camera interface:
 ```bash
 pip install parallax-app[camera]
 ```
+
+#### Additional Setup for Linux and macOS
+* Download the Spinnaker SDK package for your system [here](https://flir.app.boxcn.net/v/SpinnakerSDK)
+* Follow the installation instructions in the README
+* Install the Python bindings found alongside the SDK package
 
 ### Running Parallax
 ```bash
 python -m parallax
 ```
 
-### Development mode
+### For developers:
 1. Clone the repository:
 ```bash
 git clone https://github.com/AllenNeuralDynamics/parallax.git
 ```
-2. Install Dependencies:
+2. Install the package along with dev dependencies:
 ```bash
 pip install -e .[dev]
 ```
@@ -64,15 +68,11 @@ pip install -e .[docs]
 sphinx-build -b html docs/ docs/_build
 ```
 
-### Additional Setup for Linux and Mac OS
-For Linux or Mac OS, you'll need to install PySpin manually (not required for
-Windows):
-* download the Spinnaker SDK package for your system from [here](https://flir.app.boxcn.net/v/SpinnakerSDK)
-* follow the installation instructions in the README
-* Install the Python bindings found alongside the SDK package
-
 ### Support and Contribution
-If you encounter any issues or would like to contribute to the project, please check out our issues page on GitHub.
+If you encounter any problems or would like to contribute to the project, 
+please submit an [Issue](https://github.com/AllenNeuralDynamics/parallax/issues) 
+on GitHub.
 
 ### License
-Parallax is licensed under the MIT License. For more details, see the LICENSE file.
+Parallax is licensed under the MIT License. For more details, see 
+the [LICENSE](LICENSE) file.
