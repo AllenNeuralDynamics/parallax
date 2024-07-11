@@ -170,7 +170,7 @@ class ProbeDetectManager(QObject):
                             frame,
                             self.probeDetect.probe_tip_org,
                             5,
-                            (255, 255, 0),
+                            (255, 0, 0),
                             -1,
                         )
 
