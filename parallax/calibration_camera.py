@@ -49,13 +49,19 @@ imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
                 dtype=np.float32)
 idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
                     dtype=np.float32)
-"""
-imtx = np.array([[1.519e+04, 0.0e+00, 2e+03],
+
+imtx = np.array([[1.519e+04, 0.0e+00, 2e+03], #org
                 [0.0e+00, 1.519e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
-
 idist = np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32)
+"""
+imtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.55e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 0e+00]],
+                    dtype=np.float32)*5
 
 # Intrinsic flag
 myflags1 = (
@@ -182,8 +188,8 @@ class CalibrationCamera:
         """
         self._process_reticle_points(x_axis, y_axis)
         if self.name == "22517664":
-            self.mtx = np.array([[1.520480e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.520480e+04, 1.5e+03],
+            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.55e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
             self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
@@ -191,8 +197,8 @@ class CalibrationCamera:
             return True, self.mtx, self.dist
         
         elif self.name == "22433200":
-            self.mtx = np.array([[1.507121e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.507121e+04, 1.5e+03],
+            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.55e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
             self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
