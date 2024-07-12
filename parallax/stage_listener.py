@@ -92,7 +92,7 @@ class Worker(QObject):
         self._low_freq_interval = 1000
         self._high_freq_interval = 10  # TODO
         self.curr_interval = self._low_freq_interval
-        self._idle_time = 2
+        self._idle_time = 1 # 1s
         self.is_error_log_printed = False
 
     def start(self, interval=1000):
@@ -456,8 +456,9 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            #probeDetector.start_detection(sn) # Detect when probe is moving
-            probeDetector.stop_detection(sn) # Detect when probe is not moving
+            probeDetector.start_detection(sn) # Detect when probe is moving
+            probeDetector.disable_calibration(sn)
+            #probeDetector.stop_detection(sn) # Detect when probe is not moving
 
     def stageNotMovingStatus(self, probe):
         """Handle not moving probe status.
@@ -468,4 +469,6 @@ class StageListener(QObject):
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
             #probeDetector.stop_detection(sn) # Stop detection when probe is not moving
-            probeDetector.start_detection(sn) # Stop detection when probe is moving
+            probeDetector.enable_calibration(sn)
+             # Stop detection when probe is moving
+        
