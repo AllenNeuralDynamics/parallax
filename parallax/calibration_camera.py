@@ -21,8 +21,8 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
 
 # Objectpoints
 WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
-X_COORDS_HALF = 15
-Y_COORDS_HALF = 15
+X_COORDS_HALF = 10
+Y_COORDS_HALF = 10
 X_COORDS = X_COORDS_HALF * 2 + 1
 Y_COORDS = Y_COORDS_HALF * 2 + 1
 OBJPOINTS = np.zeros((X_COORDS + Y_COORDS, 3), np.float32)
@@ -49,14 +49,19 @@ imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
                 dtype=np.float32)
 idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
                     dtype=np.float32)
-"""
 
-imtx = np.array([[1.519e+04, 0.0e+00, 2e+03],
+imtx = np.array([[1.519e+04, 0.0e+00, 2e+03], #org
                 [0.0e+00, 1.519e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
-
 idist = np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32)
+"""
+imtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.55e+04, 1.5e+03],
+                [0.0e+00, 0.0e+00, 1.0e+00]],
+                dtype=np.float32)
+idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 0e+00]],
+                    dtype=np.float32)*5
 
 # Intrinsic flag
 myflags1 = (
@@ -86,7 +91,7 @@ class CalibrationCamera:
     def __init__(self, camera_name):
         """Initialize the CalibrationCamera object"""
         self.name = camera_name
-        self.n_interest_pixels = 15
+        self.n_interest_pixels = X_COORDS_HALF
         self.imgpoints = None
         self.objpoints = None
 
@@ -183,8 +188,8 @@ class CalibrationCamera:
         """
         self._process_reticle_points(x_axis, y_axis)
         if self.name == "22517664":
-            self.mtx = np.array([[1.520480e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.520480e+04, 1.5e+03],
+            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.55e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
             self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
@@ -192,8 +197,8 @@ class CalibrationCamera:
             return True, self.mtx, self.dist
         
         elif self.name == "22433200":
-            self.mtx = np.array([[1.507121e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.507121e+04, 1.5e+03],
+            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.55e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
             self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
@@ -246,7 +251,7 @@ class CalibrationStereo(CalibrationCamera):
     def __init__(
         self, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
         """Initialize the CalibrationStereo object"""
-        self.n_interest_pixels = 15
+        self.n_interest_pixels = X_COORDS_HALF
         self.camA = camA
         self.camB = camB
         self.imgpointsA, self.objpoints = self._process_reticle_points(

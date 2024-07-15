@@ -179,8 +179,8 @@ class ReticleDetectManager(QObject):
                 logger.debug(f"{ self.name} get_coords_interest fails ")
             else:
                 # TODO
-                # ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
-                # if not ret:
+                #ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
+                #if not ret:
                 ret, mtx, dist = self.calibrationCamera.calibrate_camera(
                     x_axis_coords, y_axis_coords
                 )

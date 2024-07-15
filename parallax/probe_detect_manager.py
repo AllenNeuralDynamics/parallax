@@ -45,6 +45,7 @@ class ProbeDetectManager(QObject):
             self.name = name
             self.running = False
             self.is_detection_on = False
+            self.is_calib = False
             self.new = False
             self.frame = None
             self.reticle_coords = self.model.get_coords_axis(self.name)
@@ -161,19 +162,32 @@ class ProbeDetectManager(QObject):
                         ret = self.currBgCmpProcess.update_cmp(
                             self.curr_img, mask, gray_img
                         )
-
                     if ret:  # Found
-                        self.found_coords.emit(
-                            timestamp, self.sn, self.probeDetect.probe_tip_org
-                        )
-                        cv2.circle(
-                            frame,
-                            self.probeDetect.probe_tip_org,
-                            5,
-                            (255, 255, 0),
-                            -1,
-                        )
+                        if self.is_calib: # If calibaration is enable, use data for calibration
+                            self.found_coords.emit(
+                                timestamp, self.sn, self.probeDetect.probe_tip_org
+                            )
 
+                            # Save the frame for debugging
+                            filename = f"debug/{timestamp}_{self.name}.jpg"
+                            cv2.imwrite(filename, frame)
+
+                            # Draw the tip on the frame (red)
+                            cv2.circle(
+                                frame,
+                                self.probeDetect.probe_tip_org,
+                                5,
+                                (255, 0, 0),
+                                -1,
+                            )
+                        else: # Otherwise, just draw a tip on the frame
+                            cv2.circle(
+                                frame,
+                                self.probeDetect.probe_tip_org,
+                                5,
+                                (255, 255, 0),
+                                -1,
+                            )
                 if ret:
                     self.prev_img = self.curr_img
             else:
@@ -196,6 +210,12 @@ class ProbeDetectManager(QObject):
         def stop_detection(self):
             """Stop the probe detection."""
             self.is_detection_on = False
+
+        def enable_calib(self):
+            self.is_calib = True
+
+        def disable_calib(self):
+            self.is_calib = False
 
         def process_draw_reticle(self, frame):
             if self.reticle_coords is not None:
@@ -333,6 +353,14 @@ class ProbeDetectManager(QObject):
         """
         if self.worker is not None:
             self.worker.stop_detection()
+
+    def enable_calibration(self, sn):  # Call from stage listener.
+        if self.worker is not None:
+            self.worker.enable_calib()
+    
+    def disable_calibration(self, sn):  # Call from stage listener.
+        if self.worker is not None:
+            self.worker.disable_calib()
 
     def set_name(self, camera_name):
         """Set camera name."""

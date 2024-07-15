@@ -21,7 +21,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 
 class StageInfo(QObject):
-    """Class for retrieving stage information."""
+    """Retrieve and manage information about the stages."""
 
     def __init__(self, url):
         """Initialize StageInfo thread"""
@@ -57,7 +57,7 @@ class StageInfo(QObject):
 
 
 class Stage(QObject):
-    """Class representing a stage."""
+    """Represents an individual stage with its properties."""
 
     def __init__(self, stage_info=None):
         """Initialize Stage thread"""
@@ -74,11 +74,11 @@ class Stage(QObject):
 
 
 class Worker(QObject):
-    """Worker class for fetching stage data."""
+    """Fetch stage data at regular intervals and emit signals when data changes or significant movement is detected."""
 
-    dataChanged = pyqtSignal(dict)
-    stage_moving = pyqtSignal(dict)
-    stage_not_moving = pyqtSignal(dict)
+    dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
+    stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
+    stage_not_moving = pyqtSignal(dict) # Emitted when a stage is not moving.
 
     def __init__(self, url):
         """Initialize worker thread"""
@@ -90,13 +90,13 @@ class Worker(QObject):
         self.last_bigmove_stage_info = None
         self.last_bigmove_detected_time = None
         self._low_freq_interval = 1000
-        self._high_freq_interval = 10  # TODO
+        self._high_freq_interval = 20  # TODO
         self.curr_interval = self._low_freq_interval
-        self._idle_time = 2
+        self._idle_time = 0.1 # 0.1s
         self.is_error_log_printed = False
 
     def start(self, interval=1000):
-        """Start the worker thread.
+        """Starts the data fetching at the given interval.
 
         Args:
             interval (int): Interval in milliseconds. Defaults to 1000.
@@ -104,7 +104,7 @@ class Worker(QObject):
         self.timer.start(interval)
 
     def stop(self):
-        """Stop the timer."""
+        """Stops the data fetching."""
         self.timer.stop()
 
     def print_trouble_shooting_msg(self):
@@ -137,7 +137,7 @@ class Worker(QObject):
                     if self.curr_interval == self._high_freq_interval:
                         # Update
                         self.isSmallChange(probe)
-                        # If last updated move (in 30um) is more than 1 sec ago, switch to w/ low freq
+                        # If last updated move (in 5um) is more than 1 sec ago, switch to w/ low freq
                         current_time = time.time()
                         if current_time - self.last_bigmove_detected_time >= self._idle_time:
                             logger.debug("low freq mode")
@@ -145,8 +145,9 @@ class Worker(QObject):
                             self.stop()
                             self.start(interval=self.curr_interval)
                             self.stage_not_moving.emit(probe)
+                            print("low freq mode: ", self.curr_interval)
 
-                    # If moves more than 30um, check w/ high freq
+                    # If moves more than 10um, check w/ high freq
                     if self.isSignificantChange(probe):
                         if self.curr_interval == self._low_freq_interval:
                             # 10 msec mode
@@ -155,6 +156,7 @@ class Worker(QObject):
                             self.stop()
                             self.start(interval=self.curr_interval)
                             self.stage_moving.emit(probe)
+                            print("high freq mode: ", self.curr_interval)
 
                     self.is_error_log_printed = False
             else:
@@ -165,10 +167,11 @@ class Worker(QObject):
                 print(f"\nHttpServer for stages not enabled: {e}")
                 self.print_trouble_shooting_msg()
 
-    def isSignificantChange(self, current_stage_info, stage_threshold=0.005):
+    def isSignificantChange(self, current_stage_info, stage_threshold=0.001):
         """Check if the change in any axis exceeds the threshold."""
         for axis in ['Stage_X', 'Stage_Y', 'Stage_Z']:
             if abs(current_stage_info[axis] - self.last_bigmove_stage_info[axis]) >= stage_threshold:
+                self.dataChanged.emit(current_stage_info)
                 self.last_bigmove_detected_time = time.time()
                 self.last_bigmove_stage_info = current_stage_info
                 return True
@@ -457,7 +460,9 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            probeDetector.start_detection(sn)
+            probeDetector.start_detection(sn) # Detect when probe is moving
+            probeDetector.disable_calibration(sn)
+            #probeDetector.stop_detection(sn) # Detect when probe is not moving
 
     def stageNotMovingStatus(self, probe):
         """Handle not moving probe status.
@@ -467,4 +472,23 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            probeDetector.stop_detection(sn)
+            #probeDetector.stop_detection(sn) # Stop detection when probe is not moving
+            probeDetector.enable_calibration(sn)
+             # Stop detection when probe is moving
+
+    def set_low_freq_as_high_freq(self, interval=10):
+        """Change the frequency to low."""
+        self.worker.stop()
+        self.worker._low_freq_interval = interval
+        self.worker.curr_interval = self.worker._low_freq_interval
+        self.worker.start(interval=self.worker._low_freq_interval)
+        print("low_freq: 10 ms")
+
+    def set_low_freq_default(self, interval=1000):
+        """Change the frequency to low."""
+        self.worker.stop()
+        self.worker._low_freq_interval = interval
+        self.worker.curr_interval = self.worker._low_freq_interval
+        self.worker.start(interval=self.worker._low_freq_interval) 
+        print("low_freq: 1000 ms") 
+        
