@@ -92,7 +92,7 @@ class Worker(QObject):
         self._low_freq_interval = 1000
         self._high_freq_interval = 20  # TODO
         self.curr_interval = self._low_freq_interval
-        self._idle_time = 0.1 # 0.1s
+        self._idle_time = 0.3 # 0.3s
         self.is_error_log_printed = False
 
     def start(self, interval=1000):
