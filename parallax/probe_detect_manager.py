@@ -169,8 +169,8 @@ class ProbeDetectManager(QObject):
                             )
 
                             # Save the frame for debugging
-                            filename = f"debug/{timestamp}_{self.name}.jpg"
-                            cv2.imwrite(filename, frame)
+                            filename = f"debug/{self.name}_{timestamp}.jpg"
+                            #cv2.imwrite(filename, frame)
 
                             # Draw the tip on the frame (red)
                             cv2.circle(
