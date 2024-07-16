@@ -31,7 +31,7 @@ class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(int, int)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
-    probe_coords_detected = pyqtSignal()
+    probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)  # camera name, timestamp, sn, stage_info, pixel_coords
 
     def __init__(self, camera, filename=None, model=None, parent=None):
         """Init screen widget object"""
@@ -71,19 +71,19 @@ class ScreenWidget(pg.GraphicsView):
 
         # camera
         self.camera = camera
-        camera_name = self.get_camera_name()
+        self.camera_name = self.get_camera_name()
         self.focochan = None
 
         # No filter
-        self.filter = NoFilter(camera_name)
+        self.filter = NoFilter(self.camera_name)
         self.filter.frame_processed.connect(self.set_image_item_from_data)
 
         # Axis Filter
-        self.axisFilter = AxisFilter(self.model, camera_name)
+        self.axisFilter = AxisFilter(self.model, self.camera_name)
         self.axisFilter.frame_processed.connect(self.set_image_item_from_data)
 
         # Reticle Detection
-        self.reticleDetector = ReticleDetectManager(camera_name)
+        self.reticleDetector = ReticleDetectManager(self.camera_name)
         self.reticleDetector.frame_processed.connect(
             self.set_image_item_from_data
         )
@@ -91,13 +91,13 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
 
         # Probe Detection
-        self.probeDetector = ProbeDetectManager(self.model, camera_name)
+        self.probeDetector = ProbeDetectManager(self.model, self.camera_name)
         self.model.add_probe_detector(self.probeDetector)
         self.probeDetector.frame_processed.connect(
             self.set_image_item_from_data
         )
         self.probeDetector.found_coords.connect(self.found_probe_coords)
-        self.probeDetector.found_coords.connect(self.probe_coords_detected)
+        #self.probeDetector.found_coords.connect(self.probe_coords_detected)
 
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
@@ -353,6 +353,8 @@ class ScreenWidget(pg.GraphicsView):
         self.probe_detect_last_sn = probe_sn
         self.stage_info = stage_info
         self.probe_detect_last_coords = tip_coords
+
+        self.probe_coords_detected.emit(self.camera_name, timestamp, probe_sn, stage_info, tip_coords)
 
     def get_last_detect_probe_info(self):
         """Get the last detected probe information."""

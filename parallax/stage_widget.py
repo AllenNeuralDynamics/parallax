@@ -94,6 +94,8 @@ class StageWidget(QWidget):
             self.reticle_detection_button_handler
         )
         self.calibrationStereo = None
+        self.camA_best, self.camB_best = None, None
+
         # Hide Accept and Reject Button in Reticle Detection
         self.acceptButton.hide()
         self.rejectButton.hide()
@@ -481,6 +483,59 @@ class StageWidget(QWidget):
         return err
     
     def calibrate_all_cameras(self, cam_names, intrinsics, img_coords):
+        min_err = math.inf
+        # Stereo Camera Calibration
+        calibrationStereo = None
+
+        # Dictionary to store instances with sorted camera names as keys
+        self.calibrationStereoInstances = {}
+
+        # Perform calibration between pairs of cameras
+        print(cam_names)
+        for i in range(len(cam_names) - 1):
+            for j in range(i + 1, len(cam_names)):
+                camA, camB = cam_names[i], cam_names[j]
+                if camA == camB:
+                    continue    # Skip if the cameras are the same
+                coordsA, coordsB = img_coords[i], img_coords[j]
+                itmxA, itmxB = intrinsics[i], intrinsics[j]
+
+                err, calibrationStereo, retval, R_AB, T_AB, E_AB, F_AB = self.get_results_calibrate_stereo(
+                    camA, coordsA, itmxA, camB, coordsB, itmxB
+                )
+                print(f"camera pair: {camA}-{camB}, err: {err}")
+                logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {err} ===")
+                logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
+
+                # Store the instance with a sorted tuple key
+                sorted_key = tuple(sorted((camA, camB)))
+                self.calibrationStereoInstances[sorted_key] = {
+                    "instance": calibrationStereo,
+                    "error": err,
+                    "R_AB": R_AB,
+                    "T_AB": T_AB,
+                    "E_AB": E_AB,
+                    "F_AB": F_AB,
+                }
+
+                # Update the model with the calibration results
+                #self.model.add_camera_extrinsic(
+                #    camA, camB, err, R_AB, T_AB, E_AB, F_AB
+                #)
+
+                calibrationStereo.print_calibrate_stereo_results(camA, camB)
+                err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB, print_results=True)
+                if err < min_err:
+                    min_err = err
+
+        return min_err
+
+    # Example of how to retrieve the instance with either (camA, camB) or (camB, camA)
+    def get_calibration_instance(self, camA, camB):
+        sorted_key = tuple(sorted((camA, camB)))
+        return self.calibrationStereoInstances.get(sorted_key)
+
+    def BA_create(self, cam_names, intrinsics, img_coords):
         print(cam_names)
         BA_problems = []
         for i in range(len(cam_names)):
@@ -489,7 +544,6 @@ class StageWidget(QWidget):
             # BundleAdjustment
             BA_problem = BundleAdjustment(cam, coords, itmx)
             BA_problems.append(BA_problem)
-
         pass
 
     def calibrate_cameras(self):
@@ -499,7 +553,7 @@ class StageWidget(QWidget):
         if len(self.model.coords_axis) < 2 and len(self.model.camera_intrinsic) < 2:
             return None
     
-        # Camera lists
+        # Camera lists deteced reticle coords and intrinsic parameters
         cam_names, intrinsics, img_coords = self.get_cameras_lists()
 
         # Ensure there are at least two cameras  
@@ -568,7 +622,7 @@ class StageWidget(QWidget):
         tip_coords = []
         other_cams = {}
 
-        if self.calibrationStereo is None:
+        if not self.model.bundle_adjustment and self.calibrationStereo is None:
             print("Camera calibration has not done")
             return
 
@@ -608,12 +662,109 @@ class StageWidget(QWidget):
                                 other_cams = other_cams
                             )
 
-    def probe_detect_on_screens(self):
+    def probe_detect_on_two_screens(self, cam_name, timestamp, sn, stage_info, pixel_coords):
         """Detect probe coordinates on all screens."""
+        cam_name_cmp, timestamp_cmp, sn_cmp = cam_name, timestamp, sn # Coords tip detected screen
+        tip_coordsA, tip_coordsB = None, None
+
+        if cam_name_cmp is None or timestamp_cmp is None or sn_cmp is None:
+            return
+
+        if self.calibrationStereo is None:
+            print("Camera calibration has not done")
+            return
+        if cam_name_cmp not in [self.camA_best, self.camB_best]:
+            print("Detect probe on the screen which is not calibrated")
+            return
+
+        for screen in self.screen_widgets:
+            cam_name = screen.get_camera_name()
+            if cam_name == cam_name_cmp:
+                continue
+            
+            if cam_name in [self.camA_best, self.camB_best]:
+                timestamp, sn, tip_coord = screen.get_last_detect_probe_info()
+                if (sn is None) or (tip_coord is None) or (timestamp is None):
+                    return
+                if sn != sn_cmp:
+                    return
+                if timestamp_cmp[:-2] != timestamp[:-2]:
+                    return
+
+                if not self.model.bundle_adjustment:
+                    if cam_name == self.camA_best:
+                        tip_coordsA = tip_coord
+                        tip_coordsB = pixel_coords
+                    elif cam_name == self.camB_best:
+                        tip_coordsA = pixel_coords
+                        tip_coordsB = tip_coord
+        
+        # All screens have the same timestamp. Proceed with triangulation
+        global_coords = self.calibrationStereo.get_global_coords(
+            self.camA_best, tip_coordsA, self.camB_best, tip_coordsB
+        )
+
+        self.stageListener.handleGlobalDataChange(
+            sn_cmp,
+            global_coords,
+            timestamp_cmp,
+            self.camA_best, 
+            tip_coordsA, 
+            self.camB_best, 
+            tip_coordsB, 
+        )
+    
+    def probe_detect_on_screens(self, camA, timestampA, snA, stage_info, tip_coordsA):
+        """Detect probe coordinates on all screens."""
+        tip_coordsB = None
+
+        if (camA is None) or (timestampA is None) or (snA is None) or (tip_coordsA is None):
+            return
+
+        if self.calibrationStereoInstances is None:
+            logger.debug(f"Camera calibration has not done. {camA}")
+            return
+        
+        for screen in self.screen_widgets:
+            camB = screen.get_camera_name()
+            if camA == camB:
+                continue
+            
+            timestampB, snB, tip_coordsB = screen.get_last_detect_probe_info()
+            if (snB is None) or (tip_coordsB is None) or (timestampB is None):
+                continue
+            if snA != snB:
+                continue
+            if timestampA[:-2] != timestampB[:-2]:
+                continue
+
+            # Proceed with triangulation on the two screens
+            calibrationStereoInstance = self.get_calibration_instance(camA, camB)
+            if calibrationStereoInstance is None:
+                logger.debug(f"Camera calibration has not done {camA}, {camB}")
+                continue
+
+            calibrationStereoInstance = calibrationStereoInstance["instance"]
+            global_coords = calibrationStereoInstance.get_global_coords( # TODO: change sorted key
+                camA, tip_coordsA, camB, tip_coordsB
+            )
+
+            self.stageListener.handleGlobalDataChange( #Request probe calibration
+                snA,
+                global_coords,
+                timestampA,
+                camA, 
+                tip_coordsA, 
+                camB, 
+                tip_coordsB, 
+            )
+        
+    """
+    def probe_detect_on_screens(self):
         timestamp_cmp, sn_cmp = None, None
         other_cams = {}
 
-        if self.calibrationStereo is None:
+        if not self.model.bundle_adjustment and self.calibrationStereo is None:
             print("Camera calibration has not done")
             return
 
@@ -657,7 +808,7 @@ class StageWidget(QWidget):
             self.camB_best, 
             tip_coordsB, 
             other_cams=other_cams
-    )
+    ) """
 
     def probe_overwrite_popup_window(self):
         """
@@ -719,9 +870,10 @@ class StageWidget(QWidget):
                 camera_name = screen.get_camera_name()
                 if camera_name == self.camA_best or camera_name == self.camB_best:
                     logger.debug(f"Disconnect probe_detection: {camera_name}")
-                    screen.probe_coords_detected.disconnect(
-                        self.probe_detect_on_screens
-                    )
+                    if not self.model.bundle_adjustment:
+                        screen.probe_coords_detected.disconnect(self.probe_detect_on_two_screens)
+                    else:
+                        screen.probe_coords_detected.disconnect(self.probe_detect_on_screens)
                     screen.run_no_filter()
 
             self.stageListener.set_low_freq_default()
@@ -768,7 +920,10 @@ class StageWidget(QWidget):
             camera_name = screen.get_camera_name()
             if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                 logger.debug(f"Connect `probe_detection`: {camera_name}")
-                screen.probe_coords_detected.connect(self.probe_detect_on_screens)
+                if not self.model.bundle_adjustment:
+                    screen.probe_coords_detected.connect(self.probe_detect_on_two_screens)
+                else:
+                    screen.probe_coords_detected.connect(self.probe_detect_on_screens)
                 screen.run_probe_detection()
             else:
                 screen.run_no_filter()
@@ -808,9 +963,10 @@ class StageWidget(QWidget):
                 camera_name = screen.get_camera_name()
                 if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                     logger.debug(f"Disconnect probe_detection: {camera_name}")
-                    screen.probe_coords_detected.disconnect(
-                        self.probe_detect_on_screens
-                    )
+                    if not self.model.bundle_adjustment:
+                        screen.probe_coords_detected.disconnect(self.probe_detect_on_two_screens)
+                    else:
+                        screen.probe_coords_detected.disconnect(self.probe_detect_on_screens)
                     screen.run_no_filter()
 
             self.filter = "no_filter"
