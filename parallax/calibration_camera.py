@@ -35,33 +35,12 @@ CENTER_INDEX_Y = X_COORDS + Y_COORDS_HALF
 
 # Calibration
 CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-11)
-"""
-imtx = np.array([[1.52e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.52e+04, 1.5e+03],
-                [0.0e+00, 0.0e+00, 1.0e+00]],
-                dtype=np.float32)
-idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
-                    dtype=np.float32)
 
-imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.515e+04, 1.5e+03],
-                [0.0e+00, 0.0e+00, 1.0e+00]],
-                dtype=np.float32)
-idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
-                    dtype=np.float32)
-
-imtx = np.array([[1.519e+04, 0.0e+00, 2e+03], #org
-                [0.0e+00, 1.519e+04, 1.5e+03],
+imtx = np.array([[1.54e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.54e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
 idist = np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32)
-"""
-imtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.55e+04, 1.5e+03],
-                [0.0e+00, 0.0e+00, 1.0e+00]],
-                dtype=np.float32)
-idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 0e+00]],
-                    dtype=np.float32)*5
 
 # Intrinsic flag
 myflags1 = (
@@ -375,7 +354,7 @@ class CalibrationStereo(CalibrationCamera):
         points_3d_G = np.dot(rmat_inv, points_3d_AB.T).T + tvecs_inv.T
         return points_3d_G
 
-    def change_coords_system_from_camA_to_global_iterative(self, points_3d_AB):
+    def change_coords_system_from_camA_to_global_iterative(self, camA, camB, points_3d_AB, print_results=False):
         """Change coordinate system from camera A to global 
         using iterative method.
 
@@ -394,9 +373,14 @@ class CalibrationStereo(CalibrationCamera):
             self.distA,
             flags=solvePnP_method,
         )
-        logger.debug(f"=== CamA, World to Camera transformation ====")
+        logger.debug(f"=== {camA}, World to Camera transformation ====")
         logger.debug(f"rvecs: {rvecs}")
         logger.debug(f"tvecs: {tvecs}")
+
+        if print_results:
+            print(f"\n=== {camA}, World to Camera transformation ====")
+            print(f"rvecs: {rvecs}")
+            print(f"tvecs: {tvecs}")
 
         # Test =====================================
         _, rvecsB, tvecsB = cv2.solvePnP(
@@ -406,9 +390,14 @@ class CalibrationStereo(CalibrationCamera):
             self.distB,
             flags=solvePnP_method,
         )
-        logger.debug(f"=== CamB, World to Camera transformation ====")
+        logger.debug(f"=== {camB}, World to Camera transformation ====")
         logger.debug(f"rvecs: {rvecsB}")
         logger.debug(f"tvecs: {tvecsB}")
+
+        if print_results:
+            print(f"=== {camB}, World to Camera transformation ====")
+            print(f"rvecs: {rvecsB}")
+            print(f"tvecs: {tvecsB}")
         # ==========================================
 
 
@@ -505,7 +494,7 @@ class CalibrationStereo(CalibrationCamera):
         np.set_printoptions(suppress=True, precision=8)
 
         points_3d_G = self.change_coords_system_from_camA_to_global_iterative(
-            points_3d_AB
+            camA, camB, points_3d_AB, print_results=print_results
         )
         
         differences = points_3d_G - self.objpoints[0]
