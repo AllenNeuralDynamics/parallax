@@ -145,7 +145,7 @@ class Worker(QObject):
                             self.stop()
                             self.start(interval=self.curr_interval)
                             self.stage_not_moving.emit(probe)
-                            print("low freq mode: ", self.curr_interval)
+                            #print("low freq mode: ", self.curr_interval)
 
                     # If moves more than 10um, check w/ high freq
                     if self.isSignificantChange(probe):
@@ -156,7 +156,7 @@ class Worker(QObject):
                             self.stop()
                             self.start(interval=self.curr_interval)
                             self.stage_moving.emit(probe)
-                            print("high freq mode: ", self.curr_interval)
+                            #print("high freq mode: ", self.curr_interval)
 
                     self.is_error_log_printed = False
             else:
@@ -479,7 +479,7 @@ class StageListener(QObject):
         self.worker._low_freq_interval = interval
         self.worker.curr_interval = self.worker._low_freq_interval
         self.worker.start(interval=self.worker._low_freq_interval)
-        print("low_freq: 10 ms")
+        #print("low_freq: 10 ms")
 
     def set_low_freq_default(self, interval=1000):
         """Change the frequency to low."""
@@ -487,5 +487,5 @@ class StageListener(QObject):
         self.worker._low_freq_interval = interval
         self.worker.curr_interval = self.worker._low_freq_interval
         self.worker.start(interval=self.worker._low_freq_interval) 
-        print("low_freq: 1000 ms") 
+        #print("low_freq: 1000 ms") 
         
