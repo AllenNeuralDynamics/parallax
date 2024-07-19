@@ -151,7 +151,7 @@ class CalibrationCamera:
         logger.debug(
             f"Distance from camera to world center: {np.mean(distancesA)}"
         )
-        return ret, self.mtx, self.dist
+        return ret, self.mtx, self.dist, self.rvecs, self.tvecs
 
     def get_predefined_intrinsic(self, x_axis, y_axis):
         """
@@ -237,12 +237,13 @@ class CalibrationStereo(CalibrationCamera):
             imgpointsA[0], imgpointsA[1])
         self.imgpointsB, self.objpoints = self._process_reticle_points(
             imgpointsB[0], imgpointsB[1])
-        self.mtxA, self.distA = intrinsicA[0], intrinsicA[1]
-        self.mtxB, self.distB = intrinsicB[0], intrinsicB[1]
+        self.mtxA, self.distA, self.rvecA, self.tvecA = intrinsicA[0], intrinsicA[1], intrinsicA[2][0], intrinsicA[3][0]
+        self.mtxB, self.distB, self.rvecB, self.tvecB = intrinsicB[0], intrinsicB[1], intrinsicB[2][0], intrinsicB[3][0]
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
         self.flags = cv2.CALIB_FIX_INTRINSIC
         self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB = None, None, None, None, None 
         self.P_A, self.P_B = None, None
+        self.rmatA, self.rmatB = None, None
 
     def print_calibrate_stereo_results(self, camA_sn, camB_sn):
         if self.retval is None or self.R_AB is None or self.T_AB is None:
@@ -331,30 +332,7 @@ class CalibrationStereo(CalibrationCamera):
         points_3d_hom = points_3d_hom.T
         return points_3d_hom[:, :3]
 
-    def change_coords_system_from_camA_to_global(self, points_3d_AB):
-        """
-        Change coordinate system from camera A to global using solvePnPRansac.
-
-        Args:
-            points_3d_AB (numpy.ndarray):
-            3D points in camera A coordinate system.
-
-        Returns:
-            numpy.ndarray: 3D points in global coordinate system.
-        """
-        _, rvecs, tvecs, _ = cv2.solvePnPRansac(
-            self.objpoints, self.imgpointsA, self.mtxA, self.distA
-        )
-        # Convert rotation vectors to rotation matrices
-        rmat, _ = cv2.Rodrigues(rvecs)
-        # Invert the rotation and translation
-        rmat_inv = rmat.T  # Transpose of rotation matrix is its inverse
-        tvecs_inv = -rmat_inv @ tvecs
-        # Transform the points
-        points_3d_G = np.dot(rmat_inv, points_3d_AB.T).T + tvecs_inv.T
-        return points_3d_G
-
-    def change_coords_system_from_camA_to_global_iterative(self, camA, camB, points_3d_AB, print_results=False):
+    def change_coords_system_from_camA_to_global(self, camA, camB, points_3d_AB, print_results=False):
         """Change coordinate system from camera A to global 
         using iterative method.
 
@@ -365,47 +343,29 @@ class CalibrationStereo(CalibrationCamera):
         Returns:
             numpy.ndarray: 3D points in global coordinate system.
         """
-        solvePnP_method = cv2.SOLVEPNP_ITERATIVE
-        _, rvecs, tvecs = cv2.solvePnP(
-            self.objpoints,
-            self.imgpointsA,
-            self.mtxA,
-            self.distA,
-            flags=solvePnP_method,
-        )
         logger.debug(f"=== {camA}, World to Camera transformation ====")
-        logger.debug(f"rvecs: {rvecs}")
-        logger.debug(f"tvecs: {tvecs}")
+        logger.debug(f"rvecs: {self.rvecA}")
+        logger.debug(f"tvecs: {self.rvecA}")
 
         if print_results:
             print(f"\n=== {camA}, World to Camera transformation ====")
-            print(f"rvecs: {rvecs}")
-            print(f"tvecs: {tvecs}")
+            print(f"rvecs: {self.rvecA}")
+            print(f"tvecs: {self.rvecA}")
 
-        # Test =====================================
-        _, rvecsB, tvecsB = cv2.solvePnP(
-            self.objpoints,
-            self.imgpointsB,
-            self.mtxB,
-            self.distB,
-            flags=solvePnP_method,
-        )
         logger.debug(f"=== {camB}, World to Camera transformation ====")
-        logger.debug(f"rvecs: {rvecsB}")
-        logger.debug(f"tvecs: {tvecsB}")
+        logger.debug(f"rvecs: {self.rvecB}")
+        logger.debug(f"tvecs: {self.tvecB}")
 
         if print_results:
             print(f"=== {camB}, World to Camera transformation ====")
-            print(f"rvecs: {rvecsB}")
-            print(f"tvecs: {tvecsB}")
-        # ==========================================
-
-
+            print(f"rvecs: {self.rvecB}")
+            print(f"tvecs: {self.tvecB}")
+  
         # Convert rotation vectors to rotation matrices
-        rmat, _ = cv2.Rodrigues(rvecs)
+        rmat, _ = cv2.Rodrigues(self.rvecA)
         # Invert the rotation and translation
         self.rmat_inv = rmat.T  # Transpose of rotation matrix is its inverse
-        self.tvecs_inv = -self.rmat_inv @ tvecs
+        self.tvecs_inv = -self.rmat_inv @ self.tvecA
         # Transform the points
         points_3d_G = np.dot(self.rmat_inv, points_3d_AB.T).T + self.tvecs_inv.T
         return points_3d_G
@@ -493,7 +453,7 @@ class CalibrationStereo(CalibrationCamera):
         )
         np.set_printoptions(suppress=True, precision=8)
 
-        points_3d_G = self.change_coords_system_from_camA_to_global_iterative(
+        points_3d_G = self.change_coords_system_from_camA_to_global(
             camA, camB, points_3d_AB, print_results=print_results
         )
         

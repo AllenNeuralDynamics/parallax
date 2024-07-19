@@ -172,9 +172,9 @@ class Model(QObject):
         """Get coordinates axis."""
         return self.coords_axis.get(camera_name)
 
-    def add_camera_intrinsic(self, camera_name, mtx, dist):
+    def add_camera_intrinsic(self, camera_name, mtx, dist, rvec, tvec):
         """Add camera intrinsic parameters."""
-        self.camera_intrinsic[camera_name] = [mtx, dist]
+        self.camera_intrinsic[camera_name] = [mtx, dist, rvec, tvec]
 
     def get_camera_intrinsic(self, camera_name):
         """Get camera intrinsic parameters."""

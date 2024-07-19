@@ -585,11 +585,11 @@ class StageWidget(QWidget):
         # self.reticle_calibration_btn.setText("Confirm ?")
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
-            mtx, dist = screen.get_camera_intrinsic()
+            mtx, dist, rvec, tvec = screen.get_camera_intrinsic()
             camera_name = screen.get_camera_name()
             # Retister the reticle coords in the model
             self.model.add_coords_axis(camera_name, coords)
-            self.model.add_camera_intrinsic(camera_name, mtx, dist)
+            self.model.add_camera_intrinsic(camera_name, mtx, dist, rvec, tvec)
 
     def reticle_detect_two_screens(self):
         """Detect reticle coordinates on two screens."""
@@ -608,12 +608,12 @@ class StageWidget(QWidget):
         # Register into the model
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
-            mtx, dist = screen.get_camera_intrinsic()
+            mtx, dist, rvec, tvec = screen.get_camera_intrinsic()
             camera_name = screen.get_camera_name()
             # Retister the reticle coords in the model
             if coords is not None:
                 self.model.add_coords_axis(camera_name, coords)
-                self.model.add_camera_intrinsic(camera_name, mtx, dist)
+                self.model.add_camera_intrinsic(camera_name, mtx, dist, rvec, tvec)
 
     def probe_detect_all_screen(self):
         """Detect probe coordinates on all screens."""
@@ -691,13 +691,12 @@ class StageWidget(QWidget):
                 if timestamp_cmp[:-2] != timestamp[:-2]:
                     return
 
-                if not self.model.bundle_adjustment:
-                    if cam_name == self.camA_best:
-                        tip_coordsA = tip_coord
-                        tip_coordsB = pixel_coords
-                    elif cam_name == self.camB_best:
-                        tip_coordsA = pixel_coords
-                        tip_coordsB = tip_coord
+                if cam_name == self.camA_best:
+                    tip_coordsA = tip_coord
+                    tip_coordsB = pixel_coords
+                elif cam_name == self.camB_best:
+                    tip_coordsA = pixel_coords
+                    tip_coordsB = tip_coord
         
         # All screens have the same timestamp. Proceed with triangulation
         global_coords = self.calibrationStereo.get_global_coords(
@@ -745,7 +744,7 @@ class StageWidget(QWidget):
                 continue
 
             calibrationStereoInstance = calibrationStereoInstance["instance"]
-            global_coords = calibrationStereoInstance.get_global_coords( # TODO: change sorted key
+            global_coords = calibrationStereoInstance.get_global_coords(
                 camA, tip_coordsA, camB, tip_coordsB
             )
 

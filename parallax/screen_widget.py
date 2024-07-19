@@ -62,7 +62,7 @@ class ScreenWidget(pg.GraphicsView):
         self.filter_actions = []
         self.detector_actions = []
         self.reticle_coords = None
-        self.mtx, self.dist = None, None
+        self.mtx, self.dist, self.rvecs, self.tvecs = None, None, None, None
 
         # probe
         self.probe_detect_last_timestamp = None
@@ -335,17 +335,21 @@ class ScreenWidget(pg.GraphicsView):
         logger.debug("reticleDetector stopped")
         self.axisFilter.start()
 
-    def found_reticle_coords(self, x_coords, y_coords, mtx, dist):
+    def found_reticle_coords(self, x_coords, y_coords, mtx, dist, rvecs, tvecs):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
         self.reticle_coords = [x_coords, y_coords]
         self.mtx = mtx
         self.dist = dist
+        self.rvecs = rvecs
+        self.tvecs = tvecs
 
     def reset_reticle_coords(self):
         """Reset reticle coordinates."""
         self.reticle_coords = None
         self.mtx = None
         self.dist = None
+        self.rvecs = None
+        self.tvecs = None
 
     def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""
@@ -366,7 +370,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def get_camera_intrinsic(self):
         """Get the camera intrinsic parameters."""
-        return self.mtx, self.dist
+        return self.mtx, self.dist, self.rvecs, self.tvecs
 
     def get_reticle_coords(self):
         """Get the reticle coordinates."""
