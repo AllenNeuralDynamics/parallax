@@ -882,6 +882,7 @@ class StageWidget(QWidget):
         self.probe_detection_status = "default"
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
+        self.scale = np.array([1, 1, 1])
         self.probeCalibration.reset_calib(sn = sn)
         self.probe_detect_default_status_ui(sn = sn)
 
@@ -1094,6 +1095,7 @@ class StageWidget(QWidget):
 
     def update_probe_calib_status(self, moving_stage_id, transM, scale, L2_err, dist_traveled):
         self.transM, self.L2_err, self.dist_travled = transM, L2_err, dist_traveled
+        self.scale = scale
         self.moving_stage_id = moving_stage_id
 
         if self.moving_stage_id == self.selected_stage_id:
@@ -1112,6 +1114,7 @@ class StageWidget(QWidget):
         info['detection_status'] = self.probe_detection_status
         info['transM'] = self.transM
         info['L2_err'] = self.L2_err
+        info['scale'] = self.scale
         info['dist_traveled'] = self.dist_travled
         info['status_x'] = self.calib_status_x
         info['status_y'] = self.calib_status_y
@@ -1122,6 +1125,7 @@ class StageWidget(QWidget):
         #self.probe_detection_status = info['detection_status']
         self.transM = info['transM']
         self.L2_err = info['L2_err']
+        self.scale = info['scale']
         self.dist_travled = info['dist_traveled']
         self.calib_status_x = info['status_x']
         self.calib_status_y = info['status_y']
@@ -1161,12 +1165,12 @@ class StageWidget(QWidget):
             if self.calib_status_z:
                 self.calib_z_complete(switch_probe = True)
             if self.transM is not None:
-                self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
+                self.display_probe_calib_status(self.transM, self.scale, self.L2_err, self.dist_travled)
             else:
                 self.probeCalibrationLabel.setText("")
         elif probe_detection_status == "accepted":
-            self.probe_detect_accepted_status(curr_stage_id, self.transM, switch_probe = True)
+            self.probe_detect_accepted_status(curr_stage_id, self.transM, self.scale, switch_probe = True)
             if self.transM is not None:
-                self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travled)
+                self.display_probe_calib_status(self.transM, self.scale, self.L2_err, self.dist_travled)
 
         self.probe_detection_status = probe_detection_status

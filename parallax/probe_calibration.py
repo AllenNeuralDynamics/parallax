@@ -140,6 +140,7 @@ class ProbeCalibration(QObject):
             self.df = self.df[self.df["sn"] != sn]
             self.df.to_csv(self.csv_file, index=False)
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
+        self.scale = np.array([1, 1, 1])
 
     def _get_local_global_points(self):
         """
