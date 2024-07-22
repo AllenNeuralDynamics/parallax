@@ -210,7 +210,7 @@ class ProbeCalibration(QObject):
         l2_distance = self._get_l2_distance(local_points, global_points)
 
         # Remove outliers
-        threshold = 40
+        threshold = 30
 
         # Filter out points where L2 distance is greater than the threshold
         valid_indices = l2_distance <= threshold
@@ -232,7 +232,15 @@ class ProbeCalibration(QObject):
         Returns:
             tuple: Linear regression model and transformation matrix.
         """
-        if len(local_points) > 80 and self.R is not None and self.origin is not None: # TODO
+        #if len(local_points) > 80 and self.R is not None and self.origin is not None: 
+
+        # Check if there are more than 5 unique values for each coordinate axis
+        unique_local_points = np.unique(local_points, axis=0)
+        unique_x = np.unique(unique_local_points[:, 0])
+        unique_y = np.unique(unique_local_points[:, 1])
+        unique_z = np.unique(unique_local_points[:, 2])
+
+        if len(unique_x) > 7 and len(unique_y) > 7 and len(unique_z) > 5 and self.R is not None and self.origin is not None: 
             local_points, global_points, _ = self._remove_outliers(local_points, global_points)
             pass
 
