@@ -59,7 +59,7 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.stage = None
         self.threshold_min_max = 2500 
-        self.threshold_min_max_z = 1000
+        self.threshold_min_max_z = 2000
         self.LR_err_L2_threshold = 20
         self.threshold_matrix = np.array(
             [

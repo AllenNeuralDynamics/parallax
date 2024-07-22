@@ -52,12 +52,10 @@ class RotationTransformation:
         origin = np.array([x[3], x[4], x[5]]).T
         scale = np.array([x[6], x[7], x[8]])  # scaling factors for x, y, z axes
 
-
         error_values = np.zeros(len(global_pts) * 3)
         for i in range(len(global_pts)):
             global_pt = global_pts[i, :].T
-            measured_pt = measured_pts[i, :].T
-            measured_pt = measured_pt * scale  # apply scaling factors
+            measured_pt = measured_pts[i, :].T * scale
             global_pt_exp = R @ measured_pt + origin
             error_values[i * 3: (i + 1) * 3] = global_pt - global_pt_exp
 
