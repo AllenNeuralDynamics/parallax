@@ -139,6 +139,7 @@ class StageWidget(QWidget):
         self.probe_detection_status = "default"    # options: default, process, accepted
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
+        self.scale = np.array([1, 1, 1])
         self.moving_stage_id = None
 
         # Set current filter
