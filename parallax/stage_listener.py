@@ -208,7 +208,8 @@ class StageListener(QObject):
         self.buffer_ts_local_coords = deque(maxlen=self.buffer_size)
         self.stage_global_data = None
         self.transM_dict = {}
-
+        self.scale_dict = {}
+        
     def start(self):
         """Start the stage listener."""
         if self.model.nStages != 0:
@@ -289,12 +290,17 @@ class StageListener(QObject):
         else:
             logger.warning(f"moving_probe: {sn}, selected_probe: {self.stage_ui.get_selected_stage_sn()}")
 
-        if sn in self.transM_dict:
+        if sn in self.transM_dict and sn in self.scale_dict:
             transM = self.transM_dict[sn]
-            if transM is not None:
-                self._updateGlobalDataTransformM(sn, moving_stage, transM)
+            scale = self.scale_dict[sn]
+            if transM is not None and scale is not None:
+                self._updateGlobalDataTransformM(sn, moving_stage, transM, scale)
+            else:
+                logger.debug(f"Transformation matrix or scale not found for serial number: {sn}")
+        else:
+            logger.debug(f"Serial number {sn} not found in transformation or scale dictionary")
 
-    def _updateGlobalDataTransformM(self, sn, moving_stage, transM):
+    def _updateGlobalDataTransformM(self, sn, moving_stage, transM, scale):
         """
         Applies a transformation matrix to the local coordinates of a moving stage and updates its global coordinates.
 
@@ -315,9 +321,10 @@ class StageListener(QObject):
                 moving_stage.stage_x,
                 moving_stage.stage_y,
                 moving_stage.stage_z,
-                1,
+                1
             ]
         )
+        local_point = local_point * np.append(scale, 1)
         global_point = np.dot(transM, local_point)
         global_point = np.around(global_point[:3], decimals=1)
         
@@ -328,7 +335,7 @@ class StageListener(QObject):
         if self.stage_ui.get_selected_stage_sn() == sn:
             self.stage_ui.updateStageGlobalCoords()
 
-    def requestUpdateGlobalDataTransformM(self, sn, transM):
+    def requestUpdateGlobalDataTransformM(self, sn, transM, scale):
         """
         Stores or updates a transformation matrix for a specific stage identified by its serial number.
         This method updates an internal dictionary, `transM_dict`, mapping stage serial numbers to their
@@ -339,7 +346,8 @@ class StageListener(QObject):
             transM (np.ndarray): A 4x4 numpy array representing the transformation matrix for the specified stage.
         """
         self.transM_dict[sn] = transM
-        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM}")
+        self.scale_dict[sn] = scale
+        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM} {scale}")
 
     def requestClearGlobalDataTransformM(self, sn = None):
         """
@@ -351,9 +359,12 @@ class StageListener(QObject):
         """
         if sn is None: # Not specified, clear all (Use case: reticle Dection is reset)
             self.transM_dict = {}
+            self.scale_dict = {}
         else:
             if self.transM_dict.get(sn) is not None:
                 self.transM_dict.pop(sn)
+            if self.scale_dict.get(sn) is not None:
+                self.scale_dict.pop(sn)    
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 

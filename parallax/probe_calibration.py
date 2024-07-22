@@ -13,6 +13,7 @@ import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from sklearn.linear_model import LinearRegression
 from .coords_transformation import RotationTransformation
+from .bundle_adjustmnet import BundleAdjustment
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -38,17 +39,19 @@ class ProbeCalibration(QObject):
     calib_complete_x = pyqtSignal(str)
     calib_complete_y = pyqtSignal(str)
     calib_complete_z = pyqtSignal(str)
-    calib_complete = pyqtSignal(str, object)
-    transM_info = pyqtSignal(str, object, float, object)
+    #calib_complete = pyqtSignal(str, object)
+    calib_complete = pyqtSignal(str, object, np.ndarray)
+    transM_info = pyqtSignal(str, object, np.ndarray, float, object)
 
     """Class for probe calibration."""
 
-    def __init__(self, stage_listener):
+    def __init__(self, model, stage_listener):
         """
         Initializes the ProbeCalibration object with a given stage listener.
         """
         super().__init__()
         self.transformer = RotationTransformation()
+        self.model = model
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
         self.stages = {}
@@ -67,6 +70,7 @@ class ProbeCalibration(QObject):
             ]
         )
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
+        self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self._create_file()
 
     def reset_calib(self, sn=None):
@@ -184,7 +188,12 @@ class ProbeCalibration(QObject):
 
         return model, transformation_matrix
     
-    def _get_l2_distance(self, local_points, global_points, R, t):
+    def _get_l2_distance(self, local_points, global_points):
+        R, t, s = self.R, self.origin, self.scale
+
+        # Apply the scaling factors obtained from fit_params
+        local_points = local_points * s
+
         global_coords_exp = R @ local_points.T + t.reshape(-1, 1)
         global_coords_exp = global_coords_exp.T
 
@@ -195,9 +204,9 @@ class ProbeCalibration(QObject):
 
         return l2_distance
 
-    def _remove_outliers(self, local_points, global_points, R, t):
+    def _remove_outliers(self, local_points, global_points):
         # Get the l2 distance
-        l2_distance = self._get_l2_distance(local_points, global_points, self.R, self.origin)
+        l2_distance = self._get_l2_distance(local_points, global_points)
 
         # Remove outliers
         threshold = 40
@@ -222,13 +231,13 @@ class ProbeCalibration(QObject):
         Returns:
             tuple: Linear regression model and transformation matrix.
         """
-        if len(local_points) > 80 and self.R is not None and self.origin is not None:
-            local_points, global_points, _ = self._remove_outliers(local_points, global_points, self.R, self.origin)
+        if len(local_points) > 80 and self.R is not None and self.origin is not None: # TODO
+            local_points, global_points, _ = self._remove_outliers(local_points, global_points)
             pass
 
         if len(local_points) < 3 or len(global_points) < 3:
             return None
-        self.origin, self.R = self.transformer.fit_params(local_points, global_points)
+        self.origin, self.R, self.scale = self.transformer.fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
@@ -330,8 +339,15 @@ class ProbeCalibration(QObject):
             np.array: The transformed global point.
         """
         local_point = np.array(
-            [self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 1]
+            #[self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 1]
+            [self.stage.stage_x, self.stage.stage_y, self.stage.stage_z]
         )
+        
+        # Apply the scaling factors obtained from fit_params
+        local_point = local_point * self.scale
+        local_point = np.append(local_point, 1)
+        
+        # Apply the transformation matrix
         global_point = np.dot(self.transM_LR, local_point)
         return global_point[:3]
 
@@ -421,9 +437,35 @@ class ProbeCalibration(QObject):
             self.transM_info.emit(
                 sn,
                 self.transM_LR,
+                self.scale,
                 self.LR_err_L2_current,
-                np.array([x_diff, y_diff, z_diff]),
+                np.array([x_diff, y_diff, z_diff])
             )
+
+    def _save_filtered_points(self, filtered_df):
+        """
+        Save the filtered points back to the CSV file.
+
+        Args:
+            filtered_df (pd.DataFrame): DataFrame containing filtered local and global points.
+        """
+        # Save the updated DataFrame back to the CSV file
+        package_dir = os.path.dirname(os.path.abspath(__file__))
+        debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
+        os.makedirs(debug_dir, exist_ok=True)
+        csv_file = os.path.join(debug_dir, f"points_{self.stage.sn}_inlier.csv")
+        filtered_df.to_csv(csv_file, index=False)
+
+    def reshape_array(self):
+        """
+        Reshapes arrays of local and global points for processing.
+
+        Returns:
+            tuple: Reshaped local and global points arrays.
+        """
+        local_points = np.array(self.local_points)
+        global_points = np.array(self.global_points)
+        return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
 
     def update(self, stage, debug_info=None):
         """
@@ -451,46 +493,33 @@ class ProbeCalibration(QObject):
         # if ret, send the signal
         ret = self._is_enough_points()
         if ret:
-            self.calib_complete.emit(self.stage.sn, self.transM_LR)
-            logger.debug(
-                f"complete probe calibration {self.stage.sn}, {self.transM_LR}"
-            )
-
             # Filter the DataFrame based on self.stage.sn
             filtered_df = self.df[self.df["sn"] == self.stage.sn]
-            
             # Remove outliers
             filtered_local_points, filtered_global_points, valid_indices = self._remove_outliers(
                 filtered_df[['local_x', 'local_y', 'local_z']].values,
-                filtered_df[['global_x', 'global_y', 'global_z']].values,
-                self.R, self.origin
+                filtered_df[['global_x', 'global_y', 'global_z']].values
             )
-            
             # Update the filtered DataFrame with valid points
             filtered_df = filtered_df[valid_indices]
             self._save_filtered_points(filtered_df)
 
-    def _save_filtered_points(self, filtered_df):
-        """
-        Save the filtered points back to the CSV file.
+            # TODO - Bundle Adjustment
 
-        Args:
-            filtered_df (pd.DataFrame): DataFrame containing filtered local and global points.
-        """
-        # Save the updated DataFrame back to the CSV file
-        package_dir = os.path.dirname(os.path.abspath(__file__))
-        debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
-        os.makedirs(debug_dir, exist_ok=True)
-        csv_file = os.path.join(debug_dir, f"points_{self.stage.sn}_inlier.csv")
-        filtered_df.to_csv(csv_file, index=False)
+            # Emit the signal to indicate that calibration is complete
+            #self.calib_complete.emit(self.stage.sn, self.transM_LR)
+            self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
+            logger.debug(
+                f"complete probe calibration {self.stage.sn}, {self.transM_LR}"
+            )
 
-    def reshape_array(self):
-        """
-        Reshapes arrays of local and global points for processing.
-
-        Returns:
-            tuple: Reshaped local and global points arrays.
-        """
-        local_points = np.array(self.local_points)
-        global_points = np.array(self.global_points)
-        return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
+    def BA_create(self, cam_names, intrinsics, img_coords):
+        print(cam_names)
+        BA_problems = []
+        for i in range(len(cam_names)):
+            cam, coords, itmx = cam_names[i], img_coords[i], intrinsics[i]
+            
+            # BundleAdjustment
+            BA_problem = BundleAdjustment(cam, coords, itmx)
+            BA_problems.append(BA_problem)
+        pass

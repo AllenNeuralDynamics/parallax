@@ -14,7 +14,7 @@ import numpy as np
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
@@ -248,7 +248,7 @@ class CalibrationStereo(CalibrationCamera):
     def print_calibrate_stereo_results(self, camA_sn, camB_sn):
         if self.retval is None or self.R_AB is None or self.T_AB is None:
             return
-        print("\n== Stereo Calibration ==")
+        print("== Stereo Calibration ==")
         print(f"Pair: {camA_sn}-{camB_sn}")
         print(self.retval)
         print(f"R: \n{self.R_AB}")
@@ -348,9 +348,9 @@ class CalibrationStereo(CalibrationCamera):
         logger.debug(f"tvecs: {self.rvecA}")
 
         if print_results:
-            print(f"\n=== {camA}, World to Camera transformation ====")
+            print(f"=== {camA}, World to Camera transformation ====")
             print(f"rvecs: {self.rvecA}")
-            print(f"tvecs: {self.rvecA}")
+            print(f"tvecs: {self.tvecA}")
 
         logger.debug(f"=== {camB}, World to Camera transformation ====")
         logger.debug(f"rvecs: {self.rvecB}")
@@ -462,13 +462,12 @@ class CalibrationStereo(CalibrationCamera):
         euclidean_distances = np.sqrt(squared_distances)
         average_L2_distance = np.mean(euclidean_distances)
         if print_results:
-            print("\n=solvePnP SOLVEPNP_ITERATIVE=")
             print(
                 f"(Reprojection error) Object points L2 diff: \
                 {average_L2_distance*1000} µm³"
             )
             self.test_x_y_z_performance(points_3d_G)
-            print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
+            #print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
             self.test_pixel_error()
         return average_L2_distance

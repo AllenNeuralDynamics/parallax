@@ -50,11 +50,14 @@ class RotationTransformation:
         between transformed global points and measured points."""
         R = self.combineAngles(x[2], x[1], x[0], reflect_z=reflect_z)
         origin = np.array([x[3], x[4], x[5]]).T
+        scale = np.array([x[6], x[7], x[8]])  # scaling factors for x, y, z axes
+
 
         error_values = np.zeros(len(global_pts) * 3)
         for i in range(len(global_pts)):
             global_pt = global_pts[i, :].T
             measured_pt = measured_pts[i, :].T
+            measured_pt = measured_pt * scale  # apply scaling factors
             global_pt_exp = R @ measured_pt + origin
             error_values[i * 3: (i + 1) * 3] = global_pt - global_pt_exp
 
@@ -68,7 +71,9 @@ class RotationTransformation:
 
     def fit_params(self, measured_pts, global_pts):
         """Fits parameters to minimize the error defined in func"""
-        x0 = np.array([0, 0, 0, 0, 0, 0])  # initial guess: (x, y, z, x_t, y_t, z_t)
+        #x0 = np.array([0, 0, 0, 0, 0, 0])  # initial guess: (x, y, z, x_t, y_t, z_t)
+        x0 = np.array([0, 0, 0, 0, 0, 0, 1, 1, 1])  # initial guess: (x, y, z, x_t, y_t, z_t, s_x, s_y, s_z)
+    
         if len(measured_pts) < 3 or len(global_pts) < 3:
             raise ValueError("At least two points are required for optimization.")
         
@@ -88,5 +93,8 @@ class RotationTransformation:
             rez = res2[0]
             R = self.combineAngles(rez[2], rez[1], rez[0], reflect_z=True)
 
-        origin = rez[3:]
-        return origin, R  # translation vector and rotation matrix
+        #origin = rez[3:]
+        origin = rez[3:6]
+        scale = rez[6:]
+        #return origin, R  # translation vector and rotation matrix
+        return origin, R, scale  # translation vector, rotation matrix, and scaling factors

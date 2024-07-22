@@ -21,7 +21,6 @@ from .calibration_camera import CalibrationStereo
 from .probe_calibration import ProbeCalibration
 from .stage_listener import StageListener
 from .stage_ui import StageUI
-from .bundle_adjustmnet import BundleAdjustment
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -123,7 +122,7 @@ class StageWidget(QWidget):
         # Start refreshing stage info
         self.stageListener = StageListener(self.model, self.stageUI)
         self.stageListener.start()
-        self.probeCalibration = ProbeCalibration(self.stageListener)
+        self.probeCalibration = ProbeCalibration(self.model, self.stageListener)
         # Hide X, Y, and Z Buttons in Probe Detection
         self.calib_x.hide()
         self.calib_y.hide()
@@ -456,6 +455,7 @@ class StageWidget(QWidget):
                 err, instance, retval, R_AB, T_AB, E_AB, F_AB = self.get_results_calibrate_stereo(
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
+                print("\n\n----------------------------------------------------")
                 print(f"camera pair: {camA}-{camB}, err: {err}")
                 logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {err} ===")
                 logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
@@ -503,8 +503,9 @@ class StageWidget(QWidget):
                 err, calibrationStereo, retval, R_AB, T_AB, E_AB, F_AB = self.get_results_calibrate_stereo(
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
-                print(f"camera pair: {camA}-{camB}, err: {err}")
-                logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {err} ===")
+                print("\n\n--------------------------------------------------------")
+                print(f"camsera pair: {camA}-{camB}, err: {err}")
+                logger.debug(f"=== camera pair: {camA}-{camB}, err: {err} ===")
                 logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
 
                 # Store the instance with a sorted tuple key
@@ -534,17 +535,6 @@ class StageWidget(QWidget):
     def get_calibration_instance(self, camA, camB):
         sorted_key = tuple(sorted((camA, camB)))
         return self.calibrationStereoInstances.get(sorted_key)
-
-    def BA_create(self, cam_names, intrinsics, img_coords):
-        print(cam_names)
-        BA_problems = []
-        for i in range(len(cam_names)):
-            cam, coords, itmx = cam_names[i], img_coords[i], intrinsics[i]
-            
-            # BundleAdjustment
-            BA_problem = BundleAdjustment(cam, coords, itmx)
-            BA_problems.append(BA_problem)
-        pass
 
     def calibrate_cameras(self):
         """
@@ -934,7 +924,7 @@ class StageWidget(QWidget):
         message = f"Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
-    def probe_detect_accepted_status(self, stage_sn, transformation_matrix, switch_probe = False):
+    def probe_detect_accepted_status(self, stage_sn, transformation_matrix, scale, switch_probe = False):
         """
         Finalizes the probe detection process, accepting the detected probe position and updating the UI accordingly.
         Additionally, it updates the model with the transformation matrix obtained from the calibration.
@@ -974,7 +964,7 @@ class StageWidget(QWidget):
 
         # update global coords
         self.stageListener.requestUpdateGlobalDataTransformM(
-            stage_sn, transformation_matrix
+            stage_sn, transformation_matrix, scale
         )
 
     def set_default_x_y_z_style(self):
@@ -1053,11 +1043,12 @@ class StageWidget(QWidget):
         )
         self.calib_status_z = True
 
-    def update_probe_calib_status_transM(self, transformation_matrix):
+    def update_probe_calib_status_transM(self, transformation_matrix, scale):
         # Extract the rotation matrix (top-left 3x3)
         R = transformation_matrix[:3, :3]
         # Extract the translation vector (top 3 elements of the last column)
         T = transformation_matrix[:3, 3]
+        S = scale[:3]
 
         # Set the formatted string as the label's text
         content = (
@@ -1069,6 +1060,8 @@ class StageWidget(QWidget):
             f" [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]<br>"
             f"<b>T: </b>"
             f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]<br>"
+            f"<b>S: </b>"
+            f" [{S[0]:.5f}, {S[1]:.5f}, {S[2]:.5f}]<br>"
             f"</small></span>"
         )
         return content
@@ -1091,21 +1084,22 @@ class StageWidget(QWidget):
         )
         return content
 
-    def display_probe_calib_status(self, transM, L2_err, dist_traveled):
-        content_transM = self.update_probe_calib_status_transM(transM)
+    def display_probe_calib_status(self, transM, scale, L2_err, dist_traveled):
+        content_transM = self.update_probe_calib_status_transM(transM, scale)
         content_L2 = self.update_probe_calib_status_L2(L2_err)
         content_L2_travel = self.update_probe_calib_status_distance_traveled(dist_traveled)
         # Display the transformation matrix, L2 error, and distance traveled
         full_content = content_transM + content_L2 + content_L2_travel
         self.probeCalibrationLabel.setText(full_content)
 
-    def update_probe_calib_status(self, moving_stage_id, transM, L2_err, dist_traveled):
+    def update_probe_calib_status(self, moving_stage_id, transM, scale, L2_err, dist_traveled):
         self.transM, self.L2_err, self.dist_travled = transM, L2_err, dist_traveled
         self.moving_stage_id = moving_stage_id
 
         if self.moving_stage_id == self.selected_stage_id:
             # If moving stage is the selected stage, update the probe calibration status on UI
-            self.display_probe_calib_status(transM, L2_err, dist_traveled)
+            self.display_probe_calib_status(transM, scale, L2_err, dist_traveled)
+            #self.display_probe_calib_status(transM, L2_err, dist_traveled)
         else:
             # If moving stage is not the selected stage, save the calibration info
             content = (
