@@ -19,6 +19,7 @@ from .reticle_detection import ReticleDetection
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -148,7 +149,7 @@ class ProbeDetectManager(QObject):
                             self.curr_img, mask, gray_img
                         )
                     if ret:
-                        logger.debug("First detect")
+                        logger.debug(f"{self.name} First detect")
                         logger.debug(
                             f"angle: {self.probeDetect.angle}, \
                             tip: {self.probeDetect.probe_tip}, \
@@ -188,8 +189,10 @@ class ProbeDetectManager(QObject):
                                 (255, 255, 0),
                                 -1,
                             )
-                if ret:
-                    self.prev_img = self.curr_img
+                        self.prev_img = self.curr_img
+                        logger.debug(f"{self.name} Found")
+                    else: 
+                        logger.debug(f"{self.name} Not found")
             else:
                 self.prev_img = self.curr_img
 
@@ -232,7 +235,7 @@ class ProbeDetectManager(QObject):
 
                     for point_idx, (x, y) in enumerate(coords):
                         color = colormap[point_idx][0].tolist()
-                        cv2.circle(frame, (x, y), 2, color, -1)
+                        cv2.circle(frame, (x, y), 4, color, -1)
             return frame
 
         def run(self):
