@@ -17,7 +17,7 @@ from .bundle_adjustmnet import BALProblem, BALOptimizer
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -58,6 +58,20 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
+
+        self.threshold_min_max = 250 
+        self.threshold_min_max_z = 200
+        self.LR_err_L2_threshold = 200
+        self.threshold_matrix = np.array(
+            [
+                [0.002, 0.002, 0.002, 0.0], 
+                [0.002, 0.002, 0.002, 0.0],
+                [0.02, 0.02, 0.02, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]
+        )
+
+        """
         self.threshold_min_max = 2500 
         self.threshold_min_max_z = 2000
         self.LR_err_L2_threshold = 20
@@ -69,6 +83,7 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
+        """
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self._create_file()
@@ -463,6 +478,8 @@ class ProbeCalibration(QObject):
         csv_file = os.path.join(debug_dir, f"points_{self.stage.sn}_inlier.csv")
         filtered_df.to_csv(csv_file, index=False)
 
+        return csv_file
+
     def reshape_array(self):
         """
         Reshapes arrays of local and global points for processing.
@@ -509,9 +526,11 @@ class ProbeCalibration(QObject):
             )
             # Update the filtered DataFrame with valid points
             filtered_df = filtered_df[valid_indices]
-            self._save_filtered_points(filtered_df)
+            csv_file_path = self._save_filtered_points(filtered_df)
 
             # TODO - Bundle Adjustment
+            if self.model.bundle_adjustment:
+                self.run_bundle_adjustment(csv_file_path)
 
             # Emit the signal to indicate that calibration is complete
             #self.calib_complete.emit(self.stage.sn, self.transM_LR)
@@ -520,11 +539,14 @@ class ProbeCalibration(QObject):
                 f"complete probe calibration {self.stage.sn}, {self.transM_LR}"
             )
 
-    def BA_create(self, cam_names, intrinsics, img_coords):
-        print(cam_names)
-        BA_problems = []
-        for i in range(len(cam_names)):
-            cam, coords, itmx = cam_names[i], img_coords[i], intrinsics[i]
-            
-            # BundleAdjustment
-        pass
+    def run_bundle_adjustment(self, file_path):
+        bal_problem = BALProblem(self.model, file_path)
+        optimizer = BALOptimizer(bal_problem)
+        optimizer.optimize()
+
+        logger.debug(f"Number of observations: {len(bal_problem.observations)}")
+        logger.debug(f"Number of 3d points: {len(bal_problem.points)}")
+        for i in range(len(bal_problem.list_cameras)):
+            logger.debug(f"list of cameras: {bal_problem.list_cameras[i]}")
+            logger.debug(bal_problem.get_camera_params(i))
+
