@@ -13,7 +13,7 @@ import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from sklearn.linear_model import LinearRegression
 from .coords_transformation import RotationTransformation
-from .bundle_adjustmnet import BundleAdjustment
+from .bundle_adjustmnet import BALProblem, BALOptimizer
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -487,7 +487,7 @@ class ProbeCalibration(QObject):
         # get whole list of local and global points in pd format
         local_points, global_points = self._get_local_global_points()
         
-        self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points)
+        self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points) #remove outliers
         if self.transM_LR is None:
             return
         
@@ -527,6 +527,4 @@ class ProbeCalibration(QObject):
             cam, coords, itmx = cam_names[i], img_coords[i], intrinsics[i]
             
             # BundleAdjustment
-            BA_problem = BundleAdjustment(cam, coords, itmx)
-            BA_problems.append(BA_problem)
         pass
