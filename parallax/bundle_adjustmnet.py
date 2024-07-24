@@ -14,6 +14,7 @@ class BALProblem:
         self.observations = None
         self.points = None
         self.cameras_params = None
+        self.local_pts = None
         
         self.model = model
         self.df = None
@@ -37,6 +38,7 @@ class BALProblem:
     def _set_points(self):
         unique_df = self.df.drop_duplicates(subset=['m_global_x', 'm_global_y', 'm_global_z'])
         self.points = np.array(unique_df[['m_global_x', 'm_global_y', 'm_global_z']].values)
+        self.local_pts = np.array(unique_df[['local_x', 'local_y', 'local_z']].values)
 
     def _set_observations(self):
         # Initialize the list to store observations
@@ -85,9 +87,9 @@ class BALProblem:
         
     def _remove_duplicates(self):
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
-        print("Original rows: ", self.df.shape[0])
+        logger.debug(f"Original rows: {self.df.shape[0]}")
         self.df = self.df.drop_duplicates(subset=['ts_local_coords', 'global_x', 'global_y', 'global_z'])
-        print("Unique rows: ", self.df.shape[0])
+        logger.debug(f"Unique rows: {self.df.shape[0]}")
     
     def _set_camera_params(self):
         if not self.list_cameras:
@@ -180,24 +182,22 @@ class BALOptimizer:
         self.opt_points = opt_params[12 * n_cams:].reshape(n_pts, 3)
 
         if print_result:
+            print(f"\nOptimization completed.")
             # Compute initial residuals
             initial_residuals = self.residuals(initial_params)
             initial_residuals_sum = np.sum(initial_residuals**2)
-            print("Initial residuals:", initial_residuals_sum)
             average_residual = initial_residuals_sum / len(self.bal_problem.observations)
-            print(f"Average residual: {average_residual}")
+            print(f"Before BA, Average residual: {average_residual}")
 
             # Compute Optimize residuals
             opt_residuals = self.residuals(opt_params)
             opt_residuals_sum = np.sum(opt_residuals**2)
-            print("\nOptimize residuals:", opt_residuals_sum)
             average_residual = opt_residuals_sum / len(self.bal_problem.observations)
-            print(f"Average residual: {average_residual}")
+            print(f"After  BA, Average residual: {average_residual}")
 
-            print("\nOptimization completed.")
-            print("Optimized camera parameters:", self.opt_camera_params)
+            logger.debug(f"Optimized camera parameters: {self.opt_camera_params}")
 
             for i in range(len(self.bal_problem.points)):
-                print("\nPoint", i)
-                print("org :", self.bal_problem.points[i])
-                print("opt :", self.opt_points[i])
+                logger.debug(f"\nPoint {i}")
+                logger.debug(f"org : {self.bal_problem.points[i]}")
+                logger.debug(f"opt : {self.opt_points[i]}")

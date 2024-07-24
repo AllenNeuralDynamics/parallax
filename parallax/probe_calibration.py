@@ -58,7 +58,7 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-
+        """
         self.threshold_min_max = 250 
         self.threshold_min_max_z = 200
         self.LR_err_L2_threshold = 200
@@ -83,7 +83,7 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
-        """
+        
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self._create_file()
@@ -238,7 +238,7 @@ class ProbeCalibration(QObject):
 
         return filtered_local_points, filtered_global_points, valid_indices
 
-    def _get_transM_LR_orthogonal(self, local_points, global_points):
+    def _get_transM_LR_orthogonal(self, local_points, global_points, remove_noise=True):
         """
         Computes the transformation matrix from local to global coordinates using orthogonal distance regression.
         Args:
@@ -252,12 +252,13 @@ class ProbeCalibration(QObject):
         # Check if there are more than 5 unique values for each coordinate axis
         unique_local_points = np.unique(local_points, axis=0)
 
-        if self._is_criteria_met_points_min_max() and len(unique_local_points) > 10 \
-                and self.R is not None and self.origin is not None: 
-            local_points, global_points, _ = self._remove_outliers(local_points, global_points)
-            pass
+        if remove_noise:
+            if self._is_criteria_met_points_min_max() and len(unique_local_points) > 10 \
+                    and self.R is not None and self.origin is not None: 
+                local_points, global_points, _ = self._remove_outliers(local_points, global_points)
 
         if len(local_points) < 3 or len(global_points) < 3:
+            logger.warning("Not enough points for calibration.")
             return None
         self.origin, self.R, self.scale = self.transformer.fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
@@ -530,23 +531,52 @@ class ProbeCalibration(QObject):
 
             # TODO - Bundle Adjustment
             if self.model.bundle_adjustment:
-                self.run_bundle_adjustment(csv_file_path)
+                print("\n\n===============================================")
+                print("Before BA")
+                print(self.stage.sn, self.transM_LR, self.scale)
 
-            # Emit the signal to indicate that calibration is complete
-            #self.calib_complete.emit(self.stage.sn, self.transM_LR)
+                ret = self.run_bundle_adjustment(csv_file_path)
+                if ret:
+                    print("After BA")
+                    print(self.stage.sn, self.transM_LR, self.scale)
+                    self._update_info_ui()
+                else:
+                    return
+
+            # Emit the signal to indicate that calibration is complete                
             self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
             logger.debug(
-                f"complete probe calibration {self.stage.sn}, {self.transM_LR}"
+                f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
             )
 
     def run_bundle_adjustment(self, file_path):
         bal_problem = BALProblem(self.model, file_path)
         optimizer = BALOptimizer(bal_problem)
         optimizer.optimize()
+        
+        local_pts, opt_global_pts = bal_problem.local_pts, optimizer.opt_points
+        self.transM_LR = self._get_transM_LR_orthogonal(local_pts, opt_global_pts, remove_noise=False)
+        if self.transM_LR is None:
+            return False
+    
+        # Save local_pts and optimzied global pts in file_path
+                # Save local_pts and optimized global pts in file_path
+        df = pd.DataFrame({
+            'local_x': local_pts[:, 0],
+            'local_y': local_pts[:, 1],
+            'local_z': local_pts[:, 2],
+            'global_x': opt_global_pts[:, 0],
+            'global_y': opt_global_pts[:, 1],
+            'global_z': opt_global_pts[:, 2]
+        })
+        df.to_csv(file_path, index=False)
 
         logger.debug(f"Number of observations: {len(bal_problem.observations)}")
         logger.debug(f"Number of 3d points: {len(bal_problem.points)}")
         for i in range(len(bal_problem.list_cameras)):
             logger.debug(f"list of cameras: {bal_problem.list_cameras[i]}")
             logger.debug(bal_problem.get_camera_params(i))
+
+        return True
+ 
 
