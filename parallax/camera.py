@@ -13,6 +13,7 @@ import numpy as np
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 supported_camera_models = ["BFS-U3-120S4C", "BFS-U3-04S2M"]
 
 # Check for the availability of the PySpin library
