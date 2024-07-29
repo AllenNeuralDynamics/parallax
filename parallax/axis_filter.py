@@ -13,7 +13,7 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 class AxisFilter(QObject):
     """Class representing no filter."""
@@ -90,6 +90,9 @@ class AxisFilter(QObject):
             
         def clicked_position(self, input_pt):
             """Get clicked position."""
+            if not self.running: 
+                return
+            
             if self.reticle_coords is None:
                 return
 
@@ -103,13 +106,16 @@ class AxisFilter(QObject):
             self.pos_x = tuple(self.pos_x)
 
             # sort the reticle points and register to the model
+            print(f"Before: {self.name} {self.reticle_coords}")
             self.sort_reticle_points()
             self.model.add_coords_axis(self.name, self.reticle_coords)
             self.model.add_pos_x(self.name, self.pos_x)
+            print(f"After: {self.name} {self.reticle_coords}")
 
         def reset_pos_x(self):
             self.pos_x = None
             self.model.reset_pos_x()
+            logger.debug("reset pos_x")
 
         def stop_running(self):
             """Stop the worker from running."""
@@ -153,14 +159,14 @@ class AxisFilter(QObject):
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
         self.thread.destroyed.connect(self.onThreadDestroyed)
         self.threadDeleted = False
 
         #self.worker.frame_processed.connect(self.frame_processed)
         self.worker.frame_processed.connect(self.frame_processed.emit)
         self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.thread.deleteLater)
+        self.worker.finished.connect(self.worker.deleteLater)
         self.worker.destroyed.connect(self.onWorkerDestroyed)
         logger.debug(f"init camera name: {self.name}")
 
@@ -184,8 +190,8 @@ class AxisFilter(QObject):
         """Stop the filter by stopping the worker."""
         logger.debug(f" {self.name} Stopping thread")
         if self.worker is not None:
-            self.worker.stop_running()
             self.worker.reset_pos_x()
+            self.worker.stop_running()
 
     def onWorkerDestroyed(self):
         """Cleanup after worker finishes."""

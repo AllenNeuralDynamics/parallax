@@ -157,6 +157,15 @@ class ProbeCalibration(QObject):
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.scale = np.array([1, 1, 1])
 
+
+    def _remove_duplicates(self, df):
+        # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
+        logger.debug(f"Original rows: {self.df.shape[0]}")
+        df.drop_duplicates(subset=['sn', 'ts_local_coords', 'global_x', 'global_y', 'global_z'])
+        logger.debug(f"Unique rows: {self.df.shape[0]}")
+
+        return df
+
     def _get_local_global_points(self):
         """
         Retrieves local and global points from the CSV file as numpy arrays.
@@ -167,6 +176,7 @@ class ProbeCalibration(QObject):
         self.df = pd.read_csv(self.csv_file)
         # Filter the DataFrame based on self.stage.sn
         filtered_df = self.df[self.df["sn"] == self.stage.sn]
+
         # Extract local and global points
         local_points = filtered_df[["local_x", "local_y", "local_z"]].values
         global_points = filtered_df[["global_x", "global_y", "global_z"]].values
@@ -224,6 +234,7 @@ class ProbeCalibration(QObject):
         # Get the l2 distance
         l2_distance = self._get_l2_distance(local_points, global_points)
 
+        # TODO BA - threshold: 
         # Remove outliers
         threshold = 30
 
@@ -247,13 +258,9 @@ class ProbeCalibration(QObject):
         Returns:
             tuple: Linear regression model and transformation matrix.
         """
-        #if len(local_points) > 80 and self.R is not None and self.origin is not None: 
-
-        # Check if there are more than 5 unique values for each coordinate axis
-        unique_local_points = np.unique(local_points, axis=0)
 
         if remove_noise:
-            if self._is_criteria_met_points_min_max() and len(unique_local_points) > 10 \
+            if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
                     and self.R is not None and self.origin is not None: 
                 local_points, global_points, _ = self._remove_outliers(local_points, global_points)
 
@@ -291,22 +298,18 @@ class ProbeCalibration(QObject):
                 # Append debug information as needed
                 row_data.extend([
                     debug_info.get("ts_local_coords", ''),
-                    debug_info.get("ts_img_captured", ''),
-                    debug_info.get("cam0", ''),
-                    debug_info.get("pt0", ''),
-                    debug_info.get("cam1", ''),
-                    debug_info.get("pt1", '')
+                    debug_info.get("ts_img_captured", '')
                 ])
-                # Add the other camera information dynamically
-                i = 2
-                while f"cam{i}" in debug_info:
-                    row_data.extend([
-                        debug_info.get(f"cam{i}", ''),
-                        debug_info.get(f"pt{i}", '')
-                    ])
-                    i += 1
 
-            # Write the complete row to the CSV
+                cam_info = [
+                    (debug_info.get("cam0", ''), debug_info.get("pt0", '')),
+                    (debug_info.get("cam1", ''), debug_info.get("pt1", ''))
+                ]
+                cam_info.sort(key=lambda x: x[0])  # Sort by camera name
+                for cam, pt in cam_info:
+                    row_data.extend([cam, pt])
+
+            # TODO if it is duplicates, do not update
             writer.writerow(row_data)
 
     def _is_criteria_met_transM(self):
@@ -501,9 +504,9 @@ class ProbeCalibration(QObject):
         """
         # update points in the file
         self.stage = stage
-        self._update_local_global_point(debug_info)
+        self._update_local_global_point(debug_info) # Do no update if it is duplicates
         # get whole list of local and global points in pd format
-        local_points, global_points = self._get_local_global_points()
+        local_points, global_points = self._get_local_global_points() 
         
         self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points) #remove outliers
         if self.transM_LR is None:
@@ -567,7 +570,7 @@ class ProbeCalibration(QObject):
             'local_z': local_pts[:, 2],
             'global_x': opt_global_pts[:, 0],
             'global_y': opt_global_pts[:, 1],
-            'global_z': opt_global_pts[:, 2]
+            'opt_global_z': opt_global_pts[:, 2]
         })
         df.to_csv(file_path, index=False)
 

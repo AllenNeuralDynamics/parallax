@@ -23,7 +23,7 @@ from .stage_listener import StageListener
 from .stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 class StageWidget(QWidget):
     """Widget for stage control and calibration."""
@@ -342,6 +342,8 @@ class StageWidget(QWidget):
             self.start_calibrate()
             self.enable_reticle_probe_calibration_buttons()
             logger.debug("Positive x-axis detected on all screens.")
+            for screen in self.screen_widgets:
+                screen.run_no_filter()  
         else:
             self.coords_detected_screens = self.get_coords_detected_screens()
             logger.debug("Checking again for user input of positive x-axis...")
@@ -424,6 +426,7 @@ class StageWidget(QWidget):
                 cam_names.append(camera_name)
                 img_coords.append(coords)
                 intrinsics.append(intrinsic)
+                print(f"camera: {camera_name}, coords: {coords}")
         
         return cam_names, intrinsics, img_coords
 
