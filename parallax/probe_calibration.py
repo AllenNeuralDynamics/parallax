@@ -318,7 +318,6 @@ class ProbeCalibration(QObject):
                         round(float(row['global_x']), 0) == new_row_data['global_x'] and
                         round(float(row['global_y']), 0) == new_row_data['global_y'] and
                         round(float(row['global_z']), 0) == new_row_data['global_z']):
-                        print("duplicate rows")
                         return  # Do not update if it is a duplicate
                     if row['ts_local_coords'] != new_row_data['ts_local_coords']:
                         break
