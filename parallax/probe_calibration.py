@@ -307,7 +307,6 @@ class ProbeCalibration(QObject):
                 new_row_data[f'cam{i}'] = cam
                 new_row_data[f'pt{i}'] = pt
 
-        
         # Read the entire CSV file to check for duplicates
         try:
             with open(self.csv_file, "r", newline='') as file:
@@ -317,13 +316,15 @@ class ProbeCalibration(QObject):
                         row['ts_local_coords'] == new_row_data['ts_local_coords'] and
                         round(float(row['global_x']), 0) == new_row_data['global_x'] and
                         round(float(row['global_y']), 0) == new_row_data['global_y'] and
-                        round(float(row['global_z']), 0) == new_row_data['global_z']):
+                        round(float(row['global_z']), 0) == new_row_data['global_z'] and
+                        row['cam0'] == new_row_data['cam0'] and
+                        row['cam1'] == new_row_data['cam1']):
                         return  # Do not update if it is a duplicate
                     if row['ts_local_coords'] != new_row_data['ts_local_coords']:
                         break
+
         except FileNotFoundError:
-            # File does not exist yet, so proceed to write the new row
-            pass
+            logger.error("File does not exist")
 
         # Write the new row to the CSV file
         with open(self.csv_file, "a", newline='') as file:
