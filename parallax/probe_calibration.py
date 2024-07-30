@@ -86,6 +86,7 @@ class ProbeCalibration(QObject):
         
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
+        self.last_row = None
         self._create_file()
 
     def reset_calib(self, sn=None):
@@ -127,7 +128,7 @@ class ProbeCalibration(QObject):
         with open(self.csv_file, "w", newline="") as file:
             writer = csv.writer(file)
             # Define column names
-            column_names = [
+            self.column_names = [
                 "sn",
                 "local_x",
                 "local_y",
@@ -142,7 +143,7 @@ class ProbeCalibration(QObject):
                 "cam1",
                 "pt1"
             ]
-            writer.writerow(column_names)
+            writer.writerow(self.column_names)
 
     def clear(self, sn = None):
         """
@@ -281,36 +282,54 @@ class ProbeCalibration(QObject):
         if self.stage.stage_z_global < 10:
             return  # Do not update if condition is met (to avoid noise)
         
-        with open(self.csv_file, "a", newline='') as file:
-            writer = csv.writer(file)
-            row_data = [
-                self.stage.sn,
-                self.stage.stage_x,
-                self.stage.stage_y,
-                self.stage.stage_z,
-                self.stage.stage_x_global,
-                self.stage.stage_y_global,
-                self.stage.stage_z_global,
+        new_row_data = {
+            'sn': self.stage.sn,
+            'local_x': self.stage.stage_x,
+            'local_y': self.stage.stage_y,
+            'local_z': self.stage.stage_z,
+            'global_x': round(self.stage.stage_x_global, 0),
+            'global_y': round(self.stage.stage_y_global, 0),
+            'global_z': round(self.stage.stage_z_global, 0),
+            'ts_local_coords': debug_info.get('ts_local_coords', '') if debug_info else '',
+            'ts_img_captured': debug_info.get('ts_img_captured', '') if debug_info else '',
+            'cam0': '',
+            'pt0': '',
+            'cam1': '',
+            'pt1': ''
+        }
+        if debug_info:
+            cam_info = [
+                (debug_info.get('cam0', ''), debug_info.get('pt0', '')),
+                (debug_info.get('cam1', ''), debug_info.get('pt1', ''))
             ]
+            cam_info.sort(key=lambda x: x[0])  # Sort by camera name
+            for i, (cam, pt) in enumerate(cam_info):
+                new_row_data[f'cam{i}'] = cam
+                new_row_data[f'pt{i}'] = pt
 
-            # Check if debug information needs to be added
-            if debug_info is not None:
-                # Append debug information as needed
-                row_data.extend([
-                    debug_info.get("ts_local_coords", ''),
-                    debug_info.get("ts_img_captured", '')
-                ])
+        
+        # Read the entire CSV file to check for duplicates
+        try:
+            with open(self.csv_file, "r", newline='') as file:
+                reader = list(csv.DictReader(file))
+                for row in reversed(reader):
+                    if (row['sn'] == new_row_data['sn'] and
+                        row['ts_local_coords'] == new_row_data['ts_local_coords'] and
+                        round(float(row['global_x']), 0) == new_row_data['global_x'] and
+                        round(float(row['global_y']), 0) == new_row_data['global_y'] and
+                        round(float(row['global_z']), 0) == new_row_data['global_z']):
+                        print("duplicate rows")
+                        return  # Do not update if it is a duplicate
+                    if row['ts_local_coords'] != new_row_data['ts_local_coords']:
+                        break
+        except FileNotFoundError:
+            # File does not exist yet, so proceed to write the new row
+            pass
 
-                cam_info = [
-                    (debug_info.get("cam0", ''), debug_info.get("pt0", '')),
-                    (debug_info.get("cam1", ''), debug_info.get("pt1", ''))
-                ]
-                cam_info.sort(key=lambda x: x[0])  # Sort by camera name
-                for cam, pt in cam_info:
-                    row_data.extend([cam, pt])
-
-            # TODO if it is duplicates, do not update
-            writer.writerow(row_data)
+        # Write the new row to the CSV file
+        with open(self.csv_file, "a", newline='') as file:
+            writer = csv.DictWriter(file, fieldnames=new_row_data.keys())
+            writer.writerow(new_row_data)
 
     def _is_criteria_met_transM(self):
         """
