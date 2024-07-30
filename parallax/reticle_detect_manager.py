@@ -23,7 +23,6 @@ logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
-
 class ReticleDetectManager(QObject):
     """Reticle detection class"""
 

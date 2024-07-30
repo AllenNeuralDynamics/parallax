@@ -10,22 +10,27 @@ import time
 import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from .calibration_camera import CalibrationCamera
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 class AxisFilter(QObject):
     """Class representing no filter."""
 
     name = "None"
     frame_processed = pyqtSignal(object)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
 
     class Worker(QObject):
         """Worker class for processing frames in a separate thread."""
 
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
+        found_coords = pyqtSignal(
+            np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple
+        )
 
         def __init__(self, name, model):
             """Initialize the worker object."""
@@ -37,6 +42,7 @@ class AxisFilter(QObject):
             self.frame = None
             self.reticle_coords = self.model.get_coords_axis(self.name)
             self.pos_x = None
+            self.calibrationCamera = CalibrationCamera(self.name)
 
         def update_frame(self, frame):
             """Update the frame to be processed.
@@ -96,6 +102,7 @@ class AxisFilter(QObject):
             if self.reticle_coords is None:
                 return
 
+            logger.debug(f"clicked_position {input_pt}")
             # Coordinates of points
             pt1, pt2 = self.reticle_coords[0][0], self.reticle_coords[0][-1]
             pt3, pt4 = self.reticle_coords[1][0], self.reticle_coords[1][-1]
@@ -106,11 +113,19 @@ class AxisFilter(QObject):
             self.pos_x = tuple(self.pos_x)
 
             # sort the reticle points and register to the model
-            print(f"Before: {self.name} {self.reticle_coords}")
             self.sort_reticle_points()
+            ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(
+                    self.reticle_coords[0], self.reticle_coords[1]
+            )
+            if ret:
+                self.found_coords.emit(
+                        self.reticle_coords[0], self.reticle_coords[1], mtx, dist, rvecs, tvecs
+                )
+            
+            # Register the camera intrinsic parameters and coords  to the model
             self.model.add_coords_axis(self.name, self.reticle_coords)
+            self.model.add_camera_intrinsic(self.name, mtx, dist, rvecs, tvecs)
             self.model.add_pos_x(self.name, self.pos_x)
-            print(f"After: {self.name} {self.reticle_coords}")
 
         def reset_pos_x(self):
             self.pos_x = None
@@ -165,6 +180,7 @@ class AxisFilter(QObject):
 
         #self.worker.frame_processed.connect(self.frame_processed)
         self.worker.frame_processed.connect(self.frame_processed.emit)
+        self.worker.found_coords.connect(self.found_coords)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.destroyed.connect(self.onWorkerDestroyed)

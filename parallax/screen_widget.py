@@ -19,7 +19,7 @@ from .axis_filter import AxisFilter
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -81,6 +81,7 @@ class ScreenWidget(pg.GraphicsView):
         # Axis Filter
         self.axisFilter = AxisFilter(self.model, self.camera_name)
         self.axisFilter.frame_processed.connect(self.set_image_item_from_data)
+        self.axisFilter.found_coords.connect(self.found_reticle_coords)
 
         # Reticle Detection
         self.reticleDetector = ReticleDetectManager(self.camera_name)

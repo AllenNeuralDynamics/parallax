@@ -332,12 +332,14 @@ class StageWidget(QWidget):
             pos_x = self.model.get_pos_x(cam_name)
             if pos_x is not None:
                 pos_x_detected_screens.append(cam_name)
-        
+
+        logger.debug(f"coords_detected_screens: {self.coords_detected_screens}")
         return set(self.coords_detected_screens) == set(pos_x_detected_screens)
     
     def check_positive_x_axis(self):
         if self.is_positive_x_axis_detected():
             self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected
+        
             # Continue to calibrate stereo
             self.start_calibrate()
             self.enable_reticle_probe_calibration_buttons()
@@ -426,7 +428,6 @@ class StageWidget(QWidget):
                 cam_names.append(camera_name)
                 img_coords.append(coords)
                 intrinsics.append(intrinsic)
-                print(f"camera: {camera_name}, coords: {coords}")
         
         return cam_names, intrinsics, img_coords
 
@@ -561,18 +562,9 @@ class StageWidget(QWidget):
             coords = screen.get_reticle_coords()
             if coords is None:
                 return
-
         # Found the coords
         self.reticle_detect_detected_status()
-
-        # self.reticle_calibration_btn.setText("Confirm ?")
-        for screen in self.screen_widgets:
-            coords = screen.get_reticle_coords()
-            mtx, dist, rvec, tvec = screen.get_camera_intrinsic()
-            camera_name = screen.get_camera_name()
-            # Retister the reticle coords in the model
-            self.model.add_coords_axis(camera_name, coords)
-            self.model.add_camera_intrinsic(camera_name, mtx, dist, rvec, tvec)
+        self.register_reticle_coords_intrinsic_to_model()
 
     def reticle_detect_two_screens(self):
         """Detect reticle coordinates on two screens."""
@@ -587,7 +579,9 @@ class StageWidget(QWidget):
             self.reticle_detect_detected_status()
         else:
             return
+        self.register_reticle_coords_intrinsic_to_model()
         
+    def register_reticle_coords_intrinsic_to_model(self):
         # Register into the model
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()

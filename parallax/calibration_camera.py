@@ -467,7 +467,7 @@ class CalibrationStereo(CalibrationCamera):
                 {average_L2_distance*1000} µm³"
             )
             self.test_x_y_z_performance(points_3d_G)
-            #print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
+            print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
             self.test_pixel_error()
         return average_L2_distance
