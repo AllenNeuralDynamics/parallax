@@ -17,7 +17,7 @@ from .bundle_adjustmnet import BALProblem, BALOptimizer
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -58,6 +58,7 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
+        
         """
         self.threshold_min_max = 250 
         self.threshold_min_max_z = 200
@@ -70,11 +71,11 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
-
         """
-        self.threshold_min_max = 2500 
+        self.threshold_min_max = 3000
         self.threshold_min_max_z = 2000
         self.LR_err_L2_threshold = 20
+        self.threshold_avg_error = 50 #TODO
         self.threshold_matrix = np.array(
             [
                 [0.00002, 0.00002, 0.00002, 50.0], 
@@ -86,6 +87,7 @@ class ProbeCalibration(QObject):
         
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
+        self.avg_err = None
         self.last_row = None
         self._create_file()
 
@@ -167,7 +169,25 @@ class ProbeCalibration(QObject):
 
         return df
 
-    def _get_local_global_points(self):
+    def _filter_df_by_sn(self, sn):
+        self.df = pd.read_csv(self.csv_file)
+        
+        return self.df[self.df["sn"] == sn]
+
+    def _get_local_global_points(self, df):
+        """
+        Retrieves local and global points from the CSV file as numpy arrays.
+
+        Returns:
+            tuple: A tuple containing arrays of local points and global points.
+        """
+        # Extract local and global points
+        local_points = df[["local_x", "local_y", "local_z"]].values
+        global_points = df[["global_x", "global_y", "global_z"]].values
+
+        return local_points, global_points
+    
+    def _get_df(self):
         """
         Retrieves local and global points from the CSV file as numpy arrays.
 
@@ -178,42 +198,7 @@ class ProbeCalibration(QObject):
         # Filter the DataFrame based on self.stage.sn
         filtered_df = self.df[self.df["sn"] == self.stage.sn]
 
-        # Extract local and global points
-        local_points = filtered_df[["local_x", "local_y", "local_z"]].values
-        global_points = filtered_df[["global_x", "global_y", "global_z"]].values
-
-        return local_points, global_points
-
-    def _get_transM_LR(self, local_points, global_points):
-        """
-        Computes the transformation matrix from local to global coordinates.
-
-        Args:
-            local_points (np.array): Array of local points.
-            global_points (np.array): Array of global points.
-
-        Returns:
-            tuple: Linear regression model and transformation matrix.
-        """
-        local_points_with_bias = np.hstack(
-            [local_points, np.ones((local_points.shape[0], 1))]
-        )
-
-        # Train the linear regression model
-        model = LinearRegression(fit_intercept=False) 
-        model.fit(local_points_with_bias, global_points)
-
-        # Weights and Bias
-        # All but last column, which are the weights
-        weights = model.coef_[:, :-1]
-        bias = model.coef_[:, -1] # Last column, which is the bias
-
-        # Combine weights and bias to form the transformation matrix
-        transformation_matrix = np.hstack([weights, bias.reshape(-1, 1)])
-        # Adding the extra row to complete the affine transformation matrix
-        transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
-
-        return model, transformation_matrix
+        return filtered_df
     
     def _get_l2_distance(self, local_points, global_points):
         R, t, s = self.R, self.origin, self.scale
@@ -235,9 +220,11 @@ class ProbeCalibration(QObject):
         # Get the l2 distance
         l2_distance = self._get_l2_distance(local_points, global_points)
 
-        # TODO BA - threshold: 
         # Remove outliers
-        threshold = 30
+        if self.model.bundle_adjustment:
+            threshold = 100
+        else:
+            threshold = 20
 
         # Filter out points where L2 distance is greater than the threshold
         valid_indices = l2_distance <= threshold
@@ -268,10 +255,30 @@ class ProbeCalibration(QObject):
         if len(local_points) < 3 or len(global_points) < 3:
             logger.warning("Not enough points for calibration.")
             return None
-        self.origin, self.R, self.scale = self.transformer.fit_params(local_points, global_points)
+        self.origin, self.R, self.scale, self.avg_err = self.transformer.fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
+        return transformation_matrix
+
+    def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None):
+
+        local_points, global_points = self._get_local_global_points(df)
+        
+        if remove_noise:
+            if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
+                    and self.R is not None and self.origin is not None: 
+                local_points, global_points, valid_indices = self._remove_outliers(local_points, global_points)
+
+        if len(local_points) < 3 or len(global_points) < 3:
+            logger.warning("Not enough points for calibration.")
+            return None
+        self.origin, self.R, self.scale, self.avg_err = self.transformer.fit_params(local_points, global_points)
+        transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
+        transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
+
+        if save_to_csv:
+            self.file_name = self._save_df_to_csv(df.iloc[valid_indices], file_name)
         return transformation_matrix
 
     def _update_local_global_point(self, debug_info=None):
@@ -340,6 +347,12 @@ class ProbeCalibration(QObject):
         """
         diff_matrix = np.abs(self.transM_LR - self.transM_LR_prev)
         if np.all(diff_matrix <= self.threshold_matrix):
+            return True
+        else:
+            return False
+        
+    def _is_criteria_avg_error_threshold(self):
+        if self.avg_err < self.threshold_avg_error:
             return True
         else:
             return False
@@ -459,18 +472,20 @@ class ProbeCalibration(QObject):
         """
         # End Criteria:
         # 1. distance maxX-minX, maxY-minY, maxZ-minZ
-        # 2. transM_LR difference in some epsilon value
-        # 3. L2 error (Global and Exp) is less than some values (e.g. 20 mincrons)
+        # 2. L2 error (Global and Exp) is less than some values (e.g. 20 mincrons)
+        # 3. transM_LR difference in some epsilon value
+        # 4. L2 error (Global and Exp) is less than some values (e.g. 20 mincrons)
         if self._is_criteria_met_points_min_max():
-            if self._is_criteria_met_transM():
-                if self._is_criteria_met_l2_error():
-                    logger.debug("Enough points gathered.")
-                    return True
+            if self._is_criteria_avg_error_threshold():
+                if self._is_criteria_met_transM():
+                    if self._is_criteria_met_l2_error():
+                        logger.debug("Enough points gathered.")
+                        return True
 
         self.transM_LR_prev = self.transM_LR
         return False
 
-    def _update_info_ui(self):
+    def _update_info_ui(self, disp_avg_error=False, save_to_csv=False):
         sn = self.stage.sn
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]
@@ -479,15 +494,24 @@ class ProbeCalibration(QObject):
             y_diff = stage_data['max_y'] - stage_data['min_y']
             z_diff = stage_data['max_z'] - stage_data['min_z']
             
+            if disp_avg_error:
+                error = self.avg_err
+            else:
+                error = self.LR_err_L2_current
+
             self.transM_info.emit(
                 sn,
                 self.transM_LR,
                 self.scale,
-                self.LR_err_L2_current,
+                error,
                 np.array([x_diff, y_diff, z_diff])
             )
 
-    def _save_filtered_points(self, filtered_df):
+        if save_to_csv:
+            file_name = f"transM_{sn}.csv"
+            self._save_transM_to_csv(file_name)
+
+    def _save_df_to_csv(self, df, file_name):
         """
         Save the filtered points back to the CSV file.
 
@@ -498,11 +522,40 @@ class ProbeCalibration(QObject):
         package_dir = os.path.dirname(os.path.abspath(__file__))
         debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
         os.makedirs(debug_dir, exist_ok=True)
-        csv_file = os.path.join(debug_dir, f"points_{self.stage.sn}_inlier.csv")
-        filtered_df.to_csv(csv_file, index=False)
+        csv_file = os.path.join(debug_dir, file_name)
+        df.to_csv(csv_file, index=False)
 
         return csv_file
 
+    def _save_transM_to_csv(self, file_name):
+        """
+        Save the filtered points back to the CSV file.
+
+        Args:
+            filtered_df (pd.DataFrame): DataFrame containing filtered local and global points.
+        """
+        # Collect the data into a dictionary
+        # Extract the rotation matrix (first 3x3 sub-matrix)
+        R = self.transM_LR[:3, :3]
+        # Extract the translation vector (first 3 elements of the last column)
+        T = self.transM_LR[:3, 3]
+        # Extract the scale
+        S = self.scale[:3]
+
+        # Format the data as a dictionary
+        data = {
+            'R_0_0': [R[0, 0]], 'R_0_1': [R[0, 1]], 'R_0_2': [R[0, 2]],
+            'R_1_0': [R[1, 0]], 'R_1_1': [R[1, 1]], 'R_1_2': [R[1, 2]],
+            'R_2_0': [R[2, 0]], 'R_2_1': [R[2, 1]], 'R_2_2': [R[2, 2]],
+            'T_0': [T[0]], 'T_1': [T[1]], 'T_2': [T[2]],
+            'S_0': [S[0]], 'S_1': [S[1]], 'S_2': [S[2]],
+            'avg_err': [self.avg_err]
+        }
+
+        df = pd.DataFrame(data)
+        # Add the transformation matrix columns to the DataFrame
+        self._save_df_to_csv(df, file_name)
+        
     def reshape_array(self):
         """
         Reshapes arrays of local and global points for processing.
@@ -524,46 +577,46 @@ class ProbeCalibration(QObject):
         # update points in the file
         self.stage = stage
         self._update_local_global_point(debug_info) # Do no update if it is duplicates
-        # get whole list of local and global points in pd format
-        local_points, global_points = self._get_local_global_points() 
         
-        self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points) #remove outliers
+        # TODO
+        # get whole list of local and global points in pd format
+        #local_points, global_points = self._get_local_global_points()
+        #self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points) #remove outliers
+
+        filtered_df = self._filter_df_by_sn(self.stage.sn)
+        self.transM_LR = self._get_transM(filtered_df)
         if self.transM_LR is None:
             return
         
+        # Check criteria
         self.LR_err_L2_current = self._l2_error_current_point()
         self._update_min_max_x_y_z()  # update min max x,y,z
-
-        # update transformation matrix and overall LR in UI
-        self._update_info_ui()
-
-        # if ret, send the signal
-        ret = self._is_enough_points()
+        self._update_info_ui() # update transformation matrix and overall LR in UI
+        ret = self._is_enough_points() # if ret, send the signal
         if ret:
-            # Filter the DataFrame based on self.stage.sn
-            filtered_df = self.df[self.df["sn"] == self.stage.sn]
-            # Remove outliers
-            filtered_local_points, filtered_global_points, valid_indices = self._remove_outliers(
-                filtered_df[['local_x', 'local_y', 'local_z']].values,
-                filtered_df[['global_x', 'global_y', 'global_z']].values
-            )
-            # Update the filtered DataFrame with valid points
-            filtered_df = filtered_df[valid_indices]
-            csv_file_path = self._save_filtered_points(filtered_df)
+            # save the filtered points to a new file
+            self.file_name = f"points_{self.stage.sn}.csv"
+            self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name) 
 
             # TODO - Bundle Adjustment
-            if self.model.bundle_adjustment:
-                print("\n\n===============================================")
-                print("Before BA")
-                print(self.stage.sn, self.transM_LR, self.scale)
-
-                ret = self.run_bundle_adjustment(csv_file_path)
+            print("\n\n=========================================================")
+            print("Before BA")
+            print("  Average L2 between stage and global: ", self.avg_err)
+            print(self.stage.sn, self.transM_LR, self.scale)
+            print("=========================================================")
+            
+            if self.model.bundle_adjustment:    
+                ret = self.run_bundle_adjustment(self.file_name)
                 if ret:
+                    print("\n=========================================================")
                     print("After BA")
+                    print("  Average L2 between stage and global: ", self.avg_err)
                     print(self.stage.sn, self.transM_LR, self.scale)
-                    self._update_info_ui()
+                    print("=========================================================")
                 else:
                     return
+
+            self._update_info_ui(disp_avg_error=True, save_to_csv=True) # update transformation matrix and overall LR in UI
 
             # Emit the signal to indicate that calibration is complete                
             self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
@@ -576,11 +629,13 @@ class ProbeCalibration(QObject):
         optimizer = BALOptimizer(bal_problem)
         optimizer.optimize()
         
+        bal_problem.df
         local_pts, opt_global_pts = bal_problem.local_pts, optimizer.opt_points
         self.transM_LR = self._get_transM_LR_orthogonal(local_pts, opt_global_pts, remove_noise=False)
         if self.transM_LR is None:
             return False
     
+        """
         # Save local_pts and optimzied global pts in file_path
                 # Save local_pts and optimized global pts in file_path
         df = pd.DataFrame({
@@ -591,7 +646,7 @@ class ProbeCalibration(QObject):
             'global_y': opt_global_pts[:, 1],
             'opt_global_z': opt_global_pts[:, 2]
         })
-        df.to_csv(file_path, index=False)
+        df.to_csv(file_path, index=False)"""
 
         logger.debug(f"Number of observations: {len(bal_problem.observations)}")
         logger.debug(f"Number of 3d points: {len(bal_problem.points)}")

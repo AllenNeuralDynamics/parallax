@@ -64,8 +64,9 @@ class RotationTransformation:
     def avg_error(self, x, measured_pts, global_pts, reflect_z=False):
         """Calculates the total error for the optimization."""
         error_values = self.func(x, measured_pts, global_pts, reflect_z)
-        ave_error = np.sum(error_values**2)/len(error_values)
-        return ave_error
+        mean_squared_error = np.mean(error_values**2)
+        average_error = np.sqrt(mean_squared_error)
+        return average_error
 
     def fit_params(self, measured_pts, global_pts):
         """Fits parameters to minimize the error defined in func"""
@@ -87,12 +88,14 @@ class RotationTransformation:
         if avg_error1 < avg_error2:
             rez = res1[0]
             R = self.combineAngles(rez[2], rez[1], rez[0], reflect_z=False)
+            avg_err = avg_error1
         else:
             rez = res2[0]
             R = self.combineAngles(rez[2], rez[1], rez[0], reflect_z=True)
+            avg_err = avg_error1
 
         #origin = rez[3:]
         origin = rez[3:6]
         scale = rez[6:]
         #return origin, R  # translation vector and rotation matrix
-        return origin, R, scale  # translation vector, rotation matrix, and scaling factors
+        return origin, R, scale, avg_err  # translation vector, rotation matrix, and scaling factors

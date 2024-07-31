@@ -24,7 +24,7 @@ class BALProblem:
 
     def _parse_csv(self):
         self.df = pd.read_csv(self.file_path)
-        self._remove_duplicates()
+        #self._remove_duplicates()
         self._average_3D_points()
 
         self._set_camera_list()
@@ -46,7 +46,6 @@ class BALProblem:
 
         # Create a mapping from camera IDs to indices
         camera_id_to_index = {str(camera_id): idx for idx, camera_id in enumerate(self.list_cameras)}
-
 
         # Iterate through the DataFrame to collect observations
         for _, row in self.df.iterrows():
@@ -82,9 +81,13 @@ class BALProblem:
         # Merge the averaged columns back into the original DataFrame
         self.df = self.df.merge(grouped, on='ts_local_coords', how='left')
         
+        # Create a mapping of ts_local_coords to index in the averaged points
+        self.df['point_index'] = self.df.groupby('ts_local_coords').ngroup()
+
         # Write the updated DataFrame back to the CSV file
         self.df.to_csv(self.file_path, index=False)
         
+
     def _remove_duplicates(self):
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
         logger.debug(f"Original rows: {self.df.shape[0]}")
@@ -182,18 +185,19 @@ class BALOptimizer:
         self.opt_points = opt_params[12 * n_cams:].reshape(n_pts, 3)
 
         if print_result:
-            print(f"\nOptimization completed.")
+            print(f"\n************** Optimization completed. **************************")
             # Compute initial residuals
             initial_residuals = self.residuals(initial_params)
             initial_residuals_sum = np.sum(initial_residuals**2)
             average_residual = initial_residuals_sum / len(self.bal_problem.observations)
-            print(f"Before BA, Average residual: {average_residual}")
+            print(f"** Before BA, Average residual of reproj: {np.round(average_residual, 2)} **")
 
             # Compute Optimize residuals
             opt_residuals = self.residuals(opt_params)
             opt_residuals_sum = np.sum(opt_residuals**2)
             average_residual = opt_residuals_sum / len(self.bal_problem.observations)
-            print(f"After  BA, Average residual: {average_residual}")
+            print(f"** After  BA, Average residual of reproj: {np.round(average_residual, 2)} **")
+            print(f"******************************************************************")
 
             logger.debug(f"Optimized camera parameters: {self.opt_camera_params}")
 
@@ -201,3 +205,11 @@ class BALOptimizer:
                 logger.debug(f"\nPoint {i}")
                 logger.debug(f"org : {self.bal_problem.points[i]}")
                 logger.debug(f"opt : {self.opt_points[i]}")
+
+        # Map optimized points to the original DataFrame rows
+        opt_points_df = pd.DataFrame(self.opt_points, columns=['opt_x', 'opt_y', 'opt_z'])
+        self.bal_problem.df = self.bal_problem.df.join(opt_points_df, on='point_index', rsuffix='_opt')
+
+        # Save the updated DataFrame to the CSV file
+        self.bal_problem.df.to_csv(self.bal_problem.file_path, index=False)
+        logger.info(f"Optimized points saved to {self.bal_problem.file_path}")
