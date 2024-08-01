@@ -16,13 +16,13 @@ import numpy as np
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 # Objectpoints
 WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
-X_COORDS_HALF = 15
-Y_COORDS_HALF = 15
+X_COORDS_HALF = 10
+Y_COORDS_HALF = 10
 X_COORDS = X_COORDS_HALF * 2 + 1
 Y_COORDS = Y_COORDS_HALF * 2 + 1
 OBJPOINTS = np.zeros((X_COORDS + Y_COORDS, 3), np.float32)
@@ -35,26 +35,11 @@ CENTER_INDEX_Y = X_COORDS + Y_COORDS_HALF
 
 # Calibration
 CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-11)
-"""
-imtx = np.array([[1.52e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.52e+04, 1.5e+03],
-                [0.0e+00, 0.0e+00, 1.0e+00]],
-                dtype=np.float32)
-idist = np.array([[ 0e+00, 0e+00, 0e+00, 0e+00, 0e+00 ]],
-                    dtype=np.float32)
 
-imtx = np.array([[1.515e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.515e+04, 1.5e+03],
+imtx = np.array([[1.54e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.54e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
-idist = np.array([[ -0.02e+00, 5e+00, 0e+00, 0e+00, 100e+00 ]],
-                    dtype=np.float32)
-"""
-imtx = np.array([[1.519e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.519e+04, 1.5e+03],
-                [0.0e+00, 0.0e+00, 1.0e+00]],
-                dtype=np.float32)
-
 idist = np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32)
 
 # Intrinsic flag
@@ -85,7 +70,7 @@ class CalibrationCamera:
     def __init__(self, camera_name):
         """Initialize the CalibrationCamera object"""
         self.name = camera_name
-        self.n_interest_pixels = 15
+        self.n_interest_pixels = X_COORDS_HALF
         self.imgpoints = None
         self.objpoints = None
 
@@ -166,7 +151,7 @@ class CalibrationCamera:
         logger.debug(
             f"Distance from camera to world center: {np.mean(distancesA)}"
         )
-        return ret, self.mtx, self.dist
+        return ret, self.mtx, self.dist, self.rvecs, self.tvecs
 
     def get_predefined_intrinsic(self, x_axis, y_axis):
         """
@@ -182,8 +167,8 @@ class CalibrationCamera:
         """
         self._process_reticle_points(x_axis, y_axis)
         if self.name == "22517664":
-            self.mtx = np.array([[1.520480e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.520480e+04, 1.5e+03],
+            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.55e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
             self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
@@ -191,8 +176,8 @@ class CalibrationCamera:
             return True, self.mtx, self.dist
         
         elif self.name == "22433200":
-            self.mtx = np.array([[1.507121e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.507121e+04, 1.5e+03],
+            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                [0.0e+00, 1.55e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
             self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
@@ -245,25 +230,26 @@ class CalibrationStereo(CalibrationCamera):
     def __init__(
         self, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
         """Initialize the CalibrationStereo object"""
-        self.n_interest_pixels = 15
+        self.n_interest_pixels = X_COORDS_HALF
         self.camA = camA
         self.camB = camB
         self.imgpointsA, self.objpoints = self._process_reticle_points(
             imgpointsA[0], imgpointsA[1])
         self.imgpointsB, self.objpoints = self._process_reticle_points(
             imgpointsB[0], imgpointsB[1])
-        self.mtxA, self.distA = intrinsicA[0], intrinsicA[1]
-        self.mtxB, self.distB = intrinsicB[0], intrinsicB[1]
+        self.mtxA, self.distA, self.rvecA, self.tvecA = intrinsicA[0], intrinsicA[1], intrinsicA[2][0], intrinsicA[3][0]
+        self.mtxB, self.distB, self.rvecB, self.tvecB = intrinsicB[0], intrinsicB[1], intrinsicB[2][0], intrinsicB[3][0]
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
         self.flags = cv2.CALIB_FIX_INTRINSIC
         self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB = None, None, None, None, None 
         self.P_A, self.P_B = None, None
+        self.rmatA, self.rmatB = None, None
 
-    def print_calibrate_stereo_results(self):
+    def print_calibrate_stereo_results(self, camA_sn, camB_sn):
         if self.retval is None or self.R_AB is None or self.T_AB is None:
             return
-        print("\n== Stereo Calibration ==")
-        print("AB")
+        print("== Stereo Calibration ==")
+        print(f"Pair: {camA_sn}-{camB_sn}")
         print(self.retval)
         print(f"R: \n{self.R_AB}")
         print(f"T: \n{self.T_AB}")
@@ -275,7 +261,7 @@ class CalibrationStereo(CalibrationCamera):
             "F_AB:\n"
             + "\n".join(
                 [" ".join([f"{val:.5f}" for val in row]) for row in self.F_AB]
-            ) + "\n")
+            ))
         formatted_E = (
             "E_AB:\n"
             + "\n".join(
@@ -346,30 +332,7 @@ class CalibrationStereo(CalibrationCamera):
         points_3d_hom = points_3d_hom.T
         return points_3d_hom[:, :3]
 
-    def change_coords_system_from_camA_to_global(self, points_3d_AB):
-        """
-        Change coordinate system from camera A to global using solvePnPRansac.
-
-        Args:
-            points_3d_AB (numpy.ndarray):
-            3D points in camera A coordinate system.
-
-        Returns:
-            numpy.ndarray: 3D points in global coordinate system.
-        """
-        _, rvecs, tvecs, _ = cv2.solvePnPRansac(
-            self.objpoints, self.imgpointsA, self.mtxA, self.distA
-        )
-        # Convert rotation vectors to rotation matrices
-        rmat, _ = cv2.Rodrigues(rvecs)
-        # Invert the rotation and translation
-        rmat_inv = rmat.T  # Transpose of rotation matrix is its inverse
-        tvecs_inv = -rmat_inv @ tvecs
-        # Transform the points
-        points_3d_G = np.dot(rmat_inv, points_3d_AB.T).T + tvecs_inv.T
-        return points_3d_G
-
-    def change_coords_system_from_camA_to_global_iterative(self, points_3d_AB):
+    def change_coords_system_from_camA_to_global(self, camA, camB, points_3d_AB, print_results=False):
         """Change coordinate system from camera A to global 
         using iterative method.
 
@@ -380,22 +343,29 @@ class CalibrationStereo(CalibrationCamera):
         Returns:
             numpy.ndarray: 3D points in global coordinate system.
         """
-        solvePnP_method = cv2.SOLVEPNP_ITERATIVE
-        _, rvecs, tvecs = cv2.solvePnP(
-            self.objpoints,
-            self.imgpointsA,
-            self.mtxA,
-            self.distA,
-            flags=solvePnP_method,
-        )
-        logger.debug("solvePnP")
-        logger.debug(rvecs)
-        logger.debug(tvecs)
+        logger.debug(f"=== {camA}, World to Camera transformation ====")
+        logger.debug(f"rvecs: {self.rvecA}")
+        logger.debug(f"tvecs: {self.rvecA}")
+
+        if print_results:
+            print(f"=== {camA}, World to Camera transformation ====")
+            print(f"rvecs: {self.rvecA}")
+            print(f"tvecs: {self.tvecA}")
+
+        logger.debug(f"=== {camB}, World to Camera transformation ====")
+        logger.debug(f"rvecs: {self.rvecB}")
+        logger.debug(f"tvecs: {self.tvecB}")
+
+        if print_results:
+            print(f"=== {camB}, World to Camera transformation ====")
+            print(f"rvecs: {self.rvecB}")
+            print(f"tvecs: {self.tvecB}")
+  
         # Convert rotation vectors to rotation matrices
-        rmat, _ = cv2.Rodrigues(rvecs)
+        rmat, _ = cv2.Rodrigues(self.rvecA)
         # Invert the rotation and translation
         self.rmat_inv = rmat.T  # Transpose of rotation matrix is its inverse
-        self.tvecs_inv = -self.rmat_inv @ tvecs
+        self.tvecs_inv = -self.rmat_inv @ self.tvecA
         # Transform the points
         points_3d_G = np.dot(self.rmat_inv, points_3d_AB.T).T + self.tvecs_inv.T
         return points_3d_G
@@ -476,15 +446,15 @@ class CalibrationStereo(CalibrationCamera):
         camA, coordA, camB, coordB = self._matching_camera_order(
             camA, coordA, camB, coordB
         )
-        logger.debug(f"coordA: {coordA}")
-        logger.debug(f"coordB: {coordB}")
+        logger.debug(f"camA: {camA}, coordA: {coordA}")
+        logger.debug(f"camB: {camB}, coordB: {coordB}")
         points_3d_AB = self.triangulation(
             self.P_B, self.P_A, self.imgpointsB, self.imgpointsA
         )
         np.set_printoptions(suppress=True, precision=8)
 
-        points_3d_G = self.change_coords_system_from_camA_to_global_iterative(
-            points_3d_AB
+        points_3d_G = self.change_coords_system_from_camA_to_global(
+            camA, camB, points_3d_AB, print_results=print_results
         )
         
         differences = points_3d_G - self.objpoints[0]
@@ -492,13 +462,12 @@ class CalibrationStereo(CalibrationCamera):
         euclidean_distances = np.sqrt(squared_distances)
         average_L2_distance = np.mean(euclidean_distances)
         if print_results:
-            print("\n=solvePnP SOLVEPNP_ITERATIVE=")
             print(
                 f"(Reprojection error) Object points L2 diff: \
                 {average_L2_distance*1000} µm³"
             )
             self.test_x_y_z_performance(points_3d_G)
-            print(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
+            logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
             self.test_pixel_error()
         return average_L2_distance

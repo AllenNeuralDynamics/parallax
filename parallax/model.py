@@ -14,10 +14,11 @@ class Model(QObject):
     msg_posted = pyqtSignal(str)
     accutest_point_reached = pyqtSignal()
 
-    def __init__(self, version="V1"):
+    def __init__(self, version="V1", bundle_adjustment=False):
         """Initialize model object"""
         QObject.__init__(self)
         self.version = version
+        self.bundle_adjustment = bundle_adjustment
         # camera
         self.cameras = []
         self.cameras_sn = []
@@ -171,9 +172,9 @@ class Model(QObject):
         """Get coordinates axis."""
         return self.coords_axis.get(camera_name)
 
-    def add_camera_intrinsic(self, camera_name, mtx, dist):
+    def add_camera_intrinsic(self, camera_name, mtx, dist, rvec, tvec):
         """Add camera intrinsic parameters."""
-        self.camera_intrinsic[camera_name] = [mtx, dist]
+        self.camera_intrinsic[camera_name] = [mtx, dist, rvec, tvec]
 
     def get_camera_intrinsic(self, camera_name):
         """Get camera intrinsic parameters."""

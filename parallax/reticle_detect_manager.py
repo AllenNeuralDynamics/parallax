@@ -18,18 +18,17 @@ from .reticle_detection_coords_interests import ReticleDetectCoordsInterest
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.DEBUG)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.DEBUG)
-
+logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ReticleDetectManager(QObject):
     """Reticle detection class"""
 
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
 
     class Worker(QObject):
         """Reticle detection Worker Thread"""
@@ -37,7 +36,7 @@ class ReticleDetectManager(QObject):
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
         found_coords = pyqtSignal(
-            np.ndarray, np.ndarray, np.ndarray, np.ndarray
+            np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple
         )
 
         def __init__(self, name):
@@ -179,9 +178,9 @@ class ReticleDetectManager(QObject):
                 logger.debug(f"{ self.name} get_coords_interest fails ")
             else:
                 # TODO
-                # ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
-                # if not ret:
-                ret, mtx, dist = self.calibrationCamera.calibrate_camera(
+                #ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
+                #if not ret:
+                ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(
                     x_axis_coords, y_axis_coords
                 )
                 if not ret:
@@ -189,7 +188,7 @@ class ReticleDetectManager(QObject):
                 else:
                     # Draw
                     self.found_coords.emit(
-                        x_axis_coords, y_axis_coords, mtx, dist
+                        x_axis_coords, y_axis_coords, mtx, dist, rvecs, tvecs
                     )
                     origin, x, y, z = self.calibrationCamera.get_origin_xyz()
                     frame = self.draw_xyz(frame, origin, x, y, z)

@@ -11,6 +11,7 @@ import numpy as np
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -101,7 +102,44 @@ class ProbeFineTipDetector:
                 min_distance = distance
                 closest_centroid = (tip_x, tip_y)
 
+        # Adjust pixel tip
+        #closest_centroid = self._adjust_centroid(closest_centroid, offset=10)
+
         return closest_centroid
+
+    def _adjust_centroid(self, centroid, offset=10):
+        """Adjust the centroid coordinates by 10 pixels in the specified direction.
+
+        Args:
+            centroid (tuple): Coordinates of the centroid.
+
+        Returns:
+            tuple: Adjusted coordinates of the centroid.
+        """
+        x, y = centroid
+        if self.direction == "S":
+            y += offset
+        elif self.direction == "N":
+            y -= offset
+        elif self.direction == "E":
+            x += offset
+        elif self.direction == "W":
+            x -= offset
+        elif self.direction == "NE":
+            x += offset
+            y -= offset
+        elif self.direction == "NW":
+            x -= offset
+            y -= offset
+        elif self.direction == "SE":
+            x += offset
+            y += offset
+        elif self.direction == "SW":
+            x -= offset
+            y += offset
+
+        return (x, y)
+
 
     def _get_direction_tip(self, contour):
         """Get the tip coordinates based on the direction.

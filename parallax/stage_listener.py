@@ -14,14 +14,14 @@ from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 
 class StageInfo(QObject):
-    """Class for retrieving stage information."""
+    """Retrieve and manage information about the stages."""
 
     def __init__(self, url):
         """Initialize StageInfo thread"""
@@ -57,7 +57,7 @@ class StageInfo(QObject):
 
 
 class Stage(QObject):
-    """Class representing a stage."""
+    """Represents an individual stage with its properties."""
 
     def __init__(self, stage_info=None):
         """Initialize Stage thread"""
@@ -74,11 +74,11 @@ class Stage(QObject):
 
 
 class Worker(QObject):
-    """Worker class for fetching stage data."""
+    """Fetch stage data at regular intervals and emit signals when data changes or significant movement is detected."""
 
-    dataChanged = pyqtSignal(dict)
-    stage_moving = pyqtSignal(dict)
-    stage_not_moving = pyqtSignal(dict)
+    dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
+    stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
+    stage_not_moving = pyqtSignal(dict) # Emitted when a stage is not moving.
 
     def __init__(self, url):
         """Initialize worker thread"""
@@ -90,13 +90,13 @@ class Worker(QObject):
         self.last_bigmove_stage_info = None
         self.last_bigmove_detected_time = None
         self._low_freq_interval = 1000
-        self._high_freq_interval = 10  # TODO
+        self._high_freq_interval = 20  # TODO
         self.curr_interval = self._low_freq_interval
-        self._idle_time = 2
+        self._idle_time = 0.3 # 0.3s
         self.is_error_log_printed = False
 
     def start(self, interval=1000):
-        """Start the worker thread.
+        """Starts the data fetching at the given interval.
 
         Args:
             interval (int): Interval in milliseconds. Defaults to 1000.
@@ -104,7 +104,7 @@ class Worker(QObject):
         self.timer.start(interval)
 
     def stop(self):
-        """Stop the timer."""
+        """Stops the data fetching."""
         self.timer.stop()
 
     def print_trouble_shooting_msg(self):
@@ -137,7 +137,7 @@ class Worker(QObject):
                     if self.curr_interval == self._high_freq_interval:
                         # Update
                         self.isSmallChange(probe)
-                        # If last updated move (in 30um) is more than 1 sec ago, switch to w/ low freq
+                        # If last updated move (in 5um) is more than 1 sec ago, switch to w/ low freq
                         current_time = time.time()
                         if current_time - self.last_bigmove_detected_time >= self._idle_time:
                             logger.debug("low freq mode")
@@ -145,8 +145,9 @@ class Worker(QObject):
                             self.stop()
                             self.start(interval=self.curr_interval)
                             self.stage_not_moving.emit(probe)
+                            #print("low freq mode: ", self.curr_interval)
 
-                    # If moves more than 30um, check w/ high freq
+                    # If moves more than 10um, check w/ high freq
                     if self.isSignificantChange(probe):
                         if self.curr_interval == self._low_freq_interval:
                             # 10 msec mode
@@ -155,6 +156,7 @@ class Worker(QObject):
                             self.stop()
                             self.start(interval=self.curr_interval)
                             self.stage_moving.emit(probe)
+                            #print("high freq mode: ", self.curr_interval)
 
                     self.is_error_log_printed = False
             else:
@@ -165,10 +167,11 @@ class Worker(QObject):
                 print(f"\nHttpServer for stages not enabled: {e}")
                 self.print_trouble_shooting_msg()
 
-    def isSignificantChange(self, current_stage_info, stage_threshold=0.005):
+    def isSignificantChange(self, current_stage_info, stage_threshold=0.001):
         """Check if the change in any axis exceeds the threshold."""
         for axis in ['Stage_X', 'Stage_Y', 'Stage_Z']:
             if abs(current_stage_info[axis] - self.last_bigmove_stage_info[axis]) >= stage_threshold:
+                self.dataChanged.emit(current_stage_info)
                 self.last_bigmove_detected_time = time.time()
                 self.last_bigmove_stage_info = current_stage_info
                 return True
@@ -205,7 +208,8 @@ class StageListener(QObject):
         self.buffer_ts_local_coords = deque(maxlen=self.buffer_size)
         self.stage_global_data = None
         self.transM_dict = {}
-
+        self.scale_dict = {}
+        
     def start(self):
         """Start the stage listener."""
         if self.model.nStages != 0:
@@ -286,12 +290,17 @@ class StageListener(QObject):
         else:
             logger.warning(f"moving_probe: {sn}, selected_probe: {self.stage_ui.get_selected_stage_sn()}")
 
-        if sn in self.transM_dict:
+        if sn in self.transM_dict and sn in self.scale_dict:
             transM = self.transM_dict[sn]
-            if transM is not None:
-                self._updateGlobalDataTransformM(sn, moving_stage, transM)
+            scale = self.scale_dict[sn]
+            if transM is not None and scale is not None:
+                self._updateGlobalDataTransformM(sn, moving_stage, transM, scale)
+            else:
+                logger.debug(f"Transformation matrix or scale not found for serial number: {sn}")
+        else:
+            logger.debug(f"Serial number {sn} not found in transformation or scale dictionary")
 
-    def _updateGlobalDataTransformM(self, sn, moving_stage, transM):
+    def _updateGlobalDataTransformM(self, sn, moving_stage, transM, scale):
         """
         Applies a transformation matrix to the local coordinates of a moving stage and updates its global coordinates.
 
@@ -312,9 +321,10 @@ class StageListener(QObject):
                 moving_stage.stage_x,
                 moving_stage.stage_y,
                 moving_stage.stage_z,
-                1,
+                1
             ]
         )
+        local_point = local_point * np.append(scale, 1)
         global_point = np.dot(transM, local_point)
         global_point = np.around(global_point[:3], decimals=1)
         
@@ -325,7 +335,7 @@ class StageListener(QObject):
         if self.stage_ui.get_selected_stage_sn() == sn:
             self.stage_ui.updateStageGlobalCoords()
 
-    def requestUpdateGlobalDataTransformM(self, sn, transM):
+    def requestUpdateGlobalDataTransformM(self, sn, transM, scale):
         """
         Stores or updates a transformation matrix for a specific stage identified by its serial number.
         This method updates an internal dictionary, `transM_dict`, mapping stage serial numbers to their
@@ -336,7 +346,8 @@ class StageListener(QObject):
             transM (np.ndarray): A 4x4 numpy array representing the transformation matrix for the specified stage.
         """
         self.transM_dict[sn] = transM
-        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM}")
+        self.scale_dict[sn] = scale
+        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM} {scale}")
 
     def requestClearGlobalDataTransformM(self, sn = None):
         """
@@ -348,9 +359,12 @@ class StageListener(QObject):
         """
         if sn is None: # Not specified, clear all (Use case: reticle Dection is reset)
             self.transM_dict = {}
+            self.scale_dict = {}
         else:
             if self.transM_dict.get(sn) is not None:
                 self.transM_dict.pop(sn)
+            if self.scale_dict.get(sn) is not None:
+                self.scale_dict.pop(sn)    
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 
@@ -389,7 +403,6 @@ class StageListener(QObject):
 
         return closest_ts, closest_coords
 
-    #def handleGlobalDataChange(self, sn, global_coords, ts_img_captured):
     def handleGlobalDataChange(self, sn, global_coords, ts_img_captured, cam0, pt0, cam1, pt1):
         """Handle changes in global stage data.
 
@@ -435,8 +448,7 @@ class StageListener(QObject):
             debug_info["pt0"] = pt0
             debug_info["cam1"] = cam1
             debug_info["pt1"] = pt1
-
-            #self.probeCalibRequest.emit(self.stage_global_data)
+                
             self.probeCalibRequest.emit(self.stage_global_data, debug_info)
 
             # Update into UI
@@ -456,7 +468,9 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            probeDetector.start_detection(sn)
+            probeDetector.start_detection(sn) # Detect when probe is moving
+            probeDetector.disable_calibration(sn)
+            #probeDetector.stop_detection(sn) # Detect when probe is not moving
 
     def stageNotMovingStatus(self, probe):
         """Handle not moving probe status.
@@ -466,4 +480,23 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            probeDetector.stop_detection(sn)
+            #probeDetector.stop_detection(sn) # Stop detection when probe is not moving
+            probeDetector.enable_calibration(sn)
+             # Stop detection when probe is moving
+
+    def set_low_freq_as_high_freq(self, interval=10):
+        """Change the frequency to low."""
+        self.worker.stop()
+        self.worker._low_freq_interval = interval
+        self.worker.curr_interval = self.worker._low_freq_interval
+        self.worker.start(interval=self.worker._low_freq_interval)
+        #print("low_freq: 10 ms")
+
+    def set_low_freq_default(self, interval=1000):
+        """Change the frequency to low."""
+        self.worker.stop()
+        self.worker._low_freq_interval = interval
+        self.worker.curr_interval = self.worker._low_freq_interval
+        self.worker.start(interval=self.worker._low_freq_interval) 
+        #print("low_freq: 1000 ms") 
+        

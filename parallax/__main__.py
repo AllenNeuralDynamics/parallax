@@ -49,18 +49,28 @@ if __name__ == "__main__":
         action="store_true",
         help="Dummy mode for testing without hardware",
     )
+
+    parser.add_argument(
+        "-b",
+        "--bundle_adjustment",
+        action="store_true",
+        help="Enable bundle adjustment feature",
+    )
     args = parser.parse_args()
 
     # Print a message if running in dummy mode (no hardware interaction)
     if args.dummy:
         print("\nRunning in dummy mode; hardware devices not accessible.")
+    # Print a message if bundle adjustment is enabled
+    if args.bundle_adjustment:
+        print("\nBundle adjustment feature enabled.")
 
     # Set up logging as configured in the setup_logging function
     setup_logging()
 
     # Initialize the Qt application
     app = QApplication([])
-    model = Model(version="V2")  # Initialize the data model with version "V2"
+    model = Model(version="V2", bundle_adjustment=args.bundle_adjustment)  # Initialize the data model with version "V2"
     main_window = MainWindowV2(model, dummy=args.dummy)  # main window
 
     # Show the main window on screen

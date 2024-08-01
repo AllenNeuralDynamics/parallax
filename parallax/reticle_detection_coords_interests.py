@@ -24,8 +24,7 @@ class ReticleDetectCoordsInterest(QObject):
 
     def __init__(self):
         """Initialize object"""
-        self.n_interest_pixels = 15
-        pass
+        self.n_interest_pixels = 10
 
     def _fit_line(self, pixels):
         """Fit a line to the given pixels.
