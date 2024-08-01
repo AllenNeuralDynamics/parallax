@@ -11,9 +11,8 @@ import os
 import numpy as np
 import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
-from sklearn.linear_model import LinearRegression
 from .coords_transformation import RotationTransformation
-from .bundle_adjustmnet import BALProblem, BALOptimizer
+from .bundle_adjustment import BALProblem, BALOptimizer
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -485,7 +484,7 @@ class ProbeCalibration(QObject):
         self.transM_LR_prev = self.transM_LR
         return False
 
-    def _update_info_ui(self, disp_avg_error=False, save_to_csv=False):
+    def _update_info_ui(self, disp_avg_error=False, save_to_csv=False, file_name=None):
         sn = self.stage.sn
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]
@@ -508,7 +507,6 @@ class ProbeCalibration(QObject):
             )
 
         if save_to_csv:
-            file_name = f"transM_{sn}.csv"
             self._save_transM_to_csv(file_name)
 
     def _save_df_to_csv(self, df, file_name):
@@ -567,6 +565,24 @@ class ProbeCalibration(QObject):
         global_points = np.array(self.global_points)
         return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
 
+    def _print_formatted_transM(self):
+        R = self.transM_LR[:3, :3]
+        # Extract the translation vector (top 3 elements of the last column)
+        T = self.transM_LR[:3, 3]
+        S = self.scale[:3]
+
+        print("stage sn: ", self.stage.sn)
+        print("Rotation matrix:")
+        print(f" [[{R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f}],")
+        print(f"  [{R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f}],")
+        print(f"  [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]")
+        print("Translation vector:")
+        print(f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]")
+        print("Scale:")
+        print(f" [{S[0]:.5f}, {S[1]:.5f}, {S[2]:.5f}]")
+        print("==> Average L2 between stage and global: ", self.avg_err)
+
+
     def update(self, stage, debug_info=None):
         """
         Main method to update calibration with a new stage position and check if calibration is complete.
@@ -601,22 +617,22 @@ class ProbeCalibration(QObject):
             # TODO - Bundle Adjustment
             print("\n\n=========================================================")
             print("Before BA")
-            print("  Average L2 between stage and global: ", self.avg_err)
-            print(self.stage.sn, self.transM_LR, self.scale)
+            self._print_formatted_transM()
             print("=========================================================")
-            
+            self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
+                                 file_name = f"transM_{self.stage.sn}.csv")
+
             if self.model.bundle_adjustment:    
                 ret = self.run_bundle_adjustment(self.file_name)
                 if ret:
                     print("\n=========================================================")
                     print("After BA")
-                    print("  Average L2 between stage and global: ", self.avg_err)
-                    print(self.stage.sn, self.transM_LR, self.scale)
+                    self._print_formatted_transM()
                     print("=========================================================")
+                    self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
+                                file_name = f"transM_BA_{self.stage.sn}.csv") 
                 else:
                     return
-
-            self._update_info_ui(disp_avg_error=True, save_to_csv=True) # update transformation matrix and overall LR in UI
 
             # Emit the signal to indicate that calibration is complete                
             self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
