@@ -87,7 +87,6 @@ class BALProblem:
         # Write the updated DataFrame back to the CSV file
         self.df.to_csv(self.file_path, index=False)
         
-
     def _remove_duplicates(self):
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
         logger.debug(f"Original rows: {self.df.shape[0]}")
