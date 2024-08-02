@@ -64,9 +64,17 @@ class RotationTransformation:
     def avg_error(self, x, measured_pts, global_pts, reflect_z=False):
         """Calculates the total error for the optimization."""
         error_values = self.func(x, measured_pts, global_pts, reflect_z)
-        mean_squared_error = np.mean(error_values**2)
-        average_error = np.sqrt(mean_squared_error)
-        return average_error
+        
+        # Calculate the L2 error for each point
+        l2_errors = np.zeros(len(global_pts))
+        for i in range(len(global_pts)):
+            error_vector = error_values[i * 3: (i + 1) * 3]
+            l2_errors[i] = np.linalg.norm(error_vector)
+        
+        # Calculate the average L2 error
+        average_l2_error = np.mean(l2_errors)
+        
+        return average_l2_error
 
     def fit_params(self, measured_pts, global_pts):
         """Fits parameters to minimize the error defined in func"""
