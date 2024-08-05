@@ -13,6 +13,7 @@ import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from .coords_transformation import RotationTransformation
 from .bundle_adjustment import BALProblem, BALOptimizer
+from .point_mesh import PointMesh
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -57,10 +58,10 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.stage = None
         
-        """
         self.threshold_min_max = 250 
         self.threshold_min_max_z = 200
         self.LR_err_L2_threshold = 200
+        self.threshold_avg_error = 500
         self.threshold_matrix = np.array(
             [
                 [0.002, 0.002, 0.002, 0.0], 
@@ -82,7 +83,8 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
-        
+        """
+
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self.avg_err = None
@@ -581,7 +583,6 @@ class ProbeCalibration(QObject):
         print(f" [{S[0]:.5f}, {S[1]:.5f}, {S[2]:.5f}]")
         print("==> Average L2 between stage and global: ", self.avg_err)
 
-
     def update(self, stage, debug_info=None):
         """
         Main method to update calibration with a new stage position and check if calibration is complete.
@@ -609,35 +610,45 @@ class ProbeCalibration(QObject):
         self._update_info_ui() # update transformation matrix and overall LR in UI
         ret = self._is_enough_points() # if ret, send the signal
         if ret:
-            # save the filtered points to a new file
-            self.file_name = f"points_{self.stage.sn}.csv"
-            self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name) 
+            self.complete_calibration(filtered_df)
+            
+    def complete_calibration(self, filtered_df):
+        # save the filtered points to a new file
+        self.file_name = f"points_{self.stage.sn}.csv"
+        self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name) 
 
-            # TODO - Bundle Adjustment
-            print("\n\n=========================================================")
-            print("Before BA")
-            self._print_formatted_transM()
-            print("=========================================================")
-            self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
-                                 file_name = f"transM_{self.stage.sn}.csv")
+        print("\n\n=========================================================")
+        print("Before BA")
+        self._print_formatted_transM()
+        print("=========================================================")
+        self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
+                             file_name = f"transM_{self.stage.sn}.csv")
 
-            if self.model.bundle_adjustment:    
-                ret = self.run_bundle_adjustment(self.file_name)
-                if ret:
-                    print("\n=========================================================")
-                    print("After BA")
-                    self._print_formatted_transM()
-                    print("=========================================================")
-                    self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
-                                file_name = f"transM_BA_{self.stage.sn}.csv") 
-                else:
-                    return
+        # Init point_mesh
+        point_mesh = PointMesh(self.model, self.file_name, self.stage.sn)
+        point_mesh.set_transM(self.transM_LR, self.scale) # Set transM
 
-            # Emit the signal to indicate that calibration is complete                
-            self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
-            logger.debug(
-                f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
-            )
+        if self.model.bundle_adjustment:    
+            ret = self.run_bundle_adjustment(self.file_name)
+            if ret:
+                print("\n=========================================================")
+                print("After BA")
+                self._print_formatted_transM()
+                print("=========================================================")
+                self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
+                            file_name = f"transM_BA_{self.stage.sn}.csv") 
+                point_mesh.set_transM_BA(self.transM_LR, self.scale) # set TransM_BA
+            else:
+                return
+
+        # Emit the signal to indicate that calibration is complete                
+        self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
+        logger.debug(
+            f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
+        )
+
+        # Draw trajectory
+        point_mesh.show()
 
     def run_bundle_adjustment(self, file_path):
         bal_problem = BALProblem(self.model, file_path)
