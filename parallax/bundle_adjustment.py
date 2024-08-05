@@ -184,7 +184,7 @@ class BALOptimizer:
         self.opt_points = opt_params[12 * n_cams:].reshape(n_pts, 3)
 
         if print_result:
-            print(f"\n************** Optimization completed. **************************")
+            print(f"\n*********** Optimization completed **************")
             # Compute initial residuals
             initial_residuals = self.residuals(initial_params)
             initial_residuals_sum = np.sum(initial_residuals**2)
@@ -196,7 +196,7 @@ class BALOptimizer:
             opt_residuals_sum = np.sum(opt_residuals**2)
             average_residual = opt_residuals_sum / len(self.bal_problem.observations)
             print(f"** After  BA, Average residual of reproj: {np.round(average_residual, 2)} **")
-            print(f"******************************************************************")
+            print(f"****************************************************")
 
             logger.debug(f"Optimized camera parameters: {self.opt_camera_params}")
 

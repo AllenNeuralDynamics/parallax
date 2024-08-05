@@ -38,7 +38,6 @@ class ProbeCalibration(QObject):
     calib_complete_x = pyqtSignal(str)
     calib_complete_y = pyqtSignal(str)
     calib_complete_z = pyqtSignal(str)
-    #calib_complete = pyqtSignal(str, object)
     calib_complete = pyqtSignal(str, object, np.ndarray)
     transM_info = pyqtSignal(str, object, np.ndarray, float, object)
 
