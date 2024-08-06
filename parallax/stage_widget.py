@@ -9,8 +9,6 @@ initializing components, and linking user actions to calibration processes.
 import logging
 import os
 import math
-import time
-
 import numpy as np
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import (QLabel, QMessageBox, QPushButton, QSizePolicy,
@@ -84,6 +82,12 @@ class StageWidget(QWidget):
             QLabel, "probeCalibrationLabel"
         )
         self.probeCalibrationLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.viewTrajectory_btn = self.probe_calib_widget.findChild(
+            QPushButton, "viewTrajectory_btn"
+        )
+        self.viewTrajectory_btn.clicked.connect(
+            self.view_trajectory_button_handler
+        )
 
         # Reticle Widget
         self.reticle_detection_status = (
@@ -127,6 +131,7 @@ class StageWidget(QWidget):
         self.calib_x.hide()
         self.calib_y.hide()
         self.calib_z.hide()
+        self.viewTrajectory_btn.hide()
         self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
         self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
         self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
@@ -737,6 +742,7 @@ class StageWidget(QWidget):
             }
         """)
         self.hide_x_y_z()
+        self.hide_trajectory_btn()
     
         self.probeCalibrationLabel.setText("")
         self.probe_calibration_btn.setChecked(False)
@@ -837,6 +843,8 @@ class StageWidget(QWidget):
             self.probe_calibration_btn.setChecked(True)
 
         self.hide_x_y_z()
+        if not self.viewTrajectory_btn.isVisible():
+            self.viewTrajectory_btn.show()
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -887,6 +895,10 @@ class StageWidget(QWidget):
             self.calib_z.hide()
             
         self.set_default_x_y_z_style()
+
+    def hide_trajectory_btn(self):
+        if self.viewTrajectory_btn.isVisible():
+            self.viewTrajectory_btn.hide()
 
     def calib_x_complete(self, switch_probe = False):
         """
@@ -990,7 +1002,8 @@ class StageWidget(QWidget):
         if self.moving_stage_id == self.selected_stage_id:
             # If moving stage is the selected stage, update the probe calibration status on UI
             self.display_probe_calib_status(transM, scale, L2_err, dist_traveled)
-            #self.display_probe_calib_status(transM, L2_err, dist_traveled)
+            if not self.viewTrajectory_btn.isVisible():
+                self.viewTrajectory_btn.show()
         else:
             # If moving stage is not the selected stage, save the calibration info
             content = (
@@ -1063,3 +1076,6 @@ class StageWidget(QWidget):
                 self.display_probe_calib_status(self.transM, self.scale, self.L2_err, self.dist_travled)
 
         self.probe_detection_status = probe_detection_status
+
+    def view_trajectory_button_handler(self):
+        self.probeCalibration.view_3d_trajectory(self.selected_stage_id)

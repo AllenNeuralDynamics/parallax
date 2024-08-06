@@ -7,7 +7,9 @@ from PyQt5.QtWidgets import QWidget, QPushButton
 from PyQt5.uic import loadUi
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
+debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
+csv_file = os.path.join(debug_dir, "points.csv")
 
 class PointMesh(QWidget):
     def __init__(self, model, file_path, sn):
@@ -23,6 +25,15 @@ class PointMesh(QWidget):
         self.points_dict = {}
         self.colors = {}
         self.cursors = {}  # Dictionary to keep track of mplcursors for each key
+        
+        self.figure = plt.figure(figsize=(15, 10))
+        self.ax = self.figure.add_subplot(111, projection='3d')
+
+    """
+    def initialize(self):
+        if not hasattr(self, 'ax'):
+            # Initialize self.ax if not already
+            print("self.ax initialized")"""
 
     def show(self):
         self._parse_csv()
@@ -41,6 +52,7 @@ class PointMesh(QWidget):
 
     def _parse_csv(self):
         self.df = pd.read_csv(self.file_path)
+        self.df = self.df[self.df["sn"] == self.sn] # filter by sn
 
         self.local_pts_org = self.df[['local_x', 'local_y', 'local_z']].values
         self.local_pts = self._local_to_global(self.local_pts_org, self.R[self.sn], self.T[self.sn], self.S[self.sn])
@@ -72,8 +84,6 @@ class PointMesh(QWidget):
 
     def _init_ui(self):
         self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
-
-        self.figure = plt.figure(figsize=(15, 10))
         self.canvas = FigureCanvas(self.figure)
 
         # Add the canvas to the first column of verticalLayout1
@@ -161,8 +171,6 @@ class PointMesh(QWidget):
                 del self.cursors[key]
 
     def _draw_specific_points(self, key):
-        if not hasattr(self, 'ax'):
-            self.ax = self.figure.add_subplot(111, projection='3d')  # Initialize self.ax if not already
         pts = self.points_dict[key]
         scatter = self._add_points_to_plot(self.ax, pts, key, s=0.5)
         self._add_lines_to_plot(self.ax, pts, key, linewidth=0.5)

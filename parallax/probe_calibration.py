@@ -54,6 +54,7 @@ class ProbeCalibration(QObject):
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
         self.stages = {}
+        self.point_mesh = {}
         self.df = None
         self.inliers = []
         self.stage = None
@@ -106,7 +107,8 @@ class ProbeCalibration(QObject):
             'max_z': float("-inf"),
             'signal_emitted_x': False,
             'signal_emitted_y': False,
-            'signal_emitted_z': False
+            'signal_emitted_z': False,
+            'calib_completed': False
         }
         else:
             self.stages = {}
@@ -363,7 +365,9 @@ class ProbeCalibration(QObject):
             self.stages[sn] = {
                 'min_x': float("inf"), 'max_x': float("-inf"),
                 'min_y': float("inf"), 'max_y': float("-inf"),
-                'min_z': float("inf"), 'max_z': float("-inf")
+                'min_z': float("inf"), 'max_z': float("-inf"), 
+                'signal_emitted_x': False, 'signal_emitted_y': False,
+                'signal_emitted_z': False, 'calib_completed': False 
             }
 
         self.stages[sn]['min_x'] = min(self.stages[sn]['min_x'], self.stage.stage_x)
@@ -618,37 +622,46 @@ class ProbeCalibration(QObject):
         self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name) 
 
         print("\n\n=========================================================")
-        print("Before BA")
         self._print_formatted_transM()
         print("=========================================================")
         self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
                              file_name = f"transM_{self.stage.sn}.csv")
 
         # Init point_mesh
-        point_mesh = PointMesh(self.model, self.file_name, self.stage.sn)
-        point_mesh.set_transM(self.transM_LR, self.scale) # Set transM
+        self.stages[self.stage.sn]['calib_completed'] = True
+        if hasattr(self, 'point_mesh_not_clibed'):
+            del self.point_mesh_not_clibed
+        self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn)
+        self.point_mesh[self.stage.sn].set_transM(self.transM_LR, self.scale) # Set transM
 
         if self.model.bundle_adjustment:    
             ret = self.run_bundle_adjustment(self.file_name)
             if ret:
                 print("\n=========================================================")
-                print("After BA")
+                print("** After Bundle Adjustment **")
                 self._print_formatted_transM()
                 print("=========================================================")
                 self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
                             file_name = f"transM_BA_{self.stage.sn}.csv") 
-                point_mesh.set_transM_BA(self.transM_LR, self.scale) # set TransM_BA
+                self.point_mesh[self.stage.sn].set_transM_BA(self.transM_LR, self.scale) # set TransM_BA
             else:
                 return
 
-        # Emit the signal to indicate that calibration is complete                
+        # Emit the signal to indicate that calibration is complete         
         self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
         logger.debug(
             f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
         )
 
-        # Draw trajectory
-        point_mesh.show()
+    def view_3d_trajectory(self, sn):
+        if not self.stages.get(sn, {}).get('calib_completed', False):
+            print("View - Calibration is not complete.")
+            if sn == self.stage.sn:
+                self.point_mesh_not_clibed = PointMesh(self.model, self.csv_file, self.stage.sn)
+                self.point_mesh_not_clibed.set_transM(self.transM_LR, self.scale)
+                self.point_mesh_not_clibed.show()
+        else:
+            self.point_mesh[sn].show()
 
     def run_bundle_adjustment(self, file_path):
         bal_problem = BALProblem(self.model, file_path)
@@ -661,19 +674,6 @@ class ProbeCalibration(QObject):
         if self.transM_LR is None:
             return False
     
-        """
-        # Save local_pts and optimzied global pts in file_path
-                # Save local_pts and optimized global pts in file_path
-        df = pd.DataFrame({
-            'local_x': local_pts[:, 0],
-            'local_y': local_pts[:, 1],
-            'local_z': local_pts[:, 2],
-            'global_x': opt_global_pts[:, 0],
-            'global_y': opt_global_pts[:, 1],
-            'opt_global_z': opt_global_pts[:, 2]
-        })
-        df.to_csv(file_path, index=False)"""
-
         logger.debug(f"Number of observations: {len(bal_problem.observations)}")
         logger.debug(f"Number of 3d points: {len(bal_problem.points)}")
         for i in range(len(bal_problem.list_cameras)):
