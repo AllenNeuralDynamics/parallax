@@ -12,11 +12,12 @@ ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 csv_file = os.path.join(debug_dir, "points.csv")
 
 class PointMesh(QWidget):
-    def __init__(self, model, file_path, sn):
+    def __init__(self, model, file_path, sn, calib_completed=False):
         super().__init__()
         self.model = model
         self.file_path = file_path
         self.sn = sn
+        self.calib_completed = calib_completed
 
         self.R, self.R_BA = {}, {}
         self.T, self.T_BA = {}, {}
@@ -28,12 +29,9 @@ class PointMesh(QWidget):
         
         self.figure = plt.figure(figsize=(15, 10))
         self.ax = self.figure.add_subplot(111, projection='3d')
-
-    """
-    def initialize(self):
-        if not hasattr(self, 'ax'):
-            # Initialize self.ax if not already
-            print("self.ax initialized")"""
+        self.canvas = FigureCanvas(self.figure)
+        self.canvas.setParent(self)
+        #self.resizeEvent = self._on_resize
 
     def show(self):
         self._parse_csv()
@@ -61,7 +59,7 @@ class PointMesh(QWidget):
         self.global_pts = self.df[['global_x', 'global_y', 'global_z']].values
         self.points_dict['global_pts'] = self.global_pts
 
-        if self.model.bundle_adjustment:
+        if self.model.bundle_adjustment and self.calib_completed:
             self.m_global_pts = self.df[['m_global_x', 'm_global_y', 'm_global_z']].values
             self.points_dict['m_global_pts'] = self.m_global_pts
 
@@ -101,7 +99,7 @@ class PointMesh(QWidget):
             self.buttons[key] = button
 
         # Set initial state of buttons
-        if self.model.bundle_adjustment:
+        if self.model.bundle_adjustment and self.calib_completed:
             keys_to_check = ['local_pts_BA', 'opt_global_pts']
         else:
             keys_to_check = ['local_pts', 'global_pts']
@@ -113,16 +111,11 @@ class PointMesh(QWidget):
         # Update the legend
         self._update_legend() 
 
-        """
-        # Add zoom in and zoom out buttons
-        self.zoom_in_button = QPushButton('Zoom In')
-        self.zoom_in_button.clicked.connect(self._zoom_in)
-        self.ui.verticalLayout1.addWidget(self.zoom_in_button)
-
-        self.zoom_out_button = QPushButton('Zoom Out')
-        self.zoom_out_button.clicked.connect(self._zoom_out)
-        self.ui.verticalLayout1.addWidget(self.zoom_out_button)
-        """
+    def _on_resize(self, event):
+        new_size = event.size()
+        self.canvas.resize(new_size.width(), new_size.height())
+        self.figure.tight_layout()  # Adjust the layout to fit into the new size
+        self.canvas.draw()  # Redraw the canvas
 
     def _get_button_name(self, key):
         if key == 'local_pts':

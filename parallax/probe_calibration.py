@@ -630,8 +630,8 @@ class ProbeCalibration(QObject):
         # Init point_mesh
         self.stages[self.stage.sn]['calib_completed'] = True
         if hasattr(self, 'point_mesh_not_clibed'):
-            del self.point_mesh_not_clibed
-        self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn)
+            del self.point_mesh_not_calibrated
+        self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn, calib_completed=True)
         self.point_mesh[self.stage.sn].set_transM(self.transM_LR, self.scale) # Set transM
 
         if self.model.bundle_adjustment:    
@@ -655,11 +655,10 @@ class ProbeCalibration(QObject):
 
     def view_3d_trajectory(self, sn):
         if not self.stages.get(sn, {}).get('calib_completed', False):
-            print("View - Calibration is not complete.")
             if sn == self.stage.sn:
-                self.point_mesh_not_clibed = PointMesh(self.model, self.csv_file, self.stage.sn)
-                self.point_mesh_not_clibed.set_transM(self.transM_LR, self.scale)
-                self.point_mesh_not_clibed.show()
+                self.point_mesh_not_calibrated = PointMesh(self.model, self.csv_file, self.stage.sn)
+                self.point_mesh_not_calibrated.set_transM(self.transM_LR, self.scale)
+                self.point_mesh_not_calibrated.show()
         else:
             self.point_mesh[sn].show()
 
