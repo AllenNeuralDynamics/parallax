@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.QtWidgets import QWidget, QPushButton
 from PyQt5.uic import loadUi
+from PyQt5.QtCore import Qt
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
@@ -14,6 +15,8 @@ csv_file = os.path.join(debug_dir, "points.csv")
 class PointMesh(QWidget):
     def __init__(self, model, file_path, sn, calib_completed=False):
         super().__init__()
+        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
+                    Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)   
         self.model = model
         self.file_path = file_path
         self.sn = sn
@@ -31,7 +34,7 @@ class PointMesh(QWidget):
         self.ax = self.figure.add_subplot(111, projection='3d')
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setParent(self)
-        #self.resizeEvent = self._on_resize
+        self.resizeEvent = self._on_resize
 
     def show(self):
         self._parse_csv()
@@ -109,13 +112,16 @@ class PointMesh(QWidget):
             self._draw_specific_points(key)
 
         # Update the legend
-        self._update_legend() 
+        self._update_legend()
 
     def _on_resize(self, event):
         new_size = event.size()
         self.canvas.resize(new_size.width(), new_size.height())
         self.figure.tight_layout()  # Adjust the layout to fit into the new size
         self.canvas.draw()  # Redraw the canvas
+
+        # Resize horizontal layout
+        self.ui.horizontalLayoutWidget.resize(new_size.width(), new_size.height())
 
     def _get_button_name(self, key):
         if key == 'local_pts':
