@@ -131,8 +131,12 @@ class PointMesh(QWidget):
 
     def _draw_specific_points(self, key):
         pts = self.points_dict[key]
+        x_rounded = [round(x, 0) for x in pts[:, 0]]
+        y_rounded = [round(y, 0) for y in pts[:, 1]]
+        z_rounded = [round(z, 0) for z in pts[:, 2]]
+
         scatter = go.Scatter3d(
-            x=pts[:, 0], y=pts[:, 1], z=pts[:, 2],
+            x=x_rounded, y=y_rounded, z=z_rounded,
             mode='markers+lines',
             marker=dict(size=2, color=self.colors[key]),
             name=self._get_button_name(key),

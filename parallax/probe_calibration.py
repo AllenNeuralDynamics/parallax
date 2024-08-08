@@ -58,7 +58,7 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        
+        """
         self.threshold_min_max = 250 
         self.threshold_min_max_z = 200
         self.LR_err_L2_threshold = 200
@@ -84,7 +84,7 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
-        """
+        
 
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
