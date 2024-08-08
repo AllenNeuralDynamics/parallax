@@ -1,11 +1,10 @@
 import os
-import mplcursors
 import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import plotly.graph_objs as go
 from PyQt5.QtWidgets import QWidget, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
@@ -25,21 +24,22 @@ class PointMesh(QWidget):
         self.R, self.R_BA = {}, {}
         self.T, self.T_BA = {}, {}
         self.S, self.S_BA = {}, {}
-
         self.points_dict = {}
+        self.traces = {} # Plotly trace objects
         self.colors = {}
-        self.cursors = {}  # Dictionary to keep track of mplcursors for each key
-        
-        self.figure = plt.figure(figsize=(15, 10))
-        self.ax = self.figure.add_subplot(111, projection='3d')
-        self.canvas = FigureCanvas(self.figure)
-        self.canvas.setParent(self)
         self.resizeEvent = self._on_resize
+        self._init_ui()
 
     def show(self):
         self._parse_csv()
-        self._init_ui()
+        self._init_buttons()
+        self._update_canvas() 
         super().show()  # Show the widget
+
+    def _init_ui(self):
+        self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
+        self.web_view = QWebEngineView(self)
+        self.ui.verticalLayout1.addWidget(self.web_view)
 
     def set_transM(self, transM, scale):
         self.R[self.sn] = transM[:3, :3]
@@ -53,7 +53,7 @@ class PointMesh(QWidget):
 
     def _parse_csv(self):
         self.df = pd.read_csv(self.file_path)
-        self.df = self.df[self.df["sn"] == self.sn] # filter by sn
+        self.df = self.df[self.df["sn"] == self.sn]  # filter by sn
 
         self.local_pts_org = self.df[['local_x', 'local_y', 'local_z']].values
         self.local_pts = self._local_to_global(self.local_pts_org, self.R[self.sn], self.T[self.sn], self.S[self.sn])
@@ -73,7 +73,7 @@ class PointMesh(QWidget):
             self.points_dict['local_pts_BA'] = self.local_pts_BA
 
         # Assign unique colors to each key
-        color_list = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
+        color_list = ['red', 'blue', 'green',  'cyan', 'magenta']
         for i, key in enumerate(self.points_dict.keys()):
             self.colors[key] = color_list[i % len(color_list)]
 
@@ -83,25 +83,17 @@ class PointMesh(QWidget):
         global_coords_exp = R @ local_pts.T + t.reshape(-1, 1)
         return global_coords_exp.T
 
-    def _init_ui(self):
-        self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
-        self.canvas = FigureCanvas(self.figure)
-
-        # Add the canvas to the first column of verticalLayout1
-        self.ui.verticalLayout1.addWidget(self.canvas)
-
-        # Add buttons to the existing verticalLayout2
+    def _init_buttons(self):
         self.buttons = {}
         for key in self.points_dict.keys():
             button_name = self._get_button_name(key)
             button = QPushButton(f'{button_name}')
-            button.setCheckable(True)  # Make the button checkable
+            button.setCheckable(True)
             button.setMaximumWidth(200)
             button.clicked.connect(lambda checked, key=key: self._update_plot(key, checked))
             self.ui.verticalLayout2.addWidget(button)
             self.buttons[key] = button
 
-        # Set initial state of buttons
         if self.model.bundle_adjustment and self.calib_completed:
             keys_to_check = ['local_pts_BA', 'opt_global_pts']
         else:
@@ -110,18 +102,6 @@ class PointMesh(QWidget):
         for key in keys_to_check:
             self.buttons[key].setChecked(True)
             self._draw_specific_points(key)
-
-        # Update the legend
-        self._update_legend()
-
-    def _on_resize(self, event):
-        new_size = event.size()
-        self.canvas.resize(new_size.width(), new_size.height())
-        self.figure.tight_layout()  # Adjust the layout to fit into the new size
-        self.canvas.draw()  # Redraw the canvas
-
-        # Resize horizontal layout
-        self.ui.horizontalLayoutWidget.resize(new_size.width(), new_size.height())
 
     def _get_button_name(self, key):
         if key == 'local_pts':
@@ -142,87 +122,49 @@ class PointMesh(QWidget):
             self._draw_specific_points(key)
         else:
             self._remove_points_from_plot(key)
-        self._update_legend()
-        self.canvas.draw()
+        self._update_canvas()
 
     def _remove_points_from_plot(self, key):
-        # Remove the points and lines corresponding to the given key
-        label_name = self._get_button_name(key)
-        artists_to_remove = [artist for artist in self.ax.lines + self.ax.collections if artist.get_label() == label_name]
-        for artist in artists_to_remove:
-            artist.remove()
-
-        self._remove_points_info(key)
-    
-    def _remove_points_info(self, key='all'):
-        # Remove the associated cursor if it exists
-        if key == 'all':
-            # Remove all cursors
-            for key in list(self.cursors.keys()):
-                cursor = self.cursors[key]
-                cursor.remove()
-                del self.cursors[key]  # Clear the dictionary after removing all cursors
-
-        else:
-            if key in self.cursors:
-                cursor = self.cursors[key]
-                cursor.remove()
-                del self.cursors[key]
+        if key in self.points_dict:
+            del self.traces[key]  # Remove from self.traces
+        self._update_canvas()
 
     def _draw_specific_points(self, key):
         pts = self.points_dict[key]
-        scatter = self._add_points_to_plot(self.ax, pts, key, s=0.5)
-        self._add_lines_to_plot(self.ax, pts, key, linewidth=0.5)
-        
-        # Add mplcursors for hover functionality
-        cursor = mplcursors.cursor(scatter, hover=True)
-        
-        def on_add(sel):
-            # Compute the annotation text
-            text = f'({int(pts[sel.index, 0])}, {int(pts[sel.index, 1])}, {int(pts[sel.index, 2])})'
-            sel.annotation.set_text(text)
-            # Set the background color to match the line color
-            sel.annotation.get_bbox_patch().set_facecolor(self.colors[key])
-            sel.annotation.get_bbox_patch().set_alpha(1.0)  # Set transparency
-        cursor.connect("add", on_add)
+        scatter = go.Scatter3d(
+            x=pts[:, 0], y=pts[:, 1], z=pts[:, 2],
+            mode='markers+lines',
+            marker=dict(size=2, color=self.colors[key]),
+            name=self._get_button_name(key),
+            hoverinfo='x+y+z'
+        )
+        self.traces[key] = scatter  # Store the trace in self.traces
 
-        # Save the cursor to remove later if necessary
-        self.cursors[key] = cursor 
-   
-    def _add_points_to_plot(self, ax, pts, name, s=1):
-        label_name = self._get_button_name(name)
-        scatter = ax.scatter(pts[:, 0], pts[:, 1], pts[:, 2], s=s, c=self.colors[name], label=label_name)
-        return scatter
-
-    def _add_lines_to_plot(self, ax, pts, name, linewidth=0.5):
-        ax.plot(pts[:, 0], pts[:, 1], pts[:, 2], color=self.colors[name], linewidth=linewidth, label=self._get_button_name(name))
-
-    def _update_legend(self):
-        handles, labels = self.ax.get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        self.ax.legend(by_label.values(), by_label.keys(), loc='upper left')
-
-    def _zoom_in(self):
-        self._zoom(0.9)
-        #self._remove_points_info(key='all')  # Remove all cursors
-
-    def _zoom_out(self):
-        self._zoom(1.1)
-        #self._remove_points_info(key='all')  # Remove all cursors
-
-    def _zoom(self, scale_factor):
-        xlim = self.ax.get_xlim()
-        ylim = self.ax.get_ylim()
-        zlim = self.ax.get_zlim()
-
-        self.ax.set_xlim([x * scale_factor for x in xlim])
-        self.ax.set_ylim([y * scale_factor for y in ylim])
-        self.ax.set_zlim([z * scale_factor for z in zlim])
-
-        self.canvas.draw()
+    def _update_canvas(self):
+        data = list(self.traces.values()) 
+        layout = go.Layout(
+            scene=dict(
+                xaxis_title='X',
+                yaxis_title='Y',
+                zaxis_title='Z'
+            ),
+            margin=dict(l=0, r=0, b=0, t=0)
+        )
+        fig = go.Figure(data=data, layout=layout)
+        html_content = fig.to_html(include_plotlyjs='cdn')
+        self.web_view.setHtml(html_content)
 
     def wheelEvent(self, event):
-        if event.angleDelta().y() > 0:
-            self._zoom_in()
-        else:
-            self._zoom_out()
+        # Get the mouse position
+        mouse_position = event.pos()
+        # Apply zoom based on the scroll direction
+        scale_factor = 0.9 if event.angleDelta().y() > 0 else 1.1
+        self._zoom(scale_factor, mouse_position.x(), mouse_position.y())
+
+    def _on_resize(self, event):
+        new_size = event.size()
+        self.web_view.resize(new_size.width(), new_size.height())
+        self._update_canvas()
+ 
+        # Resize horizontal layout
+        self.ui.horizontalLayoutWidget.resize(new_size.width(), new_size.height())

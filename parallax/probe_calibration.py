@@ -268,7 +268,8 @@ class ProbeCalibration(QObject):
         local_points, global_points = self._get_local_global_points(df)
         
         if remove_noise:
-            if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
+            #if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
+            if self._is_criteria_met_points_min_max() \
                     and self.R is not None and self.origin is not None: 
                 local_points, global_points, valid_indices = self._remove_outliers(local_points, global_points)
 
