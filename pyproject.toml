@@ -27,7 +27,8 @@ dependencies = [
     "scikit-image",
     "requests",
     "scikit-learn",
-    "mplcursors"
+    "plotly",
+    "PyQtWebEngine"
    ]
  
 [tool.setuptools]
