@@ -178,6 +178,6 @@ class PointMesh(QWidget):
 
     def closeEvent(self, event):
         if self in self.model.point_mesh_instances:
-            self.model.point_mesh_instances.remove(self)
+            del self.model.point_mesh_instances[self.sn]
         self.web_view.close()
         event.accept()

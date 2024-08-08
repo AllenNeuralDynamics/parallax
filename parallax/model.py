@@ -27,7 +27,7 @@ class Model(QObject):
         self.focos = []
 
         # point mesh
-        self.point_mesh_instances = []
+        self.point_mesh_instances = {}
 
         # stage
         self.nStages = 0
@@ -204,9 +204,12 @@ class Model(QObject):
                 self.msg_log.post("Saved camera frame: %s" % filename)
 
     def add_point_mesh_instance(self, instance):
-        self.point_mesh_instances.append(instance)
+        sn = instance.sn
+        if sn in self.point_mesh_instances:
+            self.point_mesh_instances[sn].close()
+        self.point_mesh_instances[sn] = instance
 
     def close_all_point_meshes(self):
-        for instance in self.point_mesh_instances:
+        for instance in self.point_mesh_instances.values():
             instance.close()
         self.point_mesh_instances.clear()
