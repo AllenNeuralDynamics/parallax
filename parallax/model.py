@@ -26,6 +26,9 @@ class Model(QObject):
         self.nMockCameras = 0
         self.focos = []
 
+        # point mesh
+        self.point_mesh_instances = []
+
         # stage
         self.nStages = 0
         self.stages = {}
@@ -199,3 +202,11 @@ class Model(QObject):
                 filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
                 camera.save_last_image(filename)
                 self.msg_log.post("Saved camera frame: %s" % filename)
+
+    def add_point_mesh_instance(self, instance):
+        self.point_mesh_instances.append(instance)
+
+    def close_all_point_meshes(self):
+        for instance in self.point_mesh_instances:
+            instance.close()
+        self.point_mesh_instances.clear()

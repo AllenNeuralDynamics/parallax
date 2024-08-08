@@ -30,6 +30,9 @@ class PointMesh(QWidget):
         self.resizeEvent = self._on_resize
         self._init_ui()
 
+        # Register this instance with the model
+        self.model.add_point_mesh_instance(self)
+
     def show(self):
         self._parse_csv()
         self._init_buttons()
@@ -172,3 +175,9 @@ class PointMesh(QWidget):
  
         # Resize horizontal layout
         self.ui.horizontalLayoutWidget.resize(new_size.width(), new_size.height())
+
+    def closeEvent(self, event):
+        if self in self.model.point_mesh_instances:
+            self.model.point_mesh_instances.remove(self)
+        self.web_view.close()
+        event.accept()
