@@ -14,8 +14,6 @@ csv_file = os.path.join(debug_dir, "points.csv")
 class PointMesh(QWidget):
     def __init__(self, model, file_path, sn, transM, scale, transM_BA=None, scale_BA=None, calib_completed=False):
         super().__init__()
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
-                    Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)   
         self.model = model
         self.file_path = file_path
         self.sn = sn
@@ -34,6 +32,10 @@ class PointMesh(QWidget):
         self.model.add_point_mesh_instance(self)
 
         self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
+        self.setWindowTitle(f"{self.sn} - Trajectory 3D View ") 
+        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
+            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        
         self._set_transM(transM, scale)
         if transM_BA is not None and scale_BA is not None and \
             self.model.bundle_adjustment and self.calib_completed:
