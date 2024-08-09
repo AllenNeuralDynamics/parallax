@@ -58,9 +58,9 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        """
+        
         self.threshold_min_max = 250 
-        self.threshold_min_max_z = 200
+        self.threshold_min_max_z = 0
         self.LR_err_L2_threshold = 200
         self.threshold_avg_error = 500
         self.threshold_matrix = np.array(
@@ -84,7 +84,7 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
-        
+        """
 
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
@@ -598,11 +598,6 @@ class ProbeCalibration(QObject):
         # update points in the file
         self.stage = stage
         self._update_local_global_point(debug_info) # Do no update if it is duplicates
-        
-        # TODO
-        # get whole list of local and global points in pd format
-        #local_points, global_points = self._get_local_global_points()
-        #self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points) #remove outliers
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
         self.transM_LR = self._get_transM(filtered_df)
@@ -628,14 +623,8 @@ class ProbeCalibration(QObject):
         self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
                              file_name = f"transM_{self.stage.sn}.csv")
 
-        # Init point_mesh
-        self.stages[self.stage.sn]['calib_completed'] = True
-        if hasattr(self, 'point_mesh_not_clibed'):
-            del self.point_mesh_not_calibrated
-        self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn, calib_completed=True)
-        self.point_mesh[self.stage.sn].set_transM(self.transM_LR, self.scale) # Set transM
-
         if self.model.bundle_adjustment:    
+            self.old_transM, self.old_scale = self.transM_LR, self.scale
             ret = self.run_bundle_adjustment(self.file_name)
             if ret:
                 print("\n=========================================================")
@@ -644,23 +633,33 @@ class ProbeCalibration(QObject):
                 print("=========================================================")
                 self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
                             file_name = f"transM_BA_{self.stage.sn}.csv") 
-                self.point_mesh[self.stage.sn].set_transM_BA(self.transM_LR, self.scale) # set TransM_BA
             else:
                 return
-
+        
         # Emit the signal to indicate that calibration is complete         
         self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
         logger.debug(
             f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
         )
 
+        # Init PointMesh
+        if not self.model.bundle_adjustment:
+            self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn, \
+                            self.transM_LR, self.scale, calib_completed=True)
+        else:
+            self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn, \
+                            self.old_transM, self.old_scale, \
+                            self.transM_LR, self.scale, calib_completed=True)
+        self.stages[self.stage.sn]['calib_completed'] = True
+
     def view_3d_trajectory(self, sn):
         if not self.stages.get(sn, {}).get('calib_completed', False):
             if sn == self.stage.sn:
-                self.point_mesh_not_calibrated = PointMesh(self.model, self.csv_file, self.stage.sn)
-                self.point_mesh_not_calibrated.set_transM(self.transM_LR, self.scale)
+                self.point_mesh_not_calibrated = PointMesh(self.model, self.csv_file, self.stage.sn, \
+                        self.transM_LR, self.scale)
                 self.point_mesh_not_calibrated.show()
         else:
+            # If calib is completed, show the PointMesh instance.
             self.point_mesh[sn].show()
 
     def run_bundle_adjustment(self, file_path):

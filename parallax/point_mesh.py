@@ -12,7 +12,7 @@ ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 csv_file = os.path.join(debug_dir, "points.csv")
 
 class PointMesh(QWidget):
-    def __init__(self, model, file_path, sn, calib_completed=False):
+    def __init__(self, model, file_path, sn, transM, scale, transM_BA=None, scale_BA=None, calib_completed=False):
         super().__init__()
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
                     Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)   
@@ -20,6 +20,7 @@ class PointMesh(QWidget):
         self.file_path = file_path
         self.sn = sn
         self.calib_completed = calib_completed
+        self.web_view = None
 
         self.R, self.R_BA = {}, {}
         self.T, self.T_BA = {}, {}
@@ -28,23 +29,30 @@ class PointMesh(QWidget):
         self.traces = {} # Plotly trace objects
         self.colors = {}
         self.resizeEvent = self._on_resize
-        self._init_ui()
-
+        
         # Register this instance with the model
         self.model.add_point_mesh_instance(self)
 
-    def show(self):
+        self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
+        self._set_transM(transM, scale)
+        if transM_BA is not None and scale_BA is not None and \
+            self.model.bundle_adjustment and self.calib_completed:
+            self.set_transM_BA(transM_BA, scale_BA)
         self._parse_csv()
         self._init_buttons()
+
+    def show(self):
+        self._init_ui()
         self._update_canvas() 
         super().show()  # Show the widget
 
     def _init_ui(self):
-        self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
+        if self.web_view is not None:
+            self.web_view.close()
         self.web_view = QWebEngineView(self)
         self.ui.verticalLayout1.addWidget(self.web_view)
 
-    def set_transM(self, transM, scale):
+    def _set_transM(self, transM, scale):
         self.R[self.sn] = transM[:3, :3]
         self.T[self.sn] = transM[:3, 3]
         self.S[self.sn] = scale[:3]
@@ -88,6 +96,7 @@ class PointMesh(QWidget):
 
     def _init_buttons(self):
         self.buttons = {}
+
         for key in self.points_dict.keys():
             button_name = self._get_button_name(key)
             button = QPushButton(f'{button_name}')
@@ -161,13 +170,6 @@ class PointMesh(QWidget):
         html_content = fig.to_html(include_plotlyjs='cdn')
         self.web_view.setHtml(html_content)
 
-    def wheelEvent(self, event):
-        # Get the mouse position
-        mouse_position = event.pos()
-        # Apply zoom based on the scroll direction
-        scale_factor = 0.9 if event.angleDelta().y() > 0 else 1.1
-        self._zoom(scale_factor, mouse_position.x(), mouse_position.y())
-
     def _on_resize(self, event):
         new_size = event.size()
         self.web_view.resize(new_size.width(), new_size.height())
@@ -175,9 +177,6 @@ class PointMesh(QWidget):
  
         # Resize horizontal layout
         self.ui.horizontalLayoutWidget.resize(new_size.width(), new_size.height())
-
-    def closeEvent(self, event):
-        if self in self.model.point_mesh_instances:
-            del self.model.point_mesh_instances[self.sn]
-        self.web_view.close()
-        event.accept()
+            
+            
+        
