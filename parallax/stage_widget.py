@@ -21,7 +21,7 @@ from .stage_listener import StageListener
 from .stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 class StageWidget(QWidget):
     """Widget for stage control and calibration."""

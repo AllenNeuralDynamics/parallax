@@ -6,7 +6,7 @@ from scipy.optimize import leastsq
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 class BALProblem:
     def __init__(self, model, file_path):

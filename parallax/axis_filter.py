@@ -14,7 +14,7 @@ from .calibration_camera import CalibrationCamera
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 class AxisFilter(QObject):
     """Class representing no filter."""
