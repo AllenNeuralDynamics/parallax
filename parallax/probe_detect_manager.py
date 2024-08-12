@@ -19,7 +19,7 @@ from .reticle_detection import ReticleDetection
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -163,15 +163,12 @@ class ProbeDetectManager(QObject):
                             self.curr_img, mask, gray_img
                         )
                     logger.debug(f"cam:{self.name}, ret: {ret}, stopped: {self.is_calib}")
+                    logger.debug(f"---------------------------------")
                     if ret:  # Found
-                        if self.is_calib: # If calibaration is enable, use data for calibration
+                        if self.is_calib: # If calibaration is enabled, use data for calibration
                             self.found_coords.emit(
                                 timestamp, self.sn, self.probeDetect.probe_tip_org
                             )
-
-                            # Save the frame for debugging
-                            filename = f"debug/{self.name}_{timestamp}.jpg"
-                            #cv2.imwrite(filename, frame)
 
                             # Draw the tip on the frame (red)
                             cv2.circle(
@@ -190,10 +187,23 @@ class ProbeDetectManager(QObject):
                                 -1,
                             )
                         self.prev_img = self.curr_img
-                        #logger.debug(f"{self.name} Found")
                     else:
-                        #logger.debug(f"{self.name} Not found")
-                        pass 
+                        pass
+
+                    # Debugging
+                    if logger.getEffectiveLevel() == logging.DEBUG:
+                        top, bottom, left, right = self.currBgCmpProcess.get_crop_region_boundary()
+                        top_f, bottom_f, left_f, right_f = self.currBgCmpProcess.get_fine_tip_boundary()
+                        if ret:                        
+                            if top is not None:
+                                cv2.rectangle(frame,(left, top), (right, bottom), (0, 255, 0), 2)
+                            if top_f is not None:
+                                cv2.rectangle(frame,(left_f, top_f),(right_f, bottom_f),(0, 255, 0), 2) 
+                        else:
+                            if top is not None:
+                                cv2.rectangle(frame,(left, top), (right, bottom), (255, 0, 0), 2)
+                            if top_f is not None:
+                                cv2.rectangle(frame,(left_f, top_f),(right_f, bottom_f), (255, 0, 0), 2) 
             else:
                 self.prev_img = self.curr_img
 
@@ -259,6 +269,11 @@ class ProbeDetectManager(QObject):
             """Set name as camera serial number."""
             self.name = name
             self.reticle_coords = self.model.get_coords_axis(self.name)
+
+        def debug_draw_boundary(self):
+
+            pass
+
 
     def __init__(self, model, camera_name):
         """Initialize ProbeDetectManager object"""

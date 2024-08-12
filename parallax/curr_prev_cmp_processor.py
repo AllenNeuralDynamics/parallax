@@ -58,6 +58,10 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         self.ProbeDetector = ProbeDetector
         self.crop_init = 50
 
+        # Debug
+        self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = None, None, None, None
+        self.top, self.bottom, self.left, self.right = None, None, None, None
+
     def first_cmp(self, curr_img, prev_img, mask, org_img, img_fname=None):
         """Perform first comparison.
 
@@ -126,13 +130,13 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         while (ret is False) and (
             crop_size <= max(self.IMG_SIZE[0], self.IMG_SIZE[1])
         ):
-            top, bottom, left, right = crop_utils.calculate_crop_region(
+            self.top, self.bottom, self.left, self.right = crop_utils.calculate_crop_region(
                 self.ProbeDetector.probe_tip,
                 self.ProbeDetector.probe_base,
                 crop_size,
                 self.IMG_SIZE,
             )
-            diff_img_crop = self.diff_img[top:bottom, left:right]
+            diff_img_crop = self.diff_img[self.top:self.bottom, self.left:self.right]
             hough_minLineLength_adpative = (
                 40 + int(crop_size / self.crop_init) * 5
             )
@@ -140,14 +144,14 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
                 diff_img_crop,
                 self.mask,
                 hough_minLineLength=hough_minLineLength_adpative,
-                offset_x=left,
-                offset_y=top,
+                offset_x=self.left,
+                offset_y=self.top,
                 img_fname=self.img_fname,
             )
             # cv2.rectangle(diff_img_, (left, top), (right, bottom), (0, 155, 155), 5)  # Green rectangle
 
             if ret and crop_utils.is_point_on_crop_region(
-                self.ProbeDetector.probe_tip, top, bottom, left, right
+                self.ProbeDetector.probe_tip, self.top, self.bottom, self.left, self.right,
             ):
                 ret = False
 
@@ -164,6 +168,10 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
         del crop_utils  # Garbage Collect
         return ret
+
+    def get_crop_region_boundary(self):
+        """Get the boundary of the crop region."""
+        return self.top, self.bottom, self.left, self.right
 
     def _get_precise_tip(self, org_img):
         """Get precise probe tip using original image
@@ -182,18 +190,18 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         probe_tip_original_coords = coords_utils.scale_coords_to_original(
             self.ProbeDetector.probe_tip
         )
-        top, bottom, left, right = crop_utils.calculate_crop_region(
+        self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = crop_utils.calculate_crop_region(
             probe_tip_original_coords,
             probe_tip_original_coords,
             crop_size=25,
             IMG_SIZE=self.IMG_SIZE_ORIGINAL,
         )
-        self.tip_image = org_img[top:bottom, left:right]
+        self.tip_image = org_img[self.top_fine:self.bottom_fine, self.left_fine:self.right_fine]
         ret = probe_fine_tip.get_precise_tip(
             self.tip_image,
             probe_tip_original_coords,
-            offset_x=left,
-            offset_y=top,
+            offset_x=self.left_fine,
+            offset_y=self.top_fine,
             direction=self.ProbeDetector.probe_tip_direction,
             img_fname=self.img_fname,
         )
@@ -205,6 +213,10 @@ class CurrPrevCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         del crop_utils
 
         return ret
+
+    def get_fine_tip_boundary(self):
+        """Get the fine tip boundary."""
+        return self.top_fine, self.bottom_fine, self.left_fine, self.right_fine
 
     def _detect_probe(self):
         """Detect probe in difference image.

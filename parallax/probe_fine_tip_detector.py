@@ -5,17 +5,22 @@ for precise positioning tasks.
 """
 
 import logging
-
+import os
 import cv2
 import numpy as np
+from datetime import datetime
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+if logger.getEffectiveLevel() == logging.DEBUG:
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_fine_tip_detector")
+    os.makedirs(debug_dir, exist_ok=True)
 
 class ProbeFineTipDetector:
     """Class for detecting the fine tip of the probe in an image."""
@@ -56,6 +61,18 @@ class ProbeFineTipDetector:
             logger.debug(
                 f"get_probe_precise_tip fail. N of contours_boundary :{len(contours_boundary)}"
             )
+            """
+            if logger.getEffectiveLevel() == logging.DEBUG:
+                current_time = datetime.now().strftime("%H%M%S_%f")[:-3] 
+                output_fname = f"{current_time}_{len(contours_boundary)}.jpg"
+                if len(self.img.shape) == 2:
+                    debug_img = cv2.cvtColor(self.img, cv2.COLOR_GRAY2BGR)
+                
+                red_mask = np.zeros_like(debug_img)
+                red_mask[and_result != 0] = [0, 0, 255]  # BGR format for red
+                debug_img = cv2.addWeighted(debug_img, 1.0, red_mask, 0.5, 0)
+                cv2.imwrite(os.path.join(debug_dir, output_fname), debug_img)
+            """
             return False
 
         boundary_img = np.zeros_like(self.img)
@@ -71,8 +88,19 @@ class ProbeFineTipDetector:
             logger.debug(
                 f"get_probe_precise_tip fail. No detection of tip :{len(contours_boundary)}"
             )
+            """
+            if logger.getEffectiveLevel() == logging.DEBUG:
+                current_time = datetime.now().strftime("%H%M%S_%f")[:-3] 
+                output_fname = f"{current_time}_{len(contours_boundary)}.jpg"
+                if len(self.img.shape) == 2:
+                    debug_img = cv2.cvtColor(self.img, cv2.COLOR_GRAY2BGR)
+                
+                red_mask = np.zeros_like(debug_img)
+                red_mask[and_result != 0] = [0, 0, 255]  # BGR format for red
+                debug_img = cv2.addWeighted(debug_img, 1.0, red_mask, 0.5, 0)
+                #cv2.imwrite(os.path.join(debug_dir, output_fname), debug_img)
+            """
             return False
-
         return True
 
     def _detect_closest_centroid(self):
