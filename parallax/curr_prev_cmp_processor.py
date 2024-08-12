@@ -73,18 +73,19 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
         Returns:
             bool: True if probe is detected, False otherwise.
         """
-        ret = False
+        ret, ret_precise_tip = False, False
         self.img_fname = img_fname
         self.mask = mask
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
         if not self._apply_threshold():
-            return ret
+            return ret, ret_precise_tip
+        
         ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
         if ret:
             logger.debug("CurrPrevCmpProcessor First::detect")
             ret_precise_tip = self._get_precise_tip(org_img)
 
-        return ret
+        return ret, ret_precise_tip
 
     def update_cmp(self, curr_img, prev_img, mask, org_img, img_fname=None):
         """Update the comparison.
@@ -99,18 +100,18 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
         Returns:
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
-        ret = False
+        ret, ret_precise_tip = False, False
         self.img_fname = img_fname
         self.mask = mask
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
         if not self._apply_threshold():
-            return False
+            return False, ret_precise_tip
         ret = self._update_crop()
         if ret:
             logger.debug("CurrPrevCmpProcessor Update::detect")
             ret_precise_tip = self._get_precise_tip(org_img)
 
-        return ret and ret_precise_tip
+        return ret, ret_precise_tip
 
     def _update_crop(self):
         """Update the crop region.
@@ -164,6 +165,20 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
             crop_size += 100
 
         return ret
+
+    def get_point_tip(self):
+        """Get the probe tip and base points."""
+        if self.ProbeDetector.probe_tip is not None:
+            return UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        else:
+            return None 
+
+    def get_point_base(self):
+        """Get the probe tip and base points."""
+        if self.ProbeDetector.probe_base is not None:
+            return UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        else:
+            return None  
 
     def get_crop_region_boundary(self):
         """Get the boundary of the crop region."""

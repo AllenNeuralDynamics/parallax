@@ -88,7 +88,7 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
             bool: True if probe is detected, False otherwise.
         """
         logger.debug("CurrBgCmpProcessor::first_cmp")
-        ret = False
+        ret, ret_precise_tip = False, False
         self.img_fname = img_fname
         self.mask = mask
         self.curr_img = curr_img
@@ -99,12 +99,12 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
         ret = self._detect_probe()
         if ret:
             logger.debug("FirstCurrBgCmpProcessor:: detect")
-            _ = self._get_precise_tip(org_img)
+            ret_precise_tip = self._get_precise_tip(org_img)
             self.bg = cv2.bitwise_not(
                 cv2.bitwise_xor(self.diff_img, self.curr_img), mask=self.mask
             )
 
-        return ret
+        return ret, ret_precise_tip
 
     def update_cmp(self, curr_img, mask, org_img, img_fname=None):
         """Update the comparison.
@@ -118,7 +118,7 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
         Returns:
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
-        ret = False
+        ret, ret_precise_tip_ret = False, False
         self.img_fname = img_fname
         self.mask = mask
         self.curr_img = curr_img
@@ -128,13 +128,12 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
 
         self._preprocess_diff_image(self.curr_img)
         ret = self._update_crop()
-        ret_precise_tip_ret = False
         if ret:
             ret_precise_tip_ret = self._get_precise_tip(org_img)
             self._update_bg()
 
         logger.debug(f"update: {ret}, precise_tip: {ret_precise_tip_ret}")
-        return ret and ret_precise_tip_ret
+        return ret, ret_precise_tip_ret
 
     def _update_bg(self):
         """Update the background image."""
@@ -244,6 +243,20 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
 
         return ret
     
+    def get_point_tip(self):
+        """Get the probe tip and base points."""
+        if self.ProbeDetector.probe_tip is not None:
+            return UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        else:
+            return None 
+
+    def get_point_base(self):
+        """Get the probe tip and base points."""
+        if self.ProbeDetector.probe_base is not None:
+            return UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        else:
+            return None  
+
     def get_crop_region_boundary(self):
         """Get the boundary of the crop region."""
         if self.top is not None:
@@ -268,14 +281,13 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
             bool: True if precise tip is found, False otherwise.
         """
         probe_fine_tip = ProbeFineTipDetector()
-        crop_utils = UtilsCrops()
         ret = False
 
         probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
             self.ProbeDetector.probe_tip, 
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )
-        self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = crop_utils.calculate_crop_region(
+        self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = UtilsCrops.calculate_crop_region(
             probe_tip_original_coords,
             probe_tip_original_coords,
             crop_size=20,
@@ -294,7 +306,6 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
             self.ProbeDetector.probe_tip_org = probe_fine_tip.tip
 
         del probe_fine_tip  # Garbage Collect
-        del crop_utils
 
         return ret
 

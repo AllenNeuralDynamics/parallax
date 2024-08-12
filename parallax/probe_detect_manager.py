@@ -143,51 +143,38 @@ class ProbeDetectManager(QObject):
                 if self.probeDetect.angle is None:
                     is_first_detect = True
                     # Detecting probe for the first time
-                    ret = self.currPrevCmpProcess.first_cmp(
+                    ret_crop, ret_tip = self.currPrevCmpProcess.first_cmp(
                         self.curr_img, self.prev_img, mask, gray_img
                     )
-                    if ret is False:
-                        ret = self.currBgCmpProcess.first_cmp(
+                    if ret_crop is False:
+                        ret_crop, ret_tip = self.currBgCmpProcess.first_cmp(
                             self.curr_img, mask, gray_img
                         )
                 else:  # Tracking for the known probe
                     is_first_detect = False
-                    ret = self.currPrevCmpProcess.update_cmp(
+                    ret_crop, ret_tip = self.currPrevCmpProcess.update_cmp(
                         self.curr_img, self.prev_img, mask, gray_img
                     )
-                    is_curr_prev_comp = True if ret else False
-                    if ret is False:
-                        ret = self.currBgCmpProcess.update_cmp(
+                    is_curr_prev_comp = True if (ret_crop and ret_tip) else False
+                    if (ret_crop and ret_tip) is False:
+                        ret_crop, ret_tip = self.currBgCmpProcess.update_cmp(
                             self.curr_img, mask, gray_img
                         )
-                    if ret:  # Found
-                        is_curr_prev_comp = False if ret else False
-                        if self.is_calib: # If calibaration is enabled, use data for calibration
-                            self.found_coords.emit(
-                                timestamp, self.sn, self.probeDetect.probe_tip_org
-                            )
 
+                    if (ret_crop and ret_tip):  # Found
+                        is_curr_prev_comp = False if (ret_crop and ret_tip) else False
+                        if self.is_calib: # If calibaration is enabled (stopped), use data for calibration
+                            self.found_coords.emit( timestamp, self.sn, self.probeDetect.probe_tip_org)
                             # Draw the tip on the frame (red)
-                            cv2.circle(
-                                frame,
-                                self.probeDetect.probe_tip_org,
-                                5,
-                                (255, 0, 0),
-                                -1,
-                            )
-                        else: # Otherwise, just draw a tip on the frame (yellow)
-                            cv2.circle(
-                                frame,
-                                self.probeDetect.probe_tip_org,
-                                5,
-                                (255, 255, 0),
-                                -1,
-                            )
+                            cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0),-1,)
+
+                        else: # Otherwise (moving), just draw a tip on the frame (yellow)
+                            cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0),-1,)
                         self.prev_img = self.curr_img
                     else:
                         pass
                 if logger.getEffectiveLevel() == logging.DEBUG:
-                    frame = self.debug_draw_boundary(frame, is_first_detect, ret, is_curr_prev_comp)
+                    frame = self.debug_draw_boundary(frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp)
             else:
                 self.prev_img = self.curr_img
 
@@ -254,7 +241,7 @@ class ProbeDetectManager(QObject):
             self.name = name
             self.reticle_coords = self.model.get_coords_axis(self.name)
 
-        def debug_draw_boundary(self, frame, is_first_detect, ret, is_curr_prev_comp):
+        def debug_draw_boundary(self, frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp):
             # Display text on the frame
             if is_first_detect:
                 text = "first detection"
@@ -265,11 +252,11 @@ class ProbeDetectManager(QObject):
                 text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
                 text_x = width - text_size[0] - 10  # 10 pixels from the right edge
                 text_y = height - 10  # 10 pixels from the bottom edge   
-                color = (0, 255, 0) if ret else (255, 0, 0) # Green if detection is successful, red otherwise
+                color = (0, 255, 0) if (ret_crop and ret_tip) else (255, 0, 0) # Green if detection is successful, red otherwise
                 cv2.putText(frame, text, (text_x, text_y), font, font_scale, color, thickness)
 
                 # Debug log when first detection is successful
-                if ret: # debug log when first detection is successful
+                if (ret_crop and ret_tip): # debug log when first detection is successful
                     logger.debug(f"{self.name} First detect")
                     logger.debug(
                         f"angle: {self.probeDetect.angle}, \
@@ -278,22 +265,42 @@ class ProbeDetectManager(QObject):
                     )
 
             else: # Not first detection
-                logger.debug(f"cam:{self.name}, ret: {ret}, stopped: {self.is_calib}")
+                logger.debug(f"cam:{self.name}, ret_crop:{ret_crop} ret_tip:{ret_tip}, stopped: {self.is_calib}")
                 logger.debug(f"---------------------------------")
 
-                top, bottom, left, right = self.currBgCmpProcess.get_crop_region_boundary()
-                top_f, bottom_f, left_f, right_f = self.currBgCmpProcess.get_fine_tip_boundary()
+                # Draw the boundary rectangles
+                if is_curr_prev_comp:
+                    top, bottom, left, right = self.currPrevCmpProcess.get_crop_region_boundary()
+                    top_f, bottom_f, left_f, right_f = self.currPrevCmpProcess.get_fine_tip_boundary()
+                else:
+                    top, bottom, left, right = self.currBgCmpProcess.get_crop_region_boundary()
+                    top_f, bottom_f, left_f, right_f = self.currBgCmpProcess.get_fine_tip_boundary()
                 
                 # Success: Green, Failure: Red, Success with curr-prev comparison: Yellow
-                color = (0, 255, 0) if ret else (255, 0, 0)
-                if ret and is_curr_prev_comp:
-                    color = (255, 255, 0)
+                color_crop = (0, 255, 0) if ret_crop else (255, 0, 0)
+                color_tip = (0, 255, 0) if ret_tip else (255, 0, 0)
+                if ret_crop and is_curr_prev_comp:
+                    color_crop = (255, 255, 0)
+                if ret_tip and is_curr_prev_comp:
+                    color_tip = (255, 255, 0)
 
                 # Draw the rectangles if boundaries are valid
                 if top is not None:
-                    cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+                    cv2.rectangle(frame, (left, top), (right, bottom), color_crop, 2)
                 if top_f is not None:
-                    cv2.rectangle(frame, (left_f, top_f), (right_f, bottom_f), color, 2)
+                    cv2.rectangle(frame, (left_f, top_f), (right_f, bottom_f), color_tip, 2)
+
+                # Draw lines from tip and base points
+                tip, base = None, None
+                if ret_crop and is_curr_prev_comp:
+                    tip = self.currPrevCmpProcess.get_point_tip()
+                    base = self.currPrevCmpProcess.get_point_base()
+                elif ret_crop and not is_curr_prev_comp:
+                    tip = self.currBgCmpProcess.get_point_tip()
+                    base = self.currBgCmpProcess.get_point_base()
+
+                if tip is not None and base is not None:
+                    cv2.line(frame, tip, base, color_crop, 2)
 
             return frame
 
