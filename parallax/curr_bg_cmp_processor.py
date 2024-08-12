@@ -187,10 +187,6 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
         Returns:
             bool: True if probe is detected, False otherwise.
         """
-        # Draw
-        # diff_img_ = self.diff_img.copy()
-        # diff_img_ = cv2.cvtColor(diff_img_, cv2.COLOR_GRAY2BGR)
-
         ret = False
         crop_size = self.crop_init
         while (ret is False) and (crop_size <= max(self.IMG_SIZE[0], self.IMG_SIZE[1])):
@@ -219,13 +215,7 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
                 self.ProbeDetector.probe_tip, self.top, self.bottom, self.left, self.right, buffer=5
             ):
                 ret = False
-            """
-            if ret:
-                cv2.circle(diff_img_, self.ProbeDetector.probe_tip, 3, (0, 0, 255), -1)  # RED circle
-                cv2.circle(diff_img_, self.ProbeDetector.probe_base, 3, (0, 255, 0), -1)  # Green circle
-                cv2.imwrite('debug/crop.jpg', diff_img_)
-                cv2.imwrite('debug/reticle_zone.jpg', self.reticle_zone)
-            """
+
             if ret and self.reticle_zone is not None:
                 tip_in_reticle = self._is_point_in_reticle_region(
                     self.reticle_zone, self.ProbeDetector.probe_tip

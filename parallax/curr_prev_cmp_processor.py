@@ -119,10 +119,6 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
         Returns:
             bool: True if probe is detected, False otherwise.
         """
-        # Draw
-        # diff_img_ = self.diff_img.copy()
-        # diff_img_ = cv2.cvtColor(diff_img_, cv2.COLOR_GRAY2BGR)
-
         ret = False
         crop_size = self.crop_init
         while (ret is False) and (
@@ -146,22 +142,11 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
                 offset_y=self.top,
                 img_fname=self.img_fname,
             )
-            # cv2.rectangle(diff_img_, (left, top), (right, bottom), (0, 155, 155), 5)  # Green rectangle
-
+            
             if ret and UtilsCrops.is_point_on_crop_region(
                 self.ProbeDetector.probe_tip, self.top, self.bottom, self.left, self.right,
             ):
                 ret = False
-
-            """
-            if ret:
-                cv2.circle(diff_img_, self.ProbeDetector.probe_tip, 3, (0, 0, 255), -1)  # RED circle
-                cv2.circle(diff_img_, self.ProbeDetector.probe_base, 3, (0, 255, 0), -1)  # RED circle
-                #output_fname = os.path.basename(self.img_fname).replace('.', '_2_diff_thres.')
-                #cv2.imwrite('output/' + output_fname, diff_img_)
-                break
-            """
-
             crop_size += 100
 
         return ret
