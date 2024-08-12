@@ -119,6 +119,7 @@ class ProbeDetectManager(QObject):
             Returns:
                 tuple: Processed frame and timestamp.
             """
+
             if frame.ndim > 2:
                 gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             else:
@@ -138,7 +139,9 @@ class ProbeDetectManager(QObject):
                 self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
 
             if self.prev_img is not None:
+                is_curr_prev_comp = None
                 if self.probeDetect.angle is None:
+                    is_first_detect = True
                     # Detecting probe for the first time
                     ret = self.currPrevCmpProcess.first_cmp(
                         self.curr_img, self.prev_img, mask, gray_img
@@ -147,24 +150,18 @@ class ProbeDetectManager(QObject):
                         ret = self.currBgCmpProcess.first_cmp(
                             self.curr_img, mask, gray_img
                         )
-                    if ret:
-                        logger.debug(f"{self.name} First detect")
-                        logger.debug(
-                            f"angle: {self.probeDetect.angle}, \
-                            tip: {self.probeDetect.probe_tip}, \
-                            base: {self.probeDetect.probe_base}"
-                        )
                 else:  # Tracking for the known probe
+                    is_first_detect = False
                     ret = self.currPrevCmpProcess.update_cmp(
                         self.curr_img, self.prev_img, mask, gray_img
                     )
+                    is_curr_prev_comp = True if ret else False
                     if ret is False:
                         ret = self.currBgCmpProcess.update_cmp(
                             self.curr_img, mask, gray_img
                         )
-                    logger.debug(f"cam:{self.name}, ret: {ret}, stopped: {self.is_calib}")
-                    logger.debug(f"---------------------------------")
                     if ret:  # Found
+                        is_curr_prev_comp = False if ret else False
                         if self.is_calib: # If calibaration is enabled, use data for calibration
                             self.found_coords.emit(
                                 timestamp, self.sn, self.probeDetect.probe_tip_org
@@ -189,21 +186,8 @@ class ProbeDetectManager(QObject):
                         self.prev_img = self.curr_img
                     else:
                         pass
-
-                    # Debugging
-                    if logger.getEffectiveLevel() == logging.DEBUG:
-                        top, bottom, left, right = self.currBgCmpProcess.get_crop_region_boundary()
-                        top_f, bottom_f, left_f, right_f = self.currBgCmpProcess.get_fine_tip_boundary()
-                        if ret:                        
-                            if top is not None:
-                                cv2.rectangle(frame,(left, top), (right, bottom), (0, 255, 0), 2)
-                            if top_f is not None:
-                                cv2.rectangle(frame,(left_f, top_f),(right_f, bottom_f),(0, 255, 0), 2) 
-                        else:
-                            if top is not None:
-                                cv2.rectangle(frame,(left, top), (right, bottom), (255, 0, 0), 2)
-                            if top_f is not None:
-                                cv2.rectangle(frame,(left_f, top_f),(right_f, bottom_f), (255, 0, 0), 2) 
+                if logger.getEffectiveLevel() == logging.DEBUG:
+                    frame = self.debug_draw_boundary(frame, is_first_detect, ret, is_curr_prev_comp)
             else:
                 self.prev_img = self.curr_img
 
@@ -270,10 +254,48 @@ class ProbeDetectManager(QObject):
             self.name = name
             self.reticle_coords = self.model.get_coords_axis(self.name)
 
-        def debug_draw_boundary(self):
+        def debug_draw_boundary(self, frame, is_first_detect, ret, is_curr_prev_comp):
+            # Display text on the frame
+            if is_first_detect:
+                text = "first detection"
+                height, width = frame.shape[:2]
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 1
+                thickness = 2
+                text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
+                text_x = width - text_size[0] - 10  # 10 pixels from the right edge
+                text_y = height - 10  # 10 pixels from the bottom edge   
+                color = (0, 255, 0) if ret else (255, 0, 0) # Green if detection is successful, red otherwise
+                cv2.putText(frame, text, (text_x, text_y), font, font_scale, color, thickness)
 
-            pass
+                # Debug log when first detection is successful
+                if ret: # debug log when first detection is successful
+                    logger.debug(f"{self.name} First detect")
+                    logger.debug(
+                        f"angle: {self.probeDetect.angle}, \
+                        tip: {self.probeDetect.probe_tip}, \
+                        base: {self.probeDetect.probe_base}"
+                    )
 
+            else: # Not first detection
+                logger.debug(f"cam:{self.name}, ret: {ret}, stopped: {self.is_calib}")
+                logger.debug(f"---------------------------------")
+
+                top, bottom, left, right = self.currBgCmpProcess.get_crop_region_boundary()
+                top_f, bottom_f, left_f, right_f = self.currBgCmpProcess.get_fine_tip_boundary()
+                
+                # Success: Green, Failure: Red, Success with curr-prev comparison: Yellow
+                color = (0, 255, 0) if ret else (255, 0, 0)
+                if ret and is_curr_prev_comp:
+                    color = (255, 255, 0)
+
+                # Draw the rectangles if boundaries are valid
+                if top is not None:
+                    cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+                if top_f is not None:
+                    cv2.rectangle(frame, (left_f, top_f), (right_f, bottom_f), color, 2)
+
+            return frame
 
     def __init__(self, model, camera_name):
         """Initialize ProbeDetectManager object"""
