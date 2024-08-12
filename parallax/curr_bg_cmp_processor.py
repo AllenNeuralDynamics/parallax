@@ -34,7 +34,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 
-class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
+class CurrBgCmpProcessor(ProbeFineTipDetector):
     """Finding diff image using Current and Background Comparison"""
 
     def __init__(
@@ -49,8 +49,6 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
             resized_size (tuple): The resized size of the image (height, width).
             reticle_zone (numpy.ndarray, optional): The reticle zone image. Defaults to None.
         """
-        UtilsCoords.__init__(self, original_size, resized_size)
-        UtilsCrops.__init__(self)
         ProbeFineTipDetector.__init__(self)
         self.img_fname = None
         self.diff_img = None
@@ -196,9 +194,8 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
         ret = False
         crop_size = self.crop_init
-        crop_utils = UtilsCrops()
         while (ret is False) and (crop_size <= max(self.IMG_SIZE[0], self.IMG_SIZE[1])):
-            self.top, self.bottom, self.left, self.right = crop_utils.calculate_crop_region(
+            self.top, self.bottom, self.left, self.right = UtilsCrops.calculate_crop_region(
                 self.ProbeDetector.probe_tip,
                 self.ProbeDetector.probe_base,
                 crop_size,
@@ -219,7 +216,7 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
             )
 
             # cv2.rectangle(diff_img_, (left, top), (right, bottom), (155, 155, 0), 5)  # Green rectangle
-            if ret and crop_utils.is_point_on_crop_region(
+            if ret and UtilsCrops.is_point_on_crop_region(
                 self.ProbeDetector.probe_tip, self.top, self.bottom, self.left, self.right, buffer=5
             ):
                 ret = False
@@ -245,15 +242,13 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
 
             crop_size += 100
 
-        del crop_utils  # Garbage Collect
         return ret
     
     def get_crop_region_boundary(self):
         """Get the boundary of the crop region."""
-        coords_utils = UtilsCoords(self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
         if self.top is not None:
-            top_left  = coords_utils.scale_coords_to_original((self.left, self.top))
-            bottom_right = coords_utils.scale_coords_to_original((self.right, self.bottom))
+            top_left  = UtilsCoords.scale_coords_to_original((self.left, self.top), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            bottom_right = UtilsCoords.scale_coords_to_original((self.right, self.bottom), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             left, top = top_left
             right, bottom = bottom_right
             return top, bottom, left, right
@@ -272,13 +267,13 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
         Returns:
             bool: True if precise tip is found, False otherwise.
         """
-        coords_utils = UtilsCoords(self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
         probe_fine_tip = ProbeFineTipDetector()
         crop_utils = UtilsCrops()
         ret = False
 
-        probe_tip_original_coords = coords_utils.scale_coords_to_original(
-            self.ProbeDetector.probe_tip
+        probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
+            self.ProbeDetector.probe_tip, 
+            self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = crop_utils.calculate_crop_region(
             probe_tip_original_coords,
@@ -299,7 +294,6 @@ class CurrBgCmpProcessor(UtilsCoords, UtilsCrops, ProbeFineTipDetector):
             self.ProbeDetector.probe_tip_org = probe_fine_tip.tip
 
         del probe_fine_tip  # Garbage Collect
-        del coords_utils
         del crop_utils
 
         return ret
