@@ -43,7 +43,7 @@ class ProbeDetectManager(QObject):
             """Initialize Worker object"""
             QObject.__init__(self)
             self.model = model
-            self.name = name
+            self.name = name # Camera serial number
             self.running = False
             self.is_detection_on = False
             self.is_calib = False
@@ -138,9 +138,8 @@ class ProbeDetectManager(QObject):
                 self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
 
             if self.prev_img is not None:
-                if (
-                    self.probeDetect.angle is None
-                ):  # Detecting probe for the first time
+                if self.probeDetect.angle is None:
+                    # Detecting probe for the first time
                     ret = self.currPrevCmpProcess.first_cmp(
                         self.curr_img, self.prev_img, mask, gray_img
                     )
@@ -163,6 +162,7 @@ class ProbeDetectManager(QObject):
                         ret = self.currBgCmpProcess.update_cmp(
                             self.curr_img, mask, gray_img
                         )
+                    logger.debug(f"cam:{self.name}, ret: {ret}, stopped: {self.is_calib}")
                     if ret:  # Found
                         if self.is_calib: # If calibaration is enable, use data for calibration
                             self.found_coords.emit(
@@ -181,7 +181,7 @@ class ProbeDetectManager(QObject):
                                 (255, 0, 0),
                                 -1,
                             )
-                        else: # Otherwise, just draw a tip on the frame
+                        else: # Otherwise, just draw a tip on the frame (yellow)
                             cv2.circle(
                                 frame,
                                 self.probeDetect.probe_tip_org,
@@ -190,9 +190,10 @@ class ProbeDetectManager(QObject):
                                 -1,
                             )
                         self.prev_img = self.curr_img
-                        logger.debug(f"{self.name} Found")
-                    else: 
-                        logger.debug(f"{self.name} Not found")
+                        #logger.debug(f"{self.name} Found")
+                    else:
+                        #logger.debug(f"{self.name} Not found")
+                        pass 
             else:
                 self.prev_img = self.curr_img
 

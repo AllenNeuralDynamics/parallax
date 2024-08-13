@@ -772,3 +772,7 @@ class MainWindow(QMainWindow):
         width = self.width()
         height = self.height()
         self.user_setting.save_user_configs(nColumn, directory, width, height)
+
+    def closeEvent(self, event):
+        self.model.close_all_point_meshes()
+        event.accept()

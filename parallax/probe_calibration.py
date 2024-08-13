@@ -13,10 +13,11 @@ import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from .coords_transformation import RotationTransformation
 from .bundle_adjustment import BALProblem, BALOptimizer
+from .point_mesh import PointMesh
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -38,7 +39,6 @@ class ProbeCalibration(QObject):
     calib_complete_x = pyqtSignal(str)
     calib_complete_y = pyqtSignal(str)
     calib_complete_z = pyqtSignal(str)
-    #calib_complete = pyqtSignal(str, object)
     calib_complete = pyqtSignal(str, object, np.ndarray)
     transM_info = pyqtSignal(str, object, np.ndarray, float, object)
 
@@ -54,14 +54,15 @@ class ProbeCalibration(QObject):
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
         self.stages = {}
+        self.point_mesh = {}
         self.df = None
         self.inliers = []
         self.stage = None
-        
         """
         self.threshold_min_max = 250 
-        self.threshold_min_max_z = 200
+        self.threshold_min_max_z = 0
         self.LR_err_L2_threshold = 200
+        self.threshold_avg_error = 500
         self.threshold_matrix = np.array(
             [
                 [0.002, 0.002, 0.002, 0.0], 
@@ -105,7 +106,8 @@ class ProbeCalibration(QObject):
             'max_z': float("-inf"),
             'signal_emitted_x': False,
             'signal_emitted_y': False,
-            'signal_emitted_z': False
+            'signal_emitted_z': False,
+            'calib_completed': False
         }
         else:
             self.stages = {}
@@ -265,7 +267,8 @@ class ProbeCalibration(QObject):
         local_points, global_points = self._get_local_global_points(df)
         
         if remove_noise:
-            if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
+            #if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
+            if self._is_criteria_met_points_min_max() \
                     and self.R is not None and self.origin is not None: 
                 local_points, global_points, valid_indices = self._remove_outliers(local_points, global_points)
 
@@ -362,7 +365,9 @@ class ProbeCalibration(QObject):
             self.stages[sn] = {
                 'min_x': float("inf"), 'max_x': float("-inf"),
                 'min_y': float("inf"), 'max_y': float("-inf"),
-                'min_z': float("inf"), 'max_z': float("-inf")
+                'min_z': float("inf"), 'max_z': float("-inf"), 
+                'signal_emitted_x': False, 'signal_emitted_y': False,
+                'signal_emitted_z': False, 'calib_completed': False 
             }
 
         self.stages[sn]['min_x'] = min(self.stages[sn]['min_x'], self.stage.stage_x)
@@ -582,7 +587,6 @@ class ProbeCalibration(QObject):
         print(f" [{S[0]:.5f}, {S[1]:.5f}, {S[2]:.5f}]")
         print("==> Average L2 between stage and global: ", self.avg_err)
 
-
     def update(self, stage, debug_info=None):
         """
         Main method to update calibration with a new stage position and check if calibration is complete.
@@ -593,11 +597,6 @@ class ProbeCalibration(QObject):
         # update points in the file
         self.stage = stage
         self._update_local_global_point(debug_info) # Do no update if it is duplicates
-        
-        # TODO
-        # get whole list of local and global points in pd format
-        #local_points, global_points = self._get_local_global_points()
-        #self.transM_LR = self._get_transM_LR_orthogonal(local_points, global_points) #remove outliers
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
         self.transM_LR = self._get_transM(filtered_df)
@@ -610,35 +609,57 @@ class ProbeCalibration(QObject):
         self._update_info_ui() # update transformation matrix and overall LR in UI
         ret = self._is_enough_points() # if ret, send the signal
         if ret:
-            # save the filtered points to a new file
-            self.file_name = f"points_{self.stage.sn}.csv"
-            self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name) 
+            self.complete_calibration(filtered_df)
+            
+    def complete_calibration(self, filtered_df):
+        # save the filtered points to a new file
+        self.file_name = f"points_{self.stage.sn}.csv"
+        self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name) 
 
-            # TODO - Bundle Adjustment
-            print("\n\n=========================================================")
-            print("Before BA")
-            self._print_formatted_transM()
-            print("=========================================================")
-            self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
-                                 file_name = f"transM_{self.stage.sn}.csv")
+        print("\n\n=========================================================")
+        self._print_formatted_transM()
+        print("=========================================================")
+        self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
+                             file_name = f"transM_{self.stage.sn}.csv")
 
-            if self.model.bundle_adjustment:    
-                ret = self.run_bundle_adjustment(self.file_name)
-                if ret:
-                    print("\n=========================================================")
-                    print("After BA")
-                    self._print_formatted_transM()
-                    print("=========================================================")
-                    self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
-                                file_name = f"transM_BA_{self.stage.sn}.csv") 
-                else:
-                    return
+        if self.model.bundle_adjustment:    
+            self.old_transM, self.old_scale = self.transM_LR, self.scale
+            ret = self.run_bundle_adjustment(self.file_name)
+            if ret:
+                print("\n=========================================================")
+                print("** After Bundle Adjustment **")
+                self._print_formatted_transM()
+                print("=========================================================")
+                self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
+                            file_name = f"transM_BA_{self.stage.sn}.csv") 
+            else:
+                return
+        
+        # Emit the signal to indicate that calibration is complete         
+        self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
+        logger.debug(
+            f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
+        )
 
-            # Emit the signal to indicate that calibration is complete                
-            self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
-            logger.debug(
-                f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
-            )
+        # Init PointMesh
+        if not self.model.bundle_adjustment:
+            self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn, \
+                            self.transM_LR, self.scale, calib_completed=True)
+        else:
+            self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn, \
+                            self.old_transM, self.old_scale, \
+                            self.transM_LR, self.scale, calib_completed=True)
+        self.stages[self.stage.sn]['calib_completed'] = True
+
+    def view_3d_trajectory(self, sn):
+        if not self.stages.get(sn, {}).get('calib_completed', False):
+            if sn == self.stage.sn:
+                self.point_mesh_not_calibrated = PointMesh(self.model, self.csv_file, self.stage.sn, \
+                        self.transM_LR, self.scale)
+                self.point_mesh_not_calibrated.show()
+        else:
+            # If calib is completed, show the PointMesh instance.
+            self.point_mesh[sn].show()
 
     def run_bundle_adjustment(self, file_path):
         bal_problem = BALProblem(self.model, file_path)
@@ -651,19 +672,6 @@ class ProbeCalibration(QObject):
         if self.transM_LR is None:
             return False
     
-        """
-        # Save local_pts and optimzied global pts in file_path
-                # Save local_pts and optimized global pts in file_path
-        df = pd.DataFrame({
-            'local_x': local_pts[:, 0],
-            'local_y': local_pts[:, 1],
-            'local_z': local_pts[:, 2],
-            'global_x': opt_global_pts[:, 0],
-            'global_y': opt_global_pts[:, 1],
-            'opt_global_z': opt_global_pts[:, 2]
-        })
-        df.to_csv(file_path, index=False)"""
-
         logger.debug(f"Number of observations: {len(bal_problem.observations)}")
         logger.debug(f"Number of 3d points: {len(bal_problem.points)}")
         for i in range(len(bal_problem.list_cameras)):

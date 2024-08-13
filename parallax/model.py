@@ -3,7 +3,6 @@ The Model class is the core component for managing cameras, stages, and calibrat
 """
 
 from PyQt5.QtCore import QObject, pyqtSignal
-
 from .camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from .stage_listener import Stage, StageInfo
 
@@ -25,6 +24,9 @@ class Model(QObject):
         self.nPySpinCameras = 0
         self.nMockCameras = 0
         self.focos = []
+
+        # point mesh
+        self.point_mesh_instances = {}
 
         # stage
         self.nStages = 0
@@ -199,3 +201,14 @@ class Model(QObject):
                 filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
                 camera.save_last_image(filename)
                 self.msg_log.post("Saved camera frame: %s" % filename)
+
+    def add_point_mesh_instance(self, instance):
+        sn = instance.sn
+        if sn in self.point_mesh_instances.keys():
+            self.point_mesh_instances[sn].close()
+        self.point_mesh_instances[sn] = instance
+
+    def close_all_point_meshes(self):
+        for instance in self.point_mesh_instances.values():
+            instance.close()
+        self.point_mesh_instances.clear()
