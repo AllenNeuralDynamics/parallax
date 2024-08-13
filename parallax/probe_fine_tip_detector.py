@@ -124,8 +124,12 @@ class ProbeFineTipDetector:
         return tip
 
     @classmethod
-    def get_precise_tip(cls, img, tip, offset_x=0, offset_y=0, direction="S", img_fname=None):
+    def get_precise_tip(cls, img, tip, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
         """Get the precise tip coordinates from the image."""
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_dir, f"{cam_name}.jpg")
+            cv2.imwrite(save_path, img)
+
         img = cls._preprocess_image(img)
         if not cls._is_valid(img):
             logger.debug("Boundary check failed.")

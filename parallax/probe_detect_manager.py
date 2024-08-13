@@ -73,10 +73,10 @@ class ProbeDetectManager(QObject):
                 self.sn = sn
                 self.probeDetect = ProbeDetector(self.sn, self.IMG_SIZE)
                 self.currPrevCmpProcess = CurrPrevCmpProcessor(
-                    self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                    self.name, self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
                 )
                 self.currBgCmpProcess = CurrBgCmpProcessor(
-                    self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                    self.name, self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
                 )
                 self.probes[self.sn] = {
                     "probeDetector": self.probeDetect,
@@ -164,7 +164,7 @@ class ProbeDetectManager(QObject):
                     if (ret_crop and ret_tip):  # Found
                         is_curr_prev_comp = False if (ret_crop and ret_tip) else False
                         if self.is_calib: # If calibaration is enabled (stopped), use data for calibration
-                            self.found_coords.emit( timestamp, self.sn, self.probeDetect.probe_tip_org)
+                            self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
                             # Draw the tip on the frame (red)
                             cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0),-1,)
 
@@ -265,8 +265,8 @@ class ProbeDetectManager(QObject):
                     )
 
             else: # Not first detection
-                logger.debug(f"cam:{self.name}, ret_crop:{ret_crop} ret_tip:{ret_tip}, stopped: {self.is_calib}")
-                logger.debug(f"---------------------------------")
+                #logger.debug(f"cam:{self.name}, ret_crop:{ret_crop} ret_tip:{ret_tip}, stopped: {self.is_calib}")
+                #logger.debug(f"---------------------------------")
 
                 # Draw the boundary rectangles
                 if is_curr_prev_comp:
@@ -287,7 +287,7 @@ class ProbeDetectManager(QObject):
                 # Draw the rectangles if boundaries are valid
                 if top is not None:
                     cv2.rectangle(frame, (left, top), (right, bottom), color_crop, 2)
-                if top_f is not None:
+                if ret_tip and top_f is not None:
                     cv2.rectangle(frame, (left_f, top_f), (right_f, bottom_f), color_tip, 2)
 
                 # Draw lines from tip and base points
@@ -298,7 +298,6 @@ class ProbeDetectManager(QObject):
                 elif ret_crop and not is_curr_prev_comp:
                     tip = self.currBgCmpProcess.get_point_tip()
                     base = self.currBgCmpProcess.get_point_base()
-
                 if tip is not None and base is not None:
                     cv2.line(frame, tip, base, color_crop, 2)
 

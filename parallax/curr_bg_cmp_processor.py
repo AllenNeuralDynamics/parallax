@@ -38,7 +38,7 @@ class CurrBgCmpProcessor():
     """Finding diff image using Current and Background Comparison"""
 
     def __init__(
-        self, ProbeDetector, original_size, resized_size, reticle_zone=None
+        self, cam_name, ProbeDetector, original_size, resized_size, reticle_zone=None
     ):
         """
         Initialize the CurrBgCmpProcessor.
@@ -49,7 +49,7 @@ class CurrBgCmpProcessor():
             resized_size (tuple): The resized size of the image (height, width).
             reticle_zone (numpy.ndarray, optional): The reticle zone image. Defaults to None.
         """
-        self.img_fname = None
+        self.cam_name = cam_name
         self.diff_img = None
         self.diff_img_crop = None
         self.curr = None
@@ -74,21 +74,19 @@ class CurrBgCmpProcessor():
         """
         self.reticle_zone = reticle_zone
 
-    def first_cmp(self, curr_img, mask, org_img, img_fname=None):
+    def first_cmp(self, curr_img, mask, org_img):
         """Perform first comparison
 
         Args:
             curr_img (numpy.ndarray): Current image.
             mask (numpy.ndarray): Mask image.
             org_img (numpy.ndarray): Original image.
-            img_fname (str, optional): Image filename. Defaults to None.
 
         Returns:
             bool: True if probe is detected, False otherwise.
         """
         logger.debug("CurrBgCmpProcessor::first_cmp")
         ret, ret_precise_tip = False, False
-        self.img_fname = img_fname
         self.mask = mask
         self.curr_img = curr_img
         self.curr_img = self._get_binary(self.curr_img)
@@ -105,20 +103,18 @@ class CurrBgCmpProcessor():
 
         return ret, ret_precise_tip
 
-    def update_cmp(self, curr_img, mask, org_img, img_fname=None):
+    def update_cmp(self, curr_img, mask, org_img):
         """Update the comparison.
 
         Args:
             curr_img (numpy.ndarray): Current image.
             mask (numpy.ndarray): Mask image.
             org_img (numpy.ndarray): Original image.
-            img_fname (str, optional): Image filename. Defaults to None.
 
         Returns:
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
         ret, ret_precise_tip_ret = False, False
-        self.img_fname = img_fname
         self.mask = mask
         self.curr_img = curr_img
         self.curr_img = self._get_binary(self.curr_img)
@@ -206,7 +202,6 @@ class CurrBgCmpProcessor():
                 maxLineGap=0,
                 offset_x=self.left,
                 offset_y=self.top,
-                img_fname=self.img_fname,
             )
 
             # cv2.rectangle(diff_img_, (left, top), (right, bottom), (155, 155, 0), 5)  # Green rectangle
@@ -281,6 +276,7 @@ class CurrBgCmpProcessor():
             crop_size=20,
             IMG_SIZE=self.IMG_SIZE_ORIGINAL,
         )
+        
         self.tip_image = org_img[self.top_fine:self.bottom_fine, self.left_fine:self.right_fine]
         ret, tip = ProbeFineTipDetector.get_precise_tip(
             self.tip_image,
@@ -288,7 +284,7 @@ class CurrBgCmpProcessor():
             offset_x=self.left_fine,
             offset_y=self.top_fine,
             direction=self.ProbeDetector.probe_tip_direction,
-            img_fname=self.img_fname,
+            cam_name=self.cam_name
         )
         if ret:
             self.ProbeDetector.probe_tip_org = tip
