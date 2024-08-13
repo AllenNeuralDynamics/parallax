@@ -32,7 +32,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 
-class CurrPrevCmpProcessor(ProbeFineTipDetector):
+class CurrPrevCmpProcessor():
     """Finding diff image using Current Previous Comparison"""
 
     def __init__(self, ProbeDetector, original_size, resized_size):
@@ -44,7 +44,6 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
             original_size (tuple): The original size of the image (height, width).
             resized_size (tuple): The resized size of the image (height, width).
         """
-        ProbeFineTipDetector.__init__(self)
         self.img_fname = None
         self.diff_img = None
         self.mask = None
@@ -178,7 +177,6 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
         Returns:
             bool: True if precise tip is found, False otherwise.
         """
-        probe_fine_tip = ProbeFineTipDetector()
         ret = False
 
         probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
@@ -192,7 +190,7 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
             IMG_SIZE=self.IMG_SIZE_ORIGINAL,
         )
         self.tip_image = org_img[self.top_fine:self.bottom_fine, self.left_fine:self.right_fine]
-        ret = probe_fine_tip.get_precise_tip(
+        ret, tip = ProbeFineTipDetector.get_precise_tip(
             self.tip_image,
             probe_tip_original_coords,
             offset_x=self.left_fine,
@@ -201,9 +199,7 @@ class CurrPrevCmpProcessor(ProbeFineTipDetector):
             img_fname=self.img_fname,
         )
         if ret:
-            self.ProbeDetector.probe_tip_org = probe_fine_tip.tip
-
-        del probe_fine_tip  # Garbage Collect
+            self.ProbeDetector.probe_tip_org = tip
 
         return ret
 

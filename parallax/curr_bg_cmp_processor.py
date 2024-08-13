@@ -34,7 +34,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 
-class CurrBgCmpProcessor(ProbeFineTipDetector):
+class CurrBgCmpProcessor():
     """Finding diff image using Current and Background Comparison"""
 
     def __init__(
@@ -49,7 +49,6 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
             resized_size (tuple): The resized size of the image (height, width).
             reticle_zone (numpy.ndarray, optional): The reticle zone image. Defaults to None.
         """
-        ProbeFineTipDetector.__init__(self)
         self.img_fname = None
         self.diff_img = None
         self.diff_img_crop = None
@@ -270,11 +269,10 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
         Returns:
             bool: True if precise tip is found, False otherwise.
         """
-        probe_fine_tip = ProbeFineTipDetector()
         ret = False
 
         probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
-            self.ProbeDetector.probe_tip, 
+            self.ProbeDetector.probe_tip,
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = UtilsCrops.calculate_crop_region(
@@ -284,7 +282,7 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
             IMG_SIZE=self.IMG_SIZE_ORIGINAL,
         )
         self.tip_image = org_img[self.top_fine:self.bottom_fine, self.left_fine:self.right_fine]
-        ret = probe_fine_tip.get_precise_tip(
+        ret, tip = ProbeFineTipDetector.get_precise_tip(
             self.tip_image,
             probe_tip_original_coords,
             offset_x=self.left_fine,
@@ -293,10 +291,7 @@ class CurrBgCmpProcessor(ProbeFineTipDetector):
             img_fname=self.img_fname,
         )
         if ret:
-            self.ProbeDetector.probe_tip_org = probe_fine_tip.tip
-
-        del probe_fine_tip  # Garbage Collect
-
+            self.ProbeDetector.probe_tip_org = tip
         return ret
 
     def get_fine_tip_boundary(self):
