@@ -85,11 +85,11 @@ class RotationTransformation:
             raise ValueError("At least two points are required for optimization.")
         
         # Optimize without reflection
-        res1 = leastsq(self.func, x0, args=(measured_pts, global_pts, False))
+        res1 = leastsq(self.func, x0, args=(measured_pts, global_pts, False), maxfev=5000)
         avg_error1 = self.avg_error(res1[0], measured_pts, global_pts, False)
 
         # Optimize with reflection
-        res2 = leastsq(self.func, x0, args=(measured_pts, global_pts, True))
+        res2 = leastsq(self.func, x0, args=(measured_pts, global_pts, True), maxfev=5000)
         avg_error2 = self.avg_error(res2[0], measured_pts, global_pts, True)
 
         # Select the transformation with the smaller total error
