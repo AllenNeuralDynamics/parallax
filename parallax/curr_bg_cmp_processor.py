@@ -125,12 +125,13 @@ class CurrBgCmpProcessor():
         ret = self._update_crop()
         if ret:
             ret_precise_tip_ret = self._get_precise_tip(org_img)
-            self._update_bg()
+            # TODO update tip to precise tip
+            self._update_bg( extended_offset = 10)
 
         logger.debug(f"update: {ret}, precise_tip: {ret_precise_tip_ret}")
         return ret, ret_precise_tip_ret
 
-    def _update_bg(self):
+    def _update_bg(self, extended_offset = 10):
         """Update the background image."""
         kernel = np.ones((3, 3), np.uint8)
         self.diff_img_crop = cv2.dilate(
@@ -153,23 +154,23 @@ class CurrBgCmpProcessor():
         diff_img = np.zeros_like(self.diff_img)
 
         # Calculate the direction and extend the line between probe tip and base
-        offset = 10
         tip_direction = np.array(self.ProbeDetector.probe_tip) - np.array(
             self.ProbeDetector.probe_base
         )
         tip_direction_normalized = tip_direction / np.linalg.norm(tip_direction)
         extended_probe_tip = tuple(
             np.array(self.ProbeDetector.probe_tip)
-            + (offset * tip_direction_normalized).astype(int)
+            + (extended_offset * tip_direction_normalized).astype(int)
         )
         extended_probe_base = tuple(
             np.array(self.ProbeDetector.probe_base)
-            - (offset * tip_direction_normalized).astype(int)
+            - (extended_offset * tip_direction_normalized).astype(int)
         )
 
         # Draw the extended line
         cv2.line(
-            diff_img, extended_probe_tip, extended_probe_base, 255, thickness=5
+            #diff_img, extended_probe_tip, extended_probe_base, 255, thickness=5
+            diff_img, extended_probe_tip, extended_probe_base, 255, thickness=10
         )
 
         # Combine the processed image with the current image to extract the background
@@ -286,8 +287,15 @@ class CurrBgCmpProcessor():
             direction=self.ProbeDetector.probe_tip_direction,
             cam_name=self.cam_name
         )
+
         if ret:
             self.ProbeDetector.probe_tip_org = tip
+            tip = UtilsCoords.scale_coords_to_resized_img(
+                self.ProbeDetector.probe_tip_org,
+                self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            )
+            self.ProbeDetector.probe_tip = tip
+
         return ret
 
     def get_fine_tip_boundary(self):

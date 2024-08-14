@@ -32,7 +32,31 @@ class UtilsCoords:
         original_x = int(x * scale_x)
         original_y = int(y * scale_y)
 
-        return original_x, original_y
+        return (original_x, original_y)
+    
+    @classmethod
+    def scale_coords_to_resized_img(self, tip, original_size, resized_size):
+        """Scale coordinates from original image to resized image.
+
+        Args:
+            tip (tuple): Coordinates of the tip (x, y) in the original image.
+            original_size (tuple): Original size of the image (width, height).
+            resized_size (tuple): Resized size of the image (width, height).
+
+        Returns:
+            tuple: Scaled coordinates of the tip (x, y) in the resized image.
+        """
+        x, y = tip
+        original_width, original_height = original_size
+        resized_width, resized_height = resized_size
+
+        scale_x = resized_width / original_width
+        scale_y = resized_height / original_height
+
+        resized_x = int(x * scale_x)
+        resized_y = int(y * scale_y)
+
+        return (resized_x, resized_y)
 
 
 class UtilsCrops:
