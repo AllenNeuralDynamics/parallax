@@ -289,7 +289,7 @@ class ProbeDetectManager(QObject):
                 # Draw the rectangles if boundaries are valid
                 if top is not None:
                     cv2.rectangle(frame, (left, top), (right, bottom), color_crop, 2)
-                if ret_tip and top_f is not None:
+                if top_f is not None:
                     cv2.rectangle(frame, (left_f, top_f), (right_f, bottom_f), color_tip, 2)
 
                 # Draw lines from tip and base points
@@ -297,7 +297,7 @@ class ProbeDetectManager(QObject):
                 if ret_crop and is_curr_prev_comp:
                     tip = self.currPrevCmpProcess.get_point_tip()
                     base = self.currPrevCmpProcess.get_point_base()
-                elif ret_crop and is_curr_bg_comp:
+                elif ret_crop:
                     tip = self.currBgCmpProcess.get_point_tip()
                     base = self.currBgCmpProcess.get_point_base()
                 if tip is not None and base is not None:

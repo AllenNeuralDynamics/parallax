@@ -105,9 +105,6 @@ class CurrPrevCmpProcessor():
         self.mask = mask
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
         ret = self._apply_threshold()
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_dir, f"{self.cam_name}_currPrevCmp_diff.jpg")
-            cv2.imwrite(save_path, self.diff_img)
         if not ret:
             return ret, ret_precise_tip
         
@@ -219,10 +216,11 @@ class CurrPrevCmpProcessor():
             )
             self.ProbeDetector.probe_tip = tip
 
+        """
         if logger.getEffectiveLevel() == logging.DEBUG:
             save_path = os.path.join(debug_dir, f"{self.cam_name}_tip_currPrevCmp.jpg")
             cv2.imwrite(save_path, self.tip_image)
-
+        """
         return ret
 
     def get_fine_tip_boundary(self):

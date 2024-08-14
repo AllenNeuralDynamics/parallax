@@ -18,7 +18,7 @@ Usage:
 """
 
 import logging
-
+import os
 import cv2
 import numpy as np
 
@@ -33,6 +33,10 @@ logger.setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+if logger.getEffectiveLevel() == logging.DEBUG:
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
+    os.makedirs(debug_dir, exist_ok=True)
 
 class CurrBgCmpProcessor():
     """Finding diff image using Current and Background Comparison"""
@@ -125,10 +129,17 @@ class CurrBgCmpProcessor():
         ret = self._update_crop()
         if ret:
             ret_precise_tip_ret = self._get_precise_tip(org_img)
-            # TODO update tip to precise tip
-            self._update_bg( extended_offset = 10)
+            if ret_precise_tip_ret:
+                self._update_bg(extended_offset = 10)
 
         logger.debug(f"update: {ret}, precise_tip: {ret_precise_tip_ret}")
+
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_dir, f"{self.cam_name}_currBgCmp_bg.jpg")
+            cv2.imwrite(save_path, self.bg)
+            save_path = os.path.join(debug_dir, f"{self.cam_name}_currBgCmp_diff.jpg")
+            cv2.imwrite(save_path, self.diff_img)
+
         return ret, ret_precise_tip_ret
 
     def _update_bg(self, extended_offset = 10):
@@ -290,6 +301,7 @@ class CurrBgCmpProcessor():
 
         if ret:
             self.ProbeDetector.probe_tip_org = tip
+            # register probe_tip to fine tip
             tip = UtilsCoords.scale_coords_to_resized_img(
                 self.ProbeDetector.probe_tip_org,
                 self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
