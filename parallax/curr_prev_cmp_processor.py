@@ -27,10 +27,15 @@ from .utils import UtilsCoords, UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+if logger.getEffectiveLevel() == logging.DEBUG:
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
+    os.makedirs(debug_dir, exist_ok=True)
 
 class CurrPrevCmpProcessor():
     """Finding diff image using Current Previous Comparison"""
@@ -99,8 +104,13 @@ class CurrPrevCmpProcessor():
         ret, ret_precise_tip = False, False
         self.mask = mask
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
-        if not self._apply_threshold():
-            return False, ret_precise_tip
+        ret = self._apply_threshold()
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_dir, f"{self.cam_name}_currPrevCmp_diff.jpg")
+            cv2.imwrite(save_path, self.diff_img)
+        if not ret:
+            return ret, ret_precise_tip
+        
         ret = self._update_crop()
         if ret:
             logger.debug("CurrPrevCmpProcessor Update::detect")
@@ -161,7 +171,14 @@ class CurrPrevCmpProcessor():
 
     def get_crop_region_boundary(self):
         """Get the boundary of the crop region."""
-        return self.top, self.bottom, self.left, self.right
+        if self.top is not None:
+            top_left  = UtilsCoords.scale_coords_to_original((self.left, self.top), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            bottom_right = UtilsCoords.scale_coords_to_original((self.right, self.bottom), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            left, top = top_left
+            right, bottom = bottom_right
+            return top, bottom, left, right
+        else:
+            return None, None, None, None
 
     def _get_precise_tip(self, org_img):
         """Get precise probe tip using original image
@@ -193,8 +210,18 @@ class CurrPrevCmpProcessor():
             direction=self.ProbeDetector.probe_tip_direction,
             cam_name=self.cam_name
         )
+        
         if ret:
             self.ProbeDetector.probe_tip_org = tip
+            tip = UtilsCoords.scale_coords_to_resized_img(
+                self.ProbeDetector.probe_tip_org,
+                self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            )
+            self.ProbeDetector.probe_tip = tip
+
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_dir, f"{self.cam_name}_tip_currPrevCmp.jpg")
+            cv2.imwrite(save_path, self.tip_image)
 
         return ret
 

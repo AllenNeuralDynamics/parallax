@@ -13,7 +13,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 if logger.getEffectiveLevel() == logging.DEBUG:
     package_dir = os.path.dirname(os.path.abspath(__file__))
-    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_fine_tip_detector")
+    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
     os.makedirs(debug_dir, exist_ok=True)
 
 class ProbeFineTipDetector:
@@ -127,7 +127,7 @@ class ProbeFineTipDetector:
     def get_precise_tip(cls, img, tip, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
         """Get the precise tip coordinates from the image."""
         if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_dir, f"{cam_name}.jpg")
+            save_path = os.path.join(debug_dir, f"{cam_name}_tip.jpg")
             cv2.imwrite(save_path, img)
 
         img = cls._preprocess_image(img)

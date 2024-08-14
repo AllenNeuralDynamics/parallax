@@ -139,7 +139,7 @@ class ProbeDetectManager(QObject):
                 self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
 
             if self.prev_img is not None:
-                is_curr_prev_comp = None
+                is_curr_prev_comp, is_curr_bg_comp = False, False
                 if self.probeDetect.angle is None:
                     is_first_detect = True
                     # Detecting probe for the first time
@@ -156,13 +156,13 @@ class ProbeDetectManager(QObject):
                         self.curr_img, self.prev_img, mask, gray_img
                     )
                     is_curr_prev_comp = True if (ret_crop and ret_tip) else False
-                    if (ret_crop and ret_tip) is False:
+                    if is_curr_prev_comp is False:
                         ret_crop, ret_tip = self.currBgCmpProcess.update_cmp(
                             self.curr_img, mask, gray_img
                         )
-
-                    if (ret_crop and ret_tip):  # Found
-                        is_curr_prev_comp = False if (ret_crop and ret_tip) else False
+                        is_curr_bg_comp = True if (ret_crop and ret_tip) else False
+                            
+                    if is_curr_prev_comp or is_curr_bg_comp:
                         if self.is_calib: # If calibaration is enabled (stopped), use data for calibration
                             self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
                             # Draw the tip on the frame (red)
@@ -174,7 +174,7 @@ class ProbeDetectManager(QObject):
                     else:
                         pass
                 if logger.getEffectiveLevel() == logging.DEBUG:
-                    frame = self.debug_draw_boundary(frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp)
+                    frame = self.debug_draw_boundary(frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp, is_curr_bg_comp)
             else:
                 self.prev_img = self.curr_img
 
@@ -241,7 +241,7 @@ class ProbeDetectManager(QObject):
             self.name = name
             self.reticle_coords = self.model.get_coords_axis(self.name)
 
-        def debug_draw_boundary(self, frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp):
+        def debug_draw_boundary(self, frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp, is_curr_bg_comp):
             # Display text on the frame
             if is_first_detect:
                 text = "first detection"
@@ -268,6 +268,8 @@ class ProbeDetectManager(QObject):
                 #logger.debug(f"cam:{self.name}, ret_crop:{ret_crop} ret_tip:{ret_tip}, stopped: {self.is_calib}")
                 #logger.debug(f"---------------------------------")
 
+                top, bottom, left, right = None, None, None, None
+                top_f, bottom_f, left_f, right_f = None, None, None, None
                 # Draw the boundary rectangles
                 if is_curr_prev_comp:
                     top, bottom, left, right = self.currPrevCmpProcess.get_crop_region_boundary()
@@ -295,7 +297,7 @@ class ProbeDetectManager(QObject):
                 if ret_crop and is_curr_prev_comp:
                     tip = self.currPrevCmpProcess.get_point_tip()
                     base = self.currPrevCmpProcess.get_point_base()
-                elif ret_crop and not is_curr_prev_comp:
+                elif ret_crop and is_curr_bg_comp:
                     tip = self.currBgCmpProcess.get_point_tip()
                     base = self.currBgCmpProcess.get_point_base()
                 if tip is not None and base is not None:

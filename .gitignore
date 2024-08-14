@@ -16,7 +16,7 @@ gitkey.pub
 *.egg-info
 build/
 debug/
-debug_fine_tip_detector/
+debug_images/
 wheels/
 lib/
 dist/
