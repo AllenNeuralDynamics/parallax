@@ -652,6 +652,9 @@ class ProbeCalibration(QObject):
         self.stages[self.stage.sn]['calib_completed'] = True
 
     def view_3d_trajectory(self, sn):
+        if self.transM_LR is None:
+            print("Calibration is not completed yet.")
+            return
         if not self.stages.get(sn, {}).get('calib_completed', False):
             if sn == self.stage.sn:
                 self.point_mesh_not_calibrated = PointMesh(self.model, self.csv_file, self.stage.sn, \
