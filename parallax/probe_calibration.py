@@ -72,7 +72,7 @@ class ProbeCalibration(QObject):
             ]
         )
         """
-        self.threshold_min_max = 3000
+        self.threshold_min_max = 2000
         self.threshold_min_max_z = 2000
         self.LR_err_L2_threshold = 20
         self.threshold_avg_error = 50 #TODO
@@ -160,7 +160,6 @@ class ProbeCalibration(QObject):
             self.df.to_csv(self.csv_file, index=False)
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.scale = np.array([1, 1, 1])
-
 
     def _remove_duplicates(self, df):
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
