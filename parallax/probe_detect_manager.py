@@ -62,8 +62,6 @@ class ProbeDetectManager(QObject):
             self.CROP_INIT = 50
             self.mask_detect = MaskGenerator()
 
-
-            # Test
             self.probe_stopped = False
             self.is_curr_prev_comp, self.is_curr_bg_comp = False, False
 

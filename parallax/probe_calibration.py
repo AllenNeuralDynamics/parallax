@@ -73,9 +73,9 @@ class ProbeCalibration(QObject):
         )
         """
         self.threshold_min_max = 2000
-        self.threshold_min_max_z = 2000
-        self.LR_err_L2_threshold = 20
-        self.threshold_avg_error = 50 #TODO
+        self.threshold_min_max_z = 1500
+        self.LR_err_L2_threshold = 40
+        self.threshold_avg_error = 15
         self.threshold_matrix = np.array(
             [
                 [0.00002, 0.00002, 0.00002, 50.0], 
@@ -216,7 +216,7 @@ class ProbeCalibration(QObject):
 
         return l2_distance
 
-    def _remove_outliers(self, local_points, global_points):
+    def _remove_outliers(self, local_points, global_points, threshold=30):
         # Get the l2 distance
         l2_distance = self._get_l2_distance(local_points, global_points)
 
@@ -224,7 +224,7 @@ class ProbeCalibration(QObject):
         if self.model.bundle_adjustment:
             threshold = 100
         else:
-            threshold = 20
+            threshold = threshold
 
         # Filter out points where L2 distance is greater than the threshold
         valid_indices = l2_distance <= threshold
@@ -261,15 +261,15 @@ class ProbeCalibration(QObject):
 
         return transformation_matrix
 
-    def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None):
+    def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=50):
 
         local_points, global_points = self._get_local_global_points(df)
         
         if remove_noise:
-            #if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
-            if self._is_criteria_met_points_min_max() \
+            if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
                     and self.R is not None and self.origin is not None: 
-                local_points, global_points, valid_indices = self._remove_outliers(local_points, global_points)
+                local_points, global_points, valid_indices = self._remove_outliers(
+                        local_points, global_points, threshold=noise_threshold)
 
         if len(local_points) < 3 or len(global_points) < 3:
             logger.warning("Not enough points for calibration.")
@@ -613,7 +613,7 @@ class ProbeCalibration(QObject):
     def complete_calibration(self, filtered_df):
         # save the filtered points to a new file
         self.file_name = f"points_{self.stage.sn}.csv"
-        self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name) 
+        self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) 
 
         print("\n\n=========================================================")
         self._print_formatted_transM()
@@ -651,11 +651,11 @@ class ProbeCalibration(QObject):
         self.stages[self.stage.sn]['calib_completed'] = True
 
     def view_3d_trajectory(self, sn):
-        if self.transM_LR is None:
-            print("Calibration is not completed yet.")
-            return
         if not self.stages.get(sn, {}).get('calib_completed', False):
             if sn == self.stage.sn:
+                if self.transM_LR is None:
+                    print("Calibration is not completed yet.", sn)
+                    return
                 self.point_mesh_not_calibrated = PointMesh(self.model, self.csv_file, self.stage.sn, \
                         self.transM_LR, self.scale)
                 self.point_mesh_not_calibrated.show()
