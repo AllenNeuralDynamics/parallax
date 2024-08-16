@@ -74,8 +74,8 @@ class ProbeCalibration(QObject):
         """
         self.threshold_min_max = 2000
         self.threshold_min_max_z = 1500
-        self.LR_err_L2_threshold = 40
-        self.threshold_avg_error = 15
+        self.LR_err_L2_threshold = 20
+        self.threshold_avg_error = 30
         self.threshold_matrix = np.array(
             [
                 [0.00002, 0.00002, 0.00002, 50.0], 
@@ -261,7 +261,7 @@ class ProbeCalibration(QObject):
 
         return transformation_matrix
 
-    def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=50):
+    def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=40):
 
         local_points, global_points = self._get_local_global_points(df)
         
@@ -604,9 +604,9 @@ class ProbeCalibration(QObject):
         
         # Check criteria
         self.LR_err_L2_current = self._l2_error_current_point()
-        self._update_min_max_x_y_z()  # update min max x,y,z
-        self._update_info_ui() # update transformation matrix and overall LR in UI
-        ret = self._is_enough_points() # if ret, send the signal
+        self._update_min_max_x_y_z()    # update min max x,y,z
+        self._update_info_ui()          # update transformation matrix and overall LR in UI
+        ret = self._is_enough_points()  # if ret, send the signal
         if ret:
             self.complete_calibration(filtered_df)
             
