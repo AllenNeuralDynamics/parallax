@@ -19,7 +19,7 @@ from .reticle_detection import ReticleDetection
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -143,35 +143,31 @@ class ProbeDetectManager(QObject):
                 if self.probeDetect.angle is None:
                     # Detecting probe for the first time
                     is_first_detect = True
-                    ret_crop, ret_tip = self.currPrevCmpProcess.first_cmp(
+                    self.ret_crop, self.ret_tip = self.currPrevCmpProcess.first_cmp(
                         self.curr_img, self.prev_img, mask, gray_img
                     )
-                    if ret_crop is False:
-                        ret_crop, ret_tip = self.currBgCmpProcess.first_cmp(
+                    if self.ret_crop is False:
+                        self.ret_crop, self.ret_tip = self.currBgCmpProcess.first_cmp(
                             self.curr_img, mask, gray_img
                         )
                 else:  # Tracking for the known probe
                     is_first_detect = False
                     if self.is_calib and self.probe_stopped: # stage is stopped and first frame
-                        ret_crop, ret_tip = self.currPrevCmpProcess.update_cmp(
+                        self.ret_crop, self.ret_tip = self.currPrevCmpProcess.update_cmp(
                             self.curr_img, self.prev_img, mask, gray_img
                         )
-                        self.is_curr_prev_comp = True if (ret_crop and ret_tip) else False
+                        self.is_curr_prev_comp = True if (self.ret_crop and self.ret_tip) else False
                         if self.is_curr_prev_comp is False:
-                            ret_crop, ret_tip = self.currBgCmpProcess.update_cmp(
+                            self.ret_crop, self.ret_tip = self.currBgCmpProcess.update_cmp(
                                 self.curr_img, mask, gray_img
                             )
-                            self.is_curr_bg_comp = True if (ret_crop and ret_tip) else False
+                            self.is_curr_bg_comp = True if (self.ret_crop and self.ret_tip) else False
                         
                         if self.is_curr_prev_comp or self.is_curr_bg_comp: 
                             self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
                             cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0),-1,)
                             self.prev_img = self.curr_img
                             self.probe_stopped = False
-
-                        if logger.getEffectiveLevel() == logging.DEBUG:
-                            frame = self.debug_draw_boundary(frame, is_first_detect, \
-                                ret_crop, ret_tip, self.is_curr_prev_comp, self.is_curr_bg_comp)
 
                     elif self.is_calib and not self.probe_stopped: # stage is stopped and second frame
                         if self.is_curr_prev_comp or self.is_curr_bg_comp:
@@ -194,6 +190,10 @@ class ProbeDetectManager(QObject):
                         
                         if is_curr_prev_comp or is_curr_bg_comp: 
                             cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0),-1,)
+
+                    if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
+                        frame = self.debug_draw_boundary(frame, is_first_detect, \
+                            self.ret_crop, self.ret_tip, self.is_curr_prev_comp, self.is_curr_bg_comp)
             else:
                 self.prev_img = self.curr_img
 
