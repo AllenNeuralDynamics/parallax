@@ -103,6 +103,7 @@ class CurrPrevCmpProcessor():
         """
         ret, ret_precise_tip = False, False
         self.mask = mask
+        self.ProbeDetector.probe_tip_org = None
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
         ret = self._apply_threshold()
         if not ret:
@@ -154,15 +155,19 @@ class CurrPrevCmpProcessor():
 
     def get_point_tip(self):
         """Get the probe tip and base points."""
-        if self.ProbeDetector.probe_tip is not None:
-            return UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        if self.ProbeDetector.probe_tip_org is not None:
+            return self.ProbeDetector.probe_tip_org
+        elif self.ProbeDetector.probe_tip is not None:
+            tip = UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            return tip
         else:
             return None 
 
     def get_point_base(self):
         """Get the probe tip and base points."""
         if self.ProbeDetector.probe_base is not None:
-            return UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            base = UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            return base
         else:
             return None  
 

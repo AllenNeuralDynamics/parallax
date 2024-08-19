@@ -120,6 +120,7 @@ class CurrBgCmpProcessor():
         """
         ret, ret_precise_tip_ret = False, False
         self.mask = mask
+        self.ProbeDetector.probe_tip_org = None
         self.curr_img = curr_img
         self.curr_img = self._get_binary(self.curr_img)
         if self.bg is None:
@@ -241,8 +242,11 @@ class CurrBgCmpProcessor():
     
     def get_point_tip(self):
         """Get the probe tip and base points."""
-        if self.ProbeDetector.probe_tip is not None:
-            return UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        if self.ProbeDetector.probe_tip_org is not None:
+            return self.ProbeDetector.probe_tip_org
+        elif self.ProbeDetector.probe_tip is not None:
+            tip = UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            return tip
         else:
             return None 
 

@@ -28,7 +28,7 @@ class ProbeDetector:
         self.angle_step = angle_step
         self.angle = None
         self.probe_tip, self.probe_base = (0, 0), (0, 0)
-        self.probe_tip_org = (0, 0)
+        self.probe_tip_org = None
         self.probe_tip_direction = "S"
         self.gradients = []
         self.angle_step_bins, self.angle_step_bins_with_neighbor = [], []
