@@ -165,14 +165,14 @@ class ProbeDetectManager(QObject):
                         
                         if self.is_curr_prev_comp or self.is_curr_bg_comp: 
                             self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
-                            cv2.circle(frame, self.probeDetect.probe_tip_org, 2, (255, 0, 0), -1)
+                            cv2.circle(frame, self.probeDetect.probe_tip_org, 1, (255, 0, 0), -1)
                             self.prev_img = self.curr_img
                             self.probe_stopped = False
 
                     elif self.is_calib and not self.probe_stopped: # stage is stopped and second frame
                         if self.is_curr_prev_comp or self.is_curr_bg_comp:
                             self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
-                            cv2.circle(frame, self.probeDetect.probe_tip_org, 2, (255, 0, 0), -1)
+                            cv2.circle(frame, self.probeDetect.probe_tip_org, 1, (255, 0, 0), -1)
                             
                     else: # stage is moving
                         self.probe_stopped = True
@@ -189,7 +189,7 @@ class ProbeDetectManager(QObject):
                             is_curr_bg_comp = True if (ret_crop and ret_tip) else False
                         
                         if is_curr_prev_comp or is_curr_bg_comp: 
-                            cv2.circle(frame, self.probeDetect.probe_tip_org, 2, (255, 255, 0), -1)
+                            cv2.circle(frame, self.probeDetect.probe_tip_org, 1, (255, 255, 0), -1)
 
                 if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
                     frame = self.debug_draw_boundary(frame, is_first_detect, \
@@ -307,9 +307,9 @@ class ProbeDetectManager(QObject):
 
                 # Draw the rectangles if boundaries are valid
                 if top is not None:
-                    cv2.rectangle(frame, (left, top), (right, bottom), color_crop, 2)
+                    cv2.rectangle(frame, (left, top), (right, bottom), color_crop, 1)
                 if top_f is not None:
-                    cv2.rectangle(frame, (left_f, top_f), (right_f, bottom_f), color_tip, 2)
+                    cv2.rectangle(frame, (left_f, top_f), (right_f, bottom_f), color_tip, 1)
 
                 # Draw lines from tip and base points
                 tip, base = None, None
