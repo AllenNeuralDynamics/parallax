@@ -71,6 +71,7 @@ class PointMesh(QWidget):
         self.local_pts_org = self.df[['local_x', 'local_y', 'local_z']].values
         self.local_pts = self._local_to_global(self.local_pts_org, self.R[self.sn], self.T[self.sn], self.S[self.sn])
         self.points_dict['local_pts'] = self.local_pts
+        print(self.R[self.sn], self.T[self.sn], self.S[self.sn])
 
         self.global_pts = self.df[['global_x', 'global_y', 'global_z']].values
         self.points_dict['global_pts'] = self.global_pts

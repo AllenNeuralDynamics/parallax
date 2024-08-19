@@ -74,8 +74,8 @@ class ProbeCalibration(QObject):
         """
         self.threshold_min_max = 2000
         self.threshold_min_max_z = 1500
-        self.LR_err_L2_threshold = 20
-        self.threshold_avg_error = 30
+        self.LR_err_L2_threshold = 15
+        self.threshold_avg_error = 20
         self.threshold_matrix = np.array(
             [
                 [0.00002, 0.00002, 0.00002, 50.0], 
@@ -252,7 +252,7 @@ class ProbeCalibration(QObject):
                     and self.R is not None and self.origin is not None: 
                 local_points, global_points, _ = self._remove_outliers(local_points, global_points)
 
-        if len(local_points) < 3 or len(global_points) < 3:
+        if len(local_points) <= 3 or len(global_points) <= 3:
             logger.warning("Not enough points for calibration.")
             return None
         self.origin, self.R, self.scale, self.avg_err = self.transformer.fit_params(local_points, global_points)
@@ -271,7 +271,7 @@ class ProbeCalibration(QObject):
                 local_points, global_points, valid_indices = self._remove_outliers(
                         local_points, global_points, threshold=noise_threshold)
 
-        if len(local_points) < 3 or len(global_points) < 3:
+        if len(local_points) <= 3 or len(global_points) <= 3:
             logger.warning("Not enough points for calibration.")
             return None
         self.origin, self.R, self.scale, self.avg_err = self.transformer.fit_params(local_points, global_points)
@@ -606,15 +606,19 @@ class ProbeCalibration(QObject):
         self.LR_err_L2_current = self._l2_error_current_point()
         self._update_min_max_x_y_z()    # update min max x,y,z
         self._update_info_ui()          # update transformation matrix and overall LR in UI
-        ret = self._is_enough_points()  # if ret, send the signal
+        ret = self._is_enough_points()  # if ret, complete calibration
         if ret:
+            print("Before")
+            self._print_formatted_transM()
             self.complete_calibration(filtered_df)
             
     def complete_calibration(self, filtered_df):
         # save the filtered points to a new file
         self.file_name = f"points_{self.stage.sn}.csv"
-        self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) 
-
+        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) 
+        if self.transM_LR is None:
+            return
+    
         print("\n\n=========================================================")
         self._print_formatted_transM()
         print("=========================================================")
