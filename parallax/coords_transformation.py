@@ -78,11 +78,10 @@ class RotationTransformation:
 
     def fit_params(self, measured_pts, global_pts):
         """Fits parameters to minimize the error defined in func"""
-        #x0 = np.array([0, 0, 0, 0, 0, 0])  # initial guess: (x, y, z, x_t, y_t, z_t)
         x0 = np.array([0, 0, 0, 0, 0, 0, 1, 1, 1])  # initial guess: (x, y, z, x_t, y_t, z_t, s_x, s_y, s_z)
     
-        if len(measured_pts) < 3 or len(global_pts) < 3:
-            raise ValueError("At least two points are required for optimization.")
+        if len(measured_pts) <= 3 or len(global_pts) <= 3:
+            raise ValueError("At least three points are required for optimization.")
         
         # Optimize without reflection
         res1 = leastsq(self.func, x0, args=(measured_pts, global_pts, False), maxfev=5000)
@@ -102,8 +101,6 @@ class RotationTransformation:
             R = self.combineAngles(rez[2], rez[1], rez[0], reflect_z=True)
             avg_err = avg_error1
 
-        #origin = rez[3:]
         origin = rez[3:6]
         scale = rez[6:]
-        #return origin, R  # translation vector and rotation matrix
         return origin, R, scale, avg_err  # translation vector, rotation matrix, and scaling factors
