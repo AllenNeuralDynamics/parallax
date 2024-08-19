@@ -191,9 +191,9 @@ class ProbeDetectManager(QObject):
                         if is_curr_prev_comp or is_curr_bg_comp: 
                             cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0),-1,)
 
-                    if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
-                        frame = self.debug_draw_boundary(frame, is_first_detect, \
-                            self.ret_crop, self.ret_tip, self.is_curr_prev_comp, self.is_curr_bg_comp)
+                if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
+                    frame = self.debug_draw_boundary(frame, is_first_detect, \
+                        self.ret_crop, self.ret_tip, self.is_curr_prev_comp, self.is_curr_bg_comp)
             else:
                 self.prev_img = self.curr_img
 
@@ -320,7 +320,7 @@ class ProbeDetectManager(QObject):
                     tip = self.currBgCmpProcess.get_point_tip()
                     base = self.currBgCmpProcess.get_point_base()
                 if tip is not None and base is not None:
-                    cv2.line(frame, tip, base, color_crop, 2)
+                    cv2.line(frame, tip, base, color_crop, 1)
 
             return frame
 
