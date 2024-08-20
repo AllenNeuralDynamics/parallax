@@ -124,7 +124,39 @@ class ProbeFineTipDetector:
         return tip
 
     @classmethod
-    def get_precise_tip(cls, img, tip, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
+    def add_L2_offset_to_tip(cls, tip, base, offset=2):
+        """
+        Add an offset to the tip coordinates by extending the distance from the base by the given offset.
+        
+        Parameters:
+            tip (tuple): The current tip coordinates (x, y).
+            base (tuple): The base coordinates (x, y).
+            offset (float): The L2 distance (in pixels) to extend the tip away from the base.
+        
+        Returns:
+            tuple: The new tip coordinates (x, y) after applying the offset.
+        """
+        # Calculate the vector from the base to the tip
+        vector = np.array(tip) - np.array(base)
+        
+        # Calculate the L2 (Euclidean) distance between the base and tip
+        distance = np.linalg.norm(vector)
+        
+        if distance == 0:
+            # If the distance is zero, return the tip without any modification
+            return tip
+        
+        # Calculate the unit vector in the direction from base to tip
+        unit_vector = vector / distance
+        
+        # Calculate the new tip position by extending the tip by the given offset
+        new_tip = np.array(tip) + unit_vector * offset
+        new_tip = np.round(new_tip).astype(int)
+
+        return tuple(new_tip)
+
+    @classmethod
+    def get_precise_tip(cls, img, tip, base, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
         """Get the precise tip coordinates from the image."""
         if logger.getEffectiveLevel() == logging.DEBUG:
             save_path = os.path.join(debug_dir, f"{cam_name}_tip.jpg")
@@ -136,5 +168,6 @@ class ProbeFineTipDetector:
             return False, tip
 
         precise_tip = cls._detect_closest_centroid(img, tip, offset_x, offset_y, direction)
-
-        return True, precise_tip
+        precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base, offset=3)
+        print(f"precise_tip: {precise_tip}, precise_tip_extended: {precise_tip_extended}")
+        return True, precise_tip_extended

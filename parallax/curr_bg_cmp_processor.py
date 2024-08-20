@@ -286,6 +286,11 @@ class CurrBgCmpProcessor():
             self.ProbeDetector.probe_tip,
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )
+        probe_base_original_coords = UtilsCoords.scale_coords_to_original(
+            self.ProbeDetector.probe_base, 
+            self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+        )
+
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = UtilsCrops.calculate_crop_region(
             probe_tip_original_coords,
             probe_tip_original_coords,
@@ -297,6 +302,7 @@ class CurrBgCmpProcessor():
         ret, tip = ProbeFineTipDetector.get_precise_tip(
             self.tip_image,
             probe_tip_original_coords,
+            probe_base_original_coords,
             offset_x=self.left_fine,
             offset_y=self.top_fine,
             direction=self.ProbeDetector.probe_tip_direction,
