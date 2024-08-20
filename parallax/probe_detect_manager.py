@@ -48,10 +48,12 @@ class ProbeDetectManager(QObject):
             self.is_calib = False
             self.new = False
             self.frame = None
+            # Reticle
             self.reticle_coords = self.model.get_coords_axis(self.name)
             self.reticle_coords_debug = self.model.get_coords_for_debug(self.name)
+            self.colormap_reticle = None
+            self.colormap_reticle_debug = None  
 
-            # TODO move to model structure
             self.prev_img = None
             self.reticle_zone = None
             self.is_probe_updated = True
@@ -65,6 +67,8 @@ class ProbeDetectManager(QObject):
 
             self.probe_stopped = False
             self.is_curr_prev_comp, self.is_curr_bg_comp = False, False
+
+            self.register_colormap()
 
         def update_sn(self, sn):
             """Update the serial number and initialize probe detectors.
@@ -224,40 +228,37 @@ class ProbeDetectManager(QObject):
 
         def process_draw_reticle(self, frame):
             if self.reticle_coords is not None:
+                for coords in self.reticle_coords:
+                    for point_idx, (x, y) in enumerate(coords):
+                        color = self.colormap_reticle[point_idx][0].tolist()
+                        cv2.circle(frame, (x, y), 4, color, -1)
+
+            if self.reticle_coords_debug is not None:
+                for point_idx, (x, y) in enumerate(self.reticle_coords_debug[0]):
+                    color = self.colormap_reticle_debug[point_idx][0].tolist()
+                    cv2.circle(frame, (x, y), 1, color, -1)
+
+            return frame
+
+        def register_colormap(self):
+            if self.reticle_coords is not None:
                 for idx, coords in enumerate(self.reticle_coords):
                     # Normalize indices to 0-255 for colormap application.
                     indices = np.linspace(
                         0, 255, len(coords), endpoint=True, dtype=np.uint8
                     )
                     # Apply 'jet' colormap to x-coords, 'winter' to the y-coords.
-                    colormap = cv2.applyColorMap(
+                    self.colormap_reticle = cv2.applyColorMap(
                         indices,
                         cv2.COLORMAP_JET if idx == 0 else cv2.COLORMAP_WINTER,
                     )
 
-                    for point_idx, (x, y) in enumerate(coords):
-                        color = colormap[point_idx][0].tolist()
-                        cv2.circle(frame, (x, y), 4, color, -1)
-
             if self.reticle_coords_debug is not None:
-                for i in range(0, len(self.reticle_coords_debug[0]), 4):
-                    # Extract the four points
-                    p1 = tuple(self.reticle_coords_debug[0][i])
-                    p2 = tuple(self.reticle_coords_debug[0][i+1])
-                    p3 = tuple(self.reticle_coords_debug[0][i+2])
-                    p4 = tuple(self.reticle_coords_debug[0][i+3])
-
-                    # Draw lines between the points
-                    cv2.line(frame, p1, p2, (150, 0, 255), 1)
-                    cv2.line(frame, p2, p4, (150, 0, 255), 1)
-                    cv2.line(frame, p4, p3, (150, 0, 255), 1)
-                    cv2.line(frame, p3, p1, (150, 0, 255), 1)
-
-                for coord in self.reticle_coords_debug[0]:
-                    cv2.circle(frame, coord, 1, (0, 170, 255), -1)
-
-            return frame
-
+                indices = np.linspace(
+                        0, 255, len(self.reticle_coords_debug[0]), endpoint=True, dtype=np.uint8
+                    )
+                self.colormap_reticle_debug = cv2.applyColorMap(indices, cv2.COLORMAP_JET)
+            
         def run(self):
             """Run the worker thread."""
             logger.debug("probe_detect_manager running ")

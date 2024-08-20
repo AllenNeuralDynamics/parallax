@@ -633,9 +633,6 @@ class StageWidget(QWidget):
             self.camA_best, tip_coordsA, self.camB_best, tip_coordsB
         )
 
-        #TODO add offset for z 
-        # global_coords
-
         self.stageListener.handleGlobalDataChange(
             sn_cmp,
             global_coords,

@@ -520,12 +520,10 @@ class CalibrationStereo(CalibrationCamera):
 
     def register_debug_points(self, camA, camB):
         # Define the custom object points directly without scaling
-        objpoint = [
-            [1, 1, 0], [-1, 1, 0], [1, -1, 0], [-1, -1, 0],
-            [2, 2, 0], [-2, 2, 0], [2, -2, 0], [-2, -2, 0],
-            [3, 3, 0], [-3, 3, 0], [3, -3, 0], [-3, -3, 0],
-            [4, 4, 0], [-4, 4, 0], [4, -4, 0], [-4, -4, 0]
-        ]
+        x = np.arange(-4, 5)  # from -4 to 4
+        y = np.arange(-4, 5)  # from -4 to 4
+        xv, yv = np.meshgrid(x, y, indexing='ij')
+        objpoint = np.column_stack([xv.flatten(), yv.flatten(), np.zeros(xv.size)])
 
         # Convert the list of object points to a NumPy array
         objpoints = np.array([objpoint], dtype=np.float32)
