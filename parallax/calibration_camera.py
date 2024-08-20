@@ -428,7 +428,7 @@ class CalibrationStereo(CalibrationCamera):
         l2_z = np.sqrt(mean_squared_diff_z)
 
         print(
-            f"x: {l2_x*1000}µm³, y: {l2_y*1000}µm³, z:{l2_z*1000}µm³"
+            f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z:{np.round(l2_z*1000, 2)}µm³"
         )
 
     def test_performance(self, camA, coordA, camB, coordB, print_results=False):
@@ -463,8 +463,7 @@ class CalibrationStereo(CalibrationCamera):
         average_L2_distance = np.mean(euclidean_distances)
         if print_results:
             print(
-                f"(Reprojection error) Object points L2 diff: \
-                {average_L2_distance*1000} µm³"
+                f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³"
             )
             self.test_x_y_z_performance(points_3d_G)
             logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
@@ -479,16 +478,9 @@ class CalibrationStereo(CalibrationCamera):
             imgpointsA_converted = np.array(
                 self.imgpointsA[i], dtype=np.float32
             ).reshape(-1, 2)
-            solvePnP_method = cv2.SOLVEPNP_ITERATIVE
-            retval, rvecs, tvecs = cv2.solvePnP(
-                self.objpoints[i],
-                imgpointsA_converted,
-                self.mtxA,
-                self.distA,
-                flags=solvePnP_method,
-            )
+            
             imgpoints2, _ = cv2.projectPoints(
-                self.objpoints[i], rvecs, tvecs, self.mtxA, self.distA
+                self.objpoints[i], self.rvecA, self.tvecA, self.mtxA, self.distA
             )
 
             imgpoints2_reshaped = imgpoints2.reshape(-1, 2)
@@ -507,16 +499,9 @@ class CalibrationStereo(CalibrationCamera):
             imgpointsB_converted = np.array(
                 self.imgpointsB[i], dtype=np.float32
             ).reshape(-1, 2)
-            solvePnP_method = cv2.SOLVEPNP_ITERATIVE
-            retval, rvecs, tvecs = cv2.solvePnP(
-                self.objpoints[i],
-                imgpointsB_converted,
-                self.mtxB,
-                self.distB,
-                flags=solvePnP_method,
-            )
+
             imgpoints2, _ = cv2.projectPoints(
-                self.objpoints[i], rvecs, tvecs, self.mtxB, self.distB
+                self.objpoints[i], self.rvecB, self.tvecB, self.mtxB, self.distB
             )
 
             imgpoints2_reshaped = imgpoints2.reshape(-1, 2)
