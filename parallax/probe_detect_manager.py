@@ -49,6 +49,7 @@ class ProbeDetectManager(QObject):
             self.new = False
             self.frame = None
             self.reticle_coords = self.model.get_coords_axis(self.name)
+            self.reticle_coords_debug = self.model.get_coords_for_debug(self.name)
 
             # TODO move to model structure
             self.prev_img = None
@@ -237,6 +238,11 @@ class ProbeDetectManager(QObject):
                     for point_idx, (x, y) in enumerate(coords):
                         color = colormap[point_idx][0].tolist()
                         cv2.circle(frame, (x, y), 4, color, -1)
+
+            if self.reticle_coords_debug is not None:
+                for coord in self.reticle_coords_debug[0]:
+                    cv2.circle(frame, coord, 1, (255, 255, 0), -1)
+
             return frame
 
         def run(self):
@@ -244,11 +250,11 @@ class ProbeDetectManager(QObject):
             logger.debug("probe_detect_manager running ")
             while self.running:
                 if self.new:
+                    self.frame = self.process_draw_reticle(self.frame)
                     if self.is_detection_on:
                         self.frame, self.timestamp = self.process(
                             self.frame, self.timestamp
                         )
-                    self.frame = self.process_draw_reticle(self.frame)
                     self.frame_processed.emit(self.frame)
                     self.new = False
                 time.sleep(0.001)
@@ -259,6 +265,7 @@ class ProbeDetectManager(QObject):
             """Set name as camera serial number."""
             self.name = name
             self.reticle_coords = self.model.get_coords_axis(self.name)
+            self.reticle_corrds_debug = self.model.get_coords_debug(self.name)
 
         def debug_draw_boundary(self, frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp, is_curr_bg_comp):
             # Display text on the frame

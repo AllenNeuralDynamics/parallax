@@ -414,7 +414,7 @@ class StageWidget(QWidget):
         Returns:
             tuple: A tuple containing the results of the stereo calibration process.
         """
-        calibrationStereo = CalibrationStereo(camA, coordsA, itmxA, camB, coordsB, itmxB)
+        calibrationStereo = CalibrationStereo(self.model, camA, coordsA, itmxA, camB, coordsB, itmxB)
         retval, R_AB, T_AB, E_AB, F_AB = calibrationStereo.calibrate_stereo()
         err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB) # Test
         return err, calibrationStereo, retval, R_AB, T_AB, E_AB, F_AB
@@ -518,7 +518,7 @@ class StageWidget(QWidget):
                     "F_AB": F_AB,
                 }
 
-                calibrationStereo.print_calibrate_stereo_results(camA, camB)
+                #calibrationStereo.print_calibrate_stereo_results(camA, camB)
                 err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB, print_results=True)
                 if err < min_err:
                     min_err = err

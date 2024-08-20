@@ -44,6 +44,7 @@ class Model(QObject):
         self.camera_extrinsic = {}
         self.calibration = None
         self.calibrations = {}
+        self.coords_debug = {}
 
         self.cal_in_progress = False
         self.accutest_in_progress = False
@@ -174,6 +175,14 @@ class Model(QObject):
         """Get coordinates axis."""
         return self.coords_axis.get(camera_name)
 
+    def add_coords_for_debug(self, camera_name, coords):
+        """Add coordinates axis."""
+        self.coords_debug[camera_name] = coords
+
+    def get_coords_for_debug(self, camera_name):
+        """Get coordinates axis."""
+        return self.coords_debug.get(camera_name)
+    
     def add_camera_intrinsic(self, camera_name, mtx, dist, rvec, tvec):
         """Add camera intrinsic parameters."""
         self.camera_intrinsic[camera_name] = [mtx, dist, rvec, tvec]

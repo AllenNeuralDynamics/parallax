@@ -228,8 +228,9 @@ class CalibrationStereo(CalibrationCamera):
     """
 
     def __init__(
-        self, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
+        self, model, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
         """Initialize the CalibrationStereo object"""
+        self.model = model
         self.n_interest_pixels = X_COORDS_HALF
         self.camA = camA
         self.camB = camB
@@ -469,6 +470,8 @@ class CalibrationStereo(CalibrationCamera):
             logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
             self.test_pixel_error()
+
+        self.register_debug_points(camA, camB)
         return average_L2_distance
 
     def test_pixel_error(self):
@@ -514,3 +517,46 @@ class CalibrationStereo(CalibrationCamera):
 
         total_err = mean_error / len(self.objpoints)
         print(f"(Reprojection error) Pixel L2 diff B: {total_err} pixels")
+
+    def register_debug_points(self, camA, camB):
+        # Define the custom object points directly without scaling
+        objpoint = [
+            [2, 2, 0], [-2, 2, 0], [2, -2, 0], [-2, -2, 0],
+            [3, 3, 0], [-3, 3, 0], [3, -3, 0], [-3, -3, 0],
+            [4, 4, 0], [-4, 4, 0], [4, -4, 0], [-4, -4, 0]
+        ]
+
+        # Convert the list of object points to a NumPy array
+        objpoints = np.array([objpoint], dtype=np.float32)
+
+        # Call the get_pixel_coordinates method using the object points
+        pixel_coordsA = self.get_pixel_coordinates(objpoints, self.rvecA, self.tvecA, self.mtxA, self.distA)
+        pixel_coordsB = self.get_pixel_coordinates(objpoints, self.rvecB, self.tvecB, self.mtxB, self.distB)
+        
+        # Register the pixel coordinates for the debug points
+        self.model.add_coords_for_debug(camA, pixel_coordsA)
+        self.model.add_coords_for_debug(camB, pixel_coordsB)
+
+    def get_pixel_coordinates(self, objpoints, rvec, tvec, mtx, dist):
+        """
+        Projects 3D object points onto the 2D image plane and returns pixel coordinates.
+
+        Parameters:
+            objpoints (list): List of 3D object points.
+            rvec (np.ndarray): Rotation vector.
+            tvec (np.ndarray): Translation vector.
+            mtx (np.ndarray): Camera matrix.
+            dist (np.ndarray): Distortion coefficients.
+
+        Returns:
+            list: List of pixel coordinates corresponding to the object points.
+        """
+        pixel_coordinates = []
+        for points in objpoints:
+            # Project the 3D object points to 2D image points
+            imgpoints, _ = cv2.projectPoints(points, rvec, tvec, mtx, dist)
+            # Convert to integer tuples and append to the list
+            imgpoints_tuples = [tuple(map(lambda x: int(round(x)), point)) for point in imgpoints.reshape(-1, 2)]
+            pixel_coordinates.append(imgpoints_tuples)
+
+        return pixel_coordinates
