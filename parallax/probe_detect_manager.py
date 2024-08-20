@@ -240,8 +240,21 @@ class ProbeDetectManager(QObject):
                         cv2.circle(frame, (x, y), 4, color, -1)
 
             if self.reticle_coords_debug is not None:
+                for i in range(0, len(self.reticle_coords_debug[0]), 4):
+                    # Extract the four points
+                    p1 = tuple(self.reticle_coords_debug[0][i])
+                    p2 = tuple(self.reticle_coords_debug[0][i+1])
+                    p3 = tuple(self.reticle_coords_debug[0][i+2])
+                    p4 = tuple(self.reticle_coords_debug[0][i+3])
+
+                    # Draw lines between the points
+                    cv2.line(frame, p1, p2, (150, 0, 255), 1)
+                    cv2.line(frame, p2, p4, (150, 0, 255), 1)
+                    cv2.line(frame, p4, p3, (150, 0, 255), 1)
+                    cv2.line(frame, p3, p1, (150, 0, 255), 1)
+
                 for coord in self.reticle_coords_debug[0]:
-                    cv2.circle(frame, coord, 1, (255, 255, 0), -1)
+                    cv2.circle(frame, coord, 1, (0, 170, 255), -1)
 
             return frame
 

@@ -593,7 +593,7 @@ class ProbeCalibration(QObject):
         Args:
             stage (Stage): The current stage object with new position data.
         """
-        # update points in the file
+        # update points in the file``
         self.stage = stage
         self._update_local_global_point(debug_info) # Do no update if it is duplicates
 
