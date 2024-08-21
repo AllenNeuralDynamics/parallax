@@ -169,5 +169,4 @@ class ProbeFineTipDetector:
 
         precise_tip = cls._detect_closest_centroid(img, tip, offset_x, offset_y, direction)
         precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base, offset=3)
-        print(f"precise_tip: {precise_tip}, precise_tip_extended: {precise_tip_extended}")
         return True, precise_tip_extended
