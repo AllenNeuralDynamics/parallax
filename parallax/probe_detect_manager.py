@@ -279,7 +279,7 @@ class ProbeDetectManager(QObject):
             """Set name as camera serial number."""
             self.name = name
             self.reticle_coords = self.model.get_coords_axis(self.name)
-            self.reticle_corrds_debug = self.model.get_coords_debug(self.name)
+            self.reticle_coords_debug = self.model.get_coords_for_debug(self.name)
 
         def debug_draw_boundary(self, frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp, is_curr_bg_comp):
             # Display text on the frame
