@@ -414,7 +414,7 @@ class StageWidget(QWidget):
         Returns:
             tuple: A tuple containing the results of the stereo calibration process.
         """
-        calibrationStereo = CalibrationStereo(camA, coordsA, itmxA, camB, coordsB, itmxB)
+        calibrationStereo = CalibrationStereo(self.model, camA, coordsA, itmxA, camB, coordsB, itmxB)
         retval, R_AB, T_AB, E_AB, F_AB = calibrationStereo.calibrate_stereo()
         err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB) # Test
         return err, calibrationStereo, retval, R_AB, T_AB, E_AB, F_AB
@@ -454,8 +454,8 @@ class StageWidget(QWidget):
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
                 print("\n\n----------------------------------------------------")
-                print(f"camera pair: {camA}-{camB}, err: {err}")
-                logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {err} ===")
+                print(f"camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
+                logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³ ===")
                 logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
                 
                 if err < min_err:
@@ -471,10 +471,10 @@ class StageWidget(QWidget):
             self.camA_best, self.camB_best, min_err, R_AB_best, T_AB_best, E_AB_best, F_AB_best
         )
 
-        print("\n== intrinsics ==")
-        print(f" cam {self.camA_best}:\n  {itmxA_best}")
-        print(f" cam {self.camB_best}:\n  {itmxB_best}")
-        self.calibrationStereo.print_calibrate_stereo_results(self.camA_best, self.camB_best)
+        #print("\n== intrinsics ==")
+        #print(f" cam {self.camA_best}:\n  {itmxA_best}")
+        #print(f" cam {self.camB_best}:\n  {itmxB_best}")
+        #self.calibrationStereo.print_calibrate_stereo_results(self.camA_best, self.camB_best)
         err = self.calibrationStereo.test_performance(
             self.camA_best, coordsA_best, self.camB_best, coordsB_best, print_results=True
             )
@@ -503,8 +503,8 @@ class StageWidget(QWidget):
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
                 print("\n--------------------------------------------------------")
-                print(f"camsera pair: {camA}-{camB}, err: {err}")
-                logger.debug(f"=== camera pair: {camA}-{camB}, err: {err} ===")
+                print(f"camsera pair: {camA}-{camB}, err: {np.round(err, 2) * 1000} µm³")
+                logger.debug(f"=== camera pair: {camA}-{camB}, err: {np.round(err, 2) * 1000} µm³ ===")
                 logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
 
                 # Store the instance with a sorted tuple key
@@ -518,12 +518,7 @@ class StageWidget(QWidget):
                     "F_AB": F_AB,
                 }
 
-                # Update the model with the calibration results
-                #self.model.add_camera_extrinsic(
-                #    camA, camB, err, R_AB, T_AB, E_AB, F_AB
-                #)
-
-                calibrationStereo.print_calibrate_stereo_results(camA, camB)
+                #calibrationStereo.print_calibrate_stereo_results(camA, camB)
                 err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB, print_results=True)
                 if err < min_err:
                     min_err = err

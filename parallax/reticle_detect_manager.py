@@ -145,8 +145,7 @@ class ReticleDetectManager(QObject):
                 )
 
             # Distortion coefficients text
-            dist_text = f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, \
-                {dist[0][2]:.4f}, {dist[0][3]:.4f} {dist[0][4]:.4f}]"
+            dist_text = f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, {dist[0][2]:.4f}, {dist[0][3]:.4f} {dist[0][4]:.4f}]"
             cv2.putText(
                 frame,
                 dist_text,

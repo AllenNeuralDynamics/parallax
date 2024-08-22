@@ -1,13 +1,8 @@
-"""
-ProbeFineTipDetector identifies a probe's fine tip in original images through preprocessing, 
-Harris corner detection, and geometric analysis, accommodating various probe orientations 
-for precise positioning tasks.
-"""
-
 import logging
-
+import os
 import cv2
 import numpy as np
+from datetime import datetime
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -16,39 +11,33 @@ logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+if logger.getEffectiveLevel() == logging.DEBUG:
+    package_dir = os.path.dirname(os.path.abspath(__file__))
+    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
+    os.makedirs(debug_dir, exist_ok=True)
 
 class ProbeFineTipDetector:
     """Class for detecting the fine tip of the probe in an image."""
 
-    def __init__(self):
-        """Initialize ProbeFineTipDetector object"""
-        self.img = None
-        self.tip = (0, 0)
-        self.offset_x = 0
-        self.offset_y = 0
-        self.direction = "S"
-        self.img_fname = None
-
-    def _preprocess_image(self):
+    @classmethod
+    def _preprocess_image(cls, img):
         """Preprocess the image for tip detection."""
-        self.img = cv2.GaussianBlur(self.img, (7, 7), 0)
-        sharpened_image = cv2.Laplacian(self.img, cv2.CV_64F)
+        img = cv2.GaussianBlur(img, (7, 7), 0)
+        sharpened_image = cv2.Laplacian(img, cv2.CV_64F)
         sharpened_image = np.uint8(np.absolute(sharpened_image))
-        _, self.img = cv2.threshold(
-            self.img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-        )
-        # kernel_ellipse_3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)) #TODO
-        # self.img = cv2.erode(self.img, kernel_ellipse_3, iterations=1)
+        _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        return img
 
-    def _is_valid(self):
+    @classmethod
+    def _is_valid(cls, img):
         """Check if the image is valid for tip detection.
         Returns:
             bool: True if the image is valid, False otherwise.
         """
-        height, width = self.img.shape[:2]
-        boundary_img = np.zeros_like(self.img)
+        height, width = img.shape[:2]
+        boundary_img = np.zeros_like(img)
         cv2.rectangle(boundary_img, (0, 0), (width - 1, height - 1), 255, 1)
-        and_result = cv2.bitwise_and(cv2.bitwise_not(self.img), boundary_img)
+        and_result = cv2.bitwise_and(cv2.bitwise_not(img), boundary_img)
         contours_boundary, _ = cv2.findContours(
             and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
@@ -58,7 +47,7 @@ class ProbeFineTipDetector:
             )
             return False
 
-        boundary_img = np.zeros_like(self.img)
+        boundary_img = np.zeros_like(img)
         boundary_img[0, 0] = 255
         boundary_img[width - 1, 0] = 255
         boundary_img[0, height - 1] = 255
@@ -72,76 +61,40 @@ class ProbeFineTipDetector:
                 f"get_probe_precise_tip fail. No detection of tip :{len(contours_boundary)}"
             )
             return False
-
         return True
 
-    def _detect_closest_centroid(self):
+    @classmethod
+    def _detect_closest_centroid(cls, img, tip, offset_x, offset_y, direction):
         """Detect the closest centroid to the tip.
 
         Returns:
             tuple: Coordinates of the closest centroid.
         """
-        cx, cy = self.tip[0], self.tip[1]
+        cx, cy = tip[0], tip[1]
         closest_centroid = (cx, cy)
         min_distance = float("inf")
 
-        harris_corners = cv2.cornerHarris(self.img, blockSize=7, ksize=5, k=0.1)
+        harris_corners = cv2.cornerHarris(img, blockSize=7, ksize=5, k=0.1)
         threshold = 0.3 * harris_corners.max()
 
-        corner_marks = np.zeros_like(self.img)
+        corner_marks = np.zeros_like(img)
         corner_marks[harris_corners > threshold] = 255
         contours, _ = cv2.findContours(
             corner_marks, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
         )
 
         for contour in contours:
-            tip = self._get_direction_tip(contour)
-            tip_x, tip_y = tip[0] + self.offset_x, tip[1] + self.offset_y
+            contour_tip = cls._get_direction_tip(contour, direction)
+            tip_x, tip_y = contour_tip[0] + offset_x, contour_tip[1] + offset_y
             distance = np.sqrt((tip_x - cx) ** 2 + (tip_y - cy) ** 2)
             if distance < min_distance:
                 min_distance = distance
                 closest_centroid = (tip_x, tip_y)
 
-        # Adjust pixel tip
-        #closest_centroid = self._adjust_centroid(closest_centroid, offset=10)
-
         return closest_centroid
 
-    def _adjust_centroid(self, centroid, offset=10):
-        """Adjust the centroid coordinates by 10 pixels in the specified direction.
-
-        Args:
-            centroid (tuple): Coordinates of the centroid.
-
-        Returns:
-            tuple: Adjusted coordinates of the centroid.
-        """
-        x, y = centroid
-        if self.direction == "S":
-            y += offset
-        elif self.direction == "N":
-            y -= offset
-        elif self.direction == "E":
-            x += offset
-        elif self.direction == "W":
-            x -= offset
-        elif self.direction == "NE":
-            x += offset
-            y -= offset
-        elif self.direction == "NW":
-            x -= offset
-            y -= offset
-        elif self.direction == "SE":
-            x += offset
-            y += offset
-        elif self.direction == "SW":
-            x -= offset
-            y += offset
-
-        return (x, y)
-
-
-    def _get_direction_tip(self, contour):
+    @classmethod
+    def _get_direction_tip(cls, contour, direction):
         """Get the tip coordinates based on the direction.
 
         Args:
@@ -151,59 +104,69 @@ class ProbeFineTipDetector:
             tuple: Coordinates of the tip based on the direction.
         """
         tip = (0, 0)
-        if self.direction == "S":
+        if direction == "S":
             tip = max(contour, key=lambda point: point[0][1])[0]
-        elif self.direction == "N":
+        elif direction == "N":
             tip = min(contour, key=lambda point: point[0][1])[0]
-        elif self.direction == "E":
+        elif direction == "E":
             tip = max(contour, key=lambda point: point[0][0])[0]
-        elif self.direction == "W":
+        elif direction == "W":
             tip = min(contour, key=lambda point: point[0][0])[0]
-        elif self.direction == "NE":
+        elif direction == "NE":
             tip = min(contour, key=lambda point: point[0][1] - point[0][0])[0]
-        elif self.direction == "NW":
+        elif direction == "NW":
             tip = min(contour, key=lambda point: point[0][1] + point[0][0])[0]
-        elif self.direction == "SE":
+        elif direction == "SE":
             tip = max(contour, key=lambda point: point[0][1] + point[0][0])[0]
-        elif self.direction == "SW":
+        elif direction == "SW":
             tip = max(contour, key=lambda point: point[0][1] - point[0][0])[0]
 
         return tip
 
-    def _register(
-        self, img, tip, offset_x=0, offset_y=0, direction=None, img_fname=None
-    ):
-        """Register the image, tip coordinates, offsets, direction, and filename."""
-        self.img = img
-        self.tip = tip
-        self.offset_x = offset_x
-        self.offset_y = offset_y
-        self.direction = direction
-        self.img_fname = img_fname
+    @classmethod
+    def add_L2_offset_to_tip(cls, tip, base, offset=2):
+        """
+        Add an offset to the tip coordinates by extending the distance from the base by the given offset.
+        
+        Parameters:
+            tip (tuple): The current tip coordinates (x, y).
+            base (tuple): The base coordinates (x, y).
+            offset (float): The L2 distance (in pixels) to extend the tip away from the base.
+        
+        Returns:
+            tuple: The new tip coordinates (x, y) after applying the offset.
+        """
+        # Calculate the vector from the base to the tip
+        vector = np.array(tip) - np.array(base)
+        
+        # Calculate the L2 (Euclidean) distance between the base and tip
+        distance = np.linalg.norm(vector)
+        
+        if distance == 0:
+            # If the distance is zero, return the tip without any modification
+            return tip
+        
+        # Calculate the unit vector in the direction from base to tip
+        unit_vector = vector / distance
+        
+        # Calculate the new tip position by extending the tip by the given offset
+        new_tip = np.array(tip) + unit_vector * offset
+        new_tip = np.round(new_tip).astype(int)
 
-    def get_precise_tip(
-        self, img, tip, offset_x=0, offset_y=0, direction=None, img_fname=None
-    ):
+        return tuple(new_tip)
+
+    @classmethod
+    def get_precise_tip(cls, img, tip, base, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
         """Get the precise tip coordinates from the image."""
-        self._register(
-            img,
-            tip,
-            offset_x=offset_x,
-            offset_y=offset_y,
-            direction=direction,
-            img_fname=img_fname,
-        )
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_dir, f"{cam_name}_tip.jpg")
+            cv2.imwrite(save_path, img)
 
-        self._preprocess_image()
-        if not self._is_valid():
+        img = cls._preprocess_image(img)
+        if not cls._is_valid(img):
             logger.debug("Boundary check failed.")
-            return False
+            return False, tip
 
-        self.tip = self._detect_closest_centroid()
-        # cv2.circle(self.img, (self.tip[0]-offset_x, self.tip[1]-offset_y), 1, (255, 255, 0), -1)
-
-        # Save the final image with the detected tip
-        # output_fname = os.path.basename(self.img_fname).replace('.', '_3_tip.')
-        # cv2.imwrite('output/' + output_fname, self.img_original)
-
-        return True
+        precise_tip = cls._detect_closest_centroid(img, tip, offset_x, offset_y, direction)
+        precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base, offset=3)
+        return True, precise_tip_extended
