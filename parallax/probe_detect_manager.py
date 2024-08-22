@@ -19,7 +19,7 @@ from .reticle_detection import ReticleDetection
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -170,14 +170,14 @@ class ProbeDetectManager(QObject):
                         
                         if self.is_curr_prev_comp or self.is_curr_bg_comp: 
                             self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
-                            cv2.circle(frame, self.probeDetect.probe_tip_org, 1, (255, 0, 0), -1)
+                            cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0), -1)
                             self.prev_img = self.curr_img
                             self.probe_stopped = False
 
                     elif self.is_calib and not self.probe_stopped: # stage is stopped and second frame
                         if self.is_curr_prev_comp or self.is_curr_bg_comp:
                             self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
-                            cv2.circle(frame, self.probeDetect.probe_tip_org, 1, (255, 0, 0), -1)
+                            cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0), -1)
                             
                     else: # stage is moving
                         self.probe_stopped = True
@@ -194,7 +194,7 @@ class ProbeDetectManager(QObject):
                             is_curr_bg_comp = True if (ret_crop and ret_tip) else False
                         
                         if is_curr_prev_comp or is_curr_bg_comp: 
-                            cv2.circle(frame, self.probeDetect.probe_tip_org, 1, (255, 255, 0), -1)
+                            cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0), -1)
 
                 if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
                     frame = self.debug_draw_boundary(frame, is_first_detect, \
