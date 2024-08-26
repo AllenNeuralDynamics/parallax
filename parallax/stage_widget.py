@@ -89,6 +89,14 @@ class StageWidget(QWidget):
             self.view_trajectory_button_handler
         )
 
+        # Calculation Button
+        self.calculation_btn = self.probe_calib_widget.findChild(
+            QPushButton, "calculation_btn"
+        )
+        self.calculation_btn.clicked.connect(
+            self.calculation_button_handler
+        )
+
         # Reticle Widget
         self.reticle_detection_status = (
             "default"  # options: default, process, detected, accepted, request_axis
@@ -132,6 +140,7 @@ class StageWidget(QWidget):
         self.calib_y.hide()
         self.calib_z.hide()
         self.viewTrajectory_btn.hide()
+        self.calculation_btn.hide()
         self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
         self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
         self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
@@ -738,6 +747,7 @@ class StageWidget(QWidget):
         """)
         self.hide_x_y_z()
         self.hide_trajectory_btn()
+        self.hide_calculation_btn()
     
         self.probeCalibrationLabel.setText("")
         self.probe_calibration_btn.setChecked(False)
@@ -840,6 +850,8 @@ class StageWidget(QWidget):
         self.hide_x_y_z()
         if not self.viewTrajectory_btn.isVisible():
             self.viewTrajectory_btn.show()
+        if not self.calculation_btn.isVisible():
+            self.calculation_btn.show()
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -894,6 +906,10 @@ class StageWidget(QWidget):
     def hide_trajectory_btn(self):
         if self.viewTrajectory_btn.isVisible():
             self.viewTrajectory_btn.hide()
+
+    def hide_calculation_btn(self):
+        if self.calculation_btn.isVisible():
+            self.calculation_btn.hide()
 
     def calib_x_complete(self, switch_probe = False):
         """
@@ -1074,3 +1090,7 @@ class StageWidget(QWidget):
 
     def view_trajectory_button_handler(self):
         self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
+
+    def calculation_button_handler(self):
+        print("Calculation button clicked")
+        pass
