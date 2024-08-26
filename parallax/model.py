@@ -46,6 +46,7 @@ class Model(QObject):
         self.calibrations = {}
         self.coords_debug = {}
 
+        # Transformation matrices of stages to global coords
         self.transforms = {}
 
     def add_calibration(self, cal):
@@ -108,7 +109,16 @@ class Model(QObject):
         return self.stages.get(stage_sn)
 
     def add_stage_calib_info(self, stage_sn, info):
-        """Add a stage."""
+        """Add a stage.
+        info['detection_status']
+        info['transM']
+        info['L2_err']
+        info['scale']
+        info['dist_traveled']
+        info['status_x']
+        info['status_y']
+        info['status_z']
+        """
         self.stages_calib[stage_sn] = info
 
     def get_stage_calib_info(self, stage_sn):
@@ -119,6 +129,10 @@ class Model(QObject):
         """Reset stage calibration info."""
         self.stages_calib = {}
 
+    def add_transform(self, stage_sn, transform, scale):
+        """Add transformation matrix between local to global coordinates."""
+        self.transforms[stage_sn] = [transform, scale]
+
     def add_probe_detector(self, probeDetector):
         """Add a probe detector."""
         self.probeDetectors.append(probeDetector)
@@ -128,7 +142,7 @@ class Model(QObject):
         self.coords_axis = {}
         self.camera_intrinsic = {}
         self.camera_extrinsic = {}
-    
+
     def add_pos_x(self, camera_name, pt):
         """Add position x."""
         self.pos_x[camera_name] = pt
