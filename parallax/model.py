@@ -46,17 +46,7 @@ class Model(QObject):
         self.calibrations = {}
         self.coords_debug = {}
 
-        self.cal_in_progress = False
-        self.accutest_in_progress = False
-        self.lcorr, self.rcorr = False, False
-
-        self.img_point_last = None
-        self.obj_point_last = None
         self.transforms = {}
-
-    def set_last_object_point(self, obj_point):
-        """Set the last object point."""
-        self.obj_point_last = obj_point
 
     def add_calibration(self, cal):
         """Add a calibration."""
@@ -65,22 +55,6 @@ class Model(QObject):
     def set_calibration(self, calibration):
         """Set the calibration."""
         self.calibration = calibration
-
-    def set_lcorr(self, xc, yc):
-        """Set left coordinates."""
-        self.lcorr = [xc, yc]
-
-    def clear_lcorr(self):
-        """Clear left coordinates."""
-        self.lcorr = False
-
-    def set_rcorr(self, xc, yc):
-        """Set right coordinates."""
-        self.rcorr = [xc, yc]
-
-    def clear_rcorr(self):
-        """Clear right coordinates."""
-        self.rcorr = False
 
     def init_stages(self):
         """Initialize stages."""
