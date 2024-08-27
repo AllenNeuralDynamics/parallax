@@ -1097,4 +1097,3 @@ class StageWidget(QWidget):
 
     def calculation_button_handler(self):
         self.calculator.show()
-        pass

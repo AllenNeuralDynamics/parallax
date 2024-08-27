@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>541</width>
-    <height>784</height>
+    <height>783</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -166,6 +166,9 @@
         <height>30</height>
        </size>
       </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:7pt;&quot;&gt;Calculator&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
       <property name="styleSheet">
        <string notr="true">
 QPushButton{
@@ -182,7 +185,11 @@ QPushButton:hover {
 }</string>
       </property>
       <property name="text">
-       <string>C</string>
+       <string extracomment="Calculator"/>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>resources/calc.png</normaloff>resources/calc.png</iconset>
       </property>
       <property name="checkable">
        <bool>false</bool>
@@ -225,6 +232,9 @@ QPushButton:hover {
         <height>30</height>
        </size>
       </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:7pt;&quot;&gt;Trajectory&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
       <property name="styleSheet">
        <string notr="true">
 QPushButton{
@@ -241,7 +251,11 @@ QPushButton:hover {
 }</string>
       </property>
       <property name="text">
-       <string>3D</string>
+       <string extracomment="Trajectory"/>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>resources/3D_map.png</normaloff>resources/3D_map.png</iconset>
       </property>
       <property name="checkable">
        <bool>false</bool>
