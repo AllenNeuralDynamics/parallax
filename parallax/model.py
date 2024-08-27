@@ -28,6 +28,9 @@ class Model(QObject):
         # point mesh
         self.point_mesh_instances = {}
 
+        # Calculator
+        self.calc_instance = None
+
         # stage
         self.nStages = 0
         self.stages = {}
@@ -209,3 +212,11 @@ class Model(QObject):
         for instance in self.point_mesh_instances.values():
             instance.close()
         self.point_mesh_instances.clear()
+
+    def add_calc_instance(self, instance):
+        self.calc_instance = instance
+
+    def close_clac_instance(self):
+        if self.calc_instance is not None:
+            self.calc_instance.close()
+            self.calc_instance = None

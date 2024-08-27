@@ -22,6 +22,7 @@ class Calculator(QWidget):
         
         # Create the number of GroupBox for the number of stages
         self.create_stage_groupboxes()
+        self.model.add_calc_instance(self)
 
     def show(self):
         # Refresh the list of stage to show
