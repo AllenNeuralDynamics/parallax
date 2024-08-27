@@ -65,6 +65,10 @@ class Model(QObject):
         self.stages = {}
         self.stages_calib = {}
 
+    def init_transforms(self):
+        for stage_sn in self.stages.keys():
+            self.transforms[stage_sn] = None
+
     def add_video_source(self, video_source):
         """Add a video source."""
         self.cameras.append(video_source)

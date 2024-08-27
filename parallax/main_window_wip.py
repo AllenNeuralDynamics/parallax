@@ -183,6 +183,7 @@ class MainWindow(QMainWindow):
         """Search for connected stages"""
         if not self.dummy:
             self.model.scan_for_usb_stages()
+            self.model.init_transforms()
 
     def record_button_handler(self):
         """
