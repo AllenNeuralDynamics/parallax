@@ -6,27 +6,54 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>777</width>
-    <height>638</height>
+    <width>832</width>
+    <height>653</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget{
+background-color: rgb(00,00,00);
+color: #FFFFFF;
+}
+QPushButton{
+	background-color: black;
+}
+ QPushButton:pressed {
+     background-color: rgb(224, 0, 0);     
+}
+QPushButton:hover {
+     background-color: rgb(100, 30, 30);
+}
+QPushButton#startButton:disabled:checked {
+	color: gray;
+}
+QPushButton#startButton:disabled:checked {
+	background-color: #ffaaaa;
+}
+QPushButton#startButton:disabled:!checked {
+	background-color: lightGreen;
+}</string>
+  </property>
   <widget class="QWidget" name="verticalLayoutWidget">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>751</width>
-     <height>411</height>
+     <x>10</x>
+     <y>10</y>
+     <width>781</width>
+     <height>621</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout_T">
+    <property name="topMargin">
+     <number>10</number>
+    </property>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout">
+     <layout class="QHBoxLayout" name="horizontalLayout_3">
       <item>
-       <widget class="QLabel" name="labelLocal">
+       <widget class="QLabel" name="labelLocal_2">
         <property name="maximumSize">
          <size>
           <width>16777215</width>
@@ -34,7 +61,7 @@
          </size>
         </property>
         <property name="text">
-         <string>Local </string>
+         <string>     Local </string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -42,7 +69,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="labelGlobal">
+       <widget class="QLabel" name="labelGlobal_2">
         <property name="maximumSize">
          <size>
           <width>16777215</width>
@@ -60,11 +87,11 @@
      </layout>
     </item>
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
-       <widget class="QLabel" name="labelLocalXYZ">
+       <widget class="QLabel" name="labelLocalXYZ_2">
         <property name="text">
-         <string>(x, y, z)</string>
+         <string>     (x, y, z)</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -72,7 +99,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="labelGlobalXYZ">
+       <widget class="QLabel" name="labelGlobalXYZ_2">
         <property name="text">
          <string>(x, y, z)</string>
         </property>
@@ -84,153 +111,17 @@
      </layout>
     </item>
     <item>
-     <widget class="QGroupBox" name="groupBoxStage">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>60</height>
-       </size>
+     <layout class="QVBoxLayout" name="verticalLayout_QBox">
+      <property name="leftMargin">
+       <number>20</number>
       </property>
-      <property name="title">
-       <string>SN</string>
+      <property name="bottomMargin">
+       <number>10</number>
       </property>
-      <widget class="QLineEdit" name="lineEditLocalX">
-       <property name="geometry">
-        <rect>
-         <x>60</x>
-         <y>20</y>
-         <width>70</width>
-         <height>30</height>
-        </rect>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>70</width>
-         <height>30</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="lineEditLocalY">
-       <property name="geometry">
-        <rect>
-         <x>140</x>
-         <y>20</y>
-         <width>70</width>
-         <height>30</height>
-        </rect>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>70</width>
-         <height>30</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="lineEditLocalZ">
-       <property name="geometry">
-        <rect>
-         <x>220</x>
-         <y>20</y>
-         <width>70</width>
-         <height>30</height>
-        </rect>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>70</width>
-         <height>30</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="lineEditGlobalX">
-       <property name="geometry">
-        <rect>
-         <x>450</x>
-         <y>20</y>
-         <width>70</width>
-         <height>30</height>
-        </rect>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>70</width>
-         <height>30</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="lineEditGlobalY">
-       <property name="geometry">
-        <rect>
-         <x>530</x>
-         <y>20</y>
-         <width>70</width>
-         <height>30</height>
-        </rect>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>70</width>
-         <height>30</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="lineEditGlobalZ">
-       <property name="geometry">
-        <rect>
-         <x>610</x>
-         <y>20</y>
-         <width>70</width>
-         <height>30</height>
-        </rect>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>70</width>
-         <height>30</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="pushButtonConvert">
-       <property name="geometry">
-        <rect>
-         <x>350</x>
-         <y>30</y>
-         <width>40</width>
-         <height>21</height>
-        </rect>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>40</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>&lt;-&gt;</string>
-       </property>
-      </widget>
-     </widget>
+     </layout>
     </item>
     <item>
-     <spacer name="verticalSpacer">
+     <spacer name="verticalSpacer_2">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>

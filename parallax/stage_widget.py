@@ -19,6 +19,7 @@ from .calibration_camera import CalibrationStereo
 from .probe_calibration import ProbeCalibration
 from .stage_listener import StageListener
 from .stage_ui import StageUI
+from .calculator import Calculator
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -140,7 +141,6 @@ class StageWidget(QWidget):
         self.calib_y.hide()
         self.calib_z.hide()
         self.viewTrajectory_btn.hide()
-        self.calculation_btn.hide()
         self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
         self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
         self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
@@ -159,6 +159,10 @@ class StageWidget(QWidget):
         # Set current filter
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
+
+        #  Calculator
+        self.calculation_btn.hide()
+        self.calculator = Calculator(self.model)
 
     def reticle_detection_button_handler(self):
         """
@@ -1093,4 +1097,5 @@ class StageWidget(QWidget):
 
     def calculation_button_handler(self):
         print("Calculation button clicked")
+        self.calculator.show()
         pass
