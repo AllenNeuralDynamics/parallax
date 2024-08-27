@@ -1,9 +1,9 @@
 import os
 import logging
-from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QApplication
+import numpy as np
+from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QFontDatabase
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -11,7 +11,6 @@ logger.setLevel(logging.WARNING)
 package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-csv_file = os.path.join(debug_dir, "points.csv")
 
 class Calculator(QWidget):
     def __init__(self, model):
@@ -36,7 +35,6 @@ class Calculator(QWidget):
     def set_calc_functions(self):
         for stage_sn, item in self.model.transforms.items():
             if item is not None: # Set calc function for calibrated stages
-                print(f"set_calc_functions {stage_sn} calibrated")
                 push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
                 if not push_button:
                     logger.warning(f"Error: QPushButton for {stage_sn} not found")
@@ -55,7 +53,6 @@ class Calculator(QWidget):
 
     def convert(self, sn, transM, scale):
         # Enable the groupBox for the stage
-        
         globalX = self.findChild(QLineEdit, f"globalX_{sn}").text()
         globalY = self.findChild(QLineEdit, f"globalY_{sn}").text()
         globalZ = self.findChild(QLineEdit, f"globalZ_{sn}").text()
@@ -64,8 +61,76 @@ class Calculator(QWidget):
         localY = self.findChild(QLineEdit, f"localY_{sn}").text()
         localZ = self.findChild(QLineEdit, f"localZ_{sn}").text()
 
-        # Calculate the global x and y values
-        print(localX, localY, localZ, globalX, globalY, globalZ)
+        trans_type, local_pts, global_pts = self.get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
+        if trans_type == "global_to_local":
+            local_pts_ret = self.apply_inverse_transformation(global_pts, transM, scale)
+            self.show_local_pts_result(sn, local_pts_ret)
+        elif trans_type == "local_to_global":
+            global_pts_ret = self.apply_transformation(local_pts, transM, scale)
+            self.show_global_pts_result(sn, global_pts_ret)
+        else:
+            logger.warning(f"Error: Invalid transforsmation type for {sn}")
+            return
+
+    def show_local_pts_result(self, sn, local_pts):
+        # Show the local points in the QLineEdit
+        self.findChild(QLineEdit, f"localX_{sn}").setText(f"{local_pts[0]:.1f}")
+        self.findChild(QLineEdit, f"localY_{sn}").setText(f"{local_pts[1]:.1f}")
+        self.findChild(QLineEdit, f"localZ_{sn}").setText(f"{local_pts[2]:.1f}")
+
+    def show_global_pts_result(self, sn, global_pts):
+        self.findChild(QLineEdit, f"globalX_{sn}").setText(f"{global_pts[0]:.1f}")
+        self.findChild(QLineEdit, f"globalY_{sn}").setText(f"{global_pts[1]:.1f}")
+        self.findChild(QLineEdit, f"globalZ_{sn}").setText(f"{global_pts[2]:.1f}")
+
+    def get_transform_type(self, globalX, globalY, globalZ, localX, localY, localZ):
+        def is_valid_number(s):
+            try:
+                float(s)
+                return True
+            except ValueError:
+                return False
+
+        # Strip any whitespace or tabs from the inputs
+        globalX = globalX.strip() if globalX else ""
+        globalY = globalY.strip() if globalY else ""
+        globalZ = globalZ.strip() if globalZ else ""
+        localX = localX.strip() if localX else ""
+        localY = localY.strip() if localY else ""
+        localZ = localZ.strip() if localZ else ""
+
+        # Check if all global and local coordinates are valid numbers
+        global_valid = all(is_valid_number(val) for val in [globalX, globalY, globalZ])
+        local_valid = all(is_valid_number(val) for val in [localX, localY, localZ])
+
+        if global_valid and local_valid:
+            # Convert to float
+            global_pts = [float(globalX), float(globalY), float(globalZ)]
+            local_pts = [float(localX), float(localY), float(localZ)]
+            return "global_to_local", local_pts, global_pts
+        elif local_valid:
+            local_pts = [float(localX), float(localY), float(localZ)]
+            return "local_to_global", local_pts, None
+        elif global_valid:
+            global_pts = [float(globalX), float(globalY), float(globalZ)]
+            return "global_to_local", None, global_pts
+        else:
+            return None, None, None
+
+    def apply_transformation(self, local_point, transM_LR, scale):
+        # Apply the scaling factors obtained from fit_params
+        local_point = local_point * scale
+        local_point = np.append(local_point, 1)
+        
+        # Apply the transformation matrix
+        global_point = np.dot(transM_LR, local_point)
+        return global_point[:3]
+
+    def apply_inverse_transformation(self, global_point, transM_LR, scale):
+        inverse_transM_LR = np.linalg.inv(transM_LR)
+        global_point = np.append(global_point, 1)
+        local_point = np.dot(inverse_transM_LR, global_point)[:3]
+        return local_point / scale  # Reverse the scaling factors
 
     def create_block_function(self, stage_sn):
         return lambda: self.disable(stage_sn)
@@ -75,7 +140,7 @@ class Calculator(QWidget):
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
         group_box.setEnabled(False)
-        group_box.setStyleSheet("background-color: #222222;")
+        group_box.setStyleSheet("background-color: #333333;")
         group_box.setTitle(f"{sn} (Uncalibrated)")
 
     def enable(self, sn):

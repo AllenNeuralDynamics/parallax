@@ -43,7 +43,7 @@ QPushButton#startButton:disabled:!checked {
 	background-color: lightGreen;
 }</string>
   </property>
-  <widget class="QLineEdit" name="localY">
+  <widget class="QLineEdit" name="globalY">
    <property name="geometry">
     <rect>
      <x>140</x>
@@ -64,7 +64,7 @@ QPushButton#startButton:disabled:!checked {
     </font>
    </property>
   </widget>
-  <widget class="QLineEdit" name="localZ">
+  <widget class="QLineEdit" name="globalZ">
    <property name="geometry">
     <rect>
      <x>250</x>
@@ -85,7 +85,7 @@ QPushButton#startButton:disabled:!checked {
     </font>
    </property>
   </widget>
-  <widget class="QLineEdit" name="localX">
+  <widget class="QLineEdit" name="globalX">
    <property name="geometry">
     <rect>
      <x>30</x>
@@ -106,7 +106,7 @@ QPushButton#startButton:disabled:!checked {
     </font>
    </property>
   </widget>
-  <widget class="QLineEdit" name="globalX">
+  <widget class="QLineEdit" name="localX">
    <property name="geometry">
     <rect>
      <x>410</x>
@@ -157,7 +157,7 @@ QPushButton#startButton:disabled:!checked {
     <string>↔</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="globalZ">
+  <widget class="QLineEdit" name="localZ">
    <property name="geometry">
     <rect>
      <x>630</x>
@@ -184,7 +184,7 @@ QPushButton#startButton:disabled:!checked {
     </font>
    </property>
   </widget>
-  <widget class="QLineEdit" name="globalY">
+  <widget class="QLineEdit" name="localY">
    <property name="geometry">
     <rect>
      <x>520</x>

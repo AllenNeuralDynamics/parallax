@@ -1096,6 +1096,5 @@ class StageWidget(QWidget):
         self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
 
     def calculation_button_handler(self):
-        print("Calculation button clicked")
         self.calculator.show()
         pass
