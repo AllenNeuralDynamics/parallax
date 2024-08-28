@@ -136,7 +136,7 @@ class Calculator(QWidget):
         return lambda: self.disable(stage_sn)
 
     def disable(self, sn):
-        print("disable", sn)
+        #print("disable", sn)
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
         group_box.setEnabled(False)
@@ -144,7 +144,7 @@ class Calculator(QWidget):
         group_box.setTitle(f"{sn} (Uncalibrated)")
 
     def enable(self, sn):
-        print("enable", sn)
+        #print("enable", sn)
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
         if not group_box.isEnabled():
