@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>803</width>
-    <height>121</height>
+    <height>123</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -63,6 +63,11 @@ QPushButton#startButton:disabled:!checked {
      <pointsize>8</pointsize>
     </font>
    </property>
+   <property name="styleSheet">
+    <string notr="true">QLineEdit {
+    color: yellow;
+}</string>
+   </property>
   </widget>
   <widget class="QLineEdit" name="globalZ">
    <property name="geometry">
@@ -84,6 +89,11 @@ QPushButton#startButton:disabled:!checked {
      <pointsize>8</pointsize>
     </font>
    </property>
+   <property name="styleSheet">
+    <string notr="true">QLineEdit {
+    color: yellow;
+}</string>
+   </property>
   </widget>
   <widget class="QLineEdit" name="globalX">
    <property name="geometry">
@@ -104,6 +114,11 @@ QPushButton#startButton:disabled:!checked {
     <font>
      <pointsize>8</pointsize>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QLineEdit {
+    color: yellow;
+}</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="localX">

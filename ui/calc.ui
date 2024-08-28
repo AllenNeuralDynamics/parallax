@@ -60,6 +60,11 @@ QPushButton#startButton:disabled:!checked {
           <height>50</height>
          </size>
         </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel {
+    color: yellow;
+}</string>
+        </property>
         <property name="text">
          <string>     Global </string>
         </property>
@@ -90,6 +95,11 @@ QPushButton#startButton:disabled:!checked {
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
        <widget class="QLabel" name="labelLocalXYZ_2">
+        <property name="styleSheet">
+         <string notr="true">QLabel {
+    color: yellow;
+}</string>
+        </property>
         <property name="text">
          <string>     (x, y, z)</string>
         </property>
