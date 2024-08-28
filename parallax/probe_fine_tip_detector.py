@@ -46,12 +46,18 @@ class ProbeFineTipDetector:
                 f"get_probe_precise_tip fail. N of contours_boundary :{len(contours_boundary)}"
             )
             return False
-
+        """
         boundary_img = np.zeros_like(img)
         boundary_img[0, 0] = 255
         boundary_img[width - 1, 0] = 255
         boundary_img[0, height - 1] = 255
         boundary_img[width - 1, height - 1] = 255
+        """
+        boundary_img[0, 0] = 255
+        boundary_img[0, width - 1] = 255
+        boundary_img[height - 1, 0] = 255
+        boundary_img[height - 1, width - 1] = 255
+
         and_result = cv2.bitwise_and(and_result, boundary_img)
         contours_boundary, _ = cv2.findContours(
             and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE

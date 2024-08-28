@@ -58,7 +58,7 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        
+        """
         self.threshold_min_max = 250 
         self.threshold_min_max_z = 0
         self.LR_err_L2_threshold = 200
@@ -84,7 +84,7 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
-        """
+        
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self.avg_err = None
@@ -599,8 +599,8 @@ class ProbeCalibration(QObject):
         self._update_local_global_point(debug_info) # Do no update if it is duplicates
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
-        #self.transM_LR = self._get_transM(filtered_df) # TODO 
-        self.transM_LR = self._get_transM(filtered_df, remove_noise=False)
+        self.transM_LR = self._get_transM(filtered_df) # TODO original
+        #self.transM_LR = self._get_transM(filtered_df, remove_noise=False) # Test
         if self.transM_LR is None:
             return
         
@@ -617,8 +617,8 @@ class ProbeCalibration(QObject):
     def complete_calibration(self, filtered_df):
         # save the filtered points to a new file
         self.file_name = f"points_{self.stage.sn}.csv"
-        #self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) # TODO 
-        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, remove_noise=False) 
+        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) # TODO original
+        #self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, remove_noise=False)  # Test
         
         if self.transM_LR is None:
             return
