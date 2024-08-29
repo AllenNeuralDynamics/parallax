@@ -162,7 +162,6 @@ class ProbeCalibration(QObject):
             self.df = self.df[self.df["sn"] != sn]
             self.df.to_csv(self.csv_file, index=False)
             self.model.add_transform(sn, self.transM_LR, self.scale)
-            print("Cleared", sn)
 
     def _remove_duplicates(self, df):
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
