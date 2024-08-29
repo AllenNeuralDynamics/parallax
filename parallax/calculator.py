@@ -6,7 +6,7 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
@@ -117,12 +117,16 @@ class Calculator(QWidget):
         local_point = local_point * scale
         local_point = np.append(local_point, 1)
         global_point = np.dot(transM_LR, local_point)
+        logger.debug(f"local_to_global: {local_point} -> {global_point[:3]}")
+        logger.debug(f"R: {transM_LR[:3, :3]}\nT: {transM_LR[:3, 3]}")
         return global_point[:3]
     
     def apply_inverse_transformation(self, global_point, transM_LR, scale):
         # Transpose the 3x3 rotation part
-        transposed_rotation = transM_LR[:3, :3].T
-        local_point = np.dot(transposed_rotation, global_point - transM_LR[:3, 3])
+        R_T = transM_LR[:3, :3].T
+        local_point = np.dot(R_T, global_point - transM_LR[:3, 3])
+        logger.debug(f"global_to_local {global_point} -> {local_point / scale}")
+        logger.debug(f"R.T: {R_T}\nT: {transM_LR}")
         return local_point / scale
 
     def disable(self, sn):
