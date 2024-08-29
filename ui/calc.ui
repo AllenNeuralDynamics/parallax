@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>resources/calc.png</normaloff>resources/calc.png</iconset>
+  </property>
   <property name="styleSheet">
    <string notr="true">QWidget{
 background-color: rgb(00,00,00);
