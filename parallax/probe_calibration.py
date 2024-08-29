@@ -58,7 +58,7 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        """
+        
         self.threshold_min_max = 250 
         self.threshold_min_max_z = 0
         self.LR_err_L2_threshold = 200
@@ -83,7 +83,7 @@ class ProbeCalibration(QObject):
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.0, 0.0, 0.0, 0.0],
             ]
-        )
+        )"""
         
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
@@ -152,14 +152,17 @@ class ProbeCalibration(QObject):
         """
         Clears all stored data and resets the transformation matrix to its default state.
         """
+        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
+        self.scale = np.array([1, 1, 1])
+
         if sn is None:
             self._create_file()
         else:
             self.df = pd.read_csv(self.csv_file)
             self.df = self.df[self.df["sn"] != sn]
             self.df.to_csv(self.csv_file, index=False)
-        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
-        self.scale = np.array([1, 1, 1])
+            self.model.add_transform(sn, self.transM_LR, self.scale)
+            print("Cleared", sn)
 
     def _remove_duplicates(self, df):
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
@@ -274,6 +277,7 @@ class ProbeCalibration(QObject):
 
         if len(local_points) <= 3 or len(global_points) <= 3:
             logger.warning("Not enough points for calibration.")
+            print("Not enough points for calibration.")
             return None
         self.origin, self.R, self.scale, self.avg_err = self.transformer.fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
@@ -503,6 +507,7 @@ class ProbeCalibration(QObject):
             else:
                 error = self.LR_err_L2_current
 
+            print("_update_info_ui", error)
             self.transM_info.emit(
                 sn,
                 self.transM_LR,
@@ -599,9 +604,10 @@ class ProbeCalibration(QObject):
         self._update_local_global_point(debug_info) # Do no update if it is duplicates
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
-        self.transM_LR = self._get_transM(filtered_df) # TODO original
-        #self.transM_LR = self._get_transM(filtered_df, remove_noise=False) # Test
+        #self.transM_LR = self._get_transM(filtered_df, noise_threshold=100) # TODO original
+        self.transM_LR = self._get_transM(filtered_df, remove_noise=False) # Test
         if self.transM_LR is None:
+            print("transM_LR is None")
             return
         
         # Check criteria

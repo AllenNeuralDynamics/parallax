@@ -67,7 +67,7 @@ class Model(QObject):
 
     def init_transforms(self):
         for stage_sn in self.stages.keys():
-            self.transforms[stage_sn] = None
+            self.transforms[stage_sn] = [None, None]
 
     def add_video_source(self, video_source):
         """Add a video source."""

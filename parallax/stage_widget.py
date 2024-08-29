@@ -773,10 +773,18 @@ class StageWidget(QWidget):
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
 
-        # Reset the probe calibration status
-        self.probeCalibration.clear(self.selected_stage_id)
-        # update global coords. Set  to '-' on UI
-        self.stageListener.requestClearGlobalDataTransformM(sn = sn)
+        if sn is not None:
+            # Reset the probe calibration status
+            self.probeCalibration.clear(self.selected_stage_id)
+            # update global coords. Set  to '-' on UI
+            self.stageListener.requestClearGlobalDataTransformM(sn = sn)
+        else: # Reset all probel calibration status
+            for sn in self.model.stages.keys():
+                self.probeCalibration.clear(sn)
+                self.stageListener.requestClearGlobalDataTransformM(sn = sn)
+
+        # Set as Uncalibrated
+        self.calculator.set_calc_functions()
 
     def probe_detect_default_status(self, sn = None):
         """

@@ -1,6 +1,7 @@
 import os
 import logging
 import numpy as np
+import traceback
 from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
@@ -34,19 +35,16 @@ class Calculator(QWidget):
 
     def set_calc_functions(self):
         for stage_sn, item in self.model.transforms.items():
-            if item is not None: # Set calc function for calibrated stages
+            transM, scale = item[0], item[1]
+            if transM is not None: # Set calc function for calibrated stages
                 push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
                 if not push_button:
                     logger.warning(f"Error: QPushButton for {stage_sn} not found")
                     continue
-                transM, scale = item[0], item[1]
                 self.enable(stage_sn)
                 push_button.clicked.connect(self.create_convert_function(stage_sn, transM, scale))
-
             else:   # Block calc functions for uncalibrated stages
-                #self.create_block_function(stage_sn)
                 self.disable(stage_sn)
-                pass
 
     def create_convert_function(self, stage_sn, transM, scale):
         return lambda: self.convert(stage_sn, transM, scale)
@@ -132,11 +130,15 @@ class Calculator(QWidget):
         local_point = np.dot(inverse_transM_LR, global_point)[:3]
         return local_point / scale  # Reverse the scaling factors
 
-    def create_block_function(self, stage_sn):
-        return lambda: self.disable(stage_sn)
-
     def disable(self, sn):
-        #print("disable", sn)
+        # Clear the QLineEdit for the stage
+        self.findChild(QLineEdit, f"localX_{sn}").setText(f"")
+        self.findChild(QLineEdit, f"localY_{sn}").setText(f"")
+        self.findChild(QLineEdit, f"localZ_{sn}").setText(f"")
+        self.findChild(QLineEdit, f"globalX_{sn}").setText(f"")
+        self.findChild(QLineEdit, f"globalY_{sn}").setText(f"")
+        self.findChild(QLineEdit, f"globalZ_{sn}").setText(f"")
+
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
         group_box.setEnabled(False)
@@ -144,7 +146,6 @@ class Calculator(QWidget):
         group_box.setTitle(f"{sn} (Uncalibrated)")
 
     def enable(self, sn):
-        #print("enable", sn)
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
         if not group_box.isEnabled():
