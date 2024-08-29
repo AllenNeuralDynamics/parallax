@@ -277,7 +277,6 @@ class ProbeCalibration(QObject):
 
         if len(local_points) <= 3 or len(global_points) <= 3:
             logger.warning("Not enough points for calibration.")
-            print("Not enough points for calibration.")
             return None
         self.origin, self.R, self.scale, self.avg_err = self.transformer.fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
@@ -507,7 +506,6 @@ class ProbeCalibration(QObject):
             else:
                 error = self.LR_err_L2_current
 
-            print("_update_info_ui", error)
             self.transM_info.emit(
                 sn,
                 self.transM_LR,
@@ -607,7 +605,6 @@ class ProbeCalibration(QObject):
         #self.transM_LR = self._get_transM(filtered_df, noise_threshold=100) # TODO original
         self.transM_LR = self._get_transM(filtered_df, remove_noise=False) # Test
         if self.transM_LR is None:
-            print("transM_LR is None")
             return
         
         # Check criteria

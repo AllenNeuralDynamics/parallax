@@ -1,7 +1,6 @@
 import os
 import logging
 import numpy as np
-import traceback
 from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
@@ -54,7 +53,6 @@ class Calculator(QWidget):
         globalX = self.findChild(QLineEdit, f"globalX_{sn}").text()
         globalY = self.findChild(QLineEdit, f"globalY_{sn}").text()
         globalZ = self.findChild(QLineEdit, f"globalZ_{sn}").text()
-        
         localX = self.findChild(QLineEdit, f"localX_{sn}").text()
         localY = self.findChild(QLineEdit, f"localY_{sn}").text()
         localZ = self.findChild(QLineEdit, f"localZ_{sn}").text()
@@ -72,14 +70,14 @@ class Calculator(QWidget):
 
     def show_local_pts_result(self, sn, local_pts):
         # Show the local points in the QLineEdit
-        self.findChild(QLineEdit, f"localX_{sn}").setText(f"{local_pts[0]:.1f}")
-        self.findChild(QLineEdit, f"localY_{sn}").setText(f"{local_pts[1]:.1f}")
-        self.findChild(QLineEdit, f"localZ_{sn}").setText(f"{local_pts[2]:.1f}")
+        self.findChild(QLineEdit, f"localX_{sn}").setText(f"{local_pts[0]:.2f}")
+        self.findChild(QLineEdit, f"localY_{sn}").setText(f"{local_pts[1]:.2f}")
+        self.findChild(QLineEdit, f"localZ_{sn}").setText(f"{local_pts[2]:.2f}")
 
     def show_global_pts_result(self, sn, global_pts):
-        self.findChild(QLineEdit, f"globalX_{sn}").setText(f"{global_pts[0]:.1f}")
-        self.findChild(QLineEdit, f"globalY_{sn}").setText(f"{global_pts[1]:.1f}")
-        self.findChild(QLineEdit, f"globalZ_{sn}").setText(f"{global_pts[2]:.1f}")
+        self.findChild(QLineEdit, f"globalX_{sn}").setText(f"{global_pts[0]:.2f}")
+        self.findChild(QLineEdit, f"globalY_{sn}").setText(f"{global_pts[1]:.2f}")
+        self.findChild(QLineEdit, f"globalZ_{sn}").setText(f"{global_pts[2]:.2f}")
 
     def get_transform_type(self, globalX, globalY, globalZ, localX, localY, localZ):
         def is_valid_number(s):
@@ -116,19 +114,16 @@ class Calculator(QWidget):
             return None, None, None
 
     def apply_transformation(self, local_point, transM_LR, scale):
-        # Apply the scaling factors obtained from fit_params
         local_point = local_point * scale
         local_point = np.append(local_point, 1)
-        
-        # Apply the transformation matrix
         global_point = np.dot(transM_LR, local_point)
         return global_point[:3]
-
+    
     def apply_inverse_transformation(self, global_point, transM_LR, scale):
-        inverse_transM_LR = np.linalg.inv(transM_LR)
-        global_point = np.append(global_point, 1)
-        local_point = np.dot(inverse_transM_LR, global_point)[:3]
-        return local_point / scale  # Reverse the scaling factors
+        # Transpose the 3x3 rotation part
+        transposed_rotation = transM_LR[:3, :3].T
+        local_point = np.dot(transposed_rotation, global_point - transM_LR[:3, 3])
+        return local_point / scale
 
     def disable(self, sn):
         # Clear the QLineEdit for the stage
