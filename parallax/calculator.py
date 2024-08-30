@@ -46,6 +46,10 @@ class Calculator(QWidget):
                 self.disable(stage_sn)
 
     def create_convert_function(self, stage_sn, transM, scale):
+        logger.debug(f"\n=== Creating convert function ===")
+        logger.debug(f"Stage SN: {stage_sn}")
+        logger.debug(f"transM: {transM}")
+        logger.debug(f"scale: {scale}")
         return lambda: self.convert(stage_sn, transM, scale)
 
     def convert(self, sn, transM, scale):
@@ -57,6 +61,9 @@ class Calculator(QWidget):
         localY = self.findChild(QLineEdit, f"localY_{sn}").text()
         localZ = self.findChild(QLineEdit, f"localZ_{sn}").text()
 
+        logger.debug("- Convert -")
+        logger.debug(f"Global: {globalX}, {globalY}, {globalZ}")
+        logger.debug(f"Local: {localX}, {localY}, {localZ}")
         trans_type, local_pts, global_pts = self.get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
             local_pts_ret = self.apply_inverse_transformation(global_pts, transM, scale)
@@ -113,11 +120,11 @@ class Calculator(QWidget):
         else:
             return None, None, None
 
-    def apply_transformation(self, local_point, transM_LR, scale):
-        local_point = local_point * scale
+    def apply_transformation(self, local_point_, transM_LR, scale):
+        local_point = local_point_ * scale
         local_point = np.append(local_point, 1)
         global_point = np.dot(transM_LR, local_point)
-        logger.debug(f"local_to_global: {local_point} -> {global_point[:3]}")
+        logger.debug(f"local_to_global: {local_point_} -> {global_point[:3]}")
         logger.debug(f"R: {transM_LR[:3, :3]}\nT: {transM_LR[:3, 3]}")
         return global_point[:3]
     
@@ -126,7 +133,7 @@ class Calculator(QWidget):
         R_T = transM_LR[:3, :3].T
         local_point = np.dot(R_T, global_point - transM_LR[:3, 3])
         logger.debug(f"global_to_local {global_point} -> {local_point / scale}")
-        logger.debug(f"R.T: {R_T}\nT: {transM_LR}")
+        logger.debug(f"R.T: {R_T}\nT: {transM_LR[:3, 3]}")
         return local_point / scale
 
     def disable(self, sn):
