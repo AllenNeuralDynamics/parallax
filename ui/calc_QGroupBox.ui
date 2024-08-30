@@ -227,6 +227,15 @@ QPushButton#startButton:disabled:!checked {
    </property>
   </widget>
  </widget>
+ <tabstops>
+  <tabstop>globalX</tabstop>
+  <tabstop>globalY</tabstop>
+  <tabstop>globalZ</tabstop>
+  <tabstop>convert</tabstop>
+  <tabstop>localX</tabstop>
+  <tabstop>localY</tabstop>
+  <tabstop>localZ</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
