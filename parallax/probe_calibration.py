@@ -152,14 +152,16 @@ class ProbeCalibration(QObject):
         """
         Clears all stored data and resets the transformation matrix to its default state.
         """
+        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
+        self.scale = np.array([1, 1, 1])
+
         if sn is None:
             self._create_file()
         else:
             self.df = pd.read_csv(self.csv_file)
             self.df = self.df[self.df["sn"] != sn]
             self.df.to_csv(self.csv_file, index=False)
-        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
-        self.scale = np.array([1, 1, 1])
+            self.model.add_transform(sn, self.transM_LR, self.scale)
 
     def _remove_duplicates(self, df):
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
@@ -264,6 +266,7 @@ class ProbeCalibration(QObject):
     def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=40):
 
         local_points, global_points = self._get_local_global_points(df)
+        valid_indices = np.ones(len(local_points), dtype=bool) # Initialize valid_indices as a mask with all True values
         
         if remove_noise:
             if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
@@ -598,7 +601,8 @@ class ProbeCalibration(QObject):
         self._update_local_global_point(debug_info) # Do no update if it is duplicates
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
-        self.transM_LR = self._get_transM(filtered_df)
+        self.transM_LR = self._get_transM(filtered_df, noise_threshold=100) # TODO original
+        #self.transM_LR = self._get_transM(filtered_df, remove_noise=False) # Test
         if self.transM_LR is None:
             return
         
@@ -615,7 +619,9 @@ class ProbeCalibration(QObject):
     def complete_calibration(self, filtered_df):
         # save the filtered points to a new file
         self.file_name = f"points_{self.stage.sn}.csv"
-        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) 
+        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) # TODO original
+        #self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, remove_noise=False)  # Test
+        
         if self.transM_LR is None:
             return
     
@@ -638,6 +644,9 @@ class ProbeCalibration(QObject):
             else:
                 return
         
+        # Register into model
+        self.model.add_transform(self.stage.sn, self.transM_LR, self.scale)
+
         # Emit the signal to indicate that calibration is complete         
         self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
         logger.debug(

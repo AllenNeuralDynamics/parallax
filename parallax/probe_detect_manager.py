@@ -264,11 +264,11 @@ class ProbeDetectManager(QObject):
             logger.debug("probe_detect_manager running ")
             while self.running:
                 if self.new:
-                    self.frame = self.process_draw_reticle(self.frame)
                     if self.is_detection_on:
                         self.frame, self.timestamp = self.process(
                             self.frame, self.timestamp
                         )
+                    self.frame = self.process_draw_reticle(self.frame)
                     self.frame_processed.emit(self.frame)
                     self.new = False
                 time.sleep(0.001)

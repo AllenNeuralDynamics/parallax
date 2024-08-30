@@ -315,19 +315,22 @@ class ProbeDetector:
                 - probe_base (tuple): Coordinates of the probe base.
         """
 
+        if mask is None:
+            mask = np.zeros((self.IMG_SIZE[1], self.IMG_SIZE[0]), dtype=np.uint8)
+
+        
         mask = cv2.copyMakeBorder(
             mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0]
         )
+        """ 
+        # TODO Draw a border inside the mask with the specified thickness
+        border_size = 200
+        cv2.rectangle(mask, (border_size, border_size), 
+                  (mask.shape[1] - border_size - 1, mask.shape[0] - border_size - 1), 
+                  0, border_size)
+        """
         dist_transform = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
-        """
-        if img_fname:
-            mask_ = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-            cv2.circle(mask_, p1, 5, (0, 255, 0), -1)  # Green circle
-            cv2.circle(mask_, p2, 5, (0, 0, 255), -1)  # Green circle
-            
-            output_fname = os.path.basename(img_fname).replace('.', '_mask.')
-            cv2.imwrite('output/' + output_fname, mask_)
-        """
+
         dist_p1 = dist_transform[p1[1], p1[0]]  # [y, x]
         dist_p2 = dist_transform[p2[1], p2[0]]
         logger.debug(f"dist_p1: {dist_p1}, dist_p2: {dist_p2}")

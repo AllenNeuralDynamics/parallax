@@ -28,6 +28,9 @@ class Model(QObject):
         # point mesh
         self.point_mesh_instances = {}
 
+        # Calculator
+        self.calc_instance = None
+
         # stage
         self.nStages = 0
         self.stages = {}
@@ -46,17 +49,8 @@ class Model(QObject):
         self.calibrations = {}
         self.coords_debug = {}
 
-        self.cal_in_progress = False
-        self.accutest_in_progress = False
-        self.lcorr, self.rcorr = False, False
-
-        self.img_point_last = None
-        self.obj_point_last = None
+        # Transformation matrices of stages to global coords
         self.transforms = {}
-
-    def set_last_object_point(self, obj_point):
-        """Set the last object point."""
-        self.obj_point_last = obj_point
 
     def add_calibration(self, cal):
         """Add a calibration."""
@@ -66,26 +60,14 @@ class Model(QObject):
         """Set the calibration."""
         self.calibration = calibration
 
-    def set_lcorr(self, xc, yc):
-        """Set left coordinates."""
-        self.lcorr = [xc, yc]
-
-    def clear_lcorr(self):
-        """Clear left coordinates."""
-        self.lcorr = False
-
-    def set_rcorr(self, xc, yc):
-        """Set right coordinates."""
-        self.rcorr = [xc, yc]
-
-    def clear_rcorr(self):
-        """Clear right coordinates."""
-        self.rcorr = False
-
     def init_stages(self):
         """Initialize stages."""
         self.stages = {}
         self.stages_calib = {}
+
+    def init_transforms(self):
+        for stage_sn in self.stages.keys():
+            self.transforms[stage_sn] = [None, None]
 
     def add_video_source(self, video_source):
         """Add a video source."""
@@ -134,7 +116,16 @@ class Model(QObject):
         return self.stages.get(stage_sn)
 
     def add_stage_calib_info(self, stage_sn, info):
-        """Add a stage."""
+        """Add a stage.
+        info['detection_status']
+        info['transM']
+        info['L2_err']
+        info['scale']
+        info['dist_traveled']
+        info['status_x']
+        info['status_y']
+        info['status_z']
+        """
         self.stages_calib[stage_sn] = info
 
     def get_stage_calib_info(self, stage_sn):
@@ -145,6 +136,10 @@ class Model(QObject):
         """Reset stage calibration info."""
         self.stages_calib = {}
 
+    def add_transform(self, stage_sn, transform, scale):
+        """Add transformation matrix between local to global coordinates."""
+        self.transforms[stage_sn] = [transform, scale]
+
     def add_probe_detector(self, probeDetector):
         """Add a probe detector."""
         self.probeDetectors.append(probeDetector)
@@ -154,7 +149,7 @@ class Model(QObject):
         self.coords_axis = {}
         self.camera_intrinsic = {}
         self.camera_extrinsic = {}
-    
+
     def add_pos_x(self, camera_name, pt):
         """Add position x."""
         self.pos_x[camera_name] = pt
@@ -221,3 +216,11 @@ class Model(QObject):
         for instance in self.point_mesh_instances.values():
             instance.close()
         self.point_mesh_instances.clear()
+
+    def add_calc_instance(self, instance):
+        self.calc_instance = instance
+
+    def close_clac_instance(self):
+        if self.calc_instance is not None:
+            self.calc_instance.close()
+            self.calc_instance = None

@@ -19,6 +19,7 @@ from .calibration_camera import CalibrationStereo
 from .probe_calibration import ProbeCalibration
 from .stage_listener import StageListener
 from .stage_ui import StageUI
+from .calculator import Calculator
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -89,6 +90,14 @@ class StageWidget(QWidget):
             self.view_trajectory_button_handler
         )
 
+        # Calculation Button
+        self.calculation_btn = self.probe_calib_widget.findChild(
+            QPushButton, "calculation_btn"
+        )
+        self.calculation_btn.clicked.connect(
+            self.calculation_button_handler
+        )
+
         # Reticle Widget
         self.reticle_detection_status = (
             "default"  # options: default, process, detected, accepted, request_axis
@@ -150,6 +159,10 @@ class StageWidget(QWidget):
         # Set current filter
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
+
+        #  Calculator
+        self.calculation_btn.hide()
+        self.calculator = Calculator(self.model)
 
     def reticle_detection_button_handler(self):
         """
@@ -738,6 +751,7 @@ class StageWidget(QWidget):
         """)
         self.hide_x_y_z()
         self.hide_trajectory_btn()
+        self.hide_calculation_btn()
     
         self.probeCalibrationLabel.setText("")
         self.probe_calibration_btn.setChecked(False)
@@ -759,10 +773,18 @@ class StageWidget(QWidget):
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
 
-        # Reset the probe calibration status
-        self.probeCalibration.clear(self.selected_stage_id)
-        # update global coords. Set  to '-' on UI
-        self.stageListener.requestClearGlobalDataTransformM(sn = sn)
+        if sn is not None:
+            # Reset the probe calibration status
+            self.probeCalibration.clear(self.selected_stage_id)
+            # update global coords. Set  to '-' on UI
+            self.stageListener.requestClearGlobalDataTransformM(sn = sn)
+        else: # Reset all probel calibration status
+            for sn in self.model.stages.keys():
+                self.probeCalibration.clear(sn)
+                self.stageListener.requestClearGlobalDataTransformM(sn = sn)
+
+        # Set as Uncalibrated
+        self.calculator.set_calc_functions()
 
     def probe_detect_default_status(self, sn = None):
         """
@@ -840,6 +862,8 @@ class StageWidget(QWidget):
         self.hide_x_y_z()
         if not self.viewTrajectory_btn.isVisible():
             self.viewTrajectory_btn.show()
+        if not self.calculation_btn.isVisible():
+            self.calculation_btn.show()
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -894,6 +918,10 @@ class StageWidget(QWidget):
     def hide_trajectory_btn(self):
         if self.viewTrajectory_btn.isVisible():
             self.viewTrajectory_btn.hide()
+
+    def hide_calculation_btn(self):
+        if self.calculation_btn.isVisible():
+            self.calculation_btn.hide()
 
     def calib_x_complete(self, switch_probe = False):
         """
@@ -1074,3 +1102,6 @@ class StageWidget(QWidget):
 
     def view_trajectory_button_handler(self):
         self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
+
+    def calculation_button_handler(self):
+        self.calculator.show()
