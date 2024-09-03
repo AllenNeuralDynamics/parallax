@@ -142,7 +142,7 @@ QPushButton#startButton:disabled:!checked {
    </property>
    <property name="font">
     <font>
-     <pointsize>7</pointsize>
+     <pointsize>8</pointsize>
     </font>
    </property>
    <property name="text">
@@ -160,7 +160,7 @@ QPushButton#startButton:disabled:!checked {
    </property>
    <property name="font">
     <font>
-     <pointsize>7</pointsize>
+     <pointsize>8</pointsize>
     </font>
    </property>
    <property name="text">
@@ -192,7 +192,7 @@ QPushButton#startButton:disabled:!checked {
   <widget class="QLabel" name="labelName">
    <property name="geometry">
     <rect>
-     <x>50</x>
+     <x>40</x>
      <y>50</y>
      <width>111</width>
      <height>20</height>
@@ -200,7 +200,7 @@ QPushButton#startButton:disabled:!checked {
    </property>
    <property name="font">
     <font>
-     <pointsize>7</pointsize>
+     <pointsize>8</pointsize>
     </font>
    </property>
    <property name="text">
@@ -218,7 +218,7 @@ QPushButton#startButton:disabled:!checked {
    </property>
    <property name="font">
     <font>
-     <pointsize>7</pointsize>
+     <pointsize>8</pointsize>
     </font>
    </property>
    <property name="text">
@@ -236,7 +236,7 @@ QPushButton#startButton:disabled:!checked {
    </property>
    <property name="font">
     <font>
-     <pointsize>7</pointsize>
+     <pointsize>8</pointsize>
     </font>
    </property>
    <property name="text">

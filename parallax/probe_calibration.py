@@ -611,7 +611,6 @@ class ProbeCalibration(QObject):
         Args:
             stage (Stage): The current stage object with new position data.
         """
-        print("ProbeCalibration: update")
         # update points in the file
         #self.stage = stage # TODO
         #self._update_local_global_point(debug_info) # Do no update if it is duplicates TODO
@@ -620,7 +619,6 @@ class ProbeCalibration(QObject):
         filtered_df = self._filter_df_by_sn("SN46798")
         #self.transM_LR = self._get_transM(filtered_df, noise_threshold=100) # TODO original
         self.transM_LR = self._get_transM(filtered_df, remove_noise=False, noise_threshold=100) # TODO original
-        print(self.transM_LR)
         #self.transM_LR = self._get_transM(filtered_df, remove_noise=False) # Test
         if self.transM_LR is None:
             return
