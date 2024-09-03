@@ -13,12 +13,18 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget{
+background-color: rgb(00,00,00);
+color: #FFFFFF;
+}</string>
+  </property>
   <widget class="QWidget" name="gridLayoutWidget">
    <property name="geometry">
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>281</width>
+     <width>289</width>
      <height>715</height>
     </rect>
    </property>
@@ -26,53 +32,21 @@
     <property name="verticalSpacing">
      <number>1</number>
     </property>
-    <item row="3" column="3">
-     <widget class="QPushButton" name="calib_z">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
+    <item row="5" column="0" rowspan="2" colspan="8">
+     <widget class="QLabel" name="probeCalibrationLabel">
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>30</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>30</width>
-        <height>30</height>
+        <height>600</height>
        </size>
       </property>
       <property name="text">
-       <string>Z</string>
+       <string/>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
       </property>
      </widget>
-    </item>
-    <item row="3" column="4">
-     <spacer name="horizontalSpacer_2">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="3" column="0">
-     <spacer name="horizontalSpacer">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>40</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
     </item>
     <item row="3" column="1">
      <widget class="QPushButton" name="calib_x">
@@ -96,8 +70,8 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="0" colspan="7">
-     <widget class="QPushButton" name="probe_calibration_btn">
+    <item row="3" column="5">
+     <widget class="QPushButton" name="viewTrajectory_btn">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -106,32 +80,7 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>200</width>
-        <height>40</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>300</width>
-        <height>40</height>
-       </size>
-      </property>
-      <property name="text">
-       <string>Probe Calibration</string>
-      </property>
-      <property name="checkable">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="2">
-     <widget class="QPushButton" name="calib_y">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
+        <width>30</width>
         <height>30</height>
        </size>
       </property>
@@ -141,12 +90,37 @@
         <height>30</height>
        </size>
       </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:7pt;&quot;&gt;Trajectory&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">
+QPushButton{
+	color: white;
+    background-color: black;
+}
+
+QPushButton:pressed {
+    background-color: rgb(224, 0, 0);     
+}
+
+QPushButton:hover {
+    background-color: rgb(100, 30, 30);
+}</string>
+      </property>
       <property name="text">
-       <string>Y</string>
+       <string extracomment="Trajectory"/>
+      </property>
+      <property name="icon">
+       <iconset>
+        <normaloff>resources/3D_map.png</normaloff>resources/3D_map.png</iconset>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
       </property>
      </widget>
     </item>
-    <item row="3" column="6">
+    <item row="3" column="7">
      <widget class="QPushButton" name="calculation_btn">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -156,13 +130,13 @@
       </property>
       <property name="minimumSize">
        <size>
-        <width>40</width>
+        <width>30</width>
         <height>30</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
-        <width>40</width>
+        <width>30</width>
         <height>30</height>
        </size>
       </property>
@@ -196,24 +170,56 @@ QPushButton:hover {
       </property>
      </widget>
     </item>
-    <item row="5" column="0" rowspan="2" colspan="7">
-     <widget class="QLabel" name="probeCalibrationLabel">
+    <item row="3" column="2">
+     <widget class="QPushButton" name="calib_y">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>600</height>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>30</width>
+        <height>30</height>
        </size>
       </property>
       <property name="text">
-       <string/>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+       <string>Y</string>
       </property>
      </widget>
     </item>
-    <item row="3" column="5">
-     <widget class="QPushButton" name="viewTrajectory_btn">
+    <item row="3" column="4">
+     <spacer name="horizontalSpacer_2">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="3" column="0">
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>40</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="1" column="0" colspan="8">
+     <widget class="QPushButton" name="probe_calibration_btn">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -222,18 +228,62 @@ QPushButton:hover {
       </property>
       <property name="minimumSize">
        <size>
-        <width>40</width>
+        <width>200</width>
+        <height>40</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>300</width>
+        <height>40</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>Probe Calibration</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="3">
+     <widget class="QPushButton" name="calib_z">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
         <height>30</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
-        <width>40</width>
+        <width>30</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>Z</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="6">
+     <widget class="QPushButton" name="reticle_btn">
+      <property name="minimumSize">
+       <size>
+        <width>30</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>30</width>
         <height>30</height>
        </size>
       </property>
       <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:7pt;&quot;&gt;Trajectory&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:7pt;&quot;&gt;Reticle Metadata&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
       <property name="styleSheet">
        <string notr="true">
@@ -251,14 +301,11 @@ QPushButton:hover {
 }</string>
       </property>
       <property name="text">
-       <string extracomment="Trajectory"/>
+       <string/>
       </property>
       <property name="icon">
        <iconset>
-        <normaloff>resources/3D_map.png</normaloff>resources/3D_map.png</iconset>
-      </property>
-      <property name="checkable">
-       <bool>false</bool>
+        <normaloff>resources/reticle_gray.png</normaloff>resources/reticle_gray.png</iconset>
       </property>
      </widget>
     </item>

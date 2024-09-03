@@ -20,6 +20,7 @@ from .probe_calibration import ProbeCalibration
 from .stage_listener import StageListener
 from .stage_ui import StageUI
 from .calculator import Calculator
+from .reticle_metadata import ReticleMetadata
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -98,6 +99,14 @@ class StageWidget(QWidget):
             self.calculation_button_handler
         )
 
+        # Reticle Button
+        self.reticle_metadata_btn = self.probe_calib_widget.findChild(
+            QPushButton, "reticle_btn"
+        )
+        self.reticle_metadata_btn.clicked.connect(
+            self.reticle_button_handler
+        )
+
         # Reticle Widget
         self.reticle_detection_status = (
             "default"  # options: default, process, detected, accepted, request_axis
@@ -160,9 +169,13 @@ class StageWidget(QWidget):
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
-        #  Calculator
+        # Calculator Button
         self.calculation_btn.hide()
         self.calculator = Calculator(self.model)
+
+        # Reticle Button
+        self.reticle_metadata_btn.hide()
+        self.reticle_metadata = ReticleMetadata(self.model) 
 
     def reticle_detection_button_handler(self):
         """
@@ -752,6 +765,7 @@ class StageWidget(QWidget):
         self.hide_x_y_z()
         self.hide_trajectory_btn()
         self.hide_calculation_btn()
+        self.hide_reticle_metadata_btn()
     
         self.probeCalibrationLabel.setText("")
         self.probe_calibration_btn.setChecked(False)
@@ -864,6 +878,8 @@ class StageWidget(QWidget):
             self.viewTrajectory_btn.show()
         if not self.calculation_btn.isVisible():
             self.calculation_btn.show()
+        if not self.reticle_metadata_btn.isVisible():
+            self.reticle_metadata_btn.show()
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -922,6 +938,10 @@ class StageWidget(QWidget):
     def hide_calculation_btn(self):
         if self.calculation_btn.isVisible():
             self.calculation_btn.hide()
+
+    def hide_reticle_metadata_btn(self):
+        if self.reticle_metadata_btn.isVisible():
+            self.reticle_metadata_btn.hide()
 
     def calib_x_complete(self, switch_probe = False):
         """
@@ -1105,3 +1125,7 @@ class StageWidget(QWidget):
 
     def calculation_button_handler(self):
         self.calculator.show()
+
+    def reticle_button_handler(self):
+        print("reticle button clicked")
+        self.reticle_metadata.show()
