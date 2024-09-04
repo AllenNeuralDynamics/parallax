@@ -26,6 +26,7 @@ docs/_build/
 
 # User-settings
 ui/settings.json
+ui/reticle_metadata.json
 
 # Unit test / coverage reports
 .coverage
