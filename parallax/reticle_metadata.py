@@ -21,6 +21,7 @@ class ReticleMetadata(QWidget):
         self.reticle_selector = reticle_selector
 
         self.ui = loadUi(os.path.join(ui_dir, "reticle_metadata.ui"), self)
+        self.default_size = self.size()
         self.setWindowTitle(f"Reticle Metadata")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
@@ -40,44 +41,36 @@ class ReticleMetadata(QWidget):
         try:
             with open(json_path, 'r') as json_file:
                 reticle_data = json.load(json_file)
-            
-            # Create groupboxes based on loaded data
-            for reticle_info in reticle_data:
-                self.create_groupbox_from_metadata(reticle_info)
-
             if reticle_data:
+                self.create_groupbox_from_metadata(reticle_data)
                 self.update_to_reticle_selector(reticle_data)
         
         except Exception as e:
             logger.error(f"Error reading metadata file: {e}")
 
-    def create_groupbox_from_metadata(self, reticle_info):
+    def create_groupbox_from_metadata(self, reticle_data):
         """Create a groupbox from metadata and populate it."""
-        name = reticle_info.get("name", "")
-        
-        if name in self.groupboxes:
-            return None  # Do not add a new groupbox if it already exists
-        
-        group_box = self.populate_groupbox(name, reticle_info)
-        self.groupboxes[name] = group_box  # Add to dictionary using reticle name as key
-        return group_box
+        for reticle_info in reticle_data:
+            name = reticle_info.get("name", "")
+            if name in self.groupboxes.keys():
+                return  # Do not add a new groupbox if it already exists
 
-    def create_metadata_groupboxes(self):
+            self.populate_groupbox(name, reticle_info)
+
+    def add_groupbox(self):
         """This method creates new groupboxes with an alphabet name."""
         alphabet = self.find_next_available_alphabet()
         if alphabet is None:
             logger.warning("No available slot for reticle. All alphabets are assigned.")
             print("No available slot for reticle.")
-            return None
+            return
         
         # Mark the alphabet as used
         self.alphabet_status[alphabet] = 1
 
         # Create an empty metadata dictionary for the new group box
         reticle_info = {"name": alphabet}
-        group_box = self.populate_groupbox(alphabet, reticle_info)
-        self.groupboxes[alphabet] = group_box  # Add to dictionary
-        return group_box
+        self.populate_groupbox(alphabet, reticle_info)
 
     def populate_groupbox(self, name, reticle_info):
         """Helper method to set up a groupbox."""
@@ -98,7 +91,7 @@ class ReticleMetadata(QWidget):
             if line_edit:
                 line_edit.setText(value)
 
-        # Find the QLineEdit for the reticle name and connect the signal
+        # Find the QLineEdit for the reticle name and connect the signal (group box name)
         reticle_name_edit = group_box.findChild(QLineEdit, "lineEditName")
         if reticle_name_edit:
             if "name" in reticle_info:
@@ -121,9 +114,11 @@ class ReticleMetadata(QWidget):
         count = self.ui.verticalLayout.count()
         self.ui.verticalLayout.insertWidget(count - 1, group_box)
 
-        return group_box
+        # Store the group_box in a dictionary to track added groupboxes
+        self.groupboxes[name] = group_box
 
     def update_groupbox_name(self, group_box, new_name, alphabet):
+        """Update the title and object name of the group box."""
         if alphabet == group_box.objectName():
             self.alphabet_status[alphabet] = 0
     
@@ -134,9 +129,6 @@ class ReticleMetadata(QWidget):
 
             if new_name.strip().isalpha() and len(new_name.strip()) == 1 and new_name.strip().upper() in self.alphabet_status:
                 self.alphabet_status[new_name] = 1
-
-    def add_groupbox(self):
-        group_box = self.create_metadata_groupboxes()
 
     def remove_specific_groupbox(self, group_box, alphabet):
         if alphabet in self.groupboxes:
@@ -169,7 +161,16 @@ class ReticleMetadata(QWidget):
             self.reticle_selector.addItem(f"Global coords ({reticle_info['name']})")
 
     def default_reticle_selector(self):
-        self.groupboxes = {}
+        # Iterate over the added sgroup boxes and remove each one from the layout
+        for name, group_box in self.groupboxes.items():
+            self.ui.verticalLayout.removeWidget(group_box)
+            group_box.deleteLater()  # Properly delete the widget
+        self.resize(self.default_size)
+
+        # Clear the dictionary after removing all group boxes
+        self.groupboxes.clear()
+
+        # Clear and reset the reticle_selector
         self.reticle_selector.clear()
         self.reticle_selector.addItem(f"Global coords")
 
@@ -225,12 +226,6 @@ class ReticleMetadata(QWidget):
             return False
 
     def get_global_coords_with_offset(self, stage_sn, reticle_name, global_pts):
-        # Need to know stage_sn, transM, scale,
-        # global x, y, z
-        # reticle offset info 
-
-        # Get offset info
-        # get Rot, OffsetX, OffsetY, OffsetZ, 
         group_box = self.groupboxes.get(reticle_name)
         if not group_box:
             print(f"Error: No groupbox found for reticle '{reticle_name}'.")
@@ -242,7 +237,7 @@ class ReticleMetadata(QWidget):
         offset_x = group_box.findChild(QLineEdit, "lineEditOffsetX").text()
         offset_y = group_box.findChild(QLineEdit, "lineEditOffsetY").text()
         offset_z = group_box.findChild(QLineEdit, "lineEditOffsetZ").text()
-        print(offset_rot, offset_x, offset_y, offset_z)
+        #print(offset_rot, offset_x, offset_y, offset_z)
         
         try:
             offset_rot = float(offset_rot)
@@ -252,13 +247,6 @@ class ReticleMetadata(QWidget):
             global_offset = np.array([offset_x, offset_y, offset_z])
         except ValueError:
             print("Error: Invalid offset values.")
-            return None
-    
-        transform = self.model.get_transform(stage_sn)
-        if transform is not None:
-            transM, scale = transform[0], transform[1]
-        else:
-            print("Error: No transformation found for the given stage serial number.")
             return None
         
         if offset_rot != 0:

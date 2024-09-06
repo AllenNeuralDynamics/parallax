@@ -1133,5 +1133,4 @@ class StageWidget(QWidget):
         self.calculator.show()
 
     def reticle_button_handler(self):
-        print("reticle button clicked")
         self.reticle_metadata.show()
