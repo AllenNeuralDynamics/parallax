@@ -175,7 +175,7 @@ class StageWidget(QWidget):
 
         # Reticle Button
         self.reticle_metadata_btn.hide()
-        self.reticle_metadata = ReticleMetadata(self.model) 
+        self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector) 
 
     def reticle_detection_button_handler(self):
         """
@@ -811,6 +811,7 @@ class StageWidget(QWidget):
         self.scale = np.array([1, 1, 1])
         self.probeCalibration.reset_calib(sn = sn)
         self.probe_detect_default_status_ui(sn = sn)
+        self.reticle_metadata.default_reticle_selector()
 
     def probe_detect_process_status(self):
         """
@@ -901,6 +902,9 @@ class StageWidget(QWidget):
         self.stageListener.requestUpdateGlobalDataTransformM(
             stage_sn, transformation_matrix, scale
         )
+
+        # Update reticle selector
+        self.reticle_metadata.load_metadata_from_file()
 
     def set_default_x_y_z_style(self):
         self.calib_x.setStyleSheet(

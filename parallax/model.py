@@ -140,6 +140,10 @@ class Model(QObject):
         """Add transformation matrix between local to global coordinates."""
         self.transforms[stage_sn] = [transform, scale]
 
+    def get_transform(self, stage_sn):
+        """Get transformation matrix between local to global coordinates."""
+        return self.transforms.get(stage_sn)
+
     def add_probe_detector(self, probeDetector):
         """Add a probe detector."""
         self.probeDetectors.append(probeDetector)
