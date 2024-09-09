@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>820</width>
-    <height>50</height>
+    <width>890</width>
+    <height>183</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -52,7 +52,7 @@ QPushButton#startButton:disabled:!checked {
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>791</width>
+     <width>861</width>
      <height>831</height>
     </rect>
    </property>
@@ -98,7 +98,7 @@ QPushButton#startButton:disabled:!checked {
        <widget class="QPushButton" name="update_btn">
         <property name="maximumSize">
          <size>
-          <width>60</width>
+          <width>100</width>
           <height>16777215</height>
          </size>
         </property>

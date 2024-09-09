@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>902</width>
+    <width>1109</width>
     <height>150</height>
    </rect>
   </property>
@@ -54,13 +54,13 @@ QPushButton#startButton:disabled:!checked {
     <rect>
      <x>180</x>
      <y>70</y>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </size>
    </property>
@@ -74,15 +74,15 @@ QPushButton#startButton:disabled:!checked {
   <widget class="QLineEdit" name="lineEditOffsetX">
    <property name="geometry">
     <rect>
-     <x>320</x>
+     <x>330</x>
      <y>70</y>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </size>
    </property>
@@ -96,15 +96,15 @@ QPushButton#startButton:disabled:!checked {
   <widget class="QLineEdit" name="lineEditOffsetY">
    <property name="geometry">
     <rect>
-     <x>460</x>
+     <x>480</x>
      <y>70</y>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </size>
    </property>
@@ -118,15 +118,15 @@ QPushButton#startButton:disabled:!checked {
   <widget class="QLineEdit" name="lineEditOffsetZ">
    <property name="geometry">
     <rect>
-     <x>600</x>
+     <x>630</x>
      <y>70</y>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </size>
    </property>
@@ -136,49 +136,49 @@ QPushButton#startButton:disabled:!checked {
     <rect>
      <x>180</x>
      <y>50</y>
-     <width>111</width>
+     <width>141</width>
      <height>20</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>8</pointsize>
+     <pointsize>7</pointsize>
     </font>
    </property>
    <property name="text">
-    <string>Rotation Degrees</string>
+    <string>RotDegrees</string>
    </property>
   </widget>
   <widget class="QLabel" name="labelOffsetX">
    <property name="geometry">
     <rect>
-     <x>320</x>
+     <x>330</x>
      <y>50</y>
-     <width>111</width>
+     <width>141</width>
      <height>20</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>8</pointsize>
+     <pointsize>7</pointsize>
     </font>
    </property>
    <property name="text">
-    <string>Offset X (μm)</string>
+    <string>OffsetX (μm)</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="lineEditName">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>30</x>
      <y>70</y>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>130</width>
+     <width>140</width>
      <height>40</height>
     </size>
    </property>
@@ -192,61 +192,61 @@ QPushButton#startButton:disabled:!checked {
   <widget class="QLabel" name="labelName">
    <property name="geometry">
     <rect>
-     <x>40</x>
+     <x>30</x>
      <y>50</y>
-     <width>111</width>
+     <width>141</width>
      <height>20</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>8</pointsize>
+     <pointsize>7</pointsize>
     </font>
    </property>
    <property name="text">
-    <string>Reticle Name</string>
+    <string>ReticleName</string>
    </property>
   </widget>
   <widget class="QLabel" name="labelOffsetY">
    <property name="geometry">
     <rect>
-     <x>460</x>
+     <x>480</x>
      <y>50</y>
-     <width>111</width>
+     <width>141</width>
      <height>20</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>8</pointsize>
+     <pointsize>7</pointsize>
     </font>
    </property>
    <property name="text">
-    <string>Offset Y (μm)</string>
+    <string>OffsetY (μm)</string>
    </property>
   </widget>
   <widget class="QLabel" name="labelOffsetZ">
    <property name="geometry">
     <rect>
-     <x>600</x>
+     <x>630</x>
      <y>50</y>
-     <width>111</width>
+     <width>141</width>
      <height>20</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>8</pointsize>
+     <pointsize>7</pointsize>
     </font>
    </property>
    <property name="text">
-    <string>Offset Z (μm)</string>
+    <string>OffsetZ (μm)</string>
    </property>
   </widget>
   <widget class="QPushButton" name="remove_btn">
    <property name="geometry">
     <rect>
-     <x>740</x>
+     <x>770</x>
      <y>70</y>
      <width>30</width>
      <height>31</height>
