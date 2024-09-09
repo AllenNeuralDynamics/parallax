@@ -52,7 +52,8 @@ class ReticleMetadata(QWidget):
     def create_groupbox_from_metadata(self, reticle_data):
         """Create a groupbox from metadata and populate it."""
         for reticle_info in reticle_data:
-            name = reticle_info.get("name", "")
+            #name = reticle_info.get("name", "")
+            name = reticle_info.get("lineEditName", "")
             if name in self.groupboxes.keys():
                 return  # Do not add a new groupbox if it already exists
 
@@ -70,7 +71,7 @@ class ReticleMetadata(QWidget):
         self.alphabet_status[alphabet] = 1
 
         # Create an empty metadata dictionary for the new group box
-        reticle_info = {"name": alphabet}
+        reticle_info = {"lineEditName": alphabet}
         self.populate_groupbox(alphabet, reticle_info)
 
     def populate_groupbox(self, name, reticle_info):
@@ -95,10 +96,10 @@ class ReticleMetadata(QWidget):
         # Find the QLineEdit for the reticle name and connect the signal (group box name)
         reticle_name_edit = group_box.findChild(QLineEdit, "lineEditName")
         if reticle_name_edit:
-            if "name" in reticle_info:
-                reticle_name_edit.setText(reticle_info["name"])  # Set name from metadata
-            else:
-                reticle_name_edit.setText(name)  # Initialize with alphabet if not in metadata
+            #if "name" in reticle_info:
+            #    reticle_name_edit.setText(reticle_info["name"])  # Set name from metadata
+            #else:
+            reticle_name_edit.setText(name)  # Initialize with alphabet if not in metadata
             # Connect the textChanged signal to dynamically update the group_box title and object name
             reticle_name_edit.textChanged.connect(lambda text, gb=group_box: self.update_groupbox_name(gb, text, name))
 
@@ -116,8 +117,8 @@ class ReticleMetadata(QWidget):
         self.ui.verticalLayout.insertWidget(count - 1, group_box)
 
         # Store the group_box in a dictionary to track added groupboxes
-        self.groupboxes[name] = group_box
-        self.update_reticles(name, group_box)
+        self.groupboxes[name] = group_box #TODO update when writing to file
+        self.update_reticles(name, group_box) #TODO update when writing to file
 
     def update_groupbox_name(self, group_box, new_name, alphabet):
         """Update the title and object name of the group box."""
@@ -161,7 +162,7 @@ class ReticleMetadata(QWidget):
 
         # update dropdown menu with reticle names
         for reticle_info in reticle_data:
-            self.reticle_selector.addItem(f"Global coords ({reticle_info['name']})")
+            self.reticle_selector.addItem(f"Global coords ({reticle_info['lineEditName']})")
 
     def default_reticle_selector(self):
         # Iterate over the added sgroup boxes and remove each one from the layout
@@ -179,12 +180,13 @@ class ReticleMetadata(QWidget):
         self.reticle_selector.addItem(f"Global coords")
 
     def update_to_file(self):
+        print("Update to file")
         reticle_data = []
         names_seen = set()
         duplicates = False
 
         for reticle_name, group_box in self.groupboxes.items():
-            reticle_info = {"name": reticle_name}
+            reticle_info = {}
 
             for line_edit in group_box.findChildren(QLineEdit):
                 line_edit_value = line_edit.text().strip()
@@ -230,11 +232,13 @@ class ReticleMetadata(QWidget):
             return False
 
     def update_reticles(self, reticle_name, group_box):
-        group_box = self.groupboxes.get(reticle_name)
+        #group_box = self.groupboxes.get(reticle_name)
         if not group_box:
-            print(f"Error: No groupbox found for reticle '{reticle_name}'.")
+            print(f"Error: No groupbox found for reticle '{group_box}'.")
+            print("Groupboxes:", self.groupboxes)
             return
         
+        name = group_box.findChild(QLineEdit, "lineEditName").text()
         offset_rot = group_box.findChild(QLineEdit, "lineEditRot").text()
         offset_x = group_box.findChild(QLineEdit, "lineEditOffsetX").text()
         offset_y = group_box.findChild(QLineEdit, "lineEditOffsetY").text()
@@ -257,7 +261,7 @@ class ReticleMetadata(QWidget):
                 .squeeze()
             )
         
-        self.reticles[reticle_name] = {
+        self.reticles[name] = {
             "rot": offset_rot,
             "rotmat": rotmat,
             "offset_x": offset_x,
@@ -267,8 +271,9 @@ class ReticleMetadata(QWidget):
 
     def get_global_coords_with_offset(self, reticle_name, global_pts):
         if reticle_name not in self.reticles.keys():
-                raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
-
+            print("reticle lists: ", self.reticles)
+            raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
+            
         reticle = self.reticles[reticle_name]
         reticle_rot = reticle.get("rot", 0)
         reticle_rotmat = reticle.get("rotmat", np.eye(3))  # Default to identity matrix if not found
