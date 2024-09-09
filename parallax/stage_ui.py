@@ -96,13 +96,18 @@ class StageUI(QWidget):
                 self.ui.local_coords_z.setText(str(self.selected_stage.stage_z))
 
     def updateCurrentReticle(self):
+        print("\n === stage.ui:: updateCurrentReticle ===")
         self.setCurrentReticle()
         self.updateStageGlobalCoords()
 
     def setCurrentReticle(self):
         reticle_name = self.ui.reticle_selector.currentText()
+        if not reticle_name:
+            return
+        
         # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
         self.reticle = reticle_name.split('(')[-1].strip(')')
+        print("Current Reticle: ", reticle_name)
 
     def updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""
@@ -114,18 +119,17 @@ class StageUI(QWidget):
                 y = self.selected_stage.stage_y_global
                 z = self.selected_stage.stage_z_global
                 if x is not None and y is not None and z is not None:
-                    
                     # If reticle is with offset, get the global coordinates with offset
                     if self.reticle != "Global coords": 
                         if self.ui.reticle_metadata is not None:
                             global_pts = np.array([x, y, z])
-                            x, y, z = self.ui.reticle_metadata.get_global_coords_with_offset(stage_id, self.reticle, global_pts)
+                            x, y, z = self.ui.reticle_metadata.get_global_coords_with_offset(self.reticle, global_pts)
                     
                     # Update into UI
-                    self.ui.global_coords_x.setText(str(x))
-                    self.ui.global_coords_y.setText(str(y))
-                    self.ui.global_coords_z.setText(str(z))
-                        
+                    if x is not None and y is not None and z is not None:
+                        self.ui.global_coords_x.setText(str(x))
+                        self.ui.global_coords_y.setText(str(y))
+                        self.ui.global_coords_z.setText(str(z))
                 else:
                     self.updateStageGlobalCoords_default()
 

@@ -27,6 +27,7 @@ class ReticleMetadata(QWidget):
             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
         
         self.groupboxes = {}  # Change from list to dictionary
+        self.reticles = {}
         self.alphabet_status = {chr(i): 0 for i in range(65, 91)}  # A-Z with 0 availability status
 
         self.ui.add_btn.clicked.connect(self.add_groupbox)
@@ -116,6 +117,7 @@ class ReticleMetadata(QWidget):
 
         # Store the group_box in a dictionary to track added groupboxes
         self.groupboxes[name] = group_box
+        self.update_reticles(name, group_box)
 
     def update_groupbox_name(self, group_box, new_name, alphabet):
         """Update the title and object name of the group box."""
@@ -135,6 +137,7 @@ class ReticleMetadata(QWidget):
             group_box = self.groupboxes.pop(alphabet)  # Remove from dictionary
             self.ui.verticalLayout.removeWidget(group_box)
             group_box.deleteLater()
+            self.reticles.pop(alphabet, None)
 
             current_size = self.size()
             self.resize(current_size.width(), current_size.height() - 200)
@@ -169,6 +172,7 @@ class ReticleMetadata(QWidget):
 
         # Clear the dictionary after removing all group boxes
         self.groupboxes.clear()
+        self.reticles.clear
 
         # Clear and reset the reticle_selector
         self.reticle_selector.clear()
@@ -225,39 +229,61 @@ class ReticleMetadata(QWidget):
         except ValueError:
             return False
 
-    def get_global_coords_with_offset(self, stage_sn, reticle_name, global_pts):
+    def update_reticles(self, reticle_name, group_box):
         group_box = self.groupboxes.get(reticle_name)
         if not group_box:
             print(f"Error: No groupbox found for reticle '{reticle_name}'.")
-            return None
-    
-        # TODO
-        # Retrieve offset information (Rot, OffsetX, OffsetY, OffsetZ)
+            return
+        
         offset_rot = group_box.findChild(QLineEdit, "lineEditRot").text()
         offset_x = group_box.findChild(QLineEdit, "lineEditOffsetX").text()
         offset_y = group_box.findChild(QLineEdit, "lineEditOffsetY").text()
         offset_z = group_box.findChild(QLineEdit, "lineEditOffsetZ").text()
-        #print(offset_rot, offset_x, offset_y, offset_z)
-        
+
         try:
             offset_rot = float(offset_rot)
             offset_x = float(offset_x)
             offset_y = float(offset_y)
             offset_z = float(offset_z)
-            global_offset = np.array([offset_x, offset_y, offset_z])
         except ValueError:
             print("Error: Invalid offset values.")
-            return None
-        
+            return
+
+        rotmat = np.eye(3)
         if offset_rot != 0:
             rotmat = (
                 Rotation.from_euler("z", offset_rot, degrees=True)
                 .as_matrix()
                 .squeeze()
             )
+        
+        self.reticles[reticle_name] = {
+            "rot": offset_rot,
+            "rotmat": rotmat,
+            "offset_x": offset_x,
+            "offset_y": offset_y,
+            "offset_z": offset_z
+        }
 
+    def get_global_coords_with_offset(self, reticle_name, global_pts):
+        if reticle_name not in self.reticles.keys():
+                raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
+
+        reticle = self.reticles[reticle_name]
+        reticle_rot = reticle.get("rot", 0)
+        reticle_rotmat = reticle.get("rotmat", np.eye(3))  # Default to identity matrix if not found
+        reticle_offset = np.array([
+            reticle.get("offset_x", global_pts[0]), 
+            reticle.get("offset_y", global_pts[1]), 
+            reticle.get("offset_z", global_pts[2])
+        ])
+
+        if reticle_rot != 0:
             # Transpose because points are row vectors
-            global_pts = global_pts @ rotmat.T
-        global_pts = global_pts + global_offset
+            global_pts = global_pts @ reticle_rotmat.T
+        global_pts = global_pts + reticle_offset
 
-        return global_pts[0], global_pts[1], global_pts[2]
+        global_x = np.round(global_pts[0], 1)
+        global_y = np.round(global_pts[1], 1)
+        global_z = np.round(global_pts[2], 1)
+        return global_x, global_y, global_z
