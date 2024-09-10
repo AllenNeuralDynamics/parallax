@@ -610,8 +610,6 @@ class ProbeCalibration(QObject):
         self._update_min_max_x_y_z()    # update min max x,y,z
         self._update_info_ui()          # update transformation matrix and overall LR in UI
         ret = self._is_enough_points()  # if ret, complete calibration
-
-        ret = True
         if ret:
             print("Before")
             self._print_formatted_transM()
