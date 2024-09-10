@@ -34,7 +34,6 @@ class ReticleMetadata(QWidget):
         self.ui.update_btn.clicked.connect(self.update_reticle_info)
 
     def load_metadata_from_file(self):
-        print("Load metadata from file")
         json_path = os.path.join(ui_dir, "reticle_metadata.json")
         if not os.path.exists(json_path):
             logger.info("No existing metadata file found. Starting fresh.")
@@ -52,7 +51,6 @@ class ReticleMetadata(QWidget):
 
     def create_groupbox_from_metadata(self, reticle_data):
         """Create a groupbox from metadata and populate it."""
-        print("Create groupbox from metadata")
         for reticle_info in reticle_data:
             #name = reticle_info.get("name", "")
             name = reticle_info.get("lineEditName", "")
@@ -135,7 +133,6 @@ class ReticleMetadata(QWidget):
 
     def remove_specific_groupbox(self, group_box):
         name = group_box.findChild(QLineEdit, "lineEditName").text()
-        print("Remove specific groupbox", name)
         
         if name in self.groupboxes.keys():
             group_box = self.groupboxes.pop(name)  # Remove from dictionary
@@ -160,7 +157,6 @@ class ReticleMetadata(QWidget):
         self.update_to_file()
         for group_box in self.groupboxes.values():
             self.update_reticles(group_box)
-
         self.update_to_reticle_selector()
 
     def update_to_reticle_selector(self):
@@ -243,61 +239,6 @@ class ReticleMetadata(QWidget):
         except Exception as e:
             print(f"Error saving file: {e}")
 
-    
-    """
-        def update_to_file(self):
-        print("Update to file")
-        reticle_info_list = []
-        names_seen = set()
-        duplicates = False
-        print("before self.groupboxes: ", self.groupboxes.items())
-
-        for org_name, group_box in self.groupboxes.items():
-            reticle_info = {}
-
-            for line_edit in group_box.findChildren(QLineEdit):
-                line_edit_value = line_edit.text().strip()
-                
-                if not line_edit_value:
-                    print(f"Error: Field {line_edit.objectName()} is empty.")
-                    return None
-
-                if "lineEditName" in line_edit.objectName():
-                    if line_edit_value in names_seen:
-                        print(f"Error: Duplicate name found - {line_edit_value}")
-                        duplicates = True
-                    names_seen.add(line_edit_value)
-                    if org_name != line_edit_value: # update self.groupboxes
-                        self.groupboxes[line_edit_value] = group_box
-                        self.groupboxes.pop(org_name)
-
-                if line_edit.objectName() in ["lineEditRot", "lineEditOffsetX", "lineEditOffsetY", "lineEditOffsetZ"]:
-                    if not self.is_valid_number(line_edit_value):
-                        print(f"Error: {line_edit.objectName()} contains an invalid number.")
-                        return None
-                
-                reticle_info[line_edit.objectName()] = line_edit_value
-
-            reticle_info_list.append(reticle_info)
-
-        if duplicates:
-            print("Error: Duplicate names detected, aborting file save.")
-            return None
-
-        print("after self.groupboxes: ", self.groupboxes.items())
-
-        json_path = os.path.join(ui_dir, "reticle_metadata.json")
-        try:
-            with open(json_path, 'w') as json_file:
-                json.dump(reticle_info_list, json_file, indent=4)
-            print(f"Metadata successfully saved to {json_path}")
-        except Exception as e:
-            print(f"Error saving file: {e}")
-
-        return self.groupboxes
-    
-    """
-
     def is_valid_number(self, value):
         try:
             float(value)
@@ -341,13 +282,9 @@ class ReticleMetadata(QWidget):
             "offset_y": offset_y,
             "offset_z": offset_z
         }
-        
-        print("update_reticles ", name)
 
     def get_global_coords_with_offset(self, reticle_name, global_pts):
-        print("get_global_coords_with_offset", reticle_name)
         if reticle_name not in self.reticles.keys():
-            print("reticle lists: ", self.reticles)
             raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
             
         reticle = self.reticles[reticle_name]
