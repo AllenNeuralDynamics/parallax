@@ -1,7 +1,7 @@
 import os
 import logging
 import numpy as np
-from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 
@@ -13,9 +13,11 @@ debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 
 class Calculator(QWidget):
-    def __init__(self, model):
+    def __init__(self, model, reticle_selector):
         super().__init__()
         self.model = model
+        self.reticle_selector = reticle_selector
+        self.reticle = None
 
         self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
         self.setWindowTitle(f"Calculator")
@@ -24,13 +26,31 @@ class Calculator(QWidget):
         
         # Create the number of GroupBox for the number of stages
         self.create_stage_groupboxes()
-        self.model.add_calc_instance(self)
+        self.reticle_selector.currentIndexChanged.connect(self.setCurrentReticle)
 
+        self.model.add_calc_instance(self)
+        
     def show(self):
         # Refresh the list of stage to show
+        self.change_global_label()
         self.set_calc_functions()
         # Show
         super().show()  # Show the widget
+
+    def setCurrentReticle(self):
+        reticle_name = self.reticle_selector.currentText()
+        if not reticle_name:
+            return        
+        # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
+        self.reticle = reticle_name.split('(')[-1].strip(')')
+        self.change_global_label()
+
+    def change_global_label(self):
+        if self.reticle is None or self.reticle == "Global coords":
+            self.findChild(QLabel, f"labelGlobal").setText(f"     Global")
+            return
+        else:
+            self.findChild(QLabel, f"labelGlobal").setText(f"     Global ({self.reticle})")
 
     def set_calc_functions(self):
         for stage_sn, item in self.model.transforms.items():
@@ -120,15 +140,73 @@ class Calculator(QWidget):
         else:
             return None, None, None
 
+    def apply_reticle_adjustments(self, global_pts):
+        reticle_metadata = self.model.get_reticle_metadata(self.reticle)
+        reticle_rot = reticle_metadata.get("rot", 0)
+        reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
+        reticle_offset = np.array([
+            reticle_metadata.get("offset_x", global_pts[0]), 
+            reticle_metadata.get("offset_y", global_pts[1]), 
+            reticle_metadata.get("offset_z", global_pts[2])
+        ])
+
+        if reticle_rot != 0:
+            # Transpose because points are row vectors
+            global_pts = global_pts @ reticle_rotmat.T
+        global_pts = global_pts + reticle_offset
+
+        global_x = np.round(global_pts[0], 1)
+        global_y = np.round(global_pts[1], 1)
+        global_z = np.round(global_pts[2], 1)
+        return global_x, global_y, global_z
+
     def apply_transformation(self, local_point_, transM_LR, scale):
+        """Apply transformation to convert local to global coordinates."""
         local_point = local_point_ * scale
         local_point = np.append(local_point, 1)
         global_point = np.dot(transM_LR, local_point)
         logger.debug(f"local_to_global: {local_point_} -> {global_point[:3]}")
         logger.debug(f"R: {transM_LR[:3, :3]}\nT: {transM_LR[:3, 3]}")
+
+         # Ensure the reticle is defined and get its metadata
+        if self.reticle and self.reticle != "Global coords":
+            # Apply the reticle offset and rotation adjustment
+            global_x, global_y, global_z = self.apply_reticle_adjustments(global_point[:3])
+            # Return the adjusted global coordinates
+            return np.array([global_x, global_y, global_z])
+
         return global_point[:3]
-    
+
+    def apply_reticle_adjustments_inverse(self, global_point):
+        """Apply reticle offset and inverse rotation to the global point."""
+        if self.reticle and self.reticle != "Global coords":
+            # Convert global_point to numpy array if it's not already
+            global_point = np.array(global_point)
+            
+            # Get the reticle metadata
+            reticle_metadata = self.model.get_reticle_metadata(self.reticle)
+            
+            # Get rotation matrix (default to identity if not found)
+            reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))
+            
+            # Get offset values, default to global point coordinates if not found
+            reticle_offset = np.array([
+                reticle_metadata.get("offset_x", 0),  # Default to 0 if no offset is provided
+                reticle_metadata.get("offset_y", 0), 
+                reticle_metadata.get("offset_z", 0)
+            ])
+            
+            # Subtract the reticle offset
+            global_point = global_point - reticle_offset
+            # Undo the rotation
+            global_point = np.dot(global_point, reticle_rotmat)
+
+        return global_point
+
     def apply_inverse_transformation(self, global_point, transM_LR, scale):
+        """Apply inverse transformation to convert global to local coordinates."""
+        global_point = self.apply_reticle_adjustments_inverse(global_point)
+
         # Transpose the 3x3 rotation part
         R_T = transM_LR[:3, :3].T
         local_point = np.dot(R_T, global_point - transM_LR[:3, 3])

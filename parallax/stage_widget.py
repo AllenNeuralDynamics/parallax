@@ -171,7 +171,7 @@ class StageWidget(QWidget):
 
         # Calculator Button
         self.calculation_btn.hide()
-        self.calculator = Calculator(self.model)
+        self.calculator = Calculator(self.model, self.reticle_selector)
 
         # Reticle Button
         self.reticle_metadata_btn.hide()

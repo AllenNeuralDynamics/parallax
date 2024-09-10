@@ -52,6 +52,9 @@ class Model(QObject):
         # Transformation matrices of stages to global coords
         self.transforms = {}
 
+        # Reticle metadata
+        self.reticle_metadata = {}
+        
     def add_calibration(self, cal):
         """Add a calibration."""
         self.calibrations[cal.name] = cal
@@ -143,6 +146,23 @@ class Model(QObject):
     def get_transform(self, stage_sn):
         """Get transformation matrix between local to global coordinates."""
         return self.transforms.get(stage_sn)
+
+    def add_reticle_metadata(self, reticle_name, metadata):
+        """Add transformation matrix between local to global coordinates."""
+        self.reticle_metadata[reticle_name] = metadata
+
+    def get_reticle_metadata(self, reticle_name):
+        """Get transformation matrix between local to global coordinates."""
+        return self.reticle_metadata.get(reticle_name)
+
+    def remove_reticle_metadata(self, reticle_name):
+        """Remove transformation matrix between local to global coordinates."""
+        if reticle_name in self.reticle_metadata.keys():
+            self.reticle_metadata.pop(reticle_name, None)
+
+    def reset_reticle_metadata(self):
+        """Reset transformation matrix between local to global coordinates."""
+        self.reticle_metadata = {}
 
     def add_probe_detector(self, probeDetector):
         """Add a probe detector."""

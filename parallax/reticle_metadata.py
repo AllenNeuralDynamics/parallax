@@ -139,6 +139,8 @@ class ReticleMetadata(QWidget):
             group_box = self.groupboxes.pop(name)  # Remove from dictionary
             if name in self.reticles.keys():
                 self.reticles.pop(name)
+                # Register in the model
+                self.model.remove_reticle_metadata(name)
             self.ui.verticalLayout.removeWidget(group_box)
             group_box.deleteLater()
             
@@ -177,7 +179,9 @@ class ReticleMetadata(QWidget):
 
         # Clear the dictionary after removing all group boxes
         self.groupboxes.clear()
-        self.reticles.clear
+        self.reticles.clear()
+        # Register in the model
+        self.model.reset_reticle_metadata()
 
         # Clear and reset the reticle_selector
         self.reticle_selector.clear()
@@ -283,6 +287,8 @@ class ReticleMetadata(QWidget):
             "offset_y": offset_y,
             "offset_z": offset_z
         }
+        #Register the reticle in the model
+        self.model.add_reticle_metadata(name, self.reticles[name])
 
     def get_global_coords_with_offset(self, reticle_name, global_pts):
         if reticle_name not in self.reticles.keys():
