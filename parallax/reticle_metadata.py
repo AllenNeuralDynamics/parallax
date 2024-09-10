@@ -44,7 +44,9 @@ class ReticleMetadata(QWidget):
                 reticle_data = json.load(json_file)
             if reticle_data:
                 self.create_groupbox_from_metadata(reticle_data)
-                self.update_to_reticle_selector(reticle_data)
+                for group_box in self.groupboxes.values():
+                    self.update_reticles(group_box)
+                self.update_to_reticle_selector()
         
         except Exception as e:
             logger.error(f"Error reading metadata file: {e}")
