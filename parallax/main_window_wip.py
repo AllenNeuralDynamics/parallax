@@ -777,4 +777,5 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         self.model.close_all_point_meshes()
         self.model.close_clac_instance()
+        self.model.close_reticle_metadata_instance()
         event.accept()

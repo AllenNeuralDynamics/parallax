@@ -31,6 +31,9 @@ class Model(QObject):
         # Calculator
         self.calc_instance = None
 
+        # reticle metadata
+        self.reticle_metadata_instance = None
+
         # stage
         self.nStages = 0
         self.stages = {}
@@ -52,6 +55,9 @@ class Model(QObject):
         # Transformation matrices of stages to global coords
         self.transforms = {}
 
+        # Reticle metadata
+        self.reticle_metadata = {}
+        
     def add_calibration(self, cal):
         """Add a calibration."""
         self.calibrations[cal.name] = cal
@@ -140,6 +146,27 @@ class Model(QObject):
         """Add transformation matrix between local to global coordinates."""
         self.transforms[stage_sn] = [transform, scale]
 
+    def get_transform(self, stage_sn):
+        """Get transformation matrix between local to global coordinates."""
+        return self.transforms.get(stage_sn)
+
+    def add_reticle_metadata(self, reticle_name, metadata):
+        """Add transformation matrix between local to global coordinates."""
+        self.reticle_metadata[reticle_name] = metadata
+
+    def get_reticle_metadata(self, reticle_name):
+        """Get transformation matrix between local to global coordinates."""
+        return self.reticle_metadata.get(reticle_name)
+
+    def remove_reticle_metadata(self, reticle_name):
+        """Remove transformation matrix between local to global coordinates."""
+        if reticle_name in self.reticle_metadata.keys():
+            self.reticle_metadata.pop(reticle_name, None)
+
+    def reset_reticle_metadata(self):
+        """Reset transformation matrix between local to global coordinates."""
+        self.reticle_metadata = {}
+
     def add_probe_detector(self, probeDetector):
         """Add a probe detector."""
         self.probeDetectors.append(probeDetector)
@@ -223,4 +250,12 @@ class Model(QObject):
     def close_clac_instance(self):
         if self.calc_instance is not None:
             self.calc_instance.close()
+            self.calc_instance = None
+
+    def add_reticle_metadata_instance(self, instance):
+        self.reticle_metadata_instance = instance
+
+    def close_reticle_metadata_instance(self):
+        if self.reticle_metadata_instance is not None:
+            self.reticle_metadata_instance.close()
             self.calc_instance = None

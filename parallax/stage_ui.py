@@ -6,24 +6,27 @@ real-time data changes.
 
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import pyqtSignal
+import numpy as np
 
 class StageUI(QWidget):
     """User interface for stage control and display."""
     prev_curr_stages = pyqtSignal(str, str)
 
-    def __init__(self, model, parent=None):
+    def __init__(self, model, ui=None):
         """Initialize StageUI object"""
-        QWidget.__init__(self, parent)
+        QWidget.__init__(self, ui)
         self.selected_stage = None
         self.model = model
-        self.ui = parent
+        self.ui = ui
     
         self.update_stage_selector()
         self.updateStageSN()
         self.updateStageLocalCoords()
         self.updateStageGlobalCoords()
         self.previous_stage_id = self.get_current_stage_id()
+        self.setCurrentReticle()
 
+        # Swtich stages
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
         self.ui.stage_selector.currentIndexChanged.connect(
             self.updateStageLocalCoords
@@ -32,6 +35,10 @@ class StageUI(QWidget):
             self.updateStageGlobalCoords
         )
         self.ui.stage_selector.currentIndexChanged.connect(self.sendInfoToStageWidget)
+
+        # Swtich Reticle Coordinates (e.g Reticle + No Offset, Reticle + Offset..)
+        self.ui.reticle_selector.currentIndexChanged.connect(self.updateCurrentReticle)
+
 
     def get_selected_stage_sn(self):
         """Get the serial number of the selected stage.
@@ -88,24 +95,38 @@ class StageUI(QWidget):
                 self.ui.local_coords_y.setText(str(self.selected_stage.stage_y))
                 self.ui.local_coords_z.setText(str(self.selected_stage.stage_z))
 
+    def updateCurrentReticle(self):
+        self.setCurrentReticle()
+        self.updateStageGlobalCoords()
+
+    def setCurrentReticle(self):
+        reticle_name = self.ui.reticle_selector.currentText()
+        if not reticle_name:
+            return
+        # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
+        self.reticle = reticle_name.split('(')[-1].strip(')')
+
     def updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""
         stage_id = self.get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
-                if self.selected_stage.stage_x_global is not None \
-                and self.selected_stage.stage_y_global is not None \
-                and self.selected_stage.stage_z_global is not None:
-                    self.ui.global_coords_x.setText(
-                        str(self.selected_stage.stage_x_global)
-                    )
-                    self.ui.global_coords_y.setText(
-                        str(self.selected_stage.stage_y_global)
-                    )
-                    self.ui.global_coords_z.setText(
-                        str(self.selected_stage.stage_z_global)
-                    )
+                x = self.selected_stage.stage_x_global
+                y = self.selected_stage.stage_y_global
+                z = self.selected_stage.stage_z_global
+                if x is not None and y is not None and z is not None:
+                    # If reticle is with offset, get the global coordinates with offset
+                    if self.reticle != "Global coords": 
+                        if self.ui.reticle_metadata is not None:
+                            global_pts = np.array([x, y, z])
+                            x, y, z = self.ui.reticle_metadata.get_global_coords_with_offset(self.reticle, global_pts)
+                    
+                    # Update into UI
+                    if x is not None and y is not None and z is not None:
+                        self.ui.global_coords_x.setText(str(x))
+                        self.ui.global_coords_y.setText(str(y))
+                        self.ui.global_coords_z.setText(str(z))
                 else:
                     self.updateStageGlobalCoords_default()
 
