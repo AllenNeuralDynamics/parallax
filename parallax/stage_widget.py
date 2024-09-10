@@ -848,8 +848,6 @@ class StageWidget(QWidget):
         self.stageListener.set_low_freq_as_high_freq()
         logger.debug(f"filter: {self.filter}")
 
-        self.probeCalibration.update() #TODO
-
         # message
         message = f"Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)

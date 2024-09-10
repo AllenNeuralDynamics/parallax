@@ -116,7 +116,6 @@ class ReticleMetadata(QWidget):
 
         # Store the group_box in a dictionary to track added groupboxes
         self.groupboxes[name] = group_box
-        #self.update_reticles(group_box) #TODO update when writing to file
 
     def update_groupbox_name(self, group_box, new_name, alphabet):
         """Update the title and object name of the group box."""
