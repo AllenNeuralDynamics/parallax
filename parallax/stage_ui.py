@@ -96,7 +96,6 @@ class StageUI(QWidget):
                 self.ui.local_coords_z.setText(str(self.selected_stage.stage_z))
 
     def updateCurrentReticle(self):
-        print("\n === stage.ui:: updateCurrentReticle ===")
         self.setCurrentReticle()
         self.updateStageGlobalCoords()
 
@@ -107,7 +106,6 @@ class StageUI(QWidget):
         
         # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
         self.reticle = reticle_name.split('(')[-1].strip(')')
-        print("Current Reticle: ", reticle_name)
 
     def updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""

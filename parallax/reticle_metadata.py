@@ -34,6 +34,7 @@ class ReticleMetadata(QWidget):
         self.ui.update_btn.clicked.connect(self.update_reticle_info)
 
     def load_metadata_from_file(self):
+        print("Load metadata from file")
         json_path = os.path.join(ui_dir, "reticle_metadata.json")
         if not os.path.exists(json_path):
             logger.info("No existing metadata file found. Starting fresh.")
@@ -51,6 +52,7 @@ class ReticleMetadata(QWidget):
 
     def create_groupbox_from_metadata(self, reticle_data):
         """Create a groupbox from metadata and populate it."""
+        print("Create groupbox from metadata")
         for reticle_info in reticle_data:
             #name = reticle_info.get("name", "")
             name = reticle_info.get("lineEditName", "")
@@ -94,20 +96,18 @@ class ReticleMetadata(QWidget):
                 line_edit.setText(value)
 
         # Find the QLineEdit for the reticle name and connect the signal (group box name)
-        reticle_name_edit = group_box.findChild(QLineEdit, "lineEditName")
-        if reticle_name_edit:
-            #if "name" in reticle_info:
-            #    reticle_name_edit.setText(reticle_info["name"])  # Set name from metadata
-            #else:
-            reticle_name_edit.setText(name)  # Initialize with alphabet if not in metadata
+        lineEditName = group_box.findChild(QLineEdit, "lineEditName")
+        if lineEditName:
+            lineEditName.setText(name)  # Initialize with alphabet if not in metadata
             # Connect the textChanged signal to dynamically update the group_box title and object name
-            reticle_name_edit.textChanged.connect(lambda text, gb=group_box: self.update_groupbox_name(gb, text, name))
+            lineEditName.textChanged.connect(lambda text, gb=group_box: self.update_groupbox_name(gb, text, name))
 
         # Connect the remove button
         push_button = group_box.findChild(QPushButton, "remove_btn")
         if push_button:
-            push_button.clicked.connect(lambda _, gb=group_box: self.remove_specific_groupbox(gb, name))
-
+            #push_button.clicked.connect(lambda _, gb=group_box: self.remove_specific_groupbox(gb, name))
+            push_button.clicked.connect(lambda _, gb=group_box: self.remove_specific_groupbox(gb))
+            
         # Extend the height of the form by 200 pixels
         current_size = self.size()
         self.resize(current_size.width(), current_size.height() + 200)
@@ -117,8 +117,8 @@ class ReticleMetadata(QWidget):
         self.ui.verticalLayout.insertWidget(count - 1, group_box)
 
         # Store the group_box in a dictionary to track added groupboxes
-        self.groupboxes[name] = group_box #TODO update when writing to file
-        self.update_reticles(name, group_box) #TODO update when writing to file
+        self.groupboxes[name] = group_box
+        #self.update_reticles(group_box) #TODO update when writing to file
 
     def update_groupbox_name(self, group_box, new_name, alphabet):
         """Update the title and object name of the group box."""
@@ -133,17 +133,22 @@ class ReticleMetadata(QWidget):
             if new_name.strip().isalpha() and len(new_name.strip()) == 1 and new_name.strip().upper() in self.alphabet_status:
                 self.alphabet_status[new_name] = 1
 
-    def remove_specific_groupbox(self, group_box, alphabet):
-        if alphabet in self.groupboxes:
-            group_box = self.groupboxes.pop(alphabet)  # Remove from dictionary
+    def remove_specific_groupbox(self, group_box):
+        name = group_box.findChild(QLineEdit, "lineEditName").text()
+        print("Remove specific groupbox", name)
+        
+        if name in self.groupboxes.keys():
+            group_box = self.groupboxes.pop(name)  # Remove from dictionary
+            if name in self.reticles.keys():
+                self.reticles.pop(name)
             self.ui.verticalLayout.removeWidget(group_box)
             group_box.deleteLater()
-            self.reticles.pop(alphabet, None)
-
+            
             current_size = self.size()
             self.resize(current_size.width(), current_size.height() - 200)
 
-            self.alphabet_status[alphabet] = 0
+            if name.isalpha() and len(name) == 1 and name.upper() in self.alphabet_status:
+                self.alphabet_status[name.upper()] = 0
 
     def find_next_available_alphabet(self):
         for alphabet, status in self.alphabet_status.items():
@@ -152,17 +157,19 @@ class ReticleMetadata(QWidget):
         return None
 
     def update_reticle_info(self):
-        reticle_data = self.update_to_file()
-        if reticle_data:
-            self.update_to_reticle_selector(reticle_data)
+        self.update_to_file()
+        for group_box in self.groupboxes.values():
+            self.update_reticles(group_box)
 
-    def update_to_reticle_selector(self, reticle_data):
+        self.update_to_reticle_selector()
+
+    def update_to_reticle_selector(self):
         self.reticle_selector.clear()
         self.reticle_selector.addItem(f"Global coords")
 
         # update dropdown menu with reticle names
-        for reticle_info in reticle_data:
-            self.reticle_selector.addItem(f"Global coords ({reticle_info['lineEditName']})")
+        for name in self.groupboxes.keys():
+            self.reticle_selector.addItem(f"Global coords ({name})")
 
     def default_reticle_selector(self):
         # Iterate over the added sgroup boxes and remove each one from the layout
@@ -180,17 +187,77 @@ class ReticleMetadata(QWidget):
         self.reticle_selector.addItem(f"Global coords")
 
     def update_to_file(self):
-        print("Update to file")
-        reticle_data = []
+        reticle_info_list = []
         names_seen = set()
         duplicates = False
 
-        for reticle_name, group_box in self.groupboxes.items():
+        # Create a list of original dictionary keys to avoid modification during iteration
+        original_groupbox_keys = list(self.groupboxes.keys())
+
+        # Iterate over the copied list of keys
+        for org_name in original_groupbox_keys:
+            group_box = self.groupboxes[org_name]
             reticle_info = {}
 
             for line_edit in group_box.findChildren(QLineEdit):
                 line_edit_value = line_edit.text().strip()
+                
+                if not line_edit_value:
+                    print(f"Error: Field {line_edit.objectName()} is empty.")
+                    return
 
+                # Handle reticle name changes
+                if "lineEditName" in line_edit.objectName():
+                    if line_edit_value in names_seen:
+                        print(f"Error: Duplicate name found - {line_edit_value}")
+                        duplicates = True
+                    names_seen.add(line_edit_value)
+
+                    # Update self.groupboxes with the new name, if different from the original
+                    if org_name != line_edit_value:
+                        self.groupboxes[line_edit_value] = group_box
+                        self.groupboxes.pop(org_name)
+
+                # Validate numeric inputs
+                if line_edit.objectName() in ["lineEditRot", "lineEditOffsetX", "lineEditOffsetY", "lineEditOffsetZ"]:
+                    if not self.is_valid_number(line_edit_value):
+                        print(f"Error: {line_edit.objectName()} contains an invalid number.")
+                        return
+                
+                # Store the data in reticle_info
+                reticle_info[line_edit.objectName()] = line_edit_value
+
+            # Append the info for this groupbox
+            reticle_info_list.append(reticle_info)
+
+        if duplicates:
+            print("Error: Duplicate names detected, aborting file save.")
+            return
+
+        # Save the updated groupbox information to file
+        json_path = os.path.join(ui_dir, "reticle_metadata.json")
+        try:
+            with open(json_path, 'w') as json_file:
+                json.dump(reticle_info_list, json_file, indent=4)
+            print(f"Metadata successfully saved to {json_path}")
+        except Exception as e:
+            print(f"Error saving file: {e}")
+
+    
+    """
+        def update_to_file(self):
+        print("Update to file")
+        reticle_info_list = []
+        names_seen = set()
+        duplicates = False
+        print("before self.groupboxes: ", self.groupboxes.items())
+
+        for org_name, group_box in self.groupboxes.items():
+            reticle_info = {}
+
+            for line_edit in group_box.findChildren(QLineEdit):
+                line_edit_value = line_edit.text().strip()
+                
                 if not line_edit_value:
                     print(f"Error: Field {line_edit.objectName()} is empty.")
                     return None
@@ -200,6 +267,9 @@ class ReticleMetadata(QWidget):
                         print(f"Error: Duplicate name found - {line_edit_value}")
                         duplicates = True
                     names_seen.add(line_edit_value)
+                    if org_name != line_edit_value: # update self.groupboxes
+                        self.groupboxes[line_edit_value] = group_box
+                        self.groupboxes.pop(org_name)
 
                 if line_edit.objectName() in ["lineEditRot", "lineEditOffsetX", "lineEditOffsetY", "lineEditOffsetZ"]:
                     if not self.is_valid_number(line_edit_value):
@@ -208,21 +278,25 @@ class ReticleMetadata(QWidget):
                 
                 reticle_info[line_edit.objectName()] = line_edit_value
 
-            reticle_data.append(reticle_info)
+            reticle_info_list.append(reticle_info)
 
         if duplicates:
             print("Error: Duplicate names detected, aborting file save.")
             return None
 
+        print("after self.groupboxes: ", self.groupboxes.items())
+
         json_path = os.path.join(ui_dir, "reticle_metadata.json")
         try:
             with open(json_path, 'w') as json_file:
-                json.dump(reticle_data, json_file, indent=4)
+                json.dump(reticle_info_list, json_file, indent=4)
             print(f"Metadata successfully saved to {json_path}")
         except Exception as e:
             print(f"Error saving file: {e}")
 
-        return reticle_data
+        return self.groupboxes
+    
+    """
 
     def is_valid_number(self, value):
         try:
@@ -231,11 +305,10 @@ class ReticleMetadata(QWidget):
         except ValueError:
             return False
 
-    def update_reticles(self, reticle_name, group_box):
+    def update_reticles(self, group_box):
         #group_box = self.groupboxes.get(reticle_name)
         if not group_box:
             print(f"Error: No groupbox found for reticle '{group_box}'.")
-            print("Groupboxes:", self.groupboxes)
             return
         
         name = group_box.findChild(QLineEdit, "lineEditName").text()
@@ -268,8 +341,11 @@ class ReticleMetadata(QWidget):
             "offset_y": offset_y,
             "offset_z": offset_z
         }
+        
+        print("update_reticles ", name)
 
     def get_global_coords_with_offset(self, reticle_name, global_pts):
+        print("get_global_coords_with_offset", reticle_name)
         if reticle_name not in self.reticles.keys():
             print("reticle lists: ", self.reticles)
             raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
