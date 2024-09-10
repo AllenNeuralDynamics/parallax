@@ -31,6 +31,9 @@ class Model(QObject):
         # Calculator
         self.calc_instance = None
 
+        # reticle metadata
+        self.reticle_metadata_instance = None
+
         # stage
         self.nStages = 0
         self.stages = {}
@@ -247,4 +250,12 @@ class Model(QObject):
     def close_clac_instance(self):
         if self.calc_instance is not None:
             self.calc_instance.close()
+            self.calc_instance = None
+
+    def add_reticle_metadata_instance(self, instance):
+        self.reticle_metadata_instance = instance
+
+    def close_reticle_metadata_instance(self):
+        if self.reticle_metadata_instance is not None:
+            self.reticle_metadata_instance.close()
             self.calc_instance = None

@@ -33,6 +33,8 @@ class ReticleMetadata(QWidget):
         self.ui.add_btn.clicked.connect(self.add_groupbox)
         self.ui.update_btn.clicked.connect(self.update_reticle_info)
 
+        self.model.add_reticle_metadata_instance(self)
+
     def load_metadata_from_file(self):
         json_path = os.path.join(ui_dir, "reticle_metadata.json")
         if not os.path.exists(json_path):
