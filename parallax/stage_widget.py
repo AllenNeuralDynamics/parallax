@@ -493,6 +493,7 @@ class StageWidget(QWidget):
                     itmxA_best, itmxB_best = itmxA, itmxB
                     
         # Update the model with the calibration results
+        self.model.add_stereo_instance(self.calibrationStereo)
         self.model.add_camera_extrinsic(
             self.camA_best, self.camB_best, min_err, R_AB_best, T_AB_best, E_AB_best, F_AB_best
         )

@@ -16,6 +16,7 @@ from .no_filter import NoFilter
 from .probe_detect_manager import ProbeDetectManager
 from .reticle_detect_manager import ReticleDetectManager
 from .axis_filter import AxisFilter
+from .screen_coords_mapper import ScreenCoordsMapper
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -108,7 +109,9 @@ class ScreenWidget(pg.GraphicsView):
             self.set_image_item_from_data
         )
         self.probeDetector.found_coords.connect(self.found_probe_coords)
-        #self.probeDetector.found_coords.connect(self.probe_coords_detected)
+
+        # Coords Mapper from visual data
+        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.camera_name)
 
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
@@ -274,6 +277,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def send_clicked_position(self, pos):
         self.axisFilter.clicked_position(pos)
+        self.screen_coords_mapper.clicked_position(pos)
 
     def image_clicked(self, event):
         """
@@ -315,6 +319,7 @@ class ScreenWidget(pg.GraphicsView):
         self.probeDetector.set_name(camera_sn)
         self.axisFilter.set_name(camera_sn)
         self.filter.set_name(camera_sn)
+        self.screen_coords_mapper.set_name(camera_sn)
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
