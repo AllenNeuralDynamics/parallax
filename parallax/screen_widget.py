@@ -73,7 +73,17 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = camera
         self.camera_name = self.get_camera_name()
         self.focochan = None
-
+        
+        # Dynamically set zoom limits based on image size
+        width, height = self.camera.width, self.camera.height
+        if height is not None and width:
+            self.view_box.setLimits(
+                xMin= -width, xMax= width * 2,  # Prevent panning outside image boundaries
+                yMin= -height, yMax= height * 2,
+                maxXRange=width * 10,
+                maxYRange=height * 10
+            )
+        
         # No filter
         self.filter = NoFilter(self.camera_name)
         self.filter.frame_processed.connect(self.set_image_item_from_data)
