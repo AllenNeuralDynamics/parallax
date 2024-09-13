@@ -79,10 +79,10 @@ class ReticleDetectManager(QObject):
                 return frame
             for pixel in x_axis_coords:
                 pt = tuple(pixel)
-                cv2.circle(frame, pt, 7, (255, 255, 0), -1)
+                cv2.circle(frame, pt, 9, (255, 255, 0), -1)
             for pixel in y_axis_coords:
                 pt = tuple(pixel)
-                cv2.circle(frame, pt, 7, (0, 255, 255), -1)
+                cv2.circle(frame, pt, 9, (0, 255, 255), -1)
             return frame
 
         def draw_xyz(self, frame, origin, x, y, z):

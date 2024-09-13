@@ -231,7 +231,7 @@ class ProbeDetectManager(QObject):
                 for coords in self.reticle_coords:
                     for point_idx, (x, y) in enumerate(coords):
                         color = self.colormap_reticle[point_idx][0].tolist()
-                        cv2.circle(frame, (x, y), 4, color, -1)
+                        cv2.circle(frame, (x, y), 7, color, -1)
 
             if self.reticle_coords_debug is not None:
                 for point_idx, (x, y) in enumerate(self.reticle_coords_debug[0]):

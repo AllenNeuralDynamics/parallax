@@ -194,7 +194,7 @@ class CalibrationCamera:
         Returns:
             tuple: Origin, x-axis, y-axis, z-axis points.
         """
-        axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, 3]]).reshape(-1, 3)
+        axis = np.float32([[5, 0, 0], [0, 5, 0], [0, 0, 7]]).reshape(-1, 3)
         # Find the rotation and translation vectors.
         # Output rotation vector (see Rodrigues ) that, together with tvec,
         # brings points from the model coordinate system 

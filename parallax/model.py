@@ -1,7 +1,6 @@
 """
 The Model class is the core component for managing cameras, stages, and calibration data.
 """
-
 from PyQt5.QtCore import QObject, pyqtSignal
 from .camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from .stage_listener import Stage, StageInfo
