@@ -25,32 +25,39 @@ class Calculator(QWidget):
             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
         
         # Create the number of GroupBox for the number of stages
-        self.create_stage_groupboxes()
-        self.reticle_selector.currentIndexChanged.connect(self.setCurrentReticle)
+        self._create_stage_groupboxes()
+        self._connect_clear_buttons()
+        self.reticle_selector.currentIndexChanged.connect(self._setCurrentReticle)
 
         self.model.add_calc_instance(self)
         
     def show(self):
         # Refresh the list of stage to show
-        self.change_global_label()
+        self._change_global_label()
         self.set_calc_functions()
         # Show
         super().show()  # Show the widget
 
-    def setCurrentReticle(self):
+    def _setCurrentReticle(self):
         reticle_name = self.reticle_selector.currentText()
         if not reticle_name:
             return        
         # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
         self.reticle = reticle_name.split('(')[-1].strip(')')
-        self.change_global_label()
+        self._change_global_label()
 
-    def change_global_label(self):
+        # Clear fields for all enabled stages
+        for stage_sn in self.model.stages.keys():
+            group_box = self.findChild(QGroupBox, f"groupBox_{stage_sn}")
+            if group_box.isEnabled():  # Check if the stage's QGroupBox is enabled
+                self._clear_fields(stage_sn)
+
+    def _change_global_label(self):
         if self.reticle is None or self.reticle == "Global coords":
-            self.findChild(QLabel, f"labelGlobal").setText(f"     Global")
+            self.findChild(QLabel, f"labelGlobal").setText(f" Global")
             return
         else:
-            self.findChild(QLabel, f"labelGlobal").setText(f"     Global ({self.reticle})")
+            self.findChild(QLabel, f"labelGlobal").setText(f" Global ({self.reticle})")
 
     def set_calc_functions(self):
         for stage_sn, item in self.model.transforms.items():
@@ -60,19 +67,19 @@ class Calculator(QWidget):
                 if not push_button:
                     logger.warning(f"Error: QPushButton for {stage_sn} not found")
                     continue
-                self.enable(stage_sn)
-                push_button.clicked.connect(self.create_convert_function(stage_sn, transM, scale))
+                self._enable(stage_sn)
+                push_button.clicked.connect(self._create_convert_function(stage_sn, transM, scale))
             else:   # Block calc functions for uncalibrated stages
-                self.disable(stage_sn)
+                self._disable(stage_sn)
 
-    def create_convert_function(self, stage_sn, transM, scale):
+    def _create_convert_function(self, stage_sn, transM, scale):
         logger.debug(f"\n=== Creating convert function ===")
         logger.debug(f"Stage SN: {stage_sn}")
         logger.debug(f"transM: {transM}")
         logger.debug(f"scale: {scale}")
-        return lambda: self.convert(stage_sn, transM, scale)
+        return lambda: self._convert(stage_sn, transM, scale)
 
-    def convert(self, sn, transM, scale):
+    def _convert(self, sn, transM, scale):
         # Enable the groupBox for the stage
         globalX = self.findChild(QLineEdit, f"globalX_{sn}").text()
         globalY = self.findChild(QLineEdit, f"globalY_{sn}").text()
@@ -84,29 +91,29 @@ class Calculator(QWidget):
         logger.debug("- Convert -")
         logger.debug(f"Global: {globalX}, {globalY}, {globalZ}")
         logger.debug(f"Local: {localX}, {localY}, {localZ}")
-        trans_type, local_pts, global_pts = self.get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
+        trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
-            local_pts_ret = self.apply_inverse_transformation(global_pts, transM, scale)
-            self.show_local_pts_result(sn, local_pts_ret)
+            local_pts_ret = self._apply_inverse_transformation(global_pts, transM, scale)
+            self._show_local_pts_result(sn, local_pts_ret)
         elif trans_type == "local_to_global":
-            global_pts_ret = self.apply_transformation(local_pts, transM, scale)
-            self.show_global_pts_result(sn, global_pts_ret)
+            global_pts_ret = self._apply_transformation(local_pts, transM, scale)
+            self._show_global_pts_result(sn, global_pts_ret)
         else:
             logger.warning(f"Error: Invalid transforsmation type for {sn}")
             return
 
-    def show_local_pts_result(self, sn, local_pts):
+    def _show_local_pts_result(self, sn, local_pts):
         # Show the local points in the QLineEdit
         self.findChild(QLineEdit, f"localX_{sn}").setText(f"{local_pts[0]:.2f}")
         self.findChild(QLineEdit, f"localY_{sn}").setText(f"{local_pts[1]:.2f}")
         self.findChild(QLineEdit, f"localZ_{sn}").setText(f"{local_pts[2]:.2f}")
 
-    def show_global_pts_result(self, sn, global_pts):
+    def _show_global_pts_result(self, sn, global_pts):
         self.findChild(QLineEdit, f"globalX_{sn}").setText(f"{global_pts[0]:.2f}")
         self.findChild(QLineEdit, f"globalY_{sn}").setText(f"{global_pts[1]:.2f}")
         self.findChild(QLineEdit, f"globalZ_{sn}").setText(f"{global_pts[2]:.2f}")
 
-    def get_transform_type(self, globalX, globalY, globalZ, localX, localY, localZ):
+    def _get_transform_type(self, globalX, globalY, globalZ, localX, localY, localZ):
         def is_valid_number(s):
             try:
                 float(s)
@@ -140,7 +147,7 @@ class Calculator(QWidget):
         else:
             return None, None, None
 
-    def apply_reticle_adjustments(self, global_pts):
+    def _apply_reticle_adjustments(self, global_pts):
         reticle_metadata = self.model.get_reticle_metadata(self.reticle)
         reticle_rot = reticle_metadata.get("rot", 0)
         reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
@@ -160,7 +167,7 @@ class Calculator(QWidget):
         global_z = np.round(global_pts[2], 1)
         return global_x, global_y, global_z
 
-    def apply_transformation(self, local_point_, transM_LR, scale):
+    def _apply_transformation(self, local_point_, transM_LR, scale):
         """Apply transformation to convert local to global coordinates."""
         local_point = local_point_ * scale
         local_point = np.append(local_point, 1)
@@ -171,13 +178,13 @@ class Calculator(QWidget):
          # Ensure the reticle is defined and get its metadata
         if self.reticle and self.reticle != "Global coords":
             # Apply the reticle offset and rotation adjustment
-            global_x, global_y, global_z = self.apply_reticle_adjustments(global_point[:3])
+            global_x, global_y, global_z = self._apply_reticle_adjustments(global_point[:3])
             # Return the adjusted global coordinates
             return np.array([global_x, global_y, global_z])
 
         return global_point[:3]
 
-    def apply_reticle_adjustments_inverse(self, global_point):
+    def _apply_reticle_adjustments_inverse(self, global_point):
         """Apply reticle offset and inverse rotation to the global point."""
         if self.reticle and self.reticle != "Global coords":
             # Convert global_point to numpy array if it's not already
@@ -203,9 +210,9 @@ class Calculator(QWidget):
 
         return global_point
 
-    def apply_inverse_transformation(self, global_point, transM_LR, scale):
+    def _apply_inverse_transformation(self, global_point, transM_LR, scale):
         """Apply inverse transformation to convert global to local coordinates."""
-        global_point = self.apply_reticle_adjustments_inverse(global_point)
+        global_point = self._apply_reticle_adjustments_inverse(global_point)
 
         # Transpose the 3x3 rotation part
         R_T = transM_LR[:3, :3].T
@@ -214,7 +221,7 @@ class Calculator(QWidget):
         logger.debug(f"R.T: {R_T}\nT: {transM_LR[:3, 3]}")
         return local_point / scale
 
-    def disable(self, sn):
+    def _disable(self, sn):
         # Clear the QLineEdit for the stage
         self.findChild(QLineEdit, f"localX_{sn}").setText(f"")
         self.findChild(QLineEdit, f"localY_{sn}").setText(f"")
@@ -229,7 +236,7 @@ class Calculator(QWidget):
         group_box.setStyleSheet("background-color: #333333;")
         group_box.setTitle(f"{sn} (Uncalibrated)")
 
-    def enable(self, sn):
+    def _enable(self, sn):
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
         if not group_box.isEnabled():
@@ -237,7 +244,7 @@ class Calculator(QWidget):
             group_box.setStyleSheet("background-color: black;")
             group_box.setTitle(f"{sn}")
 
-    def create_stage_groupboxes(self):
+    def _create_stage_groupboxes(self):
         # Loop through the number of stages and create copies of groupBoxStage
         for sn in self.model.stages.keys():
             # Load the QGroupBox from the calc_QGroupBox.ui file
@@ -253,6 +260,7 @@ class Calculator(QWidget):
             # Find all QLineEdits and QPushButtons in the group_box and rename them
             # globalX -> globalX_{sn} .. 
             # localX -> localX_{sn} ..
+            # ClearBtn -> ClearBtn_{sn} ..
             for line_edit in group_box.findChildren(QLineEdit):
                 line_edit.setObjectName(f"{line_edit.objectName()}_{sn}")
 
@@ -262,3 +270,25 @@ class Calculator(QWidget):
 
             # Add the newly created QGroupBox to the layout
             self.ui.verticalLayout_QBox.addWidget(group_box)
+
+    def _connect_clear_buttons(self):
+        for stage_sn in self.model.stages.keys():
+            clear_button = self.findChild(QPushButton, f"ClearBtn_{stage_sn}")
+            if clear_button:
+                clear_button.clicked.connect(self._create_clear_function(stage_sn))
+
+    def _create_clear_function(self, stage_sn):
+        """Create a function that clears the QLineEdit fields for global and local coordinates."""
+        return lambda: self._clear_fields(stage_sn)
+
+    def _clear_fields(self, stage_sn):
+        """Clear the global and local coordinate QLineEdits for the given stage."""
+        # Clear the global coordinate fields
+        self.findChild(QLineEdit, f"globalX_{stage_sn}").clear()
+        self.findChild(QLineEdit, f"globalY_{stage_sn}").clear()
+        self.findChild(QLineEdit, f"globalZ_{stage_sn}").clear()
+        
+        # Clear the local coordinate fields
+        self.findChild(QLineEdit, f"localX_{stage_sn}").clear()
+        self.findChild(QLineEdit, f"localY_{stage_sn}").clear()
+        self.findChild(QLineEdit, f"localZ_{stage_sn}").clear()
