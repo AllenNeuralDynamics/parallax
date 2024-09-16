@@ -192,7 +192,7 @@ class StageListener(QObject):
 
     probeCalibRequest = pyqtSignal(QObject, dict)
 
-    def __init__(self, model, stage_ui):
+    def __init__(self, model, stage_ui, probeCalibrationLabel):
         """Initialize Stage Listener object"""
         super().__init__()
         self.model = model
@@ -200,6 +200,7 @@ class StageListener(QObject):
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
         self.stage_ui = stage_ui
+        self.probeCalibrationLabel = probeCalibrationLabel
         self.thread.started.connect(self.worker.start)
         self.worker.dataChanged.connect(self.handleDataChange)
         self.worker.stage_moving.connect(self.stageMovingStatus)
@@ -288,7 +289,7 @@ class StageListener(QObject):
         if self.stage_ui.get_selected_stage_sn() == sn:
             self.stage_ui.updateStageLocalCoords()
         else:
-            logger.warning(f"moving_probe: {sn}, selected_probe: {self.stage_ui.get_selected_stage_sn()}")
+            logger.debug(f"moving_probe: {sn}, selected_probe: {self.stage_ui.get_selected_stage_sn()}")
 
         if sn in self.transM_dict and sn in self.scale_dict:
             transM = self.transM_dict[sn]
@@ -449,16 +450,21 @@ class StageListener(QObject):
             debug_info["cam1"] = cam1
             debug_info["pt1"] = pt1
                 
-            self.probeCalibRequest.emit(self.stage_global_data, debug_info)
-
             # Update into UI
             moving_stage = self.model.stages.get(sn)
             if moving_stage is not None:
                 moving_stage.stage_x_global = global_coords_x
                 moving_stage.stage_y_global = global_coords_y
                 moving_stage.stage_z_global = global_coords_z
+            
             if self.stage_ui.get_selected_stage_sn() == sn:
+                self.probeCalibRequest.emit(self.stage_global_data, debug_info)
                 self.stage_ui.updateStageGlobalCoords()
+            else:
+                content = (
+                    f"<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
+                )
+                self.probeCalibrationLabel.setText(content)
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.

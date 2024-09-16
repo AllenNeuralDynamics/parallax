@@ -142,7 +142,7 @@ class StageWidget(QWidget):
             self.probe_detection_button_handler
         )
         # Start refreshing stage info
-        self.stageListener = StageListener(self.model, self.stageUI)
+        self.stageListener = StageListener(self.model, self.stageUI, self.probeCalibrationLabel)
         self.stageListener.start()
         self.probeCalibration = ProbeCalibration(self.model, self.stageListener)
         # Hide X, Y, and Z Buttons in Probe Detection
@@ -1053,11 +1053,7 @@ class StageWidget(QWidget):
             if not self.viewTrajectory_btn.isVisible():
                 self.viewTrajectory_btn.show()
         else:
-            # If moving stage is not the selected stage, save the calibration info
-            content = (
-                f"<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-            )
-            self.probeCalibrationLabel.setText(content)
+            logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 
     def get_stage_info(self):
         info = {}
