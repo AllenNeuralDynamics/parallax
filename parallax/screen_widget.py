@@ -16,7 +16,6 @@ from .no_filter import NoFilter
 from .probe_detect_manager import ProbeDetectManager
 from .reticle_detect_manager import ReticleDetectManager
 from .axis_filter import AxisFilter
-from .screen_coords_mapper import ScreenCoordsMapper
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ScreenWidget(pg.GraphicsView):
     """Screens Class"""
 
-    selected = pyqtSignal(int, int)
+    selected = pyqtSignal(str, tuple) # camera name, (x, y)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
     probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)  # camera name, timestamp, sn, stage_info, pixel_coords
@@ -109,9 +108,6 @@ class ScreenWidget(pg.GraphicsView):
             self.set_image_item_from_data
         )
         self.probeDetector.found_coords.connect(self.found_probe_coords)
-
-        # Coords Mapper from visual data
-        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.camera_name)
 
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
@@ -277,7 +273,6 @@ class ScreenWidget(pg.GraphicsView):
 
     def send_clicked_position(self, pos):
         self.axisFilter.clicked_position(pos)
-        self.screen_coords_mapper.clicked_position(pos)
 
     def image_clicked(self, event):
         """
@@ -286,8 +281,7 @@ class ScreenWidget(pg.GraphicsView):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
             x, y = event.pos().x(), event.pos().y()
             x, y = int(round(x)), int(round(y))
-            self.select((x,y))
-            print(f"Clicked position on {self.get_camera_name()}: ({x}, {y})")
+            self.select((x, y))
             self.send_clicked_position((x, y))
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.zoom_out()
@@ -296,8 +290,10 @@ class ScreenWidget(pg.GraphicsView):
         """Select a position and emit the selected coordinates."""
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
-        self.selected.emit(*self.get_selected())
-
+        camera_name = self.get_camera_name() 
+        print(f"Clicked position on {camera_name}: ({pos[0]}, {pos[1]})")
+        self.selected.emit(camera_name, pos)
+        
     def select2(self, pos):
         """Select a second position and make the click target visible."""
         self.click_target2.setPos(pos)
@@ -319,7 +315,6 @@ class ScreenWidget(pg.GraphicsView):
         self.probeDetector.set_name(camera_sn)
         self.axisFilter.set_name(camera_sn)
         self.filter.set_name(camera_sn)
-        self.screen_coords_mapper.set_name(camera_sn)
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""

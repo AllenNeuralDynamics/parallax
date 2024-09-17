@@ -119,7 +119,7 @@ class StageUI(QWidget):
                         if self.ui.reticle_metadata is not None:
                             global_pts = np.array([x, y, z])
                             x, y, z = self.ui.reticle_metadata.get_global_coords_with_offset(self.reticle, global_pts)
-                    
+
                     # Update into UI
                     if x is not None and y is not None and z is not None:
                         self.ui.global_coords_x.setText(str(x))

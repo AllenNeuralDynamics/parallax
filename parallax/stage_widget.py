@@ -21,6 +21,7 @@ from .stage_listener import StageListener
 from .stage_ui import StageUI
 from .calculator import Calculator
 from .reticle_metadata import ReticleMetadata
+from .screen_coords_mapper import ScreenCoordsMapper
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -175,7 +176,10 @@ class StageWidget(QWidget):
 
         # Reticle Button
         self.reticle_metadata_btn.hide()
-        self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector) 
+        self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector)
+
+        # Screen Coords Mapper
+        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets, self.reticle_selector)
 
     def reticle_detection_button_handler(self):
         """

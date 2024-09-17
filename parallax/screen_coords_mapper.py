@@ -5,35 +5,33 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 class ScreenCoordsMapper():
-    def __init__(self, model, camera_name):
+    def __init__(self, model, screen_widgets, reticle_selector):
         self.model = model
-        self.camera_name = camera_name
-        self.pos = None
+        self.screen_widgets = screen_widgets
+        self.reticle_selector = reticle_selector
 
         self.stereo_instance = None
         self.camA_best, self.camB_best = None, None
 
-    def set_name(self, camera_name):
-        """Set camera name."""
-        self.camera_name = camera_name
-        logger.debug(f"{self.camera_name} set camera name")
+        # Connect each screen_widget's 'selected' signal to a _clicked_position method
+        for screen_widget in self.screen_widgets:
+            screen_widget.selected.connect(self._clicked_position)
 
-    def clicked_position(self, pt):
+    def _clicked_position(self, camera_name, pos):
         """Get clicked position."""
-        self.pos = pt
-        self._register_pt()
-        global_coords = self._get_global_coords()
+        self._register_pt(camera_name, pos)
+        global_coords = self._get_global_coords(camera_name, pos)
         if global_coords is not None:
             global_coords = np.round(global_coords, decimals=2)
             logger.debug(f"  Global coordinates: {global_coords*1000}")
             print(f"  Global coordinates: {global_coords*1000}")
 
-    def _register_pt(self):
+    def _register_pt(self, camera_name, pos):
         """Register the clicked position."""
-        if self.pos is not None:
-            self.model.add_pts(self.camera_name, self.pos)
+        if pos is not None and camera_name is not None:
+            self.model.add_pts(camera_name, pos)
 
-    def _get_global_coords(self):
+    def _get_global_coords(self, camera_name, pos):
         """Calculate global coordinates based on the best camera pair."""
         if self.stereo_instance is None:
             self.stereo_instance = self.model.stereo_instance
@@ -43,7 +41,7 @@ class ScreenCoordsMapper():
             if not self.model.best_camera_pair:
                 return None
             self.camA_best, self.camB_best = self.model.best_camera_pair
-            if self.camera_name not in [self.camA_best, self.camB_best]:
+            if camera_name not in [self.camA_best, self.camB_best]:
                 return None
 
         # Get detected points from cameras
@@ -55,12 +53,12 @@ class ScreenCoordsMapper():
             return None
 
         # Assign points based on which camera is clicked
-        if self.camera_name == self.camA_best:
-            tip_coordsA = self.pos
+        if camera_name == self.camA_best:
+            tip_coordsA = pos
             tip_coordsB = cameras_detected_pts[self.camB_best]
-        elif self.camera_name == self.camB_best:
+        elif camera_name == self.camB_best:
             tip_coordsA = cameras_detected_pts[self.camA_best]
-            tip_coordsB = self.pos
+            tip_coordsB = pos
 
         # Calculate global coordinates using stereo instance
         global_coords = self.stereo_instance.get_global_coords(
