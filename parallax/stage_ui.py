@@ -28,12 +28,8 @@ class StageUI(QWidget):
 
         # Swtich stages
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
-        self.ui.stage_selector.currentIndexChanged.connect(
-            self.updateStageLocalCoords
-        )
-        self.ui.stage_selector.currentIndexChanged.connect(
-            self.updateStageGlobalCoords
-        )
+        self.ui.stage_selector.currentIndexChanged.connect(self.updateStageLocalCoords)
+        self.ui.stage_selector.currentIndexChanged.connect(self.updateStageGlobalCoords)
         self.ui.stage_selector.currentIndexChanged.connect(self.sendInfoToStageWidget)
 
         # Swtich Reticle Coordinates (e.g Reticle + No Offset, Reticle + Offset..)
@@ -96,15 +92,17 @@ class StageUI(QWidget):
                 self.ui.local_coords_z.setText(str(self.selected_stage.stage_z))
 
     def updateCurrentReticle(self):
-        self.setCurrentReticle()
-        self.updateStageGlobalCoords()
+        ret = self.setCurrentReticle()
+        if ret:
+            self.updateStageGlobalCoords()
 
     def setCurrentReticle(self):
         reticle_name = self.ui.reticle_selector.currentText()
         if not reticle_name:
-            return
+            return False
         # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
         self.reticle = reticle_name.split('(')[-1].strip(')')
+        return True
 
     def updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""
