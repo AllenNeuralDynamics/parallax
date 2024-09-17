@@ -99,7 +99,6 @@ class StageUI(QWidget):
 
     def setCurrentReticle(self):
         reticle_name = self.ui.reticle_selector.currentText()
-        print("stage_ui::setCurrentReticle: reticle_name: ", reticle_name)
         if not reticle_name:
             return False
         

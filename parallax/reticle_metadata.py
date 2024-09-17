@@ -164,7 +164,6 @@ class ReticleMetadata(QWidget):
         self._update_to_reticle_selector()
 
     def _update_to_reticle_selector(self):
-        print("reticle_metadata::_update_to_reticle_selector")
         self.reticle_selector.clear()
         self.reticle_selector.addItem(f"Global coords")
 
@@ -178,7 +177,6 @@ class ReticleMetadata(QWidget):
             self.reticle_selector.addItem(f"Proj Global coords ({name})")
 
     def default_reticle_selector(self, reticle_detection_status):
-        print("reticle_metadata::defualt_reticle_selector")
         # Iterate over the added sgroup boxes and remove each one from the layout
         for name, group_box in self.groupboxes.items():
             self.ui.verticalLayout.removeWidget(group_box)
