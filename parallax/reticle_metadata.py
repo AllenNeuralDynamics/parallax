@@ -167,11 +167,15 @@ class ReticleMetadata(QWidget):
         print("reticle_metadata::_update_to_reticle_selector")
         self.reticle_selector.clear()
         self.reticle_selector.addItem(f"Global coords")
-        self.reticle_selector.addItem(f"Proj Global coords")
 
         # update dropdown menu with reticle names
         for name in self.groupboxes.keys():
             self.reticle_selector.addItem(f"Global coords ({name})")
+
+        # update dropdown menu with Project reticle names
+        self.reticle_selector.addItem(f"Proj Global coords")
+        for name in self.groupboxes.keys():
+            self.reticle_selector.addItem(f"Proj Global coords ({name})")
 
     def default_reticle_selector(self):
         print("reticle_metadata::defualt_reticle_selector")

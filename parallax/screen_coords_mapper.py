@@ -21,19 +21,52 @@ class ScreenCoordsMapper():
         """Get clicked position."""
         self._register_pt(camera_name, pos)
         global_coords = self._get_global_coords(camera_name, pos)
-        if global_coords is not None:
-            global_coords = np.round(global_coords*1000, decimals=1)
-            logger.debug(f"  Global coordinates: {global_coords}")
-            print(f"  Global coordinates: {global_coords}")
+        if global_coords is None:
+            return
+        
+        global_coords = np.round(global_coords*1000, decimals=1)
+        reticle_name = self.reticle_selector.currentText()
+        if "Proj" not in reticle_name:
+            return
+        self.reticle = reticle_name.split('(')[-1].strip(')')
+        
+        global_x, global_y, global_z = global_coords
+        if self.reticle == "Proj Global coords":
+            global_x = global_coords[0]
+            global_y = global_coords[1]
+            global_z = global_coords[2]
+        else:
+            global_x, global_y, global_z = self._apply_reticle_adjustments(global_coords)
 
-        if self.reticle_selector.currentText() == "Proj Global coords":
-            self.ui_x.setText(str(global_coords[0]))
-            self.ui_y.setText(str(global_coords[1]))
-            self.ui_z.setText(str(global_coords[2]))
+        self.ui_x.setText(str(global_x))
+        self.ui_y.setText(str(global_y))
+        self.ui_z.setText(str(global_z))
 
+        logger.debug(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
+        print(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
+        
     def add_global_coords_to_dropdown(self):
         self.reticle_selector.addItem(f"Proj Global coords")
-        pass
+
+    def _apply_reticle_adjustments(self, global_pts):
+        reticle_metadata = self.model.get_reticle_metadata(self.reticle)
+        reticle_rot = reticle_metadata.get("rot", 0)
+        reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
+        reticle_offset = np.array([
+            reticle_metadata.get("offset_x", global_pts[0]), 
+            reticle_metadata.get("offset_y", global_pts[1]), 
+            reticle_metadata.get("offset_z", global_pts[2])
+        ])
+
+        if reticle_rot != 0:
+            # Transpose because points are row vectors
+            global_pts = global_pts @ reticle_rotmat.T
+        global_pts = global_pts + reticle_offset
+
+        global_x = np.round(global_pts[0], 1)
+        global_y = np.round(global_pts[1], 1)
+        global_z = np.round(global_pts[2], 1)
+        return global_x, global_y, global_z
 
     def _register_pt(self, camera_name, pos):
         """Register the clicked position."""
