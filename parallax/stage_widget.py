@@ -110,7 +110,7 @@ class StageWidget(QWidget):
 
         # Reticle Widget
         self.reticle_detection_status = (
-            "default"  # options: default, process, detected, accepted, request_axis
+            "default"  # options: default, process, detected, accepted
         )
         self.reticle_calibration_btn.clicked.connect(
             self.reticle_detection_button_handler
@@ -179,7 +179,8 @@ class StageWidget(QWidget):
         self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector)
 
         # Screen Coords Mapper
-        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets, self.reticle_selector)
+        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets, \
+                self.reticle_selector, self.global_coords_x, self.global_coords_y, self.global_coords_z)
 
     def reticle_detection_button_handler(self):
         """
@@ -382,7 +383,10 @@ class StageWidget(QWidget):
             self.enable_reticle_probe_calibration_buttons()
             logger.debug("Positive x-axis detected on all screens.")
             for screen in self.screen_widgets:
-                screen.run_no_filter()  
+                screen.run_no_filter()
+
+            # Add Global coords to the Global coords dropdown
+            self.screen_coords_mapper.add_global_coords_to_dropdown()
         else:
             self.coords_detected_screens = self.get_coords_detected_screens()
             logger.debug("Checking again for user input of positive x-axis...")

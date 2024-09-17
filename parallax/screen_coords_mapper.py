@@ -5,10 +5,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 class ScreenCoordsMapper():
-    def __init__(self, model, screen_widgets, reticle_selector):
+    def __init__(self, model, screen_widgets, reticle_selector, x, y, z):
         self.model = model
         self.screen_widgets = screen_widgets
         self.reticle_selector = reticle_selector
+        self.ui_x = x
+        self.ui_y = y
+        self.ui_z = z
 
         # Connect each screen_widget's 'selected' signal to a _clicked_position method
         for screen_widget in self.screen_widgets:
@@ -19,9 +22,18 @@ class ScreenCoordsMapper():
         self._register_pt(camera_name, pos)
         global_coords = self._get_global_coords(camera_name, pos)
         if global_coords is not None:
-            global_coords = np.round(global_coords, decimals=2)
-            logger.debug(f"  Global coordinates: {global_coords*1000}")
-            print(f"  Global coordinates: {global_coords*1000}")
+            global_coords = np.round(global_coords*1000, decimals=1)
+            logger.debug(f"  Global coordinates: {global_coords}")
+            print(f"  Global coordinates: {global_coords}")
+
+        if self.reticle_selector.currentText() == "Proj Global coords":
+            self.ui_x.setText(str(global_coords[0]))
+            self.ui_y.setText(str(global_coords[1]))
+            self.ui_z.setText(str(global_coords[2]))
+
+    def add_global_coords_to_dropdown(self):
+        self.reticle_selector.addItem(f"Proj Global coords")
+        pass
 
     def _register_pt(self, camera_name, pos):
         """Register the clicked position."""
@@ -64,5 +76,5 @@ class ScreenCoordsMapper():
             camA_best, tip_coordsA, camB_best, tip_coordsB
         )
 
-        return global_coords
+        return global_coords[0]
 

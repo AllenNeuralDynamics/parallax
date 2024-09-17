@@ -18,6 +18,7 @@ class StageUI(QWidget):
         self.selected_stage = None
         self.model = model
         self.ui = ui
+        self.reticle = "Global coords"
     
         self.update_stage_selector()
         self.updateStageSN()
@@ -98,14 +99,25 @@ class StageUI(QWidget):
 
     def setCurrentReticle(self):
         reticle_name = self.ui.reticle_selector.currentText()
+        print("stage_ui::setCurrentReticle: reticle_name: ", reticle_name)
         if not reticle_name:
             return False
-        # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
-        self.reticle = reticle_name.split('(')[-1].strip(')')
+        
+        if "Proj" in reticle_name:
+            self.reticle = "Proj"
+            self.updateStageGlobalCoords_default()
+        else:
+            # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
+            self.reticle = reticle_name.split('(')[-1].strip(')')
         return True
 
     def updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""
+        if self.reticle == "Proj":
+            # Do no update global coordinates if reticle is Proj
+            # Update global coordinates (projection) from screen_coords_mapper
+            return
+        
         stage_id = self.get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.get_stage(stage_id)

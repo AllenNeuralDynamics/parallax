@@ -40,8 +40,8 @@ class Calculator(QWidget):
 
     def _setCurrentReticle(self):
         reticle_name = self.reticle_selector.currentText()
-        if not reticle_name:
-            return        
+        if not reticle_name or "Proj" in reticle_name:
+            return
         # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
         self.reticle = reticle_name.split('(')[-1].strip(')')
         self._change_global_label()
