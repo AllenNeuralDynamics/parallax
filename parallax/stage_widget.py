@@ -821,7 +821,7 @@ class StageWidget(QWidget):
         self.transM, self.L2_err, self.dist_travled = None, None, None
         self.scale = np.array([1, 1, 1])
         self.probeCalibration.reset_calib(sn = sn)
-        self.reticle_metadata.default_reticle_selector()
+        self.reticle_metadata.default_reticle_selector(self.reticle_detection_status)
         self.probe_detect_default_status_ui(sn = sn)
 
     def probe_detect_process_status(self):

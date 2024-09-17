@@ -47,7 +47,7 @@ class ScreenCoordsMapper():
         
     def add_global_coords_to_dropdown(self):
         self.reticle_selector.addItem(f"Proj Global coords")
-
+        
     def _apply_reticle_adjustments(self, global_pts):
         reticle_metadata = self.model.get_reticle_metadata(self.reticle)
         reticle_rot = reticle_metadata.get("rot", 0)
