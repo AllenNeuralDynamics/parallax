@@ -10,9 +10,6 @@ class ScreenCoordsMapper():
         self.screen_widgets = screen_widgets
         self.reticle_selector = reticle_selector
 
-        self.stereo_instance = None
-        self.camA_best, self.camB_best = None, None
-
         # Connect each screen_widget's 'selected' signal to a _clicked_position method
         for screen_widget in self.screen_widgets:
             screen_widget.selected.connect(self._clicked_position)
@@ -33,36 +30,38 @@ class ScreenCoordsMapper():
 
     def _get_global_coords(self, camera_name, pos):
         """Calculate global coordinates based on the best camera pair."""
-        if self.stereo_instance is None:
-            self.stereo_instance = self.model.stereo_instance
+        if self.model.stereo_instance is None:
+            logger.debug("Stereo instance is None")
             return None
 
-        if self.camA_best is None or self.camB_best is None:
-            if not self.model.best_camera_pair:
-                return None
-            self.camA_best, self.camB_best = self.model.best_camera_pair
-            if camera_name not in [self.camA_best, self.camB_best]:
-                return None
+        if self.model.best_camera_pair is None:
+            logger.debug("Best camera pair is None")
+            return None
+
+        camA_best, camB_best = self.model.best_camera_pair
+        if camera_name not in [camA_best, camB_best]:
+            logger.debug("Clicked camera is not in the best pair")
+            return None
 
         # Get detected points from cameras
         cameras_detected_pts = self.model.get_cameras_detected_pts()
 
         # Ensure both cameras in the best pair have detected points
-        if self.camA_best not in cameras_detected_pts or self.camB_best not in cameras_detected_pts:
+        if camA_best not in cameras_detected_pts or camB_best not in cameras_detected_pts:
             logger.debug("One or both cameras in the best pair do not have detected points")
             return None
 
         # Assign points based on which camera is clicked
-        if camera_name == self.camA_best:
+        if camera_name == camA_best:
             tip_coordsA = pos
-            tip_coordsB = cameras_detected_pts[self.camB_best]
-        elif camera_name == self.camB_best:
-            tip_coordsA = cameras_detected_pts[self.camA_best]
+            tip_coordsB = cameras_detected_pts[camB_best]
+        elif camera_name == camB_best:
+            tip_coordsA = cameras_detected_pts[camA_best]
             tip_coordsB = pos
 
         # Calculate global coordinates using stereo instance
-        global_coords = self.stereo_instance.get_global_coords(
-            self.camA_best, tip_coordsA, self.camB_best, tip_coordsB
+        global_coords = self.model.stereo_instance.get_global_coords(
+            camA_best, tip_coordsA, camB_best, tip_coordsB
         )
 
         return global_coords

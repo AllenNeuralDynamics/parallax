@@ -245,6 +245,8 @@ class StageWidget(QWidget):
             # Disable probe calibration
             self.probe_detect_default_status()
         self.model.reset_stage_calib_info()
+        self.model.reset_stereo_instance()
+        self.model.reset_camera_extrinsic()
         self.probeCalibration.clear()
 
     def reticle_overwrite_popup_window(self):

@@ -236,6 +236,9 @@ class Model(QObject):
     def add_stereo_instance(self, instance):
         self.stereo_instance = instance
 
+    def reset_stereo_instance(self):
+        self.stereo_instance = None
+
     def add_camera_extrinsic(self, name1, name2, retVal, R, T, E, F):
         """Add camera extrinsic parameters."""
         self.best_camera_pair = [name1, name2]
@@ -244,6 +247,11 @@ class Model(QObject):
     def get_camera_extrinsic(self, name1, name2):
         """Get camera extrinsic parameters."""
         return self.camera_extrinsic.get(name1 + "-" + name2)
+    
+    def reset_camera_extrinsic(self):
+        """Add camera extrinsic parameters."""
+        self.best_camera_pair = None
+        self.camera_extrinsic = {}
 
     def clean(self):
         """Clean up."""
