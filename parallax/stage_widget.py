@@ -21,6 +21,7 @@ from .stage_listener import StageListener
 from .stage_ui import StageUI
 from .calculator import Calculator
 from .reticle_metadata import ReticleMetadata
+from .screen_coords_mapper import ScreenCoordsMapper
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -109,7 +110,7 @@ class StageWidget(QWidget):
 
         # Reticle Widget
         self.reticle_detection_status = (
-            "default"  # options: default, process, detected, accepted, request_axis
+            "default"  # options: default, process, detected, accepted
         )
         self.reticle_calibration_btn.clicked.connect(
             self.reticle_detection_button_handler
@@ -142,7 +143,7 @@ class StageWidget(QWidget):
             self.probe_detection_button_handler
         )
         # Start refreshing stage info
-        self.stageListener = StageListener(self.model, self.stageUI)
+        self.stageListener = StageListener(self.model, self.stageUI, self.probeCalibrationLabel)
         self.stageListener.start()
         self.probeCalibration = ProbeCalibration(self.model, self.stageListener)
         # Hide X, Y, and Z Buttons in Probe Detection
@@ -175,7 +176,11 @@ class StageWidget(QWidget):
 
         # Reticle Button
         self.reticle_metadata_btn.hide()
-        self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector) 
+        self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector)
+
+        # Screen Coords Mapper
+        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets, \
+                self.reticle_selector, self.global_coords_x, self.global_coords_y, self.global_coords_z)
 
     def reticle_detection_button_handler(self):
         """
@@ -241,6 +246,8 @@ class StageWidget(QWidget):
             # Disable probe calibration
             self.probe_detect_default_status()
         self.model.reset_stage_calib_info()
+        self.model.reset_stereo_instance()
+        self.model.reset_camera_extrinsic()
         self.probeCalibration.clear()
 
     def reticle_overwrite_popup_window(self):
@@ -376,7 +383,10 @@ class StageWidget(QWidget):
             self.enable_reticle_probe_calibration_buttons()
             logger.debug("Positive x-axis detected on all screens.")
             for screen in self.screen_widgets:
-                screen.run_no_filter()  
+                screen.run_no_filter()
+
+            # Add Global coords to the Global coords dropdown
+            self.screen_coords_mapper.add_global_coords_to_dropdown()
         else:
             self.coords_detected_screens = self.get_coords_detected_screens()
             logger.debug("Checking again for user input of positive x-axis...")
@@ -493,6 +503,7 @@ class StageWidget(QWidget):
                     itmxA_best, itmxB_best = itmxA, itmxB
                     
         # Update the model with the calibration results
+        self.model.add_stereo_instance(self.calibrationStereo)
         self.model.add_camera_extrinsic(
             self.camA_best, self.camB_best, min_err, R_AB_best, T_AB_best, E_AB_best, F_AB_best
         )
@@ -810,8 +821,8 @@ class StageWidget(QWidget):
         self.transM, self.L2_err, self.dist_travled = None, None, None
         self.scale = np.array([1, 1, 1])
         self.probeCalibration.reset_calib(sn = sn)
+        self.reticle_metadata.default_reticle_selector(self.reticle_detection_status)
         self.probe_detect_default_status_ui(sn = sn)
-        self.reticle_metadata.default_reticle_selector()
 
     def probe_detect_process_status(self):
         """
@@ -1052,11 +1063,7 @@ class StageWidget(QWidget):
             if not self.viewTrajectory_btn.isVisible():
                 self.viewTrajectory_btn.show()
         else:
-            # If moving stage is not the selected stage, save the calibration info
-            content = (
-                f"<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-            )
-            self.probeCalibrationLabel.setText(content)
+            logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 
     def get_stage_info(self):
         info = {}

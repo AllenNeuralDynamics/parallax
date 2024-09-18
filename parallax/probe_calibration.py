@@ -60,7 +60,7 @@ class ProbeCalibration(QObject):
         self.stage = None
         """
         self.threshold_min_max = 250 
-        self.threshold_min_max_z = 0
+        self.threshold_min_max_z = 100
         self.LR_err_L2_threshold = 200
         self.threshold_avg_error = 500
         self.threshold_matrix = np.array(
@@ -84,12 +84,13 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
+
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self.avg_err = None
         self.last_row = None
         self._create_file()
-
+        
     def reset_calib(self, sn=None):
         """
         Resets calibration to its initial state, clearing any stored min and max values.

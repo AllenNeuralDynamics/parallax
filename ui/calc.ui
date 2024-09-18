@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>819</width>
-    <height>653</height>
+    <width>890</width>
+    <height>347</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -46,7 +46,7 @@ QPushButton#startButton:disabled:!checked {
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>781</width>
+     <width>861</width>
      <height>621</height>
     </rect>
    </property>
@@ -70,7 +70,7 @@ QPushButton#startButton:disabled:!checked {
 }</string>
         </property>
         <property name="text">
-         <string>     Global </string>
+         <string> Global</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -86,7 +86,7 @@ QPushButton#startButton:disabled:!checked {
          </size>
         </property>
         <property name="text">
-         <string>Local</string>
+         <string>Local    </string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -105,7 +105,7 @@ QPushButton#startButton:disabled:!checked {
 }</string>
         </property>
         <property name="text">
-         <string>     (x, y, z)</string>
+         <string>  (x, y, z)</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -115,7 +115,7 @@ QPushButton#startButton:disabled:!checked {
       <item>
        <widget class="QLabel" name="labelGlobalXYZ_2">
         <property name="text">
-         <string>(x, y, z)</string>
+         <string>(x, y, z)   </string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>

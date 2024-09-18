@@ -1,7 +1,6 @@
 """
 The Model class is the core component for managing cameras, stages, and calibration data.
 """
-
 from PyQt5.QtCore import QObject, pyqtSignal
 from .camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from .stage_listener import Stage, StageInfo
@@ -48,6 +47,8 @@ class Model(QObject):
         self.pos_x = {}
         self.camera_intrinsic = {}
         self.camera_extrinsic = {}
+        self.stereo_instance = None
+        self.best_camera_pair = None
         self.calibration = None
         self.calibrations = {}
         self.coords_debug = {}
@@ -57,6 +58,9 @@ class Model(QObject):
 
         # Reticle metadata
         self.reticle_metadata = {}
+
+        # clicked pts
+        self.clicked_pts = {}
         
     def add_calibration(self, cal):
         """Add a calibration."""
@@ -142,6 +146,22 @@ class Model(QObject):
         """Reset stage calibration info."""
         self.stages_calib = {}
 
+    def add_pts(self, camera_name, pts):
+        """Add points."""
+        self.clicked_pts[camera_name] = pts
+    
+    def get_pts(self, camera_name):
+        """Get points."""
+        return self.clicked_pts.get(camera_name)
+    
+    def get_cameras_detected_pts(self):
+        """Get cameras that detected the points."""
+        return self.clicked_pts
+    
+    def reset_pts(self):
+        """Reset points."""
+        self.clicked_pts = {}
+
     def add_transform(self, stage_sn, transform, scale):
         """Add transformation matrix between local to global coordinates."""
         self.transforms[stage_sn] = [transform, scale]
@@ -213,13 +233,25 @@ class Model(QObject):
         """Get camera intrinsic parameters."""
         return self.camera_intrinsic.get(camera_name)
 
+    def add_stereo_instance(self, instance):
+        self.stereo_instance = instance
+
+    def reset_stereo_instance(self):
+        self.stereo_instance = None
+
     def add_camera_extrinsic(self, name1, name2, retVal, R, T, E, F):
         """Add camera extrinsic parameters."""
+        self.best_camera_pair = [name1, name2]
         self.camera_extrinsic[name1 + "-" + name2] = [retVal, R, T, E, F]
 
     def get_camera_extrinsic(self, name1, name2):
         """Get camera extrinsic parameters."""
         return self.camera_extrinsic.get(name1 + "-" + name2)
+    
+    def reset_camera_extrinsic(self):
+        """Add camera extrinsic parameters."""
+        self.best_camera_pair = None
+        self.camera_extrinsic = {}
 
     def clean(self):
         """Clean up."""

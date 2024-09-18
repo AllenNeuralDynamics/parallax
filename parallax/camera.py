@@ -235,6 +235,8 @@ class PySpinCamera:
             )
             node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
 
+        self.camera_info()
+        
         # acquisition on initialization
         if VERSION == "V1":
             # begin acquisition

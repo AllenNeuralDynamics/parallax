@@ -28,7 +28,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ScreenWidget(pg.GraphicsView):
     """Screens Class"""
 
-    selected = pyqtSignal(int, int)
+    selected = pyqtSignal(str, tuple) # camera name, (x, y)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
     probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)  # camera name, timestamp, sn, stage_info, pixel_coords
@@ -73,7 +73,17 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = camera
         self.camera_name = self.get_camera_name()
         self.focochan = None
-
+        
+        # Dynamically set zoom limits based on image size
+        width, height = self.camera.width, self.camera.height
+        if height is not None and width:
+            self.view_box.setLimits(
+                xMin= -width, xMax= width * 2,  # Prevent panning outside image boundaries
+                yMin= -height, yMax= height * 2,
+                maxXRange=width * 10,
+                maxYRange=height * 10
+            )
+        
         # No filter
         self.filter = NoFilter(self.camera_name)
         self.filter.frame_processed.connect(self.set_image_item_from_data)
@@ -98,7 +108,6 @@ class ScreenWidget(pg.GraphicsView):
             self.set_image_item_from_data
         )
         self.probeDetector.found_coords.connect(self.found_probe_coords)
-        #self.probeDetector.found_coords.connect(self.probe_coords_detected)
 
         if self.filename:
             self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
@@ -272,8 +281,7 @@ class ScreenWidget(pg.GraphicsView):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
             x, y = event.pos().x(), event.pos().y()
             x, y = int(round(x)), int(round(y))
-            self.select((x,y))
-            print(f"Clicked position on {self.get_camera_name()}: ({x}, {y})")
+            self.select((x, y))
             self.send_clicked_position((x, y))
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self.zoom_out()
@@ -282,8 +290,10 @@ class ScreenWidget(pg.GraphicsView):
         """Select a position and emit the selected coordinates."""
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
-        self.selected.emit(*self.get_selected())
-
+        camera_name = self.get_camera_name() 
+        print(f"Clicked position on {camera_name}: ({pos[0]}, {pos[1]})")
+        self.selected.emit(camera_name, pos)
+        
     def select2(self, pos):
         """Select a second position and make the click target visible."""
         self.click_target2.setPos(pos)
