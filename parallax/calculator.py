@@ -199,7 +199,7 @@ class Calculator(QWidget):
             # Get offset values, default to global point coordinates if not found
             reticle_offset = np.array([
                 reticle_metadata.get("offset_x", 0),  # Default to 0 if no offset is provided
-                reticle_metadata.get("offset_y", 0), 
+                reticle_metadata.get("offset_y", 0),
                 reticle_metadata.get("offset_z", 0)
             ])
             
