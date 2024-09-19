@@ -1,6 +1,7 @@
 """
 The Model class is the core component for managing cameras, stages, and calibration data.
 """
+from collections import OrderedDict
 from PyQt5.QtCore import QObject, pyqtSignal
 from .camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from .stage_listener import Stage, StageInfo
@@ -47,8 +48,8 @@ class Model(QObject):
         self.pos_x = {}
         self.camera_intrinsic = {}
         self.camera_extrinsic = {}
-        self.stereo_instance = None
         self.best_camera_pair = None
+        self.stereo_calib_instance = {}
         self.calibration = None
         self.calibrations = {}
         self.coords_debug = {}
@@ -60,7 +61,7 @@ class Model(QObject):
         self.reticle_metadata = {}
 
         # clicked pts
-        self.clicked_pts = {}
+        self.clicked_pts = OrderedDict()
         
     def add_calibration(self, cal):
         """Add a calibration."""
@@ -147,7 +148,10 @@ class Model(QObject):
         self.stages_calib = {}
 
     def add_pts(self, camera_name, pts):
-        """Add points."""
+        """Add points. If a new camera is added and the size exceeds 2, remove the oldest."""
+        if len(self.clicked_pts) == 2 and camera_name not in self.clicked_pts:
+            # Remove the oldest entry (first added item)
+            self.clicked_pts.popitem(last=False)
         self.clicked_pts[camera_name] = pts
     
     def get_pts(self, camera_name):
@@ -160,7 +164,7 @@ class Model(QObject):
     
     def reset_pts(self):
         """Reset points."""
-        self.clicked_pts = {}
+        self.clicked_pts = OrderedDict()
 
     def add_transform(self, stage_sn, transform, scale):
         """Add transformation matrix between local to global coordinates."""
@@ -233,11 +237,14 @@ class Model(QObject):
         """Get camera intrinsic parameters."""
         return self.camera_intrinsic.get(camera_name)
 
-    def add_stereo_instance(self, instance):
-        self.stereo_instance = instance
+    def add_stereo_calib_instance(self, sorted_key, instance):
+        self.stereo_calib_instance[sorted_key] = instance
 
-    def reset_stereo_instance(self):
-        self.stereo_instance = None
+    def get_stereo_calib_instance(self, sorted_key):
+        return self.stereo_calib_instance.get(sorted_key)
+
+    def reset_stereo_calib_instance(self):
+        self.stereo_calib_instance = {}
 
     def add_camera_extrinsic(self, name1, name2, retVal, R, T, E, F):
         """Add camera extrinsic parameters."""
