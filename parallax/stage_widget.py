@@ -543,8 +543,8 @@ class StageWidget(QWidget):
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
                 print("\n--------------------------------------------------------")
-                print(f"camsera pair: {camA}-{camB}, err: {np.round(err, 2) * 1000} µm³")
-                logger.debug(f"=== camera pair: {camA}-{camB}, err: {np.round(err, 2) * 1000} µm³ ===")
+                print(f"camsera pair: {camA}-{camB}")
+                logger.debug(f"=== camera pair: {camA}-{camB} ===")
                 logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
 
                 # Store the instance with a sorted tuple key
