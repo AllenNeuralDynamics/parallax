@@ -721,6 +721,8 @@ class MockCamera:
         )
         self._next_frame = 0
         self.device_color_type = None
+        self.width = 4000
+        self.height = 3000
 
     def name(self, sn_only=False):
         """Get the name of the mock camera"""

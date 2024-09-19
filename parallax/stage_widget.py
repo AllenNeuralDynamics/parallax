@@ -246,7 +246,7 @@ class StageWidget(QWidget):
             # Disable probe calibration
             self.probe_detect_default_status()
         self.model.reset_stage_calib_info()
-        self.model.reset_stereo_instance()
+        self.model.reset_stereo_calib_instance()
         self.model.reset_camera_extrinsic()
         self.probeCalibration.clear()
 
@@ -501,9 +501,11 @@ class StageWidget(QWidget):
                     self.camA_best, self.camB_best = camA, camB
                     coordsA_best, coordsB_best = coordsA, coordsB
                     itmxA_best, itmxB_best = itmxA, itmxB
+
                     
         # Update the model with the calibration results
-        self.model.add_stereo_instance(self.calibrationStereo)
+        sorted_key = tuple(sorted((self.camA_best, self.camB_best)))
+        self.model.add_stereo_calib_instance(sorted_key, self.calibrationStereo)
         self.model.add_camera_extrinsic(
             self.camA_best, self.camB_best, min_err, R_AB_best, T_AB_best, E_AB_best, F_AB_best
         )
@@ -522,9 +524,6 @@ class StageWidget(QWidget):
         # Stereo Camera Calibration
         calibrationStereo = None
 
-        # Dictionary to store instances with sorted camera names as keys
-        self.calibrationStereoInstances = {}
-
         # Perform calibration between pairs of cameras
         print(cam_names)
 
@@ -540,20 +539,13 @@ class StageWidget(QWidget):
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
                 print("\n--------------------------------------------------------")
-                print(f"camsera pair: {camA}-{camB}, err: {np.round(err, 2) * 1000} µm³")
-                logger.debug(f"=== camera pair: {camA}-{camB}, err: {np.round(err, 2) * 1000} µm³ ===")
+                print(f"camsera pair: {camA}-{camB}")
+                logger.debug(f"=== camera pair: {camA}-{camB} ===")
                 logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
 
                 # Store the instance with a sorted tuple key
                 sorted_key = tuple(sorted((camA, camB)))
-                self.calibrationStereoInstances[sorted_key] = {
-                    "instance": calibrationStereo,
-                    "error": err,
-                    "R_AB": R_AB,
-                    "T_AB": T_AB,
-                    "E_AB": E_AB,
-                    "F_AB": F_AB,
-                }
+                self.model.add_stereo_calib_instance(sorted_key, calibrationStereo)
 
                 #calibrationStereo.print_calibrate_stereo_results(camA, camB)
                 err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB, print_results=True)
@@ -565,7 +557,7 @@ class StageWidget(QWidget):
     # Example of how to retrieve the instance with either (camA, camB) or (camB, camA)
     def get_calibration_instance(self, camA, camB):
         sorted_key = tuple(sorted((camA, camB)))
-        return self.calibrationStereoInstances.get(sorted_key)
+        return self.model.get_stereo_calib_instance(sorted_key)
 
     def calibrate_cameras(self):
         """
@@ -687,10 +679,6 @@ class StageWidget(QWidget):
         if (camA is None) or (timestampA is None) or (snA is None) or (tip_coordsA is None):
             return
 
-        if self.calibrationStereoInstances is None:
-            logger.debug(f"Camera calibration has not done. {camA}")
-            return
-        
         for screen in self.screen_widgets:
             camB = screen.get_camera_name()
             if camA == camB:
@@ -710,7 +698,6 @@ class StageWidget(QWidget):
                 logger.debug(f"Camera calibration has not done {camA}, {camB}")
                 continue
 
-            calibrationStereoInstance = calibrationStereoInstance["instance"]
             global_coords = calibrationStereoInstance.get_global_coords(
                 camA, tip_coordsA, camB, tip_coordsB
             )

@@ -20,7 +20,10 @@ class ScreenCoordsMapper():
     def _clicked_position(self, camera_name, pos):
         """Get clicked position."""
         self._register_pt(camera_name, pos)
-        global_coords = self._get_global_coords(camera_name, pos)
+        if not self.model.bundle_adjustment:
+            global_coords = self._get_global_coords_stereo(camera_name, pos)
+        else:
+            global_coords = self._get_global_coords_BA(camera_name, pos)
         if global_coords is None:
             return
         
@@ -73,9 +76,9 @@ class ScreenCoordsMapper():
         if pos is not None and camera_name is not None:
             self.model.add_pts(camera_name, pos)
 
-    def _get_global_coords(self, camera_name, pos):
+    def _get_global_coords_stereo(self, camera_name, pos):
         """Calculate global coordinates based on the best camera pair."""
-        if self.model.stereo_instance is None:
+        if self.model.stereo_calib_instance is None:
             logger.debug("Stereo instance is None")
             return None
 
@@ -105,9 +108,56 @@ class ScreenCoordsMapper():
             tip_coordsB = pos
 
         # Calculate global coordinates using stereo instance
-        global_coords = self.model.stereo_instance.get_global_coords(
+        stereo_instance = self._get_calibration_instance(camA_best, camB_best)
+        if stereo_instance is None:
+            logger.debug(f"Stereo calibration instance not found for cameras: {camA_best}, {camB_best}")
+            return None
+        
+        global_coords = stereo_instance.get_global_coords(
             camA_best, tip_coordsA, camB_best, tip_coordsB
         )
 
         return global_coords[0]
 
+    def _get_global_coords_BA(self, camera_name, pos):
+        """Calculate global coordinates based on the best camera pair."""
+        if self.model.stereo_calib_instance is None:
+            logger.debug("Stereo instance is None")
+            return None
+
+        # Get detected points from cameras
+        cameras_detected_pts = self.model.get_cameras_detected_pts()
+        if len(cameras_detected_pts) < 2:
+            logger.debug("Not enough detected points to calculate global coordinates")
+            return None
+
+        camA, camB = None, None
+        tip_coordsA, tip_coordsB = None, None
+        for camera, pts in cameras_detected_pts.items():
+            if camera_name == camera:
+                camA = camera
+                tip_coordsA = pos
+            else:
+                camB = camera
+                tip_coordsB = pts
+        
+        if not camA or not camB or tip_coordsA is None or tip_coordsB is None:
+            logger.debug("Insufficient camera data to compute global coordinates")
+            return None
+
+        # Calculate global coordinates using stereo instance
+        stereo_instance = self._get_calibration_instance(camA, camB)
+        if stereo_instance is None:
+            logger.debug(f"Stereo calibration instance not found for cameras: {camA}, {camB}")
+            return None
+        
+        # Calculate global coordinates using the stereo instance
+        global_coords = stereo_instance.get_global_coords(
+            camA, tip_coordsA, camB, tip_coordsB
+        )
+
+        return global_coords[0]
+    
+    def _get_calibration_instance(self, camA, camB):
+        sorted_key = tuple(sorted((camA, camB)))
+        return self.model.get_stereo_calib_instance(sorted_key)

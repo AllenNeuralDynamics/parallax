@@ -601,8 +601,7 @@ class ProbeCalibration(QObject):
         self._update_local_global_point(debug_info) # Do no update if it is duplicates
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
-        self.transM_LR = self._get_transM(filtered_df, noise_threshold=100) # TODO original
-        #self.transM_LR = self._get_transM(filtered_df, remove_noise=False) # Test
+        self.transM_LR = self._get_transM(filtered_df, noise_threshold=100)
         if self.transM_LR is None:
             return
         
@@ -620,9 +619,8 @@ class ProbeCalibration(QObject):
         # save the filtered points to a new file
         print("ProbeCalibration: complete_calibration")
         self.file_name = f"points_{self.stage.sn}.csv"
-        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) # TODO original
-        #self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, remove_noise=False)  # Test
-        
+        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) 
+
         if self.transM_LR is None:
             return
     
