@@ -504,7 +504,6 @@ class StageWidget(QWidget):
 
                     
         # Update the model with the calibration results
-        #self.model.add_stereo_instance(self.calibrationStereo) TODO
         sorted_key = tuple(sorted((self.camA_best, self.camB_best)))
         self.model.add_stereo_calib_instance(sorted_key, self.calibrationStereo)
         self.model.add_camera_extrinsic(
@@ -524,9 +523,6 @@ class StageWidget(QWidget):
         min_err = math.inf
         # Stereo Camera Calibration
         calibrationStereo = None
-
-        # Dictionary to store instances with sorted camera names as keys
-        #self.calibrationStereoInstances = {}
 
         # Perform calibration between pairs of cameras
         print(cam_names)
@@ -549,15 +545,6 @@ class StageWidget(QWidget):
 
                 # Store the instance with a sorted tuple key
                 sorted_key = tuple(sorted((camA, camB)))
-                """ # TODO
-                self.calibrationStereoInstances[sorted_key] = { 
-                    "instance": calibrationStereo,
-                    "error": err,
-                    "R_AB": R_AB,
-                    "T_AB": T_AB,
-                    "E_AB": E_AB,
-                    "F_AB": F_AB,
-                }"""
                 self.model.add_stereo_calib_instance(sorted_key, calibrationStereo)
 
                 #calibrationStereo.print_calibrate_stereo_results(camA, camB)
@@ -570,7 +557,6 @@ class StageWidget(QWidget):
     # Example of how to retrieve the instance with either (camA, camB) or (camB, camA)
     def get_calibration_instance(self, camA, camB):
         sorted_key = tuple(sorted((camA, camB)))
-        #return self.calibrationStereoInstances.get(sorted_key) TODO
         return self.model.get_stereo_calib_instance(sorted_key)
 
     def calibrate_cameras(self):
@@ -712,8 +698,6 @@ class StageWidget(QWidget):
                 logger.debug(f"Camera calibration has not done {camA}, {camB}")
                 continue
 
-            # calibrationStereoInstance = calibrationStereoInstance["instance"] TODO
-            #calibrationStereoInstance = calibrationStereoInstance["instance"]
             global_coords = calibrationStereoInstance.get_global_coords(
                 camA, tip_coordsA, camB, tip_coordsB
             )
