@@ -22,6 +22,7 @@ from .stage_ui import StageUI
 from .calculator import Calculator
 from .reticle_metadata import ReticleMetadata
 from .screen_coords_mapper import ScreenCoordsMapper
+from .stage_controller import StageController
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -170,9 +171,12 @@ class StageWidget(QWidget):
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
+        # Stage controller
+        self.stage_controller = StageController(self.model)
+
         # Calculator Button
         self.calculation_btn.hide()
-        self.calculator = Calculator(self.model, self.reticle_selector)
+        self.calculator = Calculator(self.model, self.reticle_selector, self.stage_controller)
 
         # Reticle Button
         self.reticle_metadata_btn.hide()

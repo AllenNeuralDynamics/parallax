@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>978</width>
+    <width>987</width>
     <height>123</height>
    </rect>
   </property>
@@ -250,7 +250,7 @@ QPushButton#startButton:disabled:!checked {
     <string>Clear</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="moveXY">
+  <widget class="QPushButton" name="moveStageXY">
    <property name="geometry">
     <rect>
      <x>810</x>
@@ -268,7 +268,7 @@ QPushButton#startButton:disabled:!checked {
     <string>(X,Y,0)</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="moveZ">
+  <widget class="QPushButton" name="stopStage">
    <property name="geometry">
     <rect>
      <x>920</x>
@@ -283,7 +283,7 @@ QPushButton#startButton:disabled:!checked {
     </font>
    </property>
    <property name="text">
-    <string>(Z)</string>
+    <string>Stop</string>
    </property>
   </widget>
  </widget>
