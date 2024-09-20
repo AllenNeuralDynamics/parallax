@@ -19,7 +19,8 @@ class Calculator(QWidget):
         self.reticle_selector = reticle_selector
         self.reticle = None
 
-        self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
+        #self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self) #TODO
+        self.ui = loadUi(os.path.join(ui_dir, "calc_move.ui"), self)
         self.setWindowTitle(f"Calculator")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
@@ -249,7 +250,8 @@ class Calculator(QWidget):
         for sn in self.model.stages.keys():
             # Load the QGroupBox from the calc_QGroupBox.ui file
             group_box = QGroupBox(self)
-            loadUi(os.path.join(ui_dir, "calc_QGroupBox.ui"), group_box)
+            #loadUi(os.path.join(ui_dir, "calc_QGroupBox.ui"), group_box) # TODO
+            loadUi(os.path.join(ui_dir, "calc_QGroupBox_move.ui"), group_box)
 
             # Set the visible title of the QGroupBox to sn
             group_box.setTitle(f"{sn}")
@@ -258,9 +260,9 @@ class Calculator(QWidget):
             group_box.setObjectName(f"groupBox_{sn}")
 
             # Find all QLineEdits and QPushButtons in the group_box and rename them
-            # globalX -> globalX_{sn} .. 
-            # localX -> localX_{sn} ..
-            # ClearBtn -> ClearBtn_{sn} ..
+            # globalX -> globalX_{sn} / localX -> localX_{sn} 
+            # ClearBtn -> ClearBtn_{sn} 
+            # moveXY -> moveXY_{sn}, moveZ -> moveZ_{sn}
             for line_edit in group_box.findChildren(QLineEdit):
                 line_edit.setObjectName(f"{line_edit.objectName()}_{sn}")
 
