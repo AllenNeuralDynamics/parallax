@@ -1,7 +1,7 @@
 import os
 import logging
 import numpy as np
-from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel
+from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, QMessageBox
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 
@@ -20,7 +20,6 @@ class Calculator(QWidget):
         self.reticle = None
         self.stage_controller = stage_controller
 
-        #self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self) #TODO
         self.ui = loadUi(os.path.join(ui_dir, "calc_move.ui"), self)
         self.setWindowTitle(f"Calculator")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
@@ -264,7 +263,7 @@ class Calculator(QWidget):
             # Find all QLineEdits and QPushButtons in the group_box and rename them
             # globalX -> globalX_{sn} / localX -> localX_{sn} 
             # ClearBtn -> ClearBtn_{sn} 
-            # moveStageXY -> moveStageXY_{sn}, stopStage -> stopStage_{sn}
+            # moveStageXY -> moveStageXY_{sn}
             for line_edit in group_box.findChildren(QLineEdit):
                 line_edit.setObjectName(f"{line_edit.objectName()}_{sn}")
 
@@ -273,17 +272,27 @@ class Calculator(QWidget):
                 push_button.setObjectName(f"{push_button.objectName()}_{sn}")
 
             # Add the newly created QGroupBox to the layout
-            self.ui.verticalLayout_QBox.addWidget(group_box)
+            widget_count = self.ui.verticalLayout_QBox.count()
+            self.ui.verticalLayout_QBox.insertWidget(widget_count - 1, group_box)
+            #self.ui.verticalLayout_QBox.addWidget(group_box)
 
     def _connect_move_stage_buttons(self):
+        stop_button = self.ui.findChild(QPushButton, f"stopAllStages")
+        if stop_button:
+            stop_button.clicked.connect(lambda: self._stop_stage("stopAll"))
+
         for stage_sn in self.model.stages.keys():
             moveXY_button = self.findChild(QPushButton, f"moveStageXY_{stage_sn}")
             if moveXY_button:
                 moveXY_button.clicked.connect(self._create_stage_function(stage_sn, "moveXY"))
-            #stop_button = self.findChild(QPushButton, f"stopStage_{stage_sn}")
-            #if stop_button:
-            #    stop_button.clicked.connect(self._create_stage_function(stage_sn, "stopAll"))
 
+    def _stop_stage(self, move_type):
+        print(f"Stopping all stages.")
+        command = {
+            "move_type": move_type
+        }
+        self.stage_controller.stop_request(command)
+    
     def _create_stage_function(self, stage_sn, move_type):
         """Create a function that moves the stage to the given global coordinates."""
         return lambda: self._move_stage(stage_sn, move_type)
@@ -297,17 +306,46 @@ class Calculator(QWidget):
         except ValueError as e:
             logger.warning(f"Invalid input for stage {stage_sn}: {e}")
             return  # Optionally handle the error gracefully (e.g., show a message to the user)
-
-        print(f"Move stage {stage_sn}, move_type: {move_type}, coordinates: ({x}, {y}, {z})")
         
-        command = {
-            "stage_sn": stage_sn,
-            "move_type": move_type,
-            "x": x,
-            "y": y,
-            "z": z
-        }
-        self.stage_controller.move_request(command)
+        # Use the confirm_move_stage function to ask for confirmation
+        if self._confirm_move_stage(x, y):
+            # If the user confirms, proceed with moving the stage
+            print(f"Moving stage {stage_sn} to ({np.round(x*1000)}, {np.round(y*1000)}, 0)")
+            command = {
+                "stage_sn": stage_sn,
+                "move_type": move_type,
+                "x": x,
+                "y": y,
+                "z": z
+            }
+            self.stage_controller.move_request(command)
+        else:
+            # If the user cancels, do nothing
+            print("Stage move canceled by user.")
+
+    def _confirm_move_stage(self, x, y):
+        """
+        Displays a confirmation dialog asking the user if they are sure about moving the stage.
+        
+        Args:
+            x (float): The x-coordinate for stage movement.
+            y (float): The y-coordinate for stage movement.
+
+        Returns:
+            bool: True if the user confirms the move, False otherwise.
+        """
+
+        x = round(x*1000)
+        y = round(y*1000)
+        message = f"Are you sure you want to move the stage to the local coords, ({x}, {y}, 0)?"
+        response = QMessageBox.warning(
+            self,
+            "Move Stage Confirmation",
+            message,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        return response == QMessageBox.Yes
 
     def _connect_clear_buttons(self):
         for stage_sn in self.model.stages.keys():

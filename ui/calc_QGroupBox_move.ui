@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>987</width>
+    <width>914</width>
     <height>123</height>
    </rect>
   </property>
@@ -41,6 +41,24 @@ QPushButton#startButton:disabled:checked {
 }
 QPushButton#startButton:disabled:!checked {
 	background-color: lightGreen;
+}
+
+QMessageBox {
+    background-color: rgb(00,00,00);
+    color: #FFFFFF;
+}
+QMessageBox QLabel {
+    color: #FFFFFF;
+}
+QMessageBox QPushButton {
+    background-color: rgb(50,50,50);
+    color: #FFFFFF;
+}
+QMessageBox QPushButton:hover {
+    background-color: rgb(100, 30, 30);
+}
+QMessageBox QPushButton:pressed {
+    background-color: rgb(224, 0, 0);
 }</string>
   </property>
   <widget class="QLineEdit" name="globalY">
@@ -253,10 +271,10 @@ QPushButton#startButton:disabled:!checked {
   <widget class="QPushButton" name="moveStageXY">
    <property name="geometry">
     <rect>
-     <x>810</x>
-     <y>50</y>
-     <width>91</width>
-     <height>23</height>
+     <x>820</x>
+     <y>40</y>
+     <width>61</width>
+     <height>41</height>
     </rect>
    </property>
    <property name="font">
@@ -265,25 +283,17 @@ QPushButton#startButton:disabled:!checked {
     </font>
    </property>
    <property name="text">
-    <string>(X,Y,0)</string>
+    <string/>
    </property>
-  </widget>
-  <widget class="QPushButton" name="stopStage">
-   <property name="geometry">
-    <rect>
-     <x>920</x>
-     <y>50</y>
-     <width>31</width>
-     <height>23</height>
-    </rect>
+   <property name="icon">
+    <iconset>
+     <normaloff>resources/move_xy0.png</normaloff>resources/move_xy0.png</iconset>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>7</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Stop</string>
+   <property name="iconSize">
+    <size>
+     <width>64</width>
+     <height>64</height>
+    </size>
    </property>
   </widget>
  </widget>

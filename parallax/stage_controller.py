@@ -16,6 +16,7 @@ class StageController(QObject):
         super().__init__()
         self.model = model
         self.url = self.model.stage_listener_url
+        self.timer_count = 0
 
         # These commands will be updated dynamically based on the parsed probe index
         self.probeStepMode_command = {
@@ -36,8 +37,39 @@ class StageController(QObject):
             "Probe": 0          # Default value, will be updated dynamically
         }
 
+    def stop_request(self, command):
+        move_type = command["move_type"]
+        if move_type == "stopAll":
+            # Stop the timer if it's active
+            if hasattr(self, 'timer') and self.timer.isActive():
+                self.timer.stop()
+                logger.info("Timer stopped. Outside SW may be interrupting.")
+
+            # Get the status to retrieve all available probes
+            status = self._get_status()
+            if status is None:
+                logger.warning("Failed to retrieve status while trying to stop all probes.")
+                return
+
+            # Iterate over all probes and send the stop command
+            probe_array = status.get("ProbeArray", [])
+            for i, probe in enumerate(probe_array):
+                self.probeStop_command["Probe"] = i  # Set the correct probe index
+                self._send_command(self.probeStop_command)
+                logger.info(f"Sent stop command to probe {i}")
+            logger.info("Sent stop command to all available probes.")
+
     def move_request(self, command):
-        print(command)
+        """
+        input format:
+        command = {
+            "stage_sn": stage_sn,
+            "move_type": move_type     # "moveXY"
+            "x": x,
+            "y": y,
+            "z": z
+        }
+        """
         move_type = command["move_type"]
         stage_sn = command["stage_sn"]
         # Get index of the probe based on the serial number
@@ -56,19 +88,27 @@ class StageController(QObject):
             # move the probe
             self._send_command(self.probeMotion_command)
 
+            # Reset timer_count for this new move command
+            self.timer_count = 0
             self.timer = QTimer(self)
             self.timer.setInterval(500)  # 500 ms
             self.timer.timeout.connect(lambda: self._check_z_position(probe_index, 15.0, command))
             self.timer.start()
-
-        elif move_type == "stopAll":
-            pass
     
     def _check_z_position(self, probe_index, target_z, command):
         """Check Z position and proceed with X, Y movement once target is reached."""
+        self.timer_count += 1
+        if self.timer_count > 30:  # 30 * 500 ms = 15 seconds
+            if hasattr(self, 'timer') and self.timer.isActive():
+                self.timer.stop()
+                logger.warning("Timer stopped due to timeout.")
+                return
+
         if self._is_z_at_target(probe_index, target_z):
-            self.timer.stop()  # Stop the timer once Z target is reached
-            
+            if hasattr(self, 'timer') and self.timer.isActive():
+                self.timer.stop()
+                logger.info("Timer stopped due to z is on the target.")
+
             # Update command to move (x, y, 0)
             x = command["x"]
             y = command["y"]
@@ -97,7 +137,6 @@ class StageController(QObject):
         return abs(current_z - target_z) < 0.01  # Tolerance of 10 um
 
     def _update_move_command(self, probe_index, x=None, y=None, z=None):
-        print(f"Moving probe {probe_index} to ({x}, {y}, {z})")
         self.probeMotion_command["Probe"] = probe_index
         if x is not None:
             self.probeMotion_command["X"] = x
@@ -142,13 +181,4 @@ class StageController(QObject):
 
     def _send_command(self, command):
         headers = {'Content-Type': 'application/json'}
-        response = requests.put(self.url, data=json.dumps(command), headers=headers)
-        if response.status_code == 200:
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                print("Response is not in JSON format:", response.text)
-                return None
-        else:
-            print(f"Failed to send command: {response.status_code}, {response.text}")
-            return None
+        requests.put(self.url, data=json.dumps(command), headers=headers)
