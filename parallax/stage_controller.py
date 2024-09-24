@@ -99,8 +99,8 @@ class StageController(QObject):
         """Check Z position and proceed with X, Y movement once target is reached."""
         self.timer_count += 1
         # Outside software might control the stage and never reached to z target.
-        # Thus, stop the timer after 15 seconds.
-        if self.timer_count > 30:  # 30 * 500 ms = 15 seconds
+        # Thus, stop the timer after 20 seconds.
+        if self.timer_count > 40:  # 40 * 500 ms = 20 seconds
             if hasattr(self, 'timer') and self.timer.isActive():
                 self.timer.stop()
                 logger.warning("Timer stopped due to timeout.")
