@@ -98,6 +98,8 @@ class StageController(QObject):
     def _check_z_position(self, probe_index, target_z, command):
         """Check Z position and proceed with X, Y movement once target is reached."""
         self.timer_count += 1
+        # Outside software might control the stage and never reached to z target.
+        # Thus, stop the timer after 15 seconds.
         if self.timer_count > 30:  # 30 * 500 ms = 15 seconds
             if hasattr(self, 'timer') and self.timer.isActive():
                 self.timer.stop()

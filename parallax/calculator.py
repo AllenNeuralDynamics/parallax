@@ -302,11 +302,16 @@ class Calculator(QWidget):
             # Convert the text to float, round it, then cast to int
             x = float(self.findChild(QLineEdit, f"localX_{stage_sn}").text())/1000
             y = float(self.findChild(QLineEdit, f"localY_{stage_sn}").text())/1000
-            z = 15.0
+            z = 15.0 # Z is inverted in the server.
         except ValueError as e:
             logger.warning(f"Invalid input for stage {stage_sn}: {e}")
             return  # Optionally handle the error gracefully (e.g., show a message to the user)
         
+        # Safety Check: Check z=15 is high position of stage.
+        if not self._is_z_safe_pos(stage_sn, x, y, z):
+            logger.warning(f"Invalid z position for stage {stage_sn}")
+            return
+
         # Use the confirm_move_stage function to ask for confirmation
         if self._confirm_move_stage(x, y):
             # If the user confirms, proceed with moving the stage
@@ -322,6 +327,41 @@ class Calculator(QWidget):
         else:
             # If the user cancels, do nothing
             print("Stage move canceled by user.")
+
+    def _is_z_safe_pos(self, stage_sn, x, y, z):
+        """
+        Check if the Z=15 position is safe for the stage. (z=15 is the top of the stage)
+
+        Args:
+            stage_sn (str): The serial number of the stage.
+            x (float): The x-coordinate of the stage.
+            y (float): The y-coordinate of the stage.
+            z (float): The z-coordinate (set to 15.0).
+
+        Returns:
+            bool: True if the Z position is safe, False otherwise.
+        """
+        # Z is inverted in the server
+        local_pts_z15 = [float(x)*1000, float(y)*1000, float(15.0 - z)*1000] # Should be top of the stage
+        local_pts_z0 = [float(x)*1000, float(y)*1000, 15.0*1000] # Should be bottom
+        for sn, item in self.model.transforms.items():
+            if sn != stage_sn:
+                continue
+
+            transM, scale = item[0], item[1]
+            if transM is not None:
+                try:
+                    # Apply transformations to get global points for Z=15 and Z=0
+                    global_pts_z15 = self._apply_transformation(local_pts_z15, transM, scale)
+                    global_pts_z0 = self._apply_transformation(local_pts_z0, transM, scale)
+
+                    # Ensure that Z=15 is higher than Z=0 and Z=15 is positive
+                    if global_pts_z15[2] > global_pts_z0[2] and global_pts_z15[2] > 0:
+                        return True
+                except Exception as e:
+                    logger.error(f"Error applying transformation for stage {stage_sn}: {e}")
+                    return False
+        return False
 
     def _confirm_move_stage(self, x, y):
         """
