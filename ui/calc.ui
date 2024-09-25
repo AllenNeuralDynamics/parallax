@@ -122,7 +122,7 @@ QMessageBox QPushButton:pressed {
 }</string>
         </property>
         <property name="text">
-         <string>  (x, y, z)</string>
+         <string> (x, y, z)</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
