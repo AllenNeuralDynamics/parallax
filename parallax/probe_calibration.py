@@ -7,7 +7,7 @@ ProbeCalibration transforms probe coordinates from local to global space"
 import csv
 import logging
 import os
-
+import datetime
 import numpy as np
 import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -89,8 +89,11 @@ class ProbeCalibration(QObject):
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self.avg_err = None
         self.last_row = None
+
+        # create file for points.csv
+        self.log_dir = None
         self._create_file()
-        
+
     def reset_calib(self, sn=None):
         """
         Resets calibration to its initial state, clearing any stored min and max values.
@@ -119,9 +122,10 @@ class ProbeCalibration(QObject):
         Creates or clears the CSV file used to store local and global points during calibration.
         """
         package_dir = os.path.dirname(os.path.abspath(__file__))
-        debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
-        os.makedirs(debug_dir, exist_ok=True)
-        self.csv_file = os.path.join(debug_dir, "points.csv")
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_dir = os.path.join(os.path.dirname(package_dir), f"debug/log_{timestamp}")
+        os.makedirs(self.log_dir, exist_ok=True)  # Create the log directory if it doesn't exist
+        self.csv_file = os.path.join(self.log_dir, "points.csv")
 
         # Check if the file exists and remove it if it does
         if os.path.exists(self.csv_file):
@@ -523,11 +527,12 @@ class ProbeCalibration(QObject):
         Args:
             filtered_df (pd.DataFrame): DataFrame containing filtered local and global points.
         """
+        if self.log_dir is None:
+            logger.error("log_dir is not initialized.")
+            return
+
         # Save the updated DataFrame back to the CSV file
-        package_dir = os.path.dirname(os.path.abspath(__file__))
-        debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
-        os.makedirs(debug_dir, exist_ok=True)
-        csv_file = os.path.join(debug_dir, file_name)
+        csv_file = os.path.join(self.log_dir, file_name)
         df.to_csv(csv_file, index=False)
 
         return csv_file
@@ -618,7 +623,8 @@ class ProbeCalibration(QObject):
     def complete_calibration(self, filtered_df):
         # save the filtered points to a new file
         print("ProbeCalibration: complete_calibration")
-        self.file_name = f"points_{self.stage.sn}.csv"
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.file_name = f"points_{self.stage.sn}_{timestamp}.csv"
         self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) 
 
         if self.transM_LR is None:
@@ -628,7 +634,7 @@ class ProbeCalibration(QObject):
         self._print_formatted_transM()
         print("=========================================================")
         self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
-                            file_name = f"transM_{self.stage.sn}.csv") 
+                            file_name = f"transM_{self.stage.sn}_{timestamp}.csv")
 
         if self.model.bundle_adjustment:    
             self.old_transM, self.old_scale = self.transM_LR, self.scale
@@ -639,7 +645,7 @@ class ProbeCalibration(QObject):
                 self._print_formatted_transM()
                 print("=========================================================")
                 self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
-                            file_name = f"transM_BA_{self.stage.sn}.csv") 
+                            file_name = f"transM_BA_{self.stage.sn}_{timestamp}.csv")
             else:
                 return
         

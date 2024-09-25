@@ -21,8 +21,7 @@ try:
     import PySpin
 except ImportError:
     PySpin = None
-    logger.warn("Could not import PySpin.")
-
+    logger.warning("Could not import PySpin.")
 
 def list_cameras(dummy=False, version="V1"):
     """
@@ -254,22 +253,23 @@ class PySpinCamera:
         Args:
         - wb (float): The desired white balance value. min:1.8, max:2.5
         """
-        if self.device_color_type == "Color":
-            self.node_wbauto_mode.SetIntValue(
-                self.node_wbauto_mode_off.GetValue()
-            )
-            if channel == "Red":
-                self.node_balanceratio_mode.SetIntValue(
-                    self.node_balanceratio_mode_red.GetValue()
+        try:
+            if self.device_color_type == "Color":
+                self.node_wbauto_mode.SetIntValue(
+                    self.node_wbauto_mode_off.GetValue()
                 )
-                self.node_wb.SetValue(wb)
-            elif channel == "Blue":
-                self.node_balanceratio_mode.SetIntValue(
-                    self.node_balanceratio_mode_blue.GetValue()
-                )
-                self.node_wb.SetValue(wb)
-        else:
-            pass
+                if channel == "Red":
+                    self.node_balanceratio_mode.SetIntValue(
+                        self.node_balanceratio_mode_red.GetValue()
+                    )
+                    self.node_wb.SetValue(wb)
+                elif channel == "Blue":
+                    self.node_balanceratio_mode.SetIntValue(
+                        self.node_balanceratio_mode_blue.GetValue()
+                    )
+                    self.node_wb.SetValue(wb)
+        except Exception as e:
+            logger.error(f"An error occurred while setting the white balance: {e}")
 
     def get_wb(self, channel):
         """
@@ -302,8 +302,11 @@ class PySpinCamera:
         Args:
         - gamma (float): The desired gamma value. min:0.25 max:1.25
         """
-        self.node_gammaenable_mode.SetValue(True)
-        self.node_gamma.SetValue(gamma)
+        try:
+            self.node_gammaenable_mode.SetValue(True)
+            self.node_gamma.SetValue(gamma)
+        except Exception as e:
+            logger.error(f"An error occurred while setting the gamma: {e}")
 
     def disable_gamma(self):
         """
@@ -318,10 +321,13 @@ class PySpinCamera:
         Args:
         - gain (float): The desired gain value. min:0, max:27.0
         """
-        self.node_gainauto_mode.SetIntValue(
-            self.node_gainauto_mode_off.GetValue()
-        )
-        self.node_gain.SetValue(gain)
+        try:
+            self.node_gainauto_mode.SetIntValue(
+                self.node_gainauto_mode_off.GetValue()
+            )
+            self.node_gain.SetValue(gain)
+        except Exception as e:
+            logger.error(f"An error occurred while setting the gain: {e}")
 
     def get_gain(self):
         """
@@ -346,10 +352,13 @@ class PySpinCamera:
         Args:
         - expTime (int): The desired exposure time in microseconds.
         """
-        self.node_expauto_mode.SetIntValue(
-            self.node_expauto_mode_off.GetValue()
-        )  # Return back to manual mode
-        self.node_exptime.SetValue(expTime)
+        try:
+            self.node_expauto_mode.SetIntValue(
+                self.node_expauto_mode_off.GetValue()
+            )  # Return back to manual mode
+            self.node_exptime.SetValue(expTime)
+        except Exception as e:
+            logger.error(f"An error occurred while setting the exposure: {e}")
 
     def get_exposure(self):
         """
@@ -434,26 +443,30 @@ class PySpinCamera:
             print("Error: camera is already running")
             return -1
 
-        # set acquisition mode continuous (continuous stream of images)
-        node_acquisition_mode = PySpin.CEnumerationPtr(
-            self.node_map.GetNode("AcquisitionMode")
-        )
-        node_acquisition_mode_continuous = node_acquisition_mode.GetEntryByName(
-            "Continuous"
-        )
-        acquisition_mode_continuous = (
-            node_acquisition_mode_continuous.GetValue()
-        )
-        node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
+        try:
+            # set acquisition mode continuous (continuous stream of images)
+            node_acquisition_mode = PySpin.CEnumerationPtr(
+                self.node_map.GetNode("AcquisitionMode")
+            )
+            node_acquisition_mode_continuous = node_acquisition_mode.GetEntryByName(
+                "Continuous"
+            )
+            acquisition_mode_continuous = (
+                node_acquisition_mode_continuous.GetValue()
+            )
+            node_acquisition_mode.SetIntValue(acquisition_mode_continuous)
 
-        # Begin Acquisition: Image acquisition must be ended when no more images are needed.
-        self.camera.BeginAcquisition()
-        logger.debug(f"BeginAcquisition {self.name(sn_only=True)} ")
-        self.running = True
-        self.capture_thread = threading.Thread(
-            target=self.capture_loop, daemon=True
-        )
-        self.capture_thread.start()
+            # Begin Acquisition: Image acquisition must be ended when no more images are needed.
+            self.camera.BeginAcquisition()
+            logger.debug(f"BeginAcquisition {self.name(sn_only=True)} ")
+            self.running = True
+            self.capture_thread = threading.Thread(
+                target=self.capture_loop, daemon=True
+            )
+            self.capture_thread.start()
+        except Exception as e:
+            logger.error(f"An error occurred while starting the camera: {e}")
+            print(f"Error: An error occurred while starting the camera {e}")
 
     def capture_loop(self):
         """
@@ -537,8 +550,7 @@ class PySpinCamera:
             )
 
     def save_last_image(
-        self, filepath, isTimestamp=False, custom_name="Microscope_"
-    ):
+        self, filepath, isTimestamp=False, custom_name="Microscope_"):
         """
         Saves the last captured image to the specified file path.
 
