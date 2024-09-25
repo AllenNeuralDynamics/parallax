@@ -493,35 +493,32 @@ class PySpinCamera:
         ts = time.time()
         self.last_capture_time = ts
 
-        try:
-            # Retrieve the next image from the camera
-            image = self.camera.GetNextImage(1000)
+        # Retrieve the next image from the camera
+        image = self.camera.GetNextImage(1000)
 
-            while image.IsIncomplete():
-                time.sleep(0.001)
+        while image.IsIncomplete():
+            time.sleep(0.001)
 
-            # Release the previous image from the buffer if it exists
-            if self.last_image is not None:
-                try:
-                    self.last_image.Release()
-                except PySpin.SpinnakerException:
-                    print("Spinnaker Exception: Couldn't release last image")
+        # Release the previous image from the buffer if it exists
+        if self.last_image is not None:
+            try:
+                self.last_image.Release()
+            except PySpin.SpinnakerException:
+                print("Spinnaker Exception: Couldn't release last image")
 
-            # Update the last captured image reference
-            self.last_image = image
-            self.last_image_filled.set()
+        # Update the last captured image reference
+        self.last_image = image
+        self.last_image_filled.set()
 
-            # Record the image if video recording is active
-            if self.video_recording_on.is_set():
-                self.video_recording_idle.clear()
+        # Record the image if video recording is active
+        if self.video_recording_on.is_set():
+            self.video_recording_idle.clear()
 
-                frame = self.get_last_image_data()
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            frame = self.get_last_image_data()
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
-                self.video_output.write(frame)
-                self.video_recording_idle.set()
-        except Exception as e:
-            logger.error(f"Failed to capture image: {e}")
+            self.video_output.write(frame)
+            self.video_recording_idle.set()
 
     def get_last_capture_time(self, millisecond=False):
         """
