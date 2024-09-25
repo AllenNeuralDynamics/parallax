@@ -20,7 +20,7 @@ class Calculator(QWidget):
         self.reticle = None
         self.stage_controller = stage_controller
 
-        self.ui = loadUi(os.path.join(ui_dir, "calc_move.ui"), self)
+        self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
         self.setWindowTitle(f"Calculator")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
@@ -236,7 +236,7 @@ class Calculator(QWidget):
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
         group_box.setEnabled(False)
         group_box.setStyleSheet("background-color: #333333;")
-        group_box.setTitle(f"{sn} (Uncalibrated)")
+        group_box.setTitle(f"(Uncalibrated) {sn}")
 
     def _enable(self, sn):
         # Find the QGroupBox for the stage
@@ -251,11 +251,11 @@ class Calculator(QWidget):
         for sn in self.model.stages.keys():
             # Load the QGroupBox from the calc_QGroupBox.ui file
             group_box = QGroupBox(self)
-            #loadUi(os.path.join(ui_dir, "calc_QGroupBox.ui"), group_box) # TODO
-            loadUi(os.path.join(ui_dir, "calc_QGroupBox_move.ui"), group_box)
+            loadUi(os.path.join(ui_dir, "calc_QGroupBox.ui"), group_box)
 
             # Set the visible title of the QGroupBox to sn
             group_box.setTitle(f"{sn}")
+            group_box.setAlignment(Qt.AlignRight) # title alignment to the right
 
             # Append _{sn} to the QGroupBox object name
             group_box.setObjectName(f"groupBox_{sn}")
@@ -274,7 +274,6 @@ class Calculator(QWidget):
             # Add the newly created QGroupBox to the layout
             widget_count = self.ui.verticalLayout_QBox.count()
             self.ui.verticalLayout_QBox.insertWidget(widget_count - 1, group_box)
-            #self.ui.verticalLayout_QBox.addWidget(group_box)
 
     def _connect_move_stage_buttons(self):
         stop_button = self.ui.findChild(QPushButton, f"stopAllStages")

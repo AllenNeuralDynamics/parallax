@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>890</width>
-    <height>347</height>
+    <width>953</width>
+    <height>638</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -39,6 +39,23 @@ QPushButton#startButton:disabled:checked {
 }
 QPushButton#startButton:disabled:!checked {
 	background-color: lightGreen;
+}
+QMessageBox {
+    background-color: rgb(00,00,00);
+    color: #FFFFFF;
+}
+QMessageBox QLabel {
+    color: #FFFFFF;
+}
+QMessageBox QPushButton {
+    background-color: rgb(50,50,50);
+    color: #FFFFFF;
+}
+QMessageBox QPushButton:hover {
+    background-color: rgb(100, 30, 30);
+}
+QMessageBox QPushButton:pressed {
+    background-color: rgb(224, 0, 0);
 }</string>
   </property>
   <widget class="QWidget" name="verticalLayoutWidget">
@@ -46,8 +63,8 @@ QPushButton#startButton:disabled:!checked {
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>861</width>
-     <height>621</height>
+     <width>921</width>
+     <height>601</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout_T">
@@ -132,6 +149,40 @@ QPushButton#startButton:disabled:!checked {
       <property name="bottomMargin">
        <number>10</number>
       </property>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="stopAllStages">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>resources/stop-sign.png</normaloff>resources/stop-sign.png</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>64</width>
+            <height>64</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
      </layout>
     </item>
     <item>

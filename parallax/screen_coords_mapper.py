@@ -26,7 +26,7 @@ class ScreenCoordsMapper():
             global_coords = self._get_global_coords_BA(camera_name, pos)
         if global_coords is None:
             return
-        
+
         global_coords = np.round(global_coords*1000, decimals=1)
         reticle_name = self.reticle_selector.currentText()
         if "Proj" not in reticle_name:
