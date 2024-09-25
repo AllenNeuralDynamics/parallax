@@ -623,7 +623,8 @@ class ProbeCalibration(QObject):
     def complete_calibration(self, filtered_df):
         # save the filtered points to a new file
         print("ProbeCalibration: complete_calibration")
-        self.file_name = f"points_{self.stage.sn}.csv"
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.file_name = f"points_{self.stage.sn}_{timestamp}.csv"
         self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20) 
 
         if self.transM_LR is None:
@@ -633,7 +634,7 @@ class ProbeCalibration(QObject):
         self._print_formatted_transM()
         print("=========================================================")
         self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
-                            file_name = f"transM_{self.stage.sn}.csv") 
+                            file_name = f"transM_{self.stage.sn}_{timestamp}.csv")
 
         if self.model.bundle_adjustment:    
             self.old_transM, self.old_scale = self.transM_LR, self.scale
@@ -644,7 +645,7 @@ class ProbeCalibration(QObject):
                 self._print_formatted_transM()
                 print("=========================================================")
                 self._update_info_ui(disp_avg_error=True, save_to_csv=True, \
-                            file_name = f"transM_BA_{self.stage.sn}.csv") 
+                            file_name = f"transM_BA_{self.stage.sn}_{timestamp}.csv")
             else:
                 return
         
