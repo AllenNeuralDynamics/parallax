@@ -68,6 +68,7 @@ Probe Calibration
     .. image:: _static/probeCalib2.JPG
         :alt: probe calibration
 
+    - When moving the probe, continue alternating between stopping and moving the stage. When the stage is stopped, the tip point color turns red, representing the points used for probe calibration. When the stage is moving, the tip turns yellow, indicating only the location of the stage. Therefore, it is necessary to stop several times for the probe calibration process.
     - Once the probe has traveled far enough along each axis, the UI for the corresponding axis will turn green.
     - Even if all axes are green, additional movement may be necessary to improve the fit between the local motor coordinates and the global 3D points.
 
