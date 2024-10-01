@@ -20,6 +20,7 @@ Contents
 
    ReadMe
    userGuide
+   programmersGuide
    FAQ
    modules
 
