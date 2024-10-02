@@ -1,10 +1,11 @@
-Programmer's Guide
-====================
+*Programmer's Guide*
 
 Reticle Detection
---------------------
+========================
 
-**Process)** 
+
+Overview
+--------------------
 
 .. raw:: html
 
@@ -54,7 +55,8 @@ Please continue reading the rest of the document for detailed steps.
 
 ----
 
-**Mask Generation)** 
+Mask Generation
+--------------------
 
 .. raw:: html
 
@@ -127,7 +129,8 @@ Please continue reading the rest of the document for detailed steps.
 
 ----
 
-**Coordinates Detection)** 
+Coordinates Detection
+--------------------------
 
 The following steps outline the process used in the ReticleDetection class for identifying reticle coordinates in microscopy images.
 
@@ -229,9 +232,3 @@ The following steps outline the process used in the ReticleDetection class for i
     Pixels of interest are extracted around the reticle.
     
     - **Code Reference**: `_get_pixels_interest()` method.
-
-
-----
-
-Probe Detection
---------------------
