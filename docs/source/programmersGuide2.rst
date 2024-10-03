@@ -382,4 +382,31 @@ This step focuses on accurately identifying the probe's fine tip location. Up to
 Update Tracking Boundary
 ----------------------------
 
-TBD
+In this step, the system updates the crop region, also known as the tracking boundary, which is used for detecting the probe in the next frame. Initially, the system attempts to detect the probe within the defined tracking boundary. If the probe is not detected, the system expands the search region to locate the probe.
+
+The tracking boundary is updated under the following conditions:
+
+1. **Update Boundary**:
+
+    .. image:: _static/_progGuide/_probeDetect/4_boundary/1.png
+        :width: 150px
+        :align: center
+        :alt: Update Boundary
+
+    - **Base point + offset**: The base of the probe is extended with an offset to allow for movement within the tracking boundary in the next frame.
+    - **Tip point + offset**: Similarly, the tip of the probe is extended with an offset to account for its movement.
+
+2. **Update to Larger Search Region**:
+
+    .. image:: _static/_progGuide/_probeDetect/4_boundary/2.png
+        :width: 150px
+        :align: center
+        :alt: Update to Larger Boundary
+
+    - The search region is expanded if:
+        - Probe detection fails within the current crop region.
+        - Either the tip or base of the probe is outside the existing boundary.
+
+The `crop_size` is dynamically adjusted in a loop. If the detection fails or the probe points (tip or base) fall outside the crop region, the system increases the search region to continue detecting the probe in a larger area. The search region expands until the maximum image size is reached.
+
+If the probe is successfully detected and is within the updated boundary, the process continues. If the detection fails, the system increases the crop region by increments and tries again until a successful detection occurs or the maximum image size is reached.
