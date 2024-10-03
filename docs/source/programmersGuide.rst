@@ -32,7 +32,7 @@ Overview
             </div>
             <div style="margin: 0 10px; font-size: 18px;">→</div>
             <div style="text-align: center;">
-                <img src="_static/_progGuide/_reticleDetect/_1_general/5_calib.JPG" width="180px"/>
+                <img src="_static/_progGuide/_reticleDetect/_1_general/5_calib.jpg" width="180px"/>
                 <div style="font-size: 10px;">Camera Calibration</div>
             </div>
         </div>
