@@ -11,8 +11,6 @@ from datetime import date
 from docutils.parsers.rst import roles
 from docutils import nodes
 
-sys.path.insert(0, os.path.abspath(".."))
-
 INSTITUTE_NAME = "Allen Institute for Neural Dynamics"
 
 project = 'Parallax'
@@ -40,7 +38,11 @@ html_favicon = "_static/favicon.ico"
 html_theme_options = {
     "light_logo": "light-logo.svg",
     "dark_logo": "dark-logo.svg",
+    "source_repository": "https://github.com/AllenNeuralDynamics/parallax/",
+    "source_branch": "main",
+    "source_directory": "docs/",
 }
+
 
 # Custom reStructuredText (reST),
 def color_role(name, rawtext, text, lineno, inliner, options={}, content=[], color=None):
