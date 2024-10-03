@@ -40,14 +40,14 @@ Overview
 
 Probe detection involves a computer vision pipeline. Here is the general process:
 
-    1. **Preprocessing:**  
-    In this step, a difference image is created by comparing the current frame with the previous or background frame. This highlights the areas where motion is occurring.
+    1. **Preprocessing (Diff):**  
+    In this step, a difference image is created by comparing the current frame with the previous or background frame. This highlights the areas where motion is occurring between frames.
 
     2. **Line Detection:**  
     Hough line detection is used to detect straight lines in the difference image. This helps in identifying the angle and edges of the probe within the frame.
 
     3. **Tip and Base Detection:**  
-    The algorithm then detects the pixel coordinates of the probe's tip and base. This is for determining the probe's orientation, position, and bounding box in the frame.
+    The algorithm then detects the pixel coordinates of the probe’s tip and base, determining the probe’s orientation, position, and bounding box within the frame.
 
     4. **Precise Tip Point:**  
     The precise tip point of the probe is calculated within the tracking boundary, improving accuracy. This ensures that the detected tip is as accurate as possible using the original image data.
@@ -117,7 +117,7 @@ The mask is generated using `self.mask_detect.process()`, which prepares the fra
 
 4. **Generate Diff Image:**
 
-The probe detection process comprises two main algorithms, with fallback logic that first tries the initial algorithm, which **compares the ‘Curr’ vs ‘Prev’ frame**, and if it fails, switches to the next algorithm, which **compares the ‘Curr’ vs ‘BG’ frame**. These algorithms compare different frames to detect the moving probe.
+The probe detection process comprises two main algorithms, with fallback logic that first tries the initial algorithm, which **compares the ‘Curr’ vs ‘Prev’ frame**, and if it fails, switches to the next algorithm, which **compares the ‘Curr’ vs ‘BG’ frame**.
 
 - **Comparing ‘Curr’ vs ‘Prev’ Frame:**
 
@@ -216,7 +216,7 @@ Here is the general process:
    
    The first step involves detecting contours in the image. The contours help to isolate the probe from other irrelevant objects in the frame.
 
-   - If the contour area is too small (less than a threshold), it is considered noise and removed.
+   - If the contour area is too small (below a threshold), it is considered noise and removed.s
    - This step is done using the `_contour_preprocessing()` method, which detects and cleans up contours based on specific thresholds.
 
 2. **Hough Line Detection**:
@@ -246,7 +246,7 @@ Here is the general process:
               <div style="margin: 0 10px; font-size: 18px;">,</div>
               <div style="text-align: center;">
                   <img src="_static/_progGuide/_probeDetect/2_line/1.png" width="150px"/>
-                  <div style="font-size: 10px;">(Solution) Gradient into Bins</div>
+                  <div style="font-size: 10px;">(Solution) Group gradients into Bins</div>
               </div>
               <div style="margin: 0 10px; font-size: 18px;">→</div>
               <div style="text-align: center;">
@@ -336,7 +336,7 @@ This step focuses on accurately identifying the probe's fine tip location. Up to
 2. **Validation Check:**
    
    Before proceeding, the system checks the boundary of the image to ensure there are no extraneous contours that could not represent the probe tip. This step ensures the image is valid for detecting the probe tip.
-   
+
    .. raw:: html
 
       <div class="inline-images" style="text-align: center;">
@@ -407,6 +407,6 @@ The tracking boundary is updated under the following conditions:
         - Probe detection fails within the current crop region.
         - Either the tip or base of the probe is outside the existing boundary.
 
-The `crop_size` is dynamically adjusted in a loop. If the detection fails or the probe points (tip or base) fall outside the crop region, the system increases the search region to continue detecting the probe in a larger area. The search region expands until the maximum image size is reached.
+The `crop_size` is dynamically adjusted in a loop. If the detection fails or the probe points (tip or base) fall outside the crop region, the system increases the search region to continue detecting the probe in a larger area.
 
 If the probe is successfully detected and is within the updated boundary, the process continues. If the detection fails, the system increases the crop region by increments and tries again until a successful detection occurs or the maximum image size is reached.

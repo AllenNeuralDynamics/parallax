@@ -43,7 +43,7 @@ Reticle detection involves a computer vision pipeline. Here is the general proce
 
     1. **Original Image:** This is the starting point, where you can view a reticle from the camera.
 
-    2. **Mask Generated:** A mask is created from the original image in binary form. This mask highlights or separates key areas of the image—the reticle—from the background, including metal parts of the reticle window, making it easier for further processing.
+    2. **Mask Generated:** A mask is created from the original image in binary form. This mask highlights or separates key areas of the image—the reticle—from the background, including the metal parts of the reticle window, making it easier for further processing.
 
     3. **Coordinates Detection:** Once the mask is generated, the system detects the markers from the image for further analysis.
 
@@ -116,7 +116,7 @@ Mask Generation
     Small noise or irrelevant blobs, such as reflections on the reticle's metal window, are removed from the image. Contours are detected, and only the largest contour (likely the reticle) is retained, while the others are filled in or removed.
 
 5. **Invert Image and Remove Blobs:**
-    The binary mask is inverted so that the reticle becomes the background, and any small noise or blobs, such as reflections on the reticle surface, are further cleaned up by detecting and removing small contours.
+    The binary mask is inverted so that the reticle becomes the foreground, and any small noise or blobs, such as reflections on the reticle surface, are further cleaned up by detecting and removing small contours.
 
 6. **Resize to Original:**
     The processed image is resized back to its original size, ensuring the final mask matches the dimensions of the original input image.
@@ -189,7 +189,7 @@ The following steps outline the process used in the ReticleDetection class for i
         :alt: Eroding
         :width: 400px
     
-    Eroding continues until the system finds a sufficient number of blobs (50 < x < 300), which correspond to the reticle's marks. It also shrinks objects in the image, removing unnecessary small contours and refining the reticle structure.
+    Eroding continues until the system finds a sufficient number of blobs (50 < x < 300), which correspond to the reticle’s marks. It also shrinks objects in the image, removing unnecessary small contours and refining the reticle structure.
 
     - **Code Reference**: `_eroding()` method.
 
