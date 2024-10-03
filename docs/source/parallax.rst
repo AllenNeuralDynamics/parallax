@@ -1,9 +1,6 @@
 parallax package
 ================
 
-Submodules
-----------
-
 parallax.calibration\_camera module
 -----------------------------------
 
