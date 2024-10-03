@@ -40,7 +40,7 @@ html_theme_options = {
     "dark_logo": "dark-logo.svg",
     "source_repository": "https://github.com/AllenNeuralDynamics/parallax/",
     "source_branch": "main",
-    "source_directory": "docs/",
+    "source_directory": "docs/source/",
 }
 
 
