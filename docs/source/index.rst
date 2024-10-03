@@ -21,6 +21,15 @@ Contents
    ReadMe
    userGuide
    FAQ
+
+Programmer's Guide
+==================
+
+.. toctree::
+   :maxdepth: 2
+
+   programmersGuide
+   programmersGuide2
    modules
 
 Indices and tables

@@ -1,6 +1,10 @@
 User Guide
 ====================
 
+.. video:: _static/ParallaxDemo.mp4
+   :width: 640
+   :height: 360
+
 Parallax features a :blue:`camera view system` with controls for camera parameters such as brightness, as well as snapshot and recording functions. It also connects to a stage controller to read stage coordinates.
 
 Using the :blue:`Reticle Detection` function, it captures reticle coordinates. To obtain the 3D position of the reticle, the reticle coordinates must be detected by at least two cameras.
@@ -64,6 +68,7 @@ Probe Calibration
     .. image:: _static/probeCalib2.JPG
         :alt: probe calibration
 
+    - When moving the probe, continue alternating between stopping and moving the stage. When the stage is stopped, the tip point color turns red, representing the points used for probe calibration. When the stage is moving, the tip turns yellow, indicating only the location of the stage. Therefore, it is necessary to stop several times for the probe calibration process.
     - Once the probe has traveled far enough along each axis, the UI for the corresponding axis will turn green.
     - Even if all axes are green, additional movement may be necessary to improve the fit between the local motor coordinates and the global 3D points.
 

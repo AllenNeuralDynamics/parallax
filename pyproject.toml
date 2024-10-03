@@ -58,6 +58,7 @@ linters = [
 
 docs = [
     'Sphinx',
+    'sphinxcontrib-video',
     'sphinx-jinja',
     'furo',
     'docutils'
