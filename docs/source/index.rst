@@ -26,8 +26,8 @@ Programmer's Guide
 ==================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   programmersGuide
+   programmersGuide1
    programmersGuide2
    modules

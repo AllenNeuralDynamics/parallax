@@ -11,6 +11,8 @@ from datetime import date
 from docutils.parsers.rst import roles
 from docutils import nodes
 
+sys.path.insert(0, os.path.abspath('../../parallax'))
+
 INSTITUTE_NAME = "Allen Institute for Neural Dynamics"
 
 project = 'Parallax'
@@ -62,7 +64,7 @@ roles.register_local_role('red', red_role)
 roles.register_local_role('yellow', yellow_role)
 roles.register_local_role('blue', blue_role)
 
-html_static_path = ['_static']
+html_static_path = ['_static'] 
 html_css_files = [
     'custom.css',
 ]
