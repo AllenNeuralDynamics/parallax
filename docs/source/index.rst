@@ -6,7 +6,7 @@
 Welcome to Parallax
 ====================
 
-.. image:: ../../ui/ParallaxReadME.JPG
+.. image:: _static/_front/3.png
    :alt: Parallax
 
 **Parallax** is a graphical user interface designed to streamline the process of setting up and performing acute *in vivo* electrophysiology experiments.

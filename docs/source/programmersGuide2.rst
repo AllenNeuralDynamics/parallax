@@ -413,7 +413,7 @@ If the probe is successfully detected and is within the updated boundary, the pr
 
 
 Debugging Mode
-================
+----------------------------
 
 For debugging purposes, set the logger level to DEBUG in `probe_detect_manager.py`:
 
