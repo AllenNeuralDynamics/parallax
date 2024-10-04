@@ -410,3 +410,25 @@ The tracking boundary is updated under the following conditions:
 The `crop_size` is dynamically adjusted in a loop. If the detection fails or the probe points (tip or base) fall outside the crop region, the system increases the search region to continue detecting the probe in a larger area.
 
 If the probe is successfully detected and is within the updated boundary, the process continues. If the detection fails, the system increases the crop region by increments and tries again until a successful detection occurs or the maximum image size is reached.
+
+
+Debugging Mode
+================
+
+For debugging purposes, set the logger level to DEBUG in `probe_detect_manager.py`:
+
+.. code-block:: python
+
+    logger.setLevel(logging.DEBUG)
+
+This will allow you to use the `debug_draw_boundary()` method, which visualizes the tracking boundary and the probe's tip location, and indicates which algorithm is used for detection.
+
+- **Yellow**: Comparison between the current frame and the previous frame.
+- **Green**: Comparison between the current frame and the background frame.
+
+Here’s an example of how it visualizes the results:
+
+.. image:: _static/_progGuide/_probeDetect/5_tips/1.png
+    :width: 800px
+    :align: center
+    :alt: Debugging Mode example
