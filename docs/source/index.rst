@@ -20,6 +20,7 @@ Contents
 
    ReadMe
    userGuide
+   userGuideTrajectory
    FAQ
 
 Programmer's Guide
