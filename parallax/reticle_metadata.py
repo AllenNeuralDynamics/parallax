@@ -15,6 +15,18 @@ debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 
 class ReticleMetadata(QWidget):
+    """
+    A widget to manage and visualize reticle metadata. It allows users to add, modify, 
+    and delete reticles, and dynamically updates reticle metadata such as rotation and 
+    offsets. Reticles are represented in the UI as group boxes with editable fields, and 
+    the metadata is saved in a JSON file.
+
+    This class also provides functionality to:
+    - Create groupboxes for reticles with user-defined names.
+    - Update and save reticle metadata, including rotation and offset values.
+    - Retrieve global coordinates for points with reticle-specific offsets and rotations.
+    - Interact with a reticle selector to display the reticle choices in a dropdown.
+    """
     def __init__(self, model, reticle_selector):
         super().__init__()
         self.model = model
