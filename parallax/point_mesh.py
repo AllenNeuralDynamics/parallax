@@ -328,6 +328,3 @@ class PointMesh(QWidget):
  
         # Resize the horizontal layout widget
         self.ui.horizontalLayoutWidget.resize(new_size.width(), new_size.height())
-            
-            
-        
