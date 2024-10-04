@@ -21,6 +21,7 @@ Contents
    ReadMe
    userGuide
    userGuideTrajectory
+   userGuideReticleMetadata
    FAQ
 
 Programmer's Guide
