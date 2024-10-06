@@ -1,7 +1,7 @@
 """
-ProbeCalibration transforms probe coordinates from local to global space"
-- local space: Stage coordinates
-- global space: Reticle coordinates
+ProbeCalibration transforms probe coordinates from local to global space
+local space: Stage coordinates
+global space: Reticle coordinates
 """
 
 import csv
@@ -25,28 +25,20 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ProbeCalibration(QObject):
     """
     Handles the transformation of probe coordinates from local (stage) to global (reticle) space.
-
-    Attributes:
-        calib_complete_x (pyqtSignal): Signal emitted when calibration in the X direction is complete.
-        calib_complete_y (pyqtSignal): Signal emitted when calibration in the Y direction is complete.
-        calib_complete_z (pyqtSignal): Signal emitted when calibration in the Z direction is complete.
-        calib_complete (pyqtSignal): General signal emitted when calibration is fully complete.
-
-    Args:
-        stage_listener (QObject): The stage listener object that emits signals related to stage movements.
     """
-
     calib_complete_x = pyqtSignal(str)
     calib_complete_y = pyqtSignal(str)
     calib_complete_z = pyqtSignal(str)
     calib_complete = pyqtSignal(str, object, np.ndarray)
     transM_info = pyqtSignal(str, object, np.ndarray, float, object)
 
-    """Class for probe calibration."""
-
     def __init__(self, model, stage_listener):
         """
         Initializes the ProbeCalibration object with a given stage listener.
+
+        Args:
+            model (object): The model that contains the stage information.
+            stage_listener (QObject): The object responsible for listening to stage signals.
         """
         super().__init__()
         self.transformer = RotationTransformation()
@@ -58,20 +50,7 @@ class ProbeCalibration(QObject):
         self.df = None
         self.inliers = []
         self.stage = None
-        """
-        self.threshold_min_max = 250 
-        self.threshold_min_max_z = 100
-        self.LR_err_L2_threshold = 200
-        self.threshold_avg_error = 500
-        self.threshold_matrix = np.array(
-            [
-                [0.002, 0.002, 0.002, 0.0], 
-                [0.002, 0.002, 0.002, 0.0],
-                [0.02, 0.02, 0.02, 0.0],
-                [0.0, 0.0, 0.0, 0.0],
-            ]
-        )
-        """
+
         self.threshold_min_max = 2000
         self.threshold_min_max_z = 1500
         self.LR_err_L2_threshold = 15
@@ -97,7 +76,9 @@ class ProbeCalibration(QObject):
     def reset_calib(self, sn=None):
         """
         Resets calibration to its initial state, clearing any stored min and max values.
-        Called from StageWidget.
+
+        Args:
+            sn (str, optional): The serial number of the stage. If not provided, resets all stages.
         """
         if sn is not None:
              self.stages[sn] = {
