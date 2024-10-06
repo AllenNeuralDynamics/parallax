@@ -22,6 +22,7 @@ Contents
    userGuide
    userGuideTrajectory
    userGuideReticleMetadata
+   userGuideCalc
    FAQ
 
 Programmer's Guide

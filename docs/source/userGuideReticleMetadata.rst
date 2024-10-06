@@ -1,3 +1,5 @@
+*User Guide*
+
 Reticle Metadata
 ----------------
 
