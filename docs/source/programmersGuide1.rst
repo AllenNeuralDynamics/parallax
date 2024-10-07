@@ -229,5 +229,3 @@ Please continue reading the rest of the document for detailed steps.
         Pixels of interest are extracted around the reticle.
         
         - **Code Reference**: `_get_pixels_interest()` method.
-
-----

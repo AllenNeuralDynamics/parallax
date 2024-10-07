@@ -1,9 +1,10 @@
 User Guide
 ====================
 
-.. video:: _static/_userGuide/_calib/ParallaxDemo.mp4
-   :width: 640
-   :height: 360
+.. raw:: html
+
+   <iframe width="640" height="360" src="https://www.youtube.com/embed/iLtgGqeCe1g" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 
 Parallax features a :blue:`camera view system` with controls for camera parameters such as brightness, as well as snapshot and recording functions. It also connects to a stage controller to read stage coordinates.
 
