@@ -11,7 +11,7 @@ from datetime import date
 from docutils.parsers.rst import roles
 from docutils import nodes
 
-sys.path.insert(0, os.path.abspath('../../parallax/'))
+sys.path.insert(0, os.path.abspath('../../'))
 
 INSTITUTE_NAME = "Allen Institute for Neural Dynamics"
 
