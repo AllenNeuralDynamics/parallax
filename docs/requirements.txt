@@ -9,3 +9,5 @@ PyQt5
 pyqtgraph
 pandas
 scipy
+scikit-image
+plotly
