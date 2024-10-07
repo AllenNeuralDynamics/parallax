@@ -1,175 +1,175 @@
-parallax package
+Parallax Package
 ================
 
-parallax.calibration\_camera module
------------------------------------
+Calibration Camera Module
+-------------------------
 
 .. automodule:: parallax.calibration_camera
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.camera module
-----------------------
+Camera Module
+-------------
 
 .. automodule:: parallax.camera
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.curr\_bg\_cmp\_processor module
-----------------------------------------
+Current Background Comparison Processor Module
+----------------------------------------------
 
 .. automodule:: parallax.curr_bg_cmp_processor
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.curr\_prev\_cmp\_processor module
-------------------------------------------
+Current Previous Comparison Processor Module
+--------------------------------------------
 
 .. automodule:: parallax.curr_prev_cmp_processor
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.main\_window\_wip module
----------------------------------
+Main Window WIP Module
+----------------------
 
 .. automodule:: parallax.main_window_wip
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.mask\_generator module
--------------------------------
+Mask Generator Module
+---------------------
 
 .. automodule:: parallax.mask_generator
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.model module
----------------------
+Model Module
+------------
 
 .. automodule:: parallax.model
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.no\_filter module
---------------------------
+No Filter Module
+----------------
 
 .. automodule:: parallax.no_filter
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.probe\_calibration module
-----------------------------------
+Probe Calibration Module
+-------------------------
 
 .. automodule:: parallax.probe_calibration
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.probe\_detect\_manager module
---------------------------------------
+Probe Detect Manager Module
+---------------------------
 
 .. automodule:: parallax.probe_detect_manager
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.probe\_detector module
--------------------------------
+Probe Detector Module
+---------------------
 
 .. automodule:: parallax.probe_detector
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.probe\_fine\_tip\_detector module
-------------------------------------------
+Probe Fine Tip Detector Module
+------------------------------
 
 .. automodule:: parallax.probe_fine_tip_detector
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.recording\_manager module
-----------------------------------
+Recording Manager Module
+------------------------
 
 .. automodule:: parallax.recording_manager
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.reticle\_detect\_manager module
-----------------------------------------
+Reticle Detect Manager Module
+-----------------------------
 
 .. automodule:: parallax.reticle_detect_manager
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.reticle\_detection module
-----------------------------------
+Reticle Detection Module
+------------------------
 
 .. automodule:: parallax.reticle_detection
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.reticle\_detection\_coords\_interests module
------------------------------------------------------
+Reticle Detection Coordinates Interests Module
+----------------------------------------------
 
 .. automodule:: parallax.reticle_detection_coords_interests
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.screen\_widget module
-------------------------------
+Screen Widget Module
+--------------------
 
 .. automodule:: parallax.screen_widget
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.stage\_listener module
--------------------------------
+Stage Listener Module
+---------------------
 
 .. automodule:: parallax.stage_listener
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.stage\_ui module
--------------------------
+Stage UI Module
+---------------
 
 .. automodule:: parallax.stage_ui
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.stage\_widget module
------------------------------
+Stage Widget Module
+-------------------
 
 .. automodule:: parallax.stage_widget
    :members:
    :undoc-members:
    :show-inheritance:
 
-parallax.utils module
----------------------
+Utils Module
+------------
 
 .. automodule:: parallax.utils
    :members:
    :undoc-members:
    :show-inheritance:
 
-Module contents
+Module Contents
 ---------------
 
 .. automodule:: parallax
