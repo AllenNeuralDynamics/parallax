@@ -13,6 +13,7 @@ setting up and performing acute *in vivo* electrophysiology experiments.
 [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
   -  Python 3.8 is required for the Spinnaker library.
 - PySpin (for Linux or Mac OS users)
+- [Spinnaker SDK](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
 
 
 ### Installation

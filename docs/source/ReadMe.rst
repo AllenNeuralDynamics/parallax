@@ -13,7 +13,7 @@ Prerequisites
    .. _Anaconda: https://www.anaconda.com/products/individual
    .. _Miniconda: https://docs.conda.io/en/latest/miniconda.html
    .. _Pathfinder MPM Software: https://www.newscaletech.com/multi-probe-micromanipulator/mpm-system-pathfinder-software/
-   .. _Spinnaker SDK: https://www.flir.com/products/spinnaker-sdk/?vertical=machine+vision&segment=iis
+   .. _Spinnaker SDK: https://www.teledynevisionsolutions.com/products/spinnaker-sdk
 
 Installing and Upgrading
 -------------------------
