@@ -134,5 +134,3 @@ General Interface
                 :scale: 30%
 
         3. Launch Parallax again.
-
-----
