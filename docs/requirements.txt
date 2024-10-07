@@ -6,3 +6,6 @@ docutils
 numpy
 opencv-python
 PyQt5
+pyqtgraph
+pandas
+scipy

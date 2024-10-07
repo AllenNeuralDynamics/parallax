@@ -14,7 +14,7 @@ Usage:
     - Initialize an instance of CurrBgCmpProcessor with necessary parameters.
     - Use the first_cmp() method to perform the initial comparison.
     - Use the update_cmp() method to update the comparison and detect changes 
-    over time.
+      over time.
 """
 
 import logging
