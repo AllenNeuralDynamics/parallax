@@ -20,18 +20,7 @@ Contents
 
    ReadMe
    userGuide
-   userGuideTrajectory
-   userGuideReticleMetadata
-   userGuideCalc
-   userGuidePtProject
    FAQ
-
-Programmer's Guide
-==================
-
-.. toctree::
-   :maxdepth: 1
-
-   programmersGuide1
-   programmersGuide2
+   programmersGuide
    modules
+   

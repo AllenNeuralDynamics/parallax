@@ -106,6 +106,7 @@ Reticle Detection
 
         - Solution: Adjust the camera position so that the view is less skewed, and the face of the reticle appears as flat as possible.
 
+----
 
 .. _general_faqs:
 
@@ -133,3 +134,5 @@ General Interface
                 :scale: 30%
 
         3. Launch Parallax again.
+
+----

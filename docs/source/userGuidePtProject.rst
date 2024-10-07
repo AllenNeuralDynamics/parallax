@@ -11,29 +11,27 @@ This guide will show you how to use it.
 
 1. **Mapping Clicked Screen Points to Global Coordinates**
    
-   When you click on camera screens used for probe calibration, the system converts the clicked position into global coordinates.
-
-----
+    When you click on camera screens used for probe calibration, the system converts the clicked position into global coordinates.
 
 2. **Steps to Use Screen Coordinates Mapping**:
    
-- Select the item that starts with 'Proj Global Coords' from the global coordinates dropdown menu.
-   
-.. image:: _static/_userGuide/_getPts/1.png
-    :alt: Select 'Proj Global Coords...'
-    :width: 150px
-    :align: center
-   
-- Click on the camera screens used for probe calibration. The tool automatically calculates the corresponding global coordinates based on the clicked position.
-  
-.. image:: _static/_userGuide/_getPts/3.png
-    :alt: Click on Camera Screens
-    :width: 700px
-    :align: center
+    - Select the item that starts with 'Proj Global Coords' from the global coordinates dropdown menu.
+    
+    .. image:: _static/_userGuide/_getPts/1.png
+        :alt: Select 'Proj Global Coords...'
+        :width: 150px
+        :align: center
+    
+    - Click on the camera screens used for probe calibration. The tool automatically calculates the corresponding global coordinates based on the clicked position.
+    
+    .. image:: _static/_userGuide/_getPts/3.png
+        :alt: Click on Camera Screens
+        :width: 700px
+        :align: center
 
-.. image:: _static/_userGuide/_getPts/4.png
-    :alt: Click on Camera Screens
-    :width: 700px
-    :align: center
+    .. image:: _static/_userGuide/_getPts/4.png
+        :alt: Click on Camera Screens
+        :width: 700px
+        :align: center
 
-- If a reticle is selected, its metadata (such as offsets and rotation) will be applied to the calculated global coordinates.
+    - If a reticle is selected, its metadata (such as offsets and rotation) will be applied to the calculated global coordinates.

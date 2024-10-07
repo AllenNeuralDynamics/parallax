@@ -7,7 +7,7 @@ Prerequisites
       - Recommended to install via `Anaconda`_ or `Miniconda`_
       - Python 3.8 is required for the Spinnaker library.
    - `Pathfinder MPM Software`_ version 2.8.0 or later
-   - `Spinnaker SDK`_ (Recommended)
+   - `Spinnaker SDK`_ 
    - PySpin (for Linux or Mac OS users)
 
    .. _Anaconda: https://www.anaconda.com/products/individual

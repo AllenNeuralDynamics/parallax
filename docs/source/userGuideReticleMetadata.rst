@@ -1,7 +1,7 @@
 *User Guide*
 
 Reticle Metadata
-----------------
+=================
 
 .. image:: _static/_userGuide/_meta/6.png
     :alt: Reticle Metadata
@@ -22,32 +22,32 @@ This tool is essential for correcting reticle imprecisions. You can adjust retic
 
 **Features Overview**
 
-1. **Add / Remove Reticles**: Easily create new reticles or remove existing reticle metadata.
+    1. **Add / Remove Reticles**: Easily create new reticles or remove existing reticle metadata.
 
     .. image:: _static/_userGuide/_meta/1.png
         :alt: Add / remove
         :width: 300px
         :align: center
 
-2. **Edit Metadata**: Update reticle metadata such as the name, rotation, and offsets.
+    2. **Edit Metadata**: Update reticle metadata such as the name, rotation, and offsets.
         
-    - **Name**: Edit the name of the reticle (default is a letter like A, B, or C).
-    - **Rotation**: Set the rotation value (in degrees) to adjust the reticle’s orientation.
-    - **Offsets (X, Y, Z)**: Enter offset values to adjust the reticle's position in 3D space.
+        - **Name**: Edit the name of the reticle (default is a letter like A, B, or C).
+        - **Rotation**: Set the rotation value (in degrees) to adjust the reticle’s orientation.
+        - **Offsets (X, Y, Z)**: Enter offset values to adjust the reticle's position in 3D space.
 
     .. image:: _static/_userGuide/_meta/2.png
         :alt: Metadata
         :width: 300px
         :align: center
 
-3. **Update**: Changes are saved to a JSON file and automatically reflected in other functions, such as the calculator and 3D point projection.
+    3. **Update**: Changes are saved to a JSON file and automatically reflected in other functions, such as the calculator and 3D point projection.
 
     .. image:: _static/_userGuide/_meta/3.png
         :alt: Update
         :width: 300px
         :align: center
 
-4. **Saving and Loading Metadata**
+    4. **Saving and Loading Metadata**
     
     - The widget automatically saves reticle metadata to a JSON file when updated. When you reopen the widget, it reloads the saved data and recreates the groupboxes accordingly.
 
@@ -58,52 +58,53 @@ This tool is essential for correcting reticle imprecisions. You can adjust retic
 
 **Example Use Cases**
 
-If you update the reticle metadata for reticles 'A' and 'H', as shown in the image below, the system will automatically apply the changes to the global coordinates.
+    If you update the reticle metadata for reticles 'A' and 'H', as shown in the image below, the system will automatically apply the changes to the global coordinates.
 
-.. image:: _static/_userGuide/_meta/6.png
-    :alt: Reticle Metadata
-    :width: 500px
-    :align: center
+    .. image:: _static/_userGuide/_meta/6.png
+        :alt: Reticle Metadata
+        :width: 500px
+        :align: center
 
+    
 If the original global coordinates were (2000, 0, 0), as shown in the left image below, you can click the *"Global coords"* drop-down menu to select the reticle for which you want to see the global coordinates.
 
-The image below shows that you selected reticle 'H' and the system applies the metadata changes to the global coordinates.
+    The image below shows that you selected reticle 'H' and the system applies the metadata changes to the global coordinates.
 
-.. raw:: html
+    .. raw:: html
 
-    <div class="inline-images" style="text-align: center;">
-        <div style="display: inline-flex; align-items: center; justify-content: center;">
-            <div style="text-align: center;">
-                <img src="_static/_userGuide/_meta/17.png" width="200px"/>
-                <div style="font-size: 10px;">Global Coords Original</div>
-            </div>
-            <div style="margin: 0 10px; font-size: 18px;">→</div>
-            <div style="text-align: center;">
-                <img src="_static/_userGuide/_meta/18.png" width="200px"/>
-                <div style="font-size: 10px;">Global Coords (H)</div>
-            </div>
-        </div>
-    </div>
-    <br>
-
-In another example, the image below shows reticle 'A' with metadata applied, including a 90-degree counterclockwise rotation.
-
-.. raw:: html
-
-    <div class="inline-images" style="text-align: center;">
-        <div style="display: inline-flex; align-items: center; justify-content: center;">
-            <div style="text-align: center;">
-                <img src="_static/_userGuide/_meta/17.png" width="200px"/>
-                <div style="font-size: 10px;">Original Image</div>
-            </div>
-            <div style="margin: 0 10px; font-size: 18px;">→</div>
-            <div style="text-align: center;">
-                <img src="_static/_userGuide/_meta/19.png" width="200px"/>
-                <div style="font-size: 10px;">Global Coords (A)</div>
+        <div class="inline-images" style="text-align: center;">
+            <div style="display: inline-flex; align-items: center; justify-content: center;">
+                <div style="text-align: center;">
+                    <img src="_static/_userGuide/_meta/17.png" width="200px"/>
+                    <div style="font-size: 10px;">Global Coords Original</div>
+                </div>
+                <div style="margin: 0 10px; font-size: 18px;">→</div>
+                <div style="text-align: center;">
+                    <img src="_static/_userGuide/_meta/18.png" width="200px"/>
+                    <div style="font-size: 10px;">Global Coords (H)</div>
+                </div>
             </div>
         </div>
-    </div>
-    <br>
+        <br>
+
+    In another example, the image below shows reticle 'A' with metadata applied, including a 90-degree counterclockwise rotation.
+
+    .. raw:: html
+
+        <div class="inline-images" style="text-align: center;">
+            <div style="display: inline-flex; align-items: center; justify-content: center;">
+                <div style="text-align: center;">
+                    <img src="_static/_userGuide/_meta/17.png" width="200px"/>
+                    <div style="font-size: 10px;">Original Image</div>
+                </div>
+                <div style="margin: 0 10px; font-size: 18px;">→</div>
+                <div style="text-align: center;">
+                    <img src="_static/_userGuide/_meta/19.png" width="200px"/>
+                    <div style="font-size: 10px;">Global Coords (A)</div>
+                </div>
+            </div>
+        </div>
+        <br>
 
 These reticle metadata values are also used in the calculator and for 3D point projection.
 
