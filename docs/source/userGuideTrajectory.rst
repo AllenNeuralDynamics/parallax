@@ -5,7 +5,7 @@ Probe Calibration Trajectory
 
 The ``PointMesh`` widget provides an interactive 3D visualization of point trajectories during and after calibration. It allows you to compare local and global point trajectories, making it easier to assess the accuracy of the calibration process.
 
-.. image:: _static/_userGuide/_traj/4.png
+.. image:: _static/_userGuide/_traj/_4.png
     :alt: PointMesh Widget
     :width: 500px
     :align: center
@@ -21,14 +21,14 @@ The ``PointMesh`` widget provides an interactive 3D visualization of point traje
 
     - **During Calibration**: While calibration is ongoing, the local point trajectory will change as the system applies transformation matrices to map local points to the global coordinate system. As you interact with the buttons, you can visualize both local (stage) and global points in the 3D plot.
     
-    .. image:: _static/_userGuide/_traj/1.png
+    .. image:: _static/_userGuide/_traj/_1.png
         :alt: During Calibration
         :width: 200px
         :align: center
 
     - **After Calibration**: Once calibration is complete, the local points should closely match the global points if the calibration was successful. The widget lets you compare how close these two trajectories are. The closer they are, the better the calibration result.
         
-    .. image:: _static/_userGuide/_traj/2.png
+    .. image:: _static/_userGuide/_traj/_2.png
         :alt: After Calibration
         :width: 200px
         :align: center
