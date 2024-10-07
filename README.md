@@ -1,11 +1,11 @@
 # Parallax
 
-![Parallax](ui/ParallaxReadME.JPG)
+![Parallax](ui/ParallaxReadMe.png)
 
 Parallax is a graphical user interface designed to streamline the process of 
 setting up and performing acute *in vivo* electrophysiology experiments.
 
-**Documentation**: [parallax.readthedocs.io](https://parallax.readthedocs.io/en/stable/).
+**Documentation**: [parallax.readthedocs.io](https://parallax.readthedocs.io/en/latest/index.html).
 
 ### Prerequisites
 - **Python==3.8** (Recommended to install via 
