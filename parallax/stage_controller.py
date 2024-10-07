@@ -12,7 +12,19 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class StageController(QObject):
+    """
+    The StageController class manages the movement and control of stages (probes).
+    It interacts with an external stage controller software using HTTP requests
+    to move the stages and retrieve their status. This class supports commands
+    such as stopping all stages and moving them along the X, Y, or Z axes.
+    """
     def __init__(self, model):
+        """
+        Initializes the StageController class, setting up the model and command templates.
+
+        Args:
+            model (object): The model containing stage and probe data.
+        """
         super().__init__()
         self.model = model
         self.url = self.model.stage_listener_url
@@ -38,6 +50,13 @@ class StageController(QObject):
         }
 
     def stop_request(self, command):
+        """
+        Stops the movement of all probes.
+        Retrieves the status of each probe and sends a stop command for each one.
+
+        Args:
+            command (dict): A dictionary containing the move type, such as {"move_type": "stopAll"}.
+        """
         move_type = command["move_type"]
         if move_type == "stopAll":
             # Stop the timer if it's active
@@ -61,14 +80,19 @@ class StageController(QObject):
 
     def move_request(self, command):
         """
-        input format:
-        command = {
-            "stage_sn": stage_sn,
-            "move_type": move_type     # "moveXY"
-            "x": x,
-            "y": y,
-            "z": z
-        }
+        Sends a move request to the stage controller based on the provided coordinates.
+        Initiates Z-axis movement to 15.0 before proceeding with X and Y movement.
+
+        Args:
+            command (dict): A dictionary containing the stage serial number, move type, and coordinates.
+                            Example:
+                                {
+                                    "stage_sn": stage_sn,
+                                    "move_type": "moveXY",
+                                    "x": x,
+                                    "y": y,
+                                    "z": z
+                                }
         """
         move_type = command["move_type"]
         stage_sn = command["stage_sn"]
@@ -96,7 +120,15 @@ class StageController(QObject):
             self.timer.start()
     
     def _check_z_position(self, probe_index, target_z, command):
-        """Check Z position and proceed with X, Y movement once target is reached."""
+        """
+        Checks if the Z-axis of the probe has reached the target Z position.
+        If the target is reached, it stops the timer and initiates X and Y movement.
+
+        Args:
+            probe_index (int): The index of the probe.
+            target_z (float): The target Z-coordinate.
+            command (dict): The command containing the X, Y, and Z coordinates for the move.
+        """
         self.timer_count += 1
         # Outside software might control the stage and never reached to z target.
         # Thus, stop the timer after 20 seconds.
@@ -119,7 +151,16 @@ class StageController(QObject):
             self._send_command(self.probeMotion_command)
 
     def _is_z_at_target(self, probe_index, target_z):
-        """Check if the probe's Z coordinate has reached the target value."""
+        """
+        Checks if the probe's Z-coordinate has reached the target Z position.
+
+        Args:
+            probe_index (int): The index of the probe.
+            target_z (float): The target Z-coordinate.
+
+        Returns:
+            bool: True if the probe is within 10 um of the target Z position, False otherwise.
+        """
         status = self._get_status()
         if status is None:
             return False
@@ -139,6 +180,15 @@ class StageController(QObject):
         return abs(current_z - target_z) < 0.01  # Tolerance of 10 um
 
     def _update_move_command(self, probe_index, x=None, y=None, z=None):
+        """
+        Updates the motion command with the specified X, Y, and Z coordinates.
+
+        Args:
+            probe_index (int): The index of the probe.
+            x (float, optional): The target X-coordinate.
+            y (float, optional): The target Y-coordinate.
+            z (float, optional): The target Z-coordinate.
+        """
         self.probeMotion_command["Probe"] = probe_index
         if x is not None:
             self.probeMotion_command["X"] = x
@@ -157,6 +207,15 @@ class StageController(QObject):
         self.probeMotion_command["AxisMask"] = axis_mask
 
     def _get_probe_index(self, stage_sn):
+        """
+        Retrieves the index of the probe based on its serial number from the status.
+
+        Args:
+            stage_sn (str): The serial number of the stage.
+
+        Returns:
+            int or None: The index of the probe if found, otherwise None.
+        """
         status = self._get_status()
         if status is None:
             return None
@@ -170,6 +229,12 @@ class StageController(QObject):
         return None
 
     def _get_status(self):
+        """
+        Sends a GET request to retrieve the current status of all probes.
+
+        Returns:
+            dict or None: The status as a dictionary if the request is successful, otherwise None.
+        """
         response = requests.get(self.url)
         if response.status_code == 200:
             try:
@@ -182,5 +247,11 @@ class StageController(QObject):
             return None
 
     def _send_command(self, command):
+        """
+        Sends a command to the stage controller via an HTTP PUT request.
+
+        Args:
+            command (dict): The command to send as a JSON object.
+        """
         headers = {'Content-Type': 'application/json'}
         requests.put(self.url, data=json.dumps(command), headers=headers)

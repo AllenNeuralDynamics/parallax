@@ -5,7 +5,23 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 class ScreenCoordsMapper():
+    """
+    This class handles the mapping of screen coordinates to global coordinates 
+    by processing the clicked position on a camera screen and calculating the 
+    corresponding global coordinates based on reticle adjustments or stereo calibration.
+    """
     def __init__(self, model, screen_widgets, reticle_selector, x, y, z):
+        """
+        Initialize the ScreenCoordsMapper with model data, screen widgets, reticle selector, and input fields.
+
+        Args:
+            model (object): The main application model.
+            screen_widgets (list): List of screen widgets where users click to get positions.
+            reticle_selector (QComboBox): A dropdown widget for selecting the reticle metadata.
+            x (QLineEdit): UI element to display the calculated global X coordinate.
+            y (QLineEdit): UI element to display the calculated global Y coordinate.
+            z (QLineEdit): UI element to display the calculated global Z coordinate.
+        """
         self.model = model
         self.screen_widgets = screen_widgets
         self.reticle_selector = reticle_selector
@@ -18,8 +34,19 @@ class ScreenCoordsMapper():
             screen_widget.selected.connect(self._clicked_position)
 
     def _clicked_position(self, camera_name, pos):
-        """Get clicked position."""
+        """
+        Handle the event when a position is clicked on the camera screen.
+        It calculates the global coordinates based on the camera clicked and 
+        updates the corresponding UI fields.
+
+        Args:
+            camera_name (str): The name of the camera where the click event occurred.
+            pos (tuple): The clicked position (x, y) on the camera screen.
+        """
+        # Register the clicked point in the model
         self._register_pt(camera_name, pos)
+
+        # Get global coordinates based on the model's calibration mode
         if not self.model.bundle_adjustment:
             global_coords = self._get_global_coords_stereo(camera_name, pos)
         else:
@@ -27,12 +54,16 @@ class ScreenCoordsMapper():
         if global_coords is None:
             return
 
+        # Convert global coordinates to mm and round to 1 decimal
         global_coords = np.round(global_coords*1000, decimals=1)
+        
+        # Apply reticle adjustments if a reticle is selected
         reticle_name = self.reticle_selector.currentText()
         if "Proj" not in reticle_name:
             return
         self.reticle = reticle_name.split('(')[-1].strip(')')
         
+        # Apply reticle-specific adjustments or use raw global coordinates
         global_x, global_y, global_z = global_coords
         if self.reticle == "Proj Global coords":
             global_x = global_coords[0]
@@ -41,6 +72,7 @@ class ScreenCoordsMapper():
         else:
             global_x, global_y, global_z = self._apply_reticle_adjustments(global_coords)
 
+        # Apply reticle-specific adjustments or use raw global coordinates
         self.ui_x.setText(str(global_x))
         self.ui_y.setText(str(global_y))
         self.ui_z.setText(str(global_z))
@@ -49,9 +81,22 @@ class ScreenCoordsMapper():
         print(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
         
     def add_global_coords_to_dropdown(self):
+        """
+        Add an entry for "Proj Global coords" to the reticle selector dropdown.
+        """
         self.reticle_selector.addItem(f"Proj Global coords")
         
     def _apply_reticle_adjustments(self, global_pts):
+        """
+        Apply the reticle-specific metadata adjustments to the given global coordinates.
+        Adjustments include rotation and offset corrections based on reticle metadata.
+
+        Args:
+            global_pts (np.ndarray): The raw global coordinates as a numpy array.
+
+        Returns:
+            tuple: The adjusted global coordinates (x, y, z) rounded to one decimal place.
+        """
         reticle_metadata = self.model.get_reticle_metadata(self.reticle)
         reticle_rot = reticle_metadata.get("rot", 0)
         reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
@@ -61,23 +106,39 @@ class ScreenCoordsMapper():
             reticle_metadata.get("offset_z", global_pts[2])
         ])
 
+        # Apply rotation if necessary
         if reticle_rot != 0:
-            # Transpose because points are row vectors
-            global_pts = global_pts @ reticle_rotmat.T
+            global_pts = global_pts @ reticle_rotmat.T # Transpose because points are row vectors
         global_pts = global_pts + reticle_offset
 
+        # Round the adjusted coordinates to 1 decimal place
         global_x = np.round(global_pts[0], 1)
         global_y = np.round(global_pts[1], 1)
         global_z = np.round(global_pts[2], 1)
         return global_x, global_y, global_z
 
     def _register_pt(self, camera_name, pos):
-        """Register the clicked position."""
+        """
+        Register the clicked position in the model.
+
+        Args:
+            camera_name (str): The name of the camera where the click occurred.
+            pos (tuple): The clicked position (x, y) on the screen.
+        """
         if pos is not None and camera_name is not None:
             self.model.add_pts(camera_name, pos)
 
     def _get_global_coords_stereo(self, camera_name, pos):
-        """Calculate global coordinates based on the best camera pair."""
+        """
+        Calculate global coordinates using stereo calibration based on the clicked position.
+
+        Args:
+            camera_name (str): The camera that captured the clicked position.
+            pos (tuple): The clicked position (x, y) on the screen.
+
+        Returns:
+            np.ndarray or None: The calculated global coordinates or None if unavailable.
+        """
         if self.model.stereo_calib_instance is None:
             logger.debug("Stereo instance is None")
             return None
@@ -86,6 +147,7 @@ class ScreenCoordsMapper():
             logger.debug("Best camera pair is None")
             return None
 
+        # Retrieve the best camera pair for stereo calibration
         camA_best, camB_best = self.model.best_camera_pair
         if camera_name not in [camA_best, camB_best]:
             logger.debug("Clicked camera is not in the best pair")
@@ -113,6 +175,7 @@ class ScreenCoordsMapper():
             logger.debug(f"Stereo calibration instance not found for cameras: {camA_best}, {camB_best}")
             return None
         
+        # Calculate global coordinates using stereo calibration
         global_coords = stereo_instance.get_global_coords(
             camA_best, tip_coordsA, camB_best, tip_coordsB
         )
@@ -120,7 +183,16 @@ class ScreenCoordsMapper():
         return global_coords[0]
 
     def _get_global_coords_BA(self, camera_name, pos):
-        """Calculate global coordinates based on the best camera pair."""
+        """
+        Calculate global coordinates using bundle adjustment (BA) based on the clicked position.
+
+        Args:
+            camera_name (str): The camera that captured the clicked position.
+            pos (tuple): The clicked position (x, y) on the screen.
+
+        Returns:
+            np.ndarray or None: The calculated global coordinates or None if unavailable.
+        """
         if self.model.stereo_calib_instance is None:
             logger.debug("Stereo instance is None")
             return None
@@ -131,6 +203,7 @@ class ScreenCoordsMapper():
             logger.debug("Not enough detected points to calculate global coordinates")
             return None
 
+        # Retrieve camera data for bundle adjustment
         camA, camB = None, None
         tip_coordsA, tip_coordsB = None, None
         for camera, pts in cameras_detected_pts.items():
@@ -159,5 +232,15 @@ class ScreenCoordsMapper():
         return global_coords[0]
     
     def _get_calibration_instance(self, camA, camB):
+        """
+        Retrieve the stereo calibration instance for a given pair of cameras.
+
+        Args:
+            camA (str): The first camera in the pair.
+            camB (str): The second camera in the pair.
+
+        Returns:
+            object: The stereo calibration instance for the given camera pair.
+        """
         sorted_key = tuple(sorted((camA, camB)))
         return self.model.get_stereo_calib_instance(sorted_key)

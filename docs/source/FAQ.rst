@@ -12,7 +12,7 @@ Reticle Detection
     
     Make sure your reticle appears similar to these examples:
 
-    .. image:: _static/reticleDetection.JPG
+    .. image:: _static/_faq/reticleDetection.JPG
         :scale: 20%
 
     - **Centered and in focus:** The reticle should be well-centered in the view, with its center in clear focus.
@@ -33,17 +33,17 @@ Reticle Detection
     
     1. Brightness is too high or too low:
 
-        .. image:: _static/r_problem1.JPG
+        .. image:: _static/_faq/r_problem1.JPG
             :scale: 20%
 
         - Solution: Adjust the brightness to the optimal level.
 
-        .. image:: _static/r_problem2.JPG
+        .. image:: _static/_faq/r_problem2.JPG
             :scale: 20%
     
     2. Reticle is out of focus:
 
-        .. image:: _static/r_problem4.JPG
+        .. image:: _static/_faq/r_problem4.JPG
             :scale: 20%    
 
         - Solution: Move the camera relative to the reticle so that the center of the reticle is in focus. 
@@ -54,24 +54,24 @@ Reticle Detection
     
     4. Only partial reticle is visible:
 
-        .. image:: _static/r_problem5.JPG
+        .. image:: _static/_faq/r_problem5.JPG
             :scale: 20%   
 
         - Solution: Ensure the reticle is well-centered in the view.
     
     5. Inconsistent lighting such as light reflection or shadow regions:
 
-        .. image:: _static/r_problem13.JPG
+        .. image:: _static/_faq/r_problem13.JPG
             :scale: 20%   
         
-        .. image:: _static/r_problem11.JPG
+        .. image:: _static/_faq/r_problem11.JPG
             :scale: 20%   
 
         - Solution: Make sure the reticle background has consistent lighting.
     
     6. Occlusion of reticle due to dirt or debris:
 
-        .. image:: _static/r_problem9.JPG
+        .. image:: _static/_faq/r_problem9.JPG
             :scale: 20%   
 
         - Solution: Clean the reticle surface to remove any debris or dirt.
@@ -82,7 +82,7 @@ Reticle Detection
 
     8. Reticle background is too dark:
         
-        .. image:: _static/r_problem12.JPG
+        .. image:: _static/_faq/r_problem12.JPG
             :scale: 20%  
     
         - Solution: Use a white paper as a background to increase the contrast between the reticle and the background.  
@@ -106,6 +106,7 @@ Reticle Detection
 
         - Solution: Adjust the camera position so that the view is less skewed, and the face of the reticle appears as flat as possible.
 
+----
 
 .. _general_faqs:
 
@@ -118,7 +119,7 @@ General Interface
 
     Parallax is currently under development, and some functions are not stable. If camera resources are not cleared up in the previous session, such as when the app exits forcefully or the camera interface is unplugged, it can cause this issue.
     
-        .. image:: _static/reset1.JPG
+        .. image:: _static/_faq/reset1.JPG
             :scale: 20%
     
     - Solution: Use Spinview to reset the camera resources. Steps to reset the camera resources:
@@ -126,10 +127,12 @@ General Interface
         1. Close Parallax.
         2. Open Spinview and start and stop streaming on all cameras to reset the camera resources.
         
-            .. image:: _static/reset2.JPG
+            .. image:: _static/_faq/reset2.JPG
                 :scale: 30%
         
-            .. image:: _static/reset3.JPG
+            .. image:: _static/_faq/reset3.JPG
                 :scale: 30%
 
         3. Launch Parallax again.
+
+----
