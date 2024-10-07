@@ -3,7 +3,7 @@
 Reticle Metadata
 =================
 
-.. image:: _static/_userGuide/_meta/6.png
+.. image:: _static/_userGuide/_meta/_6.png
     :alt: Reticle Metadata
     :width: 500px
     :align: center
@@ -24,7 +24,7 @@ This tool is essential for correcting reticle imprecisions. You can adjust retic
 
     1. **Add / Remove Reticles**: Easily create new reticles or remove existing reticle metadata.
 
-    .. image:: _static/_userGuide/_meta/1.png
+    .. image:: _static/_userGuide/_meta/_1.png
         :alt: Add / remove
         :width: 300px
         :align: center
@@ -35,14 +35,14 @@ This tool is essential for correcting reticle imprecisions. You can adjust retic
         - **Rotation**: Set the rotation value (in degrees) to adjust the reticle’s orientation.
         - **Offsets (X, Y, Z)**: Enter offset values to adjust the reticle's position in 3D space.
 
-    .. image:: _static/_userGuide/_meta/2.png
+    .. image:: _static/_userGuide/_meta/_2.png
         :alt: Metadata
         :width: 300px
         :align: center
 
     3. **Update**: Changes are saved to a JSON file and automatically reflected in other functions, such as the calculator and 3D point projection.
 
-    .. image:: _static/_userGuide/_meta/3.png
+    .. image:: _static/_userGuide/_meta/_3.png
         :alt: Update
         :width: 300px
         :align: center
@@ -60,7 +60,7 @@ This tool is essential for correcting reticle imprecisions. You can adjust retic
 
     If you update the reticle metadata for reticles 'A' and 'H', as shown in the image below, the system will automatically apply the changes to the global coordinates.
 
-    .. image:: _static/_userGuide/_meta/6.png
+    .. image:: _static/_userGuide/_meta/_6.png
         :alt: Reticle Metadata
         :width: 500px
         :align: center
@@ -75,12 +75,12 @@ If the original global coordinates were (2000, 0, 0), as shown in the left image
         <div class="inline-images" style="text-align: center;">
             <div style="display: inline-flex; align-items: center; justify-content: center;">
                 <div style="text-align: center;">
-                    <img src="_static/_userGuide/_meta/17.png" width="200px"/>
+                    <img src="_static/_userGuide/_meta/_17.png" width="200px"/>
                     <div style="font-size: 10px;">Global Coords Original</div>
                 </div>
                 <div style="margin: 0 10px; font-size: 18px;">→</div>
                 <div style="text-align: center;">
-                    <img src="_static/_userGuide/_meta/18.png" width="200px"/>
+                    <img src="_static/_userGuide/_meta/_18.png" width="200px"/>
                     <div style="font-size: 10px;">Global Coords (H)</div>
                 </div>
             </div>
@@ -94,12 +94,12 @@ If the original global coordinates were (2000, 0, 0), as shown in the left image
         <div class="inline-images" style="text-align: center;">
             <div style="display: inline-flex; align-items: center; justify-content: center;">
                 <div style="text-align: center;">
-                    <img src="_static/_userGuide/_meta/17.png" width="200px"/>
+                    <img src="_static/_userGuide/_meta/_17.png" width="200px"/>
                     <div style="font-size: 10px;">Original Image</div>
                 </div>
                 <div style="margin: 0 10px; font-size: 18px;">→</div>
                 <div style="text-align: center;">
-                    <img src="_static/_userGuide/_meta/19.png" width="200px"/>
+                    <img src="_static/_userGuide/_meta/_19.png" width="200px"/>
                     <div style="font-size: 10px;">Global Coords (A)</div>
                 </div>
             </div>
@@ -110,14 +110,14 @@ These reticle metadata values are also used in the calculator and for 3D point p
 
     - **Calculator**: You can convert local coordinates (stage coordinates) to global coordinates **with reticle metadata** by selecting the appropriate reticle from the drop-down menu. The calculator will automatically apply the metadata changes to the global coordinates based on your selection. For more details, see the *Calculator* section.
 
-    .. image:: _static/_userGuide/_meta/24.png
+    .. image:: _static/_userGuide/_meta/_24.png
         :alt: Calculator with Reticle Metadata applied
         :width: 500px
         :align: center
 
     - **3D Point Projection**: If you select 'Proj Global Coords (*reticle name*)' from the "Global coords" drop-down menu, and then click images in the camera views, you can see the 3D point projection of the clicked point. For more details, see the *'3D Point Projection'* section.
     
-    .. image:: _static/_userGuide/_meta/23.png
+    .. image:: _static/_userGuide/_meta/_23.png
         :alt: 3D Point Projection
         :width: 200px
         :align: center
