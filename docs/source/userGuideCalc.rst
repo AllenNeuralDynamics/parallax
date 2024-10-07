@@ -100,7 +100,7 @@ are provided, the calculator determines the direction of the transformation:
    After converting coordinates, you can move the stage to the desired local coordinates. 
    The `moveStageXY0` button allows you to send the stage to a specific (X, Y, 0) position, which is the highest position.
 
-   First, it moves to z = 0 (the highest position), and then it moves to the desired (X, Y) position to avoid collisions with the reticle surface.
+   First, it moves to z = 0 (the highest height), and then it moves to the desired (X, Y) position to avoid collisions with the reticle surface.
 
 .. image:: _static/_userGuide/_calc/10.png
     :alt: Calculator Overview
