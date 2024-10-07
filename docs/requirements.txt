@@ -3,5 +3,5 @@ sphinxcontrib-video
 sphinx-jinja
 furo
 docutils
-sphinx-rtd-theme
-sphinx-viewcode
+sphinx.ext.autodoc
+sphinx.ext.viewcode
