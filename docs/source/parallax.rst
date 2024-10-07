@@ -1,4 +1,4 @@
-Parallax Package
+Parallax Modules
 ================
 
 Axis Filter Module
