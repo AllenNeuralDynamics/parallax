@@ -3,3 +3,5 @@ sphinxcontrib-video
 sphinx-jinja
 furo
 docutils
+sphinx-autodoc
+sphinx-viewcode
