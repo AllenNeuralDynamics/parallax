@@ -11,7 +11,7 @@ from datetime import date
 from docutils.parsers.rst import roles
 from docutils import nodes
 
-sys.path.insert(0, os.path.abspath('../../parallax'))
+sys.path.insert(0, os.path.abspath('../../parallax/'))
 
 INSTITUTE_NAME = "Allen Institute for Neural Dynamics"
 
@@ -24,7 +24,12 @@ release = "0.0.1" # Automatically set version from parallax package
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.todo", "sphinx.ext.viewcode", "sphinx.ext.autodoc", "sphinxcontrib.video"]
+extensions = [
+    "sphinx.ext.viewcode",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.todo",
+    "sphinxcontrib.video"
+]
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
