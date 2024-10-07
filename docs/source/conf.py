@@ -25,9 +25,9 @@ release = "0.0.1" # Automatically set version from parallax package
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "sphinx.ext.todo",
     "sphinx.ext.viewcode",
     "sphinx.ext.autodoc",
+    "sphinx.ext.todo",
     "sphinxcontrib.video"
 ]
 

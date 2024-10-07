@@ -3,5 +3,3 @@ sphinxcontrib-video
 sphinx-jinja
 furo
 docutils
-sphinx.ext.autodoc
-sphinx.ext.viewcode
