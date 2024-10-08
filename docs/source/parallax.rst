@@ -1,30 +1,8 @@
-Parallax Modules
+Module Description
 ================
 
-Axis Filter Module
-------------------
-
-This module handles the filtering of axis data.
-
-.. automodule:: parallax.axis_filter
-   :members:
-   :undoc-members:
-   :special-members: __init__, filter_data
-
-
-Bundle Adjustment Module
-------------------------
-
-This module performs bundle adjustment to refine the 3D structure.
-
-.. automodule:: parallax.bundle_adjustment
-   :members:
-   :undoc-members:
-   :special-members: __init__, adjust
-
-
-Calculator Module
------------------
+Calculator
+----------
 
 This module contains a calculator for various mathematical functions needed in the system.
 
@@ -34,8 +12,8 @@ This module contains a calculator for various mathematical functions needed in t
    :special-members: __init__, calculate
 
 
-Calibration Camera Module
--------------------------
+Calibration Camera
+------------------
 
 This module provides camera calibration functionality.
 
@@ -45,8 +23,8 @@ This module provides camera calibration functionality.
    :special-members: __init__, calibrate
 
 
-Camera Module
--------------
+Camera
+------
 
 This module manages camera interactions, such as capturing frames and adjusting settings.
 
@@ -56,8 +34,8 @@ This module manages camera interactions, such as capturing frames and adjusting 
    :special-members: __init__, capture_frame, adjust_exposure
 
 
-Coordinate Transformation Module
---------------------------------
+Coordinate Transformation
+-------------------------
 
 This module handles transformations between different coordinate systems.
 
@@ -67,8 +45,8 @@ This module handles transformations between different coordinate systems.
    :special-members: __init__, transform_to_global, transform_to_local
 
 
-Current Background Comparison Processor Module
-----------------------------------------------
+Current Background Comparison Processor
+---------------------------------------
 
 This module compares the current background frame with previous frames to detect changes.
 
@@ -78,8 +56,8 @@ This module compares the current background frame with previous frames to detect
    :special-members: __init__, compare_frames
 
 
-Current Previous Comparison Processor Module
---------------------------------------------
+Current Previous Comparison Processor
+-------------------------------------
 
 This module compares current frames with previous ones to track changes over time.
 
@@ -89,8 +67,8 @@ This module compares current frames with previous ones to track changes over tim
    :special-members: __init__, process_comparison
 
 
-Main Window WIP Module
-----------------------
+Main Window WIP
+---------------
 
 This module manages the main window user interface components.
 
@@ -100,8 +78,8 @@ This module manages the main window user interface components.
    :special-members: __init__, show_window
 
 
-Mask Generator Module
----------------------
+Mask Generator
+--------------
 
 This module generates masks for image processing tasks.
 
@@ -111,8 +89,8 @@ This module generates masks for image processing tasks.
    :special-members: __init__, generate_mask
 
 
-Model Module
-------------
+Model
+-----
 
 This module defines the core model for the application.
 
@@ -122,8 +100,8 @@ This module defines the core model for the application.
    :special-members: __init__, update_state
 
 
-No Filter Module
-----------------
+No Filter
+---------
 
 This module defines a pass-through filter with no changes.
 
@@ -133,8 +111,30 @@ This module defines a pass-through filter with no changes.
    :special-members: __init__, apply_filter
 
 
-Probe Calibration Module
-------------------------
+Axis Filter
+-----------
+
+This module handles the filtering of axis data.
+
+.. automodule:: parallax.axis_filter
+   :members:
+   :undoc-members:
+   :special-members: __init__, filter_data
+
+
+Bundle Adjustment
+-----------------
+
+This module performs bundle adjustment to refine the 3D structure.
+
+.. automodule:: parallax.bundle_adjustment
+   :members:
+   :undoc-members:
+   :special-members: __init__, adjust
+
+
+Probe Calibration
+-----------------
 
 This module manages the calibration of the probe.
 
@@ -144,8 +144,8 @@ This module manages the calibration of the probe.
    :special-members: __init__, calibrate_probe
 
 
-Probe Detect Manager Module
----------------------------
+Probe Detect Manager
+--------------------
 
 This module manages the detection of probes in images.
 
@@ -155,8 +155,8 @@ This module manages the detection of probes in images.
    :special-members: __init__, detect_probe
 
 
-Probe Detector Module
----------------------
+Probe Detector
+--------------
 
 This module contains methods for detecting probes in the environment.
 
@@ -166,8 +166,8 @@ This module contains methods for detecting probes in the environment.
    :special-members: __init__, detect_tip
 
 
-Probe Fine Tip Detector Module
-------------------------------
+Probe Fine Tip Detector
+-----------------------
 
 This module detects fine tips of probes.
 
@@ -177,8 +177,8 @@ This module detects fine tips of probes.
    :special-members: __init__, detect_fine_tip
 
 
-Recording Manager Module
-------------------------
+Recording Manager
+-----------------
 
 This module manages the recording of data during the session.
 
@@ -188,8 +188,8 @@ This module manages the recording of data during the session.
    :special-members: __init__, record_data
 
 
-Reticle Detect Manager Module
------------------------------
+Reticle Detect Manager
+----------------------
 
 This module handles the detection and tracking of reticles.
 
@@ -199,8 +199,8 @@ This module handles the detection and tracking of reticles.
    :special-members: __init__, detect_reticle
 
 
-Reticle Detection Module
-------------------------
+Reticle Detection
+-----------------
 
 This module provides the core methods for detecting reticles.
 
@@ -210,8 +210,8 @@ This module provides the core methods for detecting reticles.
    :special-members: __init__, detect_shape
 
 
-Reticle Detection Coordinates Interests Module
-----------------------------------------------
+Reticle Detection Coordinates Interests
+---------------------------------------
 
 This module deals with detecting specific points of interest in reticle coordinates.
 
@@ -221,8 +221,8 @@ This module deals with detecting specific points of interest in reticle coordina
    :special-members: __init__, find_interests
 
 
-Screen Widget Module
---------------------
+Screen Widget
+-------------
 
 This module provides screen interaction components.
 
@@ -232,8 +232,8 @@ This module provides screen interaction components.
    :special-members: __init__, update_screen
 
 
-Stage Listener Module
----------------------
+Stage Listener
+--------------
 
 This module listens for changes in the stage and processes events.
 
@@ -243,8 +243,8 @@ This module listens for changes in the stage and processes events.
    :special-members: __init__, listen
 
 
-Stage UI Module
----------------
+Stage UI
+--------
 
 This module provides UI components for controlling the stage.
 
@@ -254,8 +254,8 @@ This module provides UI components for controlling the stage.
    :special-members: __init__, update_ui
 
 
-Stage Widget Module
--------------------
+Stage Widget
+------------
 
 This module contains the UI components for the stage.
 
@@ -265,8 +265,8 @@ This module contains the UI components for the stage.
    :special-members: __init__, update_widget
 
 
-Utils Module
-------------
+Utils
+-----
 
 This module contains utility functions used across the project.
 
