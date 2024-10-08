@@ -319,7 +319,6 @@ class StageWidget(QWidget):
             screen.reticle_coords_detected.connect(
                 self.reticle_detect_two_screens
             )
-            #TODO implement camera calib for mono camera
             if screen.get_camera_color_type() == "Color": 
                 screen.run_reticle_detection()
         self.filter = "reticle_detection"

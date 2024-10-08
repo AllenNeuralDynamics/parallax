@@ -322,13 +322,6 @@ class ProbeDetector:
         mask = cv2.copyMakeBorder(
             mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0]
         )
-        """ 
-        # TODO Draw a border inside the mask with the specified thickness
-        border_size = 200
-        cv2.rectangle(mask, (border_size, border_size), 
-                  (mask.shape[1] - border_size - 1, mask.shape[0] - border_size - 1), 
-                  0, border_size)
-        """
         dist_transform = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
 
         dist_p1 = dist_transform[p1[1], p1[0]]  # [y, x]

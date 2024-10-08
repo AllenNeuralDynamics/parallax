@@ -90,7 +90,7 @@ class Worker(QObject):
         self.last_bigmove_stage_info = None
         self.last_bigmove_detected_time = None
         self._low_freq_interval = 1000
-        self._high_freq_interval = 20  # TODO
+        self._high_freq_interval = 20
         self.curr_interval = self._low_freq_interval
         self._idle_time = 0.3 # 0.3s
         self.is_error_log_printed = False

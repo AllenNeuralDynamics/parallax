@@ -47,7 +47,7 @@ class ReticleDetectManager(QObject):
             self.is_detection_on = False
             self.new = False
             self.frame = None
-            self.IMG_SIZE_ORIGINAL = (4000, 3000)  # TODO
+            self.IMG_SIZE_ORIGINAL = (4000, 3000)
             self.frame_success = None
 
             self.mask_detect = MaskGenerator(initial_detect = True)
@@ -176,9 +176,6 @@ class ReticleDetectManager(QObject):
             if not ret:
                 logger.debug(f"{ self.name} get_coords_interest fails ")
             else:
-                # TODO
-                #ret, mtx, dist = self.calibrationCamera.get_predefined_intrinsic(x_axis_coords, y_axis_coords)
-                #if not ret:
                 ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(
                     x_axis_coords, y_axis_coords
                 )
