@@ -5,22 +5,25 @@ crop regions within images.
 - UtilsCrops: calculating crop regions based on specified criteria.
 """
 
-
 class UtilsCoords:
-    """Utility class for coordinate scaling."""
+    """Utility class for scaling coordinates between original and resized images."""
 
     def __init__(self):
+        """init"""
         pass
 
     @classmethod
     def scale_coords_to_original(self, tip, original_size, resized_size):
-        """Scale coordinates from resized image to original image.
+        """
+        Scale coordinates from a resized image back to the original image dimensions.
 
         Args:
-            tip (tuple): Coordinates of the tip (x, y) in the resized image.
+            tip (tuple): The (x, y) coordinates of the tip in the resized image.
+            original_size (tuple): The (width, height) of the original image.
+            resized_size (tuple): The (width, height) of the resized image.
 
         Returns:
-            tuple: Scaled coordinates of the tip (x, y) in the original image.
+            tuple: The scaled (x, y) coordinates of the tip in the original image.
         """
         x, y = tip
         original_width, original_height = original_size
@@ -36,15 +39,16 @@ class UtilsCoords:
     
     @classmethod
     def scale_coords_to_resized_img(self, tip, original_size, resized_size):
-        """Scale coordinates from original image to resized image.
+        """
+        Scale coordinates from the original image to a resized image.
 
         Args:
-            tip (tuple): Coordinates of the tip (x, y) in the original image.
-            original_size (tuple): Original size of the image (width, height).
-            resized_size (tuple): Resized size of the image (width, height).
+            tip (tuple): The (x, y) coordinates of the tip in the original image.
+            original_size (tuple): The (width, height) of the original image.
+            resized_size (tuple): The (width, height) of the resized image.
 
         Returns:
-            tuple: Scaled coordinates of the tip (x, y) in the resized image.
+            tuple: The scaled (x, y) coordinates of the tip in the resized image.
         """
         x, y = tip
         original_width, original_height = original_size
@@ -60,7 +64,7 @@ class UtilsCoords:
 
 
 class UtilsCrops:
-    """Utility class for calculating crop regions."""
+    """Utility class for calculating crop regions based on tip and base coordinates."""
 
     def __init__(self):
         """Initialize the UtilsCrops object."""

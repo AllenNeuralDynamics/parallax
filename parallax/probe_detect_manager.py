@@ -25,21 +25,32 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeDetectManager(QObject):
-    """Manager class for probe detection."""
-
+    """
+    Manager class for probe detection. It handles frame processing, probe detection,
+    reticle zone detection, and result communication through signals.
+    """
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(str, str, tuple, tuple)
 
     class Worker(QObject):
-        """Worker class for probe detection."""
-
+        """
+        Worker class for performing probe detection in a separate thread. This class handles 
+        image processing, probe detection, and reticle detection, and communicates results 
+        through PyQt signals.
+        """
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
         found_coords = pyqtSignal(str, str, tuple)
 
         def __init__(self, name, model):
-            """Initialize Worker object"""
+            """
+            Initialize the Worker object with camera and model data.
+
+            Args:
+                name (str): Camera serial number.
+                model (object): The main model containing stage and camera data.
+            """
             QObject.__init__(self)
             self.model = model
             self.name = name # Camera serial number
@@ -221,12 +232,23 @@ class ProbeDetectManager(QObject):
             self.is_detection_on = False
 
         def enable_calib(self):
+            """Enable calibration mode."""
             self.is_calib = True
 
         def disable_calib(self):
+            """Disable calibration mode."""
             self.is_calib = False
 
         def process_draw_reticle(self, frame):
+            """
+            Draw reticle coordinates on the frame for visualization.
+
+            Args:
+                frame (numpy.ndarray): Input frame.
+
+            Returns:
+                numpy.ndarray: Frame with reticle coordinates drawn.
+            """
             if self.reticle_coords is not None:
                 for coords in self.reticle_coords:
                     for point_idx, (x, y) in enumerate(coords):
@@ -241,6 +263,7 @@ class ProbeDetectManager(QObject):
             return frame
 
         def register_colormap(self):
+            """Register a colormap for visualizing reticle coordinates."""
             if self.reticle_coords is not None:
                 for idx, coords in enumerate(self.reticle_coords):
                     # Normalize indices to 0-255 for colormap application.
@@ -282,6 +305,20 @@ class ProbeDetectManager(QObject):
             self.reticle_coords_debug = self.model.get_coords_for_debug(self.name)
 
         def debug_draw_boundary(self, frame, is_first_detect, ret_crop, ret_tip, is_curr_prev_comp, is_curr_bg_comp):
+            """
+            Draw debug boundaries and detection results on the frame.
+
+            Args:
+                frame (numpy.ndarray): The input frame where boundaries will be drawn.
+                is_first_detect (bool): Whether this is the first detection attempt.
+                ret_crop (bool): Whether the crop region detection was successful.
+                ret_tip (bool): Whether the fine tip detection was successful.
+                is_curr_prev_comp (bool): Whether current-previous frame comparison succeeded.
+                is_curr_bg_comp (bool): Whether current-background frame comparison succeeded.
+
+            Returns:
+                numpy.ndarray: Frame with boundary rectangles and other debug information drawn.
+            """
             # Display text on the frame
             if is_first_detect:
                 text = "first detection"
@@ -346,7 +383,13 @@ class ProbeDetectManager(QObject):
             return frame
 
     def __init__(self, model, camera_name):
-        """Initialize ProbeDetectManager object"""
+        """
+        Initialize the ProbeDetectManager object.
+
+        Args:
+            model (object): The main model containing stage and camera data.
+            camera_name (str): Name of the camera being managed for probe detection.
+        """
         super().__init__()
         self.model = model
         self.worker = None
@@ -354,7 +397,9 @@ class ProbeDetectManager(QObject):
         self.thread = None
 
     def init_thread(self):
-        """Initialize the worker thread."""
+        """
+        Initialize the worker thread and set up signal connections.
+        """
         if self.thread is not None:
             self.clean()  # Clean up existing thread and worker before reinitializing 
         self.thread = QThread()
@@ -374,7 +419,8 @@ class ProbeDetectManager(QObject):
         logger.debug(f"{self.name} init camera name")
 
     def process(self, frame, timestamp):
-        """Process the frame using the worker.
+        """
+        Process the frame using the worker.
 
         Args:
             frame (numpy.ndarray): Input frame.
@@ -384,12 +430,13 @@ class ProbeDetectManager(QObject):
             self.worker.update_frame(frame, timestamp)
 
     def found_coords_print(self, timestamp, sn, pixel_coords):
-        """Emit the found coordinates signal.
+        """
+        Emit the found coordinates signal after detection.
 
         Args:
             timestamp (str): Timestamp of the frame.
-            sn (str): Serial number.
-            pixel_coords (tuple): Pixel coordinates of the probe tip.
+            sn (str): Serial number of the device.
+            pixel_coords (tuple): Pixel coordinates of the detected probe tip.
         """
         moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:
@@ -398,28 +445,35 @@ class ProbeDetectManager(QObject):
                 moving_stage.stage_y,
                 moving_stage.stage_z,
             )
-        # print(timestamp, sn, stage_info, pixel_coords)
         self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
 
     def start(self):
-        """Start the probe detection manager."""
+        """
+        Start the probe detection manager by initializing the worker thread and running it.
+        """
         logger.debug(f" {self.name} Starting thread")
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
         self.thread.start()
 
     def stop(self):
-        """Stop the probe detection manager."""
+        """
+        Stop the probe detection manager by halting the worker thread.
+        """
         logger.debug(f" {self.name} Stopping thread")
         if self.worker is not None:
             self.worker.stop_running()
 
     def onWorkerDestroyed(self):
-        """Cleanup after worker finishes."""
+        """
+        Cleanup function to handle when the worker is destroyed.
+        """
         logger.debug(f"{self.name} worker destroyed")
 
     def onThreadDestroyed(self):
-        """Flag if thread is deleted"""
+        """
+        Callback function when the thread is destroyed.
+        """
         logger.debug(f"{self.name} thread destroyed")
         self.threadDeleted = True
         self.thread = None
@@ -444,22 +498,41 @@ class ProbeDetectManager(QObject):
             self.worker.stop_detection()
 
     def enable_calibration(self, sn):  # Call from stage listener.
+        """
+        Enable calibration mode for the worker.
+
+        Args:
+            sn (str): Serial number of the device.
+        """
         if self.worker is not None:
             self.worker.enable_calib()
     
     def disable_calibration(self, sn):  # Call from stage listener.
+        """
+        Disable calibration mode for the worker.
+
+        Args:
+            sn (str): Serial number of the device.
+        """
         if self.worker is not None:
             self.worker.disable_calib()
 
     def set_name(self, camera_name):
-        """Set camera name."""
+        """
+        Set the camera name for the worker.
+
+        Args:
+            camera_name (str): Name of the camera.
+        """
         self.name = camera_name
         if self.worker is not None:
             self.worker.set_name(self.name)
         logger.debug(f"{self.name} set camera name")
 
     def clean(self):
-        """Clean up the probe detection manager."""
+        """
+        Clean up the worker and thread resources.
+        """
         logger.debug(f"{self.name} Cleaning the thread")
         if self.worker is not None:
             self.worker.stop_running()
@@ -472,5 +545,7 @@ class ProbeDetectManager(QObject):
         logger.debug(f"{self.name} Cleaned the thread")
 
     def __del__(self):
-        """Destructor for the probe detection manager."""
+        """
+        Destructor to ensure proper cleanup when the object is deleted.
+        """
         self.clean()

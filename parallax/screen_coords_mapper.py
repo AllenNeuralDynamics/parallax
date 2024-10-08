@@ -1,3 +1,18 @@
+"""
+This module defines the ScreenCoordsMapper class, which is responsible for converting
+clicked screen coordinates from a camera view into corresponding global coordinates.
+It handles the interaction with stereo calibration or bundle adjustment (BA) to 
+calculate the global position of clicked points on screen widgets, and applies 
+reticle-specific adjustments if needed.
+
+The ScreenCoordsMapper class includes functionality to:
+- Register clicked positions on camera screen widgets.
+- Calculate global coordinates based on stereo calibration or bundle adjustment.
+- Apply reticle-specific metadata, such as rotation and offset, to adjust the global coordinates.
+- Update the UI fields with the calculated global coordinates.
+- Manage interaction between screen widgets, the main model, and a reticle selector dropdown.
+"""
+
 import logging
 import numpy as np
 

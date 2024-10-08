@@ -1,8 +1,19 @@
+"""
+Module for detecting the fine tip of a probe in an image.
+
+This module includes the `ProbeFineTipDetector` class, which provides several methods for detecting
+the fine tip of a probe based on image processing techniques. The class preprocesses the image, 
+validates the input, detects the closest centroid for tip detection, and refines the detected tip
+by applying an offset to ensure accuracy.
+
+Logging is used to track the progress of tip detection, and debug images can be saved when logging
+is set to DEBUG level.
+"""
+
 import logging
 import os
 import cv2
 import numpy as np
-from datetime import datetime
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -46,13 +57,7 @@ class ProbeFineTipDetector:
                 f"get_probe_precise_tip fail. N of contours_boundary :{len(contours_boundary)}"
             )
             return False
-        """
-        boundary_img = np.zeros_like(img)
-        boundary_img[0, 0] = 255
-        boundary_img[width - 1, 0] = 255
-        boundary_img[0, height - 1] = 255
-        boundary_img[width - 1, height - 1] = 255
-        """
+
         boundary_img[0, 0] = 255
         boundary_img[0, width - 1] = 255
         boundary_img[height - 1, 0] = 255

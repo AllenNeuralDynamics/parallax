@@ -1,3 +1,9 @@
+"""
+This module implements the Calculator widget, which is used to transform local and global coordinates 
+and control stage movements. It includes functionality for managing stage interactions, applying 
+reticle adjustments, and issuing commands for stage movement.
+"""
+
 import os
 import logging
 import numpy as np
@@ -129,7 +135,6 @@ class Calculator(QWidget):
             transM (ndarray): The transformation matrix.
             scale (ndarray): The scale factors applied to the coordinates.
         """
-
         # Enable the groupBox for the stage
         globalX = self.findChild(QLineEdit, f"globalX_{sn}").text()
         globalY = self.findChild(QLineEdit, f"globalY_{sn}").text()

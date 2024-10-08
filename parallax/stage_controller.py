@@ -1,3 +1,20 @@
+"""
+This module provides the `StageController` class for managing the movement and control 
+of stages (probes) used in microscopy instruments. The class interacts with an external 
+stage controller system via HTTP requests to move the stages, stop them, and retrieve 
+their status.
+
+The key functionalities include:
+- Stopping the movement of all stages (probes).
+- Moving stages along the X, Y, and Z axes, with specific coordination of Z-axis movement 
+  before X and Y movements.
+- Handling requests to update the stage positions dynamically.
+- Sending and receiving data over HTTP to an external stage controller software.
+
+Classes:
+    StageController: Manages the stage movement, status retrieval, and interaction with 
+                     external systems through HTTP requests.
+"""
 import logging
 import requests
 import json

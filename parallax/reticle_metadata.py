@@ -1,3 +1,18 @@
+"""
+This module provides a ReticleMetadata widget for managing and visualizing reticle metadata
+in a microscopy setup. The widget allows users to dynamically create, modify, and delete 
+reticle information. The metadata includes rotation, offsets, and names, and is saved to a 
+JSON file for persistence. The reticles can be displayed as group boxes in a PyQt UI, and 
+are associated with their respective metadata such as rotation and offsets.
+
+Key features:
+- Add, update, and remove reticles with alphabetically assigned names.
+- Save reticle metadata to a JSON file and load it dynamically.
+- Dynamically update reticle rotation, offsets, and other parameters in the UI.
+- Manage reticles using QGroupBox objects and connect them to a reticle selector dropdown menu.
+- Provides methods for retrieving global coordinates with specific reticle adjustments.
+"""
+
 import os
 import logging
 import json
@@ -28,6 +43,15 @@ class ReticleMetadata(QWidget):
     - Interact with a reticle selector to display the reticle choices in a dropdown.
     """
     def __init__(self, model, reticle_selector):
+        """
+        Initializes the ReticleMetadata widget. The widget allows users to manage 
+        reticle metadata, including dynamically creating groupboxes for each reticle 
+        and handling the interaction with a reticle selector dropdown.
+
+        Args:
+            model (object): The main application model that holds reticle data.
+            reticle_selector (QComboBox): The reticle selector dropdown menu where reticles will be listed.
+        """
         super().__init__()
         self.model = model
         self.reticle_selector = reticle_selector
@@ -48,6 +72,17 @@ class ReticleMetadata(QWidget):
         self.model.add_reticle_metadata_instance(self)
 
     def load_metadata_from_file(self):
+        """
+        Load reticle metadata from a JSON file and populate the UI.
+
+        This method attempts to read the reticle metadata from a JSON file. If the file does not exist, 
+        it logs a message and starts fresh with no preloaded data. If the file exists and contains valid 
+        data, it creates reticle group boxes based on the metadata, updates the internal reticle structure, 
+        and refreshes the reticle selector dropdown.
+
+        Raises:
+            Exception: If there is an error reading the metadata file, logs the error.
+        """
         json_path = os.path.join(ui_dir, "reticle_metadata.json")
         if not os.path.exists(json_path):
             logger.info("No existing metadata file found. Starting fresh.")
@@ -91,7 +126,13 @@ class ReticleMetadata(QWidget):
         self._populate_groupbox(alphabet, reticle_info)
 
     def _populate_groupbox(self, name, reticle_info):
-        """Helper method to set up a groupbox."""
+        """
+        Helper method to set up a groupbox for a reticle with the given name and reticle info.
+
+        Args:
+            name (str): The name of the reticle (typically a single letter).
+            reticle_info (dict): A dictionary containing metadata for the reticle.
+        """
         group_box = QGroupBox(self)
         loadUi(os.path.join(ui_dir, "reticle_QGroupBox.ui"), group_box)
 
@@ -133,7 +174,14 @@ class ReticleMetadata(QWidget):
         self.groupboxes[name] = group_box
 
     def _update_groupbox_name(self, group_box, new_name, alphabet):
-        """Update the title and object name of the group box."""
+        """
+        Update the title and object name of the group box when the reticle name is changed.
+
+        Args:
+            group_box (QGroupBox): The QGroupBox representing the reticle.
+            new_name (str): The new name for the reticle.
+            alphabet (str): The original alphabet used for the reticle.
+        """
         if alphabet == group_box.objectName():
             self.alphabet_status[alphabet] = 0
     
@@ -146,6 +194,12 @@ class ReticleMetadata(QWidget):
                 self.alphabet_status[new_name] = 1
 
     def _remove_specific_groupbox(self, group_box):
+        """
+        Remove a specific reticle groupbox from the layout and metadata.
+
+        Args:
+            group_box (QGroupBox): The groupbox to remove.
+        """
         name = group_box.findChild(QLineEdit, "lineEditName").text()
         
         if name in self.groupboxes.keys():
@@ -164,18 +218,30 @@ class ReticleMetadata(QWidget):
                 self.alphabet_status[name.upper()] = 0
 
     def _find_next_available_alphabet(self):
+        """
+        Find the next available alphabet letter for naming a new reticle.
+
+        Returns:
+            str or None: The next available alphabet letter, or None if all letters are taken.
+        """
         for alphabet, status in self.alphabet_status.items():
             if status == 0:
                 return alphabet
         return None
 
     def _update_reticle_info(self):
+        """
+        Update reticle information in the UI and save it to the metadata file.
+        """
         self._update_to_file()
         for group_box in self.groupboxes.values():
             self._update_reticles(group_box)
         self._update_to_reticle_selector()
 
     def _update_to_reticle_selector(self):
+        """
+        Update the reticle selector dropdown with the latest reticle names.
+        """
         self.reticle_selector.clear()
         self.reticle_selector.addItem(f"Global coords")
 
@@ -189,6 +255,12 @@ class ReticleMetadata(QWidget):
             self.reticle_selector.addItem(f"Proj Global coords ({name})")
 
     def default_reticle_selector(self, reticle_detection_status):
+        """
+        Reset the reticle selector to its default state and clear all reticles.
+
+        Args:
+            reticle_detection_status (str): Status of reticle detection to determine which options to add.
+        """
         # Iterate over the added sgroup boxes and remove each one from the layout
         for name, group_box in self.groupboxes.items():
             self.ui.verticalLayout.removeWidget(group_box)
@@ -208,6 +280,12 @@ class ReticleMetadata(QWidget):
             self.reticle_selector.addItem(f"Proj Global coords")
 
     def _update_to_file(self):
+        """
+        Save the current reticle information to the metadata JSON file.
+
+        Raises:
+            ValueError: If there are empty fields or duplicate reticle names.
+        """
         reticle_info_list = []
         names_seen = set()
         duplicates = False
@@ -265,6 +343,15 @@ class ReticleMetadata(QWidget):
             print(f"Error saving file: {e}")
 
     def _is_valid_number(self, value):
+        """
+        Validate if a string value is a valid number.
+
+        Args:
+            value (str): The string to validate.
+
+        Returns:
+            bool: True if the value is a valid number, False otherwise.
+        """
         try:
             float(value)
             return True
@@ -272,6 +359,12 @@ class ReticleMetadata(QWidget):
             return False
 
     def _update_reticles(self, group_box):
+        """
+        Update the reticle information stored in the `self.reticles` dictionary based on user input.
+
+        Args:
+            group_box (QGroupBox): The QGroupBox containing the reticle data.
+        """
         if not group_box:
             print(f"Error: No groupbox found for reticle '{group_box}'.")
             return
@@ -310,6 +403,16 @@ class ReticleMetadata(QWidget):
         self.model.add_reticle_metadata(name, self.reticles[name])
 
     def get_global_coords_with_offset(self, reticle_name, global_pts):
+        """
+        Get the global coordinates of a point after applying the reticle's rotation and offsets.
+
+        Args:
+            reticle_name (str): The name of the reticle.
+            global_pts (numpy.ndarray): The original global coordinates (3D point).
+
+        Returns:
+            tuple: The transformed global coordinates (global_x, global_y, global_z).
+        """
         if reticle_name not in self.reticles.keys():
             raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
             
