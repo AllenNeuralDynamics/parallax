@@ -20,11 +20,13 @@ current_year = date.today().year
 copyright = f"{current_year}, {INSTITUTE_NAME}"
 author = INSTITUTE_NAME
 release = "0.0.1" # Automatically set version from parallax package
+autosummary_generate = True
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    'sphinx.ext.autosummary',
     "sphinx.ext.viewcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
@@ -33,7 +35,6 @@ extensions = [
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
