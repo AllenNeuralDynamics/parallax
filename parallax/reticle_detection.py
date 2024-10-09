@@ -151,7 +151,7 @@ class ReticleDetection:
                     residual_threshold += 1
                 continue
 
-        # Draw the centroids
+        # Draw the centroids for debug
         """
         for points in inlier_pixels:
             for point in points:
@@ -234,8 +234,10 @@ class ReticleDetection:
 
     def _find_reticle_coords(self, pixels_in_lines):
         """Find the reticle coordinates from the pixels in lines.
+
         Args:
             pixels_in_lines (list): List of pixel coordinates for each line.
+
         Returns:
             list: List of pixel coordinates of interest for each line.
         """
@@ -298,11 +300,6 @@ class ReticleDetection:
                 centroids.append([cX, cY])
         return centroids
 
-    def __del__(self):
-        """Delete the instance"""
-        # print("ReticleDetection Object destroyed")
-        pass
-
     def _get_median_distance_x_y(self, points):
         """Get the median distance for x and y components of the points.
 
@@ -330,7 +327,6 @@ class ReticleDetection:
         Returns:
             numpy.ndarray: Sorted points.
         """
-        
         median_x_diff, median_y_diff = self._get_median_distance_x_y(points)
 
         # Determine which dimension has greater median distance
@@ -378,13 +374,6 @@ class ReticleDetection:
                     i / (num_missing + 1)
                 )
                 missing_points.append(np.round(missing_point))
-            
-            """
-            logger.debug(f"start_point: {start_point},\
-                         end_point: {end_point},\
-                         num_missing: {num_missing},\
-                         Missing points Interpolated: {missing_points}")
-            """
             
         return np.array(missing_points)
 
@@ -541,7 +530,6 @@ class ReticleDetection:
         img = cv2.medianBlur(img, 5)
         img = cv2.bitwise_not(img, mask=self.mask)
         kernel_ellipse_5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        kernel_ellipse_3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_ellipse_5)
 
         img = self._eroding(img)
@@ -559,6 +547,17 @@ class ReticleDetection:
         return ret, img, inliner_lines, inliner_lines_pixels
 
     def _draw_debug(self, img, pixels_in_lines, filename):
+        """
+        Draw debug visualization of detected reticle lines and save the image to a file.
+
+        This method draws circles at the pixel coordinates of the detected lines for debugging purposes.
+        If the logging level is set to DEBUG, the processed image is saved as a file.
+
+        Args:
+            img (numpy.ndarray): The input image.
+            pixels_in_lines (list): List of pixel coordinates for the detected lines.
+            filename (str): The name of the file to save the debug image.
+        """
         if logger.getEffectiveLevel() == logging.DEBUG:        
             if img.ndim == 2:
                 img_ = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
@@ -607,13 +606,3 @@ class ReticleDetection:
             self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
         
         return ret, bg, inliner_lines, pixels_in_lines
-
-    """
-    def is_distance_tip_reticle_threshold(self, probe, reticle, thresh=10):
-        tip_x, tip_y = probe["tip_coords"]
-        dist_transform = cv2.distanceTransform(reticle, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-        # Get the distance at the tip location
-        distance_at_tip = dist_transform[int(tip_y), int(tip_x)]
-        print("distance_at_tip: ", distance_at_tip)
-        return distance_at_tip > thresh
-    """

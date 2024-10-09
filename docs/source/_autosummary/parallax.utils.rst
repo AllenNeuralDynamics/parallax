@@ -1,4 +1,4 @@
-parallax.utils
+﻿parallax.utils
 ==============
 
 .. automodule:: parallax.utils

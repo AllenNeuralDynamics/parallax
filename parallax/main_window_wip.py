@@ -775,6 +775,15 @@ class MainWindow(QMainWindow):
         self.user_setting.save_user_configs(nColumn, directory, width, height)
 
     def closeEvent(self, event):
+        """
+        Handles the widget's close event by performing cleanup actions for the model instances.
+
+        This method ensures that all PointMesh widgets, Calculator instances, and ReticleMetadata 
+        instances managed by the model are closed before the widget itself is closed.
+
+        Args:
+            event (QCloseEvent): The close event triggered when the widget is closed.
+        """
         self.model.close_all_point_meshes()
         self.model.close_clac_instance()
         self.model.close_reticle_metadata_instance()

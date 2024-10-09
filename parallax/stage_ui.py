@@ -64,7 +64,17 @@ class StageUI(QWidget):
         return stage_id
 
     def update_stage_widget(self, prev_stage_id, curr_stage_id):
-        # signal
+        """
+        Emit a signal to notify other widgets or components about a change in the selected stage.
+
+        This method emits the `prev_curr_stages` signal, passing the previous and current stage IDs 
+        to allow other components (like a stage widget) to update their displayed information 
+        based on the selected stage change.
+
+        Args:
+            prev_stage_id (str): The ID of the previously selected stage.
+            curr_stage_id (str): The ID of the currently selected stage.
+        """
         self.prev_curr_stages.emit(prev_stage_id, curr_stage_id)
         
     def sendInfoToStageWidget(self):
@@ -93,11 +103,30 @@ class StageUI(QWidget):
                 self.ui.local_coords_z.setText(str(self.selected_stage.stage_z))
 
     def updateCurrentReticle(self):
+        """
+        Update the currently selected reticle and refresh the global coordinates display.
+
+        This method calls `setCurrentReticle` to update the currently selected reticle based on 
+        the user's selection from the reticle dropdown. If the reticle is successfully updated, 
+        it refreshes the displayed global coordinates for the selected stage using 
+        `updateStageGlobalCoords`.
+        """
         ret = self.setCurrentReticle()
         if ret:
             self.updateStageGlobalCoords()
 
     def setCurrentReticle(self):
+        """
+        Set the current reticle based on the user's selection in the reticle dropdown.
+
+        This method retrieves the selected reticle from the reticle selector UI component. If the 
+        reticle name contains "Proj", it sets the reticle to "Proj" and resets the global coordinates 
+        display by calling `updateStageGlobalCoords_default`. Otherwise, it extracts the reticle 
+        letter from the reticle name (e.g., "Global coords (A)") and sets it as the current reticle.
+
+        Returns:
+            bool: True if a valid reticle was set, False otherwise.
+        """
         reticle_name = self.ui.reticle_selector.currentText()
         if not reticle_name:
             return False

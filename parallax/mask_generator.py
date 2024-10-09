@@ -19,7 +19,11 @@ class MaskGenerator:
     """Class for generating a mask from an image."""
 
     def __init__(self, initial_detect=False):
-        """Initialize mask generator object"""
+        """Initialize the MaskGenerator object.
+
+        Args:
+            initial_detect (bool, optional): Whether to perform initial detection with different settings.
+        """
         self.img = None
         self.original_size = (None, None)
         self.is_reticle_exist = None
@@ -42,6 +46,15 @@ class MaskGenerator:
         )
 
     def _homomorphic_filter(self, gamma_high=1.5, gamma_low=0.5, c=1, d0=30):
+        """
+        Apply a homomorphic filter to the image to enhance contrast and remove shadows.
+
+        Args:
+            gamma_high (float, optional): The high gamma value for contrast adjustment. Default is 1.5.
+            gamma_low (float, optional): The low gamma value for contrast adjustment. Default is 0.5.
+            c (int, optional): Constant to adjust the filter strength. Default is 1.
+            d0 (int, optional): Cutoff frequency for the high-pass filter. Default is 30.
+        """
         # Apply the log transform
         img_log = np.log1p(np.array(self.img, dtype="float"))
 
@@ -102,7 +115,7 @@ class MaskGenerator:
         self.img = cv2.bitwise_not(self.img)  # Re-invert image back
 
     def _remove_small_contours(self):
-        """Remove small contours from the image."""
+        """Remove small contours from the image based on a threshold size."""
         contours, _ = cv2.findContours(
             self.img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
@@ -119,7 +132,7 @@ class MaskGenerator:
                     )
 
     def _finalize_image(self):
-        """Resize the image back to its original size."""
+        """Resize the image back to its original size and adjust the scale."""
         self.img = cv2.resize(self.img, self.original_size)
         self.img = cv2.convertScaleAbs(self.img)
 
@@ -162,6 +175,11 @@ class MaskGenerator:
         return self.is_reticle_exist
 
     def _reticle_exist_check(self, threshold):
+        """Check if the reticle exists based on the threshold.
+
+        Args:
+            threshold (float): The threshold percentage for determining reticle existence.
+        """
         if self.is_reticle_exist is None:
             self._is_reticle_frame(threshold = threshold)
 

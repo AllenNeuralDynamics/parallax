@@ -1,4 +1,4 @@
-parallax.reticle\_detection
+﻿parallax.reticle\_detection
 ===========================
 
 .. automodule:: parallax.reticle_detection

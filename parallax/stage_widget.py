@@ -28,15 +28,16 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 class StageWidget(QWidget):
-    """Widget for stage control and calibration."""
+    """A widget for stage control and calibration in a microscopy system."""
 
     def __init__(self, model, ui_dir, screen_widgets):
-        """Initializes the StageWidget instance.
+        """
+        Initializes the StageWidget instance with model, UI directory, and screen widgets.
 
-        Parameters:
-            model: The data model used for storing calibration and stage information.
+        Args:
+            model (object): The data model used for storing calibration and stage information.
             ui_dir (str): The directory path where UI files are located.
-            screen_widgets (list): A list of ScreenWidget instances for reticle and probe detection.
+            screen_widgets (list): A list of screen widgets for reticle and probe detection.
         """
         super().__init__()
         self.model = model
@@ -319,7 +320,6 @@ class StageWidget(QWidget):
             screen.reticle_coords_detected.connect(
                 self.reticle_detect_two_screens
             )
-            #TODO implement camera calib for mono camera
             if screen.get_camera_color_type() == "Color": 
                 screen.run_reticle_detection()
         self.filter = "reticle_detection"
@@ -353,12 +353,35 @@ class StageWidget(QWidget):
         )
 
     def select_positive_x_popup_window(self):
+        """
+        Displays a popup window instructing the user to click the positive x-axis 
+        on each screen during the calibration process.
+
+        This method is typically called when calibrating the positive x-axis of the reticle 
+        or probe in a stereo setup. The user is expected to select a point along the positive 
+        x-axis on each camera screen for accurate calibration.
+
+        A warning message box will appear, showing the instruction to the user.
+
+        Returns:
+            None
+        """
         message = (
             f"Click positive x-axis on each screen"
         )
         QMessageBox.warning(self, "Calibration", message)
 
     def get_coords_detected_screens(self):
+        """
+        Retrieves the list of camera names where reticle coordinates have been detected.
+
+        This method iterates over all the available screen widgets and checks if 
+        coordinates are detected for each camera. If coordinates are detected, 
+        the camera name is added to the result list.
+
+        Returns:
+            list: A list of camera names where reticle coordinates have been detected.
+        """
         coords_detected_cam_name = []
         for screen in self.screen_widgets:
             cam_name = screen.get_camera_name()
@@ -369,6 +392,16 @@ class StageWidget(QWidget):
         return coords_detected_cam_name
     
     def is_positive_x_axis_detected(self):
+        """
+        Checks whether the positive x-axis has been detected on all screens.
+
+        This method compares the detected coordinates for each camera with the list of cameras 
+        that have positive x-axis coordinates available. It returns True if the positive x-axis 
+        has been detected on all cameras, otherwise returns False.
+
+        Returns:
+            bool: True if the positive x-axis has been detected on all screens, False otherwise.
+        """
         pos_x_detected_screens = []
         for cam_name in self.coords_detected_screens:
             pos_x = self.model.get_pos_x(cam_name)
@@ -379,6 +412,16 @@ class StageWidget(QWidget):
         return set(self.coords_detected_screens) == set(pos_x_detected_screens)
     
     def check_positive_x_axis(self):
+        """
+        Checks for the detection of the positive x-axis on all screens and proceeds with calibration if detected.
+
+        This method periodically checks if the positive x-axis has been detected on all screens.
+        If detected, the stereo calibration is initiated, reticle and probe calibration buttons 
+        are enabled, and the UI is updated. If not yet detected, the method continues checking.
+
+        Returns:
+            None
+        """
         if self.is_positive_x_axis_detected():
             self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected
         
@@ -429,7 +472,7 @@ class StageWidget(QWidget):
         logger.debug(f"2 self.filter: {self.filter}")
 
     def start_calibrate(self):
-        # Perform stereo calibration
+        """Perform stereo calibration"""
         result = self.calibrate_cameras()
         if result:
             self.reticleCalibrationLabel.setText(
@@ -438,6 +481,18 @@ class StageWidget(QWidget):
             )
 
     def enable_reticle_probe_calibration_buttons(self):
+        """
+        Enables the reticle and probe calibration buttons in the UI.
+
+        This method checks if the reticle calibration and probe calibration buttons 
+        are disabled, and if so, enables them. This allows the user to start or continue 
+        the reticle and probe calibration process.
+
+        It also logs the current reticle detection status for debugging purposes.
+
+        Returns:
+            None
+        """
         # Enable reticle_calibration_btn button
         if not self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(True)
@@ -460,6 +515,16 @@ class StageWidget(QWidget):
         return err, calibrationStereo, retval, R_AB, T_AB, E_AB, F_AB
         
     def get_cameras_lists(self):
+        """
+        Retrieves a list of camera names, intrinsic parameters, and image coordinates 
+        for each screen widget in the system.
+
+        Returns:
+            tuple: A tuple containing:
+                - cam_names (list): List of camera names.
+                - intrinsics (list): List of intrinsic camera parameters.
+                - img_coords (list): List of reticle coordinates detected on each camera.
+        """
         cam_names = []
         intrinsics = []
         img_coords = []
@@ -477,6 +542,17 @@ class StageWidget(QWidget):
         return cam_names, intrinsics, img_coords
 
     def calibrate_stereo(self, cam_names, intrinsics, img_coords):
+        """
+        Performs stereo camera calibration between pairs of cameras.
+
+        Args:
+            cam_names (list): List of camera names.
+            intrinsics (list): List of intrinsic camera parameters.
+            img_coords (list): List of reticle coordinates detected on each camera.
+
+        Returns:
+            float: The minimum reprojection error from the stereo calibration process.
+        """
         # Streo Camera Calibration
         min_err = math.inf
         self.calibrationStereo = None
@@ -514,16 +590,23 @@ class StageWidget(QWidget):
             self.camA_best, self.camB_best, min_err, R_AB_best, T_AB_best, E_AB_best, F_AB_best
         )
 
-        #print("\n== intrinsics ==")
-        #print(f" cam {self.camA_best}:\n  {itmxA_best}")
-        #print(f" cam {self.camB_best}:\n  {itmxB_best}")
-        #self.calibrationStereo.print_calibrate_stereo_results(self.camA_best, self.camB_best)
         err = self.calibrationStereo.test_performance(
             self.camA_best, coordsA_best, self.camB_best, coordsB_best, print_results=True
             )
         return err
     
     def calibrate_all_cameras(self, cam_names, intrinsics, img_coords):
+        """
+        Performs stereo calibration for all pairs of cameras, selecting the pair with the lowest error.
+
+        Args:
+            cam_names (list): List of camera names.
+            intrinsics (list): List of intrinsic camera parameters.
+            img_coords (list): List of reticle coordinates detected on each camera.
+
+        Returns:
+            float: The minimum reprojection error across all camera pairs.
+        """
         min_err = math.inf
         # Stereo Camera Calibration
         calibrationStereo = None
@@ -558,14 +641,26 @@ class StageWidget(QWidget):
 
         return min_err
 
-    # Example of how to retrieve the instance with either (camA, camB) or (camB, camA)
     def get_calibration_instance(self, camA, camB):
+        """
+        Retrieves the stereo calibration instance for a given pair of cameras.
+
+        Args:
+            camA (str): The first camera in the pair.
+            camB (str): The second camera in the pair.
+
+        Returns:
+            object: The stereo calibration instance for the given camera pair, or None if not found.
+        """
         sorted_key = tuple(sorted((camA, camB)))
         return self.model.get_stereo_calib_instance(sorted_key)
 
     def calibrate_cameras(self):
         """
         Performs stereo calibration using the detected reticle positions and updates the model with the calibration data.
+        
+        Returns:
+            float or None: The reprojection error from the calibration, or None if calibration could not be performed.
         """
         if len(self.model.coords_axis) < 2 and len(self.model.camera_intrinsic) < 2:
             return None
@@ -587,10 +682,16 @@ class StageWidget(QWidget):
 
     def reticle_detect_all_screen(self):
         """
-        Checks all screens for reticle detection results and updates the status based on whether the reticle
-        has been detected on all screens.
+        Detects the reticle coordinates on all screens for Bundle Adjustment. This method checks each screen widget
+        for reticle detection results and updates the detection status if the reticle has been
+        successfully detected on all screens.
+
+        The method proceeds with the detection process by calling the `reticle_detect_detected_status`
+        method to update the UI and status. Additionally, it registers the detected reticle coordinates
+        and intrinsic parameters into the model using the `register_reticle_coords_intrinsic_to_model` method.
+
+        If any screen does not have detected reticle coordinates, the method returns without further processing.
         """
-        """Detect reticle coordinates on all screens."""
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
             if coords is None:
@@ -600,7 +701,18 @@ class StageWidget(QWidget):
         self.register_reticle_coords_intrinsic_to_model()
 
     def reticle_detect_two_screens(self):
-        """Detect reticle coordinates on two screens."""
+        """
+        Detects the reticle coordinates on two screens for a stereo pair. This method checks each screen widget 
+        for reticle detection results and counts the number of screens with detected reticle 
+        coordinates. If the reticle is detected on at least two screens, it updates the UI 
+        and detection status by calling the `reticle_detect_detected_status` method.
+
+        After detecting the reticle on two screens, it registers the detected reticle 
+        coordinates and intrinsic parameters into the model using the 
+        `register_reticle_coords_intrinsic_to_model` method.
+
+        If fewer than two screens have detected reticle coordinates, the method exits early.
+        """
         reticle_detected_screen_cnt = 0
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
@@ -615,6 +727,16 @@ class StageWidget(QWidget):
         self.register_reticle_coords_intrinsic_to_model()
         
     def register_reticle_coords_intrinsic_to_model(self):
+        """
+        Registers the detected reticle coordinates and corresponding intrinsic camera parameters 
+        into the model. For each screen widget, it retrieves the reticle coordinates, the intrinsic 
+        matrix (mtx), distortion coefficients (dist), rotation vectors (rvec), and translation vectors (tvec).
+
+        This method stores the reticle coordinates and intrinsic camera parameters in the model for 
+        each screen where the reticle coordinates are detected.
+
+        If no reticle coordinates are found on a screen, the method skips that screen.
+        """
         # Register into the model
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
@@ -755,6 +877,21 @@ class StageWidget(QWidget):
                 self.probe_calibration_btn.setChecked(True)
 
     def probe_detect_default_status_ui(self, sn = None):
+        """
+        Resets the probe detection UI and clears the calibration status.
+
+        If a stage serial number (`sn`) is provided, it resets the calibration for that specific stage.
+        Otherwise, it resets the calibration for all stages.
+
+        Key actions:
+        1. Resets button styles and hides calibration-related buttons.
+        2. Disconnects signals and stops probe detection on the screens.
+        3. Clears the calibration status and updates the global coordinates on the UI.
+        4. Sets calculator functions as "uncalibrated."
+
+        Args:
+            sn (str, optional): The serial number of the stage to reset. If None, resets all stages.
+        """
         self.probe_calibration_btn.setStyleSheet("""
             QPushButton {
                 color: white;
@@ -907,6 +1044,13 @@ class StageWidget(QWidget):
         self.reticle_metadata.load_metadata_from_file()
 
     def set_default_x_y_z_style(self):
+        """
+        Resets the style of the X, Y, and Z calibration buttons to their default appearance.
+
+        This method sets the color of the text to white and the background to black for each 
+        of the calibration buttons (X, Y, Z), indicating that they are ready for the next 
+        calibration process.
+        """
         self.calib_x.setStyleSheet(
             "color: white;"
             "background-color: black;"
@@ -938,14 +1082,23 @@ class StageWidget(QWidget):
         self.set_default_x_y_z_style()
 
     def hide_trajectory_btn(self):
+        """
+        Hides the trajectory view button if it is currently visible.
+        """
         if self.viewTrajectory_btn.isVisible():
             self.viewTrajectory_btn.hide()
 
     def hide_calculation_btn(self):
+        """
+        Hides the calculation button if it is currently visible.
+        """
         if self.calculation_btn.isVisible():
             self.calculation_btn.hide()
 
     def hide_reticle_metadata_btn(self):
+        """
+        Hides the reticle metadata button if it is currently visible.
+        """
         if self.reticle_metadata_btn.isVisible():
             self.reticle_metadata_btn.hide()
 
@@ -995,6 +1148,11 @@ class StageWidget(QWidget):
         self.calib_status_z = True
 
     def update_probe_calib_status_transM(self, transformation_matrix, scale):
+        """
+        Updates the probe calibration status with the transformation matrix and scale.
+        Extracts the rotation matrix (R), translation vector (T), and scale (S) and formats
+        them into a string to be displayed in the UI.
+        """
         # Extract the rotation matrix (top-left 3x3)
         R = transformation_matrix[:3, :3]
         # Extract the translation vector (top 3 elements of the last column)
@@ -1018,6 +1176,9 @@ class StageWidget(QWidget):
         return content
 
     def update_probe_calib_status_L2(self, L2_err):
+        """
+        Formats the L2 error value for display in the UI.
+        """
         content = (
             f"<span style='color:yellow;'><small>[L2 distance]<br></small></span>"
             f"<span style='color:green;'><small> {L2_err:.3f}<br>"
@@ -1026,6 +1187,9 @@ class StageWidget(QWidget):
         return content
 
     def update_probe_calib_status_distance_traveled(self, dist_traveled):
+        """
+        Formats the distance traveled in the X, Y, and Z directions for display in the UI.
+        """
         x, y, z = dist_traveled[0], dist_traveled[1], dist_traveled[2]
         content = (
             f"<span style='color:yellow;'><small>[Distance traveled (µm)]<br></small></span>"
@@ -1036,6 +1200,11 @@ class StageWidget(QWidget):
         return content
 
     def display_probe_calib_status(self, transM, scale, L2_err, dist_traveled):
+        """
+        Displays the full probe calibration status, including the transformation matrix, L2 error, 
+        and distance traveled. It combines the formatted content for each of these elements and 
+        updates the UI label.
+        """
         content_transM = self.update_probe_calib_status_transM(transM, scale)
         content_L2 = self.update_probe_calib_status_L2(L2_err)
         content_L2_travel = self.update_probe_calib_status_distance_traveled(dist_traveled)
@@ -1044,6 +1213,10 @@ class StageWidget(QWidget):
         self.probeCalibrationLabel.setText(full_content)
 
     def update_probe_calib_status(self, moving_stage_id, transM, scale, L2_err, dist_traveled):
+        """
+        Updates the probe calibration status based on the moving stage ID and the provided calibration data.
+        If the selected stage matches the moving stage, the calibration data is displayed on the UI.
+        """    
         self.transM, self.L2_err, self.dist_travled = transM, L2_err, dist_traveled
         self.scale = scale
         self.moving_stage_id = moving_stage_id
@@ -1057,6 +1230,10 @@ class StageWidget(QWidget):
             logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 
     def get_stage_info(self):
+        """
+        Retrieves the current probe calibration information, including the detection status, 
+        transformation matrix, L2 error, scale, and distance traveled.
+        """
         info = {}
         info['detection_status'] = self.probe_detection_status
         info['transM'] = self.transM
@@ -1069,7 +1246,9 @@ class StageWidget(QWidget):
         return info
 
     def update_stage_info(self, info):
-        #self.probe_detection_status = info['detection_status']
+        """
+        Updates the stage information with the provided probe calibration data.
+        """
         self.transM = info['transM']
         self.L2_err = info['L2_err']
         self.scale = info['scale']
@@ -1079,6 +1258,17 @@ class StageWidget(QWidget):
         self.calib_status_z = info['status_z']
 
     def update_stages(self, prev_stage_id, curr_stage_id):
+        """
+        Updates the stage calibration information when switching between stages.
+
+        This method saves the calibration information for the previous stage and loads the
+        calibration data for the current stage. Based on the loaded information, it updates
+        the probe detection status and the corresponding UI elements (e.g., X, Y, Z calibration buttons).
+
+        Args:
+            prev_stage_id (str): The ID of the previous stage.
+            curr_stage_id (str): The ID of the current stage being switched to.
+        """
         logger.debug(f"update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
         self.selected_stage_id = curr_stage_id
         if prev_stage_id is None or curr_stage_id is None:
@@ -1123,10 +1313,26 @@ class StageWidget(QWidget):
         self.probe_detection_status = probe_detection_status
 
     def view_trajectory_button_handler(self):
+        """
+        Handles the event when the user clicks the "View Trajectory" button.
+
+        This method triggers the display of the 3D trajectory for the selected stage 
+        using the `probeCalibration` object.
+        """
         self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
 
     def calculation_button_handler(self):
+        """
+        Handles the event when the user clicks the "Calculation" button.
+
+        This method displays the calculator widget using the `calculator` object.
+        """
         self.calculator.show()
 
     def reticle_button_handler(self):
+        """
+        Handles the event when the user clicks the "Reticle" button.
+
+        This method displays the reticle metadata widget using the `reticle_metadata` object.
+        """
         self.reticle_metadata.show()

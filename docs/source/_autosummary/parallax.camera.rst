@@ -1,4 +1,4 @@
-parallax.camera
+﻿parallax.camera
 ===============
 
 .. automodule:: parallax.camera

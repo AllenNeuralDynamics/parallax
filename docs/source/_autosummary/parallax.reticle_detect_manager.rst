@@ -1,4 +1,4 @@
-parallax.reticle\_detect\_manager
+﻿parallax.reticle\_detect\_manager
 =================================
 
 .. automodule:: parallax.reticle_detect_manager

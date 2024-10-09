@@ -1,4 +1,4 @@
-parallax.coords\_transformation
+﻿parallax.coords\_transformation
 ===============================
 
 .. automodule:: parallax.coords_transformation

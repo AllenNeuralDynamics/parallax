@@ -1,4 +1,4 @@
-parallax.screen\_coords\_mapper
+﻿parallax.screen\_coords\_mapper
 ===============================
 
 .. automodule:: parallax.screen_coords_mapper

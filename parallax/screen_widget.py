@@ -1,4 +1,3 @@
-
 """
 Provides ScreenWidget for image interaction in microscopy apps, supporting image display, 
 point selection, and zooming. It integrates with probe and reticle detection managers 
@@ -6,7 +5,6 @@ for real-time processing and offers camera control functions.
 """
 
 import logging
-
 import cv2
 import pyqtgraph as pg
 from PyQt5 import QtCore
@@ -23,7 +21,6 @@ logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
 
 class ScreenWidget(pg.GraphicsView):
     """Screens Class"""
@@ -332,7 +329,6 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_no_filter(self):
         """Run without any filter by stopping the reticle detector and probe detector."""
-
         self.reticleDetector.stop()
         self.probeDetector.stop()
         self.axisFilter.stop()

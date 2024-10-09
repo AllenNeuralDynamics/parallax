@@ -1,4 +1,4 @@
-parallax.stage\_widget
+﻿parallax.stage\_widget
 ======================
 
 .. automodule:: parallax.stage_widget

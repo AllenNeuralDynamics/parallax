@@ -1,7 +1,6 @@
 """
-ProbeCalibration transforms probe coordinates from local to global space
-local space: Stage coordinates
-global space: Reticle coordinates
+ProbeCalibration: Handles the transformation of probe coordinates from local (stage) to global (reticle) space.
+It supports calibrating the transformation between local and global coordinates through various techniques.
 """
 
 import csv
@@ -24,7 +23,14 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeCalibration(QObject):
     """
-    Handles the transformation of probe coordinates from local (stage) to global (reticle) space.
+    A class responsible for calibrating probe positions by transforming local stage coordinates to global reticle coordinates.
+
+    Signals:
+        calib_complete_x (str): Signal emitted when calibration for the X-axis is complete.
+        calib_complete_y (str): Signal emitted when calibration for the Y-axis is complete.
+        calib_complete_z (str): Signal emitted when calibration for the Z-axis is complete.
+        calib_complete (str, object, np.ndarray): Signal emitted when the full calibration is complete.
+        transM_info (str, object, np.ndarray, float, object): Signal emitted with transformation matrix information.
     """
     calib_complete_x = pyqtSignal(str)
     calib_complete_y = pyqtSignal(str)
@@ -34,11 +40,11 @@ class ProbeCalibration(QObject):
 
     def __init__(self, model, stage_listener):
         """
-        Initializes the ProbeCalibration object with a given stage listener.
+        Initialize the ProbeCalibration object.
 
         Args:
-            model (object): The model that contains the stage information.
-            stage_listener (QObject): The object responsible for listening to stage signals.
+            model (object): The model object containing stage information.
+            stage_listener (QObject): The stage listener object for receiving stage-related events.
         """
         super().__init__()
         self.transformer = RotationTransformation()
@@ -135,7 +141,10 @@ class ProbeCalibration(QObject):
 
     def clear(self, sn = None):
         """
-        Clears all stored data and resets the transformation matrix to its default state.
+        Clear calibration data and reset transformation matrices.
+
+        Args:
+            sn (str, optional): The serial number of the stage to clear. If None, clears all stages.
         """
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.scale = np.array([1, 1, 1])
@@ -149,7 +158,15 @@ class ProbeCalibration(QObject):
             self.model.add_transform(sn, self.transM_LR, self.scale)
 
     def _remove_duplicates(self, df):
-        # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
+        """
+        Remove duplicate entries from a DataFrame based on unique local and global coordinates.
+
+        Args:
+            df (pd.DataFrame): The DataFrame containing the calibration points.
+
+        Returns:
+            pd.DataFrame: The DataFrame without duplicates.
+        """
         logger.debug(f"Original rows: {self.df.shape[0]}")
         df.drop_duplicates(subset=['sn', 'ts_local_coords', 'global_x', 'global_y', 'global_z'])
         logger.debug(f"Unique rows: {self.df.shape[0]}")
@@ -157,16 +174,27 @@ class ProbeCalibration(QObject):
         return df
 
     def _filter_df_by_sn(self, sn):
+        """
+        Filters the calibration points in the CSV file by stage serial number.
+
+        Args:
+            sn (str): The serial number of the stage.
+
+        Returns:
+            pd.DataFrame: Filtered DataFrame containing only the rows for the specified stage.
+        """ 
         self.df = pd.read_csv(self.csv_file)
-        
         return self.df[self.df["sn"] == sn]
 
     def _get_local_global_points(self, df):
         """
-        Retrieves local and global points from the CSV file as numpy arrays.
+        Retrieve local and global points from the DataFrame.
+
+        Args:
+            df (pd.DataFrame): The DataFrame containing the points.
 
         Returns:
-            tuple: A tuple containing arrays of local points and global points.
+            tuple: Arrays of local points and global points.
         """
         # Extract local and global points
         local_points = df[["local_x", "local_y", "local_z"]].values
@@ -176,10 +204,10 @@ class ProbeCalibration(QObject):
     
     def _get_df(self):
         """
-        Retrieves local and global points from the CSV file as numpy arrays.
+        Retrieve the CSV file data and filter it by the current stage.
 
         Returns:
-            tuple: A tuple containing arrays of local points and global points.
+            pd.DataFrame: Filtered DataFrame for the current stage.
         """
         self.df = pd.read_csv(self.csv_file)
         # Filter the DataFrame based on self.stage.sn
@@ -188,6 +216,16 @@ class ProbeCalibration(QObject):
         return filtered_df
     
     def _get_l2_distance(self, local_points, global_points):
+        """
+        Compute the L2 distance between the expected global points and the actual global points.
+
+        Args:
+            local_points (numpy.ndarray): The local points.
+            global_points (numpy.ndarray): The global points.
+
+        Returns:
+            numpy.ndarray: The L2 distance between the points.
+        """    
         R, t, s = self.R, self.origin, self.scale
 
         # Apply the scaling factors obtained from fit_params
@@ -204,6 +242,17 @@ class ProbeCalibration(QObject):
         return l2_distance
 
     def _remove_outliers(self, local_points, global_points, threshold=30):
+        """
+        Remove outliers based on L2 distance threshold.
+
+        Args:
+            local_points (numpy.ndarray): The local points.
+            global_points (numpy.ndarray): The global points.
+            threshold (float): The L2 distance threshold for outlier removal.
+
+        Returns:
+            tuple: Filtered local points, global points, and valid indices.
+        """
         # Get the l2 distance
         l2_distance = self._get_l2_distance(local_points, global_points)
 
@@ -227,9 +276,11 @@ class ProbeCalibration(QObject):
     def _get_transM_LR_orthogonal(self, local_points, global_points, remove_noise=True):
         """
         Computes the transformation matrix from local to global coordinates using orthogonal distance regression.
+        
         Args:
             local_points (np.array): Array of local points.
             global_points (np.array): Array of global points.
+        
         Returns:
             tuple: Linear regression model and transformation matrix.
         """
@@ -249,7 +300,27 @@ class ProbeCalibration(QObject):
         return transformation_matrix
 
     def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=40):
+        """
+        Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
 
+        Args:
+            df (pd.DataFrame): DataFrame containing local and global points.
+            remove_noise (bool, optional): Whether to remove noisy points based on an L2 distance threshold. Defaults to True.
+            save_to_csv (bool, optional): Whether to save the filtered points to a CSV file. Defaults to False.
+            file_name (str, optional): The name of the file to save the filtered points. Required if `save_to_csv` is True.
+            noise_threshold (int, optional): The threshold for filtering out noisy points based on L2 distance. Defaults to 40.
+
+        Returns:
+            np.ndarray: A 4x4 transformation matrix if successful, or None if there are insufficient points for calibration.
+
+        Workflow:
+            1. Retrieves local and global points from the DataFrame.
+            2. Optionally removes noisy points based on L2 distance if `remove_noise` is enabled.
+            3. If there are fewer than 3 local or global points, it logs a warning and returns None.
+            4. Uses the `fit_params` method from the `RotationTransformation` class to compute the origin, rotation matrix, and scaling factors.
+            5. Constructs the 4x4 transformation matrix using the rotation matrix and translation vector.
+            6. Optionally saves the filtered points to a CSV file if `save_to_csv` is True.
+        """
         local_points, global_points = self._get_local_global_points(df)
         valid_indices = np.ones(len(local_points), dtype=bool) # Initialize valid_indices as a mask with all True values
         
@@ -341,12 +412,24 @@ class ProbeCalibration(QObject):
             return False
         
     def _is_criteria_avg_error_threshold(self):
+        """
+        Checks if the average error is below the defined threshold.
+
+        Returns:
+            bool: True if the average error is below the threshold, otherwise False.
+        """
         if self.avg_err < self.threshold_avg_error:
             return True
         else:
             return False
 
     def _update_min_max_x_y_z(self):
+        """
+        Updates the minimum and maximum x, y, z coordinates for the current stage.
+
+        This method tracks the range of movement for the x, y, and z axes for a given stage
+        and updates the corresponding minimum and maximum values.
+        """
         sn = self.stage.sn
         if sn not in self.stages:
             self.stages[sn] = {
@@ -365,6 +448,15 @@ class ProbeCalibration(QObject):
         self.stages[sn]['max_z'] = max(self.stages[sn]['max_z'], self.stage.stage_z)
        
     def _is_criteria_met_points_min_max(self):
+        """
+        Checks if the stage movement has exceeded predefined thresholds for x, y, and z axes.
+
+        If any of the axis ranges exceed the threshold, it emits the appropriate signal indicating
+        calibration is complete for that axis.
+
+        Returns:
+            bool: True if all axis movements exceed their respective thresholds, otherwise False.
+        """
         sn = self.stage.sn
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]
@@ -401,6 +493,12 @@ class ProbeCalibration(QObject):
         return global_point[:3]
 
     def _l2_error_current_point(self):
+        """
+        Computes the L2 error between the transformed local point and the global point.
+
+        Returns:
+            float: The L2 error.
+        """
         transformed_point = self._apply_transformation()
         global_point = np.array(
             [
@@ -456,10 +554,16 @@ class ProbeCalibration(QObject):
             self.stages[sn] = stage_data
 
     def _is_enough_points(self):
-        """Check if there are enough points for calibration.
+        """
+        Determines whether enough points have been collected for calibration.
+
+        The criteria include:
+        - Minimum range of movement in x, y, z directions.
+        - Acceptable L2 error between local and global points.
+        - Stable transformation matrix across iterations.
 
         Returns:
-            bool: True if there are enough points, False otherwise.
+            bool: True if enough points have been collected for calibration, otherwise False.
         """
         # End Criteria:
         # 1. distance maxX-minX, maxY-minY, maxZ-minZ
@@ -477,6 +581,14 @@ class ProbeCalibration(QObject):
         return False
 
     def _update_info_ui(self, disp_avg_error=False, save_to_csv=False, file_name=None):
+        """
+        Updates the UI with calibration information, such as transformation matrix, scale, and error.
+
+        Args:
+            disp_avg_error (bool): Whether to display the average error or the L2 error.
+            save_to_csv (bool): Whether to save the information to a CSV file.
+            file_name (str, optional): The name of the CSV file to save to.
+        """
         sn = self.stage.sn 
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]
@@ -559,6 +671,31 @@ class ProbeCalibration(QObject):
         return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
 
     def _print_formatted_transM(self):
+        """
+        Prints the transformation matrix in a formatted way, including the rotation matrix, 
+        translation vector, and scale factors. This helps visualize the relationship 
+        between local stage coordinates and global reticle coordinates after calibration.
+
+        The output includes:
+        - The rotation matrix (R): Describes the orientation transformation.
+        - The translation vector (T): Represents the offset in global coordinates.
+        - The scaling factors (S): Represent the scaling applied along the x, y, and z local coordinates.
+        - The average L2 error between stage and global coordinates.
+
+        This function outputs the results to the console.
+
+        Example output:
+            stage sn:  <stage serial number>
+            Rotation matrix:
+            [[<R_00>, <R_01>, <R_02>],
+            [<R_10>, <R_11>, <R_12>],
+            [<R_20>, <R_21>, <R_22>]]
+            Translation vector:
+            [<T_0>, <T_1>, <T_2>]
+            Scale:
+            [<S_0>, <S_1>, <S_2>]
+            ==> Average L2 between stage and global: <average error value>
+        """
         R = self.transM_LR[:3, :3]
         # Extract the translation vector (top 3 elements of the last column)
         T = self.transM_LR[:3, 3]
@@ -602,6 +739,21 @@ class ProbeCalibration(QObject):
             self.complete_calibration(filtered_df)
             
     def complete_calibration(self, filtered_df):
+        """
+        Completes the probe calibration process by saving the filtered points, updating the 
+        transformation matrix, and applying bundle adjustment if necessary.
+
+        Args:
+            filtered_df (pd.DataFrame): A DataFrame containing filtered local and global points.
+
+        Workflow:
+            1. Saves the filtered points to a new CSV file.
+            2. Updates the transformation matrix based on the filtered points.
+            3. If bundle adjustment is enabled, optimizes the transformation matrix.
+            4. Registers the transformation matrix and scaling factors into the model.
+            5. Emits a signal indicating that calibration is complete.
+            6. Initializes the PointMesh instance for 3D visualization.
+        """
         # save the filtered points to a new file
         print("ProbeCalibration: complete_calibration")
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -650,6 +802,16 @@ class ProbeCalibration(QObject):
         self.stages[self.stage.sn]['calib_completed'] = True
 
     def view_3d_trajectory(self, sn):
+        """
+        Displays the 3D trajectory of the probe based on the calibration data.
+
+        Args:
+            sn (str): Serial number of the stage for which the trajectory is to be displayed.
+
+        Behavior:
+            - If calibration is incomplete, it shows the trajectory for the current stage.
+            - If calibration is complete, it displays the PointMesh instance for the 3D trajectory.
+        """
         if not self.stages.get(sn, {}).get('calib_completed', False):
             if sn == self.stage.sn:
                 if self.transM_LR is None:
@@ -663,6 +825,21 @@ class ProbeCalibration(QObject):
             self.point_mesh[sn].show()
 
     def run_bundle_adjustment(self, file_path):
+        """
+        Runs bundle adjustment to optimize the 3D points and camera parameters for better calibration accuracy.
+
+        Args:
+            file_path (str): Path to the CSV file containing the initial local and global points.
+
+        Returns:
+            bool: True if bundle adjustment was successful, False otherwise.
+
+        Workflow:
+            1. Initializes a BALProblem with the provided file data.
+            2. Runs the optimization using BALOptimizer.
+            3. Retrieves the optimized points and updates the transformation matrix.
+            4. Logs the results of the bundle adjustment.
+        """
         bal_problem = BALProblem(self.model, file_path)
         optimizer = BALOptimizer(bal_problem)
         optimizer.optimize()

@@ -90,7 +90,7 @@ class Worker(QObject):
         self.last_bigmove_stage_info = None
         self.last_bigmove_detected_time = None
         self._low_freq_interval = 1000
-        self._high_freq_interval = 20  # TODO
+        self._high_freq_interval = 20
         self.curr_interval = self._low_freq_interval
         self._idle_time = 0.3 # 0.3s
         self.is_error_log_printed = False
@@ -308,12 +308,10 @@ class StageListener(QObject):
         Args:
             sn (str): The serial number of the moving stage.
             moving_stage (Stage): An object representing the moving stage, with attributes for its local and global coordinates.
-            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix used to convert local coordinates
-                                to global coordinates.
+            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix used to convert local coordinates to global coordinates.
 
         Effects:
-            - Updates the moving_stage object's `stage_x_global`, `stage_y_global`, and `stage_z_global` attributes with the
-            transformed global coordinates.
+            - Updates the moving_stage object's `stage_x_global`, `stage_y_global`, and `stage_z_global` attributes with the transformed global coordinates.
             - If the moving stage is the currently selected stage in the UI, triggers an update of the global coordinates display.
         """
         # Transform

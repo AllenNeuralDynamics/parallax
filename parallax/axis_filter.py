@@ -1,7 +1,8 @@
 """
-NoFilter serves as a pass-through component in a frame processing pipeline, 
-employing a worker-thread model to asynchronously handle frames without modification, 
-facilitating integration and optional processing steps.
+This class is used during the reticle calibration process to handle the selection of the positive x-axis.
+The system detects the reticle and requests the user to select the positive x-axis point. AxisFilter manages 
+the visualization of reticle points and processing of the two points along the x-axis and y-axis, retrieving points clicked by 
+the user on the screen.
 """
 
 import logging
@@ -17,14 +18,24 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 class AxisFilter(QObject):
-    """Class representing no filter."""
+    """
+    AxisFilter class is used during the reticle calibration process.
+
+    After detecting the reticle, the system prompts the user to select the positive x-axis. AxisFilter displays 
+    the detected reticle points on the x-axis and y-axis and processes user input (clicked points) for calibration.
+    """
 
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
 
     class Worker(QObject):
-        """Worker class for processing frames in a separate thread."""
+        """
+        Worker class for processing frames and handling user interactions in a separate thread.
+
+        This class processes frames by displaying reticle coordinates and handles user clicks to select
+        the positive x-axis point. It also performs calibration based on selected points.
+        """
 
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
@@ -33,7 +44,13 @@ class AxisFilter(QObject):
         )
 
         def __init__(self, name, model):
-            """Initialize the worker object."""
+            """
+            Initialize the worker object.
+
+            Args:
+                name (str): The name of the camera (e.g., serial number).
+                model: The data model associated with the worker.
+            """
             QObject.__init__(self)
             self.model = model
             self.name = name
@@ -71,9 +88,20 @@ class AxisFilter(QObject):
             self.frame_processed.emit(self.frame)
             
         def squared_distance(self, p1, p2):
+            """Calculate the squared distance between two points.
+
+            Args:
+                p1, p2 (tuple): Points between which the squared distance is calculated.
+            """
             return (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
     
         def sort_reticle_points(self):
+            """
+            Sort the reticle points based on the current position of the camera.
+
+            This method sorts the reticle points in the correct order based on the 
+            selected positive x-axis point and the detected coordinates.
+            """
             if self.pos_x is None or self.reticle_coords is None:
                 return
 
@@ -128,6 +156,7 @@ class AxisFilter(QObject):
             self.model.add_pos_x(self.name, self.pos_x)
 
         def reset_pos_x(self):
+            """Reset the position of the x-axis (pos_x) in the model."""
             self.pos_x = None
             self.model.reset_pos_x()
             logger.debug("reset pos_x")

@@ -1,4 +1,4 @@
-parallax.model
+﻿parallax.model
 ==============
 
 .. automodule:: parallax.model

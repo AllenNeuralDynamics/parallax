@@ -274,6 +274,7 @@ class CurrBgCmpProcessor():
 
     def _get_precise_tip(self, org_img):
         """Get precise probe tip on original size image
+        
         Args:
             org_img (numpy.ndarray): Original image.
 
@@ -326,8 +327,10 @@ class CurrBgCmpProcessor():
 
     def _get_binary(self, curr_img):
         """Get binary image.
+
         Args:
             curr_img (numpy.ndarray): Current image.
+    
         Returns:
             numpy.ndarray: Binary image.
         """

@@ -2,13 +2,13 @@
 Module for camera calibration and stereo calibration.
 This module provides classes for intrinsic camera calibration
 (`CalibrationCamera`) and stereo camera calibration (`CalibrationStereo`).
+
 Classes:
 -CalibrationCamera: Class for intrinsic camera calibration.
 -CalibrationStereo: Class for stereo camera calibration.
 """
 
 import logging
-
 import cv2
 import numpy as np
 
@@ -68,7 +68,12 @@ class CalibrationCamera:
     """Class for intrinsic calibration."""
 
     def __init__(self, camera_name):
-        """Initialize the CalibrationCamera object"""
+        """
+        Initialize the CalibrationCamera object.
+
+        Args:
+            camera_name (str): The name or serial number of the camera.
+        """
         self.name = camera_name
         self.n_interest_pixels = X_COORDS_HALF
         self.imgpoints = None
@@ -97,9 +102,11 @@ class CalibrationCamera:
     def _process_reticle_points(self, x_axis, y_axis):
         """
         Process reticle points for calibration.
+
         Args:
             x_axis (list): X-axis coordinates.
             y_axis (list): Y-axis coordinates.
+
         Returns:
             tuple: Image points and object points.
         """
@@ -229,7 +236,18 @@ class CalibrationStereo(CalibrationCamera):
 
     def __init__(
         self, model, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
-        """Initialize the CalibrationStereo object"""
+        """
+        Initialize the CalibrationStereo object.
+
+        Args:
+            model (object): The model containing stage and transformation data.
+            camA (str): Camera A identifier.
+            imgpointsA (list): Image points for camera A.
+            intrinsicA (tuple): Intrinsic parameters for camera A.
+            camB (str): Camera B identifier.
+            imgpointsB (list): Image points for camera B.
+            intrinsicB (tuple): Intrinsic parameters for camera B.
+        """
         self.model = model
         self.n_interest_pixels = X_COORDS_HALF
         self.camA = camA
@@ -413,6 +431,16 @@ class CalibrationStereo(CalibrationCamera):
         return points_3d_G
 
     def test_x_y_z_performance(self, points_3d_G):
+        """
+        Evaluates the performance of the stereo calibration by comparing the 
+        predicted 3D points with the original object points.
+
+        Args:
+            points_3d_G (numpy.ndarray): The predicted 3D points in global coordinates.
+
+        Prints:
+            The L2 norm (Euclidean distance) for the x, y, and z dimensions in micrometers (µm³).
+        """
         # Calculate the differences for each dimension
         differences_x = points_3d_G[:, 0] - self.objpoints[0, :, 0]
         differences_y = points_3d_G[:, 1] - self.objpoints[0, :, 1]
@@ -519,6 +547,18 @@ class CalibrationStereo(CalibrationCamera):
         print(f"(Reprojection error) Pixel L2 diff B: {total_err} pixels")
 
     def register_debug_points(self, camA, camB):
+        """
+        Registers pixel coordinates of custom object points for debugging purposes.
+
+        Args:
+            camA (str): The serial number or identifier of camera A.
+            camB (str): The serial number or identifier of camera B.
+
+        This method:
+        1. Defines a custom grid of object points (without scaling).
+        2. Projects these 3D object points into 2D pixel coordinates for both camera A and camera B.
+        3. Registers the computed pixel coordinates to the model for debugging.
+        """
         # Define the custom object points directly without scaling
         x = np.arange(-4, 5)  # from -4 to 4
         y = np.arange(-4, 5)  # from -4 to 4
