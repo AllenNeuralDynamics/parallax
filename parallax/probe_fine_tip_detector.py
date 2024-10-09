@@ -42,6 +42,7 @@ class ProbeFineTipDetector:
     @classmethod
     def _is_valid(cls, img):
         """Check if the image is valid for tip detection.
+
         Returns:
             bool: True if the image is valid, False otherwise.
         """

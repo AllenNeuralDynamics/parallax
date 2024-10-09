@@ -234,8 +234,10 @@ class ReticleDetection:
 
     def _find_reticle_coords(self, pixels_in_lines):
         """Find the reticle coordinates from the pixels in lines.
+
         Args:
             pixels_in_lines (list): List of pixel coordinates for each line.
+
         Returns:
             list: List of pixel coordinates of interest for each line.
         """

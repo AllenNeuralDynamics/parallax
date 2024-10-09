@@ -102,9 +102,11 @@ class CalibrationCamera:
     def _process_reticle_points(self, x_axis, y_axis):
         """
         Process reticle points for calibration.
+
         Args:
             x_axis (list): X-axis coordinates.
             y_axis (list): Y-axis coordinates.
+
         Returns:
             tuple: Image points and object points.
         """

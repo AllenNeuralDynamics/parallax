@@ -6,14 +6,13 @@ their status.
 
 The key functionalities include:
 - Stopping the movement of all stages (probes).
-- Moving stages along the X, Y, and Z axes, with specific coordination of Z-axis movement 
-  before X and Y movements.
+- Moving stages along the X, Y, and Z axes, with specific coordination of Z-axis movement before X and Y movements.
 - Handling requests to update the stage positions dynamically.
 - Sending and receiving data over HTTP to an external stage controller software.
 
 Classes:
     StageController: Manages the stage movement, status retrieval, and interaction with 
-                     external systems through HTTP requests.
+    external systems through HTTP requests.
 """
 import logging
 import requests

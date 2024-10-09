@@ -45,6 +45,7 @@ class ProbeDetector:
 
     def _find_represent_gradient(self, gradient=0):
         """Find the representative gradient.
+
         Returns:
             float: Representative gradient value.
         """
@@ -53,8 +54,10 @@ class ProbeDetector:
 
     def _find_neighboring_gradients(self, target_angle):
         """Find the neighboring gradients.
+
         Args:
             target_angle (float): Target angle.
+
         Returns:
             numpy.ndarray: Neighboring gradients.
         """
@@ -68,11 +71,13 @@ class ProbeDetector:
         self, img, thresh=20, remove_noise=True, noise_threshold=1
     ):
         """Preprocess the image using contour detection.
+
         Args:
             img (numpy.ndarray): Input image.
             thresh (int): Threshold for contour area. Defaults to 20.
             remove_noise (bool): Flag to remove noise contours. Defaults to True.
             noise_threshold (int): Threshold for noise contour area. Defaults to 1.
+
         Returns:
             numpy.ndarray: Preprocessed image.
         """
@@ -98,9 +103,11 @@ class ProbeDetector:
 
     def _get_probe_direction(self, probe_tip, probe_base):
         """Get the direction of the probe.
+
         Args:
             probe_tip (tuple): Coordinates of the probe tip.
             probe_base (tuple): Coordinates of the probe base.
+
         Returns:
             str: Direction of the probe (N, NE, E, SE, S, SW, W, NW, Unknown).
         """
@@ -204,6 +211,7 @@ class ProbeDetector:
 
     def _hough_line_update(self, img, minLineLength=50, maxLineGap=9):
         """Update the Hough line detection.
+
         Args:
             img (numpy.ndarray): Input image.
             minLineLength (int): Minimum length of the line. Defaults to 50.

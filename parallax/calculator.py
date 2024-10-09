@@ -262,7 +262,7 @@ class Calculator(QWidget):
         Applies the transformation to convert local coordinates to global coordinates.
 
         Args:
-            local_point_ (ndarray): The local coordinates.
+            local_point (ndarray): The local coordinates to be transformed.
             transM_LR (ndarray): The transformation matrix.
             scale (ndarray): The scale factors for the coordinates.
 
