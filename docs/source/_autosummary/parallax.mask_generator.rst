@@ -1,4 +1,4 @@
-parallax.mask\_generator
+﻿parallax.mask\_generator
 ========================
 
 .. automodule:: parallax.mask_generator

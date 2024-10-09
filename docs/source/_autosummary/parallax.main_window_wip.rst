@@ -1,4 +1,4 @@
-parallax.main\_window\_wip
+﻿parallax.main\_window\_wip
 ==========================
 
 .. automodule:: parallax.main_window_wip

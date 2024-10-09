@@ -1,4 +1,4 @@
-parallax.reticle\_metadata
+﻿parallax.reticle\_metadata
 ==========================
 
 .. automodule:: parallax.reticle_metadata

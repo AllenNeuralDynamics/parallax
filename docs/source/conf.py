@@ -20,7 +20,12 @@ current_year = date.today().year
 copyright = f"{current_year}, {INSTITUTE_NAME}"
 author = INSTITUTE_NAME
 release = "0.0.1" # Automatically set version from parallax package
-autosummary_generate = True
+
+autosummary_generate = True # Automatically generate stub files for autosummary
+autoclass_content = "both"
+autodoc_default_options = {
+    'private-members': True,   # Include private members
+}
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

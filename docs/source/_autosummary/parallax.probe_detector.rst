@@ -1,4 +1,4 @@
-parallax.probe\_detector
+﻿parallax.probe\_detector
 ========================
 
 .. automodule:: parallax.probe_detector

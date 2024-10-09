@@ -1,4 +1,4 @@
-parallax.calibration\_camera
+﻿parallax.calibration\_camera
 ============================
 
 .. automodule:: parallax.calibration_camera

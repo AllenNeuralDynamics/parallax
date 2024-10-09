@@ -1,4 +1,4 @@
-parallax.point\_mesh
+﻿parallax.point\_mesh
 ====================
 
 .. automodule:: parallax.point_mesh

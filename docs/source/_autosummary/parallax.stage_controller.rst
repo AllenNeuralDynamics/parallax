@@ -1,4 +1,4 @@
-parallax.stage\_controller
+﻿parallax.stage\_controller
 ==========================
 
 .. automodule:: parallax.stage_controller

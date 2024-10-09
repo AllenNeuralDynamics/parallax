@@ -1,4 +1,4 @@
-parallax.bundle\_adjustment
+﻿parallax.bundle\_adjustment
 ===========================
 
 .. automodule:: parallax.bundle_adjustment

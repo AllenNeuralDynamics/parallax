@@ -1,4 +1,4 @@
-parallax.stage\_ui
+﻿parallax.stage\_ui
 ==================
 
 .. automodule:: parallax.stage_ui

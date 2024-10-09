@@ -1,4 +1,4 @@
-parallax.screen\_widget
+﻿parallax.screen\_widget
 =======================
 
 .. automodule:: parallax.screen_widget

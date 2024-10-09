@@ -1,4 +1,4 @@
-parallax.recording\_manager
+﻿parallax.recording\_manager
 ===========================
 
 .. automodule:: parallax.recording_manager

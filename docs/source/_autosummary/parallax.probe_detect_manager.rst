@@ -1,4 +1,4 @@
-parallax.probe\_detect\_manager
+﻿parallax.probe\_detect\_manager
 ===============================
 
 .. automodule:: parallax.probe_detect_manager

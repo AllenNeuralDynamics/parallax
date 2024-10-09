@@ -1,4 +1,4 @@
-parallax.no\_filter
+﻿parallax.no\_filter
 ===================
 
 .. automodule:: parallax.no_filter

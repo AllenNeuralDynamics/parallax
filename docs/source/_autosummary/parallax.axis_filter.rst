@@ -1,4 +1,4 @@
-parallax.axis\_filter
+﻿parallax.axis\_filter
 =====================
 
 .. automodule:: parallax.axis_filter

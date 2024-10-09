@@ -1,4 +1,4 @@
-parallax.calculator
+﻿parallax.calculator
 ===================
 
 .. automodule:: parallax.calculator
