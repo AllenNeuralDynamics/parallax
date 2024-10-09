@@ -101,14 +101,6 @@ class StageController(QObject):
 
         Args:
             command (dict): A dictionary containing the stage serial number, move type, and coordinates.
-                            Example:
-                                {
-                                    "stage_sn": stage_sn,
-                                    "move_type": "moveXY",
-                                    "x": x,
-                                    "y": y,
-                                    "z": z
-                                }
         """
         move_type = command["move_type"]
         stage_sn = command["stage_sn"]
