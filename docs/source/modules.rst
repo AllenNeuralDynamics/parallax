@@ -47,4 +47,3 @@ Detailed Modules
  
    parallaxModules
  
-   
