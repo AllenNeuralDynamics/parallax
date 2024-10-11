@@ -7,7 +7,6 @@ facilitating integration and optional processing steps.
 import logging
 import time
 
-import cv2
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 # Set logger name

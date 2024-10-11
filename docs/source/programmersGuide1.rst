@@ -129,103 +129,104 @@ Please continue reading the rest of the document for detailed steps.
 
 **Coordinates Detection**
 
-    The following steps outline the process used in the ReticleDetection class for identifying reticle coordinates in microscopy images.
+The following steps outline the process used in the ReticleDetection class for identifying reticle coordinates in microscopy images.
 
-    1. **Masked Image**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/1.png
-            :alt: Masked Image
-            :width: 400px
+1. **Masked Image**:
 
-        The image is preprocessed by converting it to grayscale and applying a Gaussian blur. The `mask` is then applied using the `MaskGenerator` class, isolating the reticle from the background.
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/1.png
+        :alt: Masked Image
+        :width: 400px
 
-        - **Code Reference**: `_preprocess_image()` and `_apply_mask()` methods.
+    The image is preprocessed by converting it to grayscale and applying a Gaussian blur. The `mask` is then applied using the `MaskGenerator` class, isolating the reticle from the background.
 
+    - **Code Reference**: :meth:`parallax.reticle_detection.ReticleDetection._preprocess_image` and :meth:`parallax.reticle_detection.ReticleDetection._apply_mask`
 
-    2. **Local Thresholding**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/2.png
-            :alt: Local Thresholding
-            :width: 400px
+2. **Local Thresholding**:
 
-        Adaptive thresholding is applied to convert the preprocessed image into a binary image. This step separates the reticle from the background based on local pixel intensity variations.
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/2.png
+        :alt: Local Thresholding
+        :width: 400px
 
-        - **Code Reference**: `cv2.adaptiveThreshold()` in `coords_detect_morph()`.
+    Adaptive thresholding is applied to convert the preprocessed image into a binary image. This step separates the reticle from the background based on local pixel intensity variations.
 
+    - **Code Reference**: :func:`cv2.adaptiveThreshold` in :meth:`parallax.reticle_detection.ReticleDetection.coords_detect_morph`
 
-    3. **Median Filter**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/3.png
-            :alt: Median Filter
-            :width: 400px
+3. **Median Filter**:
 
-        A median filter is applied to remove small noise by smoothing the binary image. This step helps clean up small artifacts that may have resulted from thresholding.
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/3.png
+        :alt: Median Filter
+        :width: 400px
 
-        - **Code Reference**: `cv2.medianBlur()` in `coords_detect_morph()`.
+    A median filter is applied to remove small noise by smoothing the binary image. This step helps clean up small artifacts that may have resulted from thresholding.
 
+    - **Code Reference**: :func:`cv2.medianBlur` in :meth:`parallax.reticle_detection.ReticleDetection.coords_detect_morph`
 
-    4. **Invert Image**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/5.png
-            :alt: Invert Image
-            :width: 400px
+4. **Invert Image**:
 
-        The binary image is inverted so that the reticle becomes the foreground. This ensures that subsequent operations focus on the reticle itself.
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/5.png
+        :alt: Invert Image
+        :width: 400px
 
-        - **Code Reference**: `cv2.bitwise_not()` in `coords_detect_morph()`.
+    The binary image is inverted so that the reticle becomes the foreground. This ensures that subsequent operations focus on the reticle itself.
 
+    - **Code Reference**: :func:`cv2.bitwise_not` in :meth:`parallax.reticle_detection.ReticleDetection.coords_detect_morph`
 
-    5. **Remove Noise (Morphological Operations)**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/6.png
-            :alt: Remove Noise
-            :width: 400px
-        
-        Morphological operations, such as closing and opening, are applied to remove small noise and refine the mask structure by eliminating small blobs.
+5. **Remove Noise (Morphological Operations)**:
 
-        - **Code Reference**: `cv2.morphologyEx()` in `coords_detect_morph()`.
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/6.png
+        :alt: Remove Noise
+        :width: 400px
 
+    Morphological operations, such as closing and opening, are applied to remove small noise and refine the mask structure by eliminating small blobs.
 
-    6. **Eroding**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/7.png
-            :alt: Eroding
-            :width: 400px
-        
-        Eroding continues until the system finds a sufficient number of blobs (50 < x < 300), which correspond to the reticle’s marks. It also shrinks objects in the image, removing unnecessary small contours and refining the reticle structure.
+    - **Code Reference**: :func:`cv2.morphologyEx` in :meth:`parallax.reticle_detection.ReticleDetection.coords_detect_morph`
 
-        - **Code Reference**: `_eroding()` method.
+6. **Eroding**:
 
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/7.png
+        :alt: Eroding
+        :width: 400px
 
-    7. **RANSAC to Detect Lines**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/8.png
-            :alt: RANSAC to Detect Lines
-            :width: 400px
-        
-        The RANSAC algorithm is used to detect the reticle lines by fitting line models to the inlier points. This method helps handle noisy data.
+    Eroding continues until the system finds a sufficient number of blobs (50 < x < 300), which correspond to the reticle’s marks. It also shrinks objects in the image, removing unnecessary small contours and refining the reticle structure.
 
-        - **Code Reference**: `_ransac_detect_lines()` method.
+    - **Code Reference**: :meth:`parallax.reticle_detection.ReticleDetection._eroding`
 
+7. **RANSAC to Detect Lines**:
 
-    8. **Detect 2nd Line**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/9.png
-            :alt: Detect 2nd Line
-            :width: 400px
-        
-        After detecting the first line using RANSAC, the inliers (first line) are removed, and then the second line is detected using RANSAC again. This step ensures that both the x-axis and y-axis lines are detected.
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/8.png
+        :alt: RANSAC to Detect Lines
+        :width: 400px
 
-        - **Code Reference**: The second line is detected in `_ransac_detect_lines()`.
+    The RANSAC algorithm is used to detect the reticle lines by fitting line models to the inlier points. This method helps handle noisy data.
 
+    - **Code Reference**: :meth:`parallax.reticle_detection.ReticleDetection._ransac_detect_lines`
 
-    9. **Interpolate Missing Points**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/10.png
-            :alt: Interpolate Missing Points
-            :width: 400px
+8. **Detect 2nd Line**:
 
-        Missing points in the detected lines are interpolated to fill gaps between the detected points, ensuring the lines are continuous.
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/9.png
+        :alt: Detect 2nd Line
+        :width: 400px
 
-        - **Code Reference**: `_estimate_missing_points()` and `_add_missing_pixels()` methods.
+    After detecting the first line using RANSAC, the inliers (first line) are removed, and then the second line is detected using RANSAC again. This step ensures that both the x-axis and y-axis lines are detected.
 
+    - **Code Reference**: :meth:`parallax.reticle_detection.ReticleDetection._ransac_detect_lines`
 
-    9. **Get Interest Points**:
-        .. image:: _static/_progGuide/_reticleDetect/_3_coords/11.png
-            :alt: Get Interest Points
-            :width: 400px
+9. **Interpolate Missing Points**:
 
-        Pixels of interest are extracted around the reticle.
-        
-        - **Code Reference**: `_get_pixels_interest()` method.
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/10.png
+        :alt: Interpolate Missing Points
+        :width: 400px
+
+    Missing points in the detected lines are interpolated to fill gaps between the detected points, ensuring the lines are continuous.
+
+    - **Code Reference**: :meth:`parallax.reticle_detection.ReticleDetection._estimate_missing_points` and :meth:`parallax.reticle_detection.ReticleDetection._add_missing_pixels`
+
+10. **Get Interest Points**:
+
+    .. image:: _static/_progGuide/_reticleDetect/_3_coords/11.png
+        :alt: Get Interest Points
+        :width: 400px
+
+    Pixels of interest are extracted around the reticle.
+
+    - **Code Reference**: :meth:`parallax.reticle_detection.ReticleDetection._get_pixels_interest`
