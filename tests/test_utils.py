@@ -7,7 +7,7 @@ from parallax.utils import UtilsCoords, UtilsCrops
 def img_sizes():
     return {
         "original": (4000, 3000),
-        "resized": (2000, 1500),
+        "resized": (1000, 750),
     }
 
 # Test UtilsCoords
@@ -15,12 +15,12 @@ def test_scale_coords_to_original(img_sizes):
     """Test scaling coordinates from a resized image back to the original image."""
     tip = (100, 100)
     scaled_coords = UtilsCoords.scale_coords_to_original(tip, img_sizes['original'], img_sizes['resized'])
-    assert scaled_coords == (200, 200), "Scaled coordinates to original image size are incorrect."
+    assert scaled_coords == (400, 400), "Scaled coordinates to original image size are incorrect."
 
 
 def test_scale_coords_to_resized_img(img_sizes):
     """Test scaling coordinates from the original image to a resized image."""
-    tip = (200, 200)
+    tip = (400, 400)
     scaled_coords = UtilsCoords.scale_coords_to_resized_img(tip, img_sizes['original'], img_sizes['resized'])
     assert scaled_coords == (100, 100), "Scaled coordinates to resized image size are incorrect."
 
