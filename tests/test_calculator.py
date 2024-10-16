@@ -5,7 +5,7 @@ import numpy as np
 from parallax.calculator import Calculator
 
 @pytest.fixture
-def setup_calculator(qtbot, qapp):
+def setup_calculator(qtbot):
     # Mocking the model and stage_controller
     model = MagicMock()
     reticle_selector = QComboBox()
@@ -22,7 +22,7 @@ def setup_calculator(qtbot, qapp):
 
     return calculator, model, stage_controller
 
-def test_set_current_reticle(setup_calculator, qtbot, qapp):
+def test_set_current_reticle(setup_calculator, qtbot):
     calculator, model, stage_controller = setup_calculator
     
     # Simulate selecting a reticle in the dropdown
@@ -54,7 +54,7 @@ def test_set_current_reticle(setup_calculator, qtbot, qapp):
      np.array([1, 1, 1]), 
      110.0, 220.0, 330.0)
 ])
-def test_transform_local_to_global(setup_calculator, qtbot, qapp, localX, localY, localZ, transM_LR, scale, expected_globalX, expected_globalY, expected_globalZ):
+def test_transform_local_to_global(setup_calculator, qtbot, localX, localY, localZ, transM_LR, scale, expected_globalX, expected_globalY, expected_globalZ):
     calculator, model, stage_controller = setup_calculator
 
     # Mock the QLineEdit fields for stage1
@@ -80,7 +80,7 @@ def test_transform_local_to_global(setup_calculator, qtbot, qapp, localX, localY
     assert globalY == pytest.approx(expected_globalY, abs=5), f"Expected globalY to be {expected_globalY}, got {globalY}"
     assert globalZ == pytest.approx(expected_globalZ, abs=5), f"Expected globalZ to be {expected_globalZ}, got {globalZ}"
 
-def test_transform_global_to_local(setup_calculator, qtbot, qapp):
+def test_transform_global_to_local(setup_calculator, qtbot):
     calculator, model, stage_controller = setup_calculator
 
     # Mock the QLineEdit fields for stage1
@@ -103,7 +103,7 @@ def test_transform_global_to_local(setup_calculator, qtbot, qapp):
     assert localY == "20.00", f"Expected localY to be 20.00, got {localY}"
     assert localZ == "30.00", f"Expected localZ to be 30.00, got {localZ}"
 
-def test_clear_fields(setup_calculator, qtbot, qapp):
+def test_clear_fields(setup_calculator, qtbot):
     calculator, model, stage_controller = setup_calculator
 
     # Set some values in the QLineEdit fields

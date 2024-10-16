@@ -2,6 +2,7 @@ import pytest
 import cv2
 import os
 import time
+from PyQt5.QtCore import QCoreApplication, QEventLoop
 from parallax.probe_detect_manager import ProbeDetectManager
 
 # Define the folder containing your test images
@@ -21,7 +22,7 @@ def load_images_from_folder(folder):
     return images
 
 @pytest.fixture()
-def probe_detect_manager_instance(qtbot, mocker, qapp):  # Ensure qapp fixture is included
+def probe_detect_manager_instance(mocker):  # Ensure qapp fixture is included
     """Fixture to initialize ProbeDetectManager with a mock model and worker thread."""
     # Mock the model to avoid using the actual model implementation
     mock_model = mocker.Mock()
@@ -46,7 +47,7 @@ def probe_detect_manager_instance(qtbot, mocker, qapp):  # Ensure qapp fixture i
     print("Cleaning up ProbeDetectManager fixture...")
     probe_detect_manager.stop()
 
-def test_found_coords(probe_detect_manager_instance, qtbot, qapp):  # Added 'qapp' fixture
+def test_found_coords(probe_detect_manager_instance):  # Added 'qapp' fixture
     """Test the probe detection pipeline using test images and check signals."""
     # Load test images from the folder
     images = load_images_from_folder(IMAGE_FOLDER)
