@@ -2,6 +2,13 @@ import pytest
 import numpy as np
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QWidget, QVBoxLayout
 from parallax.screen_coords_mapper import ScreenCoordsMapper
+from PyQt5.QtWidgets import QApplication
+
+@pytest.fixture(scope="session")
+def qapp():
+    app = QApplication([])
+    yield app
+    app.quit()
 
 # Mocking the model with necessary methods
 class MockModel:
