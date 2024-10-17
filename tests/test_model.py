@@ -10,11 +10,6 @@ def model():
     """Fixture to initialize the Model object."""
     return Model(version="V2", bundle_adjustment=False)
 
-import pytest
-from unittest.mock import patch, MagicMock
-from parallax.camera import MockCamera, PySpinCamera  # Adjust the import path as necessary
-from parallax.stage_listener import Stage, StageInfo  # Adjust the import path as necessary
-
 def test_scan_for_cameras(model):
     """Test scanning for cameras and updating the model's camera list."""
     # Create a mock PySpin camera object.
