@@ -150,4 +150,3 @@ def test_reticle_detect_manager_set_name(test_frame, qt_application):
 
     # Stop the ReticleDetectManager
     detect_manager.stop()
-
