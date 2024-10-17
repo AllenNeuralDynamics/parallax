@@ -1,7 +1,14 @@
 import pytest
 import numpy as np
-from PyQt5.QtWidgets import QLineEdit, QComboBox
+from PyQt5.QtWidgets import QLineEdit, QComboBox, QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QApplication
 from parallax.screen_coords_mapper import ScreenCoordsMapper
+
+@pytest.fixture(scope="session")
+def qapp():
+    app = QApplication([])
+    yield app
+    app.quit()
 
 # Mocking the model with necessary methods
 class MockModel:
@@ -36,7 +43,6 @@ class MockModel:
     def get_cameras_detected_pts(self):
         return self.detected_pts
 
-
 class MockStereoInstance:
     def get_global_coords(self, camA, tip_coordsA, camB, tip_coordsB):
         # Mock global coordinates based on input
@@ -44,6 +50,10 @@ class MockStereoInstance:
 
 @pytest.fixture
 def setup_screen_coords_mapper(qtbot):
+    # Create a parent QWidget to hold all the UI elements
+    parent_widget = QWidget()
+    layout = QVBoxLayout(parent_widget)
+
     # Mock UI elements
     x = QLineEdit()
     y = QLineEdit()
@@ -52,15 +62,26 @@ def setup_screen_coords_mapper(qtbot):
     reticle_selector.addItem("Proj Global coords")
     reticle_selector.addItem("reticle1 (Test)")
 
+    # Add UI elements to the layout
+    layout.addWidget(x)
+    layout.addWidget(y)
+    layout.addWidget(z)
+    layout.addWidget(reticle_selector)
+
     # Initialize the mock model and ScreenCoordsMapper
     mock_model = MockModel()
     screen_widgets = []  # No actual screen widgets in this test
     screen_coords_mapper = ScreenCoordsMapper(mock_model, screen_widgets, reticle_selector, x, y, z)
-    return screen_coords_mapper, x, y, z
 
-def test_clicked_position_without_reticle_adjustment(setup_screen_coords_mapper):
-    screen_coords_mapper, x, y, z = setup_screen_coords_mapper
+    # Add the parent widget to qtbot to ensure it stays alive during the test
+    qtbot.addWidget(parent_widget)
 
+    # Return both the ScreenCoordsMapper instance and the parent_widget to keep everything alive
+    return screen_coords_mapper, x, y, z, parent_widget
+
+def test_clicked_position_without_reticle_adjustment(setup_screen_coords_mapper, qtbot):
+    screen_coords_mapper, x, y, z, _ = setup_screen_coords_mapper  # Added _ to capture parent_widget
+    
     # Mock camera name and click position
     camera_name = "CameraA"
     pos = (100, 200)
@@ -73,8 +94,8 @@ def test_clicked_position_without_reticle_adjustment(setup_screen_coords_mapper)
     assert y.text() == "20000.0"
     assert z.text() == "30000.0"
 
-def test_global_coords_calculation_stereo(setup_screen_coords_mapper):
-    screen_coords_mapper, _, _, _ = setup_screen_coords_mapper
+def test_global_coords_calculation_stereo(setup_screen_coords_mapper):  
+    screen_coords_mapper, _, _, _, _ = setup_screen_coords_mapper  # Unpack the 5th value (parent_widget)
 
     # Mock camera name and click position
     camera_name = "CameraA"
@@ -86,8 +107,8 @@ def test_global_coords_calculation_stereo(setup_screen_coords_mapper):
     # Check if the global coordinates were calculated correctly
     assert np.allclose(global_coords, np.array([10.0, 20.0, 30.0]))
 
-def test_reticle_adjustment(setup_screen_coords_mapper):
-    screen_coords_mapper, _, _, _ = setup_screen_coords_mapper
+def test_reticle_adjustment(setup_screen_coords_mapper):  
+    screen_coords_mapper, _, _, _, _ = setup_screen_coords_mapper  # Unpack the 5th value (parent_widget)
 
     # Mock global points
     global_pts = np.array([10000, 20000, 30000])
