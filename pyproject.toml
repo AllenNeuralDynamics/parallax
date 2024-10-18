@@ -31,8 +31,9 @@ dependencies = [
     "PyQtWebEngine"
    ]
  
-[tool.setuptools]
-packages = ["parallax", "ui", "img"]
+[tool.setuptools.packages.find]
+include = ["parallax", "ui", "img"]
+exclude = ["tests", "tests.*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "parallax.__version__"}
