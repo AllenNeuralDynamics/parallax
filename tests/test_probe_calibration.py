@@ -21,7 +21,7 @@ def model():
     """
     Fixture for creating a model object.
     """
-    return Model()  # Replace with actual model initialization
+    return Model()
 
 @pytest.fixture
 def stage_listener():
@@ -62,7 +62,6 @@ def test_probe_calibration_update(probe_calibration, sample_csv_file):
 
         stage = MockStage(row)
         
-        # Simulate a calibration update with the mock stage
         probe_calibration.update(stage)
 
         if probe_calibration._is_enough_points():
@@ -78,7 +77,6 @@ def test_probe_calibration_update(probe_calibration, sample_csv_file):
     print(f"Scale: {probe_calibration.scale}")
     print(f"Average Error: {probe_calibration.avg_err}")
 
-    # Optional: Verify that the calibration meets some criteria if desired
     assert probe_calibration._is_criteria_avg_error_threshold(), \
         f"Average error should meet threshold for row {idx}, SN = {stage.sn}"
 
