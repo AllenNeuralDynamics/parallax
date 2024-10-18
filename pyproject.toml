@@ -35,6 +35,9 @@ dependencies = [
 include = ["parallax", "ui", "img"]
 exclude = ["tests", "tests.*"]
 
+[tool.setuptools.package-data]
+exclude = ["tests", "tests/*"]
+
 [tool.setuptools.dynamic]
 version = {attr = "parallax.__version__"}
 readme = {file = "README.md"}
