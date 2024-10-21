@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QLineEdit, QComboBox, QWidget, QVBoxLayout
 from parallax.screen_coords_mapper import ScreenCoordsMapper
 from PyQt5.QtWidgets import QApplication
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def qapp():
     app = QApplication([])
     yield app

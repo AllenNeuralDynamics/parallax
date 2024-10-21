@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 import cv2
 import os
 from parallax.curr_bg_cmp_processor import CurrBgCmpProcessor
@@ -21,7 +20,7 @@ def load_images_from_folder(folder):
             images.append(img)
     return images
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def sample_images():
     """Fixture to provide a way to process images into `curr_img`, `mask`."""
     def process_image(org_img, mask_generator):

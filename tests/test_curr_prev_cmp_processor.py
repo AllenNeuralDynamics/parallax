@@ -1,5 +1,4 @@
 import pytest
-import numpy as np
 import cv2
 import os
 from parallax.curr_prev_cmp_processor import CurrPrevCmpProcessor
@@ -35,7 +34,7 @@ def setup_curr_prev_cmp_processor():
     )
     return processor
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def sample_images():
     """Fixture to provide a way to process images into `curr_img`, `mask`."""
     def process_image(org_img, mask_generator):
