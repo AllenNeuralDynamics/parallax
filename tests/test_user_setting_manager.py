@@ -4,7 +4,6 @@ import json
 from unittest import mock
 from parallax.user_setting_manager import UserSettingsManager
 
-
 @pytest.fixture
 def settings_file(tmpdir):
     """Fixture to create a temporary settings file."""
@@ -13,19 +12,17 @@ def settings_file(tmpdir):
         json.dump({}, f)  # Initialize with an empty settings file
     return settings_path
 
-
-@pytest.fixture
+@pytest.fixture(scope='function')
 def settings_manager(settings_file):
     """Fixture to create a UserSettingsManager with a temporary settings file."""
     with mock.patch("parallax.user_setting_manager.os.path.join", return_value=settings_file):
-        return UserSettingsManager()
-
+        manager = UserSettingsManager()
+        yield manager
 
 def test_load_empty_settings(settings_manager):
     """Test loading an empty settings file."""
     settings = settings_manager.load_settings()
     assert settings == {}, "Expected empty settings from an empty file."
-
 
 def test_save_user_configs(settings_manager, tmpdir):
     """Test saving user configurations to settings.json."""
@@ -34,8 +31,10 @@ def test_save_user_configs(settings_manager, tmpdir):
     width = 1920
     height = 1080
 
+    # Save configurations
     settings_manager.save_user_configs(nColumn, directory, width, height)
 
+    # Check if settings are saved correctly
     with open(settings_manager.settings_file, "r") as f:
         saved_settings = json.load(f)
 
@@ -43,7 +42,6 @@ def test_save_user_configs(settings_manager, tmpdir):
     assert saved_settings["main"]["directory"] == directory
     assert saved_settings["main"]["width"] == width
     assert saved_settings["main"]["height"] == height
-
 
 def test_load_mainWindow_settings(settings_manager, tmpdir):
     """Test loading main window settings from settings.json."""
@@ -54,20 +52,16 @@ def test_load_mainWindow_settings(settings_manager, tmpdir):
     height = 720
     settings_manager.save_user_configs(nColumn, directory, width, height)
 
-    # Reload the settings after saving (explicitly call load_settings)
+    # Reload the settings after saving
     settings_manager.settings = settings_manager.load_settings()
 
     # Load the saved settings
     loaded_nColumn, loaded_directory, loaded_width, loaded_height = settings_manager.load_mainWindow_settings()
 
-    # Assert and print loaded settings
-    print(f"Loaded settings: nColumn={loaded_nColumn}, directory={loaded_directory}, width={loaded_width}, height={loaded_height}")
-
+    assert loaded_nColumn == nColumn
     assert loaded_directory == directory
     assert loaded_width == width
     assert loaded_height == height
-    assert loaded_nColumn == nColumn
-
 
 def test_load_settings_item(settings_manager, tmpdir):
     """Test loading a specific setting item from a category."""
@@ -91,7 +85,6 @@ def test_load_settings_item(settings_manager, tmpdir):
     invalid_item = settings_manager.load_settings_item("main", "non_existent_item")
     assert invalid_item is None
 
-
 def test_update_user_configs_settingMenu(settings_manager, mocker, tmpdir):
     """Test updating a setting for a microscope group."""
     # Mock the ScreenWidget and QGroupBox to simulate the UI elements
@@ -113,14 +106,12 @@ def test_update_user_configs_settingMenu(settings_manager, mocker, tmpdir):
     assert "SN12345" in settings
     assert settings["SN12345"][item] == value
 
-
 def test_load_settings_nonexistent_file(settings_manager):
     """Test behavior when the settings file doesn't exist."""
     # Patch os.path.exists to simulate non-existent settings file
     with mock.patch("os.path.exists", return_value=False):
         settings = settings_manager.load_settings()
         assert settings == {}, "Expected an empty dictionary when settings file does not exist."
-
 
 def test_load_mainWindow_settings_default(settings_manager):
     """Test loading default main window settings when no settings are saved."""

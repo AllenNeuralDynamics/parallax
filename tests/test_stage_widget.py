@@ -13,7 +13,7 @@ def qapp():
     app.quit()
 
 # Fixture to create mock model
-@pytest.fixture
+@pytest.fixture(scope="function")
 def mock_model():
     model = Mock()
     model.stages = {
@@ -30,7 +30,7 @@ def mock_model():
     return model
 
 # Fixture for creating the StageWidget
-@pytest.fixture
+@pytest.fixture(scope="function")
 def stage_widget(qapp, mock_model):
     package_dir = os.path.dirname(os.path.abspath(__file__))
     ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
