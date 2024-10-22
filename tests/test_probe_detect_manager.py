@@ -2,7 +2,6 @@ import pytest
 import cv2
 import os
 import time
-from PyQt5.QtCore import QCoreApplication, QEventLoop
 from parallax.probe_detect_manager import ProbeDetectManager
 
 # Define the folder containing your test images

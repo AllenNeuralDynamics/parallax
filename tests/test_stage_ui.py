@@ -1,6 +1,5 @@
 import pytest
-from PyQt5.QtWidgets import QComboBox, QLabel, QWidget, QVBoxLayout
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtWidgets import QApplication, QComboBox, QLabel, QWidget, QVBoxLayout
 from unittest.mock import Mock
 from parallax.stage_ui import StageUI
 
@@ -16,8 +15,14 @@ class MockModel:
     def get_stage(self, stage_id):
         return self.stages.get(stage_id)
 
+@pytest.fixture(scope="function")
+def qapp():
+    app = QApplication([])
+    yield app
+    app.quit()
+
 @pytest.fixture
-def mock_ui(qtbot):
+def mock_ui(qapp, qtbot):
     """Fixture to create a real UI with proper QWidget elements for testing."""
     # Create a real QWidget as the parent for UI components
     ui = QWidget()
@@ -49,7 +54,7 @@ def mock_ui(qtbot):
     return ui
 
 @pytest.fixture
-def stage_ui(mock_ui, qtbot):  
+def stage_ui(mock_ui, qapp, qtbot): 
     """Fixture to create a StageUI object for testing."""
     model = MockModel()
     stage_ui = StageUI(model, mock_ui)

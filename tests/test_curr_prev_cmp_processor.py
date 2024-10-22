@@ -1,7 +1,7 @@
 import pytest
 import cv2
 import os
-from parallax.curr_bg_cmp_processor import CurrBgCmpProcessor
+from parallax.curr_prev_cmp_processor import CurrPrevCmpProcessor
 from parallax.mask_generator import MaskGenerator
 from parallax.probe_detector import ProbeDetector
 
@@ -20,6 +20,20 @@ def load_images_from_folder(folder):
             images.append(img)
     return images
 
+@pytest.fixture
+def setup_curr_prev_cmp_processor():
+    """Fixture to set up an instance of CurrBgCmpProcessor."""
+    cam_name = "MockCam"
+    probeDetector = ProbeDetector(cam_name, (1000, 750))
+
+    processor = CurrPrevCmpProcessor(
+        cam_name=cam_name,
+        ProbeDetector=probeDetector,
+        original_size=IMG_SIZE_ORIGINAL,
+        resized_size=IMG_SIZE,
+    )
+    return processor
+
 @pytest.fixture(scope="function")
 def sample_images():
     """Fixture to provide a way to process images into `curr_img`, `mask`."""
@@ -31,26 +45,11 @@ def sample_images():
         return curr_img, mask
 
     return process_image
-
-@pytest.fixture
-def setup_curr_bg_cmp_processor():
-    """Fixture to set up an instance of CurrBgCmpProcessor."""
-    cam_name = "MockCam"
-    probeDetector = ProbeDetector(cam_name, (1000, 750))
-
-    processor = CurrBgCmpProcessor(
-        cam_name=cam_name,
-        ProbeDetector=probeDetector,
-        original_size=IMG_SIZE_ORIGINAL,
-        resized_size=IMG_SIZE,
-        reticle_zone=None,
-    )
-    return processor
-
+    
 # Tests
-def test_first_cmp(setup_curr_bg_cmp_processor, sample_images):
+def test_first_cmp(setup_curr_prev_cmp_processor, sample_images):
     """Test the first_cmp method with multiple images."""
-    processor = setup_curr_bg_cmp_processor
+    processor = setup_curr_prev_cmp_processor
 
     # Initialize the mask generator
     mask_generator = MaskGenerator()  # Replace with appropriate constructor
@@ -59,14 +58,17 @@ def test_first_cmp(setup_curr_bg_cmp_processor, sample_images):
     base_dir = "tests/test_data/probe_detect_manager"
     images = load_images_from_folder(base_dir)
 
-    ret, precise_tip, tip  = False, False, None
+    ret, precise_tip, tip, prev_img  = False, False, None, None
     # Iterate over each frame and process it
     for i, org_img in enumerate(images):
         # Generate `curr_img` and `mask` for each frame using the `sample_images` fixture
         curr_img, mask = sample_images(org_img, mask_generator)
+        if prev_img is None:
+            prev_img = curr_img
+            continue
 
         # Call the method to test for each frame
-        ret, precise_tip = processor.first_cmp(curr_img, mask, org_img)
+        ret, precise_tip = processor.first_cmp(curr_img, prev_img, mask, org_img)
 
         if precise_tip:
             tip = processor.ProbeDetector.probe_tip
@@ -80,9 +82,9 @@ def test_first_cmp(setup_curr_bg_cmp_processor, sample_images):
     assert len(tip) == 2, "The tip should contain two elements (x, y)."
    
 
-def test_update_cmp(setup_curr_bg_cmp_processor, sample_images):
+def test_update_cmp(setup_curr_prev_cmp_processor, sample_images):
     """Test the update_cmp method with multiple images."""
-    processor = setup_curr_bg_cmp_processor
+    processor = setup_curr_prev_cmp_processor
 
     # Initialize the mask generator
     mask_generator = MaskGenerator()  # Replace with appropriate constructor
@@ -92,22 +94,25 @@ def test_update_cmp(setup_curr_bg_cmp_processor, sample_images):
     images = load_images_from_folder(base_dir)
 
     is_first_detect = True
-    ret, precise_tip, tip = False, False, None
+    ret, precise_tip, tip, prev_img = False, False, None, None
     # Iterate over each frame and process it
     for i, org_img in enumerate(images):
         # Generate `curr_img` and `mask` for each frame using the `sample_images` fixture
         curr_img, mask = sample_images(org_img, mask_generator)
+        if prev_img is None:
+            prev_img = curr_img
+            continue
 
         # Call the first_cmp method to set the initial state
         if is_first_detect: 
-            ret_, _ = processor.first_cmp(curr_img, mask, org_img)
+            ret_, _ = processor.first_cmp(curr_img, prev_img, mask, org_img)
             if ret_:
                 is_first_detect = False
                 continue
         
         # Simulate the next frame (using the same or next image in the sequence)
-        ret, precise_tip = processor.update_cmp(curr_img, mask, org_img)
-
+        ret, precise_tip = processor.update_cmp(curr_img, prev_img, mask, org_img)
+        
         if precise_tip:
             tip = processor.ProbeDetector.probe_tip
             print(f"Frame {i}: Precise tip found: {precise_tip}, tip: {tip}")
