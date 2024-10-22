@@ -4,7 +4,7 @@ import json
 from unittest import mock
 from parallax.user_setting_manager import UserSettingsManager
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def settings_file(tmpdir):
     """Fixture to create a temporary settings file."""
     settings_path = os.path.join(tmpdir, "settings.json")
