@@ -5,7 +5,7 @@ from parallax.model import Model
 from parallax.camera import MockCamera, PySpinCamera  
 from parallax.stage_listener import Stage, StageInfo 
 
-@pytest.fixture
+@pytest.fixture(scope='function')
 def model():
     """Fixture to initialize the Model object."""
     return Model(version="V2", bundle_adjustment=False)
