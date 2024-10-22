@@ -193,6 +193,7 @@ class AxisFilter(QObject):
         self.worker = None
         self.name = camera_name
         self.thread = None
+        self.threadDeleted = False
 
     def init_thread(self):
         """Initialize or reinitialize the worker and thread"""
@@ -207,7 +208,6 @@ class AxisFilter(QObject):
         self.thread.destroyed.connect(self.onThreadDestroyed)
         self.threadDeleted = False
 
-        #self.worker.frame_processed.connect(self.frame_processed)
         self.worker.frame_processed.connect(self.frame_processed.emit)
         self.worker.found_coords.connect(self.found_coords)
         self.worker.finished.connect(self.thread.quit)
@@ -266,16 +266,18 @@ class AxisFilter(QObject):
         if self.worker is not None:
             self.worker.stop_running()  # Signal the worker to stop
         
-        if not self.threadDeleted and self.thread.isRunning():
+        if self.thread and not self.threadDeleted and self.thread.isRunning():
             self.thread.quit()  # Ask the thread to quit
             self.thread.wait()  # Wait for the thread to finish
         self.thread = None  # Clear the reference to the thread
         self.worker = None  # Clear the reference to the worker
+        self.threadDeleted = True
         logger.debug(f"{self.name} Cleaned the thread")
 
     def onThreadDestroyed(self):
         """Flag if thread is deleted"""
         self.threadDeleted = True
+        self.thread = None
 
     def __del__(self):
         """Destructor for the filter object."""
