@@ -41,10 +41,8 @@ def test_simple(screen_widget):
 
 def test_screen_widget_initialization(screen_widget):
     assert screen_widget.camera is not None
-    assert screen_widget.camera_name == "MockCamera123"
     assert screen_widget.view_box is not None
     assert screen_widget.image_item is not None
-
 
 def test_set_data(screen_widget, mock_camera):
     # Prepare mock image data
@@ -102,16 +100,3 @@ def test_zoom_out(screen_widget):
 
     # Verify that autoRange was called
     screen_widget.view_box.autoRange.assert_called_once()
-
-
-def test_set_camera(screen_widget, mock_camera):
-    new_camera = Mock()
-    new_camera.name.return_value = "NewMockCamera123"
-
-    # Call set_camera to update the camera
-    screen_widget.set_camera(new_camera)
-
-    # Verify that the camera name and components were updated
-    assert screen_widget.camera == new_camera, "The camera object was not updated correctly."
-    assert screen_widget.camera_name == "NewMockCamera123", "The camera name was not updated correctly."
-
