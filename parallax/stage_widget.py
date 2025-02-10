@@ -23,6 +23,7 @@ from .calculator import Calculator
 from .reticle_metadata import ReticleMetadata
 from .screen_coords_mapper import ScreenCoordsMapper
 from .stage_controller import StageController
+from .stage_server_ipconfig import StageServerIPConfig
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -144,6 +145,7 @@ class StageWidget(QWidget):
         self.probe_calibration_btn.clicked.connect(
             self.probe_detection_button_handler
         )
+
         # Start refreshing stage info
         self.stageListener = StageListener(self.model, self.stageUI, self.probeCalibrationLabel)
         self.stageListener.start()
@@ -186,6 +188,12 @@ class StageWidget(QWidget):
         # Screen Coords Mapper
         self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets, \
                 self.reticle_selector, self.global_coords_x, self.global_coords_y, self.global_coords_z)
+        
+        # Stage Server IP Config
+        self.stage_server_ipconfig = StageServerIPConfig(self.model)
+        self.stage_server_ipconfig_btn.clicked.connect(
+            self.stage_server_ipconfig_btn_handler
+        )
 
     def reticle_detection_button_handler(self):
         """
@@ -1336,3 +1344,11 @@ class StageWidget(QWidget):
         This method displays the reticle metadata widget using the `reticle_metadata` object.
         """
         self.reticle_metadata.show()
+
+    def stage_server_ipconfig_btn_handler(self):
+        """
+        Handles the event when the user clicks the "Stage Server IP Config" button.
+
+        This method displays the Stage Server IPConfig widget using the `stage_server_ipconfig` object.
+        """
+        self.stage_server_ipconfig.show()
