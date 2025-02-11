@@ -136,6 +136,13 @@ class StageWidget(QWidget):
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
 
+        
+        # Stage Server IP Config
+        self.stage_server_ipconfig = StageServerIPConfig(self.model)
+        self.stage_server_ipconfig_btn.clicked.connect(
+            self.stage_server_ipconfig_btn_handler
+        )
+
         # Stage widget
         self.stageUI = StageUI(self.model, self)
         self.stageUI.prev_curr_stages.connect(self.update_stages)
@@ -189,11 +196,7 @@ class StageWidget(QWidget):
         self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets, \
                 self.reticle_selector, self.global_coords_x, self.global_coords_y, self.global_coords_z)
         
-        # Stage Server IP Config
-        self.stage_server_ipconfig = StageServerIPConfig(self.model)
-        self.stage_server_ipconfig_btn.clicked.connect(
-            self.stage_server_ipconfig_btn_handler
-        )
+
 
     def reticle_detection_button_handler(self):
         """

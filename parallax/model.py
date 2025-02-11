@@ -17,7 +17,7 @@ class Model(QObject):
     msg_posted = pyqtSignal(str)
     accutest_point_reached = pyqtSignal()
 
-    def __init__(self, version="V1", bundle_adjustment=False):
+    def __init__(self, version="V1", dummy=False, bundle_adjustment=False):
         """Initialize the Model object.
 
         Args:
@@ -26,6 +26,7 @@ class Model(QObject):
         """
         QObject.__init__(self)
         self.version = version
+        self.dummy = dummy
         self.bundle_adjustment = bundle_adjustment
         # camera
         self.cameras = []
@@ -133,6 +134,20 @@ class Model(QObject):
                 if isinstance(camera, PySpinCamera)
             ]
         )
+
+    def set_stage_listener_url(self, url):
+        """Set the URL for the stage listener.
+
+        Args:
+            url (str): The URL to set for the stage listener.
+        """
+        self.stage_listener_url = url   
+
+    def refresh_stages(self):
+        """Search for connected stages"""
+        if not self.dummy:
+            self.scan_for_usb_stages()
+            self.init_transforms()
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
