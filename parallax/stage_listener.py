@@ -107,6 +107,14 @@ class Worker(QObject):
         """Stops the data fetching."""
         self.timer.stop()
 
+    def update_url(self, url):
+        """Change the URL for data fetching.
+
+        Args:
+            url (str): New URL for data fetching.
+        """
+        self.url = url
+
     def print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
         print("Trouble Shooting: ")
@@ -216,6 +224,10 @@ class StageListener(QObject):
         if self.model.nStages != 0:
             self.worker.moveToThread(self.thread)
             self.thread.start()
+
+    def update_url(self):
+        """Update the URL for the worker."""
+        self.worker.update_url(self.model.stage_listener_url)
 
     def get_last_moved_time(self, millisecond=False):
         """Get the last moved time of the stage.

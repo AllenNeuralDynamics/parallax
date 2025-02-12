@@ -44,14 +44,24 @@ class Calculator(QWidget):
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
         
-        # Create the number of GroupBox for the number of stages
-        self._create_stage_groupboxes()
-        self._connect_clear_buttons()
-        self._connect_move_stage_buttons()
+        self.add_stage_groupbox() # Add group boxes for each stage dynamically
         self.reticle_selector.currentIndexChanged.connect(self._setCurrentReticle)
 
         self.model.add_calc_instance(self)
+    
+    def add_stage_groupbox(self):
+        """ Adds group boxes for each stage dynamically based on the number of stages in the model. """
+        self._create_stage_groupboxes()
+        self._connect_clear_buttons()
+        self._connect_move_stage_buttons()
         
+    def reset_stage_groupbox(self):
+        """ Resets the stage group boxes by disabling and clearing them. """
+        # TODO Remove all dynamically created group boxes
+
+        # Re-add stage group boxes
+        self.add_stage_groupbox()
+
     def show(self):
         """
         Displays the Calculator widget and updates the UI to show the correct reticle and stage information.

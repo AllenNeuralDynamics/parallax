@@ -48,7 +48,7 @@ class Model(QObject):
         self.nStages = 0
         self.stages = {}
         self.stages_calib = {}
-        self.stage_listener_url = "http://localhost:8080/"
+        self.stage_listener_url = None
 
         # probe detector
         self.probeDetectors = []
@@ -96,6 +96,7 @@ class Model(QObject):
 
     def init_transforms(self):
         """Initialize the transformation matrices for all stages."""
+        self.transforms = {}
         for stage_sn in self.stages.keys():
             self.transforms[stage_sn] = [None, None]
 
@@ -144,13 +145,15 @@ class Model(QObject):
         self.stage_listener_url = url   
 
     def refresh_stages(self):
-        """Search for connected stages"""
+        """Search for connected stages""" #TODO
         if not self.dummy:
             self.scan_for_usb_stages()
             self.init_transforms()
+        print("model refresh_stages", self.stages.keys())
 
     def scan_for_usb_stages(self):
-        """Scan for all USB-connected stages and initialize them."""
+        """Scan for all USB-c
+        onnected stages and initialize them."""
         stage_info = StageInfo(self.stage_listener_url)
         instances = stage_info.get_instances()
         self.init_stages()

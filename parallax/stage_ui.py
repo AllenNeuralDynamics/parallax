@@ -19,23 +19,42 @@ class StageUI(QWidget):
         self.model = model
         self.ui = ui
         self.reticle = "Global coords"
+        self.previous_stage_id = None
     
+        # initialize UI
+        self.initialize()
+        
+        # Swtich Reticle Coordinates (e.g Reticle + No Offset, Reticle + Offset..)
+        self.ui.reticle_selector.currentIndexChanged.connect(self.updateCurrentReticle)
+
+    def initialize(self):
+        """Initialize the stage UI with the current stage information."""
+        self.stage_selector_deactivate_actions()
         self.update_stage_selector()
         self.updateStageSN()
         self.updateStageLocalCoords()
         self.updateStageGlobalCoords()
         self.previous_stage_id = self.get_current_stage_id()
         self.setCurrentReticle()
+        self.stage_selector_activate_actions()
 
-        # Swtich stages
+    def stage_selector_activate_actions(self):
+        """Connect signals to the stage selector."""
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageLocalCoords)
         self.ui.stage_selector.currentIndexChanged.connect(self.updateStageGlobalCoords)
         self.ui.stage_selector.currentIndexChanged.connect(self.sendInfoToStageWidget)
 
-        # Swtich Reticle Coordinates (e.g Reticle + No Offset, Reticle + Offset..)
-        self.ui.reticle_selector.currentIndexChanged.connect(self.updateCurrentReticle)
-
+    def stage_selector_deactivate_actions(self):
+        """Disconnect all signals connected to the stage selector."""
+        try:
+            self.ui.stage_selector.currentIndexChanged.disconnect(self.updateStageSN)
+            self.ui.stage_selector.currentIndexChanged.disconnect(self.updateStageLocalCoords)
+            self.ui.stage_selector.currentIndexChanged.disconnect(self.updateStageGlobalCoords)
+            self.ui.stage_selector.currentIndexChanged.disconnect(self.sendInfoToStageWidget)
+        except:
+            # If signals are not connected, ignore the error
+            pass
 
     def get_selected_stage_sn(self):
         """Get the serial number of the selected stage.

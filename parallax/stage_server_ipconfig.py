@@ -30,16 +30,13 @@ class StageServerIPConfig(QWidget):
         self.setWindowTitle(f"Stage Server IP Configuration")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
-        
-        # refresh the stage using server IP address
-        self.refresh_stages()
 
     def get_stages_listener_url(self):
         """
         Get stage url from the ui
         """
-        url = self.lineEdit_ip.text().strip()
-        port = self.lineEdit_port.text().strip()
+        url = self.ui.lineEdit_ip.text().strip()
+        port = self.ui.lineEdit_port.text().strip()
 
         return url, port
 
