@@ -55,12 +55,16 @@ class Calculator(QWidget):
         self._connect_clear_buttons()
         self._connect_move_stage_buttons()
         
-    def reset_stage_groupbox(self):
-        """ Resets the stage group boxes by disabling and clearing them. """
-        # TODO Remove all dynamically created group boxes
-
-        # Re-add stage group boxes
-        self.add_stage_groupbox()
+    def remove_stage_groupbox(self):
+        """ 
+        Resets the stage group boxes by removing all dynamically created ones and re-adding them. 
+        """
+        # Find and remove all QGroupBox widgets that start with "groupBox_"
+        for stage_sn in list(self.model.stages.keys()):
+            group_box = self.findChild(QGroupBox, f"groupBox_{stage_sn}")
+            if group_box:
+                self.ui.verticalLayout_QBox.removeWidget(group_box)
+                group_box.deleteLater()  # Properly delete the widget to free memory
 
     def show(self):
         """

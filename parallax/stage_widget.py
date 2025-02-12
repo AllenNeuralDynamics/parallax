@@ -164,34 +164,10 @@ class StageWidget(QWidget):
             self.refresh_stages
         )
 
+        # Initialize stages
         self.init_stages()
 
-    def refresh_stages(self):
-        print("refresh_stages")
-        # refresh the stage using server IP address
-        self.stage_server_ipconfig.refresh_stages() # Update stages server url to model
-        self.stageUI.initialize()
-        self.selected_stage_id = self.stageUI.get_current_stage_id()
-        self.probe_calibration_btn.setEnabled(False)
-
-        # Update url on StageLinstener
-        self.stageListener.update_url()
-
-        # Reset all probe calibration
-        self.probeCalibration.reset_calib()
-        self.calib_x.hide() # Hide X, Y, and Z Buttons in Probe Detection
-        self.calib_y.hide()
-        self.calib_z.hide()
-        self.viewTrajectory_btn.hide()
-
-        # Update url on Stage controller
-        self.stage_controller.update_url()
-
-        # Reset calculator
-        
-
     def init_stages(self):
-        # ----
         print("init_stages, stage_widget")
         # refresh the stage using server IP address
         self.stage_server_ipconfig.refresh_stages() # Update stages to model
@@ -231,7 +207,33 @@ class StageWidget(QWidget):
         # Calculator Button
         self.calculation_btn.hide()
         self.calculator = Calculator(self.model, self.reticle_selector, self.stage_controller)
-        # -------------
+
+    def refresh_stages(self):
+        print("=== refresh_stages == ")
+        # Remove old stage infos from calculator
+        self.calculator.remove_stage_groupbox()
+
+        # refresh the stage using server IP address
+        self.stage_server_ipconfig.refresh_stages() # Update stages server url to model
+        self.stageUI.initialize()
+        self.selected_stage_id = self.stageUI.get_current_stage_id()
+        self.probe_calibration_btn.setEnabled(False)
+
+        # Update url on StageLinstener
+        self.stageListener.update_url()
+
+        # Reset all probe calibration
+        self.probeCalibration.reset_calib()
+        self.calib_x.hide() # Hide X, Y, and Z Buttons in Probe Detection
+        self.calib_y.hide()
+        self.calib_z.hide()
+        self.viewTrajectory_btn.hide()
+
+        # Update url on Stage controller
+        self.stage_controller.update_url()
+
+        # Add stages on calculator
+        self.calculator.add_stage_groupbox() # Add stage infos to calculator
 
     def reticle_detection_button_handler(self):
         """
