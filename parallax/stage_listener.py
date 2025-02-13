@@ -122,7 +122,6 @@ class Worker(QObject):
 
     def fetchData(self):
         """Fetches content from the URL and checks for significant changes."""
-        print("Fetching data...")
         try:
             response = requests.get(self.url, timeout=1)
             if response.status_code == 200:
