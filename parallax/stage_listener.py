@@ -38,7 +38,7 @@ class StageInfo(QObject):
         """
         stages = []
         try:
-            response = requests.get(self.url, timeout=5)
+            response = requests.get(self.url, timeout=1)
             if response.status_code == 200:
                 data = response.json()
                 self.nStages = data["Probes"]
@@ -47,11 +47,7 @@ class StageInfo(QObject):
                     self.stages_sn.append(stage["SerialNumber"])
                     stages.append(stage)
         except Exception as e:
-            print(f"\nHttpServer for stages not enabled: {e}")
-            print("* Trouble Shooting: ")
-            print("1. Check New Scale Stage connection.")
-            print("2. Enable Http Server: 'http://localhost:8080/'")
-            print("3. Click 'Connect' on New Scale SW")
+            print(f"\n== HttpServer for stages not enabled ==")
 
         return stages
 
@@ -113,7 +109,9 @@ class Worker(QObject):
         Args:
             url (str): New URL for data fetching.
         """
+        self.timer.stop()  # Stop the timer before updating the URL
         self.url = url
+        self.start() # Restart the timer
 
     def print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
@@ -124,6 +122,7 @@ class Worker(QObject):
 
     def fetchData(self):
         """Fetches content from the URL and checks for significant changes."""
+        print("Fetching data...")
         try:
             response = requests.get(self.url, timeout=1)
             if response.status_code == 200:
@@ -170,10 +169,14 @@ class Worker(QObject):
             else:
                 print(f"Failed to access {self.url}. Status code: {response.status_code}")
         except Exception as e:
+            # Stop the fetching data if there http server is not enabled
+            self.stop()
+            # Print the error message only once
             if self.is_error_log_printed == False:
                 self.is_error_log_printed = True
                 print(f"\nHttpServer for stages not enabled: {e}")
                 self.print_trouble_shooting_msg()
+
 
     def isSignificantChange(self, current_stage_info, stage_threshold=0.001):
         """Check if the change in any axis exceeds the threshold."""
@@ -227,7 +230,10 @@ class StageListener(QObject):
 
     def update_url(self):
         """Update the URL for the worker."""
+        # Update URL
         self.worker.update_url(self.model.stage_listener_url)
+        # Restart worker
+        # If there is an timeout error, stop the worker.
 
     def get_last_moved_time(self, millisecond=False):
         """Get the last moved time of the stage.
