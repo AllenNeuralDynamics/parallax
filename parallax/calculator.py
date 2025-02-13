@@ -91,7 +91,7 @@ class Calculator(QWidget):
         # Clear fields for all enabled stages
         for stage_sn in self.model.stages.keys():
             group_box = self.findChild(QGroupBox, f"groupBox_{stage_sn}")
-            if group_box.isEnabled():  # Check if the stage's QGroupBox is enabled
+            if group_box is not None and group_box.isEnabled():  # Check if the stage's QGroupBox is enabled
                 self._clear_fields(stage_sn)
 
     def _change_global_label(self):
@@ -111,6 +111,7 @@ class Calculator(QWidget):
         """
         for stage_sn, item in self.model.transforms.items():
             transM, scale = item[0], item[1]
+            print(f"\n Set Calc Functions{stage_sn}")
             if transM is not None: # Set calc function for calibrated stages
                 push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
                 if not push_button:
@@ -383,7 +384,7 @@ class Calculator(QWidget):
         """
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
-        if not group_box.isEnabled():
+        if not group_box.isEnabled() and group_box is not None:
             group_box.setEnabled(True)
             group_box.setStyleSheet("background-color: black;")
             group_box.setTitle(f"{sn}")

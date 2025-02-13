@@ -219,10 +219,19 @@ class StageWidget(QWidget):
         self.calculator.remove_stage_groupbox()
 
         # refresh the stage using server IP address
-        self.stage_server_ipconfig.refresh_stages() # Update stages server url to model
+        self.stage_server_ipconfig.refresh_stages() # Update stages server url to model # models.transforms updated
         self.stageUI.initialize()
-        #self.selected_stage_id = self.stageUI.get_current_stage_id()
-        self.probe_calibration_btn.setEnabled(False)
+
+        # Add stages on calculator
+        self.calculator.add_stage_groupbox() # Add stage infos to calculator
+
+        if self.probe_calibration_btn.isEnabled():
+            # Disable probe calibration
+            self.probe_detect_default_status()
+            self.model.reset_stage_calib_info()
+            self.model.reset_stereo_calib_instance()
+            self.model.reset_camera_extrinsic()
+            self.probeCalibration.clear()
 
         # Update url on StageLinstener
         self.stageListener.update_url()
@@ -236,9 +245,6 @@ class StageWidget(QWidget):
 
         # Update url on Stage controller
         self.stage_controller.update_url()
-
-        # Add stages on calculator
-        self.calculator.add_stage_groupbox() # Add stage infos to calculator
 
     def reticle_detection_button_handler(self):
         """
