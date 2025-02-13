@@ -225,23 +225,11 @@ class StageWidget(QWidget):
         # Add stages on calculator
         self.calculator.add_stage_groupbox() # Add stage infos to calculator
 
-        if self.probe_calibration_btn.isEnabled():
-            # Disable probe calibration
-            self.probe_detect_default_status()
-            self.model.reset_stage_calib_info()
-            self.model.reset_stereo_calib_instance()
-            self.model.reset_camera_extrinsic()
-            self.probeCalibration.clear()
+        # Update reticle/probe detection status to default
+        self.reticle_detect_default_status()
 
         # Update url on StageLinstener
         self.stageListener.update_url()
-
-        # Reset all probe calibration
-        self.probeCalibration.reset_calib()
-        self.calib_x.hide() # Hide X, Y, and Z Buttons in Probe Detection
-        self.calib_y.hide()
-        self.calib_z.hide()
-        self.viewTrajectory_btn.hide()
 
         # Update url on Stage controller
         self.stage_controller.update_url()
@@ -284,9 +272,12 @@ class StageWidget(QWidget):
             if self.filter != "no_filter":
                 screen.run_no_filter()
             if self.reticle_detection_status != "accepted":
-                screen.reticle_coords_detected.disconnect(
-                    self.reticle_detect_two_screens
-                )    
+                try:
+                    screen.reticle_coords_detected.disconnect(
+                        self.reticle_detect_two_screens
+                    )
+                except:
+                    logger.debug("Signal not connected. Skipping disconnect.")
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
@@ -313,6 +304,9 @@ class StageWidget(QWidget):
         self.model.reset_stereo_calib_instance()
         self.model.reset_camera_extrinsic()
         self.probeCalibration.clear()
+
+        # Reset global coords displayed on the GUI
+        self.stageUI.updateStageGlobalCoords_default()
 
     def reticle_overwrite_popup_window(self):
         """
