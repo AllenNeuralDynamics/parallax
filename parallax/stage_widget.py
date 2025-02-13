@@ -168,8 +168,9 @@ class StageWidget(QWidget):
         self.init_stages()
 
     def init_stages(self):
-        print("init_stages, stage_widget")
+        print("\n== Stage_widget, init_stages ==")
         # refresh the stage using server IP address
+        self.stage_server_ipconfig.update_url()
         self.stage_server_ipconfig.refresh_stages() # Update stages to model
 
         # Set Stage UI
@@ -209,14 +210,18 @@ class StageWidget(QWidget):
         self.calculator = Calculator(self.model, self.reticle_selector, self.stage_controller)
 
     def refresh_stages(self):
-        print("=== refresh_stages == ")
+        print("\n== StageWidget, refresh_stages == ")
+        # If URL is not updated or invalid, do nothing
+        if not self.stage_server_ipconfig.update_url():
+            return
+
         # Remove old stage infos from calculator
         self.calculator.remove_stage_groupbox()
 
         # refresh the stage using server IP address
         self.stage_server_ipconfig.refresh_stages() # Update stages server url to model
         self.stageUI.initialize()
-        self.selected_stage_id = self.stageUI.get_current_stage_id()
+        #self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.probe_calibration_btn.setEnabled(False)
 
         # Update url on StageLinstener
@@ -1318,7 +1323,7 @@ class StageWidget(QWidget):
             curr_stage_id (str): The ID of the current stage being switched to.
         """
         logger.debug(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
-        print(f"update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
+        print(f"StageWidget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
         self.selected_stage_id = curr_stage_id
         if prev_stage_id is None or curr_stage_id is None:
             return

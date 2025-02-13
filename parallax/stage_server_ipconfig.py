@@ -94,20 +94,26 @@ class StageServerIPConfig(QWidget):
         """
         Refreshes the stage server using the configured IP address and port.
         """
+        logger.info("Refreshing stages with updated server configuration.")
+        self.model.refresh_stages()
+
+    def update_url(self):
+        """
+        Updates the stage server URL and port from the UI.
+        """
         url, port = self._get_stages_listener_url()
 
         if not self._is_url_updated(url, port):
             logger.debug("Skipping refresh: URL and port have not changed.")
-            return
+            return False
         
         if self._validate_ip(url, port):
             logger.warning("Skipping refresh: Invalid IP address.")
             print("Invalid IP address or port.")
-            return
+            return False
 
         self._set_stage_listener_url(url, port)
-        logger.info("Refreshing stages with updated server configuration.")
-        self.model.refresh_stages()
+        return True
 
     def show(self):
         """
