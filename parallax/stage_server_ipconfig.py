@@ -35,6 +35,8 @@ class StageServerIPConfig(QWidget):
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | 
                             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
 
+        self.model.add_stage_ipconfig_instance(self)
+
     def _is_url_updated(self, url, port):
         """
         Check if the URL and port have been updated.

@@ -168,7 +168,6 @@ class StageWidget(QWidget):
         self.init_stages()
 
     def init_stages(self):
-        print("\n== Stage_widget, init_stages ==")
         # refresh the stage using server IP address
         self.stage_server_ipconfig.update_url()
         self.stage_server_ipconfig.refresh_stages() # Update stages to model
@@ -1323,7 +1322,6 @@ class StageWidget(QWidget):
             curr_stage_id (str): The ID of the current stage being switched to.
         """
         logger.debug(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
-        print(f"StageWidget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
         self.selected_stage_id = curr_stage_id
         if prev_stage_id is None or curr_stage_id is None:
             return

@@ -49,6 +49,7 @@ class Model(QObject):
         self.stages = {}
         self.stages_calib = {}
         self.stage_listener_url = None
+        self.stage_ipconfig_instance = None
 
         # probe detector
         self.probeDetectors = []
@@ -149,7 +150,6 @@ class Model(QObject):
         if not self.dummy:
             self.scan_for_usb_stages()
             self.init_transforms()
-        print("model refresh_stages", self.stages.keys())
 
     def scan_for_usb_stages(self):
         """Scan for all USB-c
@@ -516,3 +516,17 @@ class Model(QObject):
         if self.reticle_metadata_instance is not None:
             self.reticle_metadata_instance.close()
             self.calc_instance = None
+
+    def add_stage_ipconfig_instance(self, instance):
+        """Add a stage IP configuration instance.
+
+        Args:
+            instance (object): The stage IP configuration instance to add.
+        """
+        self.stage_ipconfig_instance = instance
+
+    def close_stage_ipconfig_instance(self):
+        """Close the stage IP configuration instance.""" 
+        if self.stage_ipconfig_instance is not None:
+            self.stage_ipconfig_instance.close()
+            self.stage_ipconfig_instance = None

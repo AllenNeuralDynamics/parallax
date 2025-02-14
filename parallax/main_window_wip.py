@@ -783,4 +783,5 @@ class MainWindow(QMainWindow):
         self.model.close_all_point_meshes()
         self.model.close_clac_instance()
         self.model.close_reticle_metadata_instance()
+        self.model.close_stage_ipconfig_instance()
         event.accept()
