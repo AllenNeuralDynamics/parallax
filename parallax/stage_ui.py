@@ -111,7 +111,7 @@ class StageUI(QWidget):
             if self.selected_stage:
                 self.ui.stage_sn.setText(" " + self.selected_stage.sn)
         else:
-            self.ui.stage_sn.setText("")
+            self.ui.stage_sn.setText("----------")
 
     def updateStageLocalCoords(self):
         """Update the displayed local coordinates of the selected stage."""
