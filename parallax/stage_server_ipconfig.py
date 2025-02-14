@@ -3,6 +3,7 @@ This module implements the StageServerIPConfig widget
 """
 
 import os
+import json
 import logging
 from PyQt5.QtWidgets import QWidget
 from PyQt5.uic import loadUi
@@ -14,6 +15,7 @@ logger.setLevel(logging.DEBUG)
 package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
+json_config_path = os.path.join(ui_dir, "stage_server_config.json")  # JSON file to store IP and port
 
 class StageServerIPConfig(QWidget):
     """
@@ -35,7 +37,43 @@ class StageServerIPConfig(QWidget):
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | 
                             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
 
+        # Load saved IP and port from JSON file
+        self._load_url_from_json()
+
         self.model.add_stage_ipconfig_instance(self)
+
+    def _load_url_from_json(self):
+        """
+        Loads the saved IP and port from a JSON file.
+        """
+        if os.path.exists(json_config_path):
+            try:
+                with open(json_config_path, "r") as f:
+                    config = json.load(f)
+                self.url = config.get("server_ip", "http://localhost")  # Default: http://localhost
+                self.port = config.get("server_port", "8080")    # Default: 8080
+            except json.JSONDecodeError:
+                logger.error("Failed to decode JSON file, using default values.")
+                self.url, self.port = "http://localhost", "8080"
+        else:
+            self.url, self.port = "http://localhost", "8080"  # Defaults if no config file
+
+        # Update UI with loaded values
+        self.ui.lineEdit_ip.setText(self.url)
+        self.ui.lineEdit_port.setText(self.port)
+        logger.info(f"Loaded Stage Server IP: {self.url}, Port: {self.port}")
+
+    def _save_url_to_json(self):
+        """
+        Saves the stage server URL and port to a JSON file.
+        """
+        config = {"server_ip": self.url, "server_port": self.port}
+        try:
+            with open(json_config_path, "w") as f:
+                json.dump(config, f, indent=4)
+            logger.info(f"Saved Stage Server IP: {self.url}, Port: {self.port}")
+        except Exception as e:
+            logger.error(f"Failed to save JSON config: {e}")
 
     def _is_url_updated(self, url, port):
         """
@@ -98,6 +136,7 @@ class StageServerIPConfig(QWidget):
         """
         logger.info("Refreshing stages with updated server configuration.")
         self.model.refresh_stages()
+        self._save_url_to_json()  # Save updated values
 
     def update_url(self):
         """
