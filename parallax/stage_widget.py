@@ -209,7 +209,7 @@ class StageWidget(QWidget):
         self.calculator = Calculator(self.model, self.reticle_selector, self.stage_controller)
 
     def refresh_stages(self):
-        print("\n== StageWidget, refresh_stages == ")
+        """Refreshes the stages using the updated server configuration."""
         # If URL is not updated or invalid, do nothing
         if not self.stage_server_ipconfig.update_url():
             return

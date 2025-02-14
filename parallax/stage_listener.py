@@ -47,7 +47,7 @@ class StageInfo(QObject):
                     self.stages_sn.append(stage["SerialNumber"])
                     stages.append(stage)
         except Exception as e:
-            print(f"\n== HttpServer for stages not enabled ==")
+            print(f"HttpServer for stages not enabled.")
 
         return stages
 
