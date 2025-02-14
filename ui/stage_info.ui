@@ -401,14 +401,33 @@
        </item>
        <item row="0" column="0">
         <widget class="QPushButton" name="stage_server_ipconfig_btn">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>40</height>
+          </size>
+         </property>
          <property name="maximumSize">
           <size>
            <width>45</width>
            <height>16777215</height>
           </size>
          </property>
+         <property name="toolTip">
+          <string>MPM Http Server</string>
+         </property>
          <property name="text">
-          <string>S</string>
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>resources/npnServer.png</normaloff>resources/npnServer.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>36</width>
+           <height>36</height>
+          </size>
          </property>
         </widget>
        </item>
