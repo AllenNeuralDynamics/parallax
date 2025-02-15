@@ -146,7 +146,7 @@ class Model(QObject):
         self.stage_listener_url = url   
 
     def refresh_stages(self):
-        """Search for connected stages""" #TODO
+        """Search for connected stages"""
         if not self.dummy:
             self.scan_for_usb_stages()
             self.init_transforms()

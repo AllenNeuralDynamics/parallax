@@ -114,7 +114,7 @@ class StageServerIPConfig(QWidget):
         logger.debug(f"Setting stage listener URL: {listener_url}")
         self.model.set_stage_listener_url(listener_url)
 
-    def _validate_ip(self, url, port):
+    def _is_valid_ip(self, url, port):
         """
         Validates the IP address and port.
 
@@ -127,8 +127,8 @@ class StageServerIPConfig(QWidget):
         """
         if not url or not port:
             logger.warning("Invalid IP address or port: Empty value detected.")
-            return True
-        return False
+            return False
+        return True
 
     def refresh_stages(self):
         """
@@ -148,7 +148,7 @@ class StageServerIPConfig(QWidget):
             logger.debug("Skipping refresh: URL and port have not changed.")
             return False
         
-        if self._validate_ip(url, port):
+        if not self._is_valid_ip(url, port):
             logger.warning("Skipping refresh: Invalid IP address.")
             print("Invalid IP address or port.")
             return False
