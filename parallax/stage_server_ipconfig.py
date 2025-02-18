@@ -138,13 +138,13 @@ class StageServerIPConfig(QWidget):
         self.model.refresh_stages()
         self._save_url_to_json()  # Save updated values
 
-    def update_url(self):
+    def update_url(self, init=False):
         """
         Updates the stage server URL and port from the UI.
         """
         url, port = self._get_stages_listener_url()
 
-        if not self._is_url_updated(url, port):
+        if not self._is_url_updated(url, port) and not init:
             logger.debug("Skipping refresh: URL and port have not changed.")
             return False
         

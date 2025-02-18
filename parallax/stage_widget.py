@@ -169,7 +169,7 @@ class StageWidget(QWidget):
 
     def init_stages(self):
         # refresh the stage using server IP address
-        self.stage_server_ipconfig.update_url()
+        self.stage_server_ipconfig.update_url(init=True)
         self.stage_server_ipconfig.refresh_stages() # Update stages to model
 
         # Set Stage UI
