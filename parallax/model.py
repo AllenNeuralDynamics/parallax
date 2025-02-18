@@ -152,8 +152,7 @@ class Model(QObject):
             self.init_transforms()
 
     def scan_for_usb_stages(self):
-        """Scan for all USB-c
-        onnected stages and initialize them."""
+        """Scan for all USB-connected stages and initialize them."""
         stage_info = StageInfo(self.stage_listener_url)
         instances = stage_info.get_instances()
         self.init_stages()

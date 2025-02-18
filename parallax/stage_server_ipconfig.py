@@ -1,5 +1,10 @@
 """
-This module implements the StageServerIPConfig widget
+This module implements the StageServerIPConfig widget for configuring
+and managing the Stage Server's IP address and port settings.
+
+The configuration is stored in a JSON file (stage_server_config.json),
+allowing persistence across sessions. The widget interacts with a model
+to apply the configuration dynamically.
 """
 
 import os
