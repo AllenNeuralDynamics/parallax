@@ -111,7 +111,6 @@ class Calculator(QWidget):
         """
         for stage_sn, item in self.model.transforms.items():
             transM, scale = item[0], item[1]
-            print(f"\n Set Calc Functions{stage_sn}")
             if transM is not None: # Set calc function for calibrated stages
                 push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
                 if not push_button:
