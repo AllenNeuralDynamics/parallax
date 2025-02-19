@@ -421,7 +421,7 @@
          </property>
          <property name="icon">
           <iconset>
-           <normaloff>resources/npnServer.png</normaloff>resources/npnServer.png</iconset>
+           <normaloff>resources/mpmServer.png</normaloff>resources/mpmServer.png</iconset>
          </property>
          <property name="iconSize">
           <size>
