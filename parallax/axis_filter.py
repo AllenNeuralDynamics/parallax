@@ -1,13 +1,12 @@
 """
 This class is used during the reticle calibration process to handle the selection of the positive x-axis.
-The system detects the reticle and requests the user to select the positive x-axis point. AxisFilter manages 
-the visualization of reticle points and processing of the two points along the x-axis and y-axis, retrieving points clicked by 
-the user on the screen.
+The system detects the reticle and requests the user to select the positive x-axis point. AxisFilter manages
+the visualization of reticle points and processing of the two points along the x-axis and y-axis, retrieving points
+clicked by the user on the screen.
 """
 
 import logging
 import time
-
 import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
@@ -17,11 +16,12 @@ from .calibration_camera import CalibrationCamera
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class AxisFilter(QObject):
     """
     AxisFilter class is used during the reticle calibration process.
 
-    After detecting the reticle, the system prompts the user to select the positive x-axis. AxisFilter displays 
+    After detecting the reticle, the system prompts the user to select the positive x-axis. AxisFilter displays
     the detected reticle points on the x-axis and y-axis and processes user input (clicked points) for calibration.
     """
 
@@ -86,7 +86,7 @@ class AxisFilter(QObject):
                 cv2.circle(self.frame, pos_x, 15, (255, 0, 0), -1)
 
             self.frame_processed.emit(self.frame)
-            
+
         def squared_distance(self, p1, p2):
             """Calculate the squared distance between two points.
 
@@ -94,12 +94,12 @@ class AxisFilter(QObject):
                 p1, p2 (tuple): Points between which the squared distance is calculated.
             """
             return (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
-    
+
         def sort_reticle_points(self):
             """
             Sort the reticle points based on the current position of the camera.
 
-            This method sorts the reticle points in the correct order based on the 
+            This method sorts the reticle points in the correct order based on the
             selected positive x-axis point and the detected coordinates.
             """
             if self.pos_x is None or self.reticle_coords is None:
@@ -118,15 +118,15 @@ class AxisFilter(QObject):
                 self.reticle_coords[0] = tmp
             else:
                 pass
-            
+
             self.pos_x = tuple(self.reticle_coords[0][-1])
             return
-            
+
         def clicked_position(self, input_pt):
             """Get clicked position."""
-            if not self.running: 
+            if not self.running:
                 return
-            
+
             if self.reticle_coords is None:
                 return
 
@@ -135,7 +135,7 @@ class AxisFilter(QObject):
             pt1, pt2 = self.reticle_coords[0][0], self.reticle_coords[0][-1]
             pt3, pt4 = self.reticle_coords[1][0], self.reticle_coords[1][-1]
             pts = [pt1, pt2, pt3, pt4]
-            
+
             # Finding the closest point to pt
             self.pos_x = min(pts, key=lambda pt: self.squared_distance(pt, input_pt))
             self.pos_x = tuple(self.pos_x)
@@ -149,7 +149,7 @@ class AxisFilter(QObject):
                 self.found_coords.emit(
                         self.reticle_coords[0], self.reticle_coords[1], mtx, dist, rvecs, tvecs
                 )
-            
+
             # Register the camera intrinsic parameters and coords  to the model
             self.model.add_coords_axis(self.name, self.reticle_coords)
             self.model.add_camera_intrinsic(self.name, mtx, dist, rvecs, tvecs)
@@ -198,7 +198,7 @@ class AxisFilter(QObject):
     def init_thread(self):
         """Initialize or reinitialize the worker and thread"""
         if self.thread is not None:
-            self.clean()  # Clean up existing thread and worker before reinitializing 
+            self.clean()  # Clean up existing thread and worker before reinitializing
         self.thread = QThread()
         self.worker = self.Worker(self.name, self.model)
         self.worker.moveToThread(self.thread)
@@ -265,7 +265,7 @@ class AxisFilter(QObject):
         logger.debug(f"{self.name} Cleaning the thread")
         if self.worker is not None:
             self.worker.stop_running()  # Signal the worker to stop
-        
+
         if self.thread and not self.threadDeleted and self.thread.isRunning():
             self.thread.quit()  # Ask the thread to quit
             self.thread.wait()  # Wait for the thread to finish
@@ -282,5 +282,3 @@ class AxisFilter(QObject):
     def __del__(self):
         """Destructor for the filter object."""
         self.clean()
-
-
