@@ -1,10 +1,10 @@
 """
-This module implements the Bundle Adjustment (BA) problem and optimization process. 
+This module implements the Bundle Adjustment (BA) problem and optimization process.
 
 The BALProblem class is responsible for loading and parsing the input data
-from a CSV file, managing the reticle calibration data, and setting up camera parameters and observations. 
+from a CSV file, managing the reticle calibration data, and setting up camera parameters and observations.
 
-The BALOptimizer class performs optimization on the Bundle Adjustment problem, using the observations to minimize 
+The BALOptimizer class performs optimization on the Bundle Adjustment problem, using the observations to minimize
 the reprojection error through optimization of camera parameters and 3D points.
 """
 
@@ -18,14 +18,15 @@ from scipy.optimize import leastsq
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class BALProblem:
     """
     Class representing the Bundle Adjustment problem (BAL).
 
-    The BALProblem class is responsible for parsing input data from a CSV file and setting up the necessary 
-    observations, 3D points, and camera parameters for the bundle adjustment problem. It manages reticle 
+    The BALProblem class is responsible for parsing input data from a CSV file and setting up the necessary
+    observations, 3D points, and camera parameters for the bundle adjustment problem. It manages reticle
     calibration data and provides access to the cameras and points for optimization.
-    
+
     Attributes:
         model: A reference to the data model.
         file_path (str): Path to the CSV file containing the camera and points data.
@@ -36,10 +37,11 @@ class BALProblem:
         cameras_params (list): List of camera parameters.
         observations (np.ndarray): Array of observations containing camera index, point index, and image coordinates.
     """
+
     def __init__(self, model, file_path):
         """
         Initialize the BALProblem class by parsing the CSV file and setting camera parameters.
-        
+
         Args:
             model: The data model used in the bundle adjustment.
             file_path (str): Path to the CSV file containing the camera, point, and observation data.
@@ -49,7 +51,7 @@ class BALProblem:
         self.points = None
         self.cameras_params = None
         self.local_pts = None
-        
+
         self.model = model
         self.df = None
         self.file_path = file_path
@@ -79,7 +81,7 @@ class BALProblem:
         """
         Set the observations from the parsed data.
 
-        The observations consist of camera indices, point indices, and corresponding image coordinates 
+        The observations consist of camera indices, point indices, and corresponding image coordinates
         in the format (camera_index, point_index, x_image_coord, y_image_coord).
         """
         # Initialize the list to store observations
@@ -92,11 +94,11 @@ class BALProblem:
         for _, row in self.df.iterrows():
             cam0, pt0 = str(row['cam0']), row['pt0']
             cam1, pt1 = str(row['cam1']), row['pt1']
-            
+
             # Find the point index corresponding to the average global coordinates
             m_global_x, m_global_y, m_global_z = row['m_global_x'], row['m_global_y'], row['m_global_z']
-            point_index = np.where((self.points[:, 0] == m_global_x) & 
-                                   (self.points[:, 1] == m_global_y) & 
+            point_index = np.where((self.points[:, 0] == m_global_x) &
+                                   (self.points[:, 1] == m_global_y) &
                                    (self.points[:, 2] == m_global_z))[0][0]
 
             # Add observations for cam0
@@ -123,33 +125,33 @@ class BALProblem:
         # Group by 'ts_local_coords' and calculate the mean for 'global_x', 'global_y', and 'global_z'
         grouped = self.df.groupby('ts_local_coords')[['global_x', 'global_y', 'global_z']].mean()
         grouped = grouped.rename(columns={'global_x': 'm_global_x', 'global_y': 'm_global_y', 'global_z': 'm_global_z'})
-        
+
         # Merge the averaged columns back into the original DataFrame
         self.df = self.df.merge(grouped, on='ts_local_coords', how='left')
-        
+
         # Create a mapping of ts_local_coords to index in the averaged points
         self.df['point_index'] = self.df.groupby('ts_local_coords').ngroup()
 
         # Write the updated DataFrame back to the CSV file
         self.df.to_csv(self.file_path, index=False)
-        
+
     def _remove_duplicates(self):
         """
         Remove duplicate rows from the DataFrame.
 
-        This method removes duplicate rows based on the combination of the columns 
+        This method removes duplicate rows based on the combination of the columns
         'ts_local_coords', 'global_x', 'global_y', and 'global_z'.
         """
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
         logger.debug(f"Original rows: {self.df.shape[0]}")
         self.df = self.df.drop_duplicates(subset=['ts_local_coords', 'global_x', 'global_y', 'global_z'])
         logger.debug(f"Unique rows: {self.df.shape[0]}")
-    
+
     def _set_camera_params(self):
         """Set the intrinsic and extrinsic parameters for each camera."""
         if not self.list_cameras:
             return
-        
+
         logger.debug(self.list_cameras)
         logger.debug(self.model.camera_intrinsic)
 
@@ -181,16 +183,17 @@ class BALProblem:
     def get_camera_params(self, i):
         """Retrieve the parameters for camera `i`."""
         return self.cameras_params[i]
-    
+
     def get_point(self, i):
         """Retrieve the 3D point at index `i`."""
         return self.points[i]
+
 
 class BALOptimizer:
     """
     Class for performing Bundle Adjustment optimization.
 
-    The BALOptimizer uses the observations from the BALProblem class to optimize the camera parameters 
+    The BALOptimizer uses the observations from the BALProblem class to optimize the camera parameters
     and 3D points, minimizing the reprojection error.
 
     Attributes:
@@ -198,6 +201,7 @@ class BALOptimizer:
         opt_camera_params (np.ndarray): Optimized camera parameters.
         opt_points (np.ndarray): Optimized 3D points.
     """
+
     def __init__(self, bal_problem):
         """
         Initialize the optimizer with the given BALProblem instance.
@@ -213,7 +217,7 @@ class BALOptimizer:
         """
         Compute the residuals for the current parameters.
 
-        The residuals represent the difference between the observed image points and the 
+        The residuals represent the difference between the observed image points and the
         projected points based on the current camera parameters and 3D points.
 
         Args:
@@ -234,13 +238,13 @@ class BALOptimizer:
             point = points[pt_idx]
 
             point = point / 1000
-            rvec = np.array(camera[:3])  
-            tvec = np.array(camera[3:6])  
+            rvec = np.array(camera[:3])
+            tvec = np.array(camera[3:6])
             focal = camera[6]
             mtx = np.array([[focal, 0.0, 2000.0],
                             [0.0, focal, 1500.0],
                             [0.0, 0.0, 1.0]], dtype=np.float32)
-            
+
             k1, k2, p1, p2, k3 = camera[7:12]
             dist = np.array([k1, k2, p1, p2, k3], dtype=np.float32)
 
@@ -250,22 +254,23 @@ class BALOptimizer:
 
             residuals.append(predicted_x - observed_x)
             residuals.append(predicted_y - observed_y)
-        
+
         return np.array(residuals)
 
     def optimize(self, print_result=True):
         """
         Optimize the camera parameters and 3D points using the Bundle Adjustment method.
 
-        This method uses the Levenberg-Marquardt algorithm (via `scipy.optimize.leastsq`) to minimize the 
-        reprojection error based on the observations. The optimized camera parameters and 3D points are saved, 
+        This method uses the Levenberg-Marquardt algorithm (via `scipy.optimize.leastsq`) to minimize the
+        reprojection error based on the observations. The optimized camera parameters and 3D points are saved,
         and optionally, the residuals before and after optimization are printed.
 
         Args:
             print_result (bool): If True, print the optimization results and residuals before and after the optimization.
         """
         # Initial parameters vector
-        initial_params = np.hstack([param.ravel() for param in self.bal_problem.cameras_params] + [self.bal_problem.points.ravel()])
+        initial_params = np.hstack([param.ravel()
+                                   for param in self.bal_problem.cameras_params] + [self.bal_problem.points.ravel()])
 
         # Perform optimization using leastsq
         result = leastsq(self.residuals, initial_params, full_output=True)
@@ -278,12 +283,12 @@ class BALOptimizer:
         self.opt_points = opt_params[12 * n_cams:].reshape(n_pts, 3)
 
         if print_result:
-            print(f"\n*********** Optimization completed **************")
+            print("\n*********** Optimization completed **************")
             # Compute initial residuals
             initial_residuals = self.residuals(initial_params)
             initial_residuals_sum = np.sum(initial_residuals**2)
             average_residual = initial_residuals_sum / len(self.bal_problem.observations)
-            print(f"** Before BA, Average residual of reproj: {np.round(average_residual, 2)} **")
+            print(f"** Before BA, Residual: {np.round(average_residual, 2)} **")
 
             # Compute Optimize residuals
             opt_residuals = self.residuals(opt_params)
