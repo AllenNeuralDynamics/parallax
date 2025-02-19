@@ -1,6 +1,6 @@
 """ ReticleDetection for identifying reticle coordinates in microscopy images
 
-Process: 
+Process:
 - preprocessing, masking, and morphological operations
 - Utilizes adaptive thresholding, Gaussian blurring, and RANSAC for line detection, line drawing, and pixel refinement
 - Supports line intersection and missing point estimation
@@ -374,7 +374,7 @@ class ReticleDetection:
                     i / (num_missing + 1)
                 )
                 missing_points.append(np.round(missing_point))
-            
+
         return np.array(missing_points)
 
     def _add_missing_pixels(self, bg, lines, line_pixels):
@@ -404,13 +404,13 @@ class ReticleDetection:
             else:
                 if x_diff > y_diff:
                     missing_points_adjusted = np.array([
-                            (x, line_model.predict_y(np.array([x]))[0])
-                            for x in missing_points[:, 0]   
+                        (x, line_model.predict_y(np.array([x]))[0])
+                        for x in missing_points[:, 0]
                     ])
                 else:
                     missing_points_adjusted = np.array([
-                            (line_model.predict_x(np.array([y]))[0], y)
-                            for y in missing_points[:, 1]
+                        (line_model.predict_x(np.array([y]))[0], y)
+                        for y in missing_points[:, 1]
                     ])
             logger.debug(f"missing_points: {missing_points}, adjusted: {missing_points_adjusted}")
 
@@ -464,7 +464,7 @@ class ReticleDetection:
         for line_model, pixels in zip(lines, line_pixels):
             origin, direction = line_model.params[0], line_model.params[1]
             # Extend the line
-            point1 = tuple((origin + -2000 * direction).astype(int))  
+            point1 = tuple((origin + -2000 * direction).astype(int))
             point2 = tuple((origin + 2000 * direction).astype(int))
             cv2.line(bg, point1, point2, (0, 0, 255), 1)
             pixels = np.array(pixels)
@@ -533,7 +533,7 @@ class ReticleDetection:
         img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_ellipse_5)
 
         img = self._eroding(img)
-        #cv2.imwrite("debug/after_eroding.jpg", img)
+        # cv2.imwrite("debug/after_eroding.jpg", img)
         ret, inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img)
         logger.debug(f"n of inliner lines: {len(inliner_lines_pixels)}")
 
@@ -558,7 +558,7 @@ class ReticleDetection:
             pixels_in_lines (list): List of pixel coordinates for the detected lines.
             filename (str): The name of the file to save the debug image.
         """
-        if logger.getEffectiveLevel() == logging.DEBUG:        
+        if logger.getEffectiveLevel() == logging.DEBUG:
             if img.ndim == 2:
                 img_ = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
             else:
@@ -598,11 +598,11 @@ class ReticleDetection:
 
         if ret:
             bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
-            logger.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}" )
+            logger.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}")
             self._draw_debug(bg, pixels_in_lines, "3_refine_pixels")
-    
+
             bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
             logger.debug(f"{self.name} interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
             self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
-        
+
         return ret, bg, inliner_lines, pixels_in_lines

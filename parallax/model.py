@@ -11,6 +11,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from .camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from .stage_listener import Stage, StageInfo
 
+
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""
 
@@ -73,7 +74,7 @@ class Model(QObject):
 
         # clicked pts
         self.clicked_pts = OrderedDict()
-        
+
     def add_calibration(self, cal):
         """Add a calibration.
 
@@ -143,7 +144,7 @@ class Model(QObject):
         Args:
             url (str): The URL to set for the stage listener.
         """
-        self.stage_listener_url = url   
+        self.stage_listener_url = url
 
     def refresh_stages(self):
         """Search for connected stages"""
@@ -208,7 +209,7 @@ class Model(QObject):
             dict: Calibration information for the given stage.
         """
         return self.stages_calib.get(stage_sn)
-    
+
     def reset_stage_calib_info(self):
         """Reset stage calibration info."""
         self.stages_calib = {}
@@ -224,7 +225,7 @@ class Model(QObject):
             # Remove the oldest entry (first added item)
             self.clicked_pts.popitem(last=False)
         self.clicked_pts[camera_name] = pts
-    
+
     def get_pts(self, camera_name):
         """Retrieve points for a specific camera.
 
@@ -235,7 +236,7 @@ class Model(QObject):
             tuple: The points detected by the camera.
         """
         return self.clicked_pts.get(camera_name)
-    
+
     def get_cameras_detected_pts(self):
         """Get the cameras that detected points.
 
@@ -243,7 +244,7 @@ class Model(QObject):
             OrderedDict: Cameras and their corresponding detected points.
         """
         return self.clicked_pts
-    
+
     def reset_pts(self):
         """Reset all detected points."""
         self.clicked_pts = OrderedDict()
@@ -335,11 +336,11 @@ class Model(QObject):
             The position of the x-axis for the camera.
         """
         return self.pos_x.get(camera_name)
-    
+
     def reset_pos_x(self):
         """Reset all x-axis positions."""
         self.pos_x = {}
-    
+
     def add_coords_axis(self, camera_name, coords):
         """Add axis coordinates for a specific camera.
 
@@ -379,7 +380,7 @@ class Model(QObject):
             list: The debug coordinates for the given camera.
         """
         return self.coords_debug.get(camera_name)
-    
+
     def add_camera_intrinsic(self, camera_name, mtx, dist, rvec, tvec):
         """Add intrinsic camera parameters for a specific camera.
 
@@ -453,7 +454,7 @@ class Model(QObject):
             list: The extrinsic parameters [retVal, R, T, E, F] for the camera pair.
         """
         return self.camera_extrinsic.get(name1 + "-" + name2)
-    
+
     def reset_camera_extrinsic(self):
         """Reset all extrinsic camera parameters and clear the best camera pair."""
         self.best_camera_pair = None
@@ -525,7 +526,7 @@ class Model(QObject):
         self.stage_ipconfig_instance = instance
 
     def close_stage_ipconfig_instance(self):
-        """Close the stage IP configuration instance.""" 
+        """Close the stage IP configuration instance."""
         if self.stage_ipconfig_instance is not None:
             self.stage_ipconfig_instance.close()
             self.stage_ipconfig_instance = None

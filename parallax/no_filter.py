@@ -1,6 +1,6 @@
 """
-NoFilter serves as a pass-through component in a frame processing pipeline, 
-employing a worker-thread model to asynchronously handle frames without modification, 
+NoFilter serves as a pass-through component in a frame processing pipeline,
+employing a worker-thread model to asynchronously handle frames without modification,
 facilitating integration and optional processing steps.
 """
 
@@ -12,6 +12,7 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
 
 class NoFilter(QObject):
     """Class representing no filter."""
@@ -83,7 +84,7 @@ class NoFilter(QObject):
     def init_thread(self):
         """Initialize or reinitialize the worker and thread"""
         if self.thread is not None:
-            self.clean()  # Clean up existing thread and worker before reinitializing 
+            self.clean()  # Clean up existing thread and worker before reinitializing
         self.thread = QThread()
         self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
@@ -96,7 +97,7 @@ class NoFilter(QObject):
         self.worker.frame_processed.connect(self.frame_processed.emit)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.destroyed.connect(self.onWorkerDestroyed) # Debug msg
+        self.worker.destroyed.connect(self.onWorkerDestroyed)  # Debug msg
         logger.debug(f"{self.name} init camera name")
 
     def process(self, frame):
@@ -143,7 +144,7 @@ class NoFilter(QObject):
         logger.debug(f"{self.name} Cleaning the thread")
         if self.worker is not None:
             self.worker.stop_running()  # Signal the worker to stop
-        
+
         if not self.threadDeleted and self.thread.isRunning():
             self.thread.quit()  # Ask the thread to quit
             self.thread.wait()  # Wait for the thread to finish

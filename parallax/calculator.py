@@ -1,6 +1,6 @@
 """
-This module implements the Calculator widget, which is used to transform local and global coordinates 
-and control stage movements. It includes functionality for managing stage interactions, applying 
+This module implements the Calculator widget, which is used to transform local and global coordinates
+and control stage movements. It includes functionality for managing stage interactions, applying
 reticle adjustments, and issuing commands for stage movement.
 """
 
@@ -18,12 +18,14 @@ package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 
+
 class Calculator(QWidget):
     """
     The Calculator widget allows users to perform transformations between local and global coordinates
     and control stage movements. It provides functionality for calculating the coordinates, applying
     reticle adjustments, and issuing movement commands to stages.
     """
+
     def __init__(self, model, reticle_selector, stage_controller):
         """
         Initializes the Calculator widget by setting up the UI components and connecting relevant signals.
@@ -41,23 +43,23 @@ class Calculator(QWidget):
 
         self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
         self.setWindowTitle(f"Calculator")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
-            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
-        
-        self.add_stage_groupbox() # Add group boxes for each stage dynamically
+        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
+                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+
+        self.add_stage_groupbox()  # Add group boxes for each stage dynamically
         self.reticle_selector.currentIndexChanged.connect(self._setCurrentReticle)
 
         self.model.add_calc_instance(self)
-    
+
     def add_stage_groupbox(self):
         """ Adds group boxes for each stage dynamically based on the number of stages in the model. """
         self._create_stage_groupboxes()
         self._connect_clear_buttons()
         self._connect_move_stage_buttons()
-        
+
     def remove_stage_groupbox(self):
-        """ 
-        Resets the stage group boxes by removing all dynamically created ones and re-adding them. 
+        """
+        Resets the stage group boxes by removing all dynamically created ones and re-adding them.
         """
         # Find and remove all QGroupBox widgets that start with "groupBox_"
         for stage_sn in list(self.model.stages.keys()):
@@ -111,7 +113,7 @@ class Calculator(QWidget):
         """
         for stage_sn, item in self.model.transforms.items():
             transM, scale = item[0], item[1]
-            if transM is not None: # Set calc function for calibrated stages
+            if transM is not None:  # Set calc function for calibrated stages
                 push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
                 if not push_button:
                     logger.warning(f"Error: QPushButton for {stage_sn} not found")
@@ -256,8 +258,8 @@ class Calculator(QWidget):
         reticle_rot = reticle_metadata.get("rot", 0)
         reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
         reticle_offset = np.array([
-            reticle_metadata.get("offset_x", global_pts[0]), 
-            reticle_metadata.get("offset_y", global_pts[1]), 
+            reticle_metadata.get("offset_x", global_pts[0]),
+            reticle_metadata.get("offset_y", global_pts[1]),
             reticle_metadata.get("offset_z", global_pts[2])
         ])
 
@@ -289,7 +291,7 @@ class Calculator(QWidget):
         logger.debug(f"local_to_global: {local_point_} -> {global_point[:3]}")
         logger.debug(f"R: {transM_LR[:3, :3]}\nT: {transM_LR[:3, 3]}")
 
-         # Ensure the reticle is defined and get its metadata
+        # Ensure the reticle is defined and get its metadata
         if self.reticle and self.reticle != "Global coords":
             # Apply the reticle offset and rotation adjustment
             global_x, global_y, global_z = self._apply_reticle_adjustments(global_point[:3])
@@ -311,20 +313,20 @@ class Calculator(QWidget):
         if self.reticle and self.reticle != "Global coords":
             # Convert global_point to numpy array if it's not already
             global_point = np.array(global_point)
-            
+
             # Get the reticle metadata
             reticle_metadata = self.model.get_reticle_metadata(self.reticle)
-            
+
             # Get rotation matrix (default to identity if not found)
             reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))
-            
+
             # Get offset values, default to global point coordinates if not found
             reticle_offset = np.array([
                 reticle_metadata.get("offset_x", 0),  # Default to 0 if no offset is provided
                 reticle_metadata.get("offset_y", 0),
                 reticle_metadata.get("offset_z", 0)
             ])
-            
+
             # Subtract the reticle offset
             global_point = global_point - reticle_offset
             # Undo the rotation
@@ -400,14 +402,14 @@ class Calculator(QWidget):
 
             # Set the visible title of the QGroupBox to sn
             group_box.setTitle(f"{sn}")
-            group_box.setAlignment(Qt.AlignRight) # title alignment to the right
+            group_box.setAlignment(Qt.AlignRight)  # title alignment to the right
 
             # Append _{sn} to the QGroupBox object name
             group_box.setObjectName(f"groupBox_{sn}")
 
             # Find all QLineEdits and QPushButtons in the group_box and rename them
-            # globalX -> globalX_{sn} / localX -> localX_{sn} 
-            # ClearBtn -> ClearBtn_{sn} 
+            # globalX -> globalX_{sn} / localX -> localX_{sn}
+            # ClearBtn -> ClearBtn_{sn}
             # moveStageXY -> moveStageXY_{sn}
             for line_edit in group_box.findChildren(QLineEdit):
                 line_edit.setObjectName(f"{line_edit.objectName()}_{sn}")
@@ -445,7 +447,7 @@ class Calculator(QWidget):
             "move_type": move_type
         }
         self.stage_controller.stop_request(command)
-    
+
     def _create_stage_function(self, stage_sn, move_type):
         """
         Creates a function to move the stage to specified coordinates.
@@ -458,7 +460,7 @@ class Calculator(QWidget):
             function: A lambda function to move the stage.
         """
         return lambda: self._move_stage(stage_sn, move_type)
-    
+
     def _move_stage(self, stage_sn, move_type):
         """
         Moves the stage to the coordinates specified in the input fields, with confirmation and safety checks.
@@ -469,13 +471,13 @@ class Calculator(QWidget):
         """
         try:
             # Convert the text to float, round it, then cast to int
-            x = float(self.findChild(QLineEdit, f"localX_{stage_sn}").text())/1000
-            y = float(self.findChild(QLineEdit, f"localY_{stage_sn}").text())/1000
-            z = 15.0 # Z is inverted in the server.
+            x = float(self.findChild(QLineEdit, f"localX_{stage_sn}").text()) / 1000
+            y = float(self.findChild(QLineEdit, f"localY_{stage_sn}").text()) / 1000
+            z = 15.0  # Z is inverted in the server.
         except ValueError as e:
             logger.warning(f"Invalid input for stage {stage_sn}: {e}")
             return  # Optionally handle the error gracefully (e.g., show a message to the user)
-        
+
         # Safety Check: Check z=15 is high position of stage.
         if not self._is_z_safe_pos(stage_sn, x, y, z):
             logger.warning(f"Invalid z position for stage {stage_sn}")
@@ -511,8 +513,8 @@ class Calculator(QWidget):
             bool: True if the Z position is safe, False otherwise.
         """
         # Z is inverted in the server
-        local_pts_z15 = [float(x)*1000, float(y)*1000, float(15.0 - z)*1000] # Should be top of the stage
-        local_pts_z0 = [float(x)*1000, float(y)*1000, 15.0*1000] # Should be bottom
+        local_pts_z15 = [float(x) * 1000, float(y) * 1000, float(15.0 - z) * 1000]  # Should be top of the stage
+        local_pts_z0 = [float(x) * 1000, float(y) * 1000, 15.0 * 1000]  # Should be bottom
         for sn, item in self.model.transforms.items():
             if sn != stage_sn:
                 continue
@@ -535,7 +537,7 @@ class Calculator(QWidget):
     def _confirm_move_stage(self, x, y):
         """
         Displays a confirmation dialog asking the user if they are sure about moving the stage.
-        
+
         Args:
             x (float): The x-coordinate for stage movement.
             y (float): The y-coordinate for stage movement.
@@ -543,8 +545,8 @@ class Calculator(QWidget):
         Returns:
             bool: True if the user confirms the move, False otherwise.
         """
-        x = round(x*1000)
-        y = round(y*1000)
+        x = round(x * 1000)
+        y = round(y * 1000)
         message = f"Are you sure you want to move the stage to the local coords, ({x}, {y}, 0)?"
         response = QMessageBox.warning(
             self,
@@ -587,7 +589,7 @@ class Calculator(QWidget):
         self.findChild(QLineEdit, f"globalX_{stage_sn}").clear()
         self.findChild(QLineEdit, f"globalY_{stage_sn}").clear()
         self.findChild(QLineEdit, f"globalZ_{stage_sn}").clear()
-        
+
         # Clear the local coordinate fields
         self.findChild(QLineEdit, f"localX_{stage_sn}").clear()
         self.findChild(QLineEdit, f"localY_{stage_sn}").clear()

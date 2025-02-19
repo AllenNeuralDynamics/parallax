@@ -1,6 +1,6 @@
 """
-Manages reticle detection in images through a worker thread, integrating line detection, 
-masking, coordinate analysis, and camera calibration. Uses PyQt's signals 
+Manages reticle detection in images through a worker thread, integrating line detection,
+masking, coordinate analysis, and camera calibration. Uses PyQt's signals
 for thread-safe operations and real-time processing feedback.
 """
 
@@ -22,6 +22,7 @@ logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+
 
 class ReticleDetectManager(QObject):
     """Reticle detection class"""
@@ -50,7 +51,7 @@ class ReticleDetectManager(QObject):
             self.IMG_SIZE_ORIGINAL = (4000, 3000)
             self.frame_success = None
 
-            self.mask_detect = MaskGenerator(initial_detect = True)
+            self.mask_detect = MaskGenerator(initial_detect=True)
             self.reticleDetector = ReticleDetection(
                 self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name
             )
@@ -191,13 +192,13 @@ class ReticleDetectManager(QObject):
                     frame = self.draw(frame, x_axis_coords, y_axis_coords)
                     frame = self.draw_calibration_info(frame, ret, mtx, dist)
                 self.frame_success = frame
-            
+
             if self.frame_success is None:
                 logger.debug(f"{ self.name} reticle detection fail ")
                 return frame
             else:
                 logger.debug(f"{ self.name} reticle detection success \n")
-                self.stop_running() # If found, stop processing
+                self.stop_running()  # If found, stop processing
                 return self.frame_success
 
         def stop_running(self):
@@ -249,7 +250,7 @@ class ReticleDetectManager(QObject):
 
         self.thread.started.connect(self.worker.run)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.destroyed.connect(self.onThreadDestroyed) # Debug msg
+        self.thread.destroyed.connect(self.onThreadDestroyed)  # Debug msg
         self.threadDeleted = False
 
         self.worker.frame_processed.connect(self.frame_processed)
@@ -279,7 +280,7 @@ class ReticleDetectManager(QObject):
         """Stop the reticle detection manager."""
         if self.worker is not None:
             self.worker.stop_running()
-        
+
     def onWorkerDestroyed(self):
         """Cleanup after worker finishes."""
         logger.debug(f"{self.name} worker finished")
@@ -302,7 +303,7 @@ class ReticleDetectManager(QObject):
         logger.debug(f"{self.name} Cleaning the thread")
         if self.worker is not None:
             self.worker.stop_running()  # Signal the worker to stop
-        
+
         if self.thread and not self.threadDeleted and self.thread.isRunning():
             logger.debug(f"{self.name} Stopping thread in {self.__class__.__name__}")
             self.thread.quit()  # Ask the thread to quit

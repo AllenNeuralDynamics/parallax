@@ -1,7 +1,7 @@
 
 """
-Provides functionality to detect and analyze points of interest on reticle lines in images, 
-employing line fitting and orientation determination techniques suitable 
+Provides functionality to detect and analyze points of interest on reticle lines in images,
+employing line fitting and orientation determination techniques suitable
 for microscopy image analysis tasks.
 """
 
@@ -150,8 +150,8 @@ class ReticleDetectCoordsInterest(QObject):
         if pixels_in_lines[0] is None or pixels_in_lines[1] is None:
             return False, None, None
 
-        if len(pixels_in_lines[0]) < self.n_interest_pixels*2 + 1 \
-            or len(pixels_in_lines[1]) < self.n_interest_pixels*2 + 1:
+        if len(pixels_in_lines[0]) < self.n_interest_pixels * 2 + 1 \
+                or len(pixels_in_lines[1]) < self.n_interest_pixels * 2 + 1:
             return False, None, None
 
         coords_interest = []

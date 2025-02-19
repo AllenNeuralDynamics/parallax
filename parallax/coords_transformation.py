@@ -1,14 +1,15 @@
 """
-This module provides functionality for performing 3D transformations, specifically roll, pitch, 
-and yaw rotations. It also includes methods for fitting transformation parameters to align measured 
-points to global points using least squares optimization. 
+This module provides functionality for performing 3D transformations, specifically roll, pitch,
+and yaw rotations. It also includes methods for fitting transformation parameters to align measured
+points to global points using least squares optimization.
 
 Classes:
-    - RotationTransformation: Handles 3D rotations and optimization of transformation parameters 
+    - RotationTransformation: Handles 3D rotations and optimization of transformation parameters
                               (rotation, translation, and scaling) to fit measured points to global points.
 """
 import numpy as np
 from scipy.optimize import leastsq
+
 
 class RotationTransformation:
     """
@@ -17,6 +18,7 @@ class RotationTransformation:
     and fitting parameters for transforming measured points to global points through
     optimization.
     """
+
     def __init__(self):
         """Initialize the RotationTransformation class."""
         pass
@@ -31,7 +33,7 @@ class RotationTransformation:
 
         Returns:
             numpy.ndarray: The resulting matrix after applying the roll rotation.
-        """ 
+        """
         rollMat = np.array([[1, 0, 0],
                             [0, np.cos(g), -np.sin(g)],
                             [0, np.sin(g), np.cos(g)]])
@@ -63,7 +65,7 @@ class RotationTransformation:
 
         Returns:
             numpy.ndarray: The resulting matrix after applying the yaw rotation.
-        """  
+        """
         yawMat = np.array([[np.cos(a), -np.sin(a), 0],
                            [np.sin(a), np.cos(a), 0],
                            [0, 0, 1]])
@@ -101,7 +103,7 @@ class RotationTransformation:
         R = self.roll(
             self.pitch(
                 self.yaw(eye, z), y), x)
-        
+
         if reflect_z:
             reflection_matrix = np.array([[1, 0, 0],
                                           [0, 1, 0],
@@ -150,16 +152,16 @@ class RotationTransformation:
             float: The average L2 error across all points.
         """
         error_values = self.func(x, measured_pts, global_pts, reflect_z)
-        
+
         # Calculate the L2 error for each point
         l2_errors = np.zeros(len(global_pts))
         for i in range(len(global_pts)):
             error_vector = error_values[i * 3: (i + 1) * 3]
             l2_errors[i] = np.linalg.norm(error_vector)
-        
+
         # Calculate the average L2 error
         average_l2_error = np.mean(l2_errors)
-        
+
         return average_l2_error
 
     def fit_params(self, measured_pts, global_pts):
@@ -176,10 +178,10 @@ class RotationTransformation:
                    scaling factors (scale), and the average error (avg_err).
         """
         x0 = np.array([0, 0, 0, 0, 0, 0, 1, 1, 1])  # initial guess: (x, y, z, x_t, y_t, z_t, s_x, s_y, s_z)
-    
+
         if len(measured_pts) <= 3 or len(global_pts) <= 3:
             raise ValueError("At least three points are required for optimization.")
-        
+
         # Optimize without reflection
         res1 = leastsq(self.func, x0, args=(measured_pts, global_pts, False), maxfev=5000)
         avg_error1 = self.avg_error(res1[0], measured_pts, global_pts, False)

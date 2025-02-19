@@ -168,29 +168,29 @@ class CalibrationCamera:
         - y_axis (int or float): The y-axis value for reticle processing.
 
         Returns:
-        - A tuple of (bool, numpy.ndarray or None, numpy.ndarray or None) 
-        representing success status, intrinsic matrix, 
+        - A tuple of (bool, numpy.ndarray or None, numpy.ndarray or None)
+        representing success status, intrinsic matrix,
         and distortion coefficients respectively.
         """
         self._process_reticle_points(x_axis, y_axis)
         if self.name == "22517664":
             self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.55e+04, 1.5e+03],
-                [0.0e+00, 0.0e+00, 1.0e+00]],
-                dtype=np.float32)
-            self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
+                                 [0.0e+00, 1.55e+04, 1.5e+03],
+                                 [0.0e+00, 0.0e+00, 1.0e+00]],
                                 dtype=np.float32)
+            self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
+                                 dtype=np.float32)
             return True, self.mtx, self.dist
-        
+
         elif self.name == "22433200":
             self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.55e+04, 1.5e+03],
-                [0.0e+00, 0.0e+00, 1.0e+00]],
-                dtype=np.float32)
-            self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
+                                 [0.0e+00, 1.55e+04, 1.5e+03],
+                                 [0.0e+00, 0.0e+00, 1.0e+00]],
                                 dtype=np.float32)
+            self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
+                                 dtype=np.float32)
             return True, self.mtx, self.dist
-        
+
         else:
             return False, None, None
 
@@ -204,7 +204,7 @@ class CalibrationCamera:
         axis = np.float32([[5, 0, 0], [0, 5, 0], [0, 0, 7]]).reshape(-1, 3)
         # Find the rotation and translation vectors.
         # Output rotation vector (see Rodrigues ) that, together with tvec,
-        # brings points from the model coordinate system 
+        # brings points from the model coordinate system
         # to the camera coordinate system.
         if self.objpoints is not None:
             solvePnP_method = cv2.SOLVEPNP_ITERATIVE
@@ -235,7 +235,7 @@ class CalibrationStereo(CalibrationCamera):
     """
 
     def __init__(
-        self, model, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
+            self, model, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
         """
         Initialize the CalibrationStereo object.
 
@@ -260,7 +260,7 @@ class CalibrationStereo(CalibrationCamera):
         self.mtxB, self.distB, self.rvecB, self.tvecB = intrinsicB[0], intrinsicB[1], intrinsicB[2][0], intrinsicB[3][0]
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
         self.flags = cv2.CALIB_FIX_INTRINSIC
-        self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB = None, None, None, None, None 
+        self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB = None, None, None, None, None
         self.P_A, self.P_B = None, None
         self.rmatA, self.rmatB = None, None
 
@@ -352,7 +352,7 @@ class CalibrationStereo(CalibrationCamera):
         return points_3d_hom[:, :3]
 
     def change_coords_system_from_camA_to_global(self, camA, camB, points_3d_AB, print_results=False):
-        """Change coordinate system from camera A to global 
+        """Change coordinate system from camera A to global
         using iterative method.
 
         Args:
@@ -379,7 +379,7 @@ class CalibrationStereo(CalibrationCamera):
             print(f"=== {camB}, World to Camera transformation ====")
             print(f"rvecs: {self.rvecB}")
             print(f"tvecs: {self.tvecB}")
-  
+
         # Convert rotation vectors to rotation matrices
         rmat, _ = cv2.Rodrigues(self.rvecA)
         # Invert the rotation and translation
@@ -432,7 +432,7 @@ class CalibrationStereo(CalibrationCamera):
 
     def test_x_y_z_performance(self, points_3d_G):
         """
-        Evaluates the performance of the stereo calibration by comparing the 
+        Evaluates the performance of the stereo calibration by comparing the
         predicted 3D points with the original object points.
 
         Args:
@@ -485,7 +485,7 @@ class CalibrationStereo(CalibrationCamera):
         points_3d_G = self.change_coords_system_from_camA_to_global(
             camA, camB, points_3d_AB, print_results=print_results
         )
-        
+
         differences = points_3d_G - self.objpoints[0]
         squared_distances = np.sum(np.square(differences), axis=1)
         euclidean_distances = np.sqrt(squared_distances)
@@ -509,7 +509,7 @@ class CalibrationStereo(CalibrationCamera):
             imgpointsA_converted = np.array(
                 self.imgpointsA[i], dtype=np.float32
             ).reshape(-1, 2)
-            
+
             imgpoints2, _ = cv2.projectPoints(
                 self.objpoints[i], self.rvecA, self.tvecA, self.mtxA, self.distA
             )
@@ -521,7 +521,7 @@ class CalibrationStereo(CalibrationCamera):
             average_L2_distance = np.mean(distances)
             mean_error += average_L2_distance
             logger.debug("A pixel diff")
-            logger.debug(imgpointsA_converted-imgpoints2_reshaped)
+            logger.debug(imgpointsA_converted - imgpoints2_reshaped)
         total_err = mean_error / len(self.objpoints)
         print(f"(Reprojection error) Pixel L2 diff A: {total_err} pixels")
 
@@ -571,7 +571,7 @@ class CalibrationStereo(CalibrationCamera):
         # Call the get_pixel_coordinates method using the object points
         pixel_coordsA = self.get_pixel_coordinates(objpoints, self.rvecA, self.tvecA, self.mtxA, self.distA)
         pixel_coordsB = self.get_pixel_coordinates(objpoints, self.rvecB, self.tvecB, self.mtxB, self.distB)
-        
+
         # Register the pixel coordinates for the debug points
         self.model.add_coords_for_debug(camA, pixel_coordsA)
         self.model.add_coords_for_debug(camB, pixel_coordsB)

@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self)  # Initialize the QMainWindow
         self.model = model
         self.dummy = dummy
-        
+
         # Initialize an empty list to keep track of microscopeGrp widgets instances
         self.screen_widgets = []
         self.recording_camera_list = []
@@ -397,10 +397,10 @@ class MainWindow(QMainWindow):
 
         # S/N
         # Add the list of cameras (serial number) in ComboBox
-        for sn in self.model.cameras_sn:        
-            settingMenu.snComboBox.addItem(sn) 
+        for sn in self.model.cameras_sn:
+            settingMenu.snComboBox.addItem(sn)
         # Select the sn for the current screen
-        sn = screen.get_camera_name()           
+        sn = screen.get_camera_name()
         index = settingMenu.snComboBox.findText(sn)
         if index >= 0:
             settingMenu.snComboBox.setCurrentIndex(index)
@@ -576,7 +576,7 @@ class MainWindow(QMainWindow):
         ]
 
         # Ensure screen_index is within valid range
-        if (0 <= screen_index < len(prev_lists)):  
+        if (0 <= screen_index < len(prev_lists)):
             curr_list = prev_lists[:]
             curr_list.pop(screen_index)
             curr_list.insert(screen_index, curr_camera)
@@ -587,7 +587,7 @@ class MainWindow(QMainWindow):
 
         # Handle updates based on the current state of the application
         # If the 'Start' button is enabled (continuous acquisition mode)
-        if (self.startButton.isChecked()):  
+        if (self.startButton.isChecked()):
             if set(prev_lists) == set(curr_list):
                 # If the list of cameras hasn't changed, just update the current screen's camera
                 screen.set_camera(camera_list.get(curr_camera))
@@ -643,11 +643,10 @@ class MainWindow(QMainWindow):
         )
 
         if is_checked:
-            # If the settings button is checked, start the settings refresh 
+            # If the settings button is checked, start the settings refresh
             # timer and show the settings menu
             # update setting menu every 0.1 sec
-            self.settings_refresh_timer.start(100)      
-            
+            self.settings_refresh_timer.start(100)
 
             # Show the setting menu next to setting button
             button_position = settingButton.mapToGlobal(settingButton.pos())
@@ -664,7 +663,7 @@ class MainWindow(QMainWindow):
             settingMenu.move(menu_x, menu_y)
             settingMenu.show()
         else:
-            # If the settings button is unchecked, stop the settings 
+            # If the settings button is unchecked, stop the settings
             # refresh timer and hide the settings menu
             self.settings_refresh_timer.stop()
             settingMenu.hide()
@@ -774,7 +773,7 @@ class MainWindow(QMainWindow):
         """
         Handles the widget's close event by performing cleanup actions for the model instances.
 
-        This method ensures that all PointMesh widgets, Calculator instances, and ReticleMetadata 
+        This method ensures that all PointMesh widgets, Calculator instances, and ReticleMetadata
         instances managed by the model are closed before the widget itself is closed.
 
         Args:

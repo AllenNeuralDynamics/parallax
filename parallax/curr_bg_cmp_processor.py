@@ -1,9 +1,9 @@
 """
-CurrBgCmpProcessor: Module for finding the difference image 
+CurrBgCmpProcessor: Module for finding the difference image
 using Current and Background Comparison.
 
-This module provides classes and methods for processing images 
-to detect differences between a current image and a background image, 
+This module provides classes and methods for processing images
+to detect differences between a current image and a background image,
 with the aim of detecting a probe and its tip.
 
 Classes:
@@ -13,7 +13,7 @@ Classes:
 Usage:
     - Initialize an instance of CurrBgCmpProcessor with necessary parameters.
     - Use the first_cmp() method to perform the initial comparison.
-    - Use the update_cmp() method to update the comparison and detect changes 
+    - Use the update_cmp() method to update the comparison and detect changes
       over time.
 """
 
@@ -28,7 +28,7 @@ from .utils import UtilsCoords, UtilsCrops
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, 
+# Set the logging level for PyQt5.uic.uiparser/properties to WARNING,
 # to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -37,6 +37,7 @@ if logger.getEffectiveLevel() == logging.DEBUG:
     package_dir = os.path.dirname(os.path.abspath(__file__))
     debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
     os.makedirs(debug_dir, exist_ok=True)
+
 
 class CurrBgCmpProcessor():
     """Finding diff image using Current and Background Comparison"""
@@ -131,7 +132,7 @@ class CurrBgCmpProcessor():
         if ret:
             ret_precise_tip_ret = self._get_precise_tip(org_img)
             if ret_precise_tip_ret:
-                self._update_bg(extended_offset = 10)
+                self._update_bg(extended_offset=10)
 
         logger.debug(f"update: {ret}, precise_tip: {ret_precise_tip_ret}")
 
@@ -143,7 +144,7 @@ class CurrBgCmpProcessor():
 
         return ret, ret_precise_tip_ret
 
-    def _update_bg(self, extended_offset = 10):
+    def _update_bg(self, extended_offset=10):
         """Update the background image."""
         kernel = np.ones((3, 3), np.uint8)
         self.diff_img_crop = cv2.dilate(
@@ -181,7 +182,7 @@ class CurrBgCmpProcessor():
 
         # Draw the extended line
         cv2.line(
-            #diff_img, extended_probe_tip, extended_probe_base, 255, thickness=5
+            # diff_img, extended_probe_tip, extended_probe_base, 255, thickness=5
             diff_img, extended_probe_tip, extended_probe_base, 255, thickness=10
         )
 
@@ -239,29 +240,33 @@ class CurrBgCmpProcessor():
             crop_size += 100
 
         return ret
-    
+
     def get_point_tip(self):
         """Get the probe tip and base points."""
         if self.ProbeDetector.probe_tip_org is not None:
             return self.ProbeDetector.probe_tip_org
         elif self.ProbeDetector.probe_tip is not None:
-            tip = UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            tip = UtilsCoords.scale_coords_to_original(
+                self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             return tip
         else:
-            return None 
+            return None
 
     def get_point_base(self):
         """Get the probe tip and base points."""
         if self.ProbeDetector.probe_base is not None:
-            return UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            return UtilsCoords.scale_coords_to_original(
+                self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
         else:
-            return None  
+            return None
 
     def get_crop_region_boundary(self):
         """Get the boundary of the crop region."""
         if self.top is not None:
-            top_left  = UtilsCoords.scale_coords_to_original((self.left, self.top), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            bottom_right = UtilsCoords.scale_coords_to_original((self.right, self.bottom), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            top_left = UtilsCoords.scale_coords_to_original(
+                (self.left, self.top), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            bottom_right = UtilsCoords.scale_coords_to_original(
+                (self.right, self.bottom), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             left, top = top_left
             right, bottom = bottom_right
             return top, bottom, left, right
@@ -274,7 +279,7 @@ class CurrBgCmpProcessor():
 
     def _get_precise_tip(self, org_img):
         """Get precise probe tip on original size image
-        
+
         Args:
             org_img (numpy.ndarray): Original image.
 
@@ -288,7 +293,7 @@ class CurrBgCmpProcessor():
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )
         probe_base_original_coords = UtilsCoords.scale_coords_to_original(
-            self.ProbeDetector.probe_base, 
+            self.ProbeDetector.probe_base,
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )
 
@@ -298,7 +303,7 @@ class CurrBgCmpProcessor():
             crop_size=20,
             IMG_SIZE=self.IMG_SIZE_ORIGINAL,
         )
-        
+
         self.tip_image = org_img[self.top_fine:self.bottom_fine, self.left_fine:self.right_fine]
         ret, tip = ProbeFineTipDetector.get_precise_tip(
             self.tip_image,
@@ -330,7 +335,7 @@ class CurrBgCmpProcessor():
 
         Args:
             curr_img (numpy.ndarray): Current image.
-    
+
         Returns:
             numpy.ndarray: Binary image.
         """

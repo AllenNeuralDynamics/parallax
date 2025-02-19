@@ -1,6 +1,6 @@
 """
-ProbeDetectManager coordinates probe detection in images, leveraging PyQt threading 
-and signals for real-time processing. It handles frame updates, detection, 
+ProbeDetectManager coordinates probe detection in images, leveraging PyQt threading
+and signals for real-time processing. It handles frame updates, detection,
 and result communication, utilizing components like MaskGenerator and ProbeDetector.
 """
 
@@ -24,6 +24,7 @@ logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+
 class ProbeDetectManager(QObject):
     """
     Manager class for probe detection. It handles frame processing, probe detection,
@@ -35,8 +36,8 @@ class ProbeDetectManager(QObject):
 
     class Worker(QObject):
         """
-        Worker class for performing probe detection in a separate thread. This class handles 
-        image processing, probe detection, and reticle detection, and communicates results 
+        Worker class for performing probe detection in a separate thread. This class handles
+        image processing, probe detection, and reticle detection, and communicates results
         through PyQt signals.
         """
         finished = pyqtSignal()
@@ -53,7 +54,7 @@ class ProbeDetectManager(QObject):
             """
             QObject.__init__(self)
             self.model = model
-            self.name = name # Camera serial number
+            self.name = name  # Camera serial number
             self.running = False
             self.is_detection_on = False
             self.is_calib = False
@@ -63,7 +64,7 @@ class ProbeDetectManager(QObject):
             self.reticle_coords = self.model.get_coords_axis(self.name)
             self.reticle_coords_debug = self.model.get_coords_for_debug(self.name)
             self.colormap_reticle = None
-            self.colormap_reticle_debug = None  
+            self.colormap_reticle_debug = None
 
             self.prev_img = None
             self.reticle_zone = None
@@ -129,11 +130,11 @@ class ProbeDetectManager(QObject):
             """Process the frame for probe detection.
             1. First run currPrevCmpProcess
             2. If it fails on 1, run currBgCmpProcess
- 
+
             Args:
                 frame (numpy.ndarray): Input frame.
                 timestamp (str): Timestamp of the frame.
- 
+
             Returns:
                 tuple: Processed frame and timestamp.
             """
@@ -168,7 +169,7 @@ class ProbeDetectManager(QObject):
                         )
                 else:  # Tracking for the known probe
                     is_first_detect = False
-                    if self.is_calib and self.probe_stopped: # stage is stopped and first frame
+                    if self.is_calib and self.probe_stopped:  # stage is stopped and first frame
                         self.ret_crop, self.ret_tip = self.currPrevCmpProcess.update_cmp(
                             self.curr_img, self.prev_img, mask, gray_img
                         )
@@ -178,19 +179,19 @@ class ProbeDetectManager(QObject):
                                 self.curr_img, mask, gray_img
                             )
                             self.is_curr_bg_comp = True if (self.ret_crop and self.ret_tip) else False
-                        
-                        if self.is_curr_prev_comp or self.is_curr_bg_comp: 
+
+                        if self.is_curr_prev_comp or self.is_curr_bg_comp:
                             self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
                             cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0), -1)
                             self.prev_img = self.curr_img
                             self.probe_stopped = False
 
-                    elif self.is_calib and not self.probe_stopped: # stage is stopped and second frame
+                    elif self.is_calib and not self.probe_stopped:  # stage is stopped and second frame
                         if self.is_curr_prev_comp or self.is_curr_bg_comp:
                             self.found_coords.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
                             cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0), -1)
-                            
-                    else: # stage is moving
+
+                    else:  # stage is moving
                         self.probe_stopped = True
                         is_curr_prev_comp, is_curr_bg_comp = False, False
 
@@ -203,13 +204,13 @@ class ProbeDetectManager(QObject):
                                 self.curr_img, mask, gray_img
                             )
                             is_curr_bg_comp = True if (ret_crop and ret_tip) else False
-                        
-                        if is_curr_prev_comp or is_curr_bg_comp: 
+
+                        if is_curr_prev_comp or is_curr_bg_comp:
                             cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0), -1)
 
                 if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
-                    frame = self.debug_draw_boundary(frame, is_first_detect, \
-                        self.ret_crop, self.ret_tip, self.is_curr_prev_comp, self.is_curr_bg_comp)
+                    frame = self.debug_draw_boundary(frame, is_first_detect,
+                                                     self.ret_crop, self.ret_tip, self.is_curr_prev_comp, self.is_curr_bg_comp)
             else:
                 self.prev_img = self.curr_img
 
@@ -278,10 +279,10 @@ class ProbeDetectManager(QObject):
 
             if self.reticle_coords_debug is not None:
                 indices = np.linspace(
-                        0, 255, len(self.reticle_coords_debug[0]), endpoint=True, dtype=np.uint8
-                    )
+                    0, 255, len(self.reticle_coords_debug[0]), endpoint=True, dtype=np.uint8
+                )
                 self.colormap_reticle_debug = cv2.applyColorMap(indices, cv2.COLORMAP_JET)
-            
+
         def run(self):
             """Run the worker thread."""
             logger.debug("probe_detect_manager running ")
@@ -328,12 +329,14 @@ class ProbeDetectManager(QObject):
                 thickness = 2
                 text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
                 text_x = width - text_size[0] - 10  # 10 pixels from the right edge
-                text_y = height - 10  # 10 pixels from the bottom edge   
-                color = (0, 255, 0) if (ret_crop and ret_tip) else (255, 0, 0) # Green if detection is successful, red otherwise
+                text_y = height - 10  # 10 pixels from the bottom edge
+
+                # Green if detection is successful, red otherwise
+                color = (0, 255, 0) if (ret_crop and ret_tip) else (255, 0, 0)
                 cv2.putText(frame, text, (text_x, text_y), font, font_scale, color, thickness)
 
                 # Debug log when first detection is successful
-                if (ret_crop and ret_tip): # debug log when first detection is successful
+                if (ret_crop and ret_tip):  # debug log when first detection is successful
                     logger.debug(f"{self.name} First detect")
                     logger.debug(
                         f"angle: {self.probeDetect.angle}, \
@@ -341,9 +344,9 @@ class ProbeDetectManager(QObject):
                         base: {self.probeDetect.probe_base}"
                     )
 
-            else: # Not first detection
-                #logger.debug(f"cam:{self.name}, ret_crop:{ret_crop} ret_tip:{ret_tip}, stopped: {self.is_calib}")
-                #logger.debug(f"---------------------------------")
+            else:  # Not first detection
+                # logger.debug(f"cam:{self.name}, ret_crop:{ret_crop} ret_tip:{ret_tip}, stopped: {self.is_calib}")
+                # logger.debug(f"---------------------------------")
 
                 top, bottom, left, right = None, None, None, None
                 top_f, bottom_f, left_f, right_f = None, None, None, None
@@ -354,7 +357,7 @@ class ProbeDetectManager(QObject):
                 else:
                     top, bottom, left, right = self.currBgCmpProcess.get_crop_region_boundary()
                     top_f, bottom_f, left_f, right_f = self.currBgCmpProcess.get_fine_tip_boundary()
-                
+
                 # Success: Green, Failure: Red, Success with curr-prev comparison: Yellow
                 color_crop = (0, 255, 0) if ret_crop else (255, 0, 0)
                 color_tip = (0, 255, 0) if ret_tip else (255, 0, 0)
@@ -402,11 +405,11 @@ class ProbeDetectManager(QObject):
         Initialize the worker thread and set up signal connections.
         """
         if self.thread is not None:
-            self.clean()  # Clean up existing thread and worker before reinitializing 
+            self.clean()  # Clean up existing thread and worker before reinitializing
         self.thread = QThread()
         self.worker = self.Worker(self.name, self.model)
         self.worker.moveToThread(self.thread)
-        
+
         self.thread.started.connect(self.worker.run)
         self.thread.finished.connect(self.thread.deleteLater)
         self.thread.destroyed.connect(self.onThreadDestroyed)
@@ -507,7 +510,7 @@ class ProbeDetectManager(QObject):
         """
         if self.worker is not None:
             self.worker.enable_calib()
-    
+
     def disable_calibration(self, sn):  # Call from stage listener.
         """
         Disable calibration mode for the worker.

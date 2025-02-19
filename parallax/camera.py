@@ -23,6 +23,7 @@ except ImportError:
     PySpin = None
     logger.warning("Could not import PySpin.")
 
+
 def list_cameras(dummy=False, version="V1"):
     """
     List available cameras.
@@ -235,7 +236,7 @@ class PySpinCamera:
             node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
 
         self.camera_info()
-        
+
         # acquisition on initialization
         if VERSION == "V1":
             # begin acquisition
@@ -550,14 +551,14 @@ class PySpinCamera:
             )
 
     def save_last_image(
-        self, filepath, isTimestamp=False, custom_name="Microscope_"):
+            self, filepath, isTimestamp=False, custom_name="Microscope_"):
         """
         Saves the last captured image to the specified file path.
 
         Args:
         - filepath (str): Directory to save the image.
         - isTimestamp (bool): Whether to append a timestamp to the filename.
-        - custom_name (str): Custom prefix for the filename. 
+        - custom_name (str): Custom prefix for the filename.
         S/N is set as custom name.
         """
         image_name = (
@@ -627,7 +628,7 @@ class PySpinCamera:
 
     def camera_info(self):
         """
-        Retrieves and logs the camera's essential information 
+        Retrieves and logs the camera's essential information
         such as frame dimensions and channels.
         """
         # Gather camera details
@@ -743,7 +744,7 @@ class MockCamera:
     def get_last_image_data(self):
         """
         Return last image as numpy array with shape (height, width, 3) for RGB
-		or (height, width) for mono.
+                or (height, width) for mono.
         """
         frame = self.data[self._next_frame]
         self._next_frame = (self._next_frame + 1) % self.data.shape[0]

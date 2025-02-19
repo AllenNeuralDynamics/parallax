@@ -1,8 +1,8 @@
 """
 This module defines the ScreenCoordsMapper class, which is responsible for converting
 clicked screen coordinates from a camera view into corresponding global coordinates.
-It handles the interaction with stereo calibration or bundle adjustment (BA) to 
-calculate the global position of clicked points on screen widgets, and applies 
+It handles the interaction with stereo calibration or bundle adjustment (BA) to
+calculate the global position of clicked points on screen widgets, and applies
 reticle-specific adjustments if needed.
 
 The ScreenCoordsMapper class includes functionality to:
@@ -19,12 +19,14 @@ import numpy as np
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class ScreenCoordsMapper():
     """
-    This class handles the mapping of screen coordinates to global coordinates 
-    by processing the clicked position on a camera screen and calculating the 
+    This class handles the mapping of screen coordinates to global coordinates
+    by processing the clicked position on a camera screen and calculating the
     corresponding global coordinates based on reticle adjustments or stereo calibration.
     """
+
     def __init__(self, model, screen_widgets, reticle_selector, x, y, z):
         """
         Initialize the ScreenCoordsMapper with model data, screen widgets, reticle selector, and input fields.
@@ -51,7 +53,7 @@ class ScreenCoordsMapper():
     def _clicked_position(self, camera_name, pos):
         """
         Handle the event when a position is clicked on the camera screen.
-        It calculates the global coordinates based on the camera clicked and 
+        It calculates the global coordinates based on the camera clicked and
         updates the corresponding UI fields.
 
         Args:
@@ -70,14 +72,14 @@ class ScreenCoordsMapper():
             return
 
         # Convert global coordinates to mm and round to 1 decimal
-        global_coords = np.round(global_coords*1000, decimals=1)
-        
+        global_coords = np.round(global_coords * 1000, decimals=1)
+
         # Apply reticle adjustments if a reticle is selected
         reticle_name = self.reticle_selector.currentText()
         if "Proj" not in reticle_name:
             return
         self.reticle = reticle_name.split('(')[-1].strip(')')
-        
+
         # Apply reticle-specific adjustments or use raw global coordinates
         global_x, global_y, global_z = global_coords
         if self.reticle == "Proj Global coords":
@@ -94,13 +96,13 @@ class ScreenCoordsMapper():
 
         logger.debug(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
         print(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
-        
+
     def add_global_coords_to_dropdown(self):
         """
         Add an entry for "Proj Global coords" to the reticle selector dropdown.
         """
         self.reticle_selector.addItem(f"Proj Global coords")
-        
+
     def _apply_reticle_adjustments(self, global_pts):
         """
         Apply the reticle-specific metadata adjustments to the given global coordinates.
@@ -116,14 +118,14 @@ class ScreenCoordsMapper():
         reticle_rot = reticle_metadata.get("rot", 0)
         reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
         reticle_offset = np.array([
-            reticle_metadata.get("offset_x", global_pts[0]), 
-            reticle_metadata.get("offset_y", global_pts[1]), 
+            reticle_metadata.get("offset_x", global_pts[0]),
+            reticle_metadata.get("offset_y", global_pts[1]),
             reticle_metadata.get("offset_z", global_pts[2])
         ])
 
         # Apply rotation if necessary
         if reticle_rot != 0:
-            global_pts = global_pts @ reticle_rotmat.T # Transpose because points are row vectors
+            global_pts = global_pts @ reticle_rotmat.T  # Transpose because points are row vectors
         global_pts = global_pts + reticle_offset
 
         # Round the adjusted coordinates to 1 decimal place
@@ -189,7 +191,7 @@ class ScreenCoordsMapper():
         if stereo_instance is None:
             logger.debug(f"Stereo calibration instance not found for cameras: {camA_best}, {camB_best}")
             return None
-        
+
         # Calculate global coordinates using stereo calibration
         global_coords = stereo_instance.get_global_coords(
             camA_best, tip_coordsA, camB_best, tip_coordsB
@@ -228,7 +230,7 @@ class ScreenCoordsMapper():
             else:
                 camB = camera
                 tip_coordsB = pts
-        
+
         if not camA or not camB or tip_coordsA is None or tip_coordsB is None:
             logger.debug("Insufficient camera data to compute global coordinates")
             return None
@@ -238,14 +240,14 @@ class ScreenCoordsMapper():
         if stereo_instance is None:
             logger.debug(f"Stereo calibration instance not found for cameras: {camA}, {camB}")
             return None
-        
+
         # Calculate global coordinates using the stereo instance
         global_coords = stereo_instance.get_global_coords(
             camA, tip_coordsA, camB, tip_coordsB
         )
 
         return global_coords[0]
-    
+
     def _get_calibration_instance(self, camA, camB):
         """
         Retrieve the stereo calibration instance for a given pair of cameras.

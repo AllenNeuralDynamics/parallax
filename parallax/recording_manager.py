@@ -1,6 +1,6 @@
 """
-RecordingManager manages snapshot saving and video recording from multiple camera feeds, 
-supporting custom file naming and ensuring recordings are properly initiated and 
+RecordingManager manages snapshot saving and video recording from multiple camera feeds,
+supporting custom file naming and ensuring recordings are properly initiated and
 stopped across active cameras.
 """
 

@@ -1,6 +1,6 @@
 """
-ProbeDetector identifies probe tip and base in images using contour processing 
-and Hough Line Transform, with gradient analysis for refinement and directional 
+ProbeDetector identifies probe tip and base in images using contour processing
+and Hough Line Transform, with gradient analysis for refinement and directional
 checks to ensure accuracy.
 """
 
@@ -63,7 +63,7 @@ class ProbeDetector:
         """
         gradient_index = np.where(self.angle_step_bins == target_angle)[0][0]
         neighboring_gradients = self.angle_step_bins_with_neighbor[
-            gradient_index : gradient_index + 3
+            gradient_index: gradient_index + 3
         ]
         return neighboring_gradients
 
@@ -97,7 +97,7 @@ class ProbeDetector:
         if remove_noise:
             for contour in contours:
                 # Remove Noise
-                if cv2.contourArea(contour) < noise_threshold*noise_threshold:
+                if cv2.contourArea(contour) < noise_threshold * noise_threshold:
                     img = cv2.drawContours(img, [contour], -1, (0, 0, 0), -1)
         return img
 
@@ -248,7 +248,7 @@ class ProbeDetector:
 
         gradient_index = gradient_index[0][0]
         neighboring_gradients = self.angle_step_bins_with_neighbor[
-            gradient_index : gradient_index + 3
+            gradient_index: gradient_index + 3
         ]
 
         # Draw the line segments
@@ -326,7 +326,6 @@ class ProbeDetector:
         if mask is None:
             mask = np.zeros((self.IMG_SIZE[1], self.IMG_SIZE[0]), dtype=np.uint8)
 
-        
         mask = cv2.copyMakeBorder(
             mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0]
         )
@@ -372,7 +371,7 @@ class ProbeDetector:
             bool: True if the distance is within the threshold, False otherwise.
         """
         dist = ((point1[0] - point2[0]) ** 2 +
-                (point1[1] - point2[1]) ** 2 )** 0.5
+                (point1[1] - point2[1]) ** 2) ** 0.5
         return dist < thres
 
     # Get the gradient / pixel points of probe at first time

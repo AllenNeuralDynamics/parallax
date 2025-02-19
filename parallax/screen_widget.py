@@ -1,6 +1,6 @@
 """
-Provides ScreenWidget for image interaction in microscopy apps, supporting image display, 
-point selection, and zooming. It integrates with probe and reticle detection managers 
+Provides ScreenWidget for image interaction in microscopy apps, supporting image display,
+point selection, and zooming. It integrates with probe and reticle detection managers
 for real-time processing and offers camera control functions.
 """
 
@@ -22,13 +22,15 @@ logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+
 class ScreenWidget(pg.GraphicsView):
     """Screens Class"""
 
-    selected = pyqtSignal(str, tuple) # camera name, (x, y)
+    selected = pyqtSignal(str, tuple)  # camera name, (x, y)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
-    probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)  # camera name, timestamp, sn, stage_info, pixel_coords
+    # camera name, timestamp, sn, stage_info, pixel_coords
+    probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)
 
     def __init__(self, camera, filename=None, model=None, parent=None):
         """Init screen widget object"""
@@ -70,17 +72,17 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = camera
         self.camera_name = self.get_camera_name()
         self.focochan = None
-        
+
         # Dynamically set zoom limits based on image size
         width, height = self.camera.width, self.camera.height
         if height is not None and width:
             self.view_box.setLimits(
-                xMin= -width, xMax= width * 2,  # Prevent panning outside image boundaries
-                yMin= -height, yMax= height * 2,
+                xMin=-width, xMax=width * 2,  # Prevent panning outside image boundaries
+                yMin=-height, yMax=height * 2,
                 maxXRange=width * 10,
                 maxYRange=height * 10
             )
-        
+
         # No filter
         self.filter = NoFilter(self.camera_name)
         self.filter.frame_processed.connect(self.set_image_item_from_data)
@@ -287,10 +289,10 @@ class ScreenWidget(pg.GraphicsView):
         """Select a position and emit the selected coordinates."""
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
-        camera_name = self.get_camera_name() 
+        camera_name = self.get_camera_name()
         print(f"Clicked position on {camera_name}: ({pos[0]}, {pos[1]})")
         self.selected.emit(camera_name, pos)
-        
+
     def select2(self, pos):
         """Select a second position and make the click target visible."""
         self.click_target2.setPos(pos)

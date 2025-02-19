@@ -1,5 +1,5 @@
 """
-Provides classes to manage stage data fetching, representation, and updates in microscopy 
+Provides classes to manage stage data fetching, representation, and updates in microscopy
 applications, using PyQt5 for threading and signals, and requests for HTTP requests.
 """
 
@@ -74,7 +74,7 @@ class Worker(QObject):
 
     dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
     stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
-    stage_not_moving = pyqtSignal(dict) # Emitted when a stage is not moving.
+    stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving.
 
     def __init__(self, url):
         """Initialize worker thread"""
@@ -88,7 +88,7 @@ class Worker(QObject):
         self._low_freq_interval = 1000
         self._high_freq_interval = 20
         self.curr_interval = self._low_freq_interval
-        self._idle_time = 0.3 # 0.3s
+        self._idle_time = 0.3  # 0.3s
         self.is_error_log_printed = False
 
     def start(self, interval=1000):
@@ -111,7 +111,7 @@ class Worker(QObject):
         """
         self.timer.stop()  # Stop the timer before updating the URL
         self.url = url
-        self.start() # Restart the timer
+        self.start()  # Restart the timer
 
     def print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
@@ -151,7 +151,7 @@ class Worker(QObject):
                             self.stop()
                             self.start(interval=self.curr_interval)
                             self.stage_not_moving.emit(probe)
-                            #print("low freq mode: ", self.curr_interval)
+                            # print("low freq mode: ", self.curr_interval)
 
                     # If moves more than 10um, check w/ high freq
                     if self.isSignificantChange(probe):
@@ -162,7 +162,7 @@ class Worker(QObject):
                             self.stop()
                             self.start(interval=self.curr_interval)
                             self.stage_moving.emit(probe)
-                            #print("high freq mode: ", self.curr_interval)
+                            # print("high freq mode: ", self.curr_interval)
 
                     self.is_error_log_printed = False
             else:
@@ -175,7 +175,6 @@ class Worker(QObject):
                 self.is_error_log_printed = True
                 print(f"\nHttpServer for stages not enabled: {e}")
                 self.print_trouble_shooting_msg()
-
 
     def isSignificantChange(self, current_stage_info, stage_threshold=0.001):
         """Check if the change in any axis exceeds the threshold."""
@@ -220,7 +219,7 @@ class StageListener(QObject):
         self.stage_global_data = None
         self.transM_dict = {}
         self.scale_dict = {}
-        
+
     def start(self):
         """Start the stage listener."""
         if self.model.nStages != 0:
@@ -343,7 +342,7 @@ class StageListener(QObject):
         local_point = local_point * np.append(scale, 1)
         global_point = np.dot(transM, local_point)
         global_point = np.around(global_point[:3], decimals=1)
-        
+
         # Update into UI
         moving_stage.stage_x_global = global_point[0]
         moving_stage.stage_y_global = global_point[1]
@@ -365,7 +364,7 @@ class StageListener(QObject):
         self.scale_dict[sn] = scale
         logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM} {scale}")
 
-    def requestClearGlobalDataTransformM(self, sn = None):
+    def requestClearGlobalDataTransformM(self, sn=None):
         """
         Clears all stored transformation matrices and resets the UI to default global coordinates.
 
@@ -373,14 +372,14 @@ class StageListener(QObject):
             - Clears `transM_dict`, removing all stored transformation matrices.
             - Triggers a UI update to reset the display of global coordinates to default values.
         """
-        if sn is None: # Not specified, clear all (Use case: reticle Dection is reset)
+        if sn is None:  # Not specified, clear all (Use case: reticle Dection is reset)
             self.transM_dict = {}
             self.scale_dict = {}
         else:
             if self.transM_dict.get(sn) is not None:
                 self.transM_dict.pop(sn)
             if self.scale_dict.get(sn) is not None:
-                self.scale_dict.pop(sn)    
+                self.scale_dict.pop(sn)
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 
@@ -464,14 +463,14 @@ class StageListener(QObject):
             debug_info["pt0"] = pt0
             debug_info["cam1"] = cam1
             debug_info["pt1"] = pt1
-                
+
             # Update into UI
             moving_stage = self.model.stages.get(sn)
             if moving_stage is not None:
                 moving_stage.stage_x_global = global_coords_x
                 moving_stage.stage_y_global = global_coords_y
                 moving_stage.stage_z_global = global_coords_z
-            
+
             if self.stage_ui.get_selected_stage_sn() == sn:
                 self.probeCalibRequest.emit(self.stage_global_data, debug_info)
                 self.stage_ui.updateStageGlobalCoords()
@@ -489,9 +488,9 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            probeDetector.start_detection(sn) # Detect when probe is moving
+            probeDetector.start_detection(sn)  # Detect when probe is moving
             probeDetector.disable_calibration(sn)
-            #probeDetector.stop_detection(sn) # Detect when probe is not moving
+            # probeDetector.stop_detection(sn) # Detect when probe is not moving
 
     def stageNotMovingStatus(self, probe):
         """Handle not moving probe status.
@@ -501,9 +500,9 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            #probeDetector.stop_detection(sn) # Stop detection when probe is not moving
+            # probeDetector.stop_detection(sn) # Stop detection when probe is not moving
             probeDetector.enable_calibration(sn)
-             # Stop detection when probe is moving
+            # Stop detection when probe is moving
 
     def set_low_freq_as_high_freq(self, interval=10):
         """Change the frequency to low."""
@@ -511,13 +510,12 @@ class StageListener(QObject):
         self.worker._low_freq_interval = interval
         self.worker.curr_interval = self.worker._low_freq_interval
         self.worker.start(interval=self.worker._low_freq_interval)
-        #print("low_freq: 10 ms")
+        # print("low_freq: 10 ms")
 
     def set_low_freq_default(self, interval=1000):
         """Change the frequency to low."""
         self.worker.stop()
         self.worker._low_freq_interval = interval
         self.worker.curr_interval = self.worker._low_freq_interval
-        self.worker.start(interval=self.worker._low_freq_interval) 
-        #print("low_freq: 1000 ms") 
-        
+        self.worker.start(interval=self.worker._low_freq_interval)
+        # print("low_freq: 1000 ms")

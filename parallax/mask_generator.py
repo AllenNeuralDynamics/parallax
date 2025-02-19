@@ -1,5 +1,5 @@
 """
-MaskGenerator: Generates a mask from an input image 
+MaskGenerator: Generates a mask from an input image
 using various image processing techniques.
 """
 
@@ -14,6 +14,7 @@ logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties.
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+
 
 class MaskGenerator:
     """Class for generating a mask from an image."""
@@ -100,11 +101,11 @@ class MaskGenerator:
         """Apply morphological operations to the image."""
         if self.initial_detect:
             kernels = [cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2)),
-                   cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))] 
+                       cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))]
         else:
             kernels = [cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8)),
-                   cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))]
-        
+                       cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))]
+
         self.img = cv2.morphologyEx(self.img, cv2.MORPH_CLOSE, kernels[0])
         self.img = cv2.erode(self.img, kernels[1], iterations=1)
 
@@ -136,7 +137,7 @@ class MaskGenerator:
         self.img = cv2.resize(self.img, self.original_size)
         self.img = cv2.convertScaleAbs(self.img)
 
-    def _is_reticle_frame(self, threshold = 0.5):
+    def _is_reticle_frame(self, threshold=0.5):
         """Check if the image contains a reticle frame.
 
         Returns:
@@ -181,7 +182,7 @@ class MaskGenerator:
             threshold (float): The threshold percentage for determining reticle existence.
         """
         if self.is_reticle_exist is None:
-            self._is_reticle_frame(threshold = threshold)
+            self._is_reticle_frame(threshold=threshold)
 
     def process(self, img):
         """Process the input image and generate a mask.
@@ -202,18 +203,18 @@ class MaskGenerator:
 
         self.img = img
         self.original_size = img.shape[1], img.shape[0]
-        self._resize_and_blur() # Resize to smaller image and blur
+        self._resize_and_blur()  # Resize to smaller image and blur
         if self.initial_detect:
-            self._homomorphic_filter() # Remove shadow
+            self._homomorphic_filter()  # Remove shadow
 
-        self._apply_threshold() # Global Thresholding
-        self._reticle_exist_check(threshold = 0.9)
+        self._apply_threshold()  # Global Thresholding
+        self._reticle_exist_check(threshold=0.9)
         if self.is_reticle_exist is False:
             return None
-        
+
         self._keep_largest_contour()
         self._apply_morphological_operations()
-        self._reticle_exist_check(threshold = 0.5)
+        self._reticle_exist_check(threshold=0.5)
         if self.is_reticle_exist is False:
             return None
         self._finalize_image()  # Resize back to original size
