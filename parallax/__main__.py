@@ -25,9 +25,8 @@ def setup_logging():
     os.makedirs(debug_dir, exist_ok=True)
     log_file_path = os.path.join(debug_dir, "parallax_debug.log")
 
-    with open(log_file_path, "w") as log_file:
-        # Clear the log file
-        pass
+    with open(log_file_path, "w"):
+        pass  # Clear the log file
 
     log_handler = logging.FileHandler(log_file_path)
     log_handler.setLevel(logging.DEBUG)

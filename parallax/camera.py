@@ -790,10 +790,6 @@ class MockCamera:
         """Dummy function"""
         return
 
-    def stop(self, clean=False):
-        """Dummy function"""
-        return
-
 
 class VideoSource:
     """Video Source"""

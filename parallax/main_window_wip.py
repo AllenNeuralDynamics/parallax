@@ -340,13 +340,13 @@ class MainWindow(QMainWindow):
                 model=self.model,
                 parent=microscopeGrp,
             )
-        screen.setObjectName(f"Screen")
+        screen.setObjectName("Screen")
         verticalLayout.addWidget(screen)
 
         if mock is False:
             # Add setting button
             settingButton = QToolButton(microscopeGrp)
-            settingButton.setObjectName(f"Setting")
+            settingButton.setObjectName("Setting")
             settingButton.setFont(font_grpbox)
             settingButton.setCheckable(True)
             self.create_settings_menu(
@@ -694,12 +694,12 @@ class MainWindow(QMainWindow):
 
             # Gamma
             gammaAuto = saved_settings.get("gammaAuto", None)
-            if gammaAuto == True:
+            if gammaAuto is True:
                 settingMenu.gammaSlider.setEnabled(True)
                 settingMenu.gammaSlider.setValue(
                     saved_settings.get("gamma", 100)
                 )
-            elif gammaAuto == False:
+            elif gammaAuto is False:
                 settingMenu.gammaSlider.setEnabled(False)
             else:
                 pass

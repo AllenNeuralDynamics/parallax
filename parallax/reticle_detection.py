@@ -108,11 +108,13 @@ class ReticleDetection:
         if img is None:
             return False, inlier_lines, inlier_pixels
 
-        # Draw
+        # Draw the centroids for debug
+        """
         if len(img.shape) == 2:  # Grayscale image
             img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         else:  # Color image
             img_color = img.copy()
+        """
 
         contours, _ = cv2.findContours(
             img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
@@ -496,7 +498,7 @@ class ReticleDetection:
         """
         bg = self._preprocess_image(img)
         bg = cv2.resize(bg, self.image_size)
-        masked = self._apply_mask(bg)
+        _ = self._apply_mask(bg)
         if self.reticle_frame_detector.is_reticle_exist:
             ret, bg, _, pixels_in_lines = self.coords_detect_morph(bg)
             return self._draw_reticle_lines(bg, pixels_in_lines)

@@ -60,7 +60,7 @@ class ReticleMetadata(QWidget):
 
         self.ui = loadUi(os.path.join(ui_dir, "reticle_metadata.ui"), self)
         self.default_size = self.size()
-        self.setWindowTitle(f"Reticle Metadata")
+        self.setWindowTitle("Reticle Metadata")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
                             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
 
@@ -192,7 +192,12 @@ class ReticleMetadata(QWidget):
             group_box.setTitle(f"Reticle '{new_name}'")
             group_box.setObjectName(new_name)
 
-            if new_name.strip().isalpha() and len(new_name.strip()) == 1 and new_name.strip().upper() in self.alphabet_status:
+            if (
+                new_name.strip().isalpha()
+                and len(new_name.strip()) == 1
+                and new_name.strip().upper() in self.alphabet_status
+            ):
+
                 self.alphabet_status[new_name] = 1
 
     def _remove_specific_groupbox(self, group_box):
@@ -245,14 +250,14 @@ class ReticleMetadata(QWidget):
         Update the reticle selector dropdown with the latest reticle names.
         """
         self.reticle_selector.clear()
-        self.reticle_selector.addItem(f"Global coords")
+        self.reticle_selector.addItem("Global coords")
 
         # update dropdown menu with reticle names
         for name in self.groupboxes.keys():
             self.reticle_selector.addItem(f"Global coords ({name})")
 
         # update dropdown menu with Project reticle names
-        self.reticle_selector.addItem(f"Proj Global coords")
+        self.reticle_selector.addItem("Proj Global coords")
         for name in self.groupboxes.keys():
             self.reticle_selector.addItem(f"Proj Global coords ({name})")
 
@@ -277,9 +282,9 @@ class ReticleMetadata(QWidget):
 
         # Clear and reset the reticle_selector
         self.reticle_selector.clear()
-        self.reticle_selector.addItem(f"Global coords")
+        self.reticle_selector.addItem("Global coords")
         if reticle_detection_status == "accepted":
-            self.reticle_selector.addItem(f"Proj Global coords")
+            self.reticle_selector.addItem("Proj Global coords")
 
     def _update_to_file(self):
         """

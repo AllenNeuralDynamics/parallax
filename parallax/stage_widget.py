@@ -156,7 +156,10 @@ class StageWidget(QWidget):
 
         # Screen Coords Mapper
         self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets,
-                                                       self.reticle_selector, self.global_coords_x, self.global_coords_y, self.global_coords_z)
+                                                       self.reticle_selector,
+                                                       self.global_coords_x,
+                                                       self.global_coords_y,
+                                                       self.global_coords_z)
 
         # Stage Server IP Config
         self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages
@@ -317,10 +320,8 @@ class StageWidget(QWidget):
         Returns:
             bool: True if the user chooses to overwrite, False otherwise.
         """
-        message = (
-            f"Are you sure you want to overwrite the current reticle position?"
-        )
-        logger.debug(f"Are you sure you want to overwrite the current reticle position?")
+        message = ("Are you sure you want to overwrite the current reticle position?")
+        logger.debug("Are you sure you want to overwrite the current reticle position?")
         response = QMessageBox.warning(
             self,
             "Reticle Detection",
@@ -421,9 +422,7 @@ class StageWidget(QWidget):
         Returns:
             None
         """
-        message = (
-            f"Click positive x-axis on each screen"
-        )
+        message = ("Click positive x-axis on each screen")
         QMessageBox.warning(self, "Calibration", message)
 
     def get_coords_detected_screens(self):
@@ -635,7 +634,7 @@ class StageWidget(QWidget):
                     R_AB_best, T_AB_best, E_AB_best, F_AB_best = R_AB, T_AB, E_AB, F_AB
                     self.camA_best, self.camB_best = camA, camB
                     coordsA_best, coordsB_best = coordsA, coordsB
-                    itmxA_best, itmxB_best = itmxA, itmxB
+                    # itmxA_best, itmxB_best = itmxA, itmxB
 
         # Update the model with the calibration results
         sorted_key = tuple(sorted((self.camA_best, self.camB_best)))
@@ -711,7 +710,8 @@ class StageWidget(QWidget):
 
     def calibrate_cameras(self):
         """
-        Performs stereo calibration using the detected reticle positions and updates the model with the calibration data.
+        Performs stereo calibration using the detected reticle positions
+        and updates the model with the calibration data.
 
         Returns:
             float or None: The reprojection error from the calibration, or None if calibration could not be performed.
@@ -899,9 +899,7 @@ class StageWidget(QWidget):
         Returns:
             bool: True if the user confirms the overwrite, False otherwise.
         """
-        message = (
-            f"Are you sure you want to overwrite the current probe position?"
-        )
+        message = ("Are you sure you want to overwrite the current probe position?")
         response = QMessageBox.warning(
             self,
             "Probe Detection",
@@ -1042,7 +1040,7 @@ class StageWidget(QWidget):
         logger.debug(f"filter: {self.filter}")
 
         # message
-        message = f"Move probe at least 2mm along X, Y, and Z axes"
+        message = "Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
     def probe_detect_accepted_status(self, stage_sn, transformation_matrix, scale, switch_probe=False):

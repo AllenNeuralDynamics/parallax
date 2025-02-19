@@ -47,7 +47,8 @@ class StageInfo(QObject):
                     self.stages_sn.append(stage["SerialNumber"])
                     stages.append(stage)
         except Exception as e:
-            print(f"HttpServer for stages not enabled.")
+            print("HttpServer for stages not enabled.")
+            logger.debug(f"HttpServer for stages not enabled: {e}")
 
         return stages
 
@@ -70,7 +71,8 @@ class Stage(QObject):
 
 
 class Worker(QObject):
-    """Fetch stage data at regular intervals and emit signals when data changes or significant movement is detected."""
+    """Fetch stage data at regular intervals and emit signals when data changes
+    or significant movement is detected."""
 
     dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
     stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
@@ -127,7 +129,7 @@ class Worker(QObject):
             if response.status_code == 200:
                 data = response.json()
                 if data["Probes"] == 0:
-                    if self.is_error_log_printed == False:
+                    if self.is_error_log_printed is False:
                         self.is_error_log_printed = True
                         print("\nStage is not connected to New Scale SW")
                         self.print_trouble_shooting_msg()
@@ -171,7 +173,7 @@ class Worker(QObject):
             # Stop the fetching data if there http server is not enabled
             self.stop()
             # Print the error message only once
-            if self.is_error_log_printed == False:
+            if self.is_error_log_printed is False:
                 self.is_error_log_printed = True
                 print(f"\nHttpServer for stages not enabled: {e}")
                 self.print_trouble_shooting_msg()
@@ -237,7 +239,7 @@ class StageListener(QObject):
         """Get the last moved time of the stage.
 
         Args:
-            millisecond (bool): Include milliseconds in the timestamp. Defaults to False.
+            millisecond (bool): Include milliseconds in the timestamp.
 
         Returns:
             str: Last moved time as a string.
@@ -284,7 +286,7 @@ class StageListener(QObject):
         # Format the current timestamp
         self.timestamp_local = self.get_last_moved_time(millisecond=True)
 
-        id = probe["Id"]
+        # id = probe["Id"]
         sn = probe["SerialNumber"]
         local_coords_x = round(probe["Stage_X"] * 1000, 1)
         local_coords_y = round(probe["Stage_Y"] * 1000, 1)
@@ -319,16 +321,21 @@ class StageListener(QObject):
 
     def _updateGlobalDataTransformM(self, sn, moving_stage, transM, scale):
         """
-        Applies a transformation matrix to the local coordinates of a moving stage and updates its global coordinates.
+        Applies a transformation matrix to the local coordinates of a moving stage
+        and updates its global coordinates.
 
         Args:
             sn (str): The serial number of the moving stage.
-            moving_stage (Stage): An object representing the moving stage, with attributes for its local and global coordinates.
-            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix used to convert local coordinates to global coordinates.
+            moving_stage (Stage): An object representing the moving stage,
+            with attributes for its local and global coordinates.
+            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix
+            used to convert local coordinates to global coordinates.
 
         Effects:
-            - Updates the moving_stage object's `stage_x_global`, `stage_y_global`, and `stage_z_global` attributes with the transformed global coordinates.
-            - If the moving stage is the currently selected stage in the UI, triggers an update of the global coordinates display.
+            - Updates the moving_stage object's `stage_x_global`, `stage_y_global`,
+            and `stage_z_global` attributes with the transformed global coordinates.
+            - If the moving stage is the currently selected stage in the UI,
+            triggers an update of the global coordinates display.
         """
         # Transform
         local_point = np.array(
@@ -476,7 +483,7 @@ class StageListener(QObject):
                 self.stage_ui.updateStageGlobalCoords()
             else:
                 content = (
-                    f"<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
+                    "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
                 )
                 self.probeCalibrationLabel.setText(content)
 

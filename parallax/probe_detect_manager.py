@@ -210,7 +210,10 @@ class ProbeDetectManager(QObject):
 
                 if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
                     frame = self.debug_draw_boundary(frame, is_first_detect,
-                                                     self.ret_crop, self.ret_tip, self.is_curr_prev_comp, self.is_curr_bg_comp)
+                                                     self.ret_crop,
+                                                     self.ret_tip,
+                                                     self.is_curr_prev_comp,
+                                                     self.is_curr_bg_comp)
             else:
                 self.prev_img = self.curr_img
 

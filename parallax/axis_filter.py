@@ -242,12 +242,6 @@ class AxisFilter(QObject):
         """Cleanup after worker finishes."""
         logger.debug(f"{self.name} worker destroyed")
 
-    def onThreadDestroyed(self):
-        """Flag if thread is deleted"""
-        logger.debug(f"{self.name} thread destroyed")
-        self.threadDeleted = True
-        self.thread = None
-
     def set_name(self, camera_name):
         """Set camera name."""
         self.name = camera_name

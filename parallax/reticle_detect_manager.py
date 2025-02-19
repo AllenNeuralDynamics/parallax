@@ -128,7 +128,7 @@ class ReticleDetectManager(QObject):
 
             # Camera matrix text
             mtx_lines = [
-                f"Camera Matrix:",
+                "Camera Matrix:",
                 f"[{mtx[0][0]:.2f}, {mtx[0][1]:.2f}, {mtx[0][2]:.2f}]",
                 f"[{mtx[1][0]:.2f}, {mtx[1][1]:.2f}, {mtx[1][2]:.2f}]",
                 f"[{mtx[2][0]:.2f}, {mtx[2][1]:.2f}, {mtx[2][2]:.2f}]"
@@ -146,7 +146,11 @@ class ReticleDetectManager(QObject):
                 )
 
             # Distortion coefficients text
-            dist_text = f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, {dist[0][2]:.4f}, {dist[0][3]:.4f} {dist[0][4]:.4f}]"
+            dist_text = (
+                f"Dist Coeffs: [{dist[0][0]:.4f}, {dist[0][1]:.4f}, {dist[0][2]:.4f}, "
+                f"{dist[0][3]:.4f}, {dist[0][4]:.4f}]"
+            )
+
             cv2.putText(
                 frame,
                 dist_text,
@@ -284,12 +288,6 @@ class ReticleDetectManager(QObject):
     def onWorkerDestroyed(self):
         """Cleanup after worker finishes."""
         logger.debug(f"{self.name} worker finished")
-
-    def onThreadDestroyed(self):
-        """Flag if thread is deleted"""
-        logger.debug(f"{self.name} thread destroyed")
-        self.threadDeleted = True
-        self.thread = None
 
     def set_name(self, camera_name):
         """Set camera name."""

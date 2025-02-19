@@ -178,12 +178,6 @@ class ScreenWidget(pg.GraphicsView):
         """
         return self.camera.name(sn_only=True) if self.camera else None
 
-    def get_camera_color_type(self):
-        """
-        Return the color type of the camera.
-        """
-        return self.camera.get_device_color_type() if self.camera else None
-
     def clear_selected(self):
         """
         Clear the selected target.

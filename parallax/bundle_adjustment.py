@@ -266,7 +266,8 @@ class BALOptimizer:
         and optionally, the residuals before and after optimization are printed.
 
         Args:
-            print_result (bool): If True, print the optimization results and residuals before and after the optimization.
+            print_result (bool): If True, print the optimization results and residuals
+            before and after the optimization.
         """
         # Initial parameters vector
         initial_params = np.hstack([param.ravel()
@@ -295,7 +296,7 @@ class BALOptimizer:
             opt_residuals_sum = np.sum(opt_residuals**2)
             average_residual = opt_residuals_sum / len(self.bal_problem.observations)
             print(f"** After  BA, Average residual of reproj: {np.round(average_residual, 2)} **")
-            print(f"****************************************************")
+            print("****************************************************")
 
             logger.debug(f"Optimized camera parameters: {self.opt_camera_params}")
 

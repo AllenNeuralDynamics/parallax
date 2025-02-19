@@ -24,7 +24,8 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ProbeCalibration(QObject):
     """
-    A class responsible for calibrating probe positions by transforming local stage coordinates to global reticle coordinates.
+    A class responsible for calibrating probe positions
+    by transforming local stage coordinates to global reticle coordinates.
 
     Signals:
         calib_complete_x (str): Signal emitted when calibration for the X-axis is complete.
@@ -306,20 +307,25 @@ class ProbeCalibration(QObject):
 
         Args:
             df (pd.DataFrame): DataFrame containing local and global points.
-            remove_noise (bool, optional): Whether to remove noisy points based on an L2 distance threshold. Defaults to True.
-            save_to_csv (bool, optional): Whether to save the filtered points to a CSV file. Defaults to False.
-            file_name (str, optional): The name of the file to save the filtered points. Required if `save_to_csv` is True.
-            noise_threshold (int, optional): The threshold for filtering out noisy points based on L2 distance. Defaults to 40.
+            remove_noise (bool, optional): Whether to remove noisy points
+            based on an L2 distance threshold. Defaults to True.
+            save_to_csv (bool, optional): Whether to save the filtered points to a CSV file.
+            file_name (str, optional): The name of the file to save the filtered points.
+            noise_threshold (int, optional): The threshold for filtering out noisy points based on L2 distance.
 
         Returns:
-            np.ndarray: A 4x4 transformation matrix if successful, or None if there are insufficient points for calibration.
+            np.ndarray: A 4x4 transformation matrix if successful,
+            or None if there are insufficient points for calibration.
 
         Workflow:
             1. Retrieves local and global points from the DataFrame.
             2. Optionally removes noisy points based on L2 distance if `remove_noise` is enabled.
-            3. If there are fewer than 3 local or global points, it logs a warning and returns None.
-            4. Uses the `fit_params` method from the `RotationTransformation` class to compute the origin, rotation matrix, and scaling factors.
-            5. Constructs the 4x4 transformation matrix using the rotation matrix and translation vector.
+            3. If there are fewer than 3 local or global points,
+            it logs a warning and returns None.
+            4. Uses the `fit_params` method from the `RotationTransformation` class
+            to compute the origin, rotation matrix, and scaling factors.
+            5. Constructs the 4x4 transformation matrix using the rotation matrix
+            and translation vector.
             6. Optionally saves the filtered points to a CSV file if `save_to_csv` is True.
         """
         local_points, global_points = self._get_local_global_points(df)

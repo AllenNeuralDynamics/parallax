@@ -101,7 +101,7 @@ class ScreenCoordsMapper():
         """
         Add an entry for "Proj Global coords" to the reticle selector dropdown.
         """
-        self.reticle_selector.addItem(f"Proj Global coords")
+        self.reticle_selector.addItem("Proj Global coords")
 
     def _apply_reticle_adjustments(self, global_pts):
         """

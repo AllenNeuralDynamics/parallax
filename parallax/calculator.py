@@ -42,7 +42,7 @@ class Calculator(QWidget):
         self.stage_controller = stage_controller
 
         self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
-        self.setWindowTitle(f"Calculator")
+        self.setWindowTitle("Calculator")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
                             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
 
@@ -101,10 +101,10 @@ class Calculator(QWidget):
         Updates the label that shows which global coordinates are being used (with or without reticle adjustments).
         """
         if self.reticle is None or self.reticle == "Global coords":
-            self.findChild(QLabel, f"labelGlobal").setText(f" Global")
+            self.findChild(QLabel, "labelGlobal").setText(" Global")
             return
         else:
-            self.findChild(QLabel, f"labelGlobal").setText(f" Global ({self.reticle})")
+            self.findChild(QLabel, "labelGlobal").setText(f" Global ({self.reticle})")
 
     def set_calc_functions(self):
         """
@@ -135,7 +135,7 @@ class Calculator(QWidget):
         Returns:
             function: A lambda function for performing coordinate conversion.
         """
-        logger.debug(f"\n=== Creating convert function ===")
+        logger.debug("\n=== Creating convert function ===")
         logger.debug(f"Stage SN: {stage_sn}")
         logger.debug(f"transM: {transM}")
         logger.debug(f"scale: {scale}")
@@ -363,12 +363,12 @@ class Calculator(QWidget):
             sn (str): The serial number of the stage.
         """
         # Clear the QLineEdit for the stage
-        self.findChild(QLineEdit, f"localX_{sn}").setText(f"")
-        self.findChild(QLineEdit, f"localY_{sn}").setText(f"")
-        self.findChild(QLineEdit, f"localZ_{sn}").setText(f"")
-        self.findChild(QLineEdit, f"globalX_{sn}").setText(f"")
-        self.findChild(QLineEdit, f"globalY_{sn}").setText(f"")
-        self.findChild(QLineEdit, f"globalZ_{sn}").setText(f"")
+        self.findChild(QLineEdit, f"localX_{sn}").setText("")
+        self.findChild(QLineEdit, f"localY_{sn}").setText("")
+        self.findChild(QLineEdit, f"localZ_{sn}").setText("")
+        self.findChild(QLineEdit, f"globalX_{sn}").setText("")
+        self.findChild(QLineEdit, f"globalY_{sn}").setText("")
+        self.findChild(QLineEdit, f"globalZ_{sn}").setText("")
 
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
@@ -426,7 +426,7 @@ class Calculator(QWidget):
         """
         Connects the 'move' and 'stop' buttons for each stage to their respective functions.
         """
-        stop_button = self.ui.findChild(QPushButton, f"stopAllStages")
+        stop_button = self.ui.findChild(QPushButton, "stopAllStages")
         if stop_button:
             stop_button.clicked.connect(lambda: self._stop_stage("stopAll"))
 
@@ -442,7 +442,7 @@ class Calculator(QWidget):
         Args:
             move_type (str): The type of move (e.g., "stopAll").
         """
-        print(f"Stopping all stages.")
+        print("Stopping all stages.")
         command = {
             "move_type": move_type
         }
