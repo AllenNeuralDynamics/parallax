@@ -14,7 +14,7 @@ from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -68,6 +68,7 @@ class Stage(QObject):
             self.stage_x_global = None
             self.stage_y_global = None
             self.stage_z_global = None
+            self.timestamp = None
 
 
 class Worker(QObject):
@@ -221,6 +222,7 @@ class StageListener(QObject):
         self.stage_global_data = None
         self.transM_dict = {}
         self.scale_dict = {}
+        self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
 
     def start(self):
         """Start the stage listener."""
@@ -291,6 +293,7 @@ class StageListener(QObject):
         local_coords_x = round(probe["Stage_X"] * 1000, 1)
         local_coords_y = round(probe["Stage_Y"] * 1000, 1)
         local_coords_z = 15000 - round(probe["Stage_Z"] * 1000, 1)
+        logger.debug(f"timestamp_local: {self.timestamp_local}, sn: {sn}")
 
         # update into model
         moving_stage = self.model.stages.get(sn)
@@ -299,6 +302,7 @@ class StageListener(QObject):
             moving_stage.stage_x = local_coords_x
             moving_stage.stage_y = local_coords_y
             moving_stage.stage_z = local_coords_z
+            moving_stage.timestamp = self.timestamp_local
 
         # Update to buffer
         self.append_to_buffer(self.timestamp_local, moving_stage)
@@ -316,8 +320,9 @@ class StageListener(QObject):
                 self._updateGlobalDataTransformM(sn, moving_stage, transM, scale)
             else:
                 logger.debug(f"Transformation matrix or scale not found for serial number: {sn}")
-        else:
-            logger.debug(f"Serial number {sn} not found in transformation or scale dictionary")
+
+        # Update stage info into JSON
+        self._write_stage_info_to_json(moving_stage)
 
     def _updateGlobalDataTransformM(self, sn, moving_stage, transM, scale):
         """
@@ -450,7 +455,7 @@ class StageListener(QObject):
             stage_info["Stage_X"] = local_coords[0]
             stage_info["Stage_Y"] = local_coords[1]
             stage_info["Stage_Z"] = local_coords[2]
-            self.stage_global_data = Stage(stage_info)
+            self.stage_global_data = Stage(stage_info)      #TODO : check this
 
         if local_coords is not None:
             self.sn = sn
@@ -526,3 +531,26 @@ class StageListener(QObject):
         self.worker.curr_interval = self.worker._low_freq_interval
         self.worker.start(interval=self.worker._low_freq_interval)
         # print("low_freq: 1000 ms")
+
+    def _write_stage_info_to_json(self, stage):
+        """Write stage info to JSON file.
+
+        Args:
+            stage (Stage): Stage object.
+        """
+        print("---------- _write_stage_info_to_json")
+        print(" sn: ", stage.sn)
+        print(" name: ", stage.name)
+        print(" timestamp: ", stage.timestamp)
+        print(" local coords: ", stage.stage_x, stage.stage_y, stage.stage_z)
+        print(" global coords: ", stage.stage_x_global, stage.stage_y_global, stage.stage_z_global)
+
+    def _snapshot_stage(self):
+        sn = self.stage_ui.get_selected_stage_sn()
+        stage = self.model.stages.get(sn)
+        print("---------- _snapshot_stage")
+        print(" sn: ", stage.sn)
+        print(" name: ", stage.name)
+        print(" timestamp: ", stage.timestamp)
+        print(" local coords: ", stage.stage_x, stage.stage_y, stage.stage_z)
+        print(" global coords: ", stage.stage_x_global, stage.stage_y_global, stage.stage_z_global)
