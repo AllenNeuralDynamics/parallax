@@ -265,6 +265,18 @@ class ScreenWidget(pg.GraphicsView):
             return self.camera.device_color_type
 
     def send_clicked_position(self, pos):
+        """
+        Sends the clicked position to the AxisFilter for processing.
+
+        This function forwards the user-clicked position to the `AxisFilter` instance,
+        which processes the input to determine the reticle's positive x-axis.
+
+        Args:
+            pos (tuple): The (x, y) coordinates of the clicked position.
+
+        Returns:
+        None
+        """
         self.axisFilter.clicked_position(pos)
 
     def image_clicked(self, event):

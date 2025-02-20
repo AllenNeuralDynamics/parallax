@@ -174,6 +174,20 @@ class StageWidget(QWidget):
         self.init_stages()
 
     def init_stages(self):
+        """
+        Initializes the stage system and related UI components.
+
+        This function sets up the stage system by:
+        - Refreshing the stage server using the stored IP address.
+        - Initializing the stage UI, stage listener, and stage controller.
+        - Setting up probe calibration and connecting relevant signals.
+        - Configuring the calculator for coordinate transformations.
+
+        It also hides certain UI elements until calibration is completed.
+
+        Returns:
+            None
+        """
         # refresh the stage using server IP address
         self.stage_server_ipconfig.update_url(init=True)
         self.stage_server_ipconfig.refresh_stages()  # Update stages to model

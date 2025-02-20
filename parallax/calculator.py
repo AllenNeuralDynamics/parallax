@@ -212,6 +212,15 @@ class Calculator(QWidget):
             list: The global points or None.
         """
         def is_valid_number(s):
+            """
+            Checks if a given string can be converted to a float.
+
+            Args:
+                s (str): The input string to validate.
+
+            Returns:
+                bool: True if the string can be converted to a float, False otherwise.
+            """
             try:
                 float(s)
                 return True
