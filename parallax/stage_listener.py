@@ -13,6 +13,7 @@ from datetime import datetime
 import numpy as np
 import requests
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
+from PyQt5.QtWidgets import QFileDialog
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -225,7 +226,7 @@ class StageListener(QObject):
         self.stage_global_data = None
         self.transM_dict = {}
         self.scale_dict = {}
-        self.file = None
+        self.snapshot_folder_path = None
 
         # Connect the snapshot button
         self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
@@ -538,15 +539,22 @@ class StageListener(QObject):
         self.worker.start(interval=self.worker._low_freq_interval)
         # print("low_freq: 1000 ms")
 
-    def _write_stage_info_to_json(self, stage):
-        """Write stage info to JSON file.
+    def _get_stage_info_json(self, stage):
+        """Create a JSON file for the stage info.
 
         Args:
             stage (Stage): Stage object.
         """
-        file_path = os.path.join(data_dir, f"{stage.sn}.json")  # Store the file in the correct location
+        stage_data = None
 
-        # Create the stage data dictionary
+        if stage is None:
+            logger.error("Error: Stage object is None. Cannot save JSON.")
+            return
+
+        if not hasattr(stage, 'sn') or not stage.sn:
+            logger.error("Error: Invalid stage serial number (sn). Cannot save JSON.")
+            return
+
         stage_data = {
             "sn": stage.sn,
             "name": stage.name,
@@ -563,16 +571,72 @@ class StageListener(QObject):
             }
         }
 
+        return stage_data
+
+    def _write_stage_info_to_json(self, stage):
+        """Write stage info to JSON file.
+
+        Args:
+            stage (Stage): Stage object.
+        """
+        file_path = os.path.join(data_dir, f"{stage.sn}.json")  # Store the file in the correct location
+
+        # Create the stage data dictionary
+        stage_data = self._get_stage_info_json(stage)
+        if stage_data is None:
+            return
+
         # Write the stage data to the JSON file
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(stage_data, f, indent=4)
 
+    def _save_into_file(self, sn, stage_data):
+        """Save stage info into file.
+
+        Args:
+            sn (str): Serial number of the stage.
+            stage (Stage): Stage object.
+        """
+
+        # If no folder is set, default to the "Documents" directory
+        if self.snapshot_folder_path is None:
+            self.snapshot_folder_path = os.path.join(os.path.expanduser("~"), "Documents")
+
+
+        # Open save file dialog, defaulting to the last used folder
+        file_path, _ = QFileDialog.getSaveFileName(
+            None,
+            "Save Stage Info",
+            os.path.join(self.snapshot_folder_path, f"{sn}.json"),  # Default to last used folder
+            "JSON Files (*.json)"
+        )
+
+        if not file_path:  # User canceled the dialog
+            print("Save canceled by user.")
+            return
+
+        # Update `snapshot_folder_path` to the selected folder
+        self.snapshot_folder_path = os.path.dirname(file_path)
+
+        # Ensure the file has the correct `.json` extension
+        if not file_path.endswith(".json"):
+            file_path += ".json"
+
+        # Write the JSON file
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(stage_data, f, indent=4)
+            print(f"Stage info saved at {file_path}")
+        except Exception as e:
+            print(f"Error saving stage info: {e}")
+
     def _snapshot_stage(self):
+        """Snapshot the current stage info. Handler for the stage snapshot button."""
         sn = self.stage_ui.get_selected_stage_sn()
         stage = self.model.stages.get(sn)
-        print("---------- _snapshot_stage")
-        print(" sn: ", stage.sn)
-        print(" name: ", stage.name)
-        print(" timestamp: ", stage.timestamp)
-        print(" local coords: ", stage.stage_x, stage.stage_y, stage.stage_z)
-        print(" global coords: ", stage.stage_x_global, stage.stage_y_global, stage.stage_z_global)
+
+        stage_data = self._get_stage_info_json(stage)
+        if stage_data is None:
+            return
+
+        self._save_into_file(sn, stage_data)
