@@ -170,7 +170,7 @@ class ReticleDetectManager(QObject):
                 self.reticleDetector.get_coords(frame)
             )
             if not ret:
-                logger.debug(f"{ self.name} get_coords fails ")
+                logger.debug(f"{self.name} get_coords fails ")
             else:
                 ret, x_axis_coords, y_axis_coords = (
                     self.coordsInterests.get_coords_interest(
@@ -179,13 +179,13 @@ class ReticleDetectManager(QObject):
                 )
 
             if not ret:
-                logger.debug(f"{ self.name} get_coords_interest fails ")
+                logger.debug(f"{self.name} get_coords_interest fails ")
             else:
                 ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(
                     x_axis_coords, y_axis_coords
                 )
                 if not ret:
-                    logger.debug(f"{ self.name} calibrate_camera fails ")
+                    logger.debug(f"{self.name} calibrate_camera fails ")
                 else:
                     # Draw
                     self.found_coords.emit(
@@ -198,10 +198,10 @@ class ReticleDetectManager(QObject):
                 self.frame_success = frame
 
             if self.frame_success is None:
-                logger.debug(f"{ self.name} reticle detection fail ")
+                logger.debug(f"{self.name} reticle detection fail ")
                 return frame
             else:
-                logger.debug(f"{ self.name} reticle detection success \n")
+                logger.debug(f"{self.name} reticle detection success \n")
                 self.stop_running()  # If found, stop processing
                 return self.frame_success
 
