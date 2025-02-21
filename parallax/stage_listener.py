@@ -24,6 +24,7 @@ package_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(os.path.dirname(package_dir), "data", "stage_coords")
 os.makedirs(data_dir, exist_ok=True)  # Ensure the directory exists
 
+
 class StageInfo(QObject):
     """Retrieve and manage information about the stages."""
 
@@ -601,7 +602,6 @@ class StageListener(QObject):
         # If no folder is set, default to the "Documents" directory
         if self.snapshot_folder_path is None:
             self.snapshot_folder_path = os.path.join(os.path.expanduser("~"), "Documents")
-
 
         # Open save file dialog, defaulting to the last used folder
         file_path, _ = QFileDialog.getSaveFileName(
