@@ -22,10 +22,12 @@ debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 json_config_path = os.path.join(ui_dir, "stage_server_config.json")  # JSON file to store IP and port
 
+
 class StageServerIPConfig(QWidget):
     """
     Widget for configuring the Stage Server IP.
     """
+
     def __init__(self, model):
         """
         Initializes the Stage Server IP Configuration widget.
@@ -39,7 +41,7 @@ class StageServerIPConfig(QWidget):
 
         self.ui = loadUi(os.path.join(ui_dir, "stage_server.ui"), self)
         self.setWindowTitle("Stage Server IP Configuration")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | 
+        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
                             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
 
         # Load saved IP and port from JSON file
@@ -152,7 +154,7 @@ class StageServerIPConfig(QWidget):
         if not self._is_url_updated(url, port) and not init:
             logger.debug("Skipping refresh: URL and port have not changed.")
             return False
-        
+
         if not self._is_valid_ip(url, port):
             logger.warning("Skipping refresh: Invalid IP address.")
             print("Invalid IP address or port.")

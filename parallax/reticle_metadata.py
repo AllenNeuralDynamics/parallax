@@ -1,8 +1,8 @@
 """
 This module provides a ReticleMetadata widget for managing and visualizing reticle metadata
-in a microscopy setup. The widget allows users to dynamically create, modify, and delete 
-reticle information. The metadata includes rotation, offsets, and names, and is saved to a 
-JSON file for persistence. The reticles can be displayed as group boxes in a PyQt UI, and 
+in a microscopy setup. The widget allows users to dynamically create, modify, and delete
+reticle information. The metadata includes rotation, offsets, and names, and is saved to a
+JSON file for persistence. The reticles can be displayed as group boxes in a PyQt UI, and
 are associated with their respective metadata such as rotation and offsets.
 
 Key features:
@@ -29,11 +29,12 @@ package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 
+
 class ReticleMetadata(QWidget):
     """
-    A widget to manage and visualize reticle metadata. It allows users to add, modify, 
-    and delete reticles, and dynamically updates reticle metadata such as rotation and 
-    offsets. Reticles are represented in the UI as group boxes with editable fields, and 
+    A widget to manage and visualize reticle metadata. It allows users to add, modify,
+    and delete reticles, and dynamically updates reticle metadata such as rotation and
+    offsets. Reticles are represented in the UI as group boxes with editable fields, and
     the metadata is saved in a JSON file.
 
     This class also provides functionality to:
@@ -42,10 +43,11 @@ class ReticleMetadata(QWidget):
     - Retrieve global coordinates for points with reticle-specific offsets and rotations.
     - Interact with a reticle selector to display the reticle choices in a dropdown.
     """
+
     def __init__(self, model, reticle_selector):
         """
-        Initializes the ReticleMetadata widget. The widget allows users to manage 
-        reticle metadata, including dynamically creating groupboxes for each reticle 
+        Initializes the ReticleMetadata widget. The widget allows users to manage
+        reticle metadata, including dynamically creating groupboxes for each reticle
         and handling the interaction with a reticle selector dropdown.
 
         Args:
@@ -58,10 +60,10 @@ class ReticleMetadata(QWidget):
 
         self.ui = loadUi(os.path.join(ui_dir, "reticle_metadata.ui"), self)
         self.default_size = self.size()
-        self.setWindowTitle(f"Reticle Metadata")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
-            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
-        
+        self.setWindowTitle("Reticle Metadata")
+        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
+                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+
         self.groupboxes = {}  # Change from list to dictionary
         self.reticles = {}
         self.alphabet_status = {chr(i): 0 for i in range(65, 91)}  # A-Z with 0 availability status
@@ -75,9 +77,9 @@ class ReticleMetadata(QWidget):
         """
         Load reticle metadata from a JSON file and populate the UI.
 
-        This method attempts to read the reticle metadata from a JSON file. If the file does not exist, 
-        it logs a message and starts fresh with no preloaded data. If the file exists and contains valid 
-        data, it creates reticle group boxes based on the metadata, updates the internal reticle structure, 
+        This method attempts to read the reticle metadata from a JSON file. If the file does not exist,
+        it logs a message and starts fresh with no preloaded data. If the file exists and contains valid
+        data, it creates reticle group boxes based on the metadata, updates the internal reticle structure,
         and refreshes the reticle selector dropdown.
 
         Raises:
@@ -87,7 +89,7 @@ class ReticleMetadata(QWidget):
         if not os.path.exists(json_path):
             logger.info("No existing metadata file found. Starting fresh.")
             return
-        
+
         try:
             with open(json_path, 'r') as json_file:
                 reticle_data = json.load(json_file)
@@ -96,14 +98,14 @@ class ReticleMetadata(QWidget):
                 for group_box in self.groupboxes.values():
                     self._update_reticles(group_box)
                 self._update_to_reticle_selector()
-        
+
         except Exception as e:
             logger.error(f"Error reading metadata file: {e}")
 
     def _create_groupbox_from_metadata(self, reticle_data):
         """Create a groupbox from metadata and populate it."""
         for reticle_info in reticle_data:
-            #name = reticle_info.get("name", "")
+            # name = reticle_info.get("name", "")
             name = reticle_info.get("lineEditName", "")
             if name in self.groupboxes.keys():
                 return  # Do not add a new groupbox if it already exists
@@ -117,7 +119,7 @@ class ReticleMetadata(QWidget):
             logger.warning("No available slot for reticle. All alphabets are assigned.")
             print("No available slot for reticle.")
             return
-        
+
         # Mark the alphabet as used
         self.alphabet_status[alphabet] = 1
 
@@ -161,7 +163,7 @@ class ReticleMetadata(QWidget):
         push_button = group_box.findChild(QPushButton, "remove_btn")
         if push_button:
             push_button.clicked.connect(lambda _, gb=group_box: self._remove_specific_groupbox(gb))
-            
+
         # Extend the height of the form by 200 pixels
         current_size = self.size()
         self.resize(current_size.width(), current_size.height() + 200)
@@ -184,13 +186,18 @@ class ReticleMetadata(QWidget):
         """
         if alphabet == group_box.objectName():
             self.alphabet_status[alphabet] = 0
-    
+
         # Update the title and object name of the group box
         if new_name.strip():
             group_box.setTitle(f"Reticle '{new_name}'")
             group_box.setObjectName(new_name)
 
-            if new_name.strip().isalpha() and len(new_name.strip()) == 1 and new_name.strip().upper() in self.alphabet_status:
+            if (
+                new_name.strip().isalpha()
+                and len(new_name.strip()) == 1
+                and new_name.strip().upper() in self.alphabet_status
+            ):
+
                 self.alphabet_status[new_name] = 1
 
     def _remove_specific_groupbox(self, group_box):
@@ -201,7 +208,7 @@ class ReticleMetadata(QWidget):
             group_box (QGroupBox): The groupbox to remove.
         """
         name = group_box.findChild(QLineEdit, "lineEditName").text()
-        
+
         if name in self.groupboxes.keys():
             group_box = self.groupboxes.pop(name)  # Remove from dictionary
             if name in self.reticles.keys():
@@ -210,7 +217,7 @@ class ReticleMetadata(QWidget):
                 self.model.remove_reticle_metadata(name)
             self.ui.verticalLayout.removeWidget(group_box)
             group_box.deleteLater()
-            
+
             current_size = self.size()
             self.resize(current_size.width(), current_size.height() - 200)
 
@@ -243,14 +250,14 @@ class ReticleMetadata(QWidget):
         Update the reticle selector dropdown with the latest reticle names.
         """
         self.reticle_selector.clear()
-        self.reticle_selector.addItem(f"Global coords")
+        self.reticle_selector.addItem("Global coords")
 
         # update dropdown menu with reticle names
         for name in self.groupboxes.keys():
             self.reticle_selector.addItem(f"Global coords ({name})")
 
         # update dropdown menu with Project reticle names
-        self.reticle_selector.addItem(f"Proj Global coords")
+        self.reticle_selector.addItem("Proj Global coords")
         for name in self.groupboxes.keys():
             self.reticle_selector.addItem(f"Proj Global coords ({name})")
 
@@ -275,9 +282,9 @@ class ReticleMetadata(QWidget):
 
         # Clear and reset the reticle_selector
         self.reticle_selector.clear()
-        self.reticle_selector.addItem(f"Global coords")
+        self.reticle_selector.addItem("Global coords")
         if reticle_detection_status == "accepted":
-            self.reticle_selector.addItem(f"Proj Global coords")
+            self.reticle_selector.addItem("Proj Global coords")
 
     def _update_to_file(self):
         """
@@ -300,7 +307,7 @@ class ReticleMetadata(QWidget):
 
             for line_edit in group_box.findChildren(QLineEdit):
                 line_edit_value = line_edit.text().strip()
-                
+
                 if not line_edit_value:
                     print(f"Error: Field {line_edit.objectName()} is empty.")
                     return
@@ -322,7 +329,7 @@ class ReticleMetadata(QWidget):
                     if not self._is_valid_number(line_edit_value):
                         print(f"Error: {line_edit.objectName()} contains an invalid number.")
                         return
-                
+
                 # Store the data in reticle_info
                 reticle_info[line_edit.objectName()] = line_edit_value
 
@@ -368,7 +375,7 @@ class ReticleMetadata(QWidget):
         if not group_box:
             print(f"Error: No groupbox found for reticle '{group_box}'.")
             return
-        
+
         name = group_box.findChild(QLineEdit, "lineEditName").text()
         offset_rot = group_box.findChild(QLineEdit, "lineEditRot").text()
         offset_x = group_box.findChild(QLineEdit, "lineEditOffsetX").text()
@@ -399,7 +406,7 @@ class ReticleMetadata(QWidget):
             "offset_y": offset_y,
             "offset_z": offset_z
         }
-        #Register the reticle in the model
+        # Register the reticle in the model
         self.model.add_reticle_metadata(name, self.reticles[name])
 
     def get_global_coords_with_offset(self, reticle_name, global_pts):
@@ -415,13 +422,13 @@ class ReticleMetadata(QWidget):
         """
         if reticle_name not in self.reticles.keys():
             raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
-            
+
         reticle = self.reticles[reticle_name]
         reticle_rot = reticle.get("rot", 0)
         reticle_rotmat = reticle.get("rotmat", np.eye(3))  # Default to identity matrix if not found
         reticle_offset = np.array([
-            reticle.get("offset_x", global_pts[0]), 
-            reticle.get("offset_y", global_pts[1]), 
+            reticle.get("offset_x", global_pts[0]),
+            reticle.get("offset_y", global_pts[1]),
             reticle.get("offset_z", global_pts[2])
         ])
 

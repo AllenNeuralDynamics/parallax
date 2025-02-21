@@ -1,7 +1,7 @@
 
 """
-Provides functionality to detect and analyze points of interest on reticle lines in images, 
-employing line fitting and orientation determination techniques suitable 
+Provides functionality to detect and analyze points of interest on reticle lines in images,
+employing line fitting and orientation determination techniques suitable
 for microscopy image analysis tasks.
 """
 
@@ -150,8 +150,8 @@ class ReticleDetectCoordsInterest(QObject):
         if pixels_in_lines[0] is None or pixels_in_lines[1] is None:
             return False, None, None
 
-        if len(pixels_in_lines[0]) < self.n_interest_pixels*2 + 1 \
-            or len(pixels_in_lines[1]) < self.n_interest_pixels*2 + 1:
+        if len(pixels_in_lines[0]) < self.n_interest_pixels * 2 + 1 \
+                or len(pixels_in_lines[1]) < self.n_interest_pixels * 2 + 1:
             return False, None, None
 
         coords_interest = []
@@ -164,9 +164,9 @@ class ReticleDetectCoordsInterest(QObject):
         for pixels_in_line in pixels_in_lines:
             coords = self._get_pixels_interest(center_point, pixels_in_line)
             if coords is None or len(coords) < self.n_interest_pixels * 2 + 1:
-                logger.debug(f"_get_pixels_interest fails.")
+                logger.debug("_get_pixels_interest fails.")
                 if coords is None:
-                    logger.debug(f"coords: None")
+                    logger.debug("coords: None")
                 if coords is not None:
                     logger.debug(f"length of coords: {len(coords)}")
                 return False, None, None
@@ -174,6 +174,6 @@ class ReticleDetectCoordsInterest(QObject):
 
         ret, x_axis, y_axis = self._get_orientation(coords_interest)
         if ret is False:
-            logger.debug(f"getting orientation of x and y axis fails")
+            logger.debug("getting orientation of x and y axis fails")
             return False, None, None
         return True, x_axis, y_axis

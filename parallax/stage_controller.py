@@ -1,7 +1,7 @@
 """
-This module provides the `StageController` class for managing the movement and control 
-of stages (probes) used in microscopy instruments. The class interacts with an external 
-stage controller system via HTTP requests to move the stages, stop them, and retrieve 
+This module provides the `StageController` class for managing the movement and control
+of stages (probes) used in microscopy instruments. The class interacts with an external
+stage controller system via HTTP requests to move the stages, stop them, and retrieve
 their status.
 
 The key functionalities include:
@@ -11,7 +11,7 @@ The key functionalities include:
 - Sending and receiving data over HTTP to an external stage controller software.
 
 Classes:
-    StageController: Manages the stage movement, status retrieval, and interaction with 
+    StageController: Manages the stage movement, status retrieval, and interaction with
     external systems through HTTP requests.
 """
 import logging
@@ -27,6 +27,7 @@ logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+
 class StageController(QObject):
     """
     The StageController class manages the movement and control of stages (probes).
@@ -34,6 +35,7 @@ class StageController(QObject):
     to move the stages and retrieve their status. This class supports commands
     such as stopping all stages and moving them along the X, Y, or Z axes.
     """
+
     def __init__(self, model):
         """
         Initializes the StageController class, setting up the model and command templates.
@@ -53,13 +55,14 @@ class StageController(QObject):
             "StepMode": 0       # StepMode=0 (for Coarse), =1 (for Fine), =2 (for Insertion)
         }
         self.probeMotion_command = {
-            "PutId" : "ProbeMotion",
-            "Probe": 0,          # Probe=0 (for probe A), =1 (for Probe B), etc. Default value, will be updated dynamically
+            "PutId": "ProbeMotion",
+            # Probe=0 (for probe A), =1 (for Probe B), etc. Default value, will be updated dynamically
+            "Probe": 0,
             "Absolute": 1,       # Absolute=0 (for relative move) =1 (for absolute target)
             "Stereotactic": 0,   # Stereotactic=0 (for local [stage] coordinates) =1 (for stereotactic)
             "AxisMask": 7        # AxisMask=1 (for X), =2 (for Y), =4 (for Z) or any combination (e.g. 7 for XYZ)
         }
-        
+
         self.probeStop_command = {
             "PutId": "ProbeStop",
             "Probe": 0          # Default value, will be updated dynamically
@@ -135,7 +138,7 @@ class StageController(QObject):
             self.timer.setInterval(500)  # 500 ms
             self.timer.timeout.connect(lambda: self._check_z_position(probe_index, 15.0, command))
             self.timer.start()
-    
+
     def _check_z_position(self, probe_index, target_z, command):
         """
         Checks if the Z-axis of the probe has reached the target Z position.
@@ -187,7 +190,7 @@ class StageController(QObject):
         if probe_index >= len(probe_array):
             logger.warning(f"Invalid probe index: {probe_index}")
             return False
-        
+
         current_z = probe_array[probe_index].get("Stage_Z", None)
         if current_z is None:
             logger.warning(f"Failed to retrieve Z position for probe {probe_index}")

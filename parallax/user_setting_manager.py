@@ -109,7 +109,8 @@ class UserSettingsManager:
 
         Parameters:
             category (str): The category of settings to retrieve.
-            item (Optional[str]): The specific item to retrieve from the category. If None, all items in the category are returned.
+            item (Optional[str]): The specific item to retrieve from the category.
+            If None, all items in the category are returned.
 
         Returns:
             The requested settings item(s). Returns None if the category or item does not exist.

@@ -2,7 +2,7 @@
 Module for detecting the fine tip of a probe in an image.
 
 This module includes the `ProbeFineTipDetector` class, which provides several methods for detecting
-the fine tip of a probe based on image processing techniques. The class preprocesses the image, 
+the fine tip of a probe based on image processing techniques. The class preprocesses the image,
 validates the input, detects the closest centroid for tip detection, and refines the detected tip
 by applying an offset to ensure accuracy.
 
@@ -26,6 +26,7 @@ if logger.getEffectiveLevel() == logging.DEBUG:
     package_dir = os.path.dirname(os.path.abspath(__file__))
     debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
     os.makedirs(debug_dir, exist_ok=True)
+
 
 class ProbeFineTipDetector:
     """Class for detecting the fine tip of the probe in an image."""
@@ -139,28 +140,28 @@ class ProbeFineTipDetector:
     def add_L2_offset_to_tip(cls, tip, base, offset=2):
         """
         Add an offset to the tip coordinates by extending the distance from the base by the given offset.
-        
+
         Parameters:
             tip (tuple): The current tip coordinates (x, y).
             base (tuple): The base coordinates (x, y).
             offset (float): The L2 distance (in pixels) to extend the tip away from the base.
-        
+
         Returns:
             tuple: The new tip coordinates (x, y) after applying the offset.
         """
         # Calculate the vector from the base to the tip
         vector = np.array(tip) - np.array(base)
-        
+
         # Calculate the L2 (Euclidean) distance between the base and tip
         distance = np.linalg.norm(vector)
-        
+
         if distance == 0:
             # If the distance is zero, return the tip without any modification
             return tip
-        
+
         # Calculate the unit vector in the direction from base to tip
         unit_vector = vector / distance
-        
+
         # Calculate the new tip position by extending the tip by the given offset
         new_tip = np.array(tip) + unit_vector * offset
         new_tip = np.round(new_tip).astype(int)

@@ -1,10 +1,10 @@
 """
-This module defines the `PointMesh` class, which provides a 3D visualization of point meshes 
-for trajectory analysis. The widget integrates with Plotly to render 3D plots and allows users 
-to interact with the displayed points via a PyQt5 interface. 
+This module defines the `PointMesh` class, which provides a 3D visualization of point meshes
+for trajectory analysis. The widget integrates with Plotly to render 3D plots and allows users
+to interact with the displayed points via a PyQt5 interface.
 
-The class is designed to visualize different sets of points, including local, global, and 
-bundle-adjusted (BA) coordinates, which are loaded from a CSV file. Users can toggle the 
+The class is designed to visualize different sets of points, including local, global, and
+bundle-adjusted (BA) coordinates, which are loaded from a CSV file. Users can toggle the
 visibility of these point sets using dynamically generated buttons in the UI.
 
 Key Features:
@@ -18,8 +18,8 @@ Key Features:
 
 Usage:
 ------
-The `PointMesh` class should be instantiated with the necessary transformation matrices and 
-point data, after which it can be shown using the `show()` method. The UI allows users to 
+The `PointMesh` class should be instantiated with the necessary transformation matrices and
+point data, after which it can be shown using the `show()` method. The UI allows users to
 interact with the point sets and visualize their trajectories in 3D.
 
 Example:
@@ -44,11 +44,13 @@ debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 csv_file = os.path.join(debug_dir, "points.csv")
 
+
 class PointMesh(QWidget):
     """
-    A widget that provides a 3D visualization of point meshes for trajectory analysis, 
+    A widget that provides a 3D visualization of point meshes for trajectory analysis,
     integrating with Plotly for rendering and allowing users to interact with the displayed points.
     """
+
     def __init__(self, model, file_path, sn, transM, scale, transM_BA=None, scale_BA=None, calib_completed=False):
         """
         Initializes the PointMesh widget.
@@ -63,7 +65,7 @@ class PointMesh(QWidget):
         scale_BA (np.ndarray, optional): Scale applied to coordinates after bundle adjustment.
         calib_completed (bool, optional): Flag indicating if calibration is completed.
         """
-        
+
         super().__init__()
 
         # Store parameters and set default values for attributes
@@ -78,29 +80,29 @@ class PointMesh(QWidget):
         self.T, self.T_BA = {}, {}
         self.S, self.S_BA = {}, {}
         self.points_dict = {}
-        self.traces = {} # Plotly trace objects
+        self.traces = {}  # Plotly trace objects
         self.colors = {}
 
         # Bind resize event to method for responsive layout
         self.resizeEvent = self._on_resize
-        
+
         # Register this instance with the model
         self.model.add_point_mesh_instance(self)
 
         # Load the UI file and set window title
         self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
-        self.setWindowTitle(f"{self.sn} - Trajectory 3D View ") 
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
-            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
-        
+        self.setWindowTitle(f"{self.sn} - Trajectory 3D View ")
+        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
+                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+
         # Initialize the widget
         self._set_transM(transM, scale)
 
         # Apply transformation matrix and scale from bundle adjustment if available
         if transM_BA is not None and scale_BA is not None and \
-            self.model.bundle_adjustment and self.calib_completed:
+                self.model.bundle_adjustment and self.calib_completed:
             self.set_transM_BA(transM_BA, scale_BA)
-        
+
         # Parse the CSV file and initialize the UI
         self._parse_csv()
         self._init_buttons()
@@ -110,7 +112,7 @@ class PointMesh(QWidget):
         Show the PointMesh widget.
         """
         self._init_ui()
-        self._update_canvas() 
+        self._update_canvas()
         super().show()  # Show the widget
 
     def _init_ui(self):
@@ -124,8 +126,8 @@ class PointMesh(QWidget):
 
     def _set_transM(self, transM, scale):
         """
-        Set the transformation matrix, translation vector, and scale for the stage.        
-        
+        Set the transformation matrix, translation vector, and scale for the stage.
+
         Parameters:
         transM (np.ndarray): Transformation matrix for local-to-global conversion.
         scale (np.ndarray): Scale applied to local coordinates.
@@ -171,11 +173,12 @@ class PointMesh(QWidget):
             self.opt_global_pts = self.df[['opt_x', 'opt_y', 'opt_z']].values
             self.points_dict['opt_global_pts'] = self.opt_global_pts
 
-            self.local_pts_BA = self._local_to_global(self.local_pts_org, self.R_BA[self.sn], self.T_BA[self.sn], self.S_BA[self.sn])
+            self.local_pts_BA = self._local_to_global(
+                self.local_pts_org, self.R_BA[self.sn], self.T_BA[self.sn], self.S_BA[self.sn])
             self.points_dict['local_pts_BA'] = self.local_pts_BA
 
         # Assign unique colors to each key
-        color_list = ['red', 'blue', 'green',  'cyan', 'magenta']
+        color_list = ['red', 'blue', 'green', 'cyan', 'magenta']
         for i, key in enumerate(self.points_dict.keys()):
             self.colors[key] = color_list[i % len(color_list)]
 
@@ -298,7 +301,7 @@ class PointMesh(QWidget):
         """
         Renders the 3D plot with the current set of points and updates the Plotly canvas.
         """
-        data = list(self.traces.values()) 
+        data = list(self.traces.values())
         layout = go.Layout(
             scene=dict(
                 xaxis_title='X',
@@ -308,7 +311,7 @@ class PointMesh(QWidget):
             margin=dict(l=0, r=0, b=0, t=0)
         )
         fig = go.Figure(data=data, layout=layout)
-               
+
         # Convert the Plotly figure to HTML and display it in the web view
         html_content = fig.to_html(include_plotlyjs='cdn')
         self.web_view.setHtml(html_content)
@@ -325,6 +328,6 @@ class PointMesh(QWidget):
         # Resize the web view and update the canvas
         self.web_view.resize(new_size.width(), new_size.height())
         self._update_canvas()
- 
+
         # Resize the horizontal layout widget
         self.ui.horizontalLayoutWidget.resize(new_size.width(), new_size.height())

@@ -1,12 +1,13 @@
 """
-Defines StageUI, a PyQt5 QWidget for showing and updating stage information in the UI, 
-including serial numbers and coordinates. It interacts with the model to reflect 
+Defines StageUI, a PyQt5 QWidget for showing and updating stage information in the UI,
+including serial numbers and coordinates. It interacts with the model to reflect
 real-time data changes.
 """
 
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import pyqtSignal
 import numpy as np
+
 
 class StageUI(QWidget):
     """User interface for stage control and display."""
@@ -20,10 +21,10 @@ class StageUI(QWidget):
         self.ui = ui
         self.reticle = "Global coords"
         self.previous_stage_id = None
-    
+
         # initialize UI
         self.initialize()
-        
+
         # Swtich Reticle Coordinates (e.g Reticle + No Offset, Reticle + Offset..)
         self.ui.reticle_selector.currentIndexChanged.connect(self.updateCurrentReticle)
 
@@ -52,7 +53,7 @@ class StageUI(QWidget):
             self.ui.stage_selector.currentIndexChanged.disconnect(self.updateStageLocalCoords)
             self.ui.stage_selector.currentIndexChanged.disconnect(self.updateStageGlobalCoords)
             self.ui.stage_selector.currentIndexChanged.disconnect(self.sendInfoToStageWidget)
-        except:
+        except BaseException:
             # If signals are not connected, ignore the error
             pass
 
@@ -86,8 +87,8 @@ class StageUI(QWidget):
         """
         Emit a signal to notify other widgets or components about a change in the selected stage.
 
-        This method emits the `prev_curr_stages` signal, passing the previous and current stage IDs 
-        to allow other components (like a stage widget) to update their displayed information 
+        This method emits the `prev_curr_stages` signal, passing the previous and current stage IDs
+        to allow other components (like a stage widget) to update their displayed information
         based on the selected stage change.
 
         Args:
@@ -95,9 +96,9 @@ class StageUI(QWidget):
             curr_stage_id (str): The ID of the currently selected stage.
         """
         self.prev_curr_stages.emit(prev_stage_id, curr_stage_id)
-        
+
     def sendInfoToStageWidget(self):
-        """Send the selected stage information to the stage widget."""    
+        """Send the selected stage information to the stage widget."""
         # Get updated stage_id
         stage_id = self.get_current_stage_id()
         self.update_stage_widget(self.previous_stage_id, stage_id)
@@ -127,9 +128,9 @@ class StageUI(QWidget):
         """
         Update the currently selected reticle and refresh the global coordinates display.
 
-        This method calls `setCurrentReticle` to update the currently selected reticle based on 
-        the user's selection from the reticle dropdown. If the reticle is successfully updated, 
-        it refreshes the displayed global coordinates for the selected stage using 
+        This method calls `setCurrentReticle` to update the currently selected reticle based on
+        the user's selection from the reticle dropdown. If the reticle is successfully updated,
+        it refreshes the displayed global coordinates for the selected stage using
         `updateStageGlobalCoords`.
         """
         ret = self.setCurrentReticle()
@@ -140,9 +141,9 @@ class StageUI(QWidget):
         """
         Set the current reticle based on the user's selection in the reticle dropdown.
 
-        This method retrieves the selected reticle from the reticle selector UI component. If the 
-        reticle name contains "Proj", it sets the reticle to "Proj" and resets the global coordinates 
-        display by calling `updateStageGlobalCoords_default`. Otherwise, it extracts the reticle 
+        This method retrieves the selected reticle from the reticle selector UI component. If the
+        reticle name contains "Proj", it sets the reticle to "Proj" and resets the global coordinates
+        display by calling `updateStageGlobalCoords_default`. Otherwise, it extracts the reticle
         letter from the reticle name (e.g., "Global coords (A)") and sets it as the current reticle.
 
         Returns:
@@ -151,7 +152,7 @@ class StageUI(QWidget):
         reticle_name = self.ui.reticle_selector.currentText()
         if not reticle_name:
             return False
-        
+
         if "Proj" in reticle_name:
             self.reticle = "Proj"
             self.updateStageGlobalCoords_default()
@@ -166,7 +167,7 @@ class StageUI(QWidget):
             # Do no update global coordinates if reticle is Proj
             # Update global coordinates (projection) from screen_coords_mapper
             return
-        
+
         stage_id = self.get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.get_stage(stage_id)
@@ -176,7 +177,7 @@ class StageUI(QWidget):
                 z = self.selected_stage.stage_z_global
                 if x is not None and y is not None and z is not None:
                     # If reticle is with offset, get the global coordinates with offset
-                    if self.reticle != "Global coords": 
+                    if self.reticle != "Global coords":
                         if self.ui.reticle_metadata is not None:
                             global_pts = np.array([x, y, z])
                             x, y, z = self.ui.reticle_metadata.get_global_coords_with_offset(self.reticle, global_pts)

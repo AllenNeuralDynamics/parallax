@@ -1,9 +1,10 @@
 """
 This module provides utility classes for manipulating coordinates and calculating
-crop regions within images. 
+crop regions within images.
 - UtilsCoords: scaling coordinates between original and resized images
 - UtilsCrops: calculating crop regions based on specified criteria.
 """
+
 
 class UtilsCoords:
     """Utility class for scaling coordinates between original and resized images."""
@@ -36,7 +37,7 @@ class UtilsCoords:
         original_y = int(y * scale_y)
 
         return (original_x, original_y)
-    
+
     @classmethod
     def scale_coords_to_resized_img(self, tip, original_size, resized_size):
         """

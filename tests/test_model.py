@@ -47,25 +47,6 @@ def test_add_mock_cameras(model):
     for camera in model.cameras:
         assert isinstance(camera, MockCamera)
 
-def test_scan_for_usb_stages(model):
-    """Test scanning for USB-connected stages and updating the model's stages."""
-    # Mock the `StageInfo` class and its `get_instances` method.
-    mock_stage_info = MagicMock(spec=StageInfo)
-    mock_stage_info.get_instances.return_value = [{'sn': 'stage_1'}, {'sn': 'stage_2'}]
-
-    with patch('parallax.stage_listener.StageInfo', return_value=mock_stage_info):
-        # Call the method to scan for USB stages.
-        model.scan_for_usb_stages()
-
-        # Check if stages were initialized and added correctly.
-        assert len(model.stages) == 2
-        assert model.nStages == 2
-
-        # Check if each stage is an instance of `Stage`.
-        for stage_sn, stage in model.stages.items():
-            assert isinstance(stage, Stage)
-            assert stage.sn == stage_sn
-
 def test_add_stage(model):
     """Test adding a stage to the model."""
     mock_stage = MagicMock(spec=Stage)

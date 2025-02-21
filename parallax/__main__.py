@@ -25,9 +25,8 @@ def setup_logging():
     os.makedirs(debug_dir, exist_ok=True)
     log_file_path = os.path.join(debug_dir, "parallax_debug.log")
 
-    with open(log_file_path, "w") as log_file:
-        # Clear the log file
-        pass
+    with open(log_file_path, "w"):
+        pass  # Clear the log file
 
     log_handler = logging.FileHandler(log_file_path)
     log_handler.setLevel(logging.DEBUG)
@@ -70,7 +69,9 @@ if __name__ == "__main__":
 
     # Initialize the Qt application
     app = QApplication([])
-    model = Model(version="V2", dummy=args.dummy, bundle_adjustment=args.bundle_adjustment)  # Initialize the data model with version "V2"
+
+    # Initialize the data model with version "V2"
+    model = Model(version="V2", dummy=args.dummy, bundle_adjustment=args.bundle_adjustment)
     main_window = MainWindowV2(model, dummy=args.dummy)  # main window
 
     # Show the main window on screen

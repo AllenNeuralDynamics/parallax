@@ -1,5 +1,5 @@
 """
-CurrPrevCmpProcessor: Module for finding the difference image 
+CurrPrevCmpProcessor: Module for finding the difference image
 using Current Previous Comparison.
 
 This module provides classes and methods for processing images
@@ -36,6 +36,7 @@ if logger.getEffectiveLevel() == logging.DEBUG:
     package_dir = os.path.dirname(os.path.abspath(__file__))
     debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
     os.makedirs(debug_dir, exist_ok=True)
+
 
 class CurrPrevCmpProcessor():
     """Finding diff image using Current Previous Comparison"""
@@ -81,7 +82,7 @@ class CurrPrevCmpProcessor():
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
         if not self._apply_threshold():
             return ret, ret_precise_tip
-        
+
         ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
         if ret:
             logger.debug("CurrPrevCmpProcessor First::detect")
@@ -108,7 +109,7 @@ class CurrPrevCmpProcessor():
         ret = self._apply_threshold()
         if not ret:
             return ret, ret_precise_tip
-        
+
         ret = self._update_crop()
         if ret:
             logger.debug("CurrPrevCmpProcessor Update::detect")
@@ -144,7 +145,7 @@ class CurrPrevCmpProcessor():
                 offset_x=self.left,
                 offset_y=self.top
             )
-            
+
             if ret and UtilsCrops.is_point_on_crop_region(
                 self.ProbeDetector.probe_tip, self.top, self.bottom, self.left, self.right,
             ):
@@ -158,24 +159,28 @@ class CurrPrevCmpProcessor():
         if self.ProbeDetector.probe_tip_org is not None:
             return self.ProbeDetector.probe_tip_org
         elif self.ProbeDetector.probe_tip is not None:
-            tip = UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            tip = UtilsCoords.scale_coords_to_original(
+                self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             return tip
         else:
-            return None 
+            return None
 
     def get_point_base(self):
         """Get the probe tip and base points."""
         if self.ProbeDetector.probe_base is not None:
-            base = UtilsCoords.scale_coords_to_original(self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            base = UtilsCoords.scale_coords_to_original(
+                self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             return base
         else:
-            return None  
+            return None
 
     def get_crop_region_boundary(self):
         """Get the boundary of the crop region."""
         if self.top is not None:
-            top_left  = UtilsCoords.scale_coords_to_original((self.left, self.top), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            bottom_right = UtilsCoords.scale_coords_to_original((self.right, self.bottom), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            top_left = UtilsCoords.scale_coords_to_original(
+                (self.left, self.top), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            bottom_right = UtilsCoords.scale_coords_to_original(
+                (self.right, self.bottom), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             left, top = top_left
             right, bottom = bottom_right
             return top, bottom, left, right
@@ -194,11 +199,11 @@ class CurrPrevCmpProcessor():
         ret = False
 
         probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
-            self.ProbeDetector.probe_tip, 
+            self.ProbeDetector.probe_tip,
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )
         probe_base_original_coords = UtilsCoords.scale_coords_to_original(
-            self.ProbeDetector.probe_base, 
+            self.ProbeDetector.probe_base,
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )
 
@@ -218,7 +223,7 @@ class CurrPrevCmpProcessor():
             direction=self.ProbeDetector.probe_tip_direction,
             cam_name=self.cam_name
         )
-        
+
         if ret:
             self.ProbeDetector.probe_tip_org = tip
             tip = UtilsCoords.scale_coords_to_resized_img(
