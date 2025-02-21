@@ -462,7 +462,7 @@ class StageListener(QObject):
             stage_info["Stage_X"] = local_coords[0]
             stage_info["Stage_Y"] = local_coords[1]
             stage_info["Stage_Z"] = local_coords[2]
-            self.stage_global_data = Stage(stage_info)      #TODO : check this
+            self.stage_global_data = Stage(stage_info)
 
         if local_coords is not None:
             self.sn = sn
