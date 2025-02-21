@@ -73,10 +73,6 @@ class MainWindow(QMainWindow):
             f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
         )
 
-        # Update stage information
-        self.refresh_stages()
-        logger.debug(f"stages: {self.model.stages}")
-
         self.user_setting = UserSettingsManager()
         # Load column configuration from user preferences
         self.nColumn = self.user_setting.load_settings_item("main", "nColumn")
@@ -787,4 +783,5 @@ class MainWindow(QMainWindow):
         self.model.close_all_point_meshes()
         self.model.close_clac_instance()
         self.model.close_reticle_metadata_instance()
+        self.model.close_stage_ipconfig_instance()
         event.accept()

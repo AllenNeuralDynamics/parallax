@@ -65,6 +65,15 @@ class StageController(QObject):
             "Probe": 0          # Default value, will be updated dynamically
         }
 
+    def update_url(self):
+        """
+        Updates the URL of the stage controller.
+
+        Args:
+            url (str): The new URL for the stage controller.
+        """
+        self.url = self.model.stage_listener_url
+
     def stop_request(self, command):
         """
         Stops the movement of all probes.

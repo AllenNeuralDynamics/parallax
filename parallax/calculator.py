@@ -44,14 +44,28 @@ class Calculator(QWidget):
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | \
             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
         
-        # Create the number of GroupBox for the number of stages
-        self._create_stage_groupboxes()
-        self._connect_clear_buttons()
-        self._connect_move_stage_buttons()
+        self.add_stage_groupbox() # Add group boxes for each stage dynamically
         self.reticle_selector.currentIndexChanged.connect(self._setCurrentReticle)
 
         self.model.add_calc_instance(self)
+    
+    def add_stage_groupbox(self):
+        """ Adds group boxes for each stage dynamically based on the number of stages in the model. """
+        self._create_stage_groupboxes()
+        self._connect_clear_buttons()
+        self._connect_move_stage_buttons()
         
+    def remove_stage_groupbox(self):
+        """ 
+        Resets the stage group boxes by removing all dynamically created ones and re-adding them. 
+        """
+        # Find and remove all QGroupBox widgets that start with "groupBox_"
+        for stage_sn in list(self.model.stages.keys()):
+            group_box = self.findChild(QGroupBox, f"groupBox_{stage_sn}")
+            if group_box:
+                self.ui.verticalLayout_QBox.removeWidget(group_box)
+                group_box.deleteLater()  # Properly delete the widget to free memory
+
     def show(self):
         """
         Displays the Calculator widget and updates the UI to show the correct reticle and stage information.
@@ -77,7 +91,7 @@ class Calculator(QWidget):
         # Clear fields for all enabled stages
         for stage_sn in self.model.stages.keys():
             group_box = self.findChild(QGroupBox, f"groupBox_{stage_sn}")
-            if group_box.isEnabled():  # Check if the stage's QGroupBox is enabled
+            if group_box is not None and group_box.isEnabled():  # Check if the stage's QGroupBox is enabled
                 self._clear_fields(stage_sn)
 
     def _change_global_label(self):
@@ -369,7 +383,7 @@ class Calculator(QWidget):
         """
         # Find the QGroupBox for the stage
         group_box = self.findChild(QGroupBox, f"groupBox_{sn}")
-        if not group_box.isEnabled():
+        if not group_box.isEnabled() and group_box is not None:
             group_box.setEnabled(True)
             group_box.setStyleSheet("background-color: black;")
             group_box.setTitle(f"{sn}")

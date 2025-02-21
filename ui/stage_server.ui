@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Form</class>
+ <widget class="QWidget" name="Form">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>422</width>
+    <height>335</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget{
+background-color: rgb(00,00,00);
+color: #FFFFFF;
+}
+QPushButton{
+	background-color: black;
+}
+ QPushButton:pressed {
+     background-color: rgb(224, 0, 0);     
+}
+QPushButton:hover {
+     background-color: rgb(100, 30, 30);
+}
+QPushButton#startButton:disabled:checked {
+	color: gray;
+}
+QPushButton#startButton:disabled:checked {
+	background-color: #ffaaaa;
+}
+QPushButton#startButton:disabled:!checked {
+	background-color: lightGreen;
+}
+QMessageBox {
+    background-color: rgb(00,00,00);
+    color: #FFFFFF;
+}
+QMessageBox QLabel {
+    color: #FFFFFF;
+}
+QMessageBox QPushButton {
+    background-color: rgb(50,50,50);
+    color: #FFFFFF;
+}
+QMessageBox QPushButton:hover {
+    background-color: rgb(100, 30, 30);
+}
+QMessageBox QPushButton:pressed {
+    background-color: rgb(224, 0, 0);
+}</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <layout class="QGridLayout" name="gridLayout_server">
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_port">
+       <property name="text">
+        <string> • Port:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0" colspan="2">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Stage Http Server:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_ip">
+       <property name="maximumSize">
+        <size>
+         <width>300</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string> • IP address: </string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0" colspan="3">
+      <widget class="QTextBrowser" name="textBrowser_server">
+       <property name="minimumSize">
+        <size>
+         <width>300</width>
+         <height>200</height>
+        </size>
+       </property>
+       <property name="html">
+        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:9.75pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt;Pathfinder MPM v2.8.0 or later includes an HTTP listener to send stage information and receive commands from the application.&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt;Enter the IP address where the MPM software is running:&lt;/span&gt;&lt;/p&gt;
+&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; font-size:9pt;&quot; style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;If using a browser on the same PC, enter http://localhost as the IP address and &lt;span style=&quot; font-weight:600;&quot;&gt;8080&lt;/span&gt; as the port.&lt;/li&gt;
+&lt;li style=&quot; font-size:9pt;&quot; style=&quot; margin-top:0px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;If the MPM software is running on a different PC, use that PC’s IP address (e.g, http://192.168.0.87 for the IP address and &lt;span style=&quot; font-weight:600;&quot;&gt;8080&lt;/span&gt; for the port).&lt;/li&gt;&lt;/ul&gt;
+&lt;p style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt;To find the PC’s IP address, open a Command Prompt window and enter the &lt;/span&gt;&lt;span style=&quot; font-family:'Courier New'; font-size:9pt;&quot;&gt;ipconfig&lt;/span&gt;&lt;span style=&quot; font-size:9pt;&quot;&gt; command.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1" colspan="2">
+      <widget class="QLineEdit" name="lineEdit_ip">
+       <property name="minimumSize">
+        <size>
+         <width>300</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>http://localhost</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="2">
+      <widget class="QPushButton" name="connect_btn">
+       <property name="maximumSize">
+        <size>
+         <width>100</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="toolTipDuration">
+        <number>0</number>
+       </property>
+       <property name="text">
+        <string>Connect</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1" colspan="2">
+      <widget class="QLineEdit" name="lineEdit_port">
+       <property name="text">
+        <string>8080</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0" colspan="2">
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>textBrowser_server</tabstop>
+  <tabstop>lineEdit_ip</tabstop>
+  <tabstop>lineEdit_port</tabstop>
+  <tabstop>connect_btn</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

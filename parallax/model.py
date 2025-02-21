@@ -17,7 +17,7 @@ class Model(QObject):
     msg_posted = pyqtSignal(str)
     accutest_point_reached = pyqtSignal()
 
-    def __init__(self, version="V1", bundle_adjustment=False):
+    def __init__(self, version="V1", dummy=False, bundle_adjustment=False):
         """Initialize the Model object.
 
         Args:
@@ -26,6 +26,7 @@ class Model(QObject):
         """
         QObject.__init__(self)
         self.version = version
+        self.dummy = dummy
         self.bundle_adjustment = bundle_adjustment
         # camera
         self.cameras = []
@@ -47,7 +48,8 @@ class Model(QObject):
         self.nStages = 0
         self.stages = {}
         self.stages_calib = {}
-        self.stage_listener_url = "http://localhost:8080/"
+        self.stage_listener_url = None
+        self.stage_ipconfig_instance = None
 
         # probe detector
         self.probeDetectors = []
@@ -95,6 +97,7 @@ class Model(QObject):
 
     def init_transforms(self):
         """Initialize the transformation matrices for all stages."""
+        self.transforms = {}
         for stage_sn in self.stages.keys():
             self.transforms[stage_sn] = [None, None]
 
@@ -133,6 +136,20 @@ class Model(QObject):
                 if isinstance(camera, PySpinCamera)
             ]
         )
+
+    def set_stage_listener_url(self, url):
+        """Set the URL for the stage listener.
+
+        Args:
+            url (str): The URL to set for the stage listener.
+        """
+        self.stage_listener_url = url   
+
+    def refresh_stages(self):
+        """Search for connected stages"""
+        if not self.dummy:
+            self.scan_for_usb_stages()
+            self.init_transforms()
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
@@ -498,3 +515,17 @@ class Model(QObject):
         if self.reticle_metadata_instance is not None:
             self.reticle_metadata_instance.close()
             self.calc_instance = None
+
+    def add_stage_ipconfig_instance(self, instance):
+        """Add a stage IP configuration instance.
+
+        Args:
+            instance (object): The stage IP configuration instance to add.
+        """
+        self.stage_ipconfig_instance = instance
+
+    def close_stage_ipconfig_instance(self):
+        """Close the stage IP configuration instance.""" 
+        if self.stage_ipconfig_instance is not None:
+            self.stage_ipconfig_instance.close()
+            self.stage_ipconfig_instance = None

@@ -23,6 +23,7 @@ from .calculator import Calculator
 from .reticle_metadata import ReticleMetadata
 from .screen_coords_mapper import ScreenCoordsMapper
 from .stage_controller import StageController
+from .stage_server_ipconfig import StageServerIPConfig
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -135,7 +136,43 @@ class StageWidget(QWidget):
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
 
-        # Stage widget
+        # Probe Widget
+        self.probe_detection_status = "default"    # options: default, process, accepted
+        self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
+        self.transM, self.L2_err, self.dist_travled = None, None, None
+        self.scale = np.array([1, 1, 1])
+        self.moving_stage_id = None
+
+        # Set current filter
+        self.filter = "no_filter"
+        logger.debug(f"filter: {self.filter}")
+
+        # Reticle Button
+        self.reticle_metadata_btn.hide()
+        self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector)
+
+        # Screen Coords Mapper
+        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets, \
+                self.reticle_selector, self.global_coords_x, self.global_coords_y, self.global_coords_z)
+
+        # Stage Server IP Config
+        self.stage_server_ipconfig = StageServerIPConfig(self.model) # Refresh stages
+        self.stage_server_ipconfig_btn.clicked.connect(
+            self.stage_server_ipconfig_btn_handler
+        )
+        self.stage_server_ipconfig.ui.connect_btn.clicked.connect(
+            self.refresh_stages
+        )
+
+        # Initialize stages
+        self.init_stages()
+
+    def init_stages(self):
+        # refresh the stage using server IP address
+        self.stage_server_ipconfig.update_url(init=True)
+        self.stage_server_ipconfig.refresh_stages() # Update stages to model
+
+        # Set Stage UI
         self.stageUI = StageUI(self.model, self)
         self.stageUI.prev_curr_stages.connect(self.update_stages)
         self.selected_stage_id = self.stageUI.get_current_stage_id()
@@ -144,6 +181,7 @@ class StageWidget(QWidget):
         self.probe_calibration_btn.clicked.connect(
             self.probe_detection_button_handler
         )
+
         # Start refreshing stage info
         self.stageListener = StageListener(self.model, self.stageUI, self.probeCalibrationLabel)
         self.stageListener.start()
@@ -162,15 +200,6 @@ class StageWidget(QWidget):
         self.probeCalibration.transM_info.connect(
             self.update_probe_calib_status
         )
-        self.probe_detection_status = "default"    # options: default, process, accepted
-        self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
-        self.transM, self.L2_err, self.dist_travled = None, None, None
-        self.scale = np.array([1, 1, 1])
-        self.moving_stage_id = None
-
-        # Set current filter
-        self.filter = "no_filter"
-        logger.debug(f"filter: {self.filter}")
 
         # Stage controller
         self.stage_controller = StageController(self.model)
@@ -179,13 +208,30 @@ class StageWidget(QWidget):
         self.calculation_btn.hide()
         self.calculator = Calculator(self.model, self.reticle_selector, self.stage_controller)
 
-        # Reticle Button
-        self.reticle_metadata_btn.hide()
-        self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector)
+    def refresh_stages(self):
+        """Refreshes the stages using the updated server configuration."""
+        # If URL is not updated or invalid, do nothing
+        if not self.stage_server_ipconfig.update_url():
+            return
 
-        # Screen Coords Mapper
-        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets, \
-                self.reticle_selector, self.global_coords_x, self.global_coords_y, self.global_coords_z)
+        # Remove old stage infos from calculator
+        self.calculator.remove_stage_groupbox()
+
+        # refresh the stage using server IP address
+        self.stage_server_ipconfig.refresh_stages() # Update stages server url to model # models.transforms updated
+        self.stageUI.initialize()
+
+        # Add stages on calculator
+        self.calculator.add_stage_groupbox() # Add stage infos to calculator
+
+        # Update reticle/probe detection status to default
+        self.reticle_detect_default_status()
+
+        # Update url on StageLinstener
+        self.stageListener.update_url()
+
+        # Update url on Stage controller
+        self.stage_controller.update_url()
 
     def reticle_detection_button_handler(self):
         """
@@ -225,9 +271,12 @@ class StageWidget(QWidget):
             if self.filter != "no_filter":
                 screen.run_no_filter()
             if self.reticle_detection_status != "accepted":
-                screen.reticle_coords_detected.disconnect(
-                    self.reticle_detect_two_screens
-                )    
+                try:
+                    screen.reticle_coords_detected.disconnect(
+                        self.reticle_detect_two_screens
+                    )
+                except:
+                    logger.debug("Signal not connected. Skipping disconnect.")
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
@@ -254,6 +303,9 @@ class StageWidget(QWidget):
         self.model.reset_stereo_calib_instance()
         self.model.reset_camera_extrinsic()
         self.probeCalibration.clear()
+
+        # Reset global coords displayed on the GUI
+        self.stageUI.updateStageGlobalCoords_default()
 
     def reticle_overwrite_popup_window(self):
         """
@@ -1269,7 +1321,7 @@ class StageWidget(QWidget):
             prev_stage_id (str): The ID of the previous stage.
             curr_stage_id (str): The ID of the current stage being switched to.
         """
-        logger.debug(f"update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
+        logger.debug(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
         self.selected_stage_id = curr_stage_id
         if prev_stage_id is None or curr_stage_id is None:
             return
@@ -1336,3 +1388,11 @@ class StageWidget(QWidget):
         This method displays the reticle metadata widget using the `reticle_metadata` object.
         """
         self.reticle_metadata.show()
+
+    def stage_server_ipconfig_btn_handler(self):
+        """
+        Handles the event when the user clicks the "Stage Server IP Config" button.
+
+        This method displays the Stage Server IPConfig widget using the `stage_server_ipconfig` object.
+        """
+        self.stage_server_ipconfig.show()

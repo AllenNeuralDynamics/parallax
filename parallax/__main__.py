@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     # Initialize the Qt application
     app = QApplication([])
-    model = Model(version="V2", bundle_adjustment=args.bundle_adjustment)  # Initialize the data model with version "V2"
+    model = Model(version="V2", dummy=args.dummy, bundle_adjustment=args.bundle_adjustment)  # Initialize the data model with version "V2"
     main_window = MainWindowV2(model, dummy=args.dummy)  # main window
 
     # Show the main window on screen
