@@ -3,6 +3,8 @@ Provides classes to manage stage data fetching, representation, and updates in m
 applications, using PyQt5 for threading and signals, and requests for HTTP requests.
 """
 
+import os
+import json
 import logging
 import time
 from collections import deque
@@ -15,10 +17,11 @@ from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+# Directory and file path for storing stage coordinates
+package_dir = os.path.dirname(os.path.abspath(__file__))
+data_dir = os.path.join(os.path.dirname(package_dir), "data", "stage_coords")
+os.makedirs(data_dir, exist_ok=True)  # Ensure the directory exists
 
 class StageInfo(QObject):
     """Retrieve and manage information about the stages."""
@@ -222,6 +225,9 @@ class StageListener(QObject):
         self.stage_global_data = None
         self.transM_dict = {}
         self.scale_dict = {}
+        self.file = None
+
+        # Connect the snapshot button
         self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
 
     def start(self):
@@ -538,12 +544,28 @@ class StageListener(QObject):
         Args:
             stage (Stage): Stage object.
         """
-        print("---------- _write_stage_info_to_json")
-        print(" sn: ", stage.sn)
-        print(" name: ", stage.name)
-        print(" timestamp: ", stage.timestamp)
-        print(" local coords: ", stage.stage_x, stage.stage_y, stage.stage_z)
-        print(" global coords: ", stage.stage_x_global, stage.stage_y_global, stage.stage_z_global)
+        file_path = os.path.join(data_dir, f"{stage.sn}.json")  # Store the file in the correct location
+
+        # Create the stage data dictionary
+        stage_data = {
+            "sn": stage.sn,
+            "name": stage.name,
+            "timestamp": stage.timestamp,
+            "local_coords": {
+                "x": stage.stage_x,
+                "y": stage.stage_y,
+                "z": stage.stage_z
+            },
+            "global_coords": {
+                "x": stage.stage_x_global,
+                "y": stage.stage_y_global,
+                "z": stage.stage_z_global
+            }
+        }
+
+        # Write the stage data to the JSON file
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(stage_data, f, indent=4)
 
     def _snapshot_stage(self):
         sn = self.stage_ui.get_selected_stage_sn()
