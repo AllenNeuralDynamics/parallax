@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 package_dir = os.path.dirname(os.path.abspath(__file__))
 
+
 class StageInfo(QObject):
     """Retrieve and manage information about the stages."""
 
