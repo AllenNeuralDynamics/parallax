@@ -8,7 +8,7 @@ import json
 import logging
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import datetime
 
 import numpy as np
 import requests
@@ -18,13 +18,7 @@ from PyQt5.QtWidgets import QFileDialog
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-# Directory and file path for storing stage coordinates
 package_dir = os.path.dirname(os.path.abspath(__file__))
-#data_dir = os.path.join(os.path.dirname(package_dir), "data", "stage_coords")
-data_dir = os.path.join(os.path.expanduser("~"), "Documents", "Parallax_Stages")
-os.makedirs(data_dir, exist_ok=True)  # Ensure the directory exists
-
 
 class StageInfo(QObject):
     """Retrieve and manage information about the stages."""
@@ -77,7 +71,6 @@ class Stage(QObject):
             self.yaw = None
             self.pitch = None
             self.roll = None
-            # self.timestamp = None
 
 
 class Worker(QObject):
@@ -316,7 +309,6 @@ class StageListener(QObject):
             moving_stage.stage_x = local_coords_x
             moving_stage.stage_y = local_coords_y
             moving_stage.stage_z = local_coords_z
-            # moving_stage.timestamp = self.timestamp_local
 
         # Update to buffer
         self.append_to_buffer(self.timestamp_local, moving_stage)
@@ -576,7 +568,6 @@ class StageListener(QObject):
         stage_data = {
             "sn": stage.sn,
             "name": stage.name,
-            # "timestamp": stage.timestamp,
             "Stage_X": stage.stage_x,
             "Stage_Y": stage.stage_y,
             "Stage_Z": stage.stage_z,
