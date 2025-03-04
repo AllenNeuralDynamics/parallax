@@ -3,6 +3,8 @@ Provides classes to manage stage data fetching, representation, and updates in m
 applications, using PyQt5 for threading and signals, and requests for HTTP requests.
 """
 
+import os
+import json
 import logging
 import time
 from collections import deque
@@ -11,13 +13,12 @@ from datetime import datetime
 import numpy as np
 import requests
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
+from PyQt5.QtWidgets import QFileDialog
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
+package_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class StageInfo(QObject):
@@ -68,6 +69,9 @@ class Stage(QObject):
             self.stage_x_global = None
             self.stage_y_global = None
             self.stage_z_global = None
+            self.yaw = None
+            self.pitch = None
+            self.roll = None
 
 
 class Worker(QObject):
@@ -137,7 +141,10 @@ class Worker(QObject):
                     selected_probe = data["SelectedProbe"]
                     probe = data["ProbeArray"][selected_probe]
 
-                    if self.last_stage_info is None:  # Initial
+                    # At init, update stage info for connected stages
+                    if self.last_stage_info is None:  # Initial setup
+                        for stage in data["ProbeArray"]:
+                            self.dataChanged.emit(stage)
                         self.last_stage_info = probe
                         self.last_bigmove_stage_info = probe
                         self.dataChanged.emit(probe)
@@ -221,6 +228,11 @@ class StageListener(QObject):
         self.stage_global_data = None
         self.transM_dict = {}
         self.scale_dict = {}
+        self.snapshot_folder_path = None
+        self.stages_info = {}
+
+        # Connect the snapshot button
+        self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
 
     def start(self):
         """Start the stage listener."""
@@ -232,10 +244,8 @@ class StageListener(QObject):
         """Update the URL for the worker."""
         # Update URL
         self.worker.update_url(self.model.stage_listener_url)
-        # Restart worker
-        # If there is an timeout error, stop the worker.
 
-    def get_last_moved_time(self, millisecond=False):
+    def get_timestamp(self, millisecond=False):
         """Get the last moved time of the stage.
 
         Args:
@@ -284,13 +294,14 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         # Format the current timestamp
-        self.timestamp_local = self.get_last_moved_time(millisecond=True)
+        self.timestamp_local = self.get_timestamp(millisecond=True)
 
         # id = probe["Id"]
         sn = probe["SerialNumber"]
         local_coords_x = round(probe["Stage_X"] * 1000, 1)
         local_coords_y = round(probe["Stage_Y"] * 1000, 1)
         local_coords_z = 15000 - round(probe["Stage_Z"] * 1000, 1)
+        logger.debug(f"timestamp_local: {self.timestamp_local}, sn: {sn}")
 
         # update into model
         moving_stage = self.model.stages.get(sn)
@@ -316,8 +327,20 @@ class StageListener(QObject):
                 self._updateGlobalDataTransformM(sn, moving_stage, transM, scale)
             else:
                 logger.debug(f"Transformation matrix or scale not found for serial number: {sn}")
-        else:
-            logger.debug(f"Serial number {sn} not found in transformation or scale dictionary")
+
+        # Update stage info
+        self._update_stages_info(moving_stage)
+
+    def _update_stages_info(self, stage):
+        """Update stage info.
+
+        Args:
+            stage (Stage): Stage object.
+        """
+        if stage is None:
+            return
+
+        self.stages_info[stage.sn] = self._get_stage_info_json(stage)
 
     def _updateGlobalDataTransformM(self, sn, moving_stage, transM, scale):
         """
@@ -526,3 +549,74 @@ class StageListener(QObject):
         self.worker.curr_interval = self.worker._low_freq_interval
         self.worker.start(interval=self.worker._low_freq_interval)
         # print("low_freq: 1000 ms")
+
+    def _get_stage_info_json(self, stage):
+        """Create a JSON file for the stage info.
+
+        Args:
+            stage (Stage): Stage object.
+        """
+        stage_data = None
+
+        if stage is None:
+            logger.error("Error: Stage object is None. Cannot save JSON.")
+            return
+
+        if not hasattr(stage, 'sn') or not stage.sn:
+            logger.error("Error: Invalid stage serial number (sn). Cannot save JSON.")
+            return
+
+        stage_data = {
+            "sn": stage.sn,
+            "name": stage.name,
+            "Stage_X": stage.stage_x,
+            "Stage_Y": stage.stage_y,
+            "Stage_Z": stage.stage_z,
+            "global_X": stage.stage_x_global,
+            "global_Y": stage.stage_y_global,
+            "global_Z": stage.stage_z_global,
+            "yaw": stage.yaw,
+            "pitch": stage.pitch,
+            "roll": stage.roll
+        }
+
+        return stage_data
+
+    def _snapshot_stage(self):
+        """Snapshot the current stage info. Handler for the stage snapshot button."""
+        selected_sn = self.stage_ui.get_selected_stage_sn()
+        now = datetime.now().astimezone()
+        info = {"timestamp": now.isoformat(timespec='milliseconds'),
+                "selected_sn": selected_sn, "probes:": self.stages_info}
+
+        # If no folder is set, default to the "Documents" directory
+        if self.snapshot_folder_path is None:
+            self.snapshot_folder_path = os.path.join(os.path.expanduser("~"), "Documents")
+
+        # Open save file dialog, defaulting to the last used folder
+        now_fmt = now.strftime("%Y-%m-%dT%H%M%S%z")
+        file_path, _ = QFileDialog.getSaveFileName(
+            None,
+            "Save Stage Info",
+            os.path.join(self.snapshot_folder_path, f"{now_fmt}.json"),
+            "JSON Files (*.json)"
+        )
+
+        if not file_path:  # User canceled the dialog
+            print("Save canceled by user.")
+            return
+
+        # Update `snapshot_folder_path` to the selected folder
+        self.snapshot_folder_path = os.path.dirname(file_path)
+
+        # Ensure the file has the correct `.json` extension
+        if not file_path.endswith(".json"):
+            file_path += ".json"
+
+        # Write the JSON file
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(info, f, indent=4)
+            print(f"Stage info saved at {file_path}")
+        except Exception as e:
+            print(f"Error saving stage info: {e}")
