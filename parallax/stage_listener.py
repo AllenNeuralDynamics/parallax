@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QFileDialog
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 package_dir = os.path.dirname(os.path.abspath(__file__))
 
 

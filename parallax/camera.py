@@ -495,31 +495,38 @@ class PySpinCamera:
         self.last_capture_time = ts
 
         # Retrieve the next image from the camera
-        image = self.camera.GetNextImage(1000)
+        try:
+            image = self.camera.GetNextImage(1000)
+            if image.IsIncomplete():
+                logger.error(f"Image incomplete: {self.name(sn_only=True)}, Status: {image.GetImageStatus()}")
+                print(f"{self.name(sn_only=True)} Image incomplete: \n\t{image.GetImageStatus()}")
+            else:
+                # Release the previous image from the buffer if it exists
+                if self.last_image is not None:
+                    self.last_image.Release()
 
-        while image.IsIncomplete():
-            time.sleep(0.001)
+                # Update the last captured image reference
+                self.last_image = image
+                self.last_image_filled.set()
 
-        # Release the previous image from the buffer if it exists
-        if self.last_image is not None:
-            try:
-                self.last_image.Release()
-            except PySpin.SpinnakerException:
-                print("Spinnaker Exception: Couldn't release last image")
+        except PySpin.SpinnakerException as e:
+            logger.error(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
+            print(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
 
-        # Update the last captured image reference
-        self.last_image = image
-        self.last_image_filled.set()
+        # If video recording is active, record the image
+        try:
+            # Record the image if video recording is active
+            if self.video_recording_on.is_set():
+                self.video_recording_idle.clear()
 
-        # Record the image if video recording is active
-        if self.video_recording_on.is_set():
-            self.video_recording_idle.clear()
+                frame = self.get_last_image_data()
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
-            frame = self.get_last_image_data()
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-
-            self.video_output.write(frame)
-            self.video_recording_idle.set()
+                self.video_output.write(frame)
+                self.video_recording_idle.set()
+        except Exception as e:
+            logger.error("An error occurred while recording the video: ", e)
+            print(f"Error {self.name(sn_only=True)}: An error occurred while recording the video.")
 
     def get_last_capture_time(self, millisecond=False):
         """
