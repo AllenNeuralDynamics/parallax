@@ -24,6 +24,7 @@ from .reticle_metadata import ReticleMetadata
 from .screen_coords_mapper import ScreenCoordsMapper
 from .stage_controller import StageController
 from .stage_server_ipconfig import StageServerIPConfig
+from .stage_http_server import StageHttpServer
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -223,6 +224,9 @@ class StageWidget(QWidget):
 
         # Stage controller
         self.stage_controller = StageController(self.model)
+
+        # Stage Http Server
+        self.stage_http_server = StageHttpServer(self.stageListener.stages_info, self.stage_controller)
 
         # Calculator Button
         self.calculation_btn.hide()
