@@ -65,7 +65,7 @@ def test_get_probe_index(stage_controller):
     reason="No hardware connected or unexpected response format. Skipping hardware tests."
 )
 def test_move_request(stage_controller):
-    """Test the move_request method of the StageController."""
+    """Test the request method of the StageController."""
     # Get the actual status from the stage controller
     status = stage_controller._get_status()
     assert "ProbeArray" in status, "Expected 'ProbeArray' in status response."
@@ -92,7 +92,7 @@ def test_move_request(stage_controller):
     }
 
     # Send the move request
-    stage_controller.move_request(command)
+    stage_controller.request(command)
 
     # Allow time for the movement to complete
     max_attempts = 10

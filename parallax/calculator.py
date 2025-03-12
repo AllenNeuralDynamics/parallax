@@ -455,7 +455,7 @@ class Calculator(QWidget):
         command = {
             "move_type": move_type
         }
-        self.stage_controller.stop_request(command)
+        self.stage_controller.request(command)
 
     def _create_stage_function(self, stage_sn, move_type):
         """
@@ -503,7 +503,7 @@ class Calculator(QWidget):
                 "y": y,
                 "z": z
             }
-            self.stage_controller.move_request(command)
+            self.stage_controller.request(command)
         else:
             # If the user cancels, do nothing
             print("Stage move canceled by user.")

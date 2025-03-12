@@ -72,6 +72,7 @@ class Stage(QObject):
             self.yaw = None
             self.pitch = None
             self.roll = None
+            self.shank_cnt = 1
 
 
 class Worker(QObject):
@@ -566,18 +567,23 @@ class StageListener(QObject):
             logger.error("Error: Invalid stage serial number (sn). Cannot save JSON.")
             return
 
+        # Convert to mm and round to 4 decimal places if the value is not None
+        def convert_and_round(value):
+            return round(value * 0.001, 4) if value is not None else None
+
         stage_data = {
             "sn": stage.sn,
             "name": stage.name,
-            "Stage_X": stage.stage_x,
-            "Stage_Y": stage.stage_y,
-            "Stage_Z": stage.stage_z,
-            "global_X": stage.stage_x_global,
-            "global_Y": stage.stage_y_global,
-            "global_Z": stage.stage_z_global,
+            "stage_X": convert_and_round(stage.stage_x),
+            "stage_Y": convert_and_round(stage.stage_y),
+            "stage_Z": convert_and_round(stage.stage_z),
+            "global_X": convert_and_round(stage.stage_x_global),
+            "global_Y": convert_and_round(stage.stage_y_global),
+            "global_Z": convert_and_round(stage.stage_z_global),
             "yaw": stage.yaw,
             "pitch": stage.pitch,
-            "roll": stage.roll
+            "roll": stage.roll,
+            "shank_cnt": stage.shank_cnt
         }
 
         return stage_data
