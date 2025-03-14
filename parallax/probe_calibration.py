@@ -37,7 +37,7 @@ class ProbeCalibration(QObject):
     calib_complete_x = pyqtSignal(str)
     calib_complete_y = pyqtSignal(str)
     calib_complete_z = pyqtSignal(str)
-    calib_complete = pyqtSignal(str, object, np.ndarray)
+    calib_complete = pyqtSignal()
     transM_info = pyqtSignal(str, object, np.ndarray, float, object)
 
     def __init__(self, model, stage_listener):
@@ -794,7 +794,7 @@ class ProbeCalibration(QObject):
         self.model.add_transform(self.stage.sn, self.transM_LR, self.scale)
 
         # Emit the signal to indicate that calibration is complete
-        self.calib_complete.emit(self.stage.sn, self.transM_LR, self.scale)
+        self.calib_complete.emit()
         logger.debug(
             f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
         )
