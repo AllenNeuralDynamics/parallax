@@ -24,7 +24,7 @@ class CoordsConverter:
         """
         transM, scale = self.model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
-            logger.warning(f"Transformation matrix and scale not found for {sn}")
+            logger.debug(f"TransM not found for {sn}")
             return None
         
         # Apply scale, convert to homogeneous coordinates, and transform
@@ -35,7 +35,7 @@ class CoordsConverter:
 
         if reticle is not None:
             # Apply the reticle offset and rotation adjustment
-            global_pts = self.apply_reticle_adjustments(global_pts[:3], reticle)
+            global_pts = self._apply_reticle_adjustments(global_pts[:3], reticle)
 
         return np.round(global_pts[:3], 1)
     
