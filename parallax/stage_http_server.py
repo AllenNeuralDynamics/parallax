@@ -70,19 +70,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"Bad Request: Invalid JSON format")
             logger.error("Invalid JSON received in PUT request")
 
-    def _request_commnad(self, data):
-        """Parce the command from the JSON data"""
-        if "PutId" in data:
-            command = data["PutId"]
-            if command == "ProbeMotion":
-                move_type = "moveXYZ"
-            elif command == "ProbeStop":
-                move_type = "stopAll"
-            data["move_type"] = move_type
-            self.server.stage_controller.request(data)
-        else:
-            logger.error("No command found in JSON data")
-        
 
 class HttpServerThread(QThread):
     """Threaded HTTP Server to avoid blocking the PyQt application"""

@@ -23,7 +23,7 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")

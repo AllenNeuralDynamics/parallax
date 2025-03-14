@@ -17,11 +17,13 @@ Classes:
 import logging
 import requests
 import json
+import numpy as np
 from PyQt5.QtCore import QObject, QTimer
+from .coords_converter import CoordsConverter
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 class StageController(QObject):
     """
@@ -40,6 +42,7 @@ class StageController(QObject):
         """
         super().__init__()
         self.model = model
+        self.coords_converter = CoordsConverter(self.model)
         self.timer_count = 0
 
         # These commands will be updated dynamically based on the parsed probe index
@@ -153,6 +156,7 @@ class StageController(QObject):
         """
         move_type = command["move_type"]
         stage_sn = command["stage_sn"]
+
         # Get index of the probe based on the serial number
         probe_index = self._get_probe_index(stage_sn)
         if probe_index is None:
@@ -177,15 +181,33 @@ class StageController(QObject):
             self.timer.start()
 
         elif move_type == "moveXYZ":
-            # Update command to move z to 15
-            logger.info("Requested", (command["x"], command["y"], 15.0-command["z"]))
-            self._update_move_command(probe_index,
-                                        x=command["x"],
-                                        y=command["y"],
-                                        z=15.0-command["z"])
-            # Move the probe
-            self._send_command(self.probeMotion_command)
+            if command.get("coords_space", None) == "global":
+                # TODO Apply with Reticle Space
+                global_pts_um = np.array([command["x"]*1000, command["y"]*1000, command["z"]*1000], dtype=float)
+                logger.info(f"global coords requested (um): {global_pts_um}")
+                local_pts_um = self.coords_converter.global_to_local(stage_sn, global_pts_um)
 
+                if local_pts_um is not None:
+                    command["x"], command["y"], command["z"] = (local_pts_um / 1000).tolist()
+                    self._update_move_command(probe_index,
+                                            x=command["x"],
+                                            y=command["y"],
+                                            z=15.0-command["z"])
+                    logger.info(f"local coords (converted, mm): {(command['x'], command['y'], command['z'])}")
+                else:
+                    logger.warning(f"Failed to convert global coordinates to local for stage {stage_sn}.")
+                    return
+            else:
+                # Update command to move z to 15
+                self._update_move_command(probe_index,
+                                            x=command["x"],
+                                            y=command["y"],
+                                            z=15.0-command["z"])
+                logger.info(f"local coords: {(command['x'], command['y'], command['z'])}")
+
+            # Move the probe
+            logger.debug(f"Sending command: {self.probeMotion_command}")
+            self._send_command(self.probeMotion_command)
 
     def _check_z_position(self, probe_index, target_z, command):
         """

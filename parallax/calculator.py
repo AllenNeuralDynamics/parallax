@@ -15,7 +15,7 @@ from .coords_converter import CoordsConverter
 from .stage_controller import StageController
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
@@ -374,6 +374,7 @@ class Calculator(QWidget):
         """
         try:
             # Convert the text to float, round it, then cast to int
+            # Move request is in mm, so divide by 1000
             x = float(self.findChild(QLineEdit, f"localX_{stage_sn}").text()) / 1000
             y = float(self.findChild(QLineEdit, f"localY_{stage_sn}").text()) / 1000
             z = 15.0  # Z is inverted in the server.
