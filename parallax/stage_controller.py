@@ -23,11 +23,6 @@ from PyQt5.QtCore import QObject, QTimer
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
-
 class StageController(QObject):
     """
     The StageController class manages the movement and control of stages (probes).
@@ -45,7 +40,6 @@ class StageController(QObject):
         """
         super().__init__()
         self.model = model
-        self.url = self.model.stage_listener_url
         self.timer_count = 0
 
         # These commands will be updated dynamically based on the parsed probe index
@@ -67,15 +61,6 @@ class StageController(QObject):
             "PutId": "ProbeStop",
             "Probe": 0          # Default value, will be updated dynamically
         }
-
-    def update_url(self):
-        """
-        Updates the URL of the stage controller.
-
-        Args:
-            url (str): The new URL for the stage controller.
-        """
-        self.url = self.model.stage_listener_url
 
     def request(self, command):
         """
@@ -318,7 +303,7 @@ class StageController(QObject):
         Returns:
             dict or None: The status as a dictionary if the request is successful, otherwise None.
         """
-        response = requests.get(self.url)
+        response = requests.get(self.model.stage_listener_url)
         if response.status_code == 200:
             try:
                 return response.json()
@@ -337,4 +322,4 @@ class StageController(QObject):
             command (dict): The command to send as a JSON object.
         """
         headers = {'Content-Type': 'application/json'}
-        requests.put(self.url, data=json.dumps(command), headers=headers)
+        requests.put(self.model.stage_listener_url, data=json.dumps(command), headers=headers)
