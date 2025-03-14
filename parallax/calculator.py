@@ -11,6 +11,9 @@ from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, 
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 
+from .coords_converter import CoordsConverter
+from .stage_controller import StageController
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -26,7 +29,7 @@ class Calculator(QWidget):
     reticle adjustments, and issuing movement commands to stages.
     """
 
-    def __init__(self, model, reticle_selector, stage_controller):
+    def __init__(self, model, reticle_selector):
         """
         Initializes the Calculator widget by setting up the UI components and connecting relevant signals.
 
@@ -37,9 +40,10 @@ class Calculator(QWidget):
         """
         super().__init__()
         self.model = model
+        self.stage_controller = StageController(self.model)
+        self.coords_converter = CoordsConverter(self.model)
         self.reticle_selector = reticle_selector
         self.reticle = None
-        self.stage_controller = stage_controller
 
         self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
         self.setWindowTitle("Calculator")
@@ -113,17 +117,17 @@ class Calculator(QWidget):
         """
         for stage_sn, item in self.model.transforms.items():
             transM, scale = item[0], item[1]
-            if transM is not None:  # Set calc function for calibrated stages
+            if transM is not None and scale is not None:  # Set calc function for calibrated stages
                 push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
                 if not push_button:
                     logger.warning(f"Error: QPushButton for {stage_sn} not found")
                     continue
                 self._enable(stage_sn)
-                push_button.clicked.connect(self._create_convert_function(stage_sn, transM, scale))
+                push_button.clicked.connect(self._create_convert_function(stage_sn))
             else:   # Block calc functions for uncalibrated stages
                 self._disable(stage_sn)
 
-    def _create_convert_function(self, stage_sn, transM, scale):
+    def _create_convert_function(self, stage_sn):
         """
         Creates a lambda function for converting coordinates for a specific stage.
 
@@ -137,11 +141,9 @@ class Calculator(QWidget):
         """
         logger.debug("\n=== Creating convert function ===")
         logger.debug(f"Stage SN: {stage_sn}")
-        logger.debug(f"transM: {transM}")
-        logger.debug(f"scale: {scale}")
-        return lambda: self._convert(stage_sn, transM, scale)
+        return lambda: self._convert(stage_sn)
 
-    def _convert(self, sn, transM, scale):
+    def _convert(self, sn):
         """
         Performs the conversion between local and global coordinates based on the user's input.
         Depending on the entered values, the function converts global to local or local to global coordinates.
@@ -160,15 +162,18 @@ class Calculator(QWidget):
         localZ = self.findChild(QLineEdit, f"localZ_{sn}").text()
 
         logger.debug("- Convert -")
-        logger.debug(f"Global: {globalX}, {globalY}, {globalZ}")
-        logger.debug(f"Local: {localX}, {localY}, {localZ}")
+        logger.debug(f"User Input (Global): {globalX}, {globalY}, {globalZ}")
+        logger.debug(f"User Input (Local): {localX}, {localY}, {localZ}")
+        logger.debug(f"User Input (Local): {self.reticle}")
         trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
-            local_pts_ret = self._apply_inverse_transformation(global_pts, transM, scale)
-            self._show_local_pts_result(sn, local_pts_ret)
+            local_pts_ret = self.coords_converter.global_to_local(sn, global_pts, self.reticle)
+            if local_pts_ret is not None:
+                self._show_local_pts_result(sn, local_pts_ret)
         elif trans_type == "local_to_global":
-            global_pts_ret = self._apply_transformation(local_pts, transM, scale)
-            self._show_global_pts_result(sn, global_pts_ret)
+            global_pts_ret = self.coords_converter.local_to_global(sn, local_pts, self.reticle)
+            if global_pts_ret is not None:
+                self._show_global_pts_result(sn, global_pts_ret)
         else:
             logger.warning(f"Error: Invalid transforsmation type for {sn}")
             return
@@ -252,117 +257,6 @@ class Calculator(QWidget):
             return "global_to_local", None, global_pts
         else:
             return None, None, None
-
-    def _apply_reticle_adjustments(self, global_pts):
-        """
-        Applies the selected reticle's adjustments (rotation and offsets) to the given global coordinates.
-
-        Args:
-            global_pts (ndarray): The global coordinates to adjust.
-
-        Returns:
-            tuple: The adjusted global coordinates (x, y, z).
-        """
-        reticle_metadata = self.model.get_reticle_metadata(self.reticle)
-        reticle_rot = reticle_metadata.get("rot", 0)
-        reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
-        reticle_offset = np.array([
-            reticle_metadata.get("offset_x", global_pts[0]),
-            reticle_metadata.get("offset_y", global_pts[1]),
-            reticle_metadata.get("offset_z", global_pts[2])
-        ])
-
-        if reticle_rot != 0:
-            # Transpose because points are row vectors
-            global_pts = global_pts @ reticle_rotmat.T
-        global_pts = global_pts + reticle_offset
-
-        global_x = np.round(global_pts[0], 1)
-        global_y = np.round(global_pts[1], 1)
-        global_z = np.round(global_pts[2], 1)
-        return global_x, global_y, global_z
-
-    def _apply_transformation(self, local_point_, transM_LR, scale):
-        """
-        Applies the transformation to convert local coordinates to global coordinates.
-
-        Args:
-            local_point (ndarray): The local coordinates to be transformed.
-            transM_LR (ndarray): The transformation matrix.
-            scale (ndarray): The scale factors for the coordinates.
-
-        Returns:
-            ndarray: The transformed global coordinates.
-        """
-        local_point = local_point_ * scale
-        local_point = np.append(local_point, 1)
-        global_point = np.dot(transM_LR, local_point)
-        logger.debug(f"local_to_global: {local_point_} -> {global_point[:3]}")
-        logger.debug(f"R: {transM_LR[:3, :3]}\nT: {transM_LR[:3, 3]}")
-
-        # Ensure the reticle is defined and get its metadata
-        if self.reticle and self.reticle != "Global coords":
-            # Apply the reticle offset and rotation adjustment
-            global_x, global_y, global_z = self._apply_reticle_adjustments(global_point[:3])
-            # Return the adjusted global coordinates
-            return np.array([global_x, global_y, global_z])
-
-        return global_point[:3]
-
-    def _apply_reticle_adjustments_inverse(self, global_point):
-        """
-        Applies the inverse of reticle adjustments to the global coordinates.
-
-        Args:
-            global_point (ndarray): The global coordinates to adjust.
-
-        Returns:
-            ndarray: The adjusted global coordinates.
-        """
-        if self.reticle and self.reticle != "Global coords":
-            # Convert global_point to numpy array if it's not already
-            global_point = np.array(global_point)
-
-            # Get the reticle metadata
-            reticle_metadata = self.model.get_reticle_metadata(self.reticle)
-
-            # Get rotation matrix (default to identity if not found)
-            reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))
-
-            # Get offset values, default to global point coordinates if not found
-            reticle_offset = np.array([
-                reticle_metadata.get("offset_x", 0),  # Default to 0 if no offset is provided
-                reticle_metadata.get("offset_y", 0),
-                reticle_metadata.get("offset_z", 0)
-            ])
-
-            # Subtract the reticle offset
-            global_point = global_point - reticle_offset
-            # Undo the rotation
-            global_point = np.dot(global_point, reticle_rotmat)
-
-        return global_point
-
-    def _apply_inverse_transformation(self, global_point, transM_LR, scale):
-        """
-        Applies the inverse transformation to convert global coordinates to local coordinates.
-
-        Args:
-            global_point (ndarray): The global coordinates.
-            transM_LR (ndarray): The transformation matrix.
-            scale (ndarray): The scale factors for the coordinates.
-
-        Returns:
-            ndarray: The transformed local coordinates.
-        """
-        global_point = self._apply_reticle_adjustments_inverse(global_point)
-
-        # Transpose the 3x3 rotation part
-        R_T = transM_LR[:3, :3].T
-        local_point = np.dot(R_T, global_point - transM_LR[:3, 3])
-        logger.debug(f"global_to_local {global_point} -> {local_point / scale}")
-        logger.debug(f"R.T: {R_T}\nT: {transM_LR[:3, 3]}")
-        return local_point / scale
 
     def _disable(self, sn):
         """
@@ -524,23 +418,25 @@ class Calculator(QWidget):
         # Z is inverted in the server
         local_pts_z15 = [float(x) * 1000, float(y) * 1000, float(15.0 - z) * 1000]  # Should be top of the stage
         local_pts_z0 = [float(x) * 1000, float(y) * 1000, 15.0 * 1000]  # Should be bottom
-        for sn, item in self.model.transforms.items():
+        for sn, _ in self.model.transforms.items():
             if sn != stage_sn:
                 continue
 
-            transM, scale = item[0], item[1]
-            if transM is not None:
-                try:
-                    # Apply transformations to get global points for Z=15 and Z=0
-                    global_pts_z15 = self._apply_transformation(local_pts_z15, transM, scale)
-                    global_pts_z0 = self._apply_transformation(local_pts_z0, transM, scale)
+            try:
+                # Apply transformations to get global points for Z=15 and Z=0
+                global_pts_z15 = self.coords_converter.local_to_global(stage_sn, local_pts_z15)
+                global_pts_z0 = self.coords_converter.local_to_global(stage_sn, local_pts_z0)
 
-                    # Ensure that Z=15 is higher than Z=0 and Z=15 is positive
-                    if global_pts_z15[2] > global_pts_z0[2] and global_pts_z15[2] > 0:
-                        return True
-                except Exception as e:
-                    logger.error(f"Error applying transformation for stage {stage_sn}: {e}")
-                    return False
+                if global_pts_z15 is None or global_pts_z0 is None:
+                    return False  # Transformation failed, return False
+                
+                # Ensure that Z=15 is higher than Z=0 and Z=15 is positive
+                if global_pts_z15[2] > global_pts_z0[2] and global_pts_z15[2] > 0:
+                    return True
+
+            except Exception as e:
+                logger.error(f"Error applying transformation for stage {stage_sn}: {e}")
+                return False
         return False
 
     def _confirm_move_stage(self, x, y):
