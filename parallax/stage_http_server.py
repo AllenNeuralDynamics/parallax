@@ -3,6 +3,8 @@ import json
 from PyQt5.QtCore import QObject, QThread, pyqtSlot
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+from .stage_controller import StageController
+
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -107,10 +109,11 @@ class HttpServerThread(QThread):
 class StageHttpServer(QObject):
     """Manages the Stage HTTP Server"""
 
-    def __init__(self, stages_info, stage_controller, port=8081):
+    def __init__(self, model, stages_info, port=8081):
         super().__init__()
+        self.model = model
+        self.stage_controller = StageController(self.model)
         self.stages_info = stages_info  # JSON data to be served
-        self.stage_controller = stage_controller
         self.port = port
         self.server_thread = HttpServerThread("localhost", self.port, self.stages_info, self.stage_controller)
         self.server_thread.start()
