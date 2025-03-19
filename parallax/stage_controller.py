@@ -72,6 +72,7 @@ class StageController(QObject):
         Args:
             command (dict): A dictionary containing the move type and other parameters.
         """
+        print(f"Received command: {command}")
         if "move_type" in command:
             move_type = command["move_type"]
             if move_type == "stopAll" or move_type == "stop":
@@ -98,7 +99,7 @@ class StageController(QObject):
             return
 
         cmd = {"PutId": "ProbeInsertion",
-                "stage_sn": probe_index,
+                "Probe": probe_index,
                 "Distance": command["Distance"],
                 "Rate": command["Rate"]
                 }
@@ -226,6 +227,7 @@ class StageController(QObject):
             if hasattr(self, 'timer') and self.timer.isActive():
                 self.timer.stop()
                 logger.warning("Timer stopped due to timeout.")
+                print(f"Warning: z axis ({target_z} um) target not reached.")
                 return
 
         if self._is_z_at_target(probe_index, target_z):
@@ -319,22 +321,17 @@ class StageController(QObject):
         return None
 
     def _get_status(self):
-        """
-        Sends a GET request to retrieve the current status of all probes.
+        """Fetch current probe status from the stage listener."""
+        try:
+            response = requests.get(self.model.stage_listener_url)
+            response.raise_for_status()  # Raises an error for HTTP failure codes (e.g., 404, 500)
+            return response.json()
+        except json.JSONDecodeError:
+            logger.error("Response is not in JSON format: %s", response.text)
+        except requests.RequestException as e:
+            logger.error("Failed to get status: %s", str(e))
 
-        Returns:
-            dict or None: The status as a dictionary if the request is successful, otherwise None.
-        """
-        response = requests.get(self.model.stage_listener_url)
-        if response.status_code == 200:
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                print("Response is not in JSON format:", response.text)
-                return None
-        else:
-            print(f"Failed to get status: {response.status_code}, {response.text}")
-            return None
+        return None  # Return None explicitly in case of failure
 
     def _send_command(self, command):
         """
