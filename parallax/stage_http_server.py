@@ -9,7 +9,7 @@ from .stage_controller import StageController
 
 # Set up logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class StageHttpServer(QObject):
@@ -56,11 +56,11 @@ class StageHttpServer(QObject):
             data = await request.json()
             logger.info(f"PUT request received:\n{json.dumps(data, indent=2)}")
 
-            # Directly send command to StageController, overlapping previous requests
-            #asyncio.to_thread(self.stage_controller.request, data)
-            self.stage_controller.request(data)  # Process the command immediately
+            # Offlaod CPU work to a thread
+            loop = asyncio.get_running_loop()
+            result = await loop.run_in_executor(None, self.stage_controller.request, data)  # Offload to thread pool executor
 
-            return web.Response(text="Move request sent successfully")
+            return web.Response(text=result)
 
         except json.JSONDecodeError:
             logger.error("Invalid JSON received in PUT request")
