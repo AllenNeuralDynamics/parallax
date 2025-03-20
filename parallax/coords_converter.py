@@ -67,6 +67,42 @@ class CoordsConverter:
 
         return np.round(local_pts, 1)
     
+    def distance_global_to_local(self, sn: str, dist: float, axis: str) -> float:
+        transM, scale = self.model.transforms.get(sn, (None, None))
+        if transM is None or scale is None:
+            logger.warning(f"Transformation matrix and scale not found for {sn}")
+            return dist
+
+        if axis == "x":
+            dist *= np.abs(scale[0])
+        elif axis == "y":
+            dist *=  np.abs(scale[1])
+        elif axis == "z":
+            dist *= np.abs(scale[2])
+        else:
+            logger.warning(f"Invalid axis '{axis}' for distance conversion.")
+            return dist
+
+        return dist
+
+    def distance_local_to_global(self, sn: str, dist: float, axis: str) -> float:
+        transM, scale = self.model.transforms.get(sn, (None, None))
+        if transM is None or scale is None:
+            logger.warning(f"Transformation matrix and scale not found for {sn}")
+            return dist
+
+        if axis == "x":
+            dist /= np.abs(scale[0])
+        elif axis == "y":
+            dist /= np.abs(scale[1])
+        elif axis == "z":
+            dist /= np.abs(scale[2])
+        else:
+            logger.warning(f"Invalid axis '{axis}' for distance conversion.")
+            return dist
+
+        return dist
+
     def _apply_reticle_adjustments_inverse(self, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
         """
         Applies the inverse of the selected reticle's adjustments (rotation and offsets) to the given global coordinates.
