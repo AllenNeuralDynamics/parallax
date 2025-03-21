@@ -17,10 +17,10 @@ class CoordsConverter:
         Converts local coordinates to global coordinates using the transformation matrix and scale factors.
         Args:
             sn (str): The serial number of the stage.
-            local_pts (ndarray): The local coordinates to convert.
+            local_pts (ndarray): The local coordinates (µm) to convert.
             reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
         Returns:
-            ndarray: The global coordinates.
+            ndarray: The global coordinates (µm).
         """
         transM, scale = self.model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
@@ -45,10 +45,10 @@ class CoordsConverter:
 
         Args:
             sn (str): The serial number of the stage.
-            global_pts (ndarray): The global coordinates to convert.
+            global_pts (ndarray): The global coordinates (µm) to convert.
             reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
         Returns:
-            ndarray: The transformed local coordinates.
+            ndarray: The transformed local coordinates (µm).
         """
         transM, scale = self.model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
@@ -68,6 +68,15 @@ class CoordsConverter:
         return np.round(local_pts, 1)
     
     def distance_global_to_local(self, sn: str, dist: float, axis: str) -> float:
+        """
+        Converts a distance from global coordinates to local coordinates based on the transformation scale.
+        Args:
+            sn (str): The serial number of the stage.
+            dist (float): The distance in global coordinates (µm).
+            axis (str): The axis along which to convert the distance ('x', 'y', or 'z').
+        Returns:
+            float: The converted distance in local coordinates (µm).
+        """
         transM, scale = self.model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
             logger.warning(f"Transformation matrix and scale not found for {sn}")
@@ -86,6 +95,15 @@ class CoordsConverter:
         return dist
 
     def distance_local_to_global(self, sn: str, dist: float, axis: str) -> float:
+        """
+        Converts a distance from local coordinates to global coordinates based on the transformation scale.
+        Args:
+            sn (str): The serial number of the stage.
+            dist (float): The distance in local coordinates (µm).
+            axis (str): The axis along which to convert the distance ('x', 'y', or 'z').
+        Returns:
+            float: The converted distance in global coordinates (µm).
+        """
         transM, scale = self.model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
             logger.warning(f"Transformation matrix and scale not found for {sn}")
