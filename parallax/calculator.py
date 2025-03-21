@@ -336,7 +336,7 @@ class Calculator(QWidget):
         for stage_sn in self.model.stages.keys():
             moveXY_button = self.findChild(QPushButton, f"moveStageXY_{stage_sn}")
             if moveXY_button:
-                moveXY_button.clicked.connect(self._create_stage_function(stage_sn, "moveXY"))
+                moveXY_button.clicked.connect(self._create_stage_function(stage_sn))
 
     def _stop_stage(self, move_type):
         """
@@ -351,7 +351,7 @@ class Calculator(QWidget):
         }
         self.stage_controller.request(command)
 
-    def _create_stage_function(self, stage_sn, move_type):
+    def _create_stage_function(self, stage_sn):
         """
         Creates a function to move the stage to specified coordinates.
 
@@ -362,9 +362,9 @@ class Calculator(QWidget):
         Returns:
             function: A lambda function to move the stage.
         """
-        return lambda: self._move_stage(stage_sn, move_type)
+        return lambda: self._move_stage(stage_sn)
 
-    def _move_stage(self, stage_sn, move_type):
+    def _move_stage(self, stage_sn):
         """
         Moves the stage to the coordinates specified in the input fields, with confirmation and safety checks.
 
@@ -388,20 +388,27 @@ class Calculator(QWidget):
             return
 
         # Use the confirm_move_stage function to ask for confirmation
-        if self._confirm_move_stage(x, y):
-            # If the user confirms, proceed with moving the stage
-            print(f"Moving stage {stage_sn} to ({np.round(x*1000)}, {np.round(y*1000)}, 0)")
-            command = {
-                "stage_sn": stage_sn,
-                "move_type": move_type,
-                "x": x,
-                "y": y,
-                "z": z
-            }
-            self.stage_controller.request(command)
-        else:
-            # If the user cancels, do nothing
+        if not self._confirm_move_stage(x, y):
             print("Stage move canceled by user.")
+            return  # User canceled the move
+
+        # If the user confirms, proceed with moving the stage
+        command = {
+            "stage_sn": stage_sn,
+            "move_type": "stepMode",
+            "stepMode": 0 # 0 for coarse, 1 for fine
+        }
+        self.stage_controller.request(command)
+
+        command = {
+            "stage_sn": stage_sn,
+            "move_type": "moveXY0",
+            "x": x,
+            "y": y,
+            "z": z
+        }
+        self.stage_controller.request(command)
+        print(f"Moving stage {stage_sn} to ({np.round(x*1000)}, {np.round(y*1000)}, 0)")
 
     def _is_z_safe_pos(self, stage_sn, x, y, z):
         """
