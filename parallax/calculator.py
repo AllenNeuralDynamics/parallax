@@ -396,7 +396,7 @@ class Calculator(QWidget):
         command = {
             "stage_sn": stage_sn,
             "move_type": "stepMode",
-            "stepMode": 0 # 0 for coarse, 1 for fine
+            "stepMode": 0   # 0 for coarse, 1 for fine
         }
         self.stage_controller.request(command)
 
@@ -437,7 +437,7 @@ class Calculator(QWidget):
 
                 if global_pts_z15 is None or global_pts_z0 is None:
                     return False  # Transformation failed, return False
-                
+
                 # Ensure that Z=15 is higher than Z=0 and Z=15 is positive
                 if global_pts_z15[2] > global_pts_z0[2] and global_pts_z15[2] > 0:
                     return True

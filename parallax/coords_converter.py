@@ -7,6 +7,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class CoordsConverter:
     def __init__(self, model):
         """Initialize the CoordsConverter class."""
@@ -26,10 +27,10 @@ class CoordsConverter:
         if transM is None or scale is None:
             logger.debug(f"TransM not found for {sn}")
             return None
-        
+
         # Apply scale, convert to homogeneous coordinates, and transform
-        global_pts = np.dot(transM, np.append(local_pts * scale, 1))  
-        
+        global_pts = np.dot(transM, np.append(local_pts * scale, 1))
+
         logger.debug(f"local_to_global: {local_pts} -> {global_pts[:3]}")
         logger.debug(f"R: {transM[:3, :3]}\nT: {transM[:3, 3]}")
 
@@ -38,7 +39,7 @@ class CoordsConverter:
             global_pts = self._apply_reticle_adjustments(global_pts[:3], reticle)
 
         return np.round(global_pts[:3], 1)
-    
+
     def global_to_local(self, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
         Applies the inverse transformation to convert global coordinates to local coordinates.
@@ -54,7 +55,7 @@ class CoordsConverter:
         if transM is None or scale is None:
             logger.warning(f"Transformation matrix and scale not found for {sn}")
             return None
-        
+
         if reticle and reticle != "Global coords":
             global_pts = self._apply_reticle_adjustments_inverse(global_pts, reticle)
 
@@ -66,7 +67,7 @@ class CoordsConverter:
         logger.debug(f"R.T: {R_T}\nT: {transM[:3, 3]}")
 
         return np.round(local_pts, 1)
-    
+
     def distance_global_to_local(self, sn: str, dist: float, axis: str) -> float:
         """
         Converts a distance from global coordinates to local coordinates based on the transformation scale.
@@ -85,7 +86,7 @@ class CoordsConverter:
         if axis == "x":
             dist *= np.abs(scale[0])
         elif axis == "y":
-            dist *=  np.abs(scale[1])
+            dist *= np.abs(scale[1])
         elif axis == "z":
             dist *= np.abs(scale[2])
         else:
@@ -123,26 +124,28 @@ class CoordsConverter:
 
     def _apply_reticle_adjustments_inverse(self, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
         """
-        Applies the inverse of the selected reticle's adjustments (rotation and offsets) to the given global coordinates.
+        Applies the inverse of the selected reticle's adjustments (rotation and offsets)
+        to the given global coordinates.
+
         Args:
             global_pts (ndarray): The global coordinates to adjust.
             reticle (str): The name of the reticle to apply adjustments for.
         Returns:
             np.ndarray: The adjusted global coordinates.
         """
-         # Convert global_point to numpy array if it's not already
+        # Convert global_point to numpy array if it's not already
         reticle_global_pts = np.array(reticle_global_pts)
-        
+
         # Get the reticle metadata
         reticle_metadata = self.model.get_reticle_metadata(reticle)
-        
+
         if not reticle_metadata:  # Prevent applying adjustments with missing metadata
             logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
             return np.array([reticle_global_pts[0], reticle_global_pts[1], reticle_global_pts[2]])
-            
+
         # Get rotation matrix (default to identity if not found)
         reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))
-        
+
         # Get offset values, default to global point coordinates if not found
         reticle_offset = np.array([
             reticle_metadata.get("offset_x", 0),  # Default to 0 if no offset is provided
@@ -168,11 +171,11 @@ class CoordsConverter:
             tuple: The adjusted global coordinates (x, y, z).
         """
         reticle_metadata = self.model.get_reticle_metadata(reticle)
-        
+
         if not reticle_metadata:  # Prevent applying adjustments with missing metadata
             logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
             return np.array([global_pts[0], global_pts[1], global_pts[2]])
-        
+
         reticle_rot = reticle_metadata.get("rot", 0)
         reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
         reticle_offset = np.array([

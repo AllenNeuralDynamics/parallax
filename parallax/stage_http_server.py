@@ -2,7 +2,7 @@ import logging
 import json
 import asyncio
 import threading
-from PyQt5.QtCore import QObject, pyqtSlot
+from PyQt5.QtCore import QObject
 from aiohttp import web
 
 from .stage_controller import StageController
@@ -58,11 +58,11 @@ class StageHttpServer(QObject):
 
             # Offlaod CPU work to a thread
             loop = asyncio.get_running_loop()
-            result = await loop.run_in_executor(None, self.stage_controller.request, data)  # Offload to thread pool executor
+            # Offload to thread pool executor
+            result = await loop.run_in_executor(None, self.stage_controller.request, data)
 
             return web.Response(text=result)
 
         except json.JSONDecodeError:
             logger.error("Invalid JSON received in PUT request")
             return web.Response(status=400, text="Bad Request: Invalid JSON format")
-

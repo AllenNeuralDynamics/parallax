@@ -555,7 +555,7 @@ class StageListener(QObject):
         stage_data = {
             "sn": stage.sn,
             "name": stage.name,
-            "stage_X": convert_and_round(stage.stage_x), #um
+            "stage_X": convert_and_round(stage.stage_x),    # Unit is um
             "stage_Y": convert_and_round(stage.stage_y),
             "stage_Z": convert_and_round(stage.stage_z),
             "global_X": convert_and_round(stage.stage_x_global),

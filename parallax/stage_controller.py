@@ -26,6 +26,7 @@ from .coords_converter import CoordsConverter
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 class StageController(QObject):
     """
     The StageController class manages the movement and control of stages (probes).
@@ -57,7 +58,7 @@ class StageController(QObject):
         # Unit: mm
         self.probeMotion_command = {
             "PutId": "ProbeMotion",
-            "Probe": 0,          # Probe=0 (for probe A), =1 (for Probe B), etc. Default value, will be updated dynamically
+            "Probe": 0,          # Probe=0 (for probe A), =1 (for Probe B), etc. Dynamically Updated.
             "Absolute": 1,       # Absolute=0 (for relative move), =1 (for absolute target)
             "Stereotactic": 0,   # Stereotactic=0 (for local [stage] coordinates) =1 (for stereotactic)
             "AxisMask": 7       # AxisMask=1 (for X), =2 (for Y), =4 (for Z) or any combination (e.g. 7 for XYZ)
@@ -139,9 +140,11 @@ class StageController(QObject):
         if command.get("world") == "global":
             # Convert global distance to local distance
             logger.info(f"Distance (global): {distance} um")
-            distance = self.coords_converter.distance_global_to_local(stage_sn,
+            distance = self.coords_converter.distance_global_to_local(
+                                                                        stage_sn,
                                                                         distance,
-                                                                        axis="z")
+                                                                        axis="z"
+                                                                    )
             logger.info(f"Distance (local): {distance} um")
 
         # update command to coarse and the command
@@ -219,7 +222,7 @@ class StageController(QObject):
             self.timer.start()
 
         elif move_type == "moveXYZ":
-            x = command.get("x") # Unit is mm
+            x = command.get("x")    # Unit is mm
             y = command.get("y")
             z = command.get("z")
             if x is None or y is None or z is None:
@@ -236,10 +239,12 @@ class StageController(QObject):
                 # Convert local points from µm to mm for the command
                 command["x"], command["y"], command["z"] = (local_pts_um / 1000).tolist()
 
-            self._update_move_command(probe_index,
+            self._update_move_command(
+                                        probe_index,
                                         x=command["x"],
                                         y=command["y"],
-                                        z=15.0-command["z"])
+                                        z=15.0-command["z"]
+                                    )
             # Move the probe
             self._send_command(self.probeMotion_command)
 
@@ -305,7 +310,7 @@ class StageController(QObject):
         # Return whether the current Z value is close enough to the target
         return abs(current_z - target_z) < 0.01  # Tolerance of 10 um
 
-    def _update_move_command(self, probe_index: int, x: float=None, y: float=None, z: float=None) -> None:
+    def _update_move_command(self, probe_index: int, x: float = None, y: float = None, z: float = None) -> None:
         """
         Updates the motion command with the specified X, Y, and Z coordinates.
 
