@@ -2,7 +2,6 @@
 Provides classes to manage stage data fetching, representation, and updates in microscopy
 applications, using PyQt5 for threading and signals, and requests for HTTP requests.
 """
-
 import os
 import json
 import logging
@@ -550,6 +549,10 @@ class StageListener(QObject):
 
         # Convert to mm and round to 4 decimal places if the value is not None
         def convert_and_round(value):
+            """Convert the value from um to mm and round it to 4 decimal places.
+            Args: value (float): The value in um.
+            Returns: float: The value in mm rounded to 4 decimal places.
+            """
             return round(value * 0.001, 4) if value is not None else None
 
         stage_data = {

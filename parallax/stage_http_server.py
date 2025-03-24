@@ -1,3 +1,7 @@
+"""
+This module provides a StageHttpServer class that manages an HTTP server for controlling
+and querying the state of a stage controller. It uses aiohttp for asynchronous handling of HTTP requests.
+"""
 import logging
 import json
 import asyncio
@@ -16,6 +20,7 @@ class StageHttpServer(QObject):
     """Manages the Stage HTTP Server using aiohttp (Fully Async)"""
 
     def __init__(self, model, stages_info, port=8081):
+        """Initialize the StageHttpServer with a model, stages_info, and port."""
         super().__init__()
         self.model = model
         self.stage_controller = StageController(self.model)

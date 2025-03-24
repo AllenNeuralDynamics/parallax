@@ -1,4 +1,7 @@
-
+"""
+This module provides a class for converting between local and global coordinates
+using transformation matrices and scale factors.
+"""
 import logging
 import numpy as np
 from typing import Optional
@@ -9,6 +12,10 @@ logger.setLevel(logging.WARNING)
 
 
 class CoordsConverter:
+    """
+    Converts between local and global coordinates using transformation matrices
+    and scale factors. It also applies reticle adjustments for specific reticles.
+    """
     def __init__(self, model):
         """Initialize the CoordsConverter class."""
         self.model = model
@@ -189,10 +196,4 @@ class CoordsConverter:
             global_pts = global_pts @ reticle_rotmat.T
         global_pts = global_pts + reticle_offset
 
-        """
-        global_x = np.round(global_pts[0], 1)
-        global_y = np.round(global_pts[1], 1)
-        global_z = np.round(global_pts[2], 1)
-        return np.array([global_x, global_y, global_z])"
-        """
         return np.round(global_pts, 1)
