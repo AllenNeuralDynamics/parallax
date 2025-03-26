@@ -120,6 +120,7 @@ class StageUI(QWidget):
         if stage_id:
             self.selected_stage = self.model.stages.get(stage_id)
             if self.selected_stage:
+                # unit is µm
                 self.ui.local_coords_x.setText(str(self.selected_stage.stage_x))
                 self.ui.local_coords_y.setText(str(self.selected_stage.stage_y))
                 self.ui.local_coords_z.setText(str(self.selected_stage.stage_z))
@@ -182,7 +183,7 @@ class StageUI(QWidget):
                             global_pts = np.array([x, y, z])
                             x, y, z = self.ui.reticle_metadata.get_global_coords_with_offset(self.reticle, global_pts)
 
-                    # Update into UI
+                    # Update into UI, unit is µm
                     if x is not None and y is not None and z is not None:
                         self.ui.global_coords_x.setText(str(x))
                         self.ui.global_coords_y.setText(str(y))

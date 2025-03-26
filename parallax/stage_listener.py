@@ -2,18 +2,18 @@
 Provides classes to manage stage data fetching, representation, and updates in microscopy
 applications, using PyQt5 for threading and signals, and requests for HTTP requests.
 """
-
 import os
 import json
 import logging
 import time
+import numpy as np
+import requests
 from collections import deque
 from datetime import datetime
 
-import numpy as np
-import requests
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
+from .coords_converter import CoordsConverter
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -48,8 +48,8 @@ class StageInfo(QObject):
                     self.stages_sn.append(stage["SerialNumber"])
                     stages.append(stage)
         except Exception as e:
-            print("HttpServer for stages not enabled.")
-            logger.debug(f"HttpServer for stages not enabled: {e}")
+            print("Stage HttpServer not enabled.")
+            logger.debug(f"Stage HttpServer not enabled.: {e}")
 
         return stages
 
@@ -72,6 +72,7 @@ class Stage(QObject):
             self.yaw = None
             self.pitch = None
             self.roll = None
+            self.shank_cnt = 1
 
 
 class Worker(QObject):
@@ -182,7 +183,7 @@ class Worker(QObject):
             # Print the error message only once
             if self.is_error_log_printed is False:
                 self.is_error_log_printed = True
-                print(f"\nHttpServer for stages not enabled: {e}")
+                print(f"\nStage HttpServer not enabled.: {e}")
                 self.print_trouble_shooting_msg()
 
     def isSignificantChange(self, current_stage_info, stage_threshold=0.001):
@@ -214,6 +215,7 @@ class StageListener(QObject):
         """Initialize Stage Listener object"""
         super().__init__()
         self.model = model
+        self.coordsConverter = CoordsConverter(self.model)
         self.timestamp_local, self.timestamp_img_captured = None, None
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
@@ -320,13 +322,11 @@ class StageListener(QObject):
         else:
             logger.debug(f"moving_probe: {sn}, selected_probe: {self.stage_ui.get_selected_stage_sn()}")
 
-        if sn in self.transM_dict and sn in self.scale_dict:
-            transM = self.transM_dict[sn]
-            scale = self.scale_dict[sn]
-            if transM is not None and scale is not None:
-                self._updateGlobalDataTransformM(sn, moving_stage, transM, scale)
-            else:
-                logger.debug(f"Transformation matrix or scale not found for serial number: {sn}")
+        # Update global coordinates and ui
+        local_pts = np.array([local_coords_x, local_coords_y, local_coords_z])
+        global_pts = self.coordsConverter.local_to_global(sn, local_pts)
+        if global_pts is not None:
+            self._update_global_coords_ui(sn, moving_stage, global_pts)
 
         # Update stage info
         self._update_stages_info(moving_stage)
@@ -342,36 +342,17 @@ class StageListener(QObject):
 
         self.stages_info[stage.sn] = self._get_stage_info_json(stage)
 
-    def _updateGlobalDataTransformM(self, sn, moving_stage, transM, scale):
-        """
-        Applies a transformation matrix to the local coordinates of a moving stage
-        and updates its global coordinates.
+    def _update_global_coords_ui(self, sn, moving_stage, global_point):
+        """Update the global coordinates in the UI.
 
         Args:
-            sn (str): The serial number of the moving stage.
-            moving_stage (Stage): An object representing the moving stage,
-            with attributes for its local and global coordinates.
-            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix
-            used to convert local coordinates to global coordinates.
-
-        Effects:
-            - Updates the moving_stage object's `stage_x_global`, `stage_y_global`,
-            and `stage_z_global` attributes with the transformed global coordinates.
-            - If the moving stage is the currently selected stage in the UI,
-            triggers an update of the global coordinates display.
+            sn (str): Serial number of the stage.
+            moving_stage (Stage): Stage object.
+            global_point (list): Global coordinates.
         """
-        # Transform
-        local_point = np.array(
-            [
-                moving_stage.stage_x,
-                moving_stage.stage_y,
-                moving_stage.stage_z,
-                1
-            ]
-        )
-        local_point = local_point * np.append(scale, 1)
-        global_point = np.dot(transM, local_point)
-        global_point = np.around(global_point[:3], decimals=1)
+
+        if global_point is None:
+            return
 
         # Update into UI
         moving_stage.stage_x_global = global_point[0]
@@ -566,18 +547,27 @@ class StageListener(QObject):
             logger.error("Error: Invalid stage serial number (sn). Cannot save JSON.")
             return
 
+        # Convert to mm and round to 4 decimal places if the value is not None
+        def convert_and_round(value):
+            """Convert the value from um to mm and round it to 4 decimal places.
+            Args: value (float): The value in um.
+            Returns: float: The value in mm rounded to 4 decimal places.
+            """
+            return round(value * 0.001, 4) if value is not None else None
+
         stage_data = {
             "sn": stage.sn,
             "name": stage.name,
-            "Stage_X": stage.stage_x,
-            "Stage_Y": stage.stage_y,
-            "Stage_Z": stage.stage_z,
-            "global_X": stage.stage_x_global,
-            "global_Y": stage.stage_y_global,
-            "global_Z": stage.stage_z_global,
+            "stage_X": convert_and_round(stage.stage_x),    # Unit is um
+            "stage_Y": convert_and_round(stage.stage_y),
+            "stage_Z": convert_and_round(stage.stage_z),
+            "global_X": convert_and_round(stage.stage_x_global),
+            "global_Y": convert_and_round(stage.stage_y_global),
+            "global_Z": convert_and_round(stage.stage_z_global),
             "yaw": stage.yaw,
             "pitch": stage.pitch,
-            "roll": stage.roll
+            "roll": stage.roll,
+            "shank_cnt": stage.shank_cnt
         }
 
         return stage_data

@@ -17,15 +17,14 @@ Classes:
 import logging
 import requests
 import json
+import numpy as np
+from typing import Optional
 from PyQt5.QtCore import QObject, QTimer
+from .coords_converter import CoordsConverter
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 class StageController(QObject):
@@ -36,7 +35,7 @@ class StageController(QObject):
     such as stopping all stages and moving them along the X, Y, or Z axes.
     """
 
-    def __init__(self, model):
+    def __init__(self, model) -> None:
         """
         Initializes the StageController class, setting up the model and command templates.
 
@@ -45,47 +44,125 @@ class StageController(QObject):
         """
         super().__init__()
         self.model = model
-        self.url = self.model.stage_listener_url
+        self.coords_converter = CoordsConverter(self.model)
         self.timer_count = 0
 
         # These commands will be updated dynamically based on the parsed probe index
+        # Command form are defined in the MPM stage controller software
         self.probeStepMode_command = {
             "PutId": "ProbeStepMode",
             "Probe": 0,         # Default value, will be updated dynamically
             "StepMode": 0       # StepMode=0 (for Coarse), =1 (for Fine), =2 (for Insertion)
         }
+
+        # Unit: mm
         self.probeMotion_command = {
             "PutId": "ProbeMotion",
-            # Probe=0 (for probe A), =1 (for Probe B), etc. Default value, will be updated dynamically
-            "Probe": 0,
-            "Absolute": 1,       # Absolute=0 (for relative move) =1 (for absolute target)
+            "Probe": 0,          # Probe=0 (for probe A), =1 (for Probe B), etc. Dynamically Updated.
+            "Absolute": 1,       # Absolute=0 (for relative move), =1 (for absolute target)
             "Stereotactic": 0,   # Stereotactic=0 (for local [stage] coordinates) =1 (for stereotactic)
-            "AxisMask": 7        # AxisMask=1 (for X), =2 (for Y), =4 (for Z) or any combination (e.g. 7 for XYZ)
+            "AxisMask": 7       # AxisMask=1 (for X), =2 (for Y), =4 (for Z) or any combination (e.g. 7 for XYZ)
         }
-
         self.probeStop_command = {
             "PutId": "ProbeStop",
-            "Probe": 0          # Default value, will be updated dynamically
+            "Probe": 0           # Default value, will be updated dynamically
         }
 
-    def update_url(self):
+        # Unit: µm
+        self.insertion_command = {
+            "PutId": "ProbeInsertion",
+            "Probe": 0,          # Probe index, will be updated dynamically
+            "Distance": 0,       # Default value, will be updated dynamically (µm)
+            "Rate": 0            # Default value, will be updated dynamically (in µm/minute)
+        }
+
+    def request(self, command: dict) -> None:
         """
-        Updates the URL of the stage controller.
+        Processes the request command by calling the appropriate method based on the move type.
 
         Args:
-            url (str): The new URL for the stage controller.
+            command (dict): A dictionary containing the move type and other parameters.
         """
-        self.url = self.model.stage_listener_url
+        move_type = command.get("move_type")
+        if move_type is None:
+            logger.error("No move type found in the command.")
+            return
 
-    def stop_request(self, command):
+        if move_type == "stopAll" or move_type == "stop":
+            self._stop_request(command)
+        elif move_type == "moveXY0" or move_type == "moveXYZ":
+            self._move_request(command)
+        elif move_type == "insertion":
+            self._insertion_request(command)
+        elif move_type == "stepMode":
+            self._stepmode_request(command)
+        else:
+            logger.warning(f"Invalid move type: {move_type}")
+
+    def _stepmode_request(self, command: dict) -> None:
+        """
+        Handles the step mode request for the specified stage (probe).
+        Updates the step mode for the probe based on the provided command.
+
+        Args:
+            command (dict): A dictionary containing the stage serial number and step mode.
+            example: {"stage_sn": "SN12345", "step_mode": 1}, (0 for Coarse, 1 for Fine, and 2 for Insertion.)
+        """
+        probe_index = self._get_probe_index(command.get("stage_sn"))
+        if probe_index is None:
+            return
+
+        # update command to coarse and the command
+        self.probeStepMode_command["Probe"] = probe_index
+        self.probeStepMode_command["StepMode"] = command.get("step_mode", 0)  # Default to 0 (Coarse) if not provided
+        self._send_command(self.probeStepMode_command)
+
+    def _insertion_request(self, command: dict) -> None:
+        """
+        Handles the insertion request for the specified stage (probe).
+        Updates the insertion distance and rate for the probe based on the provided command.
+        Args:
+            command (dict): A dictionary containing the stage serial number, distance, rate, and world type.
+            example: {"stage_sn": "SN12345", "distance": 10.0, "rate": 1.0, "world": "global"}
+        """
+        # Get the probe index
+        stage_sn = command.get("stage_sn")
+        probe_index = self._get_probe_index(stage_sn)
+        if probe_index is None:
+            return
+
+        distance = command.get("distance")
+        rate = command.get("rate")
+        if distance is None or rate is None:
+            logger.warning("Distance or Rate is not provided for insertion.")
+            return
+
+        if command.get("world") == "global":
+            # Convert global distance to local distance
+            logger.info(f"Distance (global): {distance} um")
+            distance = self.coords_converter.distance_global_to_local(
+                                                                        stage_sn,
+                                                                        distance,
+                                                                        axis="z"
+                                                                    )
+            logger.info(f"Distance (local): {distance} um")
+
+        # update command to coarse and the command
+        self.insertion_command["Probe"] = probe_index
+        self.insertion_command["Distance"] = distance
+        self.insertion_command["Rate"] = rate
+        self._send_command(self.insertion_command)
+
+    def _stop_request(self, command: dict) -> None:
         """
         Stops the movement of all probes.
         Retrieves the status of each probe and sends a stop command for each one.
 
         Args:
             command (dict): A dictionary containing the move type, such as {"move_type": "stopAll"}.
+            example: {"move_type": "stop", "stage_sn": "SN12345"} to stop a specific probe.
         """
-        move_type = command["move_type"]
+        move_type = command.get("move_type")
         if move_type == "stopAll":
             # Stop the timer if it's active
             if hasattr(self, 'timer') and self.timer.isActive():
@@ -95,38 +172,43 @@ class StageController(QObject):
             # Get the status to retrieve all available probes
             status = self._get_status()
             if status is None:
-                logger.warning("Failed to retrieve status while trying to stop all probes.")
                 return
 
             # Iterate over all probes and send the stop command
             probe_array = status.get("ProbeArray", [])
-            for i, probe in enumerate(probe_array):
+            for i, _ in enumerate(probe_array):
                 self.probeStop_command["Probe"] = i  # Set the correct probe index
                 self._send_command(self.probeStop_command)
-                logger.info(f"Sent stop command to probe {i}")
             logger.info("Sent stop command to all available probes.")
 
-    def move_request(self, command):
+        # Send the stop command for the specified probe
+        if move_type == "stop":
+            probe_index = self._get_probe_index(command.get("stage_sn"))
+            if probe_index is None:
+                return
+            self.probeStop_command["Probe"] = probe_index
+            self._send_command(self.probeStop_command)
+
+    def _move_request(self, command: dict) -> None:
         """
         Sends a move request to the stage controller based on the provided coordinates.
         Initiates Z-axis movement to 15.0 before proceeding with X and Y movement.
 
         Args:
             command (dict): A dictionary containing the stage serial number, move type, and coordinates.
+            example:{"move_type": "moveXYZ", "stage_sn": "SN12345", "x": 10.0, "y": 5.0, "z": 2.0, "world": "global"}
+            Unit for x, y, z is mm. The z coordinate is converted to 15.0 - z for the move command.
         """
-        move_type = command["move_type"]
-        stage_sn = command["stage_sn"]
+        move_type = command.get("move_type")
+        stage_sn = command.get("stage_sn")
+
         # Get index of the probe based on the serial number
         probe_index = self._get_probe_index(stage_sn)
         if probe_index is None:
-            logger.warning(f"Failed to get probe index for stage: {stage_sn}")
             return
 
-        if move_type == "moveXY":
-            # update command to coarse and the command
-            self.probeStepMode_command["Probe"] = probe_index
-            self._send_command(self.probeStepMode_command)
-
+        logger.info(f"Move request received: {stage_sn}-{move_type}", )
+        if move_type == "moveXY0":
             # update command to move z to 15
             self._update_move_command(probe_index, x=None, y=None, z=15.0)
             # move the probe
@@ -139,6 +221,33 @@ class StageController(QObject):
             self.timer.timeout.connect(lambda: self._check_z_position(probe_index, 15.0, command))
             self.timer.start()
 
+        elif move_type == "moveXYZ":
+            x = command.get("x")    # Unit is mm
+            y = command.get("y")
+            z = command.get("z")
+            if x is None or y is None or z is None:
+                logger.warning("X, Y, or Z coordinates are missing in the command.")
+                return
+
+            if command.get("world", None) == "global":
+                # coords_converter unit is um, so convert mm to µm
+                global_pts_um = np.array([x*1000, y*1000, z*1000], dtype=float)
+                local_pts_um = self.coords_converter.global_to_local(stage_sn, global_pts_um)
+                if local_pts_um is None:
+                    logger.warning(f"Failed to convert global coordinates to local for stage {stage_sn}.")
+                    return
+                # Convert local points from µm to mm for the command
+                command["x"], command["y"], command["z"] = (local_pts_um / 1000).tolist()
+
+            self._update_move_command(
+                                        probe_index,
+                                        x=command["x"],
+                                        y=command["y"],
+                                        z=15.0-command["z"]
+                                    )
+            # Move the probe
+            self._send_command(self.probeMotion_command)
+
     def _check_z_position(self, probe_index, target_z, command):
         """
         Checks if the Z-axis of the probe has reached the target Z position.
@@ -149,6 +258,7 @@ class StageController(QObject):
             target_z (float): The target Z-coordinate.
             command (dict): The command containing the X, Y, and Z coordinates for the move.
         """
+        logger.info(f"Checking Z position for probe {probe_index}: target_z={target_z} um")
         self.timer_count += 1
         # Outside software might control the stage and never reached to z target.
         # Thus, stop the timer after 20 seconds.
@@ -156,6 +266,7 @@ class StageController(QObject):
             if hasattr(self, 'timer') and self.timer.isActive():
                 self.timer.stop()
                 logger.warning("Timer stopped due to timeout.")
+                print(f"Warning: z axis ({target_z} um) target not reached.")
                 return
 
         if self._is_z_at_target(probe_index, target_z):
@@ -170,7 +281,7 @@ class StageController(QObject):
             # Move the probe
             self._send_command(self.probeMotion_command)
 
-    def _is_z_at_target(self, probe_index, target_z):
+    def _is_z_at_target(self, probe_index: int, target_z: float) -> bool:
         """
         Checks if the probe's Z-coordinate has reached the target Z position.
 
@@ -199,15 +310,15 @@ class StageController(QObject):
         # Return whether the current Z value is close enough to the target
         return abs(current_z - target_z) < 0.01  # Tolerance of 10 um
 
-    def _update_move_command(self, probe_index, x=None, y=None, z=None):
+    def _update_move_command(self, probe_index: int, x: float = None, y: float = None, z: float = None) -> None:
         """
         Updates the motion command with the specified X, Y, and Z coordinates.
 
         Args:
             probe_index (int): The index of the probe.
-            x (float, optional): The target X-coordinate.
-            y (float, optional): The target Y-coordinate.
-            z (float, optional): The target Z-coordinate.
+            x (float, optional): The target X-coordinate. Unit is mm.
+            y (float, optional): The target Y-coordinate. Unit is mm.
+            z (float, optional): The target Z-coordinate. Unit is mm.
         """
         self.probeMotion_command["Probe"] = probe_index
         if x is not None:
@@ -226,7 +337,7 @@ class StageController(QObject):
             axis_mask |= 4  # Z-axis
         self.probeMotion_command["AxisMask"] = axis_mask
 
-    def _get_probe_index(self, stage_sn):
+    def _get_probe_index(self, stage_sn: str) -> Optional[int]:
         """
         Retrieves the index of the probe based on its serial number from the status.
 
@@ -238,6 +349,7 @@ class StageController(QObject):
         """
         status = self._get_status()
         if status is None:
+            logger.warning("Failed to retrieve status to find probe index.")
             return None
 
         # Find probe index based on serial number
@@ -246,27 +358,24 @@ class StageController(QObject):
             if probe["SerialNumber"] == stage_sn:
                 return i  # Set the corresponding probe index
 
+        logger.error(f"Stage serial number {stage_sn} not found in the status.")
         return None
 
-    def _get_status(self):
-        """
-        Sends a GET request to retrieve the current status of all probes.
+    def _get_status(self) -> Optional[dict]:
+        """Fetch current probe status from the stage listener."""
+        try:
+            response = requests.get(self.model.stage_listener_url)
+            response.raise_for_status()  # Raises an error for HTTP failure codes (e.g., 404, 500)
+            return response.json()
+        except json.JSONDecodeError:
+            logger.error("Response is not in JSON format: %s", response.text)
+        except requests.RequestException as e:
+            logger.error("Failed to get status: %s", str(e))
 
-        Returns:
-            dict or None: The status as a dictionary if the request is successful, otherwise None.
-        """
-        response = requests.get(self.url)
-        if response.status_code == 200:
-            try:
-                return response.json()
-            except json.JSONDecodeError:
-                print("Response is not in JSON format:", response.text)
-                return None
-        else:
-            print(f"Failed to get status: {response.status_code}, {response.text}")
-            return None
+        logger.warning("Failed to retrieve status.")
+        return None  # Return None explicitly in case of failure
 
-    def _send_command(self, command):
+    def _send_command(self, command: dict) -> None:
         """
         Sends a command to the stage controller via an HTTP PUT request.
 
@@ -274,4 +383,5 @@ class StageController(QObject):
             command (dict): The command to send as a JSON object.
         """
         headers = {'Content-Type': 'application/json'}
-        requests.put(self.url, data=json.dumps(command), headers=headers)
+        requests.put(self.model.stage_listener_url, data=json.dumps(command), headers=headers)
+        logger.info(f"Command sent: {json.dumps(command, indent=2)}")

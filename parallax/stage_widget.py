@@ -22,8 +22,8 @@ from .stage_ui import StageUI
 from .calculator import Calculator
 from .reticle_metadata import ReticleMetadata
 from .screen_coords_mapper import ScreenCoordsMapper
-from .stage_controller import StageController
 from .stage_server_ipconfig import StageServerIPConfig
+from .stage_http_server import StageHttpServer
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -221,12 +221,12 @@ class StageWidget(QWidget):
             self.update_probe_calib_status
         )
 
-        # Stage controller
-        self.stage_controller = StageController(self.model)
+        # Stage Http Server
+        self.stage_http_server = StageHttpServer(self.model, self.stageListener.stages_info)
 
         # Calculator Button
         self.calculation_btn.hide()
-        self.calculator = Calculator(self.model, self.reticle_selector, self.stage_controller)
+        self.calculator = Calculator(self.model, self.reticle_selector)
 
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""
@@ -249,9 +249,6 @@ class StageWidget(QWidget):
 
         # Update url on StageLinstener
         self.stageListener.update_url()
-
-        # Update url on Stage controller
-        self.stage_controller.update_url()
 
     def reticle_detection_button_handler(self):
         """
@@ -1057,7 +1054,7 @@ class StageWidget(QWidget):
         message = "Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
-    def probe_detect_accepted_status(self, stage_sn, transformation_matrix, scale, switch_probe=False):
+    def probe_detect_accepted_status(self, switch_probe=False):
         """
         Finalizes the probe detection process, accepting the detected probe position and updating the UI accordingly.
         Additionally, it updates the model with the transformation matrix obtained from the calibration.
@@ -1100,11 +1097,6 @@ class StageWidget(QWidget):
             self.filter = "no_filter"
             self.stageListener.set_low_freq_default()
             logger.debug(f"filter: {self.filter}")
-
-        # update global coords
-        self.stageListener.requestUpdateGlobalDataTransformM(
-            stage_sn, transformation_matrix, scale
-        )
 
         # Update reticle selector
         self.reticle_metadata.load_metadata_from_file()
@@ -1372,7 +1364,7 @@ class StageWidget(QWidget):
             else:
                 self.probeCalibrationLabel.setText("")
         elif probe_detection_status == "accepted":
-            self.probe_detect_accepted_status(curr_stage_id, self.transM, self.scale, switch_probe=True)
+            self.probe_detect_accepted_status(switch_probe=True)
             if self.transM is not None:
                 self.display_probe_calib_status(self.transM, self.scale, self.L2_err, self.dist_travled)
 
