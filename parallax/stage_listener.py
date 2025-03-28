@@ -69,9 +69,9 @@ class Stage(QObject):
             self.stage_x_global = None
             self.stage_y_global = None
             self.stage_z_global = None
-            self.relative_pos_x = self.stage_x - stage_info.get("Stage_XOffset", self.stage_x)
-            self.relative_pos_y = self.stage_y - stage_info.get("Stage_YOffset", self.stage_y)
-            self.relative_pos_z = self.stage_z - stage_info.get("Stage_ZOffset", self.stage_z)
+            self.stage_x_offset = stage_info.get("Stage_XOffset", 0) * 1000
+            self.stage_y_offset = stage_info.get("Stage_YOffset", 0) * 1000
+            self.stage_z_offset = 15000 - (stage_info.get("Stage_ZOffset", 0) * 1000)
             self.yaw = None
             self.pitch = None
             self.roll = None
@@ -313,9 +313,9 @@ class StageListener(QObject):
         stage.stage_x = local_x
         stage.stage_y = local_y
         stage.stage_z = local_z
-        stage.relative_pos_x = local_x - probe.get("Stage_XOffset", local_x)
-        stage.relative_pos_y = local_y - probe.get("Stage_YOffset", local_y)
-        stage.relative_pos_z = local_z - probe.get("Stage_ZOffset", local_z)
+        stage.stage_x_offset = probe.get("Stage_XOffset", 0) * 1000  # Convert to um
+        stage.stage_y_offset = probe.get("Stage_YOffset", 0) * 1000  # Convert to um
+        stage.stage_z_offset = 15000 - (probe.get("Stage_ZOffset", 0) * 1000)  # Convert to um
         local_pts = np.array([local_x, local_y, local_z])
         global_pts = self.coordsConverter.local_to_global(sn, local_pts)
         if global_pts is not None:
@@ -550,9 +550,9 @@ class StageListener(QObject):
             "global_X": convert_and_round(stage.stage_x_global),
             "global_Y": convert_and_round(stage.stage_y_global),
             "global_Z": convert_and_round(stage.stage_z_global),
-            "relative_X": convert_and_round(stage.relative_pos_x),
-            "relative_Y": convert_and_round(stage.relative_pos_y),
-            "relative_Z": convert_and_round(stage.relative_pos_z),
+            "relative_X": convert_and_round(stage.stage_x - stage.stage_x_offset),
+            "relative_Y": convert_and_round(stage.stage_y - stage.stage_y_offset),
+            "relative_Z": convert_and_round(stage.stage_z - stage.stage_z_offset),
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
