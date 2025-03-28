@@ -17,7 +17,7 @@ from .coords_converter import CoordsConverter
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 package_dir = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -69,6 +69,9 @@ class Stage(QObject):
             self.stage_x_global = None
             self.stage_y_global = None
             self.stage_z_global = None
+            self.relative_pos_x = self.stage_x - stage_info.get("Stage_XOffset", self.stage_x)
+            self.relative_pos_y = self.stage_y - stage_info.get("Stage_YOffset", self.stage_y)
+            self.relative_pos_z = self.stage_z - stage_info.get("Stage_ZOffset", self.stage_z)
             self.yaw = None
             self.pitch = None
             self.roll = None
@@ -82,6 +85,9 @@ class Worker(QObject):
     dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
     stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
     stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving.
+    LOW_FREQ_INTERVAL = 1000
+    HIGH_FREQ_INTERVAL = 100
+    IDLE_TIME = 0.5
 
     def __init__(self, url):
         """Initialize worker thread"""
@@ -89,14 +95,12 @@ class Worker(QObject):
         self.url = url
         self.timer = QTimer()
         self.timer.timeout.connect(self.fetchData)
-        self.last_stage_info = None
-        self.last_bigmove_stage_info = None
-        self.last_bigmove_detected_time = None
-        self._low_freq_interval = 1000
-        self._high_freq_interval = 20
-        self.curr_interval = self._low_freq_interval
-        self._idle_time = 0.3  # 0.3s
+
+        self.curr_interval = self.LOW_FREQ_INTERVAL
         self.is_error_log_printed = False
+
+        self.stages = {}
+        self.last_move_detected_time = time.time()
 
     def start(self, interval=1000):
         """Starts the data fetching at the given interval.
@@ -120,63 +124,61 @@ class Worker(QObject):
         self.url = url
         self.start()  # Restart the timer
 
-    def print_trouble_shooting_msg(self):
+    def _print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
         print("Trouble Shooting: ")
         print("1. Check New Scale Stage connection.")
         print("2. Enable Http Server: 'http://localhost:8080/'")
         print("3. Click 'Connect' on New Scale SW")
 
+    def get_data(self):
+        response = requests.get(self.url, timeout=1)
+        if response.status_code != 200:
+            print(f"Failed to access {self.url}. Status code: {response.status_code}")
+            return
+
+        data = response.json()
+        if data["Probes"] == 0:
+            if self.is_error_log_printed is False:
+                self.is_error_log_printed = True
+                print("\nStage is not connected to New Scale SW")
+                self._print_trouble_shooting_msg()
+            return
+
+        return data
+
     def fetchData(self):
         """Fetches content from the URL and checks for significant changes."""
         try:
-            response = requests.get(self.url, timeout=1)
-            if response.status_code == 200:
-                data = response.json()
-                if data["Probes"] == 0:
-                    if self.is_error_log_printed is False:
-                        self.is_error_log_printed = True
-                        print("\nStage is not connected to New Scale SW")
-                        self.print_trouble_shooting_msg()
-                else:
-                    selected_probe = data["SelectedProbe"]
-                    probe = data["ProbeArray"][selected_probe]
+            data = self.get_data()
+            if data is None:
+                return
 
-                    # At init, update stage info for connected stages
-                    if self.last_stage_info is None:  # Initial setup
-                        for stage in data["ProbeArray"]:
-                            self.dataChanged.emit(stage)
-                        self.last_stage_info = probe
-                        self.last_bigmove_stage_info = probe
-                        self.dataChanged.emit(probe)
+            self.emit_all_stages(data) # Update all stages
+            change_detected = self._is_any_stage_move(data) # Check if there is any significant change
 
-                    if self.curr_interval == self._high_freq_interval:
-                        # Update
-                        self.isSmallChange(probe)
-                        # If last updated move (in 5um) is more than 1 sec ago, switch to w/ low freq
-                        current_time = time.time()
-                        if current_time - self.last_bigmove_detected_time >= self._idle_time:
-                            logger.debug("low freq mode")
-                            self.curr_interval = self._low_freq_interval
-                            self.stop()
-                            self.start(interval=self.curr_interval)
-                            self.stage_not_moving.emit(probe)
-                            # print("low freq mode: ", self.curr_interval)
+            if (not change_detected
+                    and self.curr_interval == self.HIGH_FREQ_INTERVAL
+                    and time.time() - self.last_move_detected_time >= self.IDLE_TIME
+                ):
+                # If stage is not moving for idle_time, switch to low freq mode
+                 logger.debug("low freq mode")
+                 self.curr_interval = self.LOW_FREQ_INTERVAL
+                 self.stop()
+                 self.start(interval=self.curr_interval)
+                 self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
-                    # If moves more than 10um, check w/ high freq
-                    if self.isSignificantChange(probe):
-                        if self.curr_interval == self._low_freq_interval:
-                            # 10 msec mode
-                            logger.debug("high freq mode")
-                            self.curr_interval = self._high_freq_interval
-                            self.stop()
-                            self.start(interval=self.curr_interval)
-                            self.stage_moving.emit(probe)
-                            # print("high freq mode: ", self.curr_interval)
+            if change_detected and self.curr_interval == self.LOW_FREQ_INTERVAL:
+                # Swith to high freq mode
+                logger.debug("high freq mode")
+                self.curr_interval = self.HIGH_FREQ_INTERVAL
+                self.stop()
+                self.start(interval=self.curr_interval)
+                self.stage_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
-                    self.is_error_log_printed = False
-            else:
-                print(f"Failed to access {self.url}. Status code: {response.status_code}")
+            self.is_error_log_printed = False
+            self.update_into_stages(data)
+
         except Exception as e:
             # Stop the fetching data if there http server is not enabled
             self.stop()
@@ -184,26 +186,29 @@ class Worker(QObject):
             if self.is_error_log_printed is False:
                 self.is_error_log_printed = True
                 print(f"\nStage HttpServer not enabled.: {e}")
-                self.print_trouble_shooting_msg()
+                self._print_trouble_shooting_msg()
 
-    def isSignificantChange(self, current_stage_info, stage_threshold=0.001):
-        """Check if the change in any axis exceeds the threshold."""
-        for axis in ['Stage_X', 'Stage_Y', 'Stage_Z']:
-            if abs(current_stage_info[axis] - self.last_bigmove_stage_info[axis]) >= stage_threshold:
-                self.dataChanged.emit(current_stage_info)
-                self.last_bigmove_detected_time = time.time()
-                self.last_bigmove_stage_info = current_stage_info
-                return True
+    def _is_any_stage_move(self, data):
+        for stage in data["ProbeArray"]:
+            stage_sn = stage["SerialNumber"]
+            curr_pos = (stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"])
+
+            # Check stage is move more than 10um in any axis
+            last_pos = self.stages.get(stage_sn)
+            if last_pos:
+                if any(abs(c - l) >= 0.001 for c, l in zip(curr_pos, last_pos)):
+                    self.last_move_detected_time = time.time()
+                    return True
         return False
 
-    def isSmallChange(self, current_stage_info, stage_threshold=0.0005):
-        """Check if the change in any axis exceeds the threshold."""
-        for axis in ['Stage_X', 'Stage_Y', 'Stage_Z']:
-            if abs(current_stage_info[axis] - self.last_stage_info[axis]) >= stage_threshold:
-                self.dataChanged.emit(current_stage_info)
-                self.last_stage_info = current_stage_info
-                return True
-        return False
+    def emit_all_stages(self, data):
+        """Update all stages."""
+        for stage in data["ProbeArray"]:
+            self.dataChanged.emit(stage)
+
+    def update_into_stages(self, data):
+        for stage in data["ProbeArray"]:
+            self.stages[stage["SerialNumber"]] = [stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"]]
 
 
 class StageListener(QObject):
@@ -295,26 +300,27 @@ class StageListener(QObject):
         Args:
             probe (dict): Probe data.
         """
-        # Format the current timestamp
-        self.timestamp_local = self.get_timestamp(millisecond=True)
-
-        # id = probe["Id"]
         sn = probe["SerialNumber"]
-        local_coords_x = round(probe["Stage_X"] * 1000, 1)
-        local_coords_y = round(probe["Stage_Y"] * 1000, 1)
-        local_coords_z = 15000 - round(probe["Stage_Z"] * 1000, 1)
-        logger.debug(f"timestamp_local: {self.timestamp_local}, sn: {sn}")
+        #print("handleDataChange: ", sn)
+        local_coords_x = round(probe.get("Stage_X", 0) * 1000, 1)
+        local_coords_y = round(probe.get("Stage_Y", 0) * 1000, 1)
+        local_coords_z = 15000 - round(probe.get("Stage_Z", 0) * 1000, 1)
 
-        # update into model
+        # update into modelss
         moving_stage = self.model.stages.get(sn)
-
         if moving_stage is not None:
             moving_stage.stage_x = local_coords_x
             moving_stage.stage_y = local_coords_y
             moving_stage.stage_z = local_coords_z
+            moving_stage.relative_pos_x = local_coords_x - probe.get("Stage_XOffset", local_coords_x)
+            moving_stage.relative_pos_y = local_coords_y - probe.get("Stage_YOffset", local_coords_y)
+            moving_stage.relative_pos_z = local_coords_z - probe.get("Stage_ZOffset", local_coords_z)
 
-        # Update to buffer
-        self.append_to_buffer(self.timestamp_local, moving_stage)
+        # Update to buffer if it is not calibrated
+        transM, _ = self.model.transforms.get(sn, (None, None))
+        if transM is None:
+            self.timestamp_local = self.get_timestamp(millisecond=True)
+            self.append_to_buffer(self.timestamp_local, moving_stage)
 
         # Update into UI
         if self.stage_ui.get_selected_stage_sn() == sn:
@@ -515,20 +521,20 @@ class StageListener(QObject):
             probeDetector.enable_calibration(sn)
             # Stop detection when probe is moving
 
-    def set_low_freq_as_high_freq(self, interval=10):
+    def set_low_freq_as_high_freq(self, interval=100):
         """Change the frequency to low."""
         self.worker.stop()
-        self.worker._low_freq_interval = interval
-        self.worker.curr_interval = self.worker._low_freq_interval
-        self.worker.start(interval=self.worker._low_freq_interval)
+        self.worker.LOW_FREQ_INTERVAL = interval
+        self.worker.curr_interval = self.worker.LOW_FREQ_INTERVAL
+        self.worker.start(interval=self.worker.LOW_FREQ_INTERVAL)
         # print("low_freq: 10 ms")
 
     def set_low_freq_default(self, interval=1000):
         """Change the frequency to low."""
         self.worker.stop()
-        self.worker._low_freq_interval = interval
-        self.worker.curr_interval = self.worker._low_freq_interval
-        self.worker.start(interval=self.worker._low_freq_interval)
+        self.worker.LOW_FREQ_INTERVAL = interval
+        self.worker.curr_interval = self.worker.LOW_FREQ_INTERVAL
+        self.worker.start(interval=self.worker.LOW_FREQ_INTERVAL)
         # print("low_freq: 1000 ms")
 
     def _get_stage_info_json(self, stage):
@@ -564,6 +570,9 @@ class StageListener(QObject):
             "global_X": convert_and_round(stage.stage_x_global),
             "global_Y": convert_and_round(stage.stage_y_global),
             "global_Z": convert_and_round(stage.stage_z_global),
+            "relative_X": convert_and_round(stage.relative_pos_x),
+            "relative_Y": convert_and_round(stage.relative_pos_y),
+            "relative_Z": convert_and_round(stage.relative_pos_z),
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
