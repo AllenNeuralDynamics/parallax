@@ -154,19 +154,20 @@ class Worker(QObject):
             if data is None:
                 return
 
-            self.emit_all_stages(data) # Update all stages
-            change_detected = self._is_any_stage_move(data) # Check if there is any significant change
+            self.emit_all_stages(data)  # Update all stages
+            change_detected = self._is_any_stage_move(data)  # Check if there is any significant change
 
-            if (not change_detected
-                    and self.curr_interval == self.HIGH_FREQ_INTERVAL
-                    and time.time() - self.last_move_detected_time >= self.IDLE_TIME
-                ):
+            if (
+                not change_detected
+                and self.curr_interval == self.HIGH_FREQ_INTERVAL
+                and time.time() - self.last_move_detected_time >= self.IDLE_TIME
+            ):
                 # If stage is not moving for idle_time, switch to low freq mode
-                 logger.debug("low freq mode")
-                 self.curr_interval = self.LOW_FREQ_INTERVAL
-                 self.stop()
-                 self.start(interval=self.curr_interval)
-                 self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
+                logger.debug("low freq mode")
+                self.curr_interval = self.LOW_FREQ_INTERVAL
+                self.stop()
+                self.start(interval=self.curr_interval)
+                self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
             if change_detected and self.curr_interval == self.LOW_FREQ_INTERVAL:
                 # Swith to high freq mode
@@ -301,7 +302,6 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         sn = probe["SerialNumber"]
-        #print("handleDataChange: ", sn)
         local_coords_x = round(probe.get("Stage_X", 0) * 1000, 1)
         local_coords_y = round(probe.get("Stage_Y", 0) * 1000, 1)
         local_coords_z = 15000 - round(probe.get("Stage_Z", 0) * 1000, 1)
