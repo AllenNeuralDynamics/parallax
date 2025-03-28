@@ -302,40 +302,39 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         sn = probe["SerialNumber"]
-        local_coords_x = round(probe.get("Stage_X", 0) * 1000, 1)
-        local_coords_y = round(probe.get("Stage_Y", 0) * 1000, 1)
-        local_coords_z = 15000 - round(probe.get("Stage_Z", 0) * 1000, 1)
+        stage = self.model.stages.get(sn) # Check if the stage is in the model's stages
+        if stage is None:
+            return
 
         # update into modelss
-        moving_stage = self.model.stages.get(sn)
-        if moving_stage is not None:
-            moving_stage.stage_x = local_coords_x
-            moving_stage.stage_y = local_coords_y
-            moving_stage.stage_z = local_coords_z
-            moving_stage.relative_pos_x = local_coords_x - probe.get("Stage_XOffset", local_coords_x)
-            moving_stage.relative_pos_y = local_coords_y - probe.get("Stage_YOffset", local_coords_y)
-            moving_stage.relative_pos_z = local_coords_z - probe.get("Stage_ZOffset", local_coords_z)
-
-        # Update to buffer if it is not calibrated
-        transM, _ = self.model.transforms.get(sn, (None, None))
-        if transM is None:
-            self.timestamp_local = self.get_timestamp(millisecond=True)
-            self.append_to_buffer(self.timestamp_local, moving_stage)
-
-        # Update into UI
-        if self.stage_ui.get_selected_stage_sn() == sn:
-            self.stage_ui.updateStageLocalCoords()
-        else:
-            logger.debug(f"moving_probe: {sn}, selected_probe: {self.stage_ui.get_selected_stage_sn()}")
-
-        # Update global coordinates and ui
-        local_pts = np.array([local_coords_x, local_coords_y, local_coords_z])
+        local_x = round(probe.get("Stage_X", 0) * 1000, 1)
+        local_y = round(probe.get("Stage_Y", 0) * 1000, 1)
+        local_z = 15000 - round(probe.get("Stage_Z", 0) * 1000, 1)
+        stage.stage_x = local_x
+        stage.stage_y = local_y
+        stage.stage_z = local_z
+        stage.relative_pos_x = local_x - probe.get("Stage_XOffset", local_x)
+        stage.relative_pos_y = local_y - probe.get("Stage_YOffset", local_y)
+        stage.relative_pos_z = local_z - probe.get("Stage_ZOffset", local_z)
+        local_pts = np.array([local_x, local_y, local_z])
         global_pts = self.coordsConverter.local_to_global(sn, local_pts)
         if global_pts is not None:
-            self._update_global_coords_ui(sn, moving_stage, global_pts)
+            stage.stage_x_global = global_pts[0]
+            stage.stage_y_global = global_pts[1]
+            stage.stage_z_global = global_pts[2]
+
+        # Stage is currently selected one, update into UI
+        if sn == self.stage_ui.get_selected_stage_sn():
+            self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
+            if global_pts is not None:                      # If stage is calibrated,
+                self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
+            else:
+                # if not calibrated, added stage info to buffer for calibration
+                self.timestamp_local = self.get_timestamp(millisecond=True)
+                self.append_to_buffer(self.timestamp_local, stage)
 
         # Update stage info
-        self._update_stages_info(moving_stage)
+        self._update_stages_info(stage)
 
     def _update_stages_info(self, stage):
         """Update stage info.
@@ -347,25 +346,6 @@ class StageListener(QObject):
             return
 
         self.stages_info[stage.sn] = self._get_stage_info_json(stage)
-
-    def _update_global_coords_ui(self, sn, moving_stage, global_point):
-        """Update the global coordinates in the UI.
-
-        Args:
-            sn (str): Serial number of the stage.
-            moving_stage (Stage): Stage object.
-            global_point (list): Global coordinates.
-        """
-
-        if global_point is None:
-            return
-
-        # Update into UI
-        moving_stage.stage_x_global = global_point[0]
-        moving_stage.stage_y_global = global_point[1]
-        moving_stage.stage_z_global = global_point[2]
-        if self.stage_ui.get_selected_stage_sn() == sn:
-            self.stage_ui.updateStageGlobalCoords()
 
     def requestUpdateGlobalDataTransformM(self, sn, transM, scale):
         """
