@@ -518,48 +518,30 @@ class StageListener(QObject):
         # print("low_freq: 1000 ms")
 
     def _get_stage_info_json(self, stage):
-        """Create a JSON file for the stage info.
+        """Create a JSON representation of the stage information."""
+        sx, sy, sz = stage.stage_x, stage.stage_y, stage.stage_z
+        gx, gy, gz = stage.stage_x_global, stage.stage_y_global, stage.stage_z_global
+        ox, oy, oz = stage.stage_x_offset, stage.stage_y_offset, stage.stage_z_offset
 
-        Args:
-            stage (Stage): Stage object.
-        """
-        stage_data = None
+        val_mm = lambda v: round(v * 0.001, 4) if v is not None else None
 
-        if stage is None:
-            logger.error("Error: Stage object is None. Cannot save JSON.")
-            return
-
-        if not hasattr(stage, 'sn') or not stage.sn:
-            logger.error("Error: Invalid stage serial number (sn). Cannot save JSON.")
-            return
-
-        # Convert to mm and round to 4 decimal places if the value is not None
-        def convert_and_round(value):
-            """Convert the value from um to mm and round it to 4 decimal places.
-            Args: value (float): The value in um.
-            Returns: float: The value in mm rounded to 4 decimal places.
-            """
-            return round(value * 0.001, 4) if value is not None else None
-
-        stage_data = {
+        return {
             "sn": stage.sn,
             "name": stage.name,
-            "stage_X": convert_and_round(stage.stage_x),    # Unit is um
-            "stage_Y": convert_and_round(stage.stage_y),
-            "stage_Z": convert_and_round(stage.stage_z),
-            "global_X": convert_and_round(stage.stage_x_global),
-            "global_Y": convert_and_round(stage.stage_y_global),
-            "global_Z": convert_and_round(stage.stage_z_global),
-            "relative_X": convert_and_round(stage.stage_x - stage.stage_x_offset),
-            "relative_Y": convert_and_round(stage.stage_y - stage.stage_y_offset),
-            "relative_Z": convert_and_round(stage.stage_z - stage.stage_z_offset),
+            "stage_X": val_mm(sx),
+            "stage_Y": val_mm(sy),
+            "stage_Z": val_mm(sz),
+            "global_X": val_mm(gx),
+            "global_Y": val_mm(gy),
+            "global_Z": val_mm(gz),
+            "relative_X": val_mm(sx - ox),
+            "relative_Y": val_mm(sy - oy),
+            "relative_Z": val_mm(sz - oz),
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
-            "shank_cnt": stage.shank_cnt
+            "shank_cnt": stage.shank_cnt,
         }
-
-        return stage_data
 
     def _snapshot_stage(self):
         """Snapshot the current stage info. Handler for the stage snapshot button."""
