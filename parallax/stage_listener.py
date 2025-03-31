@@ -487,7 +487,6 @@ class StageListener(QObject):
         for probeDetector in self.model.probeDetectors:
             probeDetector.start_detection(sn)  # Detect when probe is moving
             probeDetector.disable_calibration(sn)
-            # probeDetector.stop_detection(sn) # Detect when probe is not moving
 
     def stageNotMovingStatus(self, probe):
         """Handle not moving probe status.
@@ -497,9 +496,7 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            # probeDetector.stop_detection(sn) # Stop detection when probe is not moving
             probeDetector.enable_calibration(sn)
-            # Stop detection when probe is moving
 
     def _get_stage_info_json(self, stage):
         """Create a JSON representation of the stage information."""
