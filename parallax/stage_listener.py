@@ -132,6 +132,10 @@ class Worker(QObject):
         print("3. Click 'Connect' on New Scale SW")
 
     def get_data(self):
+        """Fetch data from the URL.
+        Returns:
+            dict: JSON data from the server.
+        """
         response = requests.get(self.url, timeout=1)
         if response.status_code != 200:
             print(f"Failed to access {self.url}. Status code: {response.status_code}")
@@ -190,6 +194,12 @@ class Worker(QObject):
                 self._print_trouble_shooting_msg()
 
     def _is_any_stage_move(self, data):
+        """Check if any stage has moved significantly.
+        Args:
+            data (dict): JSON data from the server.
+        Returns:
+            bool: True if any stage has moved significantly, False otherwise.
+        """
         for stage in data["ProbeArray"]:
             stage_sn = stage["SerialNumber"]
             curr_pos = (stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"])
@@ -208,6 +218,7 @@ class Worker(QObject):
             self.dataChanged.emit(stage)
 
     def update_into_stages(self, data):
+        """Update the stage data into the model."""
         for stage in data["ProbeArray"]:
             self.stages[stage["SerialNumber"]] = [stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"]]
 
@@ -302,7 +313,7 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         sn = probe["SerialNumber"]
-        stage = self.model.stages.get(sn) # Check if the stage is in the model's stages
+        stage = self.model.stages.get(sn)  # Check if the stage is in the model's stages
         if stage is None:
             return
 
@@ -504,20 +515,22 @@ class StageListener(QObject):
         gx, gy, gz = stage.stage_x_global, stage.stage_y_global, stage.stage_z_global
         ox, oy, oz = stage.stage_x_offset, stage.stage_y_offset, stage.stage_z_offset
 
-        val_mm = lambda v: round(v * 0.001, 4) if v is not None else None
+        def _val_mm(v):
+            """Convert value to mm."""
+            return round(v * 0.001, 4) if v is not None else None
 
         return {
             "sn": stage.sn,
             "name": stage.name,
-            "stage_X": val_mm(sx),
-            "stage_Y": val_mm(sy),
-            "stage_Z": val_mm(sz),
-            "global_X": val_mm(gx),
-            "global_Y": val_mm(gy),
-            "global_Z": val_mm(gz),
-            "relative_X": val_mm(sx - ox),
-            "relative_Y": val_mm(sy - oy),
-            "relative_Z": val_mm(sz - oz),
+            "stage_X": _val_mm(sx),
+            "stage_Y": _val_mm(sy),
+            "stage_Z": _val_mm(sz),
+            "global_X": _val_mm(gx),
+            "global_Y": _val_mm(gy),
+            "global_Z": _val_mm(gz),
+            "relative_X": _val_mm(sx - ox),
+            "relative_Y": _val_mm(sy - oy),
+            "relative_Z": _val_mm(sz - oz),
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
