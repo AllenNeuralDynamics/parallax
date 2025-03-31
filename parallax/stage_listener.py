@@ -501,22 +501,6 @@ class StageListener(QObject):
             probeDetector.enable_calibration(sn)
             # Stop detection when probe is moving
 
-    def set_low_freq_as_high_freq(self, interval=100):
-        """Change the frequency to low."""
-        self.worker.stop()
-        self.worker.LOW_FREQ_INTERVAL = interval
-        self.worker.curr_interval = self.worker.LOW_FREQ_INTERVAL
-        self.worker.start(interval=self.worker.LOW_FREQ_INTERVAL)
-        # print("low_freq: 10 ms")
-
-    def set_low_freq_default(self, interval=1000):
-        """Change the frequency to low."""
-        self.worker.stop()
-        self.worker.LOW_FREQ_INTERVAL = interval
-        self.worker.curr_interval = self.worker.LOW_FREQ_INTERVAL
-        self.worker.start(interval=self.worker.LOW_FREQ_INTERVAL)
-        # print("low_freq: 1000 ms")
-
     def _get_stage_info_json(self, stage):
         """Create a JSON representation of the stage information."""
         sx, sy, sz = stage.stage_x, stage.stage_y, stage.stage_z

@@ -985,7 +985,6 @@ class StageWidget(QWidget):
                 logger.debug(f"Disconnect probe_detection: {camera_name}")
                 screen.run_no_filter()
 
-            self.stageListener.set_low_freq_default()
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
 
@@ -1047,7 +1046,6 @@ class StageWidget(QWidget):
             else:
                 screen.run_no_filter()
         self.filter = "probe_detection"
-        self.stageListener.set_low_freq_as_high_freq()
         logger.debug(f"filter: {self.filter}")
 
         # message
@@ -1095,7 +1093,6 @@ class StageWidget(QWidget):
                     screen.run_no_filter()
 
             self.filter = "no_filter"
-            self.stageListener.set_low_freq_default()
             logger.debug(f"filter: {self.filter}")
 
         # Update reticle selector
