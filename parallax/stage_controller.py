@@ -45,6 +45,12 @@ class StageController(QObject):
         super().__init__()
         self.model = model
         self.coords_converter = CoordsConverter(self.model)
+
+        self.timer_count = 0
+        self.timer = QTimer(self)
+        self.timer.setInterval(1000)  # 1 second
+        self.timer.timeout.connect(self._on_timer_timeout)
+        self._z_move_context = None  # Holds data needed for checking Z position
         self.timer_count = 0
 
         # These commands will be updated dynamically based on the parsed probe index
@@ -209,18 +215,22 @@ class StageController(QObject):
 
         logger.info(f"Move request received: {stage_sn}-{move_type}", )
         if move_type == "moveXY0":
-            # update command to move z to 15
+            if self.timer.isActive():
+                logger.warning("A Z movement is already in progress. Cancelling it for the new request.")
+                self.timer.stop()
+                self._z_move_context = None
+
+            # Start new Z move
             self._update_move_command(probe_index, x=None, y=None, z=15.0)
-            # move the probe
             self._send_command(self.probeMotion_command)
 
-            # Reset timer_count for this new move command
+            self._z_move_context = {
+                "probe_index": probe_index,
+                "target_z": 15.0,
+                "command": command
+            }
             self.timer_count = 0
-            self.timer = QTimer(self)
-            self.timer.setInterval(500)  # 500 ms
-            self.timer.timeout.connect(lambda: self._check_z_position(probe_index, 15.0, command))
             self.timer.start()
-
         elif move_type == "moveXYZ":
             x = command.get("x")    # Unit is mm
             y = command.get("y")
@@ -248,38 +258,39 @@ class StageController(QObject):
             # Move the probe
             self._send_command(self.probeMotion_command)
 
-    def _check_z_position(self, probe_index, target_z, command):
-        """
-        Checks if the Z-axis of the probe has reached the target Z position.
-        If the target is reached, it stops the timer and initiates X and Y movement.
+    def _on_timer_timeout(self):
+        """Timer timeout handler to check if the Z movement has reached the target position."""
+        context = self._z_move_context
+        if context is None:
+            logger.error("Timer fired but no Z movement context set.")
+            self.timer.stop()
+            return
 
-        Args:
-            probe_index (int): The index of the probe.
-            target_z (float): The target Z-coordinate.
-            command (dict): The command containing the X, Y, and Z coordinates for the move.
-        """
-        logger.info(f"Checking Z position for probe {probe_index}: target_z={target_z} um")
+        probe_index = context["probe_index"]
+        target_z = context["target_z"]
+        command = context["command"]
+
+        logger.info(f"Checking Z position for probe {probe_index}: timer_count={self.timer_count}")
         self.timer_count += 1
-        # Outside software might control the stage and never reached to z target.
-        # Thus, stop the timer after 20 seconds.
-        if self.timer_count > 40:  # 40 * 500 ms = 20 seconds
-            if hasattr(self, 'timer') and self.timer.isActive():
-                self.timer.stop()
-                logger.warning("Timer stopped due to timeout.")
-                print(f"Warning: z axis ({target_z} um) target not reached.")
-                return
+
+        if self.timer_count > 20:  # 20 seconds
+            self.timer.stop()
+            self._z_move_context = None
+            logger.warning("Timer stopped due to timeout.")
+            print(f"Warning: z axis ({target_z} um) target not reached.")
+            return
 
         if self._is_z_at_target(probe_index, target_z):
-            if hasattr(self, 'timer') and self.timer.isActive():
-                self.timer.stop()
-                logger.info("Timer stopped due to z is on the target.")
+            self.timer.stop()
+            self._z_move_context = None
+            logger.info("Timer stopped because Z reached the target.")
 
-            # Update command to move (x, y, 0)
             x = command["x"]
             y = command["y"]
             self._update_move_command(probe_index, x=x, y=y, z=None)
-            # Move the probe
             self._send_command(self.probeMotion_command)
+        else:
+            logger.debug("Z not at target yet, continuing timer...")
 
     def _is_z_at_target(self, probe_index: int, target_z: float) -> bool:
         """
@@ -307,6 +318,7 @@ class StageController(QObject):
             logger.warning(f"Failed to retrieve Z position for probe {probe_index}")
             return False
 
+        logger.debug(f"Z position check: current={current_z}, target={target_z}")
         # Return whether the current Z value is close enough to the target
         return abs(current_z - target_z) < 0.01  # Tolerance of 10 um
 
