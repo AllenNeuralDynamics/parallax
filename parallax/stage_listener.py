@@ -85,8 +85,8 @@ class Worker(QObject):
     dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
     stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
     stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving.
-    LOW_FREQ_INTERVAL = 1000
-    HIGH_FREQ_INTERVAL = 100
+    LOW_FREQ_INTERVAL = 1000  # Interval for low frequency data fetching (in ms).
+    HIGH_FREQ_INTERVAL = 100  # Interval for high frequency data fetching (in ms).
     IDLE_TIME = 0.5
 
     def __init__(self, url):
