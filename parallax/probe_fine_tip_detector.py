@@ -24,7 +24,7 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 if logger.getEffectiveLevel() == logging.DEBUG:
     package_dir = os.path.dirname(os.path.abspath(__file__))
-    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
+    debug_dir = os.path.join(os.path.dirname(package_dir), "debug", "debug_images")
     os.makedirs(debug_dir, exist_ok=True)
 
 

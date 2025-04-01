@@ -16,7 +16,6 @@ gitkey.pub
 *.egg-info
 build/
 debug/
-debug_images/
 wheels/
 lib/
 dist/
