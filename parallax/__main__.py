@@ -6,36 +6,10 @@ import argparse
 import atexit
 import logging
 import os
-
 from PyQt5.QtWidgets import QApplication
-
-from parallax.main_window_wip import MainWindow as MainWindowV2
-from parallax.model import Model
-
-
-def setup_logging():
-    """Set up logging to file."""
-    logger = logging.getLogger()
-    logger.handlers.clear()
-    logger.setLevel(logging.WARNING)
-
-    # Create the directory if it doesn't exist
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
-    os.makedirs(debug_dir, exist_ok=True)
-    log_file_path = os.path.join(debug_dir, "parallax_debug.log")
-
-    with open(log_file_path, "w"):
-        pass  # Clear the log file
-
-    log_handler = logging.FileHandler(log_file_path)
-    log_handler.setLevel(logging.DEBUG)
-    log_handler.setFormatter(
-        logging.Formatter(
-            fmt="%(asctime)s:%(name)s:%(levelname)s: %(message)s"
-        )
-    )
-    logger.addHandler(log_handler)
+from .main_window_wip import MainWindow as MainWindowV2
+from .model import Model
+from .config_path import setup_logging
 
 
 # Main function to run the Parallax application
