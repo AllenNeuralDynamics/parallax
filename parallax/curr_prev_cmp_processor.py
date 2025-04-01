@@ -24,6 +24,7 @@ import numpy as np
 
 from .probe_fine_tip_detector import ProbeFineTipDetector
 from .utils import UtilsCoords, UtilsCrops
+from .config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -31,11 +32,6 @@ logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
-if logger.getEffectiveLevel() == logging.DEBUG:
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    debug_dir = os.path.join(os.path.dirname(package_dir), "debug", "debug_images")
-    os.makedirs(debug_dir, exist_ok=True)
 
 
 class CurrPrevCmpProcessor():
@@ -234,7 +230,7 @@ class CurrPrevCmpProcessor():
 
         """
         if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_dir, f"{self.cam_name}_tip_currPrevCmp.jpg")
+            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_tip_currPrevCmp.jpg")
             cv2.imwrite(save_path, self.tip_image)
         """
         return ret

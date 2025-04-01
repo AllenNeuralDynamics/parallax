@@ -13,14 +13,10 @@ import logging
 from PyQt5.QtWidgets import QWidget
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
+from .config_path import ui_dir, stage_server_config_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-
-package_dir = os.path.dirname(os.path.abspath(__file__))
-ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-data_dir = os.path.join(os.path.dirname(package_dir), "data")
-json_config_path = os.path.join(data_dir, "stage_server_config.json")  # JSON file to store IP and port
 
 
 class StageServerIPConfig(QWidget):
@@ -53,9 +49,9 @@ class StageServerIPConfig(QWidget):
         """
         Loads the saved IP and port from a JSON file.
         """
-        if os.path.exists(json_config_path):
+        if os.path.exists(stage_server_config_file):
             try:
-                with open(json_config_path, "r") as f:
+                with open(stage_server_config_file, "r") as f:
                     config = json.load(f)
                 self.url = config.get("server_ip", "http://localhost")  # Default: http://localhost
                 self.port = config.get("server_port", "8080")    # Default: 8080
@@ -76,7 +72,7 @@ class StageServerIPConfig(QWidget):
         """
         config = {"server_ip": self.url, "server_port": self.port}
         try:
-            with open(json_config_path, "w") as f:
+            with open(stage_server_config_file, "w") as f:
                 json.dump(config, f, indent=4)
             logger.info(f"Saved Stage Server IP: {self.url}, Port: {self.port}")
         except Exception as e:

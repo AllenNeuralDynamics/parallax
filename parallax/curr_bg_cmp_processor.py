@@ -24,6 +24,7 @@ import numpy as np
 
 from .probe_fine_tip_detector import ProbeFineTipDetector
 from .utils import UtilsCoords, UtilsCrops
+from .config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -32,11 +33,6 @@ logger.setLevel(logging.WARNING)
 # to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
-if logger.getEffectiveLevel() == logging.DEBUG:
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
-    os.makedirs(debug_dir, exist_ok=True)
 
 
 class CurrBgCmpProcessor():
@@ -137,9 +133,9 @@ class CurrBgCmpProcessor():
         logger.debug(f"update: {ret}, precise_tip: {ret_precise_tip_ret}")
 
         if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_dir, f"{self.cam_name}_currBgCmp_bg.jpg")
+            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_bg.jpg")
             cv2.imwrite(save_path, self.bg)
-            save_path = os.path.join(debug_dir, f"{self.cam_name}_currBgCmp_diff.jpg")
+            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_diff.jpg")
             cv2.imwrite(save_path, self.diff_img)
 
         return ret, ret_precise_tip_ret

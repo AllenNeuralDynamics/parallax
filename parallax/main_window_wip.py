@@ -27,16 +27,13 @@ from .recording_manager import RecordingManager
 from .screen_widget import ScreenWidget
 from .stage_widget import StageWidget
 from .user_setting_manager import UserSettingsManager
+from .config_path import ui_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
-# User Preferences (Data directory, UI config..) setting file
-package_dir = os.path.dirname(os.path.abspath(__file__))
-ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 
 
 # Main application window

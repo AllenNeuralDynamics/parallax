@@ -17,6 +17,7 @@ import logging
 import os
 
 from .screen_widget import ScreenWidget
+from .config_path import settings_file
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -24,12 +25,6 @@ logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
-package_dir = os.path.dirname(os.path.abspath(__file__))
-ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-data_dir = os.path.join(os.path.dirname(package_dir), "data")
-os.makedirs(data_dir, exist_ok=True)
-settings_file = os.path.join(data_dir, "settings.json")
 
 
 class UserSettingsManager:

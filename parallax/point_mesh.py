@@ -38,11 +38,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-
-package_dir = os.path.dirname(os.path.abspath(__file__))
-stages_dir = os.path.join(os.path.dirname(package_dir), "data", "stages")
-ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-csv_file = os.path.join(stages_dir, "points.csv")
+from .config_path import ui_dir
 
 
 class PointMesh(QWidget):

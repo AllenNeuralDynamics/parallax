@@ -13,6 +13,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from .coords_transformation import RotationTransformation
 from .bundle_adjustment import BALProblem, BALOptimizer
 from .point_mesh import PointMesh
+from .config_path import data_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -110,9 +111,8 @@ class ProbeCalibration(QObject):
         """
         Creates or clears the CSV file used to store local and global points during calibration.
         """
-        package_dir = os.path.dirname(os.path.abspath(__file__))
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_dir = os.path.join(os.path.dirname(package_dir), f"data/log_{timestamp}")
+        self.log_dir = os.path.join(data_dir, f"log_{timestamp}")
         os.makedirs(self.log_dir, exist_ok=True)  # Create the log directory if it doesn't exist
         self.csv_file = os.path.join(self.log_dir, "points.csv")
 

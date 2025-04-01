@@ -18,7 +18,6 @@ from .coords_converter import CoordsConverter
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-package_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class StageInfo(QObject):
