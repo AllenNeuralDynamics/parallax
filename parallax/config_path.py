@@ -1,3 +1,6 @@
+"""
+This module defines the paths used in the project and sets up logging.
+"""
 import os
 import logging
 
@@ -22,6 +25,7 @@ reticle_metadata_file = os.path.join(data_dir, "reticle_metadata.json")
 os.makedirs(data_dir, exist_ok=True)
 os.makedirs(debug_dir, exist_ok=True)
 os.makedirs(debug_img_dir, exist_ok=True)
+
 
 def setup_logging():
     """Set up logging to file."""

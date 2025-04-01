@@ -4,8 +4,6 @@ Parallax: A GUI application for controlling hardware devices.
 
 import argparse
 import atexit
-import logging
-import os
 from PyQt5.QtWidgets import QApplication
 from .main_window_wip import MainWindow as MainWindowV2
 from .model import Model

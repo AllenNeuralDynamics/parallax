@@ -17,14 +17,11 @@ Usage:
 """
 
 import logging
-import os
-
 import cv2
 import numpy as np
 
 from .probe_fine_tip_detector import ProbeFineTipDetector
 from .utils import UtilsCoords, UtilsCrops
-from .config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -227,12 +224,6 @@ class CurrPrevCmpProcessor():
                 self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )
             self.ProbeDetector.probe_tip = tip
-
-        """
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_tip_currPrevCmp.jpg")
-            cv2.imwrite(save_path, self.tip_image)
-        """
         return ret
 
     def get_fine_tip_boundary(self):
