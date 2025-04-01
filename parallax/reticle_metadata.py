@@ -28,6 +28,7 @@ logger.setLevel(logging.WARNING)
 package_dir = os.path.dirname(os.path.abspath(__file__))
 debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
+data_dir = os.path.join(os.path.dirname(package_dir), "data")
 
 
 class ReticleMetadata(QWidget):
@@ -58,7 +59,7 @@ class ReticleMetadata(QWidget):
         self.model = model
         self.reticle_selector = reticle_selector
 
-        self.ui = loadUi(os.path.join(ui_dir, "reticle_metadata.ui"), self)
+        self.ui = loadUi(os.path.join(ui_dir , "reticle_metadata.ui"), self)
         self.default_size = self.size()
         self.setWindowTitle("Reticle Metadata")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
@@ -85,7 +86,7 @@ class ReticleMetadata(QWidget):
         Raises:
             Exception: If there is an error reading the metadata file, logs the error.
         """
-        json_path = os.path.join(ui_dir, "reticle_metadata.json")
+        json_path = os.path.join(data_dir, "reticle_metadata.json")
         if not os.path.exists(json_path):
             logger.info("No existing metadata file found. Starting fresh.")
             return
@@ -341,7 +342,7 @@ class ReticleMetadata(QWidget):
             return
 
         # Save the updated groupbox information to file
-        json_path = os.path.join(ui_dir, "reticle_metadata.json")
+        json_path = os.path.join(data_dir, "reticle_metadata.json")
         try:
             with open(json_path, 'w') as json_file:
                 json.dump(reticle_info_list, json_file, indent=4)

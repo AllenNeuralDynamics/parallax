@@ -40,9 +40,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
-debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
+stages_dir = os.path.join(os.path.dirname(package_dir), "data", "stages")
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-csv_file = os.path.join(debug_dir, "points.csv")
+csv_file = os.path.join(stages_dir, "points.csv")
 
 
 class PointMesh(QWidget):

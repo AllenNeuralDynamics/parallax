@@ -24,9 +24,9 @@ dist/
 docs/_build/
 
 # User-settings
-ui/settings.json
-ui/stage_server_config.json
-ui/reticle_metadata.json
+data/settings.json
+data/stage_server_config.json
+data/reticle_metadata.json
 
 # Unit test / coverage reports
 .coverage

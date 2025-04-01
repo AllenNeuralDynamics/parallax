@@ -37,7 +37,6 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 # User Preferences (Data directory, UI config..) setting file
 package_dir = os.path.dirname(os.path.abspath(__file__))
 ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-SETTINGS_FILE = "settings.json"
 
 
 # Main application window

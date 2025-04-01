@@ -25,6 +25,12 @@ logger.setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
+package_dir = os.path.dirname(os.path.abspath(__file__))
+ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
+data_dir = os.path.join(os.path.dirname(package_dir), "data")
+os.makedirs(data_dir, exist_ok=True)
+settings_file = os.path.join(data_dir, "settings.json")
+
 
 class UserSettingsManager:
     "UserSettingsManager class"
@@ -35,9 +41,6 @@ class UserSettingsManager:
         The settings file is located in the 'ui' directory. The settings are
         loaded upon initialization.
         """
-        package_dir = os.path.dirname(os.path.abspath(__file__))
-        ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-        settings_file = os.path.join(ui_dir, "settings.json")
         self.settings_file = settings_file
         self.settings = self.load_settings()
 

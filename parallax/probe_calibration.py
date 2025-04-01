@@ -112,7 +112,7 @@ class ProbeCalibration(QObject):
         """
         package_dir = os.path.dirname(os.path.abspath(__file__))
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_dir = os.path.join(os.path.dirname(package_dir), f"debug/log_{timestamp}")
+        self.log_dir = os.path.join(os.path.dirname(package_dir), f"data/log_{timestamp}")
         os.makedirs(self.log_dir, exist_ok=True)  # Create the log directory if it doesn't exist
         self.csv_file = os.path.join(self.log_dir, "points.csv")
 
