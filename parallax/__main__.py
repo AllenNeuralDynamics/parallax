@@ -1,57 +1,38 @@
 """
 Parallax: A GUI application for controlling hardware devices.
 """
-
-import argparse
 import atexit
 from PyQt5.QtWidgets import QApplication
 from .main_window import MainWindow
 from .model import Model
 from .config.config_path import setup_logging
+from .config.cli import parse_args
 
 
 # Main function to run the Parallax application
 if __name__ == "__main__":
-    # Parse command line arguments to configure application behavior
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d",
-        "--dummy",
-        action="store_true",
-        help="Dummy mode for testing without hardware",
-    )
+    # Parse command line arguments
+    args = parse_args()
 
-    parser.add_argument(
-        "-b",
-        "--bundle_adjustment",
-        action="store_true",
-        help="Enable bundle adjustment feature",
-    )
-    args = parser.parse_args()
-
-    # Print a message if running in dummy mode (no hardware interaction)
+    # Display debug info based on args
     if args.dummy:
         print("\nRunning in dummy mode; hardware devices not accessible.")
-    # Print a message if bundle adjustment is enabled
     if args.bundle_adjustment:
         print("\nBundle adjustment feature enabled.")
 
-    # Set up logging as configured in the setup_logging function
+    # Set up logging
     setup_logging()
 
     # Initialize the Qt application
     app = QApplication([])
 
-    # Initialize the data model with version "V2"
+    # Initialize the model
     model = Model(version="V2", dummy=args.dummy, bundle_adjustment=args.bundle_adjustment)
     main_window = MainWindow(model, dummy=args.dummy)  # main window
 
-    # Show the main window on screen
     main_window.show()
-    # Start the Qt application's main loop
     app.exec()
 
-    # Register cleanup functions to be called on program termination
-    atexit.register(model.clean)  # Clean up resources used by the model
-    # Save user configurations on exit
+    # Clean up on exit
+    atexit.register(model.clean)
     atexit.register(main_window.save_user_configs)
