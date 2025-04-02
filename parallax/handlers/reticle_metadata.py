@@ -21,7 +21,7 @@ from scipy.spatial.transform import Rotation
 from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
-from .config_path import ui_dir, reticle_metadata_file
+from parallax.config.config_path import ui_dir, reticle_metadata_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

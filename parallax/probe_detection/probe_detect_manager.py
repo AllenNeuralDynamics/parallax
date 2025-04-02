@@ -11,11 +11,11 @@ import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
-from .curr_bg_cmp_processor import CurrBgCmpProcessor
-from .curr_prev_cmp_processor import CurrPrevCmpProcessor
-from .mask_generator import MaskGenerator
-from .probe_detector import ProbeDetector
-from .reticle_detection import ReticleDetection
+from parallax.probe_detection.curr_bg_cmp_processor import CurrBgCmpProcessor
+from parallax.probe_detection.curr_prev_cmp_processor import CurrPrevCmpProcessor
+from parallax.reticle_detection.mask_generator import MaskGenerator
+from parallax.probe_detection.probe_detector import ProbeDetector
+from parallax.reticle_detection.reticle_detection import ReticleDetection
 
 # Set logger name
 logger = logging.getLogger(__name__)

@@ -23,8 +23,8 @@ import cv2
 import numpy as np
 
 from .probe_fine_tip_detector import ProbeFineTipDetector
-from .utils import UtilsCoords, UtilsCrops
-from .config_path import debug_img_dir
+from parallax.utils.utils import UtilsCoords, UtilsCrops
+from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)

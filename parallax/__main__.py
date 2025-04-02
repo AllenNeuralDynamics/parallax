@@ -5,9 +5,9 @@ Parallax: A GUI application for controlling hardware devices.
 import argparse
 import atexit
 from PyQt5.QtWidgets import QApplication
-from .main_window_wip import MainWindow as MainWindowV2
+from .main_window import MainWindow
 from .model import Model
-from .config_path import setup_logging
+from .config.config_path import setup_logging
 
 
 # Main function to run the Parallax application
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     # Initialize the data model with version "V2"
     model = Model(version="V2", dummy=args.dummy, bundle_adjustment=args.bundle_adjustment)
-    main_window = MainWindowV2(model, dummy=args.dummy)  # main window
+    main_window = MainWindow(model, dummy=args.dummy)  # main window
 
     # Show the main window on screen
     main_window.show()

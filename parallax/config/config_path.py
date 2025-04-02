@@ -6,13 +6,13 @@ import logging
 
 # Get the root directory of the project
 package_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(package_dir)
+project_root  = os.path.dirname(os.path.dirname(package_dir))
 
 # Shared paths
-ui_dir = os.path.join(parent_dir, "ui")
-data_dir = os.path.join(parent_dir, "data")
+ui_dir = os.path.join(project_root, "ui")
+data_dir = os.path.join(project_root, "data")
 stages_dir = os.path.join(data_dir, "stages")
-debug_dir = os.path.join(parent_dir, "debug")
+debug_dir = os.path.join(project_root, "debug")
 debug_img_dir = os.path.join(debug_dir, "debug-images")
 
 

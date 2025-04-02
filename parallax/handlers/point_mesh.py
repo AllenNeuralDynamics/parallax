@@ -38,7 +38,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from .config_path import ui_dir
+from parallax.config.config_path import ui_dir
 
 
 class PointMesh(QWidget):

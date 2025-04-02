@@ -10,10 +10,10 @@ import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from .no_filter import NoFilter
-from .probe_detect_manager import ProbeDetectManager
-from .reticle_detect_manager import ReticleDetectManager
-from .axis_filter import AxisFilter
+from parallax.screens.no_filter import NoFilter
+from parallax.probe_detection.probe_detect_manager import ProbeDetectManager
+from parallax.reticle_detection.reticle_detect_manager import ReticleDetectManager
+from parallax.screens.axis_filter import AxisFilter
 
 # Set logger name
 logger = logging.getLogger(__name__)

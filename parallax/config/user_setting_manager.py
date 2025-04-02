@@ -16,8 +16,8 @@ import json
 import logging
 import os
 
-from .screen_widget import ScreenWidget
-from .config_path import settings_file
+from parallax.screens.screen_widget import ScreenWidget
+from parallax.config.config_path import settings_file
 
 # Set logger name
 logger = logging.getLogger(__name__)

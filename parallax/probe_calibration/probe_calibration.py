@@ -12,8 +12,8 @@ import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from .coords_transformation import RotationTransformation
 from .bundle_adjustment import BALProblem, BALOptimizer
-from .point_mesh import PointMesh
-from .config_path import data_dir
+from parallax.handlers.point_mesh import PointMesh
+from parallax.config.config_path import stages_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ class ProbeCalibration(QObject):
         Creates or clears the CSV file used to store local and global points during calibration.
         """
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_dir = os.path.join(data_dir, f"log_{timestamp}")
+        self.log_dir = os.path.join(stages_dir, f"log_{timestamp}")
         os.makedirs(self.log_dir, exist_ok=True)  # Create the log directory if it doesn't exist
         self.csv_file = os.path.join(self.log_dir, "points.csv")
 

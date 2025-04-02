@@ -20,8 +20,8 @@ import logging
 import cv2
 import numpy as np
 
-from .probe_fine_tip_detector import ProbeFineTipDetector
-from .utils import UtilsCoords, UtilsCrops
+from parallax.probe_detection.probe_fine_tip_detector import ProbeFineTipDetector
+from parallax.utils.utils import UtilsCoords, UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)

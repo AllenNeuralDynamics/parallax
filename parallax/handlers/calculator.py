@@ -11,9 +11,9 @@ from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, 
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 
-from .coords_converter import CoordsConverter
-from .stage_controller import StageController
-from .config_path import ui_dir
+from parallax.utils.coords_converter import CoordsConverter
+from parallax.stages.stage_controller import StageController
+from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

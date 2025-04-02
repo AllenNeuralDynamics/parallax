@@ -14,7 +14,7 @@ import logging
 import os
 import cv2
 import numpy as np
-from .config_path import debug_img_dir
+from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)

@@ -23,11 +23,11 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog, QGridLayout, QGroupBox,
                              QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
-from .recording_manager import RecordingManager
-from .screen_widget import ScreenWidget
-from .stage_widget import StageWidget
-from .user_setting_manager import UserSettingsManager
-from .config_path import ui_dir
+from parallax.handlers.recording_manager import RecordingManager
+from parallax.screens.screen_widget import ScreenWidget
+from parallax.stages.stage_widget import StageWidget
+from parallax.config.user_setting_manager import UserSettingsManager
+from parallax.config.config_path import ui_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)

@@ -6,7 +6,6 @@ parallax/*.png
 *.npz
 *.pkl
 *.csv
-data
 training
 env
 gitkey
@@ -15,7 +14,6 @@ gitkey.pub
 # Distribution / packaging
 *.egg-info
 build/
-debug/
 wheels/
 lib/
 dist/
@@ -23,10 +21,9 @@ dist/
 # Sphinx documentation
 docs/_build/
 
-# User-settings
-data/settings.json
-data/stage_server_config.json
-data/reticle_metadata.json
+# User-specific files
+data
+debug
 
 # Unit test / coverage reports
 .coverage

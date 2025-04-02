@@ -13,7 +13,7 @@ import logging
 from PyQt5.QtWidgets import QWidget
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
-from .config_path import ui_dir, stage_server_config_file
+from parallax.config.config_path import ui_dir, stage_server_config_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
