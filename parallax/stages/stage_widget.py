@@ -255,6 +255,7 @@ class StageWidget(QWidget):
         Handles clicks on the reticle detection button, initiating or canceling reticle detection.
         """
         logger.debug(f"\n reticle_detection_button_handler {self.reticle_detection_status}")
+        logger.debug(f"reticle_calibration_btn.isChecked(): {self.reticle_calibration_btn.isChecked()}")
         if self.reticle_calibration_btn.isChecked():
             # Run reticle detectoin
             self.reticle_detect_process_status()

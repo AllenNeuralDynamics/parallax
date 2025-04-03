@@ -25,12 +25,13 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 class ReticleDetection:
     """Class for detecting reticle lines and coordinates."""
 
-    def __init__(self, IMG_SIZE, reticle_frame_detector, camera_name):
+    def __init__(self, IMG_SIZE, reticle_frame_detector, camera_name, test_mode=False):
         """Initialize Reticle Detection object"""
         self.image_size = IMG_SIZE
         self.reticle_frame_detector = reticle_frame_detector
         self.mask = None
         self.name = camera_name
+        self.test_mode = test_mode
 
     def _preprocess_image(self, img):
         """Convert image to grayscale, blur, and resize."""

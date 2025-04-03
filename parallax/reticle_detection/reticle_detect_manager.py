@@ -18,7 +18,7 @@ from parallax.reticle_detection.reticle_detection_coords_interests import Reticl
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -40,10 +40,11 @@ class ReticleDetectManager(QObject):
             np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple
         )
 
-        def __init__(self, name):
+        def __init__(self, name, test_mode=False):
             """Initialize the worker"""
             QObject.__init__(self)
             self.name = name
+            self.test_mode = test_mode
             self.running = False
             self.is_detection_on = False
             self.new = False
@@ -53,7 +54,7 @@ class ReticleDetectManager(QObject):
 
             self.mask_detect = MaskGenerator(initial_detect=True)
             self.reticleDetector = ReticleDetection(
-                self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name
+                self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name, test_mode=self.test_mode
             )
             self.coordsInterests = ReticleDetectCoordsInterest()
             self.calibrationCamera = CalibrationCamera(self.name)
@@ -235,12 +236,13 @@ class ReticleDetectManager(QObject):
             """Set name as camera serial number."""
             self.name = name
 
-    def __init__(self, camera_name):
+    def __init__(self, camera_name, test_mode=False):
         """Initialize the reticle detection manager."""
         logger.debug(f"{self.name} Init reticle detect manager")
         super().__init__()
         self.worker = None
         self.name = camera_name
+        self.test_mode = test_mode
         self.thread = None
         self.threadDeleted = False
 
@@ -249,7 +251,7 @@ class ReticleDetectManager(QObject):
         if self.thread is not None:
             self.clean()  # Clean up existing thread and worker before reinitializing
         self.thread = QThread()
-        self.worker = self.Worker(self.name)
+        self.worker = self.Worker(self.name, test_mode=self.test_mode)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
