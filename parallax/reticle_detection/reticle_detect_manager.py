@@ -166,45 +166,36 @@ class ReticleDetectManager(QObject):
 
         def process(self, frame):
             """Process the frame for reticle detection."""
-            # cv2.circle(frame, (2000,1500), 10, (255, 0, 0), -1)
-            ret, frame_, _, inliner_lines_pixels = (
-                self.reticleDetector.get_coords(frame)
-            )
-            if not ret:
-                logger.debug(f"{self.name} get_coords fails ")
-            else:
-                ret, x_axis_coords, y_axis_coords = (
-                    self.coordsInterests.get_coords_interest(
-                        inliner_lines_pixels
-                    )
-                )
+            self.frame_success = None
 
+            ret, frame_, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
             if not ret:
-                logger.debug(f"{self.name} get_coords_interest fails ")
-            else:
-                ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(
-                    x_axis_coords, y_axis_coords
-                )
-                if not ret:
-                    logger.debug(f"{self.name} calibrate_camera fails ")
-                else:
-                    # Draw
-                    self.found_coords.emit(
-                        x_axis_coords, y_axis_coords, mtx, dist, rvecs, tvecs
-                    )
-                    origin, x, y, z = self.calibrationCamera.get_origin_xyz()
-                    frame = self.draw_xyz(frame, origin, x, y, z)
-                    frame = self.draw(frame, x_axis_coords, y_axis_coords)
-                    frame = self.draw_calibration_info(frame, ret, mtx, dist)
-                self.frame_success = frame
-
-            if self.frame_success is None:
-                logger.debug(f"{self.name} reticle detection fail ")
+                logger.debug(f"{self.name} get_coords failed.")
                 return frame
-            else:
-                logger.debug(f"{self.name} reticle detection success \n")
-                self.stop_running()  # If found, stop processing
-                return self.frame_success
+
+            ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
+            if not ret:
+                logger.debug(f"{self.name} get_coords_interest failed.")
+                return frame
+
+            ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords)
+            if not ret:
+                logger.debug(f"{self.name} calibrate_camera failed.")
+                return frame
+
+            # Successful detection and calibration
+            self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist, rvecs, tvecs)
+
+            origin, x, y, z = self.calibrationCamera.get_origin_xyz()
+            frame = self.draw_xyz(frame, origin, x, y, z)
+            frame = self.draw(frame, x_axis_coords, y_axis_coords)
+            frame = self.draw_calibration_info(frame, ret, mtx, dist)
+
+            self.frame_success = frame
+            logger.debug(f"{self.name} reticle detection success.\n")
+
+            self.stop_running()  # If found, stop further processing
+            return self.frame_success
 
         def stop_running(self):
             """Stop the worker from running."""
