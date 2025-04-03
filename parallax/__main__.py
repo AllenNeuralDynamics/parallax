@@ -24,14 +24,9 @@ if __name__ == "__main__":
     # Initialize the Qt application
     app = QApplication([])
 
-    # Initialize the model
-    model = Model(
-        version="V2",
-        dummy=args.dummy,
-        bundle_adjustment=args.bundle_adjustment
-    )
-    main_window = MainWindow(model, dummy=args.dummy)  # main window
-
+    # Initialize the model and main window
+    model = Model(args)
+    main_window = MainWindow(model, dummy=args.dummy)
     main_window.show()
     app.exec()
 

@@ -7,7 +7,7 @@ This class integrates various hardware components such as cameras and stages and
 their initialization, configuration, and transformations between local and global coordinates.
 """
 from collections import OrderedDict
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject
 from parallax.screens.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
 
@@ -15,7 +15,7 @@ from parallax.stages.stage_listener import Stage, StageInfo
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""
 
-    def __init__(self, version="V1", dummy=False, bundle_adjustment=False):
+    def __init__(self, args, version="V2"):
         """Initialize the Model object.
 
         Args:
@@ -23,9 +23,13 @@ class Model(QObject):
             bundle_adjustment (bool): Whether to enable bundle adjustment for calibration.
         """
         QObject.__init__(self)
+        # args from command line
         self.version = version
-        self.dummy = dummy
-        self.bundle_adjustment = bundle_adjustment
+        self.dummy = args.dummy
+        self.test = args.test
+        self.bundle_adjustment = args.bundle_adjustment
+        self.reticle_detection = args.reticle_detection
+
         # camera
         self.cameras = []
         self.cameras_sn = []
