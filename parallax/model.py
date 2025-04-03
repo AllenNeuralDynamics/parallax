@@ -15,9 +15,6 @@ from parallax.stages.stage_listener import Stage, StageInfo
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""
 
-    msg_posted = pyqtSignal(str)
-    accutest_point_reached = pyqtSignal()
-
     def __init__(self, version="V1", dummy=False, bundle_adjustment=False):
         """Initialize the Model object.
 
