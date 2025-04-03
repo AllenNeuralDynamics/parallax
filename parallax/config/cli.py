@@ -30,6 +30,13 @@ def parse_args() -> argparse.Namespace:
         default="default",
         help="Choose the reticle detection algorithm version (e.g., 'default', 'color_channel').",
     )
+
+    parser.add_argument(
+        "-t",
+        "--test",
+        action="store_true",
+        help="Test mode to visualize reticle and probe detection.",
+    )
     return parser.parse_args()
 
 def print_arg_info(args):
@@ -38,5 +45,7 @@ def print_arg_info(args):
         print("\nRunning in dummy mode; hardware devices not accessible.")
     if args.bundle_adjustment:
         print("\nBundle adjustment feature enabled.")
+    if args.test:
+        print("\nTest mode to visualize reticle and probe detection.")
     if args.reticle_detection != "default":
         print(f"\nSelected reticle version: {args.reticle_detection}")

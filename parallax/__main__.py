@@ -5,12 +5,15 @@ import atexit
 from PyQt5.QtWidgets import QApplication
 from .main_window import MainWindow
 from .model import Model
-from .config.config_path import setup_logging
+from .config.config_path import setup_logging, PARALLAX_ASCII
 from .config.cli import parse_args, print_arg_info
 
 
 # Main function to run the Parallax application
 if __name__ == "__main__":
+    # Print the ASCII art
+    print(PARALLAX_ASCII)
+
     # Parse command line arguments
     args = parse_args()
     print_arg_info(args)

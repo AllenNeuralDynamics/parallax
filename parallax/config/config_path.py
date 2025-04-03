@@ -4,6 +4,15 @@ This module defines the paths used in the project and sets up logging.
 import os
 import logging
 
+PARALLAX_ASCII = r"""
+  _____                _ _
+ |  __ \              | | |
+ | |__) |_ _ _ __ __ _| | | __ ___  __
+ |  ___/ _` | '__/ _` | | |/ _` \ \/ /
+ | |  | (_| | | | (_| | | | (_| |>  <
+ |_|   \__,_|_|  \__,_|_|_|\__,_/_/\_\
+"""
+
 # Get the root directory of the project
 package_dir = os.path.dirname(os.path.abspath(__file__))
 project_root  = os.path.dirname(os.path.dirname(package_dir))
