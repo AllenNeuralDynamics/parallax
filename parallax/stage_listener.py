@@ -17,7 +17,7 @@ from .coords_converter import CoordsConverter
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 package_dir = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -69,6 +69,9 @@ class Stage(QObject):
             self.stage_x_global = None
             self.stage_y_global = None
             self.stage_z_global = None
+            self.stage_x_offset = stage_info.get("Stage_XOffset", 0) * 1000
+            self.stage_y_offset = stage_info.get("Stage_YOffset", 0) * 1000
+            self.stage_z_offset = 15000 - (stage_info.get("Stage_ZOffset", 0) * 1000)
             self.yaw = None
             self.pitch = None
             self.roll = None
@@ -82,6 +85,9 @@ class Worker(QObject):
     dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
     stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
     stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving.
+    LOW_FREQ_INTERVAL = 500  # Interval for low frequency data fetching (in ms).
+    HIGH_FREQ_INTERVAL = 100  # Interval for high frequency data fetching (in ms).
+    IDLE_TIME = 0.5
 
     def __init__(self, url):
         """Initialize worker thread"""
@@ -89,14 +95,12 @@ class Worker(QObject):
         self.url = url
         self.timer = QTimer()
         self.timer.timeout.connect(self.fetchData)
-        self.last_stage_info = None
-        self.last_bigmove_stage_info = None
-        self.last_bigmove_detected_time = None
-        self._low_freq_interval = 1000
-        self._high_freq_interval = 20
-        self.curr_interval = self._low_freq_interval
-        self._idle_time = 0.3  # 0.3s
+
+        self.curr_interval = self.LOW_FREQ_INTERVAL
         self.is_error_log_printed = False
+
+        self.stages = {}
+        self.last_move_detected_time = time.time()
 
     def start(self, interval=1000):
         """Starts the data fetching at the given interval.
@@ -120,63 +124,66 @@ class Worker(QObject):
         self.url = url
         self.start()  # Restart the timer
 
-    def print_trouble_shooting_msg(self):
+    def _print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
         print("Trouble Shooting: ")
         print("1. Check New Scale Stage connection.")
         print("2. Enable Http Server: 'http://localhost:8080/'")
         print("3. Click 'Connect' on New Scale SW")
 
+    def get_data(self):
+        """Fetch data from the URL.
+        Returns:
+            dict: JSON data from the server.
+        """
+        response = requests.get(self.url, timeout=1)
+        if response.status_code != 200:
+            print(f"Failed to access {self.url}. Status code: {response.status_code}")
+            return
+
+        data = response.json()
+        if data["Probes"] == 0:
+            if self.is_error_log_printed is False:
+                self.is_error_log_printed = True
+                print("\nStage is not connected to New Scale SW")
+                self._print_trouble_shooting_msg()
+            return
+
+        return data
+
     def fetchData(self):
         """Fetches content from the URL and checks for significant changes."""
         try:
-            response = requests.get(self.url, timeout=1)
-            if response.status_code == 200:
-                data = response.json()
-                if data["Probes"] == 0:
-                    if self.is_error_log_printed is False:
-                        self.is_error_log_printed = True
-                        print("\nStage is not connected to New Scale SW")
-                        self.print_trouble_shooting_msg()
-                else:
-                    selected_probe = data["SelectedProbe"]
-                    probe = data["ProbeArray"][selected_probe]
+            data = self.get_data()
+            if data is None:
+                return
 
-                    # At init, update stage info for connected stages
-                    if self.last_stage_info is None:  # Initial setup
-                        for stage in data["ProbeArray"]:
-                            self.dataChanged.emit(stage)
-                        self.last_stage_info = probe
-                        self.last_bigmove_stage_info = probe
-                        self.dataChanged.emit(probe)
+            self.emit_all_stages(data)  # Update all stages
+            change_detected = self._is_any_stage_move(data)  # Check if there is any significant change
 
-                    if self.curr_interval == self._high_freq_interval:
-                        # Update
-                        self.isSmallChange(probe)
-                        # If last updated move (in 5um) is more than 1 sec ago, switch to w/ low freq
-                        current_time = time.time()
-                        if current_time - self.last_bigmove_detected_time >= self._idle_time:
-                            logger.debug("low freq mode")
-                            self.curr_interval = self._low_freq_interval
-                            self.stop()
-                            self.start(interval=self.curr_interval)
-                            self.stage_not_moving.emit(probe)
-                            # print("low freq mode: ", self.curr_interval)
+            if (
+                not change_detected
+                and self.curr_interval == self.HIGH_FREQ_INTERVAL
+                and time.time() - self.last_move_detected_time >= self.IDLE_TIME
+            ):
+                # If stage is not moving for idle_time, switch to low freq mode
+                logger.debug("low freq mode")
+                self.curr_interval = self.LOW_FREQ_INTERVAL
+                self.stop()
+                self.start(interval=self.curr_interval)
+                self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
-                    # If moves more than 10um, check w/ high freq
-                    if self.isSignificantChange(probe):
-                        if self.curr_interval == self._low_freq_interval:
-                            # 10 msec mode
-                            logger.debug("high freq mode")
-                            self.curr_interval = self._high_freq_interval
-                            self.stop()
-                            self.start(interval=self.curr_interval)
-                            self.stage_moving.emit(probe)
-                            # print("high freq mode: ", self.curr_interval)
+            if change_detected and self.curr_interval == self.LOW_FREQ_INTERVAL:
+                # Swith to high freq mode
+                logger.debug("high freq mode")
+                self.curr_interval = self.HIGH_FREQ_INTERVAL
+                self.stop()
+                self.start(interval=self.curr_interval)
+                self.stage_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
-                    self.is_error_log_printed = False
-            else:
-                print(f"Failed to access {self.url}. Status code: {response.status_code}")
+            self.is_error_log_printed = False
+            self.update_into_stages(data)
+
         except Exception as e:
             # Stop the fetching data if there http server is not enabled
             self.stop()
@@ -184,26 +191,36 @@ class Worker(QObject):
             if self.is_error_log_printed is False:
                 self.is_error_log_printed = True
                 print(f"\nStage HttpServer not enabled.: {e}")
-                self.print_trouble_shooting_msg()
+                self._print_trouble_shooting_msg()
 
-    def isSignificantChange(self, current_stage_info, stage_threshold=0.001):
-        """Check if the change in any axis exceeds the threshold."""
-        for axis in ['Stage_X', 'Stage_Y', 'Stage_Z']:
-            if abs(current_stage_info[axis] - self.last_bigmove_stage_info[axis]) >= stage_threshold:
-                self.dataChanged.emit(current_stage_info)
-                self.last_bigmove_detected_time = time.time()
-                self.last_bigmove_stage_info = current_stage_info
-                return True
+    def _is_any_stage_move(self, data):
+        """Check if any stage has moved significantly.
+        Args:
+            data (dict): JSON data from the server.
+        Returns:
+            bool: True if any stage has moved significantly, False otherwise.
+        """
+        for stage in data["ProbeArray"]:
+            stage_sn = stage["SerialNumber"]
+            curr_pos = (stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"])
+
+            # Check stage is move more than 10um in any axis
+            last_pos = self.stages.get(stage_sn)
+            if last_pos:
+                if any(abs(c - l) >= 0.001 for c, l in zip(curr_pos, last_pos)):
+                    self.last_move_detected_time = time.time()
+                    return True
         return False
 
-    def isSmallChange(self, current_stage_info, stage_threshold=0.0005):
-        """Check if the change in any axis exceeds the threshold."""
-        for axis in ['Stage_X', 'Stage_Y', 'Stage_Z']:
-            if abs(current_stage_info[axis] - self.last_stage_info[axis]) >= stage_threshold:
-                self.dataChanged.emit(current_stage_info)
-                self.last_stage_info = current_stage_info
-                return True
-        return False
+    def emit_all_stages(self, data):
+        """Update all stages."""
+        for stage in data["ProbeArray"]:
+            self.dataChanged.emit(stage)
+
+    def update_into_stages(self, data):
+        """Update the stage data into the model."""
+        for stage in data["ProbeArray"]:
+            self.stages[stage["SerialNumber"]] = [stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"]]
 
 
 class StageListener(QObject):
@@ -295,41 +312,40 @@ class StageListener(QObject):
         Args:
             probe (dict): Probe data.
         """
-        # Format the current timestamp
-        self.timestamp_local = self.get_timestamp(millisecond=True)
-
-        # id = probe["Id"]
         sn = probe["SerialNumber"]
-        local_coords_x = round(probe["Stage_X"] * 1000, 1)
-        local_coords_y = round(probe["Stage_Y"] * 1000, 1)
-        local_coords_z = 15000 - round(probe["Stage_Z"] * 1000, 1)
-        logger.debug(f"timestamp_local: {self.timestamp_local}, sn: {sn}")
+        stage = self.model.stages.get(sn)  # Check if the stage is in the model's stages
+        if stage is None:
+            return
 
-        # update into model
-        moving_stage = self.model.stages.get(sn)
-
-        if moving_stage is not None:
-            moving_stage.stage_x = local_coords_x
-            moving_stage.stage_y = local_coords_y
-            moving_stage.stage_z = local_coords_z
-
-        # Update to buffer
-        self.append_to_buffer(self.timestamp_local, moving_stage)
-
-        # Update into UI
-        if self.stage_ui.get_selected_stage_sn() == sn:
-            self.stage_ui.updateStageLocalCoords()
-        else:
-            logger.debug(f"moving_probe: {sn}, selected_probe: {self.stage_ui.get_selected_stage_sn()}")
-
-        # Update global coordinates and ui
-        local_pts = np.array([local_coords_x, local_coords_y, local_coords_z])
+        # update into modelss
+        local_x = round(probe.get("Stage_X", 0) * 1000, 1)
+        local_y = round(probe.get("Stage_Y", 0) * 1000, 1)
+        local_z = 15000 - round(probe.get("Stage_Z", 0) * 1000, 1)
+        stage.stage_x = local_x
+        stage.stage_y = local_y
+        stage.stage_z = local_z
+        stage.stage_x_offset = probe.get("Stage_XOffset", 0) * 1000  # Convert to um
+        stage.stage_y_offset = probe.get("Stage_YOffset", 0) * 1000  # Convert to um
+        stage.stage_z_offset = 15000 - (probe.get("Stage_ZOffset", 0) * 1000)  # Convert to um
+        local_pts = np.array([local_x, local_y, local_z])
         global_pts = self.coordsConverter.local_to_global(sn, local_pts)
         if global_pts is not None:
-            self._update_global_coords_ui(sn, moving_stage, global_pts)
+            stage.stage_x_global = global_pts[0]
+            stage.stage_y_global = global_pts[1]
+            stage.stage_z_global = global_pts[2]
+
+        # Stage is currently selected one, update into UI
+        if sn == self.stage_ui.get_selected_stage_sn():
+            self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
+            if global_pts is not None:                      # If stage is calibrated,
+                self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
+            else:
+                # if not calibrated, added stage info to buffer for calibration
+                self.timestamp_local = self.get_timestamp(millisecond=True)
+                self.append_to_buffer(self.timestamp_local, stage)
 
         # Update stage info
-        self._update_stages_info(moving_stage)
+        self._update_stages_info(stage)
 
     def _update_stages_info(self, stage):
         """Update stage info.
@@ -341,25 +357,6 @@ class StageListener(QObject):
             return
 
         self.stages_info[stage.sn] = self._get_stage_info_json(stage)
-
-    def _update_global_coords_ui(self, sn, moving_stage, global_point):
-        """Update the global coordinates in the UI.
-
-        Args:
-            sn (str): Serial number of the stage.
-            moving_stage (Stage): Stage object.
-            global_point (list): Global coordinates.
-        """
-
-        if global_point is None:
-            return
-
-        # Update into UI
-        moving_stage.stage_x_global = global_point[0]
-        moving_stage.stage_y_global = global_point[1]
-        moving_stage.stage_z_global = global_point[2]
-        if self.stage_ui.get_selected_stage_sn() == sn:
-            self.stage_ui.updateStageGlobalCoords()
 
     def requestUpdateGlobalDataTransformM(self, sn, transM, scale):
         """
@@ -501,7 +498,6 @@ class StageListener(QObject):
         for probeDetector in self.model.probeDetectors:
             probeDetector.start_detection(sn)  # Detect when probe is moving
             probeDetector.disable_calibration(sn)
-            # probeDetector.stop_detection(sn) # Detect when probe is not moving
 
     def stageNotMovingStatus(self, probe):
         """Handle not moving probe status.
@@ -511,66 +507,35 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            # probeDetector.stop_detection(sn) # Stop detection when probe is not moving
             probeDetector.enable_calibration(sn)
-            # Stop detection when probe is moving
-
-    def set_low_freq_as_high_freq(self, interval=10):
-        """Change the frequency to low."""
-        self.worker.stop()
-        self.worker._low_freq_interval = interval
-        self.worker.curr_interval = self.worker._low_freq_interval
-        self.worker.start(interval=self.worker._low_freq_interval)
-        # print("low_freq: 10 ms")
-
-    def set_low_freq_default(self, interval=1000):
-        """Change the frequency to low."""
-        self.worker.stop()
-        self.worker._low_freq_interval = interval
-        self.worker.curr_interval = self.worker._low_freq_interval
-        self.worker.start(interval=self.worker._low_freq_interval)
-        # print("low_freq: 1000 ms")
 
     def _get_stage_info_json(self, stage):
-        """Create a JSON file for the stage info.
+        """Create a JSON representation of the stage information."""
+        sx, sy, sz = stage.stage_x, stage.stage_y, stage.stage_z
+        gx, gy, gz = stage.stage_x_global, stage.stage_y_global, stage.stage_z_global
+        ox, oy, oz = stage.stage_x_offset, stage.stage_y_offset, stage.stage_z_offset
 
-        Args:
-            stage (Stage): Stage object.
-        """
-        stage_data = None
+        def _val_mm(v):
+            """Convert value to mm."""
+            return round(v * 0.001, 4) if v is not None else None
 
-        if stage is None:
-            logger.error("Error: Stage object is None. Cannot save JSON.")
-            return
-
-        if not hasattr(stage, 'sn') or not stage.sn:
-            logger.error("Error: Invalid stage serial number (sn). Cannot save JSON.")
-            return
-
-        # Convert to mm and round to 4 decimal places if the value is not None
-        def convert_and_round(value):
-            """Convert the value from um to mm and round it to 4 decimal places.
-            Args: value (float): The value in um.
-            Returns: float: The value in mm rounded to 4 decimal places.
-            """
-            return round(value * 0.001, 4) if value is not None else None
-
-        stage_data = {
+        return {
             "sn": stage.sn,
             "name": stage.name,
-            "stage_X": convert_and_round(stage.stage_x),    # Unit is um
-            "stage_Y": convert_and_round(stage.stage_y),
-            "stage_Z": convert_and_round(stage.stage_z),
-            "global_X": convert_and_round(stage.stage_x_global),
-            "global_Y": convert_and_round(stage.stage_y_global),
-            "global_Z": convert_and_round(stage.stage_z_global),
+            "stage_X": _val_mm(sx),
+            "stage_Y": _val_mm(sy),
+            "stage_Z": _val_mm(sz),
+            "global_X": _val_mm(gx),
+            "global_Y": _val_mm(gy),
+            "global_Z": _val_mm(gz),
+            "relative_X": _val_mm(sx - ox),
+            "relative_Y": _val_mm(sy - oy),
+            "relative_Z": _val_mm(sz - oz),
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
-            "shank_cnt": stage.shank_cnt
+            "shank_cnt": stage.shank_cnt,
         }
-
-        return stage_data
 
     def _snapshot_stage(self):
         """Snapshot the current stage info. Handler for the stage snapshot button."""
