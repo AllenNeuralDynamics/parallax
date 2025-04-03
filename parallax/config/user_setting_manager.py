@@ -16,7 +16,8 @@ import json
 import logging
 import os
 
-from .screen_widget import ScreenWidget
+from parallax.screens.screen_widget import ScreenWidget
+from parallax.config.config_path import settings_file
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -35,9 +36,6 @@ class UserSettingsManager:
         The settings file is located in the 'ui' directory. The settings are
         loaded upon initialization.
         """
-        package_dir = os.path.dirname(os.path.abspath(__file__))
-        ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
-        settings_file = os.path.join(ui_dir, "settings.json")
         self.settings_file = settings_file
         self.settings = self.load_settings()
 

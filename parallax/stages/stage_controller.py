@@ -20,7 +20,7 @@ import json
 import numpy as np
 from typing import Optional
 from PyQt5.QtCore import QObject, QTimer
-from .coords_converter import CoordsConverter
+from parallax.utils.coords_converter import CoordsConverter
 
 # Set logger name
 logger = logging.getLogger(__name__)

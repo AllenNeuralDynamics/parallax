@@ -14,6 +14,7 @@ import logging
 import os
 import cv2
 import numpy as np
+from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -21,11 +22,6 @@ logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
-if logger.getEffectiveLevel() == logging.DEBUG:
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
-    os.makedirs(debug_dir, exist_ok=True)
 
 
 class ProbeFineTipDetector:
@@ -172,7 +168,7 @@ class ProbeFineTipDetector:
     def get_precise_tip(cls, img, tip, base, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
         """Get the precise tip coordinates from the image."""
         if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_dir, f"{cam_name}_tip.jpg")
+            save_path = os.path.join(debug_img_dir, f"{cam_name}_tip.jpg")
             cv2.imwrite(save_path, img)
 
         img = cls._preprocess_image(img)

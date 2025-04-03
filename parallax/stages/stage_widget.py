@@ -15,13 +15,13 @@ from PyQt5.QtWidgets import (QLabel, QMessageBox, QPushButton, QSizePolicy,
                              QSpacerItem, QWidget)
 from PyQt5.uic import loadUi
 
-from .calibration_camera import CalibrationStereo
-from .probe_calibration import ProbeCalibration
-from .stage_listener import StageListener
-from .stage_ui import StageUI
-from .calculator import Calculator
-from .reticle_metadata import ReticleMetadata
-from .screen_coords_mapper import ScreenCoordsMapper
+from parallax.screens.calibration_camera import CalibrationStereo
+from parallax.probe_calibration.probe_calibration import ProbeCalibration
+from parallax.stages.stage_listener import StageListener
+from parallax.stages.stage_ui import StageUI
+from parallax.handlers.calculator import Calculator
+from parallax.handlers.reticle_metadata import ReticleMetadata
+from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
 from .stage_server_ipconfig import StageServerIPConfig
 from .stage_http_server import StageHttpServer
 

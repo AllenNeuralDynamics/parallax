@@ -11,10 +11,10 @@ import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
-from .calibration_camera import CalibrationCamera
-from .mask_generator import MaskGenerator
-from .reticle_detection import ReticleDetection
-from .reticle_detection_coords_interests import ReticleDetectCoordsInterest
+from parallax.screens.calibration_camera import CalibrationCamera
+from parallax.reticle_detection.mask_generator import MaskGenerator
+from parallax.reticle_detection.reticle_detection import ReticleDetection
+from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
 
 # Set logger name
 logger = logging.getLogger(__name__)

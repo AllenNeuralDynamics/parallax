@@ -13,12 +13,11 @@ from datetime import datetime
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
-from .coords_converter import CoordsConverter
+from parallax.utils.coords_converter import CoordsConverter
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-package_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class StageInfo(QObject):

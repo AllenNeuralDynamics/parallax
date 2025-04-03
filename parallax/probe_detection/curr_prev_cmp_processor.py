@@ -17,13 +17,11 @@ Usage:
 """
 
 import logging
-import os
-
 import cv2
 import numpy as np
 
-from .probe_fine_tip_detector import ProbeFineTipDetector
-from .utils import UtilsCoords, UtilsCrops
+from parallax.probe_detection.probe_fine_tip_detector import ProbeFineTipDetector
+from parallax.utils.utils import UtilsCoords, UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -31,11 +29,6 @@ logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
-if logger.getEffectiveLevel() == logging.DEBUG:
-    package_dir = os.path.dirname(os.path.abspath(__file__))
-    debug_dir = os.path.join(os.path.dirname(package_dir), "debug_images")
-    os.makedirs(debug_dir, exist_ok=True)
 
 
 class CurrPrevCmpProcessor():
@@ -231,12 +224,6 @@ class CurrPrevCmpProcessor():
                 self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )
             self.ProbeDetector.probe_tip = tip
-
-        """
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_dir, f"{self.cam_name}_tip_currPrevCmp.jpg")
-            cv2.imwrite(save_path, self.tip_image)
-        """
         return ret
 
     def get_fine_tip_boundary(self):

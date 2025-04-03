@@ -21,13 +21,10 @@ from scipy.spatial.transform import Rotation
 from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
+from parallax.config.config_path import ui_dir, reticle_metadata_file
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-
-package_dir = os.path.dirname(os.path.abspath(__file__))
-debug_dir = os.path.join(os.path.dirname(package_dir), "debug")
-ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
 
 
 class ReticleMetadata(QWidget):
@@ -85,13 +82,12 @@ class ReticleMetadata(QWidget):
         Raises:
             Exception: If there is an error reading the metadata file, logs the error.
         """
-        json_path = os.path.join(ui_dir, "reticle_metadata.json")
-        if not os.path.exists(json_path):
+        if not os.path.exists(reticle_metadata_file):
             logger.info("No existing metadata file found. Starting fresh.")
             return
 
         try:
-            with open(json_path, 'r') as json_file:
+            with open(reticle_metadata_file, 'r') as json_file:
                 reticle_data = json.load(json_file)
             if reticle_data:
                 self._create_groupbox_from_metadata(reticle_data)
@@ -341,11 +337,10 @@ class ReticleMetadata(QWidget):
             return
 
         # Save the updated groupbox information to file
-        json_path = os.path.join(ui_dir, "reticle_metadata.json")
         try:
-            with open(json_path, 'w') as json_file:
+            with open(reticle_metadata_file, 'w') as json_file:
                 json.dump(reticle_info_list, json_file, indent=4)
-            print(f"Metadata successfully saved to {json_path}")
+            print(f"Metadata successfully saved to {reticle_metadata_file}")
         except Exception as e:
             print(f"Error saving file: {e}")
 
