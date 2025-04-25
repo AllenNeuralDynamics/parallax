@@ -1,7 +1,6 @@
 """
 PySpinCamera: A class to interface with cameras using the PySpin library.
 """
-
 import datetime
 import logging
 import os
@@ -10,7 +9,6 @@ import time
 import cv2
 import numpy as np
 from parallax.screens.camera_base_binding import BaseCamera
-
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
@@ -53,7 +51,7 @@ def close_cameras():
         PySpinCamera.close_cameras()
 
 
-class PySpinCamera:
+class PySpinCamera(BaseCamera):
     """
     Represents a camera managed by the PySpin library.
     """
@@ -528,35 +526,6 @@ class PySpinCamera:
         except Exception as e:
             logger.error("An error occurred while recording the video: ", e)
             print(f"Error {self.name(sn_only=True)}: An error occurred while recording the video.")
-
-    def get_last_capture_time(self, millisecond=False):
-        """
-        Returns the timestamp of the last captured image in a formatted string.
-
-        Returns:
-        - str: Timestamp in the format 'YYYYMMDD-HHMMSS'.
-        """
-        ts = self.last_capture_time
-        dt = datetime.datetime.fromtimestamp(ts)
-        if millisecond:
-            return "%04d%02d%02d-%02d%02d%02d.%03d" % (
-                dt.year,
-                dt.month,
-                dt.day,
-                dt.hour,
-                dt.minute,
-                dt.second,
-                dt.microsecond // 1000,
-            )
-        else:
-            return "%04d%02d%02d-%02d%02d%02d" % (
-                dt.year,
-                dt.month,
-                dt.day,
-                dt.hour,
-                dt.minute,
-                dt.second,
-            )
 
     def save_last_image(
             self, filepath, isTimestamp=False, custom_name="Microscope_"):
