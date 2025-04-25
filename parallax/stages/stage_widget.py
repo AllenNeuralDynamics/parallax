@@ -27,7 +27,7 @@ from .stage_http_server import StageHttpServer
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-
+RETICLE_DETECT_WAIT_TIME = 20000  # 20 seconds
 
 class StageWidget(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
@@ -399,7 +399,7 @@ class StageWidget(QWidget):
 
         # Start the timer for 10 seconds to check the status later
         self.reticle_detection_status = "process"
-        self.reticle_calibration_timer.start(10000)
+        self.reticle_calibration_timer.start(RETICLE_DETECT_WAIT_TIME)
         logger.debug(self.reticle_detection_status)
 
     def reticle_detect_detected_status(self):

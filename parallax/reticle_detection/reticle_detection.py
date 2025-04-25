@@ -17,7 +17,7 @@ from skimage.measure import LineModelND, ransac
 # Set logger name
 logger = logging.getLogger(__name__)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
