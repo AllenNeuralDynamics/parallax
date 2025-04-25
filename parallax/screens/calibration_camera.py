@@ -11,10 +11,11 @@ Classes:
 import logging
 import cv2
 import numpy as np
+from scipy.spatial.transform import Rotation as Rscipy
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -224,6 +225,16 @@ class CalibrationCamera:
             x = tuple(imgpts[0].ravel().astype(int))
             y = tuple(imgpts[1].ravel().astype(int))
             z = tuple(imgpts[2].ravel().astype(int))
+
+            """
+            # Uncomment to print quaternion and translation vector
+            R, _ = cv2.Rodrigues(rvecs)
+            quat = Rscipy.from_matrix(R).as_quat()  # [QX, QY, QZ, QW]
+            QX, QY, QZ, QW = quat
+            TX, TY, TZ = tvecs.flatten()
+            print(f"{self.name}: {QW} {QX} {QY} {QZ} {TX} {TY} {TZ}")
+            """
+
             return origin, x, y, z
         else:
             return None
@@ -378,7 +389,7 @@ class CalibrationStereo(CalibrationCamera):
         """
         logger.debug(f"=== {camA}, World to Camera transformation ====")
         logger.debug(f"rvecs: {self.rvecA}")
-        logger.debug(f"tvecs: {self.rvecA}")
+        logger.debug(f"tvecs: {self.tvecA}")
 
         if print_results:
             print(f"=== {camA}, World to Camera transformation ====")
