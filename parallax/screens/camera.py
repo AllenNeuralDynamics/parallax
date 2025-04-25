@@ -7,9 +7,10 @@ import logging
 import os
 import threading
 import time
-
 import cv2
 import numpy as np
+from parallax.screens.camera_base_binding import BaseCamera
+
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
@@ -726,7 +727,7 @@ class PySpinCamera:
 
 
 # Class for simulating a mock camera
-class MockCamera:
+class MockCamera(BaseCamera):
     """Mock Camera showing salts and pepper noise images"""
 
     n_cameras = 0
@@ -743,62 +744,17 @@ class MockCamera:
         self.device_color_type = None
         self.width = 4000
         self.height = 3000
+        self.last_capture_time = time.time()
 
     def name(self, sn_only=False):
-        """Get the name of the mock camera"""
         return self._name
 
     def get_last_image_data(self):
-        """
-        Return last image as numpy array with shape (height, width, 3) for RGB
-                or (height, width) for mono.
-        """
         frame = self.data[self._next_frame]
         self._next_frame = (self._next_frame + 1) % self.data.shape[0]
         return frame
 
-    def save_last_image(
-        self, filepath, isTimestamp=False, custom_name="MockCamera_"
-    ):
-        """Dummy function"""
-        print("This is MockCamera. Cannot capture the image")
-        return
-
-    def set_wb(self, wb=2.0):
-        """Dummy function"""
-        logger.info("This is MockCamera. Setting is not applicable")
-        return
-
-    def set_gamma(self, gamma=1.0):
-        """Dummy function"""
-        logger.info("This is MockCamera. Setting is not applicable")
-        return
-
-    def set_gain(self, gain=25.0):
-        """Dummy function"""
-        logger.info("This is MockCamera. Setting is not applicable")
-        return
-
-    def set_exposure(self, expTime=16000):
-        """Dummy function"""
-        logger.info("This is MockCamera. Setting is not applicable")
-        return
-
-    def stop(self, clean=False):
-        """Dummy function"""
-        logger.info("This is MockCamera. Stop")
-        return
-
-    def begin_continuous_acquisition(self):
-        """Dummy function"""
-        return
-
-    def get_last_capture_time(self, millisecond=False):
-        """Dummy function"""
-        return
-
-
-class VideoSource:
+class VideoSource(BaseCamera):
     """Video Source"""
 
     def __init__(self, filename):
@@ -820,38 +776,3 @@ class VideoSource:
             # If the video has ended, reset the video source to the beginning
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             return np.random.randint(0, 255, size=(3000, 4000), dtype="ubyte")
-
-    def save_last_image(
-        self, filepath, isTimestamp=False, custom_name="VideoSource_"
-    ):
-        """Dummy function"""
-        print("This is from Video Source. Cannot capture the image")
-        return
-
-    def set_wb(self, wb=2.0):
-        """Dummy function"""
-        logger.info("This is VideoSource. Setting is not applicable")
-        return
-
-    def set_gamma(self, gamma=1.0):
-        """Dummy function"""
-        logger.info("This is VideoSource. Setting is not applicable")
-        return
-
-    def set_gain(self, gain=25.0):
-        """Dummy function"""
-        logger.info("This is VideoSource. Setting is not applicable")
-        return
-
-    def set_exposure(self, expTime=125000):
-        """Dummy function"""
-        logger.info("This is VideoSource. Setting is not applicable")
-        return
-
-    def begin_continuous_acquisition(self):
-        """Dummy function"""
-        return
-
-    def stop(self, clean=False):
-        """Dummy function"""
-        return

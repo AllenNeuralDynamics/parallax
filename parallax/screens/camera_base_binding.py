@@ -73,4 +73,3 @@ class BaseCamera(ABC):
                 dt.minute,
                 dt.second,
             )
-
