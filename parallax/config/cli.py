@@ -10,21 +10,25 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "-d",
         "--dummy",
         action="store_true",
         help="Dummy mode for testing without hardware",
     )
 
     parser.add_argument(
-        "-b",
+        "--num_mock_cameras",
+        type=int,
+        default=1,
+        help="Number of mock cameras to simulate (only valid if --dummy is set)",
+    )
+
+    parser.add_argument(
         "--bundle_adjustment",
         action="store_true",
         help="Enable bundle adjustment feature",
     )
 
     parser.add_argument(
-        "-r",
         "--reticle_detection",
         choices=["default", "color_channel"],
         default="default",
@@ -32,17 +36,21 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "-t",
         "--test",
         action="store_true",
         help="Test mode to visualize reticle and probe detection.",
     )
+
     return parser.parse_args()
 
 def print_arg_info(args):
     """Print CLI argument selections for debugging."""
+    if not args.dummy and args.num_mock_cameras != 1:
+        print("\nWarning: --num-mock-cameras is only valid in dummy mode.")
+
     if args.dummy:
         print("\nRunning in dummy mode; hardware devices not accessible.")
+        print(f"Simulating {args.num_mock_cameras} mock camera(s).")
     if args.bundle_adjustment:
         print("\nBundle adjustment feature enabled.")
     if args.test:
