@@ -46,7 +46,7 @@ class ScreenWidget(pg.GraphicsView):
         self.image_item = ClickableImage()
         self.image_item.axisOrder = "row-major"
         self.view_box.addItem(self.image_item)
-        self.image_item.mouse_clicked.connect(self.image_clicked)
+        self.image_item.mouse_clicked.connect(self._image_clicked)
 
         self.click_target = pg.TargetItem()
         self.view_box.addItem(self.click_target)
@@ -85,17 +85,17 @@ class ScreenWidget(pg.GraphicsView):
 
         # No filter
         self.filter = NoFilter(self.camera_name)
-        self.filter.frame_processed.connect(self.set_image_item_from_data)
+        self.filter.frame_processed.connect(self.set_image_from_data)
 
         # Axis Filter
         self.axisFilter = AxisFilter(self.model, self.camera_name)
-        self.axisFilter.frame_processed.connect(self.set_image_item_from_data)
+        self.axisFilter.frame_processed.connect(self.set_image_from_data)
         self.axisFilter.found_coords.connect(self.found_reticle_coords)
 
         # Reticle Detection
         self.reticleDetector = ReticleDetectManager(self.camera_name, test_mode=self.model.test)
         self.reticleDetector.frame_processed.connect(
-            self.set_image_item_from_data
+            self.set_image_from_data
         )
         self.reticleDetector.found_coords.connect(self.found_reticle_coords)
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
@@ -104,12 +104,12 @@ class ScreenWidget(pg.GraphicsView):
         self.probeDetector = ProbeDetectManager(self.model, self.camera_name)
         self.model.add_probe_detector(self.probeDetector)
         self.probeDetector.frame_processed.connect(
-            self.set_image_item_from_data
+            self.set_image_from_data
         )
         self.probeDetector.found_coords.connect(self.found_probe_coords)
 
         if self.filename:
-            self.set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
+            self._set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
     def refresh(self):
         """
@@ -117,7 +117,7 @@ class ScreenWidget(pg.GraphicsView):
         """
         if self.camera:
             data = self.camera.get_last_image_data()
-            self.set_data(data)
+            self._set_data(data)
 
     def start_acquisition_camera(self):
         """
@@ -139,7 +139,7 @@ class ScreenWidget(pg.GraphicsView):
         """
         if self.camera:
             data = self.camera.get_last_image_data_singleFrame()
-            self.set_data(data)
+            self._set_data(data)
 
     def single_acquisition_camera(self):
         """
@@ -155,7 +155,7 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             self.camera.end_singleframe_acquisition()
 
-    def set_data(self, data):
+    def _set_data(self, data):
         """
         Set the data displayed in the screen widget.
         """
@@ -206,7 +206,7 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             self.camera.stop_recording()
 
-    def set_image_item_from_data(self, data):
+    def set_image_from_data(self, data):
         """display image from data"""
         self.image_item.setImage(data, autoLevels=False)
 
@@ -264,7 +264,7 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera:
             return self.camera.device_color_type
 
-    def send_clicked_position(self, pos):
+    def _send_clicked_position(self, pos):
         """
         Sends the clicked position to the AxisFilter for processing.
 
@@ -279,19 +279,21 @@ class ScreenWidget(pg.GraphicsView):
         """
         self.axisFilter.clicked_position(pos)
 
-    def image_clicked(self, event):
+    def _image_clicked(self, event):
         """
         Handle the image click event.
         """
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
             x, y = event.pos().x(), event.pos().y()
             x, y = int(round(x)), int(round(y))
-            self.select((x, y))
-            self.send_clicked_position((x, y))
+            self._select((x, y))
+            self._send_clicked_position((x, y))
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
-            self.zoom_out()
+            self._zoom_out()
+        elif event.button() == QtCore.Qt.MouseButton.RightButton:
+            self._handler_mouse_right_click()
 
-    def select(self, pos):
+    def _select(self, pos):
         """Select a position and emit the selected coordinates."""
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
@@ -299,12 +301,7 @@ class ScreenWidget(pg.GraphicsView):
         print(f"Clicked position on {camera_name}: ({pos[0]}, {pos[1]})")
         self.selected.emit(camera_name, pos)
 
-    def select2(self, pos):
-        """Select a second position and make the click target visible."""
-        self.click_target2.setPos(pos)
-        self.click_target2.setVisible(True)
-
-    def zoom_out(self):
+    def _zoom_out(self):
         """
         Zoom out the image. Fill the screen widget with the image.
         """
@@ -416,6 +413,8 @@ class ScreenWidget(pg.GraphicsView):
         else:
             super().wheelEvent(e)
 
+    def _handler_mouse_right_click(self):
+        pass
 
 class ClickableImage(pg.ImageItem):
     """This class captures mouse click events on images."""

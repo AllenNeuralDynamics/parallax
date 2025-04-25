@@ -22,7 +22,7 @@ logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
+IMG_SIZE_ORIGINAL = (4000, 3000)
 
 class ReticleDetectManager(QObject):
     """Reticle detection class"""
@@ -49,12 +49,11 @@ class ReticleDetectManager(QObject):
             self.is_detection_on = False
             self.new = False
             self.frame = None
-            self.IMG_SIZE_ORIGINAL = (4000, 3000)
             self.frame_success = None
 
             self.mask_detect = MaskGenerator(initial_detect=True)
             self.reticleDetector = ReticleDetection(
-                self.IMG_SIZE_ORIGINAL, self.mask_detect, self.name, test_mode=self.test_mode
+                IMG_SIZE_ORIGINAL, self.mask_detect, self.name, test_mode=self.test_mode
             )
             self.coordsInterests = ReticleDetectCoordsInterest()
             self.calibrationCamera = CalibrationCamera(self.name)
