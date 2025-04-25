@@ -112,7 +112,6 @@ class MaskGenerator:
         # Invert image to prepare for dilate and final operations
         self.img = cv2.bitwise_not(self.img)
         self._remove_small_contours()
-        self.img = cv2.dilate(self.img, kernels[1], iterations=1)
         self.img = cv2.bitwise_not(self.img)  # Re-invert image back
 
     def _remove_small_contours(self):
