@@ -34,7 +34,7 @@ class Model(QObject):
         self.cameras = []
         self.cameras_sn = []
         self.nPySpinCameras = 0
-        self.nMockCameras = 0
+        self.nMockCameras = args.num_mock_cameras
         self.focos = []
 
         # point mesh
@@ -111,19 +111,20 @@ class Model(QObject):
         """
         self.cameras.append(video_source)
 
-    def add_mock_cameras(self, n=1):
+    def add_mock_cameras(self):
         """Add mock cameras for testing purposes.
 
         Args:
             n (int): The number of mock cameras to add.
         """
-        for i in range(n):
+        for i in range(self.nMockCameras):
             self.cameras.append(MockCamera())
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
         self.cameras = list_cameras(version=self.version) + self.cameras
         self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
+        """
         self.nMockCameras = len(
             [
                 camera
@@ -131,6 +132,7 @@ class Model(QObject):
                 if isinstance(camera, MockCamera)
             ]
         )
+        """
         self.nPySpinCameras = len(
             [
                 camera

@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     # Initialize the model and main window
     model = Model(args)
-    main_window = MainWindow(model, dummy=args.dummy)
+    main_window = MainWindow(model)
     main_window.show()
     app.exec()
 

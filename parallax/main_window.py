@@ -31,6 +31,7 @@ from parallax.config.config_path import ui_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -46,18 +47,15 @@ class MainWindow(QMainWindow):
     components, camera and stage management, and recording functionality.
     """
 
-    def __init__(self, model, dummy=False):
+    def __init__(self, model):
         """
         Initialize the MainWindow.
 
         Args:
             model (object): The data model for the application.
-            dummy (bool, optional): Flag indicating whether
-            to run in dummy mode. Defaults to False.
         """
         QMainWindow.__init__(self)  # Initialize the QMainWindow
         self.model = model
-        self.dummy = dummy
 
         # Initialize an empty list to keep track of microscopeGrp widgets instances
         self.screen_widgets = []
@@ -69,6 +67,18 @@ class MainWindow(QMainWindow):
             f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
         )
 
+        """
+        if not self.model.dummy:
+            self.user_setting = UserSettingsManager()
+            # Load column configuration from user preferences
+            self.nColumn = self.user_setting.load_settings_item("main", "nColumn")
+            if self.nColumn is None or 0:
+                self.nColumn = 1
+            if self.model.nPySpinCameras:
+                self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
+        else:
+            self.nColumn = self.model.nMockCameras
+        """
         self.user_setting = UserSettingsManager()
         # Load column configuration from user preferences
         self.nColumn = self.user_setting.load_settings_item("main", "nColumn")
@@ -76,6 +86,8 @@ class MainWindow(QMainWindow):
             self.nColumn = 1
         if self.model.nPySpinCameras:
             self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
+        else:
+            self.nColumn = min(self.model.nMockCameras, self.nColumn)
 
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
@@ -102,12 +114,15 @@ class MainWindow(QMainWindow):
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
 
         # Configure the column spin box
-        self.nColumnsSpinBox.setMaximum(max(self.model.nPySpinCameras, 1))
-        self.nColumnsSpinBox.setValue(self.nColumn)
         if self.model.nPySpinCameras:
-            self.nColumnsSpinBox.valueChanged.connect(
-                self.column_changed_handler
-            )
+            self.nColumnsSpinBox.setMaximum(max(self.model.nPySpinCameras, 1))
+        else:
+            self.nColumnsSpinBox.setMaximum(max(self.model.nMockCameras, 1))
+        self.nColumnsSpinBox.setValue(self.nColumn)
+        #if self.model.nPySpinCameras: # TODO
+        self.nColumnsSpinBox.valueChanged.connect(
+            self.column_changed_handler
+        )
 
         # Refreshing the settingMenu while it is toggled
         self.settings_refresh_timer = QTimer()
@@ -122,9 +137,10 @@ class MainWindow(QMainWindow):
 
         # Dynamically generate Microscope display
         if self.model.nPySpinCameras:
-            self.display_microscope()  # Attach screen widget
+            #self.display_microscope()  # Attach screen widget
+            self.display_microscope(self.model.nPySpinCameras)
         else:  # Display only mock camera
-            self.display_mock_camera()
+            self.display_microscope(self.model.nMockCameras)
 
         # Stage_widget
         self.stage_widget = StageWidget(self.model, ui_dir, self.screen_widgets)
@@ -163,7 +179,7 @@ class MainWindow(QMainWindow):
         # Add mock cameras for testing purposes
         self.model.add_mock_cameras()
         # If not in dummy mode, scan for actual available cameras
-        if not self.dummy:
+        if not self.model.dummy:
             try:
                 self.model.scan_for_cameras()
             except Exception as e:
@@ -173,7 +189,7 @@ class MainWindow(QMainWindow):
 
     def refresh_stages(self):
         """Search for connected stages"""
-        if not self.dummy:
+        if not self.model.dummy:
             self.model.scan_for_usb_stages()
             self.model.init_transforms()
 
@@ -200,7 +216,7 @@ class MainWindow(QMainWindow):
 
         # Check if the start button is toggled on
         if self.startButton.isChecked():
-            print("\nRefreshing Screen")
+            print("\nRefreshing Screens")
             # Camera begin acquisition
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -216,7 +232,7 @@ class MainWindow(QMainWindow):
             self.snapshotButton.setEnabled(True)
 
         else:
-            print("Stop Refreshing Screen")
+            print("Stop Refreshing Screens")
             # Start button is unchecked, disable record and snapshot button.
             self.recordButton.setEnabled(False)
             self.recordButton.setChecked(False)
@@ -242,7 +258,7 @@ class MainWindow(QMainWindow):
         """Display mock camera when there is no detected camera."""
         self.createNewGroupBox(0, 0, mock=True)
 
-    def display_microscope(self):
+    def display_microscope_deprecate(self):
         """Dynamically arrange Microscopes based on camera count and column configuration."""
         # Calculate rows and columns
         rows, cols, cnt = (
@@ -255,6 +271,24 @@ class MainWindow(QMainWindow):
         for row_idx in range(0, rows):
             for col_idx in range(0, cols):
                 if cnt < self.model.nPySpinCameras:
+                    self.createNewGroupBox(row_idx, col_idx, screen_index=cnt)
+                    cnt += 1
+                else:
+                    break  # Stop when all Microscopes are displayed
+
+    def display_microscope(self, nCams=1):
+        """Dynamically arrange Microscopes based on camera count and column configuration."""
+        # Calculate rows and columns
+        rows, cols, cnt = (
+            nCams // self.nColumn,
+            self.nColumn,
+            0,
+        )
+        rows += 1 if nCams % cols else 0
+        # Create grid of Microscope displays
+        for row_idx in range(0, rows):
+            for col_idx in range(0, cols):
+                if cnt < nCams:
                     self.createNewGroupBox(row_idx, col_idx, screen_index=cnt)
                     cnt += 1
                 else:
@@ -278,8 +312,12 @@ class MainWindow(QMainWindow):
             widget.hide()  # Temporarily hide the widget
 
         # Calculate new rows and columns layout
-        rows, cols, cnt = self.model.nPySpinCameras // val, val, 0
-        rows += 1 if self.model.nPySpinCameras % cols else 0
+        if self.model.nPySpinCameras:
+            rows, cols, cnt = self.model.nPySpinCameras // val, val, 0
+            rows += 1 if self.model.nPySpinCameras % cols else 0
+        else:
+            rows, cols, cnt = self.model.nMockCameras // val, val, 0
+            rows += 1 if self.model.nMockCameras % cols else 0
 
         # Reattach widgets in the new layout
         for row_idx in range(0, rows):
@@ -307,13 +345,8 @@ class MainWindow(QMainWindow):
         - screen_index (int, optional): The index of the camera in the model's camera list to be associated
         with this microscope. Required if mock is False.
         """
-        # Generate unique names based on row and column indices
-        newNameMicroscope = ""
-        # Generate unique names based on camera number
-        if mock:
-            newNameMicroscope = "Mock Camera"
-        else:
-            newNameMicroscope = f"Microscope_{screen_index+1}"
+        # Generate unique names based on screen index
+        newNameMicroscope = f"Microscope_{screen_index+1}"
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
 
         # Construct and configure the Microscope widget
@@ -326,6 +359,7 @@ class MainWindow(QMainWindow):
         verticalLayout.setObjectName("verticalLayout")
 
         # Add screens
+        """
         if mock:
             screen = ScreenWidget(
                 self.model.cameras[0], model=self.model, parent=microscopeGrp
@@ -336,30 +370,37 @@ class MainWindow(QMainWindow):
                 model=self.model,
                 parent=microscopeGrp,
             )
+        """
+        screen = ScreenWidget(
+            self.model.cameras[screen_index],
+            model=self.model,
+            parent=microscopeGrp,
+        )
+        
         screen.setObjectName("Screen")
         verticalLayout.addWidget(screen)
 
-        if mock is False:
-            # Add setting button
-            settingButton = QToolButton(microscopeGrp)
-            settingButton.setObjectName("Setting")
-            settingButton.setFont(font_grpbox)
-            settingButton.setCheckable(True)
-            self.create_settings_menu(
-                microscopeGrp, newNameMicroscope, screen, screen_index
+        #if mock is False:
+        # Add setting button
+        settingButton = QToolButton(microscopeGrp)
+        settingButton.setObjectName("Setting")
+        settingButton.setFont(font_grpbox)
+        settingButton.setCheckable(True)
+        self.create_settings_menu(
+            microscopeGrp, newNameMicroscope, screen, screen_index
+        )
+        settingButton.toggled.connect(
+            lambda checked: self.show_settings_menu(settingButton, checked)
+        )
+        verticalLayout.addWidget(settingButton)
+        settingButton.setText(
+            QCoreApplication.translate(
+                "MainWindow", "SETTINGS \u25ba", None
             )
-            settingButton.toggled.connect(
-                lambda checked: self.show_settings_menu(settingButton, checked)
-            )
-            verticalLayout.addWidget(settingButton)
-            settingButton.setText(
-                QCoreApplication.translate(
-                    "MainWindow", "SETTINGS \u25ba", None
-                )
-            )
+        )
 
-            # Load setting file from JSON
-            self.update_setting_menu(microscopeGrp)
+        # Load setting file from JSON
+        self.update_setting_menu(microscopeGrp)
 
         # Add widget to the gridlayout
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
