@@ -67,18 +67,6 @@ class MainWindow(QMainWindow):
             f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
         )
 
-        """
-        if not self.model.dummy:
-            self.user_setting = UserSettingsManager()
-            # Load column configuration from user preferences
-            self.nColumn = self.user_setting.load_settings_item("main", "nColumn")
-            if self.nColumn is None or 0:
-                self.nColumn = 1
-            if self.model.nPySpinCameras:
-                self.nColumn = min(self.model.nPySpinCameras, self.nColumn)
-        else:
-            self.nColumn = self.model.nMockCameras
-        """
         self.user_setting = UserSettingsManager()
         # Load column configuration from user preferences
         self.nColumn = self.user_setting.load_settings_item("main", "nColumn")
@@ -119,7 +107,6 @@ class MainWindow(QMainWindow):
         else:
             self.nColumnsSpinBox.setMaximum(max(self.model.nMockCameras, 1))
         self.nColumnsSpinBox.setValue(self.nColumn)
-        #if self.model.nPySpinCameras: # TODO
         self.nColumnsSpinBox.valueChanged.connect(
             self.column_changed_handler
         )
@@ -137,7 +124,6 @@ class MainWindow(QMainWindow):
 
         # Dynamically generate Microscope display
         if self.model.nPySpinCameras:
-            #self.display_microscope()  # Attach screen widget
             self.display_microscope(self.model.nPySpinCameras)
         else:  # Display only mock camera
             self.display_microscope(self.model.nMockCameras)
@@ -253,28 +239,6 @@ class MainWindow(QMainWindow):
         """Refreshing from framebuffer to screen"""
         for screen in self.screen_widgets:
             screen.refresh()  # Refresh the screens
-
-    def display_mock_camera(self):
-        """Display mock camera when there is no detected camera."""
-        self.createNewGroupBox(0, 0, mock=True)
-
-    def display_microscope_deprecate(self):
-        """Dynamically arrange Microscopes based on camera count and column configuration."""
-        # Calculate rows and columns
-        rows, cols, cnt = (
-            self.model.nPySpinCameras // self.nColumn,
-            self.nColumn,
-            0,
-        )
-        rows += 1 if self.model.nPySpinCameras % cols else 0
-        # Create grid of Microscope displays
-        for row_idx in range(0, rows):
-            for col_idx in range(0, cols):
-                if cnt < self.model.nPySpinCameras:
-                    self.createNewGroupBox(row_idx, col_idx, screen_index=cnt)
-                    cnt += 1
-                else:
-                    break  # Stop when all Microscopes are displayed
 
     def display_microscope(self, nCams=1):
         """Dynamically arrange Microscopes based on camera count and column configuration."""

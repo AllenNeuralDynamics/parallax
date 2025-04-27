@@ -32,10 +32,9 @@ class ScreenWidget(pg.GraphicsView):
     # camera name, timestamp, sn, stage_info, pixel_coords
     probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)
 
-    def __init__(self, camera, filename=None, model=None, parent=None):
+    def __init__(self, camera, model=None, parent=None):
         """Init screen widget object"""
         super().__init__(parent=parent)
-        self.filename = filename
         self.model = model
 
         self.view_box = pg.ViewBox(defaultPadding=0)
@@ -107,9 +106,6 @@ class ScreenWidget(pg.GraphicsView):
             self.set_image_from_data
         )
         self.probeDetector.found_coords.connect(self.found_probe_coords)
-
-        if self.filename:
-            self._set_data(cv2.imread(filename, cv2.IMREAD_GRAYSCALE))
 
     def refresh(self):
         """
@@ -290,8 +286,6 @@ class ScreenWidget(pg.GraphicsView):
             self._send_clicked_position((x, y))
         elif event.button() == QtCore.Qt.MouseButton.MiddleButton:
             self._zoom_out()
-        elif event.button() == QtCore.Qt.MouseButton.RightButton:
-            self._handler_mouse_right_click()
 
     def _select(self, pos):
         """Select a position and emit the selected coordinates."""
@@ -412,9 +406,6 @@ class ScreenWidget(pg.GraphicsView):
                 foco.time_move(chan, forward, dist, wait=True)
         else:
             super().wheelEvent(e)
-
-    def _handler_mouse_right_click(self):
-        pass
 
 class ClickableImage(pg.ImageItem):
     """This class captures mouse click events on images."""

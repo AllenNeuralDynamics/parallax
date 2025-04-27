@@ -694,11 +694,9 @@ class PySpinCamera(BaseCamera):
         if clean:
             del self.camera
 
-
 # Class for simulating a mock camera
 class MockCamera(BaseCamera):
     """Mock Camera showing salts and pepper noise images"""
-
     n_cameras = 0
 
     def __init__(self):
