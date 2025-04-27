@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (QLabel, QMessageBox, QPushButton, QSizePolicy,
                              QSpacerItem, QWidget)
 from PyQt5.uic import loadUi
 
-from parallax.screens.calibration_camera import CalibrationStereo
+from parallax.cameras.calibration_camera import CalibrationStereo
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.stages.stage_listener import StageListener
 from parallax.stages.stage_ui import StageUI
