@@ -9,6 +9,7 @@ from PyQt5.uic import loadUi
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.config.user_setting_manager import UserSettingsManager
+from parallax.screens.screen_setting import ScreenSetting
 from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
@@ -18,17 +19,20 @@ class ScreenWidgetManager:
     """Manages microscope display and settings."""
 
     def __init__(self, model, nColumnsSpinBox):
-        #self.main_window = main_window  # Reference to MainWindow
-        self.model = model  # Reference to the model containing camera information
+        self.model = model
         self.nColumnsSpinBox = nColumnsSpinBox  # Spin box for number of columns (UI)
-        self.settings_refresh_timer = QTimer() # Refreshing the settingMenu while it is toggled
+        #self.settings_refresh_timer = QTimer() # Refreshing the settingMenu while it is toggled
         self.screen_widgets = []
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout = QGridLayout(self.scrollAreaWidgetContents)
         self.cols_cnt = self._get_cols_cnt()
         self._config_nColumnsSpinBox()
-        self._display_microscope()
+
+        if self.model.nPySpinCameras:
+            self._display_microscope(self.model.nPySpinCameras)
+        else:  # Display only mock camera
+            self._display_microscope(self.model.nMockCameras)
 
     def _config_nColumnsSpinBox(self):
         # Configure the column spin box
@@ -39,15 +43,9 @@ class ScreenWidgetManager:
 
         self.nColumnsSpinBox.setValue(self.cols_cnt)
         self.nColumnsSpinBox.valueChanged.connect(
-            self.column_changed_handler
+            self._column_changed_handler
         )
         
-    def _display_microscope(self):
-        if self.model.nPySpinCameras:
-            self.display_microscope(self.model.nPySpinCameras)
-        else:  # Display only mock camera
-            self.display_microscope(self.model.nMockCameras)
-
     def _get_cols_cnt(self):
         # Load column configuration from user preferences
         cols_cnt = UserSettingsManager.load_settings_item("main", "nColumn")
@@ -59,7 +57,7 @@ class ScreenWidgetManager:
             cols_cnt = min(self.model.nMockCameras, cols_cnt)
         return cols_cnt
 
-    def column_changed_handler(self, val):
+    def _column_changed_handler(self, val):
         """Rearrange the layout of Microscopes when the column number changes."""
         # Identify current Microscope widgets
         camera_screen_list = []
@@ -95,18 +93,18 @@ class ScreenWidgetManager:
                 else:
                     break
 
-    def display_microscope(self, nCams=1):
+    def _display_microscope(self, nCams=1):
         rows, cols, cnt = (nCams // self.cols_cnt, self.cols_cnt, 0)
         rows += 1 if nCams % cols else 0
         for row_idx in range(rows):
             for col_idx in range(cols):
                 if cnt < nCams:
-                    self.createNewGroupBox(row_idx, col_idx, screen_index=cnt)
+                    self._createNewGroupBox(row_idx, col_idx, screen_index=cnt)
                     cnt += 1
                 else:
                     break
 
-    def createNewGroupBox(self, rows, cols, mock=False, screen_index=None):
+    def _createNewGroupBox(self, rows, cols, screen_index=None):
         # Generate unique names based on screen index
         newNameMicroscope = f"Microscope_{screen_index+1}"
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
@@ -114,7 +112,7 @@ class ScreenWidgetManager:
         # Construct and configure the Microscope widget
         microscopeGrp.setObjectName(newNameMicroscope)
         microscopeGrp.setStyleSheet("background-color: rgb(58, 58, 58);")
-        font_grpbox = QFont()
+        font_grpbox = QFont() # TODO move to config file
         font_grpbox.setPointSize(8)
         microscopeGrp.setFont(font_grpbox)
         verticalLayout = QVBoxLayout(microscopeGrp)
@@ -129,230 +127,22 @@ class ScreenWidgetManager:
         screen.setObjectName("Screen")
         verticalLayout.addWidget(screen)
 
-        # Add setting button
-        settingButton = QToolButton(microscopeGrp)
-        settingButton.setObjectName("Setting")
-        settingButton.setFont(font_grpbox)
-        settingButton.setCheckable(True)
-        self.create_settings_menu(microscopeGrp, newNameMicroscope, screen, screen_index)
-        settingButton.toggled.connect(
-            lambda checked: self.show_settings_menu(settingButton, checked)
+        screen_setting = ScreenSetting(
+                parent=microscopeGrp,
+                model=self.model,
+                screen=screen,
+                screen_index=screen_index
         )
-        verticalLayout.addWidget(settingButton)
-        settingButton.setText(
-            QCoreApplication.translate("MainWindow", "SETTINGS \u25ba", None)
+        
+        # If serial number is changed, connect to update_screen function and update setting menu
+        screen_setting.settingMenu.snComboBox.currentIndexChanged.connect(
+            lambda: self.update_screen(
+                screen, screen_index, screen_setting.settingMenu.snComboBox.currentText()
+            )
         )
-
-        self.update_setting_menu(microscopeGrp)
-
+        verticalLayout.addWidget(screen_setting.settingButton)
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
         self.screen_widgets.append(screen)
-
-    def create_settings_menu(
-        self, microscopeGrp, newNameMicroscope, screen, screen_index
-    ):
-        """
-        Create the settings menu for each Microscope widget.
-
-        This function initializes the settings menu UI, loads it with necessary data,
-        and associates the relevant signals with their slots.
-        The settings menu is hidden by default and will be shown
-        when the user toggles the settings button.
-
-        Parameters:
-        - microscopeGrp (QGroupBox): The group box representing a Microscope widget.
-        - newNameMicroscope (str): The unique name assigned to the Microscope widget.
-        - screen (ScreenWidget): The screen widget associated with the Microscope.
-        - screen_index (int): The index of the camera in the model's camera list to be associated with this screen.
-        """
-        # Initialize the settings menu UI from the .ui file
-        settingMenu = QWidget(microscopeGrp)
-        setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
-        loadUi(setting_ui, settingMenu)
-        settingMenu.setObjectName("SettingsMenu")
-        settingMenu.hide()  # Hide the menu by default
-
-        """        # S/N
-        # Add the list of cameras (serial number) in ComboBox
-        for sn in self.model.cameras_sn:
-            settingMenu.snComboBox.addItem(sn)
-        # Select the sn for the current screen
-        sn = screen.get_camera_name()
-        index = settingMenu.snComboBox.findText(sn)
-        if index >= 0:
-            settingMenu.snComboBox.setCurrentIndex(index)
-        else:
-            logger.error("SN not found in the list")
-
-        # If serial number is changed, connect to update_screen function and update setting menu
-        settingMenu.snComboBox.currentIndexChanged.connect(
-            lambda: self.update_screen(
-                screen, screen_index, settingMenu.snComboBox.currentText()
-            )
-        )
-
-        # Custom name
-        customName = UserSettingsManager.load_settings_item(
-            sn, "customName"
-        )  # Default name on init
-        customName = customName if customName else newNameMicroscope
-        settingMenu.customName.setText(customName)
-        self.update_groupbox_name(
-            microscopeGrp, customName
-        )  # Update GroupBox name
-        # Name) If custom name is changed, change the groupBox name.
-        settingMenu.customName.textChanged.connect(
-            lambda: self.update_groupbox_name(
-                microscopeGrp, settingMenu.customName.text()
-            )
-        )
-        settingMenu.customName.textChanged.connect(
-            lambda: self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "customName", settingMenu.customName.text()
-            )
-        )
-
-        # Exposure
-        settingMenu.expSlider.valueChanged.connect(
-            lambda: screen.set_camera_setting(
-                setting="exposure", val=settingMenu.expSlider.value() * 1000
-            )
-        )
-        settingMenu.expSlider.valueChanged.connect(
-            lambda: settingMenu.expNum.setNum(settingMenu.expSlider.value())
-        )
-        settingMenu.expSlider.valueChanged.connect(
-            lambda: self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "exp", settingMenu.expSlider.value()
-            )
-        )
-        settingMenu.expAuto.clicked.connect(
-            lambda: settingMenu.expSlider.setValue(
-                int(screen.get_camera_setting(setting="exposure") / 1000)
-            )
-        )
-
-        # Gain
-        settingMenu.gainSlider.valueChanged.connect(
-            lambda: screen.set_camera_setting(
-                setting="gain", val=settingMenu.gainSlider.value()
-            )
-        )
-        settingMenu.gainSlider.valueChanged.connect(
-            lambda: settingMenu.gainNum.setNum(settingMenu.gainSlider.value())
-        )
-        settingMenu.gainSlider.valueChanged.connect(
-            lambda: self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "gain", settingMenu.gainSlider.value()
-            )
-        )
-        settingMenu.gainAuto.clicked.connect(
-            lambda: settingMenu.gainSlider.setValue(
-                screen.get_camera_setting(setting="gain")
-            )
-        )
-
-        # Gamma
-        settingMenu.gammaSlider.valueChanged.connect(
-            lambda: screen.set_camera_setting(
-                setting="gamma", val=settingMenu.gammaSlider.value() / 100
-            )
-        )
-        settingMenu.gammaSlider.valueChanged.connect(
-            lambda: settingMenu.gammaNum.setText(
-                "{:.2f}".format(settingMenu.gammaSlider.value() / 100)
-            )
-        )
-        settingMenu.gammaSlider.valueChanged.connect(
-            lambda: self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "gamma", settingMenu.gammaSlider.value()
-            )
-        )
-        settingMenu.gammaAuto.clicked.connect(
-            lambda: settingMenu.gammaSlider.setEnabled(
-                not settingMenu.gammaSlider.isEnabled()
-            )
-        )
-        settingMenu.gammaAuto.clicked.connect(
-            lambda: self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "gammaAuto", settingMenu.gammaSlider.isEnabled()
-            )
-        )
-
-        # W/B
-        settingLayout = settingMenu.layout()
-        settingLayout.addWidget(settingMenu.wbAuto, 5, 1, 2, 1)
-        # Blue Channel
-        settingMenu.wbSliderBlue.valueChanged.connect(
-            lambda: screen.set_camera_setting(
-                setting="wbBlue", val=settingMenu.wbSliderBlue.value() / 100
-            )
-        )
-        settingMenu.wbSliderBlue.valueChanged.connect(
-            lambda: settingMenu.wbNumBlue.setText(
-                "{:.2f}".format(settingMenu.wbSliderBlue.value() / 100)
-            )
-        )
-        settingMenu.wbSliderBlue.valueChanged.connect(
-            lambda: self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "wbBlue", settingMenu.wbSliderBlue.value()
-            )
-        )
-        settingMenu.wbAuto.clicked.connect(
-            lambda: settingMenu.wbSliderBlue.setValue(
-                screen.get_camera_setting(setting="wbBlue") * 100
-            )
-        )
-
-        # Red Channel
-        settingMenu.wbSliderRed.valueChanged.connect(
-            lambda: screen.set_camera_setting(
-                setting="wbRed", val=settingMenu.wbSliderRed.value() / 100
-            )
-        )
-        settingMenu.wbSliderRed.valueChanged.connect(
-            lambda: settingMenu.wbNumRed.setText(
-                "{:.2f}".format(settingMenu.wbSliderRed.value() / 100)
-            )
-        )
-        settingMenu.wbSliderRed.valueChanged.connect(
-            lambda: self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "wbRed", settingMenu.wbSliderRed.value()
-            )
-        )
-        settingMenu.wbAuto.clicked.connect(
-            lambda: settingMenu.wbSliderRed.setValue(
-                screen.get_camera_setting(setting="wbRed") * 100
-            )
-        )"""
-
-
-    def update_groupbox_name(self, microscopeGrp, customName):
-        if customName:
-            microscopeGrp.setTitle(customName)
-            microscopeGrp.setObjectName(customName)
-
-    def show_settings_menu(self, settingButton, is_checked):
-        microscopeGrp = settingButton.parent()
-        # Find the settingMenu within this microscopeGrp
-        settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
-        self.settings_refresh_timer.timeout.connect(
-            partial(self.update_setting_menu, microscopeGrp)
-        )
-
-        if is_checked:
-            self.settings_refresh_timer.start(100)
-            # Show the setting menu next to setting button
-            button_position = settingButton.mapToGlobal(settingButton.pos())
-            menu_x = button_position.x() + settingButton.width()
-            menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()
-            menu_y = settingButton.y() + settingButton.height() - settingMenu.height()
-            settingMenu.move(menu_x, menu_y)
-            settingMenu.show()
-        else:
-            self.settings_refresh_timer.stop()
-            settingMenu.hide()
-
 
     def update_screen(self, screen, screen_index, selected_sn):
         """
@@ -392,7 +182,7 @@ class ScreenWidgetManager:
 
         # Handle updates based on the current state of the application
         # If the 'Start' button is enabled (continuous acquisition mode)
-        if (self.startButton.isChecked()):
+        if self.model.refresh_camera:
             if set(prev_lists) == set(curr_list):
                 # If the list of cameras hasn't changed, just update the current screen's camera
                 screen.set_camera(camera_list.get(curr_camera))
@@ -411,75 +201,6 @@ class ScreenWidgetManager:
             screen.single_acquisition_camera()
             screen.refresh_single_frame()
             screen.stop_single_acquisition_camera()
-
-
-    def update_setting_menu(self, microscopeGrp):
-        """
-        Update the values displayed in the settings menu based on the current camera settings.
-
-        This method is called periodically by a QTimer to refresh the values displayed in the
-        settings menu, ensuring they are up-to-date with the current settings of the camera.
-
-        Parameters:
-        - microscopeGrp (QGroupBox): The microscope group box associated with the settings menu to be updated.
-        """
-
-        # Find the settingMenu within this microscopeGrp
-        settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
-        screen = microscopeGrp.findChild(ScreenWidget, "Screen")
-
-        # Display the S/N of camera
-        sn = screen.get_camera_name()
-        """
-        # Load the saved settings
-        saved_settings = self.user_setting.load_settings_item(sn)
-        if saved_settings:
-            # If saved settings are found, update the sliders in the settings menu with the saved values
-            settingMenu.expSlider.setValue(saved_settings.get("exp", 15))
-            settingMenu.gainSlider.setValue(saved_settings.get("gain", 20))
-
-            # Gamma
-            gammaAuto = saved_settings.get("gammaAuto", None)
-            if gammaAuto is True:
-                settingMenu.gammaSlider.setEnabled(True)
-                settingMenu.gammaSlider.setValue(
-                    saved_settings.get("gamma", 100)
-                )
-            elif gammaAuto is False:
-                settingMenu.gammaSlider.setEnabled(False)
-            else:
-                pass
-
-            # W/B
-            if screen.get_camera_color_type() == "Color":
-                settingMenu.wbAuto.setDisabled(False)
-                settingMenu.wbSliderRed.setDisabled(False)
-                settingMenu.wbSliderBlue.setDisabled(False)
-                settingMenu.wbSliderRed.setValue(
-                    saved_settings.get("wbRed", 1.2)
-                )
-                settingMenu.wbSliderBlue.setValue(
-                    saved_settings.get("wbBlue", 2.8)
-                )
-            elif screen.get_camera_color_type() == "Mono":
-                settingMenu.wbAuto.setDisabled(True)
-                settingMenu.wbSliderRed.setDisabled(True)
-                settingMenu.wbSliderBlue.setDisabled(True)
-                settingMenu.wbNumRed.setText("--")
-                settingMenu.wbNumBlue.setText("--")
-
-        else:
-            settingMenu.gainAuto.click()
-            settingMenu.wbAuto.click()
-            settingMenu.expAuto.click()
-            self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "gammaAuto", True
-            )
-            self.user_setting.update_user_configs_settingMenu(
-                microscopeGrp, "gamma", settingMenu.gammaSlider.value()
-            )
-
-        """
 
 class ScreenColumnHandler:
     """Manages the nColumnsSpinBox behavior and microscope layout updates."""

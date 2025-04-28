@@ -30,7 +30,8 @@ class Model(QObject):
         self.bundle_adjustment = args.bundle_adjustment
         self.reticle_detection = args.reticle_detection
 
-        # camera
+        # cameras
+        self.refresh_camera = False
         self.cameras = []
         self.cameras_sn = []
         self.nPySpinCameras = 0

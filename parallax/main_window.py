@@ -177,6 +177,7 @@ class MainWindow(QMainWindow):
         # Check if the start button is toggled on
         if self.startButton.isChecked():
             print("\nRefreshing Screens")
+            self.model.refresh_camera = True
             # Camera begin acquisition
             for screen in self.screen_widget_manager.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -193,6 +194,7 @@ class MainWindow(QMainWindow):
 
         else:
             print("Stop Refreshing Screens")
+            self.model.refresh_camera = False
             # Start button is unchecked, disable record and snapshot button.
             self.recordButton.setEnabled(False)
             self.recordButton.setChecked(False)
