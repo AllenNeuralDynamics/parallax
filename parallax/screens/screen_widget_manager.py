@@ -1,16 +1,11 @@
-import os
-import logging
-from functools import partial
 
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QToolButton, QGridLayout
+import logging
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QGridLayout
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import QCoreApplication, QPoint, QTimer
-from PyQt5.uic import loadUi
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_setting import ScreenSetting
-from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
 
