@@ -78,9 +78,6 @@ class MainWindow(QMainWindow):
         # Attach directory selection event handler for saving files
         self.browseDirButton.clicked.connect(self.dir_setting_handler)
 
-        # Refreshing the settingMenu while it is toggled
-        self.settings_refresh_timer = QTimer()
-
         # Create the widget for screen
         self.scrollArea = QScrollArea(self.centralwidget)
         self.scrollArea.setWidgetResizable(True)
@@ -88,10 +85,6 @@ class MainWindow(QMainWindow):
 
         # Dynamically generate Microscope display
         self.screen_widget_manager = ScreenWidgetManager(self.model, self.nColumnsSpinBox)
-        if self.model.nPySpinCameras:
-            self.screen_widget_manager.display_microscope(self.model.nPySpinCameras)
-        else:  # Display only mock camera
-            self.screen_widget_manager.display_microscope(self.model.nMockCameras)
 
         # Stage_widget
         self.stage_widget = StageWidget(self.model, ui_dir, self.screen_widget_manager.screen_widgets)

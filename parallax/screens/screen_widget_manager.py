@@ -4,7 +4,7 @@ from functools import partial
 
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QToolButton, QGridLayout
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import QCoreApplication, QPoint
+from PyQt5.QtCore import QCoreApplication, QPoint, QTimer
 from PyQt5.uic import loadUi
 
 from parallax.screens.screen_widget import ScreenWidget
@@ -13,6 +13,7 @@ from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
 
+
 class ScreenWidgetManager:
     """Manages microscope display and settings."""
 
@@ -20,9 +21,16 @@ class ScreenWidgetManager:
         #self.main_window = main_window  # Reference to MainWindow
         self.model = model  # Reference to the model containing camera information
         self.nColumnsSpinBox = nColumnsSpinBox  # Spin box for number of columns (UI)
+        self.settings_refresh_timer = QTimer() # Refreshing the settingMenu while it is toggled
         self.screen_widgets = []
+        self.scrollAreaWidgetContents = QWidget()
+        self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
+        self.gridLayout = QGridLayout(self.scrollAreaWidgetContents)
         self.cols_cnt = self._get_cols_cnt()
+        self._config_nColumnsSpinBox()
+        self._display_microscope()
 
+    def _config_nColumnsSpinBox(self):
         # Configure the column spin box
         if self.model.nPySpinCameras:
             self.nColumnsSpinBox.setMaximum(max(self.model.nPySpinCameras, 1))
@@ -34,10 +42,12 @@ class ScreenWidgetManager:
             self.column_changed_handler
         )
         
-        self.scrollAreaWidgetContents = QWidget()
-        self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
-        self.gridLayout = QGridLayout(self.scrollAreaWidgetContents)
-        
+    def _display_microscope(self):
+        if self.model.nPySpinCameras:
+            self.display_microscope(self.model.nPySpinCameras)
+        else:  # Display only mock camera
+            self.display_microscope(self.model.nMockCameras)
+
     def _get_cols_cnt(self):
         # Load column configuration from user preferences
         cols_cnt = UserSettingsManager.load_settings_item("main", "nColumn")
