@@ -62,25 +62,15 @@ class MainWindow(QMainWindow):
             f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
         )
 
-        self.user_setting = UserSettingsManager()
-
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
         loadUi(ui, self)
 
-        # Load Fira Code font
-        fira_code_font_path = os.path.join(
-            ui_dir, "font/FiraCode-VariableFont_wght.ttf"
-        )
-        QFontDatabase.addApplicationFont(fira_code_font_path)
-        fira_code_font = QFont("Fira Code Light", 10)  # Setting font size to 10
-        QApplication.setFont(fira_code_font)
+        #set font
+        self._set_font()
 
         # Load existing user preferences
-        nColumn, directory, width, height = (
-            self.user_setting.load_mainWindow_settings()
-        )
-        self.nColumnsSpinBox.setValue(nColumn)
+        _, directory, width, height = (UserSettingsManager.load_mainWindow_settings())
         self.dirLabel.setText(directory)
         if width is not None and height is not None:
             self.resize(width, height)
@@ -130,6 +120,22 @@ class MainWindow(QMainWindow):
 
         # Toggle start button on init
         self.start_button_handler()
+
+    def _set_font(self):
+        """
+        Load the font for the application.
+
+        This method loads a specific font from the system and sets it as the default font for the application.
+        It uses the QFontDatabase to load the font and applies it to the QApplication instance.
+        """
+        # Load Fira Code font
+        fira_code_font_path = os.path.join(
+            ui_dir, "font/FiraCode-VariableFont_wght.ttf"
+        )
+        QFontDatabase.addApplicationFont(fira_code_font_path)
+        fira_code_font = QFont("Fira Code Light", 10)  # Setting font size to 10
+        QApplication.setFont(fira_code_font)
+
 
     def refresh_cameras(self):
         """
@@ -250,7 +256,7 @@ class MainWindow(QMainWindow):
         directory = self.dirLabel.text()
         width = self.width()
         height = self.height()
-        self.user_setting.save_user_configs(nColumn, directory, width, height)
+        UserSettingsManager.save_user_configs(nColumn, directory, width, height)
 
     def closeEvent(self, event):
         """
