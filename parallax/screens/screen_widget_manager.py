@@ -148,10 +148,6 @@ class ScreenWidgetManager:
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
         self.screen_widgets.append(screen)
 
-    #def create_settings_menu(self, microscopeGrp, newNameMicroscope, screen, screen_index):
-    #    # full create_settings_menu code goes here (same as yours, just replace "self." with "self.main_window.")
-    #    pass
-
     def create_settings_menu(
         self, microscopeGrp, newNameMicroscope, screen, screen_index
     ):
@@ -340,12 +336,12 @@ class ScreenWidgetManager:
         microscopeGrp = settingButton.parent()
         # Find the settingMenu within this microscopeGrp
         settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
-        self.main_window.settings_refresh_timer.timeout.connect(
+        self.settings_refresh_timer.timeout.connect(
             partial(self.update_setting_menu, microscopeGrp)
         )
 
         if is_checked:
-            self.main_window.settings_refresh_timer.start(100)
+            self.settings_refresh_timer.start(100)
             # Show the setting menu next to setting button
             button_position = settingButton.mapToGlobal(settingButton.pos())
             menu_x = button_position.x() + settingButton.width()
@@ -354,7 +350,7 @@ class ScreenWidgetManager:
             settingMenu.move(menu_x, menu_y)
             settingMenu.show()
         else:
-            self.main_window.settings_refresh_timer.stop()
+            self.settings_refresh_timer.stop()
             settingMenu.hide()
 
 
