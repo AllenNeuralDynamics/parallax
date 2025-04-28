@@ -1,6 +1,5 @@
 import os
 import logging
-from functools import partial
 from PyQt5.QtWidgets import QWidget, QToolButton
 from PyQt5.QtCore import QPoint, QTimer, QCoreApplication
 from PyQt5.QtGui import QFont
@@ -16,7 +15,6 @@ class ScreenSetting(QWidget):
     """Settings menu widget to control a microscope screen."""
     
     def __init__(self, parent, model, screen, screen_index):
-        #super().__init__(parent)
         super().__init__()
         # Add setting button
         self.model = model
@@ -30,9 +28,8 @@ class ScreenSetting(QWidget):
         self.settingMenu = self._get_setting_menu(self.parent)
         self._setup_settingMenu()  # S/N, Exposure, Gain, Gamma, White Balance
         self.settings_refresh_timer = QTimer() # Refreshing the settingMenu while it is toggled
-        self.settings_refresh_timer.timeout.connect(
-            partial(self._update_setting_menu)
-        )
+        self.settings_refresh_timer.timeout.connect(self._update_setting_menu)
+
         self._update_setting_menu()
         self.settingButton.toggled.connect(
             lambda checked: self._show_settings_menu(checked)
@@ -42,13 +39,14 @@ class ScreenSetting(QWidget):
         self._setup_sn()
         self._custom_name()
         self._exposure()
+        self._gain()
         self._gamma()
         self._white_balance()
         self._color_channel()
     
     def _show_settings_menu(self, is_checked):
         if is_checked:
-            self.settings_refresh_timer.start(100)  #Update setting menu every 100ms
+            self.settings_refresh_timer.start(500)  #Update setting menu every 500ms
             # Show the setting menu next to setting button
             button_position = self.settingButton.mapToGlobal(self.settingButton.pos())
             menu_x = button_position.x() + self.settingButton.width()
@@ -106,6 +104,27 @@ class ScreenSetting(QWidget):
         self.settingMenu.gammaAuto.clicked.connect(
             lambda: UserSettingsManager.update_user_configs_settingMenu(
                 self.parent, "gammaAuto", self.settingMenu.gammaSlider.isEnabled()
+            )
+        )
+
+    def _gain(self):
+        # Gain
+        self.settingMenu.gainSlider.valueChanged.connect(
+            lambda: self.screen.set_camera_setting(
+                setting="gain", val=self.settingMenu.gainSlider.value()
+            )
+        )
+        self.settingMenu.gainSlider.valueChanged.connect(
+            lambda: self.settingMenu.gainNum.setNum(self.settingMenu.gainSlider.value())
+        )
+        self.settingMenu.gainSlider.valueChanged.connect(
+            lambda: UserSettingsManager.update_user_configs_settingMenu(
+                self.parent, "gain", self.settingMenu.gainSlider.value()
+            )
+        )
+        self.settingMenu.gainAuto.clicked.connect(
+            lambda: self.settingMenu.gainSlider.setValue(
+                self.screen.get_camera_setting(setting="gain")
             )
         )
 
@@ -197,8 +216,6 @@ class ScreenSetting(QWidget):
         else:
             logger.error("SN not found in the list")
 
-        print(self.settingMenu.snComboBox.currentText())
-
         """
         # If serial number is changed, connect to update_screen function and update setting menu
         self.settingMenu.snComboBox.currentIndexChanged.connect(
@@ -284,89 +301,3 @@ class ScreenSetting(QWidget):
             UserSettingsManager.update_user_configs_settingMenu(
                 self.parent, "gamma", self.settingMenu.gammaSlider.value()
             )
-
-"""
-# Utils
-def update_setting_menu(microscopeGrp):
-
-
-    # Find the settingMenu within this microscopeGrp
-    settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
-    screen = microscopeGrp.findChild(ScreenWidget, "Screen")
-
-    # Display the S/N of camera
-    sn = screen.get_camera_name()
-    
-    # Load the saved settings
-    saved_settings = UserSettingsManager.load_settings_item(sn)
-    if saved_settings:
-        # If saved settings are found, update the sliders in the settings menu with the saved values
-        settingMenu.expSlider.setValue(saved_settings.get("exp", 15))
-        settingMenu.gainSlider.setValue(saved_settings.get("gain", 20))
-
-        # Gamma
-        gammaAuto = saved_settings.get("gammaAuto", None)
-        if gammaAuto is True:
-            settingMenu.gammaSlider.setEnabled(True)
-            settingMenu.gammaSlider.setValue(
-                saved_settings.get("gamma", 100)
-            )
-        elif gammaAuto is False:
-            settingMenu.gammaSlider.setEnabled(False)
-        else:
-            pass
-
-        # W/B
-        if screen.get_camera_color_type() == "Color":
-            settingMenu.wbAuto.setDisabled(False)
-            settingMenu.wbSliderRed.setDisabled(False)
-            settingMenu.wbSliderBlue.setDisabled(False)
-            settingMenu.wbSliderRed.setValue(
-                saved_settings.get("wbRed", 1.2)
-            )
-            settingMenu.wbSliderBlue.setValue(
-                saved_settings.get("wbBlue", 2.8)
-            )
-        elif screen.get_camera_color_type() == "Mono":
-            settingMenu.wbAuto.setDisabled(True)
-            settingMenu.wbSliderRed.setDisabled(True)
-            settingMenu.wbSliderBlue.setDisabled(True)
-            settingMenu.wbNumRed.setText("--")
-            settingMenu.wbNumBlue.setText("--")
-
-    else:
-        settingMenu.gainAuto.click()
-        settingMenu.wbAuto.click()
-        settingMenu.expAuto.click()
-        UserSettingsManager.update_user_configs_settingMenu(
-            microscopeGrp, "gammaAuto", True
-        )
-        UserSettingsManager.update_user_configs_settingMenu(
-            microscopeGrp, "gamma", settingMenu.gammaSlider.value()
-        )
-
-"""
-
-"""
-def show_settings_menu(settingButton, is_checked):
-    microscopeGrp = settingButton.parent()
-    # Find the settingMenu within this microscopeGrp
-    settingMenu = microscopeGrp.findChild(QWidget, "SettingsMenu")
-    self.settings_refresh_timer.timeout.connect(
-        partial(self.update_setting_menu, microscopeGrp)
-    )
-
-    if is_checked:
-        self.settings_refresh_timer.start(100)
-        # Show the setting menu next to setting button
-        button_position = settingButton.mapToGlobal(settingButton.pos())
-        menu_x = button_position.x() + settingButton.width()
-        menu_x = menu_x - microscopeGrp.mapToGlobal(QPoint(0, 0)).x()
-        menu_y = settingButton.y() + settingButton.height() - settingMenu.height()
-        settingMenu.move(menu_x, menu_y)
-        settingMenu.show()
-    else:
-        self.settings_refresh_timer.stop()
-        settingMenu.hide()
-
-"""

@@ -708,7 +708,7 @@ class MockCamera(BaseCamera):
             0, 255, size=(5, 3000, 4000), dtype="ubyte"
         )
         self._next_frame = 0
-        self.device_color_type = None
+        self.device_color_type = "Color"
         self.width = 4000
         self.height = 3000
         self.last_capture_time = time.time()
