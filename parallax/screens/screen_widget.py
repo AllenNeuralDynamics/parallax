@@ -306,11 +306,11 @@ class ScreenWidget(pg.GraphicsView):
         Set the camera.
         """
         self.camera = camera
-        camera_sn = self.get_camera_name()
-        self.reticleDetector.set_name(camera_sn)
-        self.probeDetector.set_name(camera_sn)
-        self.axisFilter.set_name(camera_sn)
-        self.filter.set_name(camera_sn)
+        self.camera_name = self.get_camera_name()
+        self.reticleDetector.set_name(self.camera_name)
+        self.probeDetector.set_name(self.camera_name)
+        self.axisFilter.set_name(self.camera_name)
+        self.filter.set_name(self.camera_name)
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
