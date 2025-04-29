@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog,
 from PyQt5.uic import loadUi
 
 from parallax.handlers.recording_manager import RecordingManager
-from parallax.stages.stage_widget import StageWidget
+from parallax.stage_widget.stage_widget import StageWidget
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from parallax.config.config_path import ui_dir
@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self.nColumnsSpinBox)
 
         # Stage_widget
-        self.stage_widget = StageWidget(self.model, ui_dir, self.screen_widget_manager.screen_widgets)
+        self.stage_widget = StageWidget(self.model, self.screen_widget_manager.screen_widgets)
         splitter = QSplitter()
         splitter.addWidget(self.screen_widget_manager.scrollAreaWidgetContents)
         splitter.addWidget(self.stage_widget)

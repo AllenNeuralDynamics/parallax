@@ -16,7 +16,6 @@ class ScreenWidgetManager:
     def __init__(self, model, nColumnsSpinBox):
         self.model = model
         self.nColumnsSpinBox = nColumnsSpinBox  # Spin box for number of columns (UI)
-        #self.settings_refresh_timer = QTimer() # Refreshing the settingMenu while it is toggled
         self.screen_widgets = []
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
