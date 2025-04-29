@@ -158,7 +158,7 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.process(data)
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
-        captured_time = self.camera.get_last_capture_time(millisecond=True) # TODO add condition
+        captured_time = self.camera.get_last_capture_time(millisecond=True) # TODO Move to probeDetector TODO add condition
         self.probeDetector.process(data, captured_time)
 
     def is_camera(self):
