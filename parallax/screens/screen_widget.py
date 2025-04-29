@@ -158,7 +158,7 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.process(data)
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
-        captured_time = self.camera.get_last_capture_time(millisecond=True)
+        captured_time = self.camera.get_last_capture_time(millisecond=True) # TODO add condition
         self.probeDetector.process(data, captured_time)
 
     def is_camera(self):
@@ -406,6 +406,13 @@ class ScreenWidget(pg.GraphicsView):
                 foco.time_move(chan, forward, dist, wait=True)
         else:
             super().wheelEvent(e)
+    
+    def mock_cam_set_data(self, filepath):
+        """
+        Set mock camera data for testing purposes.
+        """
+        if "MockCamera" in self.camera.name():
+            self.camera.set_data(filepath)
 
 class ClickableImage(pg.ImageItem):
     """This class captures mouse click events on images."""

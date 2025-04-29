@@ -704,9 +704,10 @@ class MockCamera(BaseCamera):
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
         # Create mock image data with random values
-        self.data = np.random.randint(
+        self.random_data = np.random.randint(
             0, 255, size=(5, 3000, 4000), dtype="ubyte"
         )
+        self.data = None
         self._next_frame = 0
         self.device_color_type = "Color"
         self.width = 4000
@@ -717,9 +718,20 @@ class MockCamera(BaseCamera):
         return self._name
 
     def get_last_image_data(self):
-        frame = self.data[self._next_frame]
-        self._next_frame = (self._next_frame + 1) % self.data.shape[0]
-        return frame
+        if self.data is not None:
+            return self.data
+        else:
+            frame = self.random_data[self._next_frame]
+            self._next_frame = (self._next_frame + 1) % self.random_data.shape[0]
+            return frame
+    
+    def set_data(self, filepath):
+        """Set the mock camera data"""
+        data = cv2.imread(filepath)
+        if data is None:
+            raise ValueError(f"Could not read image from {filepath}")
+        self.data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+
 
 class VideoSource(BaseCamera):
     """Video Source"""

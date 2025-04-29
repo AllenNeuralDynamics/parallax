@@ -1,6 +1,6 @@
 import os
 import logging
-from PyQt5.QtWidgets import QWidget, QToolButton
+from PyQt5.QtWidgets import QWidget, QToolButton, QPushButton, QFileDialog
 from PyQt5.QtCore import QPoint, QTimer, QCoreApplication
 from PyQt5.QtGui import QFont
 from PyQt5.uic import loadUi
@@ -223,7 +223,25 @@ class ScreenSetting(QWidget):
         loadUi(setting_ui, settingMenu)
         settingMenu.setObjectName("SettingsMenu")
         settingMenu.hide()  # Hide the menu by default
+        self._add_btn_for_dummy(settingMenu)
         return settingMenu
+
+    def _add_btn_for_dummy(self, settingMenu):
+        if self.model.dummy:
+            dummy_btn = QPushButton("...", settingMenu)
+            dummy_btn.clicked.connect(self._open_file_dialog)
+
+    def _open_file_dialog(self):
+        # Open file dialog to select an image or video
+        file_path, _ = QFileDialog.getOpenFileName(
+            None,
+            "Select Image or Video",
+            "",
+            "Images (*.png *.xpm *.jpg *.bmp *.tiff);;Videos (*.mp4 *.avi *.mov *.mkv);;All Files (*)"
+        )
+        if file_path:
+            print("Selected file:", file_path)
+            self.screen.mock_cam_set_data(file_path)
 
     def _get_setting_button(self, parent):
         btn = QToolButton(parent)
