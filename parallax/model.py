@@ -32,11 +32,10 @@ class Model(QObject):
 
         # cameras
         self.refresh_camera = False
-        self.cameras = []
-        self.cameras_sn = []
+        self.cameras = []  # instance of cameras
+        self.cameras_sn = []  # camera serial numbers
         self.nPySpinCameras = 0
         self.nMockCameras = args.num_mock_cameras
-        self.focos = []
 
         # point mesh
         self.point_mesh_instances = {}
@@ -119,28 +118,15 @@ class Model(QObject):
             n (int): The number of mock cameras to add.
         """
         for i in range(self.nMockCameras):
-            self.cameras.append(MockCamera())
+            mockCamera = MockCamera()
+            self.cameras.append(mockCamera)
+            self.cameras_sn.append(mockCamera.name(sn_only=True))
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
         self.cameras = list_cameras(version=self.version) + self.cameras
         self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
-        """
-        self.nMockCameras = len(
-            [
-                camera
-                for camera in self.cameras
-                if isinstance(camera, MockCamera)
-            ]
-        )
-        """
-        self.nPySpinCameras = len(
-            [
-                camera
-                for camera in self.cameras
-                if isinstance(camera, PySpinCamera)
-            ]
-        )
+        self.nPySpinCameras = len([cam for cam in self.cameras if isinstance(cam, PySpinCamera)])
 
     def set_stage_listener_url(self, url):
         """Set the URL for the stage listener.

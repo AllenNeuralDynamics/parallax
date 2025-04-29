@@ -21,7 +21,7 @@ class ScreenSetting(QWidget):
         self.parent = parent
         self.screen = screen
         self.screen_index = screen_index
-        self.sn = self.screen.get_camera_name()  #self.sn can be changed by run-time
+        self.sn = self.screen.get_camera_name()  #self.sn is updated when camera is changed
         
         # Init
         self.settingButton = self._get_setting_button(self.parent)
@@ -215,15 +215,6 @@ class ScreenSetting(QWidget):
             self.settingMenu.snComboBox.setCurrentIndex(index)
         else:
             logger.error("SN not found in the list")
-
-        """
-        # If serial number is changed, connect to update_screen function and update setting menu
-        self.settingMenu.snComboBox.currentIndexChanged.connect(
-            lambda: self.update_screen(
-                self.screen, self.screen_index, self.settingMenu.snComboBox.currentText()
-            )
-        )
-        """
     
     def _get_setting_menu(self, parent):
         # Initialize the settings menu UI from the .ui file
@@ -245,10 +236,6 @@ class ScreenSetting(QWidget):
             QCoreApplication.translate("MainWindow", "SETTINGS \u25ba", None)
         )
         return btn
-
-    def _save_setting(self, key, value):
-        sn = self.screen.get_camera_name()
-        UserSettingsManager.update_user_configs_settingMenu(self.parent(), key, value)
 
     def _update_setting_menu(self):
         # update sn

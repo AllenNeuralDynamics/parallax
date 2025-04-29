@@ -131,7 +131,7 @@ class ScreenWidgetManager:
         
         # If serial number is changed, connect to update_screen function and update setting menu
         screen_setting.settingMenu.snComboBox.currentIndexChanged.connect(
-            lambda: self.update_screen(
+            lambda: self._update_screen(
                 screen, screen_index, screen_setting.settingMenu.snComboBox.currentText()
             )
         )
@@ -139,7 +139,7 @@ class ScreenWidgetManager:
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
         self.screen_widgets.append(screen)
 
-    def update_screen(self, screen, screen_index, selected_sn):
+    def _update_screen(self, screen, screen_index, selected_sn):
         """
         Update the screen with a new camera based on the selected serial number.
 
