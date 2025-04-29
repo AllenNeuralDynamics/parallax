@@ -719,7 +719,7 @@ class MockCamera(BaseCamera):
 
     def get_last_image_data(self):
         if self.data is not None:
-            return self.data
+            return self.data.copy()
         else:
             frame = self.random_data[self._next_frame]
             self._next_frame = (self._next_frame + 1) % self.random_data.shape[0]
@@ -731,7 +731,6 @@ class MockCamera(BaseCamera):
         if data is None:
             raise ValueError(f"Could not read image from {filepath}")
         self.data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
-
 
 class VideoSource(BaseCamera):
     """Video Source"""
