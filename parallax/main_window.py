@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (QApplication, QFileDialog,
 from PyQt5.uic import loadUi
 
 from parallax.handlers.recording_manager import RecordingManager
-from parallax.stage_widget.stage_widget import StageWidget
+from parallax.control_panel.control_panel import ControlPanel
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from parallax.config.config_path import ui_dir
@@ -86,11 +86,11 @@ class MainWindow(QMainWindow):
         # Dynamically generate Microscope display
         self.screen_widget_manager = ScreenWidgetManager(self.model, self.nColumnsSpinBox)
 
-        # Stage_widget
-        self.stage_widget = StageWidget(self.model, self.screen_widget_manager.screen_widgets)
+        # Control Panel
+        self.control_panel = ControlPanel(self.model, self.screen_widget_manager.screen_widgets)
         splitter = QSplitter()
         splitter.addWidget(self.screen_widget_manager.scrollAreaWidgetContents)
-        splitter.addWidget(self.stage_widget)
+        splitter.addWidget(self.control_panel)
         self.verticalLayout_4.addWidget(splitter)
 
         # Start button. If toggled, start camera acquisition
