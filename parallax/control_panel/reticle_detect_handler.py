@@ -1,16 +1,10 @@
 import logging
-
 import os
-import math
-import numpy as np
-from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import (QLabel, QMessageBox, QPushButton, QSizePolicy,
-                             QSpacerItem, QWidget)
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
 from PyQt5.uic import loadUi
 from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
