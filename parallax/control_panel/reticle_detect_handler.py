@@ -24,24 +24,16 @@ class ReticleDetecthandler(QWidget):
         self.camera_handler = StereoCameraHandler(model, self.screen_widgets)
 
         # UI
-        self.reticle_calib_widget = QWidget()  # Create a new widget
-        loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self.reticle_calib_widget)
+        #self.reticle_calib_widget = QWidget()  # Create a new widget
+        loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self)
         # Assuming reticleCalibPlaceholder is the name of an empty widget
-        self.reticle_calib_widget.setMinimumSize(0, 120)
+        self.setMinimumSize(0, 120)
 
         # Buttons
-        self.reticle_calibration_btn = self.reticle_calib_widget.findChild(
-            QPushButton, "reticle_calibration_btn"
-        )
-        self.acceptButton = self.reticle_calib_widget.findChild(
-            QPushButton, "acceptButton"
-        )
-        self.rejectButton = self.reticle_calib_widget.findChild(
-            QPushButton, "rejectButton"
-        )
-        self.reticleCalibrationLabel = self.reticle_calib_widget.findChild(
-            QLabel, "reticleCalibResultLabel"
-        )
+        self.reticle_calibration_btn = self.findChild(QPushButton, "reticle_calibration_btn")
+        self.acceptButton = self.findChild(QPushButton, "acceptButton")
+        self.rejectButton = self.findChild(QPushButton, "rejectButton")
+        self.reticleCalibrationLabel = self.findChild(QLabel, "reticleCalibResultLabel")
 
         # Reticle Widget
         self.reticle_detection_status = (

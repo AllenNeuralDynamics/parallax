@@ -54,11 +54,14 @@ class ControlPanel(QWidget):
         logger.debug(f"filter: {self.filter}")
 
         self.reticle_handler = ReticleDetecthandler(model, self.screen_widgets, self.filter)
-        self.stage_status_ui.layout().addWidget(self.reticle_handler.reticle_calib_widget)  # Add it to the placeholder's layout
+        self.stage_status_ui.layout().addWidget(self.reticle_handler)  # Add it to the placeholder's layout
 
+        
         # Load probe_calib.ui into its placeholder
         self.probe_calib_widget = QWidget()  # Create a new widget
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self.probe_calib_widget)
+        
+
         # Assuming probeCalibPlaceholder is the name of an empty widget designated
         # as a placeholder in your stage_info.ui
         self.stage_status_ui.layout().addWidget(self.probe_calib_widget)  # Add it to the placeholder's layout
@@ -133,7 +136,6 @@ class ControlPanel(QWidget):
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(
             self.refresh_stages
         )
-
 
         # Initialize stages
         self.init_stages()
