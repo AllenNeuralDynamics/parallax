@@ -2,13 +2,11 @@ import logging
 import os
 import numpy as np
 from PyQt5.uic import loadUi
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
 from parallax.config.config_path import ui_dir
 
-from parallax.stages.stage_listener import StageListener
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
-#from parallax.stages.stage_http_server import StageHttpServer
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 
@@ -18,7 +16,7 @@ logger.setLevel(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class ProbeCalibrationHandler(QWidget):
-    def __init__(self, model, screen_widgets, filter, reticle_detection_status, reticle_selector):
+    def __init__(self, model, screen_widgets, filter, reticle_selector):
         """
         Args:
             stage_widget (StageWidget): Reference to the parent StageWidget instance.
@@ -27,9 +25,9 @@ class ProbeCalibrationHandler(QWidget):
         self.model = model
         self.screen_widgets = screen_widgets
         self.filter = filter
-        self.reticle_detection_status = reticle_detection_status  # options: default, process, accepted
         self.reticle_selector_comboBox = reticle_selector    # Combobox for reticle selector
         
+        self.reticle_detection_status = "default"  # options: default, process, accepted
         self.selected_stage_id = None
         self.stageUI = None
         self.stageListener = None
@@ -70,7 +68,6 @@ class ProbeCalibrationHandler(QWidget):
         self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector_comboBox)
 
     def init_stages(self, stageListener, stageUI):
-
         self.probe_calibration_btn.setEnabled(False)
         self.probe_calibration_btn.clicked.connect(
             self.probe_detection_button_handler
@@ -96,10 +93,23 @@ class ProbeCalibrationHandler(QWidget):
             self.update_probe_calib_status
         )
 
-
         # Calculator Button
         self.calculation_btn.hide()
         self.calculator = Calculator(self.model, self.reticle_selector_comboBox)
+
+    def refresh_stages(self):
+        # Remove old stage infos from calculator
+        self.calculator.remove_stage_groupbox()
+        # Add stages on calculator
+        self.calculator.add_stage_groupbox()  # Add stage infos to calculator
+
+    def reticle_detection_status_change(self, status):
+        self.reticle_detection_status = status
+
+        if self.reticle_detection_status == "default":
+            self.probe_detect_default_status()
+        if self.reticle_detection_status == "accepted":
+            self.enable_probe_calibration_btn()
 
     def enable_probe_calibration_btn(self):
         """
@@ -107,17 +117,6 @@ class ProbeCalibrationHandler(QWidget):
         """
         if not self.probe_calibration_btn.isEnabled():
             self.probe_calibration_btn.setEnabled(True)
-
-
-    def refresh_stages(self):
-        # Remove old stage infos from calculator
-        self.calculator.remove_stage_groupbox()
-
-        # Add stages on calculator
-        self.calculator.add_stage_groupbox()  # Add stage infos to calculator
-
-        # Update url on StageLinstener
-        self.stageListener.update_url()
 
     def _get_calibration_result(self):
         """
@@ -143,8 +142,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         if self.calibrationStereo is None:
-            self.calibrationStereo, self.camA_best, self.camB_best = self._get_calibration_result()
-            print(f"Get calibration result: {self.camA_best}, {self.camB_best}")
+            print("Calibration has not done")
             return
         if cam_name_cmp not in [self.camA_best, self.camB_best]:
             print("Detect probe on the screen which is not calibrated")
@@ -225,6 +223,21 @@ class ProbeCalibrationHandler(QWidget):
                 camB,
                 tip_coordsB,
             )
+
+    
+    def get_calibration_instance(self, camA, camB):
+        """
+        Retrieves the stereo calibration instance for a given pair of cameras.
+
+        Args:
+            camA (str): The first camera in the pair.
+            camB (str): The second camera in the pair.
+
+        Returns:
+            object: The stereo calibration instance for the given camera pair, or None if not found.
+        """
+        sorted_key = tuple(sorted((camA, camB)))
+        return self.model.get_stereo_calib_instance(sorted_key)
 
     def probe_overwrite_popup_window(self):
         """
@@ -332,6 +345,7 @@ class ProbeCalibrationHandler(QWidget):
         if sn is None and not self.probe_calibration_btn.isEnabled():
             return
 
+        print("reticle_detection_status", self.reticle_detection_status)
         self.probe_detection_status = "default"
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
@@ -360,6 +374,8 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_x.show()
         self.calib_y.show()
         self.calib_z.show()
+
+        self.calibrationStereo, self.camA_best, self.camB_best = self._get_calibration_result()
 
         # Connect with only reticle detected screens
         for screen in self.screen_widgets:
@@ -510,7 +526,6 @@ class ProbeCalibrationHandler(QWidget):
         else:
             logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 
-    # =============== seperate class
     def hide_x_y_z(self):
         """
         Hides the X, Y, and Z calibration buttons and updates their styles to indicate that the calibration for

@@ -103,6 +103,10 @@ class ScreenCoordsMapper():
         """
         self.reticle_selector.addItem("Proj Global coords")
 
+    def reticle_detection_status_change(self, reticle_detect_status):
+        if reticle_detect_status == "accepted":
+            self.add_global_coords_to_dropdown()
+
     def _apply_reticle_adjustments(self, global_pts):
         """
         Apply the reticle-specific metadata adjustments to the given global coordinates.

@@ -13,12 +13,13 @@ class StageUI(QWidget):
     """User interface for stage control and display."""
     prev_curr_stages = pyqtSignal(str, str)
 
-    def __init__(self, model, ui=None):
+    def __init__(self, control_panel, reticle_metadata):
         """Initialize StageUI object"""
-        QWidget.__init__(self, ui)
+        QWidget.__init__(self)
         self.selected_stage = None
-        self.model = model
-        self.ui = ui
+        self.model = control_panel.model
+        self.ui = control_panel
+        self.reticle_metadata = reticle_metadata
         self.reticle = "Global coords"
         self.previous_stage_id = None
 
@@ -179,9 +180,9 @@ class StageUI(QWidget):
                 if x is not None and y is not None and z is not None:
                     # If reticle is with offset, get the global coordinates with offset
                     if self.reticle != "Global coords":
-                        if self.ui.reticle_metadata is not None:
+                        if self.reticle_metadata is not None:
                             global_pts = np.array([x, y, z])
-                            x, y, z = self.ui.reticle_metadata.get_global_coords_with_offset(self.reticle, global_pts)
+                            x, y, z = self.reticle_metadata.get_global_coords_with_offset(self.reticle, global_pts)
 
                     # Update into UI, unit is µm
                     if x is not None and y is not None and z is not None:
@@ -201,3 +202,13 @@ class StageUI(QWidget):
         self.ui.global_coords_x.setText("-")
         self.ui.global_coords_y.setText("-")
         self.ui.global_coords_z.setText("-")
+
+    def reticle_detection_status_change(self, status):
+        """
+        Update the reticle detection status in the UI.
+
+        Args:
+            status (str): The new status of the reticle detection.
+        """
+        if status == "default":
+            self.updateStageGlobalCoords_default()

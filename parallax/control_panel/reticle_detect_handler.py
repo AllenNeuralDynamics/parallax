@@ -12,8 +12,7 @@ RETICLE_DETECT_WAIT_TIME = 5000  # 5 seconds
 
 
 class ReticleDetecthandler(QWidget):
-    reticleDetectionDone = pyqtSignal()
-    reticleDetectionDefaultStatus = pyqtSignal()
+    reticleDetectionStatusChanged = pyqtSignal(str)
 
     def __init__(self, model, screen_widgets, filter):
         """
@@ -131,15 +130,14 @@ class ReticleDetecthandler(QWidget):
         self.model.reset_stereo_calib_instance()
         self.model.reset_camera_extrinsic()
 
-        self.reticleDetectionDefaultStatus.emit()  # Request to reset probe detection and Reset global coords displayed on the GUI
+        #self.reticleDetectionDefaultStatus.emit()  # Request to reset probe detection and Reset global coords displayed on the GUI
+        self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
 
     def reticle_detect_accept_detected_status(self):
         """
         Finalizes the reticle detection process, accepting the detected
         reticle position and updating the UI accordingly.
         """
-        self.reticle_detection_status = "accepted"
-        logger.debug(f"1 self.filter: {self.filter}")
 
         # Change the button to green.
         self.reticle_calibration_btn.setStyleSheet(
@@ -228,6 +226,7 @@ class ReticleDetecthandler(QWidget):
 
         # Start the timer for 10 seconds to check the status later
         self.reticle_detection_status = "process"
+        self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
         self.reticle_calibration_timer.start(RETICLE_DETECT_WAIT_TIME)
         logger.debug(self.reticle_detection_status)
 
@@ -238,6 +237,7 @@ class ReticleDetecthandler(QWidget):
         # Found the coords
         self.reticle_detection_status = "detected"
         self.reticle_calibration_timer.stop()
+        self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
 
         # Show Accept and Reject Button
         self.acceptButton.show()
@@ -344,12 +344,16 @@ class ReticleDetecthandler(QWidget):
             for screen in self.screen_widgets:
                 screen.run_no_filter()
 
-            self.reticleDetectionDone.emit() # Request enable_probe_calibration_btn and add screen_coords_mapper dropdown menu (global)
+            # Send the signal to update the reticle detection status
+            self.reticle_detection_status = "accepted"
+            logger.debug(f"1 self.filter: {self.filter}")
+            self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
+
+            #self.reticleDetectionDone.emit() # Request enable_probe_calibration_btn and add screen_coords_mapper dropdown menu (global)
 
         else:
             self.coords_detected_screens = self.get_coords_detected_screens()
             logger.debug("Checking again for user input of positive x-axis...")
-
 
 
     def is_positive_x_axis_detected(self):

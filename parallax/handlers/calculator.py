@@ -262,7 +262,6 @@ class Calculator(QWidget):
         Args:
             sn (str): The serial number of the stage.
         """
-        print("disable", sn)
         if not sn:
             return
         # Clear the QLineEdit for the stage

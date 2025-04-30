@@ -49,7 +49,7 @@ class RecordingManager:
                 else:
                     logger.debug("save_last_image) camera not found")
         else:
-            print(f"Directory {save_path} does not exist!")
+            print(f"Check the saving path. {save_path}")
 
     def save_recording(self, save_path, screen_widgets):
         """
@@ -81,7 +81,7 @@ class RecordingManager:
                         self.recording_camera_list.append(camera_name)
         else:
             # If the save directory does not exist
-            print(f"Directory {save_path} does not exist!")
+            print(f"Check the saving path. {save_path}")
 
     def stop_recording(self, screen_widgets):
         """
