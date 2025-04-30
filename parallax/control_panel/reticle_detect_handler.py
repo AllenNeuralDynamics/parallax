@@ -78,6 +78,7 @@ class ReticleDetecthandler(QWidget):
                 if response:
                     # Overwrite the result
                     self.reticle_detect_default_status()
+                    self.reticle_calibration_btn.setChecked(False)
                 else:
                     # Keep the last calibration result
                     self.reticle_calibration_btn.setChecked(True)
@@ -125,6 +126,7 @@ class ReticleDetecthandler(QWidget):
         """)
         self.reticle_detection_status = "default"
         self.reticleCalibrationLabel.setText("")
+        self.reticle_calibration_btn.setChecked(False)
         
         self.model.reset_stage_calib_info()
         self.model.reset_stereo_calib_instance()
