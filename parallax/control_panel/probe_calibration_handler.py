@@ -345,7 +345,6 @@ class ProbeCalibrationHandler(QWidget):
         if sn is None and not self.probe_calibration_btn.isEnabled():
             return
 
-        print("reticle_detection_status", self.reticle_detection_status)
         self.probe_detection_status = "default"
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
