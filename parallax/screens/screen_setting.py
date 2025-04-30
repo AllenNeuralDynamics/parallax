@@ -8,7 +8,7 @@ from PyQt5.uic import loadUi
 from parallax.config.config_path import ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class ScreenSetting(QWidget):
