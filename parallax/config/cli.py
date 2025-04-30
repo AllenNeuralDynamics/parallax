@@ -16,7 +16,7 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--num_mock_cameras",
+        "--nCameras",
         type=int,
         default=1,
         help="Number of mock cameras to simulate (only valid if --dummy is set)",
@@ -45,12 +45,12 @@ def parse_args() -> argparse.Namespace:
 
 def print_arg_info(args):
     """Print CLI argument selections for debugging."""
-    if not args.dummy and args.num_mock_cameras != 1:
+    if not args.dummy and args.nCameras != 1:
         print("\nWarning: --num-mock-cameras is only valid in dummy mode.")
 
     if args.dummy:
         print("\nRunning in dummy mode; hardware devices not accessible.")
-        print(f"Simulating {args.num_mock_cameras} mock camera(s).")
+        print(f"Simulating {args.nCameras} mock camera(s).")
     if args.bundle_adjustment:
         print("\nBundle adjustment feature enabled.")
     if args.test:

@@ -35,7 +35,7 @@ class Model(QObject):
         self.cameras = []  # instance of cameras
         self.cameras_sn = []  # camera serial numbers
         self.nPySpinCameras = 0
-        self.nMockCameras = args.num_mock_cameras
+        self.nMockCameras = args.nCameras
 
         # point mesh
         self.point_mesh_instances = {}
