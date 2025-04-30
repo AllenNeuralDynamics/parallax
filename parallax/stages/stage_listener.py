@@ -227,7 +227,7 @@ class StageListener(QObject):
 
     probeCalibRequest = pyqtSignal(QObject, dict)
 
-    def __init__(self, model, stage_ui, probeCalibrationLabel):
+    def __init__(self, model, stage_ui):
         """Initialize Stage Listener object"""
         super().__init__()
         self.model = model
@@ -236,7 +236,6 @@ class StageListener(QObject):
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
         self.stage_ui = stage_ui
-        self.probeCalibrationLabel = probeCalibrationLabel
         self.thread.started.connect(self.worker.start)
         self.worker.dataChanged.connect(self.handleDataChange)
         self.worker.stage_moving.connect(self.stageMovingStatus)
@@ -482,10 +481,12 @@ class StageListener(QObject):
                 self.probeCalibRequest.emit(self.stage_global_data, debug_info)
                 self.stage_ui.updateStageGlobalCoords()
             else:
+                # TODO
                 content = (
                     "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
                 )
-                self.probeCalibrationLabel.setText(content)
+                print("Moving probe not selected.")
+                #self.probeCalibrationLabel.setText(content)
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.

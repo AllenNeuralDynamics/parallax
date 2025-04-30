@@ -153,6 +153,7 @@ class ProbeCalibration(QObject):
 
         if sn is None:
             self._create_file()
+            print("clear all calibration data")
         else:
             self.df = pd.read_csv(self.csv_file)
             self.df = self.df[self.df["sn"] != sn]

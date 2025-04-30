@@ -25,6 +25,7 @@ from parallax.stages.stage_server_ipconfig import StageServerIPConfig
 from parallax.stages.stage_http_server import StageHttpServer
 
 from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
+from parallax.control_panel.probe_calibration_handler import ProbeCalibrationHandler
 from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
@@ -54,70 +55,26 @@ class ControlPanel(QWidget):
         logger.debug(f"filter: {self.filter}")
 
         self.reticle_handler = ReticleDetecthandler(model, self.screen_widgets, self.filter)
-        self.stage_status_ui.layout().addWidget(self.reticle_handler)  # Add it to the placeholder's layout
+        self.stage_status_ui.layout().addWidget(self.reticle_handler)
 
+        self.probe_calib_handler = ProbeCalibrationHandler(
+            self.model,
+            self.screen_widgets,
+            self.filter,
+            self.reticle_handler.reticle_detection_status,  # TODO use signal instead of status
+            self.reticle_selector
+        )
+        self.reticle_handler.reticleDetectionDone.connect(self.probe_calib_handler.enable_probe_calibration_btn)
+        self.reticle_handler.reticleDetectionDefaultStatus.connect(self.probe_calib_handler.probe_detect_default_status)
+        self.stage_status_ui.layout().addWidget(self.probe_calib_handler)  # Add it to the placeholder's layout
         
-        # Load probe_calib.ui into its placeholder
-        self.probe_calib_widget = QWidget()  # Create a new widget
-        loadUi(os.path.join(ui_dir, "probe_calib.ui"), self.probe_calib_widget)
-        
-
-        # Assuming probeCalibPlaceholder is the name of an empty widget designated
-        # as a placeholder in your stage_info.ui
-        self.stage_status_ui.layout().addWidget(self.probe_calib_widget)  # Add it to the placeholder's layout
-        self.probe_calib_widget.setMinimumSize(0, 420)
-
         # Create a vertical spacer with expanding policy
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         # Add the spacer to the layout
         self.stage_status_ui.addItem(spacer)
 
-        # Access probe_calibration_btn
-        self.probe_calibration_btn = self.probe_calib_widget.findChild(
-            QPushButton, "probe_calibration_btn"
-        )
-
-        self.calib_x = self.probe_calib_widget.findChild(QPushButton, "calib_x")
-        self.calib_y = self.probe_calib_widget.findChild(QPushButton, "calib_y")
-        self.calib_z = self.probe_calib_widget.findChild(QPushButton, "calib_z")
-        self.probeCalibrationLabel = self.probe_calib_widget.findChild(
-            QLabel, "probeCalibrationLabel"
-        )
-        self.probeCalibrationLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.viewTrajectory_btn = self.probe_calib_widget.findChild(
-            QPushButton, "viewTrajectory_btn"
-        )
-        self.viewTrajectory_btn.clicked.connect(
-            self.view_trajectory_button_handler
-        )
-
-        # Calculation Button
-        self.calculation_btn = self.probe_calib_widget.findChild(
-            QPushButton, "calculation_btn"
-        )
-        self.calculation_btn.clicked.connect(
-            self.calculation_button_handler
-        )
-
-        # Reticle Button
-        self.reticle_metadata_btn = self.probe_calib_widget.findChild(
-            QPushButton, "reticle_btn"
-        )
-        self.reticle_metadata_btn.clicked.connect(
-            self.reticle_button_handler
-        )
-
-        
-        # Probe Widget
-        self.probe_detection_status = "default"    # options: default, process, accepted
-        self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
-        self.transM, self.L2_err, self.dist_travled = None, None, None
-        self.scale = np.array([1, 1, 1])
-        self.moving_stage_id = None
-
-
         # Reticle metadata Button
-        self.reticle_metadata_btn.hide()
+        #self.reticle_metadata_btn.hide()
         self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector)
         
 
@@ -127,15 +84,13 @@ class ControlPanel(QWidget):
                                                        self.global_coords_x,
                                                        self.global_coords_y,
                                                        self.global_coords_z)
+        self.reticle_handler.reticleDetectionDone.connect(self.screen_coords_mapper.add_global_coords_to_dropdown)
 
         # Stage Server IP Config
         self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages
-        self.stage_server_ipconfig_btn.clicked.connect(
-            self.stage_server_ipconfig_btn_handler
-        )
-        self.stage_server_ipconfig.ui.connect_btn.clicked.connect(
-            self.refresh_stages
-        )
+        self.stage_server_ipconfig_btn.clicked.connect(self.stage_server_ipconfig_btn_handler)
+        self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.refresh_stages)
+        self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.probe_calib_handler.refresh_stages)
 
         # Initialize stages
         self.init_stages()
@@ -161,39 +116,20 @@ class ControlPanel(QWidget):
 
         # Set Stage UI
         self.stageUI = StageUI(self.model, self)
-        self.stageUI.prev_curr_stages.connect(self.update_stages)
+        self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.selected_stage_id = self.stageUI.get_current_stage_id()
-
-        self.probe_calibration_btn.setEnabled(False)
-        self.probe_calibration_btn.clicked.connect(
-            self.probe_detection_button_handler
-        )
+        self.reticle_handler.reticleDetectionDefaultStatus.connect(self.stageUI.updateStageGlobalCoords_default)
 
         # Start refreshing stage info
-        self.stageListener = StageListener(self.model, self.stageUI, self.probeCalibrationLabel)
+        self.stageListener = StageListener(self.model, self.stageUI)
         self.stageListener.start()
-        self.probeCalibration = ProbeCalibration(self.model, self.stageListener)
-        # Hide X, Y, and Z Buttons in Probe Detection
-        self.calib_x.hide()
-        self.calib_y.hide()
-        self.calib_z.hide()
-        self.viewTrajectory_btn.hide()
-        self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
-        self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
-        self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
-        self.probeCalibration.calib_complete.connect(
-            self.probe_detect_accepted_status
-        )
-        self.probeCalibration.transM_info.connect(
-            self.update_probe_calib_status
-        )
+
+        self.probe_calib_handler.init_stages(self.stageListener, self.stageUI)
 
         # Stage Http Server
+        print("self.stageListener.stages_info", self.stageListener.stages_info)
         self.stage_http_server = StageHttpServer(self.model, self.stageListener.stages_info)
 
-        # Calculator Button
-        self.calculation_btn.hide()
-        self.calculator = Calculator(self.model, self.reticle_selector)
 
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""
@@ -201,21 +137,24 @@ class ControlPanel(QWidget):
         if not self.stage_server_ipconfig.update_url():
             return
 
-        # Remove old stage infos from calculator
-        self.calculator.remove_stage_groupbox()
-
         # refresh the stage using server IP address
         self.stage_server_ipconfig.refresh_stages()  # Update stages server url to model # models.transforms updated
         self.stageUI.initialize()
 
-        # Add stages on calculator
-        self.calculator.add_stage_groupbox()  # Add stage infos to calculator
 
         # Update reticle/probe detection status to default
         self.reticle_handler.reticle_detect_default_status()
 
+        """
+        # Remove old stage infos from calculator
+        self.calculator.remove_stage_groupbox()
+
+        # Add stages on calculator
+        self.calculator.add_stage_groupbox()  # Add stage infos to calculator
+
         # Update url on StageLinstener
         self.stageListener.update_url()
+        """
 
     def get_calibration_instance(self, camA, camB):
         """
@@ -231,7 +170,7 @@ class ControlPanel(QWidget):
         sorted_key = tuple(sorted((camA, camB)))
         return self.model.get_stereo_calib_instance(sorted_key)
 
-    def probe_detect_on_two_screens(self, cam_name, timestamp, sn, stage_info, pixel_coords):
+    def probe_detect_on_two_screens_deprecate(self, cam_name, timestamp, sn, stage_info, pixel_coords):
         """Detect probe coordinates on all screens."""
         cam_name_cmp, timestamp_cmp, sn_cmp = cam_name, timestamp, sn  # Coords tip detected screen
         tip_coordsA, tip_coordsB = None, None
@@ -282,7 +221,7 @@ class ControlPanel(QWidget):
             tip_coordsB,
         )
 
-    def probe_detect_on_screens(self, camA, timestampA, snA, stage_info, tip_coordsA):
+    def probe_detect_on_screens_deprecate(self, camA, timestampA, snA, stage_info, tip_coordsA):
         """Detect probe coordinates on all screens."""
         tip_coordsB = None
 
@@ -322,7 +261,7 @@ class ControlPanel(QWidget):
                 tip_coordsB,
             )
 
-    def probe_overwrite_popup_window(self):
+    def probe_overwrite_popup_window_deprecate(self):
         """
         Displays a confirmation dialog asking the user if they want to overwrite the current probe position.
 
@@ -346,7 +285,7 @@ class ControlPanel(QWidget):
             logger.debug("User clicked No.")
             return False
 
-    def probe_detection_button_handler(self):
+    def probe_detection_button_handler_deprecate(self):
         """Handle the probe detection button click."""
         if self.probe_calibration_btn.isChecked():
             self.probe_detect_process_status()
@@ -358,7 +297,7 @@ class ControlPanel(QWidget):
                 # Keep the last calibration result
                 self.probe_calibration_btn.setChecked(True)
 
-    def probe_detect_default_status_ui(self, sn=None):
+    def probe_detect_default_status_ui_deprecate(self, sn=None):
         """
         Resets the probe detection UI and clears the calibration status.
 
@@ -420,7 +359,7 @@ class ControlPanel(QWidget):
         # Set as Uncalibrated
         self.calculator.set_calc_functions()
 
-    def probe_detect_default_status(self, sn=None):
+    def probe_detect_default_status_deprecate(self, sn=None):
         """
         Resets the probe detection status to its default state and updates the UI to reflect this change.
         This method is called after completing or aborting the probe detection process.
@@ -433,7 +372,7 @@ class ControlPanel(QWidget):
         self.reticle_metadata.default_reticle_selector(self.reticle_detection_status)
         self.probe_detect_default_status_ui(sn=sn)
 
-    def probe_detect_process_status(self):
+    def probe_detect_process_status_deprecate(self):
         """
         Updates the UI and internal state to reflect that the probe detection process is underway.
         """
@@ -471,7 +410,7 @@ class ControlPanel(QWidget):
         message = "Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
-    def probe_detect_accepted_status(self, switch_probe=False):
+    def probe_detect_accepted_status_deprecate(self, switch_probe=False):
         """
         Finalizes the probe detection process, accepting the detected probe position and updating the UI accordingly.
         Additionally, it updates the model with the transformation matrix obtained from the calibration.
@@ -517,7 +456,7 @@ class ControlPanel(QWidget):
         # Update reticle selector
         self.reticle_metadata.load_metadata_from_file()
 
-    def set_default_x_y_z_style(self):
+    def set_default_x_y_z_style_default(self):
         """
         Resets the style of the X, Y, and Z calibration buttons to their default appearance.
 
@@ -539,7 +478,7 @@ class ControlPanel(QWidget):
             "background-color: black;"
         )
 
-    def hide_x_y_z(self):
+    def hide_x_y_z_deprecate(self):
         """
         Hides the X, Y, and Z calibration buttons and updates their styles to indicate that the calibration for
         each axis has been completed.
@@ -555,28 +494,28 @@ class ControlPanel(QWidget):
 
         self.set_default_x_y_z_style()
 
-    def hide_trajectory_btn(self):
+    def hide_trajectory_btn_deprecate(self):
         """
         Hides the trajectory view button if it is currently visible.
         """
         if self.viewTrajectory_btn.isVisible():
             self.viewTrajectory_btn.hide()
 
-    def hide_calculation_btn(self):
+    def hide_calculation_btn_deprecate(self):
         """
         Hides the calculation button if it is currently visible.
         """
         if self.calculation_btn.isVisible():
             self.calculation_btn.hide()
 
-    def hide_reticle_metadata_btn(self):
+    def hide_reticle_metadata_btn_deprecate(self):
         """
         Hides the reticle metadata button if it is currently visible.
         """
         if self.reticle_metadata_btn.isVisible():
             self.reticle_metadata_btn.hide()
 
-    def calib_x_complete(self, switch_probe=False):
+    def calib_x_complete_deprecate(self, switch_probe=False):
         """
         Updates the UI to indicate that the calibration for the X-axis is complete.
         """
@@ -591,7 +530,7 @@ class ControlPanel(QWidget):
             )
         self.calib_status_x = True
 
-    def calib_y_complete(self, switch_probe=False):
+    def calib_y_complete_deprecate(self, switch_probe=False):
         """
         Updates the UI to indicate that the calibration for the Y-axis is complete.
         """
@@ -606,7 +545,7 @@ class ControlPanel(QWidget):
             )
         self.calib_status_y = True
 
-    def calib_z_complete(self, switch_probe=False):
+    def calib_z_complete_deprecate(self, switch_probe=False):
         """
         Updates the UI to indicate that the calibration for the Z-axis is complete.
         """
@@ -621,7 +560,7 @@ class ControlPanel(QWidget):
             )
         self.calib_status_z = True
 
-    def update_probe_calib_status_transM(self, transformation_matrix, scale):
+    def update_probe_calib_status_transM_deprecate(self, transformation_matrix, scale):
         """
         Updates the probe calibration status with the transformation matrix and scale.
         Extracts the rotation matrix (R), translation vector (T), and scale (S) and formats
@@ -649,7 +588,7 @@ class ControlPanel(QWidget):
         )
         return content
 
-    def update_probe_calib_status_L2(self, L2_err):
+    def update_probe_calib_status_L2_deprecate(self, L2_err):
         """
         Formats the L2 error value for display in the UI.
         """
@@ -660,7 +599,7 @@ class ControlPanel(QWidget):
         )
         return content
 
-    def update_probe_calib_status_distance_traveled(self, dist_traveled):
+    def update_probe_calib_status_distance_traveled_deprecate(self, dist_traveled):
         """
         Formats the distance traveled in the X, Y, and Z directions for display in the UI.
         """
@@ -673,7 +612,7 @@ class ControlPanel(QWidget):
         )
         return content
 
-    def display_probe_calib_status(self, transM, scale, L2_err, dist_traveled):
+    def display_probe_calib_status_deprecate(self, transM, scale, L2_err, dist_traveled):
         """
         Displays the full probe calibration status, including the transformation matrix, L2 error,
         and distance traveled. It combines the formatted content for each of these elements and
@@ -686,7 +625,7 @@ class ControlPanel(QWidget):
         full_content = content_transM + content_L2 + content_L2_travel
         self.probeCalibrationLabel.setText(full_content)
 
-    def update_probe_calib_status(self, moving_stage_id, transM, scale, L2_err, dist_traveled):
+    def update_probe_calib_status_deprecate(self, moving_stage_id, transM, scale, L2_err, dist_traveled):
         """
         Updates the probe calibration status based on the moving stage ID and the provided calibration data.
         If the selected stage matches the moving stage, the calibration data is displayed on the UI.
@@ -703,7 +642,7 @@ class ControlPanel(QWidget):
         else:
             logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 
-    def get_stage_info(self):
+    def get_stage_info_deprecate(self):
         """
         Retrieves the current probe calibration information, including the detection status,
         transformation matrix, L2 error, scale, and distance traveled.
@@ -719,7 +658,7 @@ class ControlPanel(QWidget):
         info['status_z'] = self.calib_status_z
         return info
 
-    def update_stage_info(self, info):
+    def update_stage_info_deprecate(self, info):
         """
         Updates the stage information with the provided probe calibration data.
         """
@@ -731,7 +670,7 @@ class ControlPanel(QWidget):
         self.calib_status_y = info['status_y']
         self.calib_status_z = info['status_z']
 
-    def update_stages(self, prev_stage_id, curr_stage_id):
+    def update_stages_deprecate(self, prev_stage_id, curr_stage_id):
         """
         Updates the stage calibration information when switching between stages.
 
@@ -786,7 +725,7 @@ class ControlPanel(QWidget):
 
         self.probe_detection_status = probe_detection_status
 
-    def view_trajectory_button_handler(self):
+    def view_trajectory_button_handler_deprecate(self):
         """
         Handles the event when the user clicks the "View Trajectory" button.
 
@@ -795,7 +734,7 @@ class ControlPanel(QWidget):
         """
         self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
 
-    def calculation_button_handler(self):
+    def calculation_button_handler_deprecate(self):
         """
         Handles the event when the user clicks the "Calculation" button.
 
@@ -803,7 +742,7 @@ class ControlPanel(QWidget):
         """
         self.calculator.show()
 
-    def reticle_button_handler(self):
+    def reticle_button_handler_deprecate(self):
         """
         Handles the event when the user clicks the "Reticle" button.
 

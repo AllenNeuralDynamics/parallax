@@ -1,6 +1,6 @@
 import logging
 import os
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
 from PyQt5.uic import loadUi
 from parallax.config.config_path import ui_dir
@@ -12,6 +12,9 @@ RETICLE_DETECT_WAIT_TIME = 5000  # 5 seconds
 
 
 class ReticleDetecthandler(QWidget):
+    reticleDetectionDone = pyqtSignal()
+    reticleDetectionDefaultStatus = pyqtSignal()
+
     def __init__(self, model, screen_widgets, filter):
         """
         Args:
@@ -42,8 +45,6 @@ class ReticleDetecthandler(QWidget):
         self.reticle_calibration_btn.clicked.connect(
             self.reticle_detection_button_handler
         )
-        self.calibrationStereo = None
-        self.camA_best, self.camB_best = None, None
 
         # Hide Accept and Reject Button in Reticle Detection
         self.acceptButton.hide()
@@ -125,19 +126,12 @@ class ReticleDetecthandler(QWidget):
         """)
         self.reticle_detection_status = "default"
         self.reticleCalibrationLabel.setText("")
-
-
-        #if self.probe_calibration_btn.isEnabled(): # TODO
-            # Disable probe calibration
-        #    self.probe_detect_default_status()
-
+        
         self.model.reset_stage_calib_info()
         self.model.reset_stereo_calib_instance()
         self.model.reset_camera_extrinsic()
-        #self.probeCalibration.clear() # TODO
 
-        # Reset global coords displayed on the GUI
-        #self.stageUI.updateStageGlobalCoords_default() # TODO
+        self.reticleDetectionDefaultStatus.emit()  # Request to reset probe detection and Reset global coords displayed on the GUI
 
     def reticle_detect_accept_detected_status(self):
         """
@@ -345,13 +339,13 @@ class ReticleDetecthandler(QWidget):
             if msg is not None:
                 self.reticleCalibrationLabel.setText(msg)
 
-            self.enable_reticle_probe_calibration_buttons()
+            self.enable_reticle_detection_buttons()
             logger.debug("Positive x-axis detected on all screens.")
             for screen in self.screen_widgets:
                 screen.run_no_filter()
 
-            # Add Global coords to the Global coords dropdown TODO
-            #self.screen_coords_mapper.add_global_coords_to_dropdown()
+            self.reticleDetectionDone.emit() # Request enable_probe_calibration_btn and add screen_coords_mapper dropdown menu (global)
+
         else:
             self.coords_detected_screens = self.get_coords_detected_screens()
             logger.debug("Checking again for user input of positive x-axis...")
@@ -449,7 +443,7 @@ class ReticleDetecthandler(QWidget):
                 self.model.add_coords_axis(camera_name, coords)
                 self.model.add_camera_intrinsic(camera_name, mtx, dist, rvec, tvec)
 
-    def enable_reticle_probe_calibration_buttons(self):
+    def enable_reticle_detection_buttons(self):
         """
         Enables the reticle and probe calibration buttons in the UI.
 
@@ -466,7 +460,3 @@ class ReticleDetecthandler(QWidget):
         if not self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(True)
         logger.debug(self.reticle_detection_status)
-
-        # Enable probe calibration # TODO 
-        #if not self.probe_calibration_btn.isEnabled():
-        #    self.probe_calibration_btn.setEnabled(True)
