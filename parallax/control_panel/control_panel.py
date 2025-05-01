@@ -102,7 +102,7 @@ class ControlPanel(QWidget):
         self.stage_server_ipconfig.refresh_stages()  # Update stages to model
 
         # Set Stage UI
-        self.stageUI = StageUI(self, self.probe_calib_handler.reticle_metadata)
+        self.stageUI = StageUI(self, self.probe_calib_handler.reticle_metadata) # TODO Move UI into StageUI
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)

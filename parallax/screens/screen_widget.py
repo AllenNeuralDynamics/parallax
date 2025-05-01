@@ -17,7 +17,7 @@ from parallax.screens.axis_filter import AxisFilter
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -314,20 +314,21 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
-        logger.debug("run_reticle_detection")
+        logger.debug(f"{self.camera_name} - run_reticle_detection")
         self.filter.stop()
         self.axisFilter.stop()
         self.reticleDetector.start()
 
     def run_probe_detection(self):
         """Run probe detection by stopping the filter and starting the probe detector."""
-        logger.debug("run_probe_detection")
+        logger.debug(f"{self.camera_name} - run_probe_detection")
         self.filter.stop()
         self.axisFilter.stop()
         self.probeDetector.start()
 
     def run_no_filter(self):
         """Run without any filter by stopping the reticle detector and probe detector."""
+        logger.debug(f"{self.camera_name} - run no_filter")
         self.reticleDetector.stop()
         self.probeDetector.stop()
         self.axisFilter.stop()
@@ -335,7 +336,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_axis_filter(self):
         """Run without any filter by stopping the reticle detector and probe detector."""
-        logger.debug("run_axis_filter")
+        logger.debug(f"{self.camera_name} - run_axis_filter")
         self.filter.stop()
         self.reticleDetector.stop()
         logger.debug("reticleDetector stopped")

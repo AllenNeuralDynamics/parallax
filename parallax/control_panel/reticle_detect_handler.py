@@ -87,19 +87,10 @@ class ReticleDetecthandler(QWidget):
         """
         Resets the reticle detection process to its default state and updates the UI accordingly.
         """
-        # Enable reticle_calibration_btn button
-        if not self.reticle_calibration_btn.isEnabled():
-            self.reticle_calibration_btn.setEnabled(True)
-
-        if self.reticle_detection_status == "process":
-            self.reticle_detect_fail_popup_window()
-
         # Stop reticle detectoin, and run no filter
         self.reticle_calibration_timer.stop()
 
         for screen in self.screen_widgets:
-            if self.filter != "no_filter":
-                screen.run_no_filter()
             if self.reticle_detection_status != "accepted":
                 try:
                     screen.reticle_coords_detected.disconnect(
@@ -107,8 +98,14 @@ class ReticleDetecthandler(QWidget):
                     )
                 except BaseException:
                     logger.debug("Signal not connected. Skipping disconnect.")
+
+            if self.filter != "no_filter":
+                screen.run_no_filter()
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
+
+        if self.reticle_detection_status == "process":
+            self.reticle_detect_fail_popup_window()
 
         # Hide Accept and Reject Button
         self.acceptButton.hide()
@@ -131,6 +128,10 @@ class ReticleDetecthandler(QWidget):
         self.model.reset_stage_calib_info()
         self.model.reset_stereo_calib_instance()
         self.model.reset_camera_extrinsic()
+
+        # Enable reticle_calibration_btn button
+        if not self.reticle_calibration_btn.isEnabled():
+            self.reticle_calibration_btn.setEnabled(True)
 
         #self.reticleDetectionDefaultStatus.emit()  # Request to reset probe detection and Reset global coords displayed on the GUI
         self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
@@ -284,6 +285,7 @@ class ReticleDetecthandler(QWidget):
 
         If fewer than two screens have detected reticle coordinates, the method exits early.
         """
+        print(".")
         reticle_detected_screen_cnt = 0
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()
