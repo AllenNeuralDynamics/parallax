@@ -15,7 +15,7 @@ from parallax.stages.stage_listener import Stage, StageInfo
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""
 
-    def __init__(self, args, version="V2"):
+    def __init__(self, args=None, version="V2"):
         """Initialize the Model object.
 
         Args:
@@ -25,17 +25,17 @@ class Model(QObject):
         QObject.__init__(self)
         # args from command line
         self.version = version
-        self.dummy = args.dummy
-        self.test = args.test
-        self.bundle_adjustment = args.bundle_adjustment
-        self.reticle_detection = args.reticle_detection
+        self.dummy = getattr(args, "dummy", False)
+        self.test = getattr(args, "test", False)
+        self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
+        self.reticle_detection = getattr(args, "reticle_detection", "default")
+        self.nMockCameras = getattr(args, "nCameras", 1)
 
         # cameras
         self.refresh_camera = False
         self.cameras = []  # instance of cameras
         self.cameras_sn = []  # camera serial numbers
         self.nPySpinCameras = 0
-        self.nMockCameras = args.nCameras
 
         # point mesh
         self.point_mesh_instances = {}
