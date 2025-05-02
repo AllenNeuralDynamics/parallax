@@ -21,7 +21,7 @@ def test_capture_image(mocker):
         assert data.shape == (3000, 4000, 3)
 
     # Clean up
-    mocker.patch('parallax.camera.close_cameras')
+    mocker.patch('parallax.cameras.camera.close_cameras')
     close_cameras()
 
 # Run the tests
