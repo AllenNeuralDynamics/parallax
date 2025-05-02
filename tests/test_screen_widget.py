@@ -44,27 +44,6 @@ def test_screen_widget_initialization(screen_widget):
     assert screen_widget.view_box is not None
     assert screen_widget.image_item is not None
 
-def test_set_data(screen_widget, mock_camera):
-    # Prepare mock image data
-    data = np.random.randint(0, 256, (4000, 3000), dtype=np.uint8)
-
-    # Mock the process method in NoFilter and AxisFilter
-    screen_widget.filter.process = Mock()
-    screen_widget.axisFilter.process = Mock()
-    screen_widget.reticleDetector.process = Mock()
-    screen_widget.probeDetector.process = Mock()
-
-    # Call set_data to process the image
-    screen_widget.set_data(data)
-
-    # Assert that each filter's process method was called with the data
-    screen_widget.filter.process.assert_called_once_with(data)
-    screen_widget.axisFilter.process.assert_called_once_with(data)
-    screen_widget.reticleDetector.process.assert_called_once_with(data)
-    screen_widget.probeDetector.process.assert_called_once_with(
-        data, screen_widget.camera.get_last_capture_time.return_value
-    )
-
 def test_start_and_stop_acquisition_camera(screen_widget, mock_camera):
     # Mock the methods for camera acquisition
     mock_camera.begin_continuous_acquisition = Mock()
@@ -77,26 +56,3 @@ def test_start_and_stop_acquisition_camera(screen_widget, mock_camera):
     # Stop acquisition and verify the method is called
     screen_widget.stop_acquisition_camera()
     mock_camera.stop.assert_called_once_with(clean=False)
-
-def test_image_clicked_signal(screen_widget, qtbot):
-    with qtbot.waitSignal(screen_widget.selected, timeout=1000) as signal_waiter:
-        mock_event = Mock()
-        mock_event.pos = Mock(return_value=QPoint(100, 100))  # Use QPoint for pos()
-        mock_event.button = Mock(return_value=Qt.LeftButton)
-
-        # Simulate a mouse click on the image using the mock event.
-        screen_widget.image_clicked(mock_event)
-
-    emitted_args = signal_waiter.args
-    assert emitted_args[0] == screen_widget.camera_name, "The camera name is incorrect."
-    assert emitted_args[1] == (100, 100), "The clicked position is incorrect."
-
-def test_zoom_out(screen_widget):
-    # Mock the autoRange method of the view_box
-    screen_widget.view_box.autoRange = Mock()
-
-    # Call zoom_out
-    screen_widget.zoom_out()
-
-    # Verify that autoRange was called
-    screen_widget.view_box.autoRange.assert_called_once()

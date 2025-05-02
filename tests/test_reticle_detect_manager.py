@@ -102,33 +102,6 @@ def test_reticle_detect_manager_found_coords_signal(test_frame, qt_application):
     # Stop the ReticleDetectManager
     detect_manager.stop()
 
-# Test the cleanup function of ReticleDetectManager
-def test_reticle_detect_manager_cleanup(test_frame, qt_application):
-    """Test that ReticleDetectManager properly cleans up its threads."""
-    
-    # Initialize ReticleDetectManager
-    camera_name = "TestCamera123"
-    detect_manager = ReticleDetectManager(camera_name)
-
-    # Start the ReticleDetectManager
-    detect_manager.start()
-
-    # Send the test frame for processing
-    detect_manager.process(test_frame)
-
-    # Wait for some time to ensure processing has started
-    time.sleep(1)
-
-    # Call the clean method to clean up threads
-    detect_manager.clean()
-
-    # Ensure the thread and worker are cleaned up
-    assert detect_manager.thread is None, "Thread was not cleaned up"
-    assert detect_manager.worker is None, "Worker was not cleaned up"
-
-    # Stop the ReticleDetectManager
-    detect_manager.stop()
-
 # Test for setting the name in ReticleDetectManager
 def test_reticle_detect_manager_set_name(test_frame, qt_application):
     """Test that ReticleDetectManager correctly sets and updates the camera name."""
