@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
-from parallax.calibration_camera import CalibrationStereo, OBJPOINTS
+from parallax.cameras.calibration_camera import CalibrationStereo, OBJPOINTS
 
 @pytest.fixture
 def mock_model():

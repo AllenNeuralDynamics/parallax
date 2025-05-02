@@ -2,7 +2,7 @@ import pytest
 import cv2
 import os
 import numpy as np
-from parallax.probe_fine_tip_detector import ProbeFineTipDetector
+from parallax.probe_detection.probe_fine_tip_detector import ProbeFineTipDetector
 
 # Define the folder containing your test images
 IMAGE_FOLDER = "tests/test_data/probe_fine_tip_detector"

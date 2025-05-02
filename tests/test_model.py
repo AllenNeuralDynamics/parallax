@@ -2,8 +2,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from parallax.model import Model 
-from parallax.camera import MockCamera, PySpinCamera  
-from parallax.stage_listener import Stage, StageInfo 
+from parallax.cameras.camera import MockCamera, PySpinCamera  
+from parallax.stages.stage_listener import Stage, StageInfo 
 
 @pytest.fixture(scope='function')
 def model():

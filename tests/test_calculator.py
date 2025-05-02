@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from PyQt5.QtWidgets import QLineEdit, QComboBox
 import numpy as np
-from parallax.calculator import Calculator
+from parallax.handlers.calculator import Calculator
 
 @pytest.fixture
 def setup_calculator(qtbot):

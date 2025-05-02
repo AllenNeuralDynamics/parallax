@@ -2,7 +2,7 @@ import pytest
 import json
 import time
 from unittest.mock import Mock, patch
-from parallax.stage_controller import StageController
+from parallax.stages.stage_controller import StageController
 import requests
 
 @pytest.fixture(scope="function")

@@ -3,7 +3,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 from PyQt5.QtWidgets import QApplication, QLineEdit
-from parallax.stage_server_ipconfig import StageServerIPConfig
+from parallax.stages.stage_server_ipconfig import StageServerIPConfig
 
 # Create a QApplication instance for testing PyQt widgets
 app = QApplication([])

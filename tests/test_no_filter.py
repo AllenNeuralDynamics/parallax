@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import time
 from PyQt5.QtCore import QCoreApplication, QEventLoop
-from parallax.no_filter import NoFilter
+from parallax.screens.no_filter import NoFilter
 
 @pytest.fixture
 def single_frame():

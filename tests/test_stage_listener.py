@@ -1,7 +1,7 @@
 import pytest
 import requests
 from unittest.mock import Mock, patch
-from parallax.stage_listener import StageListener, StageInfo, Stage, Worker
+from parallax.stages.stage_listener import StageListener, StageInfo, Stage, Worker
 
 @pytest.fixture(scope="function")
 def mock_model():

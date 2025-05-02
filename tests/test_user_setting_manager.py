@@ -2,7 +2,7 @@ import pytest
 import os
 import json
 from unittest import mock
-from parallax.user_setting_manager import UserSettingsManager
+from parallax.config.user_setting_manager import UserSettingsManager
 
 @pytest.fixture(scope='function')
 def settings_file(tmpdir):

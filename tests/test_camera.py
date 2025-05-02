@@ -1,6 +1,6 @@
 # tests/camera.py
 import pytest
-from parallax.camera import list_cameras, close_cameras
+from parallax.cameras.camera import list_cameras, close_cameras
 
 def test_capture_image(mocker):
     """

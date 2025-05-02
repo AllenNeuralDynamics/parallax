@@ -4,7 +4,7 @@ import numpy as np
 from unittest.mock import Mock
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt, QPoint
-from parallax.screen_widget import ScreenWidget
+from parallax.screens.screen_widget import ScreenWidget
 
 @pytest.fixture(scope="function")
 def qapp():

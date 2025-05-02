@@ -1,7 +1,7 @@
 import pytest
 from PyQt5.QtWidgets import QApplication, QComboBox, QLabel, QWidget, QVBoxLayout
 from unittest.mock import Mock
-from parallax.stage_ui import StageUI
+from parallax.stages.stage_ui import StageUI
 
 class MockModel:
     """Mock model for testing the StageUI class."""

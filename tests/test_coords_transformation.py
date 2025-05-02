@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from parallax.coords_transformation import RotationTransformation
+from parallax.probe_calibration.coords_transformation import RotationTransformation
 
 @pytest.fixture
 def transformer():

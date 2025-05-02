@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from PyQt5.QtWidgets import QApplication, QComboBox, QLineEdit
 from unittest.mock import Mock
-from parallax.reticle_metadata import ReticleMetadata
+from parallax.handlers.reticle_metadata import ReticleMetadata
 
 @pytest.fixture(scope="function")
 def qapp():
