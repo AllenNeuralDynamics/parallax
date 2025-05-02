@@ -47,7 +47,6 @@ class ReticleDetectManager(QObject):
             self.test_mode = test_mode
             self.running = False
             self.is_detection_on = False
-            self.new = False
             self.frame = None
             self.frame_success = None
 
@@ -61,9 +60,6 @@ class ReticleDetectManager(QObject):
         def update_frame(self, frame):
             """Update the frame to be processed."""
             self.frame = frame
-            # Deal with one frame at a time. This may cause the frame drop
-            if self.new is False:
-                self.new = True
 
         def draw(self, frame, x_axis_coords, y_axis_coords):
             """Draw the coordinates on the frame.
@@ -160,47 +156,52 @@ class ReticleDetectManager(QObject):
                 font_color,
                 line_type,
             )
-
             return frame
 
         def process(self, frame):
             """Process the frame for reticle detection."""
             self.frame_success = None
+            logger.debug(f"{self.name} - process...")
 
-            ret, frame_, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame)
-            # Use the processed frame if test_mode is enabled
-            draw_frame = frame_ if self.test_mode else frame
-
+            ret, frame_, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame, lambda: self.running)
+            logger.debug(f"{self.name} - get_coords done, result: {ret}")
+            if not self.running:
+                logger.debug(f"{self.name} - Stop request to process during get_coords")
+                return -1  # Exit early
             if not ret:
                 logger.debug(f"{self.name} get_coords failed.")
-                return draw_frame
+                return None
 
             ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
+            if not self.running:
+                return  -1  # Exit early
             if not ret:
-                logger.debug(f"{self.name} get_coords_interest failed.")
-                return draw_frame
+                logger.debug(f"{self.name} - Stop request to process during get_coords_interest")
+                return None
 
             ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords)
+            if not self.running:
+                return  -1 # Exit early
             if not ret:
-                logger.debug(f"{self.name} calibrate_camera failed.")
-                return draw_frame
+                logger.debug(f"{self.name} - Stop request to process during calibrate_camera ")
+                return None  # Calibration failed
 
             # Successful detection and calibration
             self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist, rvecs, tvecs)
 
             origin, x, y, z = self.calibrationCamera.get_origin_xyz()
-            draw_frame = self.draw_xyz(draw_frame, origin, x, y, z)
-            draw_frame = self.draw(draw_frame, x_axis_coords, y_axis_coords)
-            draw_frame = self.draw_calibration_info(draw_frame, ret, mtx, dist)
+            frame = self.draw_xyz(frame, origin, x, y, z)
+            frame = self.draw(frame, x_axis_coords, y_axis_coords)
+            frame = self.draw_calibration_info(frame, ret, mtx, dist)
 
-            self.frame_success = draw_frame
+            self.frame = frame
             logger.debug(f"{self.name} reticle detection success.\n")
 
-            self.stop_running()  # If found, stop further processing
-            return self.frame_success
+            return 1
 
         def stop_running(self):
             """Stop the worker from running."""
+            logger.debug(f"{self.name} - stop running")
             self.running = False
 
         def start_running(self):
@@ -218,12 +219,26 @@ class ReticleDetectManager(QObject):
         def run(self):
             """Run the worker thread."""
             while self.running:
-                if self.new:
-                    self.frame = self.process(self.frame)
-                    self.frame_processed.emit(self.frame)
-                self.new = False
+                if self.frame is not None:
+                    logger.debug(f"{self.name} - Thread started")
+                    result = self.process(self.frame)
+                    if result == -1:
+                        logger.debug(f"{self.name} - Outside request to stop processing")
+                        self.finished.emit()
+                        return  # Exit early
+                    if result is None:
+                        logger.debug(f"{self.name} - Detection failed")
+                        self.finished.emit()
+                        return  # Exit early
+                    if result == 1:
+                        logger.debug(f"{self.name} - Detection success")
+                        self.frame_processed.emit(self.frame)
+                        self.finished.emit()
+                        return
                 time.sleep(0.001)
+            logger.debug(f"{self.name} - while self.running is false")
             self.finished.emit()
+            return
 
         def set_name(self, name):
             """Set name as camera serial number."""
@@ -241,23 +256,19 @@ class ReticleDetectManager(QObject):
 
     def init_thread(self):
         """Initialize the worker thread."""
-        if self.thread is not None:
-            self.clean()  # Clean up existing thread and worker before reinitializing
         self.thread = QThread()
-        self.worker = self.Worker(self.name, test_mode=self.test_mode)
+        self.worker = self.Worker(self.name)
         self.worker.moveToThread(self.thread)
 
+        # Connect signals and slots
         self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.destroyed.connect(self.onThreadDestroyed)  # Debug msg
-        self.threadDeleted = False
+        self.thread.finished.connect(self.onThreadFinished)
 
         self.worker.frame_processed.connect(self.frame_processed)
         self.worker.found_coords.connect(self.found_coords)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.destroyed.connect(self.onWorkerDestroyed)
-        logger.debug(f"{self.name} init camera")
 
     def process(self, frame):
         """Process the frame using the worker.
@@ -270,7 +281,7 @@ class ReticleDetectManager(QObject):
 
     def start(self):
         """Start the reticle detection manager."""
-        logger.debug(f"{self.name} Starting thread in {self.__class__.__name__}")
+        logger.debug(f"{self.name} Starting thread")
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
         self.thread.start()
@@ -280,9 +291,9 @@ class ReticleDetectManager(QObject):
         if self.worker is not None:
             self.worker.stop_running()
 
-    def onWorkerDestroyed(self):
-        """Cleanup after worker finishes."""
-        logger.debug(f"{self.name} worker finished")
+        if self.thread is not None:
+            self.thread.quit()
+            self.thread.wait()
 
     def set_name(self, camera_name):
         """Set camera name."""
@@ -291,26 +302,7 @@ class ReticleDetectManager(QObject):
             self.worker.set_name(self.name)
         logger.debug(f"{self.name} set camera name")
 
-    def clean(self):
-        """Safely clean up the reticle detection manager."""
-        logger.debug(f"{self.name} Cleaning the thread")
-        if self.worker is not None:
-            self.worker.stop_running()  # Signal the worker to stop
-
-        if self.thread and not self.threadDeleted and self.thread.isRunning():
-            logger.debug(f"{self.name} Stopping thread in {self.__class__.__name__}")
-            self.thread.quit()  # Ask the thread to quit
-            self.thread.wait()  # Wait for the thread to finish
-        self.thread = None  # Clear the reference to the thread
-        self.worker = None  # Clear the reference to the worker
-        self.threadDeleted = True
-        logger.debug(f"{self.name} Cleaned the thread")
-
-    def onThreadDestroyed(self):
-        """Flag if thread is deleted"""
-        self.threadDeleted = True
+    def onThreadFinished(self):
+        """Handle thread finished signal."""
+        logger.debug(f"{self.name} Thread finished")
         self.thread = None
-
-    def __del__(self):
-        """Destructor for the reticle detection manager."""
-        self.clean()

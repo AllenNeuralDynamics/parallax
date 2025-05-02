@@ -91,7 +91,7 @@ class ReticleDetection:
                 35,
             )
 
-    def _ransac_detect_lines(self, img):
+    def _ransac_detect_lines(self, img, running_flag):
         """Detect lines using RANSAC algorithm.
 
         Args:
@@ -120,7 +120,11 @@ class ReticleDetection:
         contours, _ = cv2.findContours(
             img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
-        centroids = np.array(self._get_centroid(contours))
+        if not running_flag():
+            logger.debug(f"{self.name} ransac_detect_lines - stop running while searching for lines.")
+            return False, [], []
+
+        centroids = np.array(self._get_centroid(contours, running_flag))
         if len(centroids) < 10:
             logger.debug("points for rasac line detection are less than 10")
             return False, inlier_lines, inlier_pixels
@@ -129,6 +133,10 @@ class ReticleDetection:
         residual_threshold = 2
         counter = 50
         while len(inlier_lines) < 2 and counter > 0:
+            if not running_flag():
+                logger.debug(f"{self.name} ransac_detect_lines - stop running while searching for lines..")
+                return False, [], []
+
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 model_robust, inliers = ransac(
@@ -258,7 +266,7 @@ class ReticleDetection:
 
         return coords_interest
 
-    def _eroding(self, img):
+    def _eroding(self, img, running_flag):
         """Erode the image until the desired contour conditions are met.
 
         Args:
@@ -270,6 +278,10 @@ class ReticleDetection:
         kernel_ellipse_3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
         counter = 100
         while counter > 0:
+            if not running_flag():
+                logger.debug(f"{self.name} _eroding - stop running while eroding.")
+                return img
+
             contours, _ = cv2.findContours(
                 img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
             )
@@ -280,12 +292,23 @@ class ReticleDetection:
             largest_contour_area = cv2.contourArea(largest_contour)
             if 50 < len(contours) < 300 and largest_contour_area < 30 * 30:
                 break
+            if not running_flag():
+                logger.debug(f"{self.name} _eroding - stop running while eroding..")
+                return img
+
             img = cv2.erode(img, kernel_ellipse_3, iterations=1)
+            if not running_flag():
+                logger.debug(f"{self.name} _eroding - stop running while eroding...")
+                return img
+
             img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel_ellipse_3)
+            if not running_flag():
+                logger.debug(f"{self.name} _eroding - stop running while eroding....")
+                return img
             counter -= 1
         return img
 
-    def _get_centroid(self, contours):
+    def _get_centroid(self, contours, running_flag):
         """Get the centroid of each contour.
 
         Args:
@@ -296,6 +319,10 @@ class ReticleDetection:
         """
         centroids = []
         for contour in contours:
+            if not running_flag():
+                logger.debug(f"{self.name} ransac_detect_lines - stop running while getting centroid.")
+                return centroids
+
             M = cv2.moments(contour)
             if M["m00"] != 0:
                 cX = int(M["m10"] / M["m00"])
@@ -506,7 +533,7 @@ class ReticleDetection:
         else:
             return None
 
-    def coords_detect_morph(self, img):
+    def coords_detect_morph(self, img, running_flag):
         """
         Applies morphological operations and adaptive thresholding
         to detect coordinates in an image.
@@ -530,15 +557,28 @@ class ReticleDetection:
                 11,
                 3,
             )
+
+        if not running_flag():
+            logger.debug(f"{self.name} coords_detect_morph - stop running after adaptive threshold")
+            return False, img, [], []
+
         img = cv2.medianBlur(img, 5)
         img = cv2.bitwise_not(img, mask=self.mask)
         kernel_ellipse_5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel_ellipse_5)
+        if not running_flag():
+            logger.debug(f"{self.name} coords_detect_morph - stop running after morphology")
+            return False, img, [], []
 
-        img = self._eroding(img)
+        img = self._eroding(img, running_flag)
+        if not running_flag():
+            return False, img, [], []
+
         # cv2.imwrite("debug/after_eroding.jpg", img)
-        ret, inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img)
+        ret, inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img, running_flag)
         logger.debug(f"n of inliner lines: {len(inliner_lines_pixels)}")
+        if not running_flag():
+            return False, img, [], []
 
         # Draw
         for inliner_lines_pixel in inliner_lines_pixels:
@@ -577,7 +617,7 @@ class ReticleDetection:
         else:
             return
 
-    def get_coords(self, img):
+    def get_coords(self, img, running_flag):
         """Detect coordinates using morphological operations.
 
         Args:
@@ -592,20 +632,36 @@ class ReticleDetection:
         """
         bg = self._preprocess_image(img)
         self._draw_debug(bg, [], "0_bg")
+        if not running_flag():
+            logger.debug(f"{self.name} get_coords - stop running after preprocessing")
+            return False, bg, [], []
+
         masked = self._apply_mask(bg)
         self._draw_debug(masked, [], "1_bg")
+        if not running_flag():
+            logger.debug(f"{self.name} get_coords - stop running after masking")
+            return False, bg, [], []
 
-        ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(masked)
+        ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(masked, running_flag)
         self._draw_debug(bg, pixels_in_lines, "2_detect_morph")
         logger.debug(f"{self.name} nLines: {len(pixels_in_lines)}")
+        if not running_flag():
+            logger.debug(f"{self.name} get_coords - stop running after coords_detect_morph")
+            return False, bg, [], []
 
         if ret:
             bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
             logger.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}")
             self._draw_debug(bg, pixels_in_lines, "3_refine_pixels")
+            if not running_flag():
+                logger.debug("{self.name} get_coords - stop running after refine_pixels")
+                return False, bg, [], []
 
             bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
             logger.debug(f"{self.name} interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
             self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
+            if not running_flag():
+                logger.debug("{self.name} get_coords - stop running after add_missing_pixels")
+                return False, bg, [], []
 
         return ret, bg, inliner_lines, pixels_in_lines

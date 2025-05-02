@@ -24,7 +24,6 @@ from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-RETICLE_DETECT_WAIT_TIME = 5000  # 5 seconds
 
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""

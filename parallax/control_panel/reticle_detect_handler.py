@@ -8,7 +8,7 @@ from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-RETICLE_DETECT_WAIT_TIME = 5000  # 5 seconds
+RETICLE_DETECT_WAIT_TIME = 10000  # 20 seconds
 
 
 class ReticleDetecthandler(QWidget):
@@ -285,7 +285,6 @@ class ReticleDetecthandler(QWidget):
 
         If fewer than two screens have detected reticle coordinates, the method exits early.
         """
-        print(".")
         reticle_detected_screen_cnt = 0
         for screen in self.screen_widgets:
             coords = screen.get_reticle_coords()

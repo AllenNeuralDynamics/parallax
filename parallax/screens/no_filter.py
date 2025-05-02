@@ -63,7 +63,7 @@ class NoFilter(QObject):
             """Run the worker thread."""
             while self.running:
                 if self.new:
-                    self.process(self.frame)
+                    self.process(self.frame) # <--- Not a long running process
                     self.new = False
                 time.sleep(0.001)
             self.finished.emit()
