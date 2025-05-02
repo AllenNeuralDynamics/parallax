@@ -533,7 +533,7 @@ class ReticleDetection:
         else:
             return None
 
-    def coords_detect_morph(self, img, running_flag):
+    def coords_detect_morph(self, img, running_flag=lambda: True):
         """
         Applies morphological operations and adaptive thresholding
         to detect coordinates in an image.
@@ -617,7 +617,7 @@ class ReticleDetection:
         else:
             return
 
-    def get_coords(self, img, running_flag):
+    def get_coords(self, img, running_flag=lambda: True):
         """Detect coordinates using morphological operations.
 
         Args:
