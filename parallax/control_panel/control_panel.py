@@ -8,7 +8,6 @@ initializing components, and linking user actions to calibration processes.
 
 import logging
 import os
-import numpy as np
 from PyQt5.QtWidgets import QSizePolicy, QSpacerItem, QWidget
 from PyQt5.uic import loadUi
 
@@ -24,6 +23,7 @@ from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
 
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
@@ -42,7 +42,7 @@ class ControlPanel(QWidget):
         self.screen_widgets = screen_widgets
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(350)
-        
+
         # Set current filter
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
@@ -56,21 +56,25 @@ class ControlPanel(QWidget):
             self.filter,
             self.reticle_selector
         )
-        self.reticle_handler.reticleDetectionStatusChanged.connect(self.probe_calib_handler.reticle_detection_status_change)
+        self.reticle_handler.reticleDetectionStatusChanged.connect(
+            self.probe_calib_handler.reticle_detection_status_change
+            )
         self.stage_status_ui.layout().addWidget(self.probe_calib_handler)  # Add it to the placeholder's layout
-        
+
         # Create a vertical spacer with expanding policy
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         # Add the spacer to the layout
         self.stage_status_ui.addItem(spacer)
-        
+
         # Screen Coords Mapper
         self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets,
                                                        self.reticle_selector,
                                                        self.global_coords_x,
                                                        self.global_coords_y,
                                                        self.global_coords_z)
-        self.reticle_handler.reticleDetectionStatusChanged.connect(self.screen_coords_mapper.reticle_detection_status_change)
+        self.reticle_handler.reticleDetectionStatusChanged.connect(
+            self.screen_coords_mapper.reticle_detection_status_change
+            )
 
         # Stage Server IP Config
         self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages
@@ -101,7 +105,7 @@ class ControlPanel(QWidget):
         self.stage_server_ipconfig.refresh_stages()  # Update stages to model
 
         # Set Stage UI
-        self.stageUI = StageUI(self, self.probe_calib_handler.reticle_metadata) # TODO Move UI into StageUI
+        self.stageUI = StageUI(self, self.probe_calib_handler.reticle_metadata)  # TODO Move UI into StageUI
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)

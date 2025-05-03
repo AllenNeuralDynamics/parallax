@@ -693,6 +693,7 @@ class PySpinCamera(BaseCamera):
         if clean:
             del self.camera
 
+
 # Class for simulating a mock camera
 class MockCamera(BaseCamera):
     """Mock Camera showing salts and pepper noise images"""
@@ -723,13 +724,14 @@ class MockCamera(BaseCamera):
             frame = self.random_data[self._next_frame]
             self._next_frame = (self._next_frame + 1) % self.random_data.shape[0]
             return frame
-    
+
     def set_data(self, filepath):
         """Set the mock camera data"""
         data = cv2.imread(filepath)
         if data is None:
             raise ValueError(f"Could not read image from {filepath}")
         self.data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+
 
 class VideoSource(BaseCamera):
     """Video Source"""

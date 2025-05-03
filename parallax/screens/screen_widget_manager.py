@@ -39,7 +39,7 @@ class ScreenWidgetManager:
         self.nColumnsSpinBox.valueChanged.connect(
             self._column_changed_handler
         )
-        
+
     def _get_cols_cnt(self):
         # Load column configuration from user preferences
         cols_cnt = UserSettingsManager.load_settings_item("main", "nColumn")
@@ -106,7 +106,7 @@ class ScreenWidgetManager:
         # Construct and configure the Microscope widget
         microscopeGrp.setObjectName(newNameMicroscope)
         microscopeGrp.setStyleSheet("background-color: rgb(58, 58, 58);")
-        font_grpbox = QFont() # TODO move to config file
+        font_grpbox = QFont()  # TODO move to config file
         font_grpbox.setPointSize(8)
         microscopeGrp.setFont(font_grpbox)
         verticalLayout = QVBoxLayout(microscopeGrp)
@@ -127,7 +127,7 @@ class ScreenWidgetManager:
                 screen=screen,
                 screen_index=screen_index
         )
-        
+
         # If serial number is changed, connect to update_screen function and update setting menu
         screen_setting.settingMenu.snComboBox.currentIndexChanged.connect(
             lambda: self._update_screen(
@@ -195,6 +195,7 @@ class ScreenWidgetManager:
             screen.single_acquisition_camera()
             screen.refresh_single_frame()
             screen.stop_single_acquisition_camera()
+
 
 class ScreenColumnHandler:
     """Manages the nColumnsSpinBox behavior and microscope layout updates."""

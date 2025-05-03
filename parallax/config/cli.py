@@ -3,6 +3,7 @@ Parallax CLI Configuration
 """
 import argparse
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Parallax: A GUI application for acute in vivo acute electrophysiology experiments.",
@@ -40,8 +41,8 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Test mode to visualize reticle and probe detection.",
     )
-
     return parser.parse_args()
+
 
 def print_arg_info(args):
     """Print CLI argument selections for debugging."""

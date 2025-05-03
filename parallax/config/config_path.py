@@ -15,7 +15,7 @@ PARALLAX_ASCII = r"""
 
 # Get the root directory of the project
 package_dir = os.path.dirname(os.path.abspath(__file__))
-project_root  = os.path.dirname(os.path.dirname(package_dir))
+project_root = os.path.dirname(os.path.dirname(package_dir))
 
 # Shared paths
 ui_dir = os.path.join(project_root, "ui")

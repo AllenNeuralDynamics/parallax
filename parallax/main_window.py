@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         ui = os.path.join(ui_dir, "mainWindow.ui")
         loadUi(ui, self)
 
-        #set font
+        # set font
         self._set_font()
 
         # Load existing user preferences
@@ -81,7 +81,6 @@ class MainWindow(QMainWindow):
         # Create the widget for screen
         self.scrollArea = QScrollArea(self.centralwidget)
         self.scrollArea.setWidgetResizable(True)
-        #self.scrollArea.setObjectName("scrollArea")
 
         # Dynamically generate Microscope display
         self.screen_widget_manager = ScreenWidgetManager(self.model, self.nColumnsSpinBox)
@@ -128,7 +127,6 @@ class MainWindow(QMainWindow):
         QFontDatabase.addApplicationFont(fira_code_font_path)
         fira_code_font = QFont("Fira Code Light", 10)  # Setting font size to 10
         QApplication.setFont(fira_code_font)
-
 
     def refresh_cameras(self):
         """
@@ -215,7 +213,6 @@ class MainWindow(QMainWindow):
         """Refreshing from framebuffer to screen"""
         for screen in self.screen_widget_manager.screen_widgets:
             screen.refresh()  # Refresh the screens
-
 
     def dir_setting_handler(self):
         """

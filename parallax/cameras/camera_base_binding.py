@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import datetime
 
+
 class BaseCamera(ABC):
     """
     Abstract base class for camera operations.
@@ -44,7 +45,7 @@ class BaseCamera(ABC):
 
     def get_exposure(self) -> int:
         return -1
-    
+
     def get_last_capture_time(self, millisecond: bool = False) -> str:
         """
         Returns the timestamp of the last captured image in a formatted string.

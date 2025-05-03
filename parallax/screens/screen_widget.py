@@ -5,7 +5,6 @@ for real-time processing and offers camera control functions.
 """
 
 import logging
-import cv2
 import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -158,7 +157,7 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.process(data)
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
-        captured_time = self.camera.get_last_capture_time(millisecond=True) # TODO Move to probeDetector TODO add condition
+        captured_time = self.camera.get_last_capture_time(millisecond=True)  # TODO Move to probeDetector
         self.probeDetector.process(data, captured_time)
 
     def is_camera(self):
@@ -407,13 +406,14 @@ class ScreenWidget(pg.GraphicsView):
                 foco.time_move(chan, forward, dist, wait=True)
         else:
             super().wheelEvent(e)
-    
+
     def mock_cam_set_data(self, filepath):
         """
         Set mock camera data for testing purposes.
         """
         if "MockCamera" in self.camera.name():
             self.camera.set_data(filepath)
+
 
 class ClickableImage(pg.ImageItem):
     """This class captures mouse click events on images."""

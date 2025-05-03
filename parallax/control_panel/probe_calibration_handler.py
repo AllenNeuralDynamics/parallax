@@ -15,6 +15,7 @@ logger.setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
+
 class ProbeCalibrationHandler(QWidget):
     def __init__(self, model, screen_widgets, filter, reticle_selector):
         """
@@ -26,7 +27,7 @@ class ProbeCalibrationHandler(QWidget):
         self.screen_widgets = screen_widgets
         self.filter = filter
         self.reticle_selector_comboBox = reticle_selector    # Combobox for reticle selector
-        
+
         self.reticle_detection_status = "default"  # options: default, process, accepted
         self.selected_stage_id = None
         self.stageUI = None
@@ -132,7 +133,6 @@ class ProbeCalibrationHandler(QWidget):
 
             return calibrationStereo, camA_best, camB_best
 
-
     def probe_detect_on_two_screens(self, cam_name, timestamp, sn, stage_info, pixel_coords):
         """Detect probe coordinates on all screens."""
         cam_name_cmp, timestamp_cmp, sn_cmp = cam_name, timestamp, sn  # Coords tip detected screen
@@ -224,7 +224,6 @@ class ProbeCalibrationHandler(QWidget):
                 tip_coordsB,
             )
 
-    
     def get_calibration_instance(self, camA, camB):
         """
         Retrieves the stereo calibration instance for a given pair of cameras.
@@ -262,7 +261,7 @@ class ProbeCalibrationHandler(QWidget):
         else:
             logger.debug("User clicked No.")
             return False
-        
+
     def probe_detection_button_handler(self):
         """Handle the probe detection button click."""
         if self.probe_calibration_btn.isChecked():
@@ -441,8 +440,6 @@ class ProbeCalibrationHandler(QWidget):
         # Update reticle selector
         self.reticle_metadata.load_metadata_from_file()
 
-    
-    
     def update_probe_calib_status_transM(self, transformation_matrix, scale):
         """
         Updates the probe calibration status with the transformation matrix and scale.
@@ -607,7 +604,6 @@ class ProbeCalibrationHandler(QWidget):
             )
         self.calib_status_z = True
 
-
     def view_trajectory_button_handler(self):
         """
         Handles the event when the user clicks the "View Trajectory" button.
@@ -670,7 +666,7 @@ class ProbeCalibrationHandler(QWidget):
         info['status_y'] = self.calib_status_y
         info['status_z'] = self.calib_status_z
         return info
-    
+
     def update_stage_info(self, info):
         """
         Updates the stage information with the provided probe calibration data.

@@ -482,11 +482,13 @@ class StageListener(QObject):
                 self.stage_ui.updateStageGlobalCoords()
             else:
                 # TODO
+                print("Moving probe not selected.")
+                """
                 content = (
                     "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
                 )
-                print("Moving probe not selected.")
-                #self.probeCalibrationLabel.setText(content)
+                # self.probeCalibrationLabel.setText(content)
+                """
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.

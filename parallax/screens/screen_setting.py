@@ -13,7 +13,7 @@ logger.setLevel(logging.WARNING)
 
 class ScreenSetting(QWidget):
     """Settings menu widget to control a microscope screen."""
-    
+
     def __init__(self, parent, model, screen, screen_index):
         super().__init__()
         # Add setting button
@@ -21,20 +21,20 @@ class ScreenSetting(QWidget):
         self.parent = parent
         self.screen = screen
         self.screen_index = screen_index
-        self.sn = self.screen.get_camera_name()  #self.sn is updated when camera is changed
-        
+        self.sn = self.screen.get_camera_name()  # self.sn is updated when camera is changed
+
         # Init
         self.settingButton = self._get_setting_button(self.parent)
         self.settingMenu = self._get_setting_menu(self.parent)
         self._setup_settingMenu()  # S/N, Exposure, Gain, Gamma, White Balance
-        self.settings_refresh_timer = QTimer() # Refreshing the settingMenu while it is toggled
+        self.settings_refresh_timer = QTimer()  # Refreshing the settingMenu while it is toggled
         self.settings_refresh_timer.timeout.connect(self._update_setting_menu)
 
         self._update_setting_menu()
         self.settingButton.toggled.connect(
             lambda checked: self._show_settings_menu(checked)
         )
-        
+
     def _setup_settingMenu(self):
         self._setup_sn()
         self._custom_name()
@@ -43,10 +43,10 @@ class ScreenSetting(QWidget):
         self._gamma()
         self._white_balance()
         self._color_channel()
-    
+
     def _show_settings_menu(self, is_checked):
         if is_checked:
-            self.settings_refresh_timer.start(500)  #Update setting menu every 500ms
+            self.settings_refresh_timer.start(500)  # Update setting menu every 500ms
             # Show the setting menu next to setting button
             button_position = self.settingButton.mapToGlobal(self.settingButton.pos())
             menu_x = button_position.x() + self.settingButton.width()
@@ -57,7 +57,7 @@ class ScreenSetting(QWidget):
         else:
             self.settings_refresh_timer.stop()
             self.settingMenu.hide()
-    
+
     def _exposure(self):
         # Exposure
         self.settingMenu.expSlider.valueChanged.connect(
@@ -78,7 +78,7 @@ class ScreenSetting(QWidget):
                 int(self.screen.get_camera_setting(setting="exposure") / 1000)
             )
         )
-    
+
     def _gamma(self):
         # Gamma
         self.settingMenu.gammaSlider.valueChanged.connect(
@@ -183,8 +183,8 @@ class ScreenSetting(QWidget):
         customName = UserSettingsManager.load_settings_item(self.sn, "customName")
         customName = customName if customName else self.parent.objectName()
         self.settingMenu.customName.setText(customName)
-        self._update_groupbox_name(self.parent, customName)  
-        
+        self._update_groupbox_name(self.parent, customName)
+
         # Update GroupBox name
         # Name) If custom name is changed, change the groupBox name.
         self.settingMenu.customName.textChanged.connect(
@@ -208,14 +208,14 @@ class ScreenSetting(QWidget):
         # Add the list of cameras (serial number) in ComboBox
         for sn in self.model.cameras_sn:
             self.settingMenu.snComboBox.addItem(sn)
-        
+
         # Select the sn for the current screen
         index = self.settingMenu.snComboBox.findText(self.sn)
         if index >= 0:
             self.settingMenu.snComboBox.setCurrentIndex(index)
         else:
             logger.error("SN not found in the list")
-    
+
     def _get_setting_menu(self, parent):
         # Initialize the settings menu UI from the .ui file
         settingMenu = QWidget(parent)
@@ -246,7 +246,7 @@ class ScreenSetting(QWidget):
     def _get_setting_button(self, parent):
         btn = QToolButton(parent)
         btn.setObjectName("Setting")
-        font_grpbox = QFont() # TODO move to config file
+        font_grpbox = QFont()  # TODO move to config file
         font_grpbox.setPointSize(8)
         btn.setFont(font_grpbox)
         btn.setCheckable(True)
@@ -258,7 +258,7 @@ class ScreenSetting(QWidget):
     def _update_setting_menu(self):
         # update sn
         self.sn = self.screen.get_camera_name()
-        
+
         # Load the saved settings
         saved_settings = UserSettingsManager.load_settings_item(self.sn)
         if saved_settings:

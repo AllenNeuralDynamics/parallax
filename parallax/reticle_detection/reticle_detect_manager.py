@@ -24,6 +24,7 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 IMG_SIZE_ORIGINAL = (4000, 3000)
 
+
 class ReticleDetectManager(QObject):
     """Reticle detection class"""
 
@@ -174,14 +175,14 @@ class ReticleDetectManager(QObject):
 
             ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
             if not self.running:
-                return  -1  # Exit early
+                return -1  # Exit early
             if not ret:
                 logger.debug(f"{self.name} - Stop request to process during get_coords_interest")
                 return None
 
             ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords)
             if not self.running:
-                return  -1 # Exit early
+                return -1  # Exit early
             if not ret:
                 logger.debug(f"{self.name} - Stop request to process during calibrate_camera ")
                 return None  # Calibration failed

@@ -11,7 +11,6 @@ Classes:
 import logging
 import cv2
 import numpy as np
-from scipy.spatial.transform import Rotation as Rscipy
 
 # Set logger name
 logger = logging.getLogger(__name__)

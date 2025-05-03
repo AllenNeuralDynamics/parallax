@@ -22,11 +22,10 @@ class ReticleDetecthandler(QWidget):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
-        self.filter = filter # TODO move filter to screen widget
+        self.filter = filter  # TODO move filter to screen widget
         self.camera_handler = StereoCameraHandler(model, self.screen_widgets)
 
         # UI
-        #self.reticle_calib_widget = QWidget()  # Create a new widget
         loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self)
         # Assuming reticleCalibPlaceholder is the name of an empty widget
         self.setMinimumSize(0, 120)
@@ -59,7 +58,6 @@ class ReticleDetecthandler(QWidget):
         )
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
-
 
     def reticle_detection_button_handler(self):
         """
@@ -124,7 +122,7 @@ class ReticleDetecthandler(QWidget):
         self.reticle_detection_status = "default"
         self.reticleCalibrationLabel.setText("")
         self.reticle_calibration_btn.setChecked(False)
-        
+
         self.model.reset_stage_calib_info()
         self.model.reset_stereo_calib_instance()
         self.model.reset_camera_extrinsic()
@@ -133,7 +131,6 @@ class ReticleDetecthandler(QWidget):
         if not self.reticle_calibration_btn.isEnabled():
             self.reticle_calibration_btn.setEnabled(True)
 
-        #self.reticleDetectionDefaultStatus.emit()  # Request to reset probe detection and Reset global coords displayed on the GUI
         self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
 
     def reticle_detect_accept_detected_status(self):
@@ -155,31 +152,6 @@ class ReticleDetecthandler(QWidget):
         self.continue_if_positive_x_axis_from_user()
         logger.debug(f"2 self.filter: {self.filter}")
 
-    def reticle_overwrite_popup_window(self):
-        """
-        Displays a confirmation dialog to decide whether to overwrite the current reticle position.
-
-        Returns:
-            bool: True if the user chooses to overwrite, False otherwise.
-        """
-        message = ("Are you sure you want to overwrite the current reticle position?")
-        logger.debug("Are you sure you want to overwrite the current reticle position?")
-        response = QMessageBox.warning(
-            self,
-            "Reticle Detection",
-            message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-
-        # Check which button was clicked
-        if response == QMessageBox.Yes:
-            logger.debug("User clicked Yes.")
-            return True
-        else:
-            logger.debug("User clicked No.")
-            return False
-        
     def reticle_detect_fail_popup_window(self):
         """
         Displays a warning dialog indicating the failure of reticle detection on one or more cameras.
@@ -194,7 +166,7 @@ class ReticleDetecthandler(QWidget):
         message = (
             f"No reticle detected on cameras: {coords_detect_fail_cameras}"
         )
-        QMessageBox.warning(self,"Reticle Detection Failed", message)
+        QMessageBox.warning(self, "Reticle Detection Failed", message)
 
     def reticle_detect_process_status(self):
         """
@@ -351,13 +323,9 @@ class ReticleDetecthandler(QWidget):
             self.reticle_detection_status = "accepted"
             logger.debug(f"1 self.filter: {self.filter}")
             self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
-
-            #self.reticleDetectionDone.emit() # Request enable_probe_calibration_btn and add screen_coords_mapper dropdown menu (global)
-
         else:
             self.coords_detected_screens = self.get_coords_detected_screens()
             logger.debug("Checking again for user input of positive x-axis...")
-
 
     def is_positive_x_axis_detected(self):
         """
@@ -427,7 +395,6 @@ class ReticleDetecthandler(QWidget):
                 coords_detected_cam_name.append(cam_name)
 
         return coords_detected_cam_name
-    
 
     def register_reticle_coords_intrinsic_to_model(self):
         """
