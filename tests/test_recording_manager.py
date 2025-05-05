@@ -3,7 +3,7 @@
 import pytest
 import os
 from unittest.mock import Mock, MagicMock
-from parallax.recording_manager import RecordingManager
+from parallax.handlers.recording_manager import RecordingManager
 
 @pytest.fixture
 def mock_model():

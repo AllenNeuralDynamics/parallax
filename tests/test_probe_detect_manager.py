@@ -2,7 +2,7 @@ import pytest
 import cv2
 import os
 import time
-from parallax.probe_detect_manager import ProbeDetectManager
+from parallax.probe_detection.probe_detect_manager import ProbeDetectManager
 
 # Define the folder containing your test images
 IMAGE_FOLDER = "tests/test_data/probe_detect_manager"

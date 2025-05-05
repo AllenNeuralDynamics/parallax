@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 from PyQt5.QtCore import QObject, pyqtSignal
-from parallax.probe_calibration import ProbeCalibration
+from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.model import Model  # Replace with the actual class that represents the model
 
 

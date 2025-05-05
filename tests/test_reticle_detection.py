@@ -1,8 +1,8 @@
 import pytest
 import cv2
 import numpy as np
-from parallax.reticle_detection import ReticleDetection
-from parallax.mask_generator import MaskGenerator
+from parallax.reticle_detection.reticle_detection import ReticleDetection
+from parallax.reticle_detection.mask_generator import MaskGenerator
 
 # Define the folder and image path for testing
 IMAGE_PATH = "tests/test_data/reticle_detect_manager/reticle1.png"

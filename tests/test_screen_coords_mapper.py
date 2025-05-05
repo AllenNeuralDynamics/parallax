@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from PyQt5.QtWidgets import QLineEdit, QComboBox, QWidget, QVBoxLayout
-from parallax.screen_coords_mapper import ScreenCoordsMapper
+from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
 from PyQt5.QtWidgets import QApplication
 
 @pytest.fixture(scope="function")

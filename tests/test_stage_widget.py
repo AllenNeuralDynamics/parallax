@@ -3,7 +3,7 @@ import os
 from PyQt5.QtWidgets import QApplication
 from unittest.mock import Mock
 import numpy as np
-from parallax.stage_widget import StageWidget
+from parallax.control_panel.control_panel import ControlPanel
 
 # Fixture for creating a QApplication
 @pytest.fixture(scope="function")
@@ -35,7 +35,7 @@ def stage_widget(qapp, mock_model):
     package_dir = os.path.dirname(os.path.abspath(__file__))
     ui_dir = os.path.join(os.path.dirname(package_dir), "ui")
     screen_widgets = [Mock(), Mock()]  # Mock screen widgets
-    widget = StageWidget(mock_model, ui_dir, screen_widgets)
+    widget = ControlPanel(mock_model, ui_dir, screen_widgets)
     return widget
 
 def test_stage_widget_initialization(stage_widget):

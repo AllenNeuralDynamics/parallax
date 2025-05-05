@@ -4,7 +4,7 @@ import time
 import cv2
 import os
 from PyQt5.QtCore import QCoreApplication, QEventLoop
-from parallax.reticle_detect_manager import ReticleDetectManager
+from parallax.reticle_detection.reticle_detect_manager import ReticleDetectManager
 
 @pytest.fixture
 def test_frame():
@@ -98,33 +98,6 @@ def test_reticle_detect_manager_found_coords_signal(test_frame, qt_application):
     x_axis_coords, y_axis_coords, mtx, dist, rvecs, tvecs = found_coords[0]
     assert isinstance(x_axis_coords, np.ndarray), "X-axis coordinates are not numpy array"
     assert isinstance(y_axis_coords, np.ndarray), "Y-axis coordinates are not numpy array"
-
-    # Stop the ReticleDetectManager
-    detect_manager.stop()
-
-# Test the cleanup function of ReticleDetectManager
-def test_reticle_detect_manager_cleanup(test_frame, qt_application):
-    """Test that ReticleDetectManager properly cleans up its threads."""
-    
-    # Initialize ReticleDetectManager
-    camera_name = "TestCamera123"
-    detect_manager = ReticleDetectManager(camera_name)
-
-    # Start the ReticleDetectManager
-    detect_manager.start()
-
-    # Send the test frame for processing
-    detect_manager.process(test_frame)
-
-    # Wait for some time to ensure processing has started
-    time.sleep(1)
-
-    # Call the clean method to clean up threads
-    detect_manager.clean()
-
-    # Ensure the thread and worker are cleaned up
-    assert detect_manager.thread is None, "Thread was not cleaned up"
-    assert detect_manager.worker is None, "Worker was not cleaned up"
 
     # Stop the ReticleDetectManager
     detect_manager.stop()

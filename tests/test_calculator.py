@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from PyQt5.QtWidgets import QLineEdit, QComboBox
 import numpy as np
-from parallax.calculator import Calculator
+from parallax.handlers.calculator import Calculator
 
 @pytest.fixture
 def setup_calculator(qtbot):
@@ -16,7 +16,7 @@ def setup_calculator(qtbot):
     model.transforms = {'stage1': (np.eye(4), [1, 1, 1]), 'stage2': (None, None)}
 
     # Initialize the Calculator widget
-    calculator = Calculator(model, reticle_selector, stage_controller)
+    calculator = Calculator(model, reticle_selector)
     qtbot.addWidget(calculator)
     calculator.show()
 
@@ -54,31 +54,30 @@ def test_set_current_reticle(setup_calculator, qtbot):
      np.array([1, 1, 1]), 
      110.0, 220.0, 330.0)
 ])
+
 def test_transform_local_to_global(setup_calculator, qtbot, localX, localY, localZ, transM_LR, scale, expected_globalX, expected_globalY, expected_globalZ):
     calculator, model, stage_controller = setup_calculator
 
-    # Mock the QLineEdit fields for stage1
+    # Inject transformation matrix and scale into the mocked model
+    model.transforms['stage1'] = (transM_LR, scale)
+
+    # Input local coordinates
     qtbot.keyClicks(calculator.findChild(QLineEdit, 'localX_stage1'), str(localX))
     qtbot.keyClicks(calculator.findChild(QLineEdit, 'localY_stage1'), str(localY))
     qtbot.keyClicks(calculator.findChild(QLineEdit, 'localZ_stage1'), str(localZ))
 
-    # Simulate conversion
-    calculator._convert('stage1', transM_LR, scale)
+    # Perform the conversion
+    calculator._convert('stage1')
 
-    # Retrieve the global coordinates from the UI
-    globalX = calculator.findChild(QLineEdit, 'globalX_stage1').text()
-    globalY = calculator.findChild(QLineEdit, 'globalY_stage1').text()
-    globalZ = calculator.findChild(QLineEdit, 'globalZ_stage1').text()
+    # Read back the global results from the UI
+    globalX = float(calculator.findChild(QLineEdit, 'globalX_stage1').text())
+    globalY = float(calculator.findChild(QLineEdit, 'globalY_stage1').text())
+    globalZ = float(calculator.findChild(QLineEdit, 'globalZ_stage1').text())
 
-    # Convert text values to float for assertion
-    globalX = float(globalX)
-    globalY = float(globalY)
-    globalZ = float(globalZ)
-
-    # Check if the transformed values match expected values
-    assert globalX == pytest.approx(expected_globalX, abs=5), f"Expected globalX to be {expected_globalX}, got {globalX}"
-    assert globalY == pytest.approx(expected_globalY, abs=5), f"Expected globalY to be {expected_globalY}, got {globalY}"
-    assert globalZ == pytest.approx(expected_globalZ, abs=5), f"Expected globalZ to be {expected_globalZ}, got {globalZ}"
+    # Assert with tolerance
+    assert globalX == pytest.approx(expected_globalX, abs=5)
+    assert globalY == pytest.approx(expected_globalY, abs=5)
+    assert globalZ == pytest.approx(expected_globalZ, abs=5)
 
 def test_transform_global_to_local(setup_calculator, qtbot):
     calculator, model, stage_controller = setup_calculator
@@ -88,12 +87,12 @@ def test_transform_global_to_local(setup_calculator, qtbot):
     qtbot.keyClicks(calculator.findChild(QLineEdit, 'globalY_stage1'), "25.0")
     qtbot.keyClicks(calculator.findChild(QLineEdit, 'globalZ_stage1'), "35.0")
 
-    # Mock transformation matrix and scale for stage1
+    # Inject transformation into model
     transM_LR = np.array([[1, 0, 0, 5], [0, 1, 0, 5], [0, 0, 1, 5], [0, 0, 0, 1]])
     scale = np.array([1, 1, 1])
+    model.transforms['stage1'] = (transM_LR, scale)
 
-    # Simulate conversion
-    calculator._convert('stage1', transM_LR, scale)
+    calculator._convert('stage1')
 
     localX = calculator.findChild(QLineEdit, 'localX_stage1').text()
     localY = calculator.findChild(QLineEdit, 'localY_stage1').text()

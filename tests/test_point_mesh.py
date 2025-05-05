@@ -2,7 +2,7 @@ import pytest
 import os
 import numpy as np
 from PyQt5.QtWidgets import QApplication
-from parallax.point_mesh import PointMesh
+from parallax.handlers.point_mesh import PointMesh
 from parallax.model import Model  # Replace with the actual class that represents the model
 
 @pytest.fixture(scope="session")

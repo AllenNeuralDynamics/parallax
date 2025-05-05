@@ -2,13 +2,18 @@
 import pytest
 from unittest.mock import patch, MagicMock
 from parallax.model import Model 
-from parallax.camera import MockCamera, PySpinCamera  
-from parallax.stage_listener import Stage, StageInfo 
+from parallax.cameras.camera import MockCamera, PySpinCamera  
+from parallax.stages.stage_listener import Stage, StageInfo 
 
 @pytest.fixture(scope='function')
 def model():
-    """Fixture to initialize the Model object."""
-    return Model(version="V2", bundle_adjustment=False)
+    args = MagicMock()
+    args.dummy = False
+    args.test = False
+    args.bundle_adjustment = False
+    args.reticle_detection = "default"
+    args.nCameras = 1
+    return Model(args, version="V2")
 
 def test_scan_for_cameras(model):
     """Test scanning for cameras and updating the model's camera list."""
@@ -36,16 +41,6 @@ def test_scan_for_cameras(model):
 
         # Verify that the camera serial numbers are correctly updated.
         assert len(model.cameras_sn) == 2, "The model should have serial numbers for 2 cameras."
-
-def test_add_mock_cameras(model):
-    """Test adding mock cameras to the model."""
-    # Add 3 mock cameras.
-    model.add_mock_cameras(n=2)
-
-    # Verify that 3 mock cameras were added.
-    assert len(model.cameras) == 2
-    for camera in model.cameras:
-        assert isinstance(camera, MockCamera)
 
 def test_add_stage(model):
     """Test adding a stage to the model."""

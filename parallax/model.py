@@ -7,18 +7,15 @@ This class integrates various hardware components such as cameras and stages and
 their initialization, configuration, and transformations between local and global coordinates.
 """
 from collections import OrderedDict
-from PyQt5.QtCore import QObject, pyqtSignal
-from .camera import MockCamera, PySpinCamera, close_cameras, list_cameras
-from .stage_listener import Stage, StageInfo
+from PyQt5.QtCore import QObject
+from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
+from parallax.stages.stage_listener import Stage, StageInfo
 
 
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""
 
-    msg_posted = pyqtSignal(str)
-    accutest_point_reached = pyqtSignal()
-
-    def __init__(self, version="V1", dummy=False, bundle_adjustment=False):
+    def __init__(self, args=None, version="V2"):
         """Initialize the Model object.
 
         Args:
@@ -26,15 +23,19 @@ class Model(QObject):
             bundle_adjustment (bool): Whether to enable bundle adjustment for calibration.
         """
         QObject.__init__(self)
+        # args from command line
         self.version = version
-        self.dummy = dummy
-        self.bundle_adjustment = bundle_adjustment
-        # camera
-        self.cameras = []
-        self.cameras_sn = []
+        self.dummy = getattr(args, "dummy", False)
+        self.test = getattr(args, "test", False)
+        self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
+        self.reticle_detection = getattr(args, "reticle_detection", "default")
+        self.nMockCameras = getattr(args, "nCameras", 1)
+
+        # cameras
+        self.refresh_camera = False
+        self.cameras = []  # instance of cameras
+        self.cameras_sn = []  # camera serial numbers
         self.nPySpinCameras = 0
-        self.nMockCameras = 0
-        self.focos = []
 
         # point mesh
         self.point_mesh_instances = {}
@@ -110,33 +111,22 @@ class Model(QObject):
         """
         self.cameras.append(video_source)
 
-    def add_mock_cameras(self, n=1):
+    def add_mock_cameras(self):
         """Add mock cameras for testing purposes.
 
         Args:
             n (int): The number of mock cameras to add.
         """
-        for i in range(n):
-            self.cameras.append(MockCamera())
+        for i in range(self.nMockCameras):
+            mockCamera = MockCamera()
+            self.cameras.append(mockCamera)
+            self.cameras_sn.append(mockCamera.name(sn_only=True))
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
         self.cameras = list_cameras(version=self.version) + self.cameras
         self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
-        self.nMockCameras = len(
-            [
-                camera
-                for camera in self.cameras
-                if isinstance(camera, MockCamera)
-            ]
-        )
-        self.nPySpinCameras = len(
-            [
-                camera
-                for camera in self.cameras
-                if isinstance(camera, PySpinCamera)
-            ]
-        )
+        self.nPySpinCameras = len([cam for cam in self.cameras if isinstance(cam, PySpinCamera)])
 
     def set_stage_listener_url(self, url):
         """Set the URL for the stage listener.
