@@ -694,21 +694,19 @@ class PySpinCamera(BaseCamera):
             del self.camera
 
 
-# Class for simulating a mock camera
 class MockCamera(BaseCamera):
-    """Mock Camera showing salts and pepper noise images"""
+    """Mock Camera that supports image or video input, or generates random frames"""
     n_cameras = 0
 
     def __init__(self):
-        """Initialize a mock camera with a unique name"""
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
-        # Create mock image data with random values
-        self.random_data = np.random.randint(
-            0, 255, size=(5, 3000, 4000), dtype="ubyte"
-        )
-        self.data = None
+
+        self.random_data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype="ubyte")
+        self.data = None  # For image input
+        self.video_cap = None  # For video file input
         self._next_frame = 0
+
         self.device_color_type = "Color"
         self.width = 4000
         self.height = 3000
@@ -718,40 +716,46 @@ class MockCamera(BaseCamera):
         return self._name
 
     def get_last_image_data(self):
-        if self.data is not None:
+        # Video
+        if self.video_cap is not None:
+            ret, frame = self.video_cap.read()
+            if ret:
+                return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            else:
+                # Loop back to start of video if end is reached
+                self.video_cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                return self.get_last_image_data()
+
+        # Image
+        elif self.data is not None:
             return self.data.copy()
+
+        # Noise date
         else:
             frame = self.random_data[self._next_frame]
             self._next_frame = (self._next_frame + 1) % self.random_data.shape[0]
             return frame
 
     def set_data(self, filepath):
-        """Set the mock camera data"""
-        data = cv2.imread(filepath)
-        if data is None:
-            raise ValueError(f"Could not read image from {filepath}")
-        self.data = cv2.cvtColor(data, cv2.COLOR_BGR2RGB)
+        """Set image or video as the mock data source"""
+        ext = os.path.splitext(filepath)[-1].lower()
 
+        # Data is an image
+        if ext in [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]:
+            img = cv2.imread(filepath)
+            if img is None:
+                raise ValueError(f"Could not read image from {filepath}")
+            self.data = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            self.video_cap = None  # Clear video if previously set
 
-class VideoSource(BaseCamera):
-    """Video Source"""
+        # Data is a video file
+        elif ext in [".mp4", ".avi", ".mov", ".mkv"]:
+            cap = cv2.VideoCapture(filepath)
+            if not cap.isOpened():
+                raise ValueError(f"Could not open video from {filepath}")
+            self.video_cap = cap
+            self.data = None  # Clear image if previously set
 
-    def __init__(self, filename):
-        """Initialize a video source with a given filename"""
-        self.filename = filename
-        self._name = os.path.basename(self.filename)
-        self.cap = cv2.VideoCapture(self.filename)
-
-    def name(self, sn_only=False):
-        """Get the name of the video source"""
-        return self._name
-
-    def get_last_image_data(self):
-        """Read the last captured frame from the video source"""
-        ret, frame = self.cap.read()
-        if ret:
-            return frame
+        # Data is None
         else:
-            # If the video has ended, reset the video source to the beginning
-            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            return np.random.randint(0, 255, size=(3000, 4000), dtype="ubyte")
+            raise ValueError(f"Unsupported file type: {ext}")
