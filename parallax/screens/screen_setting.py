@@ -47,10 +47,10 @@ class ScreenSetting(QWidget):
         if is_checked:
             self.settings_refresh_timer.start(500)  # Update setting menu every 500ms
             # Show the setting menu next to setting button
-            button_position = self.settingButton.mapToGlobal(self.settingButton.pos())
-            menu_x = button_position.x() + self.settingButton.width()
-            menu_x = menu_x - self.parent.mapToGlobal(QPoint(0, 0)).x()
-            menu_y = self.settingButton.y() + self.settingButton.height() - self.settingMenu.height()
+            button_pos_global = self.settingButton.mapToGlobal(QPoint(0, 0))
+            parent_pos_global = self.parent.mapToGlobal(QPoint(0, 0))
+            menu_x = button_pos_global.x() + self.settingButton.width() - parent_pos_global.x()
+            menu_y = button_pos_global.y() - self.settingMenu.height() - parent_pos_global.y()
             self.settingMenu.move(menu_x, menu_y)
             self.settingMenu.show()
         else:
@@ -228,6 +228,7 @@ class ScreenSetting(QWidget):
     def _add_btn_for_dummy(self, settingMenu):
         if self.model.dummy:
             dummy_btn = QPushButton("...", settingMenu)
+            dummy_btn.setMaximumWidth(50)
             dummy_btn.clicked.connect(self._open_file_dialog)
 
     def _open_file_dialog(self):

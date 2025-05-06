@@ -1,7 +1,8 @@
 
 import logging
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QGridLayout
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QGridLayout, QHBoxLayout
 from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.config.user_setting_manager import UserSettingsManager
@@ -140,7 +141,19 @@ class ScreenWidgetManager:
                 screen, screen_index, screen_setting.settingMenu.snComboBox.currentText()
             )
         )
-        verticalLayout.addWidget(screen_setting.settingButton)
+        #verticalLayout.addWidget(screen_setting.settingButton)
+        #verticalLayout.addWidget(reticle_detector.detectButton)
+
+        # Create a horizontal layout for the buttons
+        button_row = QHBoxLayout()
+        button_row.setAlignment(Qt.AlignLeft)
+        button_row.addWidget(screen_setting.settingButton)
+        button_row.addWidget(reticle_detector.detectButton)
+
+        # Add the button row to the vertical layout
+        verticalLayout.addLayout(button_row)
+
+
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
         self.screen_widgets.append(screen)
 
