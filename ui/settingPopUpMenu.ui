@@ -337,8 +337,8 @@ font: 8pt;
     <widget class="QPushButton" name="expAuto">
      <property name="maximumSize">
       <size>
-       <width>30</width>
-       <height>30</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
      <property name="text">
@@ -350,8 +350,8 @@ font: 8pt;
     <widget class="QPushButton" name="gainAuto">
      <property name="maximumSize">
       <size>
-       <width>30</width>
-       <height>30</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
      <property name="text">
@@ -363,8 +363,8 @@ font: 8pt;
     <widget class="QPushButton" name="wbAuto">
      <property name="maximumSize">
       <size>
-       <width>30</width>
-       <height>30</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
      <property name="text">
@@ -376,8 +376,8 @@ font: 8pt;
     <widget class="QPushButton" name="gammaAuto">
      <property name="maximumSize">
       <size>
-       <width>30</width>
-       <height>30</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
      <property name="text">
