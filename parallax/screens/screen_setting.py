@@ -10,7 +10,6 @@ from parallax.config.user_setting_manager import UserSettingsManager
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-
 class ScreenSetting(QWidget):
     """Settings menu widget to control a microscope screen."""
 

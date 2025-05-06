@@ -6,7 +6,6 @@ from PyQt5.QtGui import QFont
 from PyQt5.uic import loadUi
 
 from parallax.config.config_path import ui_dir
-from parallax.config.user_setting_manager import UserSettingsManager
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -28,6 +27,21 @@ class ReticleDetectWidget(QWidget):
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
         )
+        self.settingMenu.run_pushBtn.clicked.connect(self._run_detection)
+        self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
+
+    def _run_detection(self):
+        if self.settingMenu.radioButton1.isChecked():
+            # Run open cv default detection
+            print("Running OpenCV detection")
+        elif self.settingMenu.radioButton2.isChecked():
+            print("Running SuperPoint + LightGlue")
+        pass
+
+    def _reset_detection(self):
+        print("Resetting to default")
+        # TODO Reset from the model
+        pass
 
     def _get_setting_button(self):
         btn = QToolButton(self.parent)
