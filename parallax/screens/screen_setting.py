@@ -14,14 +14,13 @@ logger.setLevel(logging.WARNING)
 class ScreenSetting(QWidget):
     """Settings menu widget to control a microscope screen."""
 
-    def __init__(self, parent, model, screen, screen_index):
+    def __init__(self, parent, model, screen):
         super().__init__()
         # Add setting button
         self.model = model
         self.parent = parent
         self.screen = screen
-        self.screen_index = screen_index
-        self.sn = self.screen.get_camera_name()  # self.sn is updated when camera is changed
+        self.sn = self.screen.get_camera_name()  # self.sn can be updated on runtime when camera is changed
 
         # Init
         self.settingButton = self._get_setting_button(self.parent)

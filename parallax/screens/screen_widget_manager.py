@@ -6,6 +6,7 @@ from PyQt5.QtGui import QFont
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_setting import ScreenSetting
+from parallax.reticle_detection.reticle_detect_widget import ReticleDetectWidget
 
 logger = logging.getLogger(__name__)
 
@@ -124,9 +125,14 @@ class ScreenWidgetManager:
         screen_setting = ScreenSetting(
                 parent=microscopeGrp,
                 model=self.model,
-                screen=screen,
-                screen_index=screen_index
-        )
+                screen=screen
+            )
+
+        reticle_detector = ReticleDetectWidget(
+                parent=microscopeGrp,
+                model=self.model,
+                screen=screen
+            )
 
         # If serial number is changed, connect to update_screen function and update setting menu
         screen_setting.settingMenu.snComboBox.currentIndexChanged.connect(
