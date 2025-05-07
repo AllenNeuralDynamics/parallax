@@ -11,6 +11,7 @@ Classes:
 import logging
 import cv2
 import numpy as np
+import scipy.spatial.transform as Rscipy
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -194,49 +195,6 @@ class CalibrationCamera:
         else:
             return False, None, None
 
-    def get_origin_xyz(self):
-        """
-        Get origin (0,0) and axis points (x, y, z coords) in image coordinates.
-
-        Returns:
-            tuple: Origin, x-axis, y-axis, z-axis points.
-        """
-        axis = np.float32([[5, 0, 0], [0, 5, 0], [0, 0, 7]]).reshape(-1, 3)
-        # Find the rotation and translation vectors.
-        # Output rotation vector (see Rodrigues ) that, together with tvec,
-        # brings points from the model coordinate system
-        # to the camera coordinate system.
-        if self.objpoints is not None:
-            solvePnP_method = cv2.SOLVEPNP_ITERATIVE
-            _, rvecs, tvecs = cv2.solvePnP(
-                self.objpoints,
-                self.imgpoints,
-                self.mtx,
-                self.dist,
-                flags=solvePnP_method,
-            )
-            imgpts, _ = cv2.projectPoints(
-                axis, rvecs, tvecs, self.mtx, self.dist
-            )
-            origin = tuple(
-                self.imgpoints[0][CENTER_INDEX_X].ravel().astype(int)
-            )
-            x = tuple(imgpts[0].ravel().astype(int))
-            y = tuple(imgpts[1].ravel().astype(int))
-            z = tuple(imgpts[2].ravel().astype(int))
-
-            """
-            # Uncomment to print quaternion and translation vector
-            R, _ = cv2.Rodrigues(rvecs)
-            quat = Rscipy.from_matrix(R).as_quat()  # [QX, QY, QZ, QW]
-            QX, QY, QZ, QW = quat
-            TX, TY, TZ = tvecs.flatten()
-            print(f"{self.name}: {QW} {QX} {QY} {QZ} {TX} {TY} {TZ}")
-            """
-
-            return origin, x, y, z
-        else:
-            return None
 
 
 class CalibrationStereo(CalibrationCamera):
@@ -593,33 +551,110 @@ class CalibrationStereo(CalibrationCamera):
         objpoints = np.array([objpoint], dtype=np.float32)
 
         # Call the get_pixel_coordinates method using the object points
-        pixel_coordsA = self.get_pixel_coordinates(objpoints, self.rvecA, self.tvecA, self.mtxA, self.distA)
-        pixel_coordsB = self.get_pixel_coordinates(objpoints, self.rvecB, self.tvecB, self.mtxB, self.distB)
+        pixel_coordsA = get_projected_points(objpoints, self.rvecA, self.tvecA, self.mtxA, self.distA)
+        pixel_coordsB = get_projected_points(objpoints, self.rvecB, self.tvecB, self.mtxB, self.distB)
 
         # Register the pixel coordinates for the debug points
         self.model.add_coords_for_debug(camA, pixel_coordsA)
         self.model.add_coords_for_debug(camB, pixel_coordsB)
 
-    def get_pixel_coordinates(self, objpoints, rvec, tvec, mtx, dist):
-        """
-        Projects 3D object points onto the 2D image plane and returns pixel coordinates.
 
-        Parameters:
-            objpoints (list): List of 3D object points.
-            rvec (np.ndarray): Rotation vector.
-            tvec (np.ndarray): Translation vector.
-            mtx (np.ndarray): Camera matrix.
-            dist (np.ndarray): Distortion coefficients.
+# Utils
+def get_projected_points(objpoints, rvec, tvec, mtx, dist):
+    """
+    Projects 3D object points onto the 2D image plane and returns pixel coordinates.
+    Parameters:
+        objpoints (list): List of 3D object points.
+        rvec (np.ndarray): Rotation vector.
+        tvec (np.ndarray): Translation vector.
+        mtx (np.ndarray): Camera matrix.
+        dist (np.ndarray): Distortion coefficients.
+    Returns:
+        list: List of pixel coordinates corresponding to the object points.
+    """
 
-        Returns:
-            list: List of pixel coordinates corresponding to the object points.
-        """
-        pixel_coordinates = []
-        for points in objpoints:
-            # Project the 3D object points to 2D image points
-            imgpoints, _ = cv2.projectPoints(points, rvec, tvec, mtx, dist)
-            # Convert to integer tuples and append to the list
-            imgpoints_tuples = [tuple(map(lambda x: int(round(x)), point)) for point in imgpoints.reshape(-1, 2)]
-            pixel_coordinates.append(imgpoints_tuples)
+    """
+    pixel_coordinates = []
+    for points in objpoints:
+        # Project the 3D object points to 2D image points
+        imgpoints, _ = cv2.projectPoints(points, rvec, tvec, mtx, dist)
+        # Convert to integer tuples and append to the list
+        imgpoints_tuples = [tuple(map(lambda x: int(round(x)), point)) for point in imgpoints.reshape(-1, 2)]
+        pixel_coordinates.append(imgpoints_tuples)
+    return pixel_coordinates
+    """
+    imgpoints, _ = cv2.projectPoints(objpoints, rvec, tvec, mtx, dist)
+    return np.round(imgpoints.reshape(-1, 2)).astype(np.int32)
 
-        return pixel_coordinates
+def get_axis_object_points(axis='x', coord_range=10, world_scale=0.2):
+    """
+    Generate 1D object points along a given axis.
+
+    Args:
+        axis (str): 'x' or 'y' to indicate along which axis to generate points.
+        coord_range (int): Half-range for coordinates (from -range to +range).
+        world_scale (float): Scale factor to convert to real-world units (e.g., mm).
+
+    Returns:
+        numpy.ndarray: Object points (N x 3) along the specified axis.
+    """
+    coords = np.arange(-coord_range, coord_range + 1, dtype=np.float32)
+    points = np.zeros((len(coords), 3), dtype=np.float32)
+
+    if axis == 'x':
+        points[:, 0] = coords
+    elif axis == 'y':
+        points[:, 1] = coords
+    else:
+        raise ValueError("axis must be 'x' or 'y'")
+
+    return np.round(points * world_scale, 2)
+
+def get_origin_xyz(imgpoints, mtx, dist, rvecs, tvecs, center_index_x=0, axis_length=5):
+    """
+    Get origin (0,0) and axis points (x, y, z coords) in image coordinates using known pose.
+
+    Args:
+        imgpoints (np.ndarray): 2D image points corresponding to object points (N x 1 x 2 or N x 2).
+        mtx (np.ndarray): Camera intrinsic matrix.
+        dist (np.ndarray): Distortion coefficients.
+        rvecs (np.ndarray): Rotation vector (3x1).
+        tvecs (np.ndarray): Translation vector (3x1).
+        center_index_x (int): Index in imgpoints corresponding to the origin.
+
+    Returns:
+        tuple: Origin, x-axis, y-axis, z-axis image coordinates as integer tuples.
+    """
+    if imgpoints is None:
+        return None
+
+    # Define 3D axes in world coordinates (X, Y, Z directions from origin)
+    axis = np.float32([[axis_length, 0, 0], [0, axis_length, 0], [0, 0, axis_length]]).reshape(-1, 3)
+
+    # Project axis to 2D image points using known rvecs, tvecs
+    imgpts, _ = cv2.projectPoints(axis, rvecs, tvecs, mtx, dist)
+
+    origin = tuple(np.round(imgpoints[center_index_x].ravel()).astype(int))
+    x = tuple(np.round(imgpts[0].ravel()).astype(int))
+    y = tuple(np.round(imgpts[1].ravel()).astype(int))
+    z = tuple(np.round(imgpts[2].ravel()).astype(int))
+
+    return origin, x, y, z
+
+    
+def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
+    """
+    Print the quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ) 
+    derived from a rotation vector and translation vector.
+    Args:
+        rvecs (np.ndarray): Rotation vector (3x1 or 1x3).
+        tvecs (np.ndarray): Translation vector (3x1 or 1x3).
+        name (str): Optional name to include in the output.
+    """
+    R, _ = cv2.Rodrigues(rvecs)
+    quat = Rscipy.from_matrix(R).as_quat()  # [QX, QY, QZ, QW]
+    QX, QY, QZ, QW = quat
+    TX, TY, TZ = tvecs.flatten()
+    print(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
+
+    return QW, QX, QY, QZ, TX, TY, TZ
