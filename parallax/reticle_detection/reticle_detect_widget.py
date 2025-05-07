@@ -62,8 +62,7 @@ class ReticleDetectWidget(QWidget):
 
     def _reticle_detected(self):
         # Enable button
-        self.settingMenu.run_pushBtn.setEnabled(True)
-        self.settingMenu.run_pushBtn.setText("Run")
+        self.settingMenu.run_pushBtn.setText("Detected")
         # Draw other filters
 
     def _reticle_detect_failed(self):
