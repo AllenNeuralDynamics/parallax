@@ -19,7 +19,6 @@ class ReticleDetectWidget(QWidget):
         self.model = model
         self.parent = parent
         self.screen = screen
-        self.sn = self.screen.get_camera_name()  # self.sn can be updated on runtime when camera is changed
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
@@ -29,19 +28,47 @@ class ReticleDetectWidget(QWidget):
         )
         self.settingMenu.run_pushBtn.clicked.connect(self._run_detection)
         self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
+        self.screen.reticle_coords_detected.connect(self._reticle_detected)
+        self.screen.reticle_coords_detect_fail.connect(self._reticle_detect_failed)
 
     def _run_detection(self):
+        # Disable button and change appearance
+        self.settingMenu.run_pushBtn.setEnabled(False)
+        self.settingMenu.run_pushBtn.setText("Running...")
+
+        # Reset previous detection data
+        self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
+
+        # Run open cv default detection
         if self.settingMenu.radioButton1.isChecked():
-            # Run open cv default detection
             print("Running OpenCV detection")
+            if self.screen.get_camera_color_type() == "Color":
+                self.screen.run_reticle_detection()
+
+        # SuperPoint + LightGlue detection
         elif self.settingMenu.radioButton2.isChecked():
             print("Running SuperPoint + LightGlue")
-        pass
 
     def _reset_detection(self):
         print("Resetting to default")
         # TODO Reset from the model
+        self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
+        self.screen.run_no_filter()
+
+        # Enable button
+        self.settingMenu.run_pushBtn.setEnabled(True)
+        self.settingMenu.run_pushBtn.setText("Run")
         pass
+
+    def _reticle_detected(self):
+        # Enable button
+        self.settingMenu.run_pushBtn.setEnabled(True)
+        self.settingMenu.run_pushBtn.setText("Run")
+        # Draw other filters
+
+    def _reticle_detect_failed(self):
+        print(f"{self.screen.camera_name} Detection failed")
+        self._reset_detection()
 
     def _get_setting_button(self):
         btn = QToolButton(self.parent)

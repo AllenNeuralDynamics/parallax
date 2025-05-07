@@ -41,6 +41,9 @@ font: 8pt;
      <property name="text">
       <string>OpenCV</string>
      </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
     </widget>
    </item>
    <item row="2" column="0">

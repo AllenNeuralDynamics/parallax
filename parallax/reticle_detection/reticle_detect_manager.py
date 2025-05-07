@@ -18,7 +18,7 @@ from parallax.reticle_detection.reticle_detection_coords_interests import Reticl
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -31,15 +31,15 @@ class ReticleDetectManager(QObject):
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    detect_failed = pyqtSignal()
 
     class Worker(QObject):
         """Reticle detection Worker Thread"""
 
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(
-            np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple
-        )
+        found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+        detect_failed = pyqtSignal()
 
         def __init__(self, name, test_mode=False):
             """Initialize the worker"""
@@ -229,6 +229,7 @@ class ReticleDetectManager(QObject):
                         return  # Exit early
                     if result is None:
                         logger.debug(f"{self.name} - Detection failed")
+                        self.detect_failed.emit()
                         self.finished.emit()
                         return  # Exit early
                     if result == 1:
@@ -270,6 +271,7 @@ class ReticleDetectManager(QObject):
 
         self.worker.frame_processed.connect(self.frame_processed)
         self.worker.found_coords.connect(self.found_coords)
+        self.worker.detect_failed.connect(self.detect_failed)
 
     def process(self, frame):
         """Process the frame using the worker.

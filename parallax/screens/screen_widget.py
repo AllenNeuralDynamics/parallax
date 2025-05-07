@@ -28,6 +28,7 @@ class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(str, tuple)  # camera name, (x, y)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
+    reticle_coords_detect_fail = pyqtSignal()
     # camera name, timestamp, sn, stage_info, pixel_coords
     probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)
 
@@ -97,6 +98,7 @@ class ScreenWidget(pg.GraphicsView):
         )
         self.reticleDetector.found_coords.connect(self.found_reticle_coords)
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
+        self.reticleDetector.detect_failed.connect(self.reticle_coords_detect_fail)
 
         # Probe Detection
         self.probeDetector = ProbeDetectManager(self.model, self.camera_name)
@@ -313,7 +315,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
-        logger.debug(f"{self.camera_name} - run_reticle_detection")
+        logger.debug(f"{self.camera_name} - run_reticle_detection ")
         self.filter.stop()
         self.axisFilter.stop()
         self.reticleDetector.start()
@@ -343,14 +345,16 @@ class ScreenWidget(pg.GraphicsView):
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist, rvecs, tvecs):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
-        self.reticle_coords = [x_coords, y_coords]
-        self.mtx = mtx
-        self.dist = dist
-        self.rvecs = rvecs
-        self.tvecs = tvecs
+        coords = [x_coords, y_coords]
+        #self.mtx = mtx
+        #self.dist = dist
+        #self.rvecs = rvecs
+        #self.tvecs = tvecs
+        self.model.add_coords_axis(self.camera_name, coords)
+        self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)
 
-    def reset_reticle_coords(self):
-        """Reset reticle coordinates."""
+    def reset_reticle_coords_deprecate(self):
+        """Reset reticle coordinates. """
         self.reticle_coords = None
         self.mtx = None
         self.dist = None
@@ -374,7 +378,7 @@ class ScreenWidget(pg.GraphicsView):
             self.probe_detect_last_coords,
         )
 
-    def get_camera_intrinsic(self):
+    def get_camera_intrinsic_deprecate(self):
         """Get the camera intrinsic parameters."""
         return self.mtx, self.dist, self.rvecs, self.tvecs
 
