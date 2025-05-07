@@ -31,7 +31,7 @@ class ReticleDetecthandler(QWidget):
         self.setMinimumSize(0, 120)
 
         # Buttons
-        self.reticle_calibration_btn = self.findChild(QPushButton, "reticle_calibration_btn")
+        self.triangulate_btn = self.findChild(QPushButton, "triangulate_btn")
         self.acceptButton = self.findChild(QPushButton, "acceptButton")
         self.rejectButton = self.findChild(QPushButton, "rejectButton")
         self.reticleCalibrationLabel = self.findChild(QLabel, "reticleCalibResultLabel")
@@ -40,8 +40,8 @@ class ReticleDetecthandler(QWidget):
         self.reticle_detection_status = (
             "default"  # options: default, process, detected, accepted
         )
-        self.reticle_calibration_btn.clicked.connect(
-            self.reticle_detection_button_handler
+        self.triangulate_btn.clicked.connect(
+            self.triangulate_btn_handler
         )
 
         # Hide Accept and Reject Button in Reticle Detection
@@ -59,13 +59,13 @@ class ReticleDetecthandler(QWidget):
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
 
-    def reticle_detection_button_handler(self):
+    def triangulate_btn_handler(self):
         """
         Handles clicks on the reticle detection button, initiating or canceling reticle detection.
         """
-        logger.debug(f"\n reticle_detection_button_handler {self.reticle_detection_status}")
-        logger.debug(f"reticle_calibration_btn.isChecked(): {self.reticle_calibration_btn.isChecked()}")
-        if self.reticle_calibration_btn.isChecked():
+        logger.debug(f"\n triangulate_btn_handler {self.reticle_detection_status}")
+        logger.debug(f"triangulate_btn.isChecked(): {self.triangulate_btn.isChecked()}")
+        if self.triangulate_btn.isChecked():
             # Run reticle detectoin
             self.reticle_detect_process_status()
             # Init probe calibration property
@@ -76,10 +76,10 @@ class ReticleDetecthandler(QWidget):
                 if response:
                     # Overwrite the result
                     self.reticle_detect_default_status()
-                    self.reticle_calibration_btn.setChecked(False)
+                    self.triangulate_btn.setChecked(False)
                 else:
                     # Keep the last calibration result
-                    self.reticle_calibration_btn.setChecked(True)
+                    self.triangulate_btn.setChecked(True)
 
     def reticle_detect_default_status(self):
         """
@@ -109,7 +109,7 @@ class ReticleDetecthandler(QWidget):
         self.acceptButton.hide()
         self.rejectButton.hide()
 
-        self.reticle_calibration_btn.setStyleSheet(
+        self.triangulate_btn.setStyleSheet(
             """
             QPushButton {
                 color: white;
@@ -121,15 +121,15 @@ class ReticleDetecthandler(QWidget):
         """)
         self.reticle_detection_status = "default"
         self.reticleCalibrationLabel.setText("")
-        self.reticle_calibration_btn.setChecked(False)
+        self.triangulate_btn.setChecked(False)
 
         self.model.reset_stage_calib_info()
         self.model.reset_stereo_calib_instance()
         self.model.reset_camera_extrinsic()
 
-        # Enable reticle_calibration_btn button
-        if not self.reticle_calibration_btn.isEnabled():
-            self.reticle_calibration_btn.setEnabled(True)
+        # Enable triangulate_btn button
+        if not self.triangulate_btn.isEnabled():
+            self.triangulate_btn.setEnabled(True)
 
         self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
 
@@ -140,7 +140,7 @@ class ReticleDetecthandler(QWidget):
         """
 
         # Change the button to green.
-        self.reticle_calibration_btn.setStyleSheet(
+        self.triangulate_btn.setStyleSheet(
             "color: white;"
             "background-color: #84c083;"
         )
@@ -172,12 +172,12 @@ class ReticleDetecthandler(QWidget):
         """
         Updates the UI and internal state to reflect that the reticle detection process is underway.
         """
-        # Disable reticle_calibration_btn button
-        if self.reticle_calibration_btn.isEnabled():
-            self.reticle_calibration_btn.setEnabled(False)
+        # Disable triangulate_btn button
+        if self.triangulate_btn.isEnabled():
+            self.triangulate_btn.setEnabled(False)
 
         # Run reticle detectoin
-        self.reticle_calibration_btn.setStyleSheet(
+        self.triangulate_btn.setStyleSheet(
             "color: gray;"
             "background-color: #ffaaaa;"
         )
@@ -219,7 +219,7 @@ class ReticleDetecthandler(QWidget):
         self.rejectButton.show()
 
         # Change the button to brown.
-        self.reticle_calibration_btn.setStyleSheet(
+        self.triangulate_btn.setStyleSheet(
             "color: white;"
             "background-color: #bc9e44;"
         )
@@ -430,7 +430,7 @@ class ReticleDetecthandler(QWidget):
         Returns:
             None
         """
-        # Enable reticle_calibration_btn button
-        if not self.reticle_calibration_btn.isEnabled():
-            self.reticle_calibration_btn.setEnabled(True)
+        # Enable triangulate_btn button
+        if not self.triangulate_btn.isEnabled():
+            self.triangulate_btn.setEnabled(True)
         logger.debug(self.reticle_detection_status)
