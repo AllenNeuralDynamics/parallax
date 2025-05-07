@@ -57,6 +57,8 @@ class ReticleDetectWidget(QWidget):
         self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
         self.screen.run_no_filter()
 
+        # TODO - Wait pevious detection to finish
+        
         # Enable button
         self.settingMenu.run_pushBtn.setEnabled(True)
         self.settingMenu.run_pushBtn.setText("Run")

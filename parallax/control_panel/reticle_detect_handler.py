@@ -38,7 +38,7 @@ class ReticleDetecthandler(QWidget):
 
         # Reticle Widget
         self.reticle_detection_status = (
-            "default"  # options: default, process, detected, accepted
+            "default"  # options: default, detected, accepted
         )
         self.triangulate_btn.clicked.connect(
             self.triangulate_btn_handler
@@ -51,11 +51,6 @@ class ReticleDetecthandler(QWidget):
             self.reticle_detect_accept_detected_status
         )
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
-        # Add a QTimer for delayed check
-        self.reticle_calibration_timer = QTimer()
-        self.reticle_calibration_timer.timeout.connect(
-            self.reticle_detect_default_status
-        )
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
 
@@ -63,7 +58,7 @@ class ReticleDetecthandler(QWidget):
         """
         Handles clicks on the reticle detection button, initiating or canceling reticle detection.
         """
-        logger.debug(f"\n triangulate_btn_handler {self.reticle_detection_status}")
+        logger.debug(f"\n{self.reticle_detection_status}")
         logger.debug(f"triangulate_btn.isChecked(): {self.triangulate_btn.isChecked()}")
         if self.triangulate_btn.isChecked():
             # Run reticle detectoin
@@ -85,9 +80,6 @@ class ReticleDetecthandler(QWidget):
         """
         Resets the reticle detection process to its default state and updates the UI accordingly.
         """
-        # Stop reticle detectoin, and run no filter
-        self.reticle_calibration_timer.stop()
-
         for screen in self.screen_widgets:
             if self.reticle_detection_status != "accepted":
                 try:
@@ -102,8 +94,6 @@ class ReticleDetecthandler(QWidget):
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
-        if self.reticle_detection_status == "process":
-            self.reticle_detect_fail_popup_window()
 
         # Hide Accept and Reject Button
         self.acceptButton.hide()
@@ -152,58 +142,47 @@ class ReticleDetecthandler(QWidget):
         self.continue_if_positive_x_axis_from_user()
         logger.debug(f"2 self.filter: {self.filter}")
 
-    def reticle_detect_fail_popup_window(self):
-        """
-        Displays a warning dialog indicating the failure of reticle detection on one or more cameras.
-        """
-        coords_detect_fail_cameras = []
-        for screen in self.screen_widgets:
-            coords = screen.get_reticle_coords()
-            if coords is None:
-                camera_name = screen.get_camera_name()
-                coords_detect_fail_cameras.append(camera_name)
-
-        message = (
-            f"No reticle detected on cameras: {coords_detect_fail_cameras}"
-        )
-        QMessageBox.warning(self, "Reticle Detection Failed", message)
 
     def reticle_detect_process_status(self):
         """
         Updates the UI and internal state to reflect that the reticle detection process is underway.
         """
-        # Disable triangulate_btn button
+        # Hide Accept and Reject Button
+        self.acceptButton.hide()
+        self.rejectButton.hide()
+
+        # Check at least two screens are detected.
+        if len(self.model.camera_intrinsic) < 2:
+            msg = "At least two screens are required for Triangulation."
+            #self.reticleCalibrationLabel.setText(msg)
+            QMessageBox.warning(self, "Reticle Detection Failed", msg)
+            return
+
+        # UI
         if self.triangulate_btn.isEnabled():
             self.triangulate_btn.setEnabled(False)
-
-        # Run reticle detectoin
         self.triangulate_btn.setStyleSheet(
             "color: gray;"
             "background-color: #ffaaaa;"
         )
 
+        msg = f"{self.model.camera_intrinsic.keys()}"
+        self.reticleCalibrationLabel.setText(msg)
+
+        """
         # Reset models
         self.model.reset_coords_intrinsic_extrinsic()
-
         for screen in self.screen_widgets:
-            screen.reset_reticle_coords()
             screen.reticle_coords_detected.connect(
                 self.reticle_detect_two_screens
             )
-            if screen.get_camera_color_type() == "Color":
-                screen.run_reticle_detection()
+        """
+
         self.filter = "reticle_detection"
         logger.debug(f"filter: {self.filter}")
 
-        # Hide Accept and Reject Button
-        self.acceptButton.hide()
-        self.rejectButton.hide()
-
-        # Start the timer for 10 seconds to check the status later
-        self.reticle_detection_status = "process"
-        self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
-        self.reticle_calibration_timer.start(RETICLE_DETECT_WAIT_TIME)
-        logger.debug(self.reticle_detection_status)
+        # TODO--
+        self.reticle_detect_detected_status()
 
     def reticle_detect_detected_status(self):
         """
@@ -211,7 +190,6 @@ class ReticleDetecthandler(QWidget):
         """
         # Found the coords
         self.reticle_detection_status = "detected"
-        self.reticle_calibration_timer.stop()
         self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
 
         # Show Accept and Reject Button
@@ -350,9 +328,6 @@ class ReticleDetecthandler(QWidget):
     def continue_if_positive_x_axis_from_user(self):
         """Get the positive x-axis coordinate of the reticle from the user."""
         for screen in self.screen_widgets:
-            screen.reticle_coords_detected.disconnect(
-                self.reticle_detect_two_screens
-            )
             screen.run_axis_filter()
 
         self.select_positive_x_popup_window()

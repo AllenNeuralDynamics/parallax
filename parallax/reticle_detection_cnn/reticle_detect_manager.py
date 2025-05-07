@@ -185,10 +185,10 @@ class ReticleDetectManagerCNN(QObject):
             if not self.success: return None
 
             # Step 4: Reproject 3D points to 2D image points using camera instriscis and extrinsics
-            objpts_x_coords = get_axis_object_points(axis='x', coord_range=15)
-            objpts_y_coords = get_axis_object_points(axis='y', coord_range=15)
-            self.x_coords = get_projected_points(objpts_x_coords, rvecs[0], tvecs[0], mtx, dist)
-            self.y_coords = get_projected_points(objpts_y_coords, rvecs[0], tvecs[0], mtx, dist)
+            objpts_x_coords = get_axis_object_points(axis='x', coord_range=10) # TODO change the parameters
+            objpts_y_coords = get_axis_object_points(axis='y', coord_range=10)
+            x_coords_ = get_projected_points(objpts_x_coords, rvecs[0], tvecs[0], mtx, dist)
+            y_coords_ = get_projected_points(objpts_y_coords, rvecs[0], tvecs[0], mtx, dist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
                 imgpoints=np.array(self.x_coords, dtype=np.float32),
                 mtx=mtx,

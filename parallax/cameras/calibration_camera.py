@@ -80,7 +80,7 @@ class CalibrationCamera:
         self.imgpoints = None
         self.objpoints = None
 
-    def _get_changed_data_format(self, x_axis, y_axis):
+    def _get_changed_data_format_deprecate(self, x_axis, y_axis):
         """
         Change data format for calibration.
 
@@ -99,6 +99,28 @@ class CalibrationCamera:
             (nCoords_per_axis * 2, 2)
         ).astype(np.float32)
         return coords_lines_reshaped
+    
+    def _get_changed_data_format(self, x_axis, y_axis):
+        """
+        Combine and format x and y axis coordinates into a single array.
+
+        Args:
+            x_axis (list or np.ndarray): X-axis coordinates (N, 2).
+            y_axis (list or np.ndarray): Y-axis coordinates (M, 2).
+
+        Returns:
+            np.ndarray: Combined coordinates with shape (N + M, 2), dtype float32.
+        """
+        x_axis = np.asarray(x_axis, dtype=np.float32)
+        y_axis = np.asarray(y_axis, dtype=np.float32)
+
+        if x_axis.ndim != 2 or x_axis.shape[1] != 2:
+            raise ValueError("x_axis must have shape (N, 2)")
+        if y_axis.ndim != 2 or y_axis.shape[1] != 2:
+            raise ValueError("y_axis must have shape (M, 2)")
+
+        coords_lines = np.vstack([x_axis, y_axis])
+        return coords_lines
 
     def _process_reticle_points(self, x_axis, y_axis):
         """
