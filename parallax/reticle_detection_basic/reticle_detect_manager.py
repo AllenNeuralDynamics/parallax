@@ -12,9 +12,10 @@ import numpy as np
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 from parallax.cameras.calibration_camera import CalibrationCamera
-from parallax.reticle_detection.mask_generator import MaskGenerator
-from parallax.reticle_detection.reticle_detection import ReticleDetection
-from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
+from parallax.cameras.calibration_camera import get_axis_object_points, get_projected_points, get_origin_xyz
+from parallax.reticle_detection_basic.mask_generator import MaskGenerator
+from parallax.reticle_detection_basic.reticle_detection import ReticleDetection
+from parallax.reticle_detection_basic.reticle_detection_coords_interests import ReticleDetectCoordsInterest
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -90,7 +91,7 @@ class ReticleDetectManager(QObject):
             self.frame = cv2.line(self.frame, origin, y, (0, 255, 0), 3)  # Green line
             self.frame = cv2.line(self.frame, origin, z, (255, 0, 0), 3)  # Red line
 
-        def _draw_calibration_info(self, ret, mtx, dist):
+        def _draw_calibration_info_deprecate(self, ret, mtx, dist):
             """
             Draw calibration information on the frame.
 
@@ -162,7 +163,7 @@ class ReticleDetectManager(QObject):
         def _draw(self):
             self._draw_xyz(self.origin, self.x, self.y, self.z)
             self._draw_coords(self.x_coords, self.y_coords)
-            self._draw_calibration_info(self.success, self.mtx, self.dist)
+            #self._draw_calibration_info(self.success)
 
         def process(self, frame):
             """Process the frame for reticle detection."""
@@ -179,16 +180,28 @@ class ReticleDetectManager(QObject):
             if not success: return None
 
             # Step 3: Calibrate the camera using found points
-            self.success, self.mtx, self.dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(self.x_coords, self.y_coords)
+            self.success, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(self.x_coords, self.y_coords)
             if not self.running: return -1
             if not self.success: return None
 
-            # Step 4: Draw results and emit data
-            self.found_coords.emit(self.x_coords, self.y_coords, self.mtx, self.dist, rvecs, tvecs)
+            # Step 4: Reproject 3D points to 2D image points using camera instriscis and extrinsics
+            objpts_x_coords = get_axis_object_points(axis='x', coord_range=15)
+            objpts_y_coords = get_axis_object_points(axis='y', coord_range=15)
+            self.x_coords = get_projected_points(objpts_x_coords, rvecs[0], tvecs[0], mtx, dist)
+            self.y_coords = get_projected_points(objpts_y_coords, rvecs[0], tvecs[0], mtx, dist)
+            self.origin, self.x, self.y, self.z = get_origin_xyz(
+                imgpoints=np.array(self.x_coords, dtype=np.float32),
+                mtx=mtx,
+                dist=dist,
+                rvecs=rvecs[0],
+                tvecs=tvecs[0],
+                center_index_x=len(self.x_coords) // 2,  # or set specific index if known
+                axis_length=10 
+            )
+            
+            # Step 4: Emit data
+            self.found_coords.emit(self.x_coords, self.y_coords, mtx, dist, rvecs, tvecs)
 
-            self.origin, self.x, self.y, self.z = self.calibrationCamera.get_origin_xyz()
-
-            self.frame = frame
             return 1
 
         def stop_running(self):
@@ -204,7 +217,6 @@ class ReticleDetectManager(QObject):
             logger.debug(f"{self.name} - Thread started")
             """Run the worker thread."""
             while self.running:
-                #if self.frame is not None:
                 if self.new:
                     self.new = False
                     if not self.found and not self.on_process:

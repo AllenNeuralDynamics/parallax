@@ -48,6 +48,8 @@ class ReticleDetectWidget(QWidget):
         # SuperPoint + LightGlue detection
         elif self.settingMenu.radioButton2.isChecked():
             print("Running SuperPoint + LightGlue")
+            if self.screen.get_camera_color_type() == "Color":
+                self.screen.run_cnn_reticle_detection()
 
     def _reset_detection(self):
         print("Resetting to default")

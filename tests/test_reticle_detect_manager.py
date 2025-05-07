@@ -4,7 +4,7 @@ import time
 import cv2
 import os
 from PyQt5.QtCore import QCoreApplication, QEventLoop
-from parallax.reticle_detection.reticle_detect_manager import ReticleDetectManager
+from parallax.reticle_detection_basic.reticle_detect_manager import ReticleDetectManager
 
 @pytest.fixture
 def test_frame():

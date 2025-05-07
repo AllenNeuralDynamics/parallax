@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_setting import ScreenSetting
-from parallax.reticle_detection.reticle_detect_widget import ReticleDetectWidget
+from parallax.screens.reticle_detect_widget import ReticleDetectWidget
 
 logger = logging.getLogger(__name__)
 

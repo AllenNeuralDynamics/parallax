@@ -161,41 +161,6 @@ class CalibrationCamera:
         )
         return ret, self.mtx, self.dist, self.rvecs, self.tvecs
 
-    def get_predefined_intrinsic(self, x_axis, y_axis):
-        """
-        Fetches predefined intrinsic camera parameters for specific models.
-        Parameters:
-        - x_axis (int or float): The x-axis value for reticle processing.
-        - y_axis (int or float): The y-axis value for reticle processing.
-
-        Returns:
-        - A tuple of (bool, numpy.ndarray or None, numpy.ndarray or None)
-        representing success status, intrinsic matrix,
-        and distortion coefficients respectively.
-        """
-        self._process_reticle_points(x_axis, y_axis)
-        if self.name == "22517664":
-            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
-                                 [0.0e+00, 1.55e+04, 1.5e+03],
-                                 [0.0e+00, 0.0e+00, 1.0e+00]],
-                                dtype=np.float32)
-            self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
-                                 dtype=np.float32)
-            return True, self.mtx, self.dist
-
-        elif self.name == "22433200":
-            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
-                                 [0.0e+00, 1.55e+04, 1.5e+03],
-                                 [0.0e+00, 0.0e+00, 1.0e+00]],
-                                dtype=np.float32)
-            self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
-                                 dtype=np.float32)
-            return True, self.mtx, self.dist
-
-        else:
-            return False, None, None
-
-
 
 class CalibrationStereo(CalibrationCamera):
     """
