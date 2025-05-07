@@ -47,7 +47,6 @@ class ReticleDetectManager(QObject):
             self.name = name
             self.test_mode = test_mode
             self.running = False
-            self.is_detection_on = False
             self.frame = None
             self.found = False
             self.new = False
@@ -200,14 +199,6 @@ class ReticleDetectManager(QObject):
         def start_running(self):
             """Start the worker running."""
             self.running = True
-
-        def start_detection(self):
-            """Start the reticle detection."""
-            self.is_detection_on = True
-
-        def stop_detection(self):
-            """Stop the reticle detection."""
-            self.is_detection_on = False
 
         def run(self):
             logger.debug(f"{self.name} - Thread started")
