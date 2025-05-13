@@ -22,6 +22,11 @@ class ReticleDetectWidget(QWidget):
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
+        try:
+            import sfm
+            self.settingMenu.radioButton2.setEnabled(True)
+        except ImportError:
+            self.settingMenu.radioButton2.setEnabled(False)
 
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)

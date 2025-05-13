@@ -11,6 +11,15 @@ import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
+try:
+    import sfm
+    print("sfm version:", getattr(sfm, '__version__', 'Unknown'))
+    from sfm.main import main as sfm_main
+    #sfm_main()
+except ImportError:
+    print("sfm package is not installed. Skipping sfm features.")
+
+#from sfm.localizer import Localizer
 from parallax.cameras.calibration_camera import CalibrationCamera
 from parallax.cameras.calibration_camera import get_axis_object_points, get_projected_points, get_origin_xyz
 from parallax.reticle_detection_basic.mask_generator import MaskGenerator
@@ -201,6 +210,7 @@ class ReticleDetectManagerCNN(QObject):
             
             # Step 4: Emit data
             self.found_coords.emit(self.x_coords, self.y_coords, mtx, dist, rvecs, tvecs)
+            
 
             return 1
 
