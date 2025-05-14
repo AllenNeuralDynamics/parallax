@@ -2,7 +2,7 @@ import pytest
 import cv2
 import os
 from parallax.probe_detection.curr_prev_cmp_processor import CurrPrevCmpProcessor
-from parallax.reticle_detection_basic.mask_generator import MaskGenerator
+from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.probe_detector import ProbeDetector
 
 # Define the folder containing your test images

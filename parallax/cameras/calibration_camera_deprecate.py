@@ -13,7 +13,6 @@ import cv2
 import numpy as np
 import scipy.spatial.transform as Rscipy
 
-
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -25,6 +24,8 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
 X_COORDS_HALF = 10
 Y_COORDS_HALF = 10
+#X_COORDS_HALF = 4
+#Y_COORDS_HALF = 4
 X_COORDS = X_COORDS_HALF * 2 + 1
 Y_COORDS = Y_COORDS_HALF * 2 + 1
 OBJPOINTS = np.zeros((X_COORDS + Y_COORDS, 3), np.float32)
@@ -62,7 +63,6 @@ myflags2 = (
     | cv2.CALIB_FIX_ASPECT_RATIO
     | cv2.CALIB_FIX_FOCAL_LENGTH
 )
-
 SIZE = (4000, 3000)
 
 
@@ -81,7 +81,7 @@ class CalibrationCamera:
         self.imgpoints = None
         self.objpoints = None
 
-    def _get_changed_data_format_deprecate(self, x_axis, y_axis):
+    def _get_changed_data_format(self, x_axis, y_axis):
         """
         Change data format for calibration.
 
@@ -100,28 +100,6 @@ class CalibrationCamera:
             (nCoords_per_axis * 2, 2)
         ).astype(np.float32)
         return coords_lines_reshaped
-    
-    def _get_changed_data_format(self, x_axis, y_axis):
-        """
-        Combine and format x and y axis coordinates into a single array.
-
-        Args:
-            x_axis (list or np.ndarray): X-axis coordinates (N, 2).
-            y_axis (list or np.ndarray): Y-axis coordinates (M, 2).
-
-        Returns:
-            np.ndarray: Combined coordinates with shape (N + M, 2), dtype float32.
-        """
-        x_axis = np.asarray(x_axis, dtype=np.float32)
-        y_axis = np.asarray(y_axis, dtype=np.float32)
-
-        if x_axis.ndim != 2 or x_axis.shape[1] != 2:
-            raise ValueError("x_axis must have shape (N, 2)")
-        if y_axis.ndim != 2 or y_axis.shape[1] != 2:
-            raise ValueError("y_axis must have shape (M, 2)")
-
-        coords_lines = np.vstack([x_axis, y_axis])
-        return coords_lines
 
     def _process_reticle_points(self, x_axis, y_axis):
         """
@@ -183,6 +161,41 @@ class CalibrationCamera:
             f"Distance from camera to world center: {np.mean(distancesA)}"
         )
         return ret, self.mtx, self.dist, self.rvecs, self.tvecs
+
+    def get_predefined_intrinsic(self, x_axis, y_axis):
+        """
+        Fetches predefined intrinsic camera parameters for specific models.
+        Parameters:
+        - x_axis (int or float): The x-axis value for reticle processing.
+        - y_axis (int or float): The y-axis value for reticle processing.
+
+        Returns:
+        - A tuple of (bool, numpy.ndarray or None, numpy.ndarray or None)
+        representing success status, intrinsic matrix,
+        and distortion coefficients respectively.
+        """
+        self._process_reticle_points(x_axis, y_axis)
+        if self.name == "22517664":
+            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                                 [0.0e+00, 1.55e+04, 1.5e+03],
+                                 [0.0e+00, 0.0e+00, 1.0e+00]],
+                                dtype=np.float32)
+            self.dist = np.array([[-0.02, 8.26, -0.01, -0.00, -63.01]],
+                                 dtype=np.float32)
+            return True, self.mtx, self.dist
+
+        elif self.name == "22433200":
+            self.mtx = np.array([[1.55e+04, 0.0e+00, 2e+03],
+                                 [0.0e+00, 1.55e+04, 1.5e+03],
+                                 [0.0e+00, 0.0e+00, 1.0e+00]],
+                                dtype=np.float32)
+            self.dist = np.array([[-0.02, 1.90, -0.00, -0.01, 200.94]],
+                                 dtype=np.float32)
+            return True, self.mtx, self.dist
+
+        else:
+            return False, None, None
+
 
 
 class CalibrationStereo(CalibrationCamera):
@@ -646,25 +659,3 @@ def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
     print(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
 
     return QW, QX, QY, QZ, TX, TY, TZ
-
-def get_rvec_and_tvec(quat, tvecs):
-    """
-    Convert quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ)
-    to rotation vector (rvecs) and translation vector (tvecs).
-
-    Args:
-        quat (tuple): Quaternion as (QW, QX, QY, QZ).
-        tvecs (np.ndarray): Translation vector (3x1 or 1x3).
-
-    Returns:
-        rvecs (np.ndarray): Rotation vector (3x1).
-        tvecs (np.ndarray): Translation vector (3x1).
-    """
-    QX, QY, QZ, QW = quat  # scipy expects [QX, QY, QZ, QW] order
-    rotation = Rscipy.Rotation.from_quat([QX, QY, QZ, QW])
-    R_mat = rotation.as_matrix()
-    rvecs, _ = cv2.Rodrigues(R_mat)
-    
-    tvecs = np.asarray(tvecs).reshape(3, 1)
-
-    return rvecs, tvecs

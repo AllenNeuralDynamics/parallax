@@ -10,11 +10,17 @@ import time
 import cv2
 import numpy as np
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from pathlib import Path
+import shutil
 
-from parallax.cameras.calibration_camera import CalibrationCamera
-from parallax.reticle_detection_basic.mask_generator import MaskGenerator
-from parallax.reticle_detection_basic.reticle_detection import ReticleDetection
-from parallax.reticle_detection_basic.reticle_detection_coords_interests import ReticleDetectCoordsInterest
+import sfm
+print("sfm version:", getattr(sfm, '__version__', 'Unknown'))
+from sfm.main import extract_and_match_features, localize
+
+
+#from sfm.localizer import Localizer
+from parallax.config.config_path import cnn_img_path, cnn_export_path
+from parallax.cameras.calibration_camera import imtx, idist, get_axis_object_points, get_projected_points, get_origin_xyz, get_rvec_and_tvec
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -25,21 +31,21 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 IMG_SIZE_ORIGINAL = (4000, 3000)
 
 
-class ReticleDetectManager(QObject):
+class ReticleDetectManagerCNN(QObject):
     """Reticle detection class"""
 
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    detect_failed = pyqtSignal()
 
     class Worker(QObject):
         """Reticle detection Worker Thread"""
 
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(
-            np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple
-        )
+        found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+        detect_failed = pyqtSignal()
 
         def __init__(self, name, test_mode=False):
             """Initialize the worker"""
@@ -47,22 +53,19 @@ class ReticleDetectManager(QObject):
             self.name = name
             self.test_mode = test_mode
             self.running = False
-            self.is_detection_on = False
             self.frame = None
-            self.frame_success = None
+            self.found = False
+            self.new = False
+            self.on_process = False
 
-            self.mask_detect = MaskGenerator(initial_detect=True)
-            self.reticleDetector = ReticleDetection(
-                IMG_SIZE_ORIGINAL, self.mask_detect, self.name, test_mode=self.test_mode
-            )
-            self.coordsInterests = ReticleDetectCoordsInterest()
-            self.calibrationCamera = CalibrationCamera(self.name)
+            #self.mask_detect = MaskGenerator(initial_detect=True) TODO
 
         def update_frame(self, frame):
             """Update the frame to be processed."""
             self.frame = frame
+            self.new = True
 
-        def draw(self, frame, x_axis_coords, y_axis_coords):
+        def _draw_coords(self, x_axis_coords, y_axis_coords):
             """Draw the coordinates on the frame.
 
             Args:
@@ -74,23 +77,21 @@ class ReticleDetectManager(QObject):
                 numpy.ndarray: Frame with coordinates drawn.
             """
             if x_axis_coords is None or y_axis_coords is None:
-                return frame
+                return
             for pixel in x_axis_coords:
                 pt = tuple(pixel)
-                cv2.circle(frame, pt, 9, (255, 255, 0), -1)
+                cv2.circle(self.frame, pt, 9, (255, 255, 0), -1)
             for pixel in y_axis_coords:
                 pt = tuple(pixel)
-                cv2.circle(frame, pt, 9, (0, 255, 255), -1)
-            return frame
+                cv2.circle(self.frame, pt, 9, (0, 255, 255), -1)
 
-        def draw_xyz(self, frame, origin, x, y, z):
+        def _draw_xyz(self, origin, x, y, z):
             """Draw the XYZ axes on the frame."""
-            frame = cv2.line(frame, origin, x, (0, 0, 255), 3)  # Blue line
-            frame = cv2.line(frame, origin, y, (0, 255, 0), 3)  # Green line
-            frame = cv2.line(frame, origin, z, (255, 0, 0), 3)  # Red line
-            return frame
+            self.frame = cv2.line(self.frame, origin, x, (0, 0, 255), 3)  # Blue line
+            self.frame = cv2.line(self.frame, origin, y, (0, 255, 0), 3)  # Green line
+            self.frame = cv2.line(self.frame, origin, z, (255, 0, 0), 3)  # Red line
 
-        def draw_calibration_info(self, frame, ret, mtx, dist):
+        def _draw_calibration_info_deprecate(self, ret, mtx, dist):
             """
             Draw calibration information on the frame.
 
@@ -114,7 +115,7 @@ class ReticleDetectManager(QObject):
             # Status text
             status_text = f"Overall RMS re-projection error: {ret}"
             cv2.putText(
-                frame,
+                self.frame,
                 status_text,
                 (10, offset_start),
                 font,
@@ -133,7 +134,7 @@ class ReticleDetectManager(QObject):
             # Draw each line of the camera matrix
             for i, line in enumerate(mtx_lines):
                 cv2.putText(
-                    frame,
+                    self.frame,
                     line,
                     (10, offset_start + line_height + i * line_height),
                     font,
@@ -149,7 +150,7 @@ class ReticleDetectManager(QObject):
             )
 
             cv2.putText(
-                frame,
+                self.frame,
                 dist_text,
                 (10, offset_start + line_height * 5),
                 font,
@@ -157,47 +158,75 @@ class ReticleDetectManager(QObject):
                 font_color,
                 line_type,
             )
-            return frame
+            return
+
+        def _draw(self):
+            self._draw_xyz(self.origin, self.x, self.y, self.z)
+            self._draw_coords(self.x_coords, self.y_coords)
+            #self._draw_calibration_info(self.success)
 
         def process(self, frame):
             """Process the frame for reticle detection."""
-            self.frame_success = None
-            logger.debug(f"{self.name} - process...")
+            logger.debug(f"{self.name} - Starting frame processing...")
 
-            ret, frame_, _, inliner_lines_pixels = self.reticleDetector.get_coords(frame, lambda: self.running)
-            logger.debug(f"{self.name} - get_coords done, result: {ret}")
-            if not self.running:
-                logger.debug(f"{self.name} - Stop request to process during get_coords")
-                return -1  # Exit early
-            if not ret:
-                logger.debug(f"{self.name} get_coords failed.")
+            # Step 1: SFM
+            image_path = cnn_img_path / f"{self.name}.jpg"  # Save self.frame to disk for SFM processing
+            export_path = cnn_export_path / self.name
+            cv2.imwrite(str(image_path), self.frame)
+            # Run SFM
+            extract_and_match_features(cnn_img_path, f"{self.name}.jpg", export_path)
+
+            for attempt in range(1, 6):
+                result = localize(cnn_img_path, f"{self.name}.jpg", export_path, visualize=False)
+                if result is None:
+                    logger.warning(f"[Attempt {attempt}] Localization failed.")
+                    continue
+
+                t_norm = np.linalg.norm(np.array(result['translation']))
+                logger.info(f"[Attempt {attempt}] Translation norm: {t_norm:.2f}")
+                if t_norm < 300:
+                    break
+
+            logger.error("Localization failed or translation too large after 5 attempts.")
+            
+            ## After finishing SFM, remove images and data from disk
+            image_path.unlink(missing_ok=True)
+            shutil.rmtree(export_path, ignore_errors=True)
+            if result is None:
                 return None
+            
+            #if not self.running: return -1
 
-            ret, x_axis_coords, y_axis_coords = self.coordsInterests.get_coords_interest(inliner_lines_pixels)
-            if not self.running:
-                return -1  # Exit early
-            if not ret:
-                logger.debug(f"{self.name} - Stop request to process during get_coords_interest")
-                return None
+            # Step 2: Convert into mtx, dist, rvecs, tvecs
+            rvecs, tvecs = get_rvec_and_tvec(result['rotation']['quat'], result['translation'] )
+            print("rvecs:", rvecs)
+            print("tvecs:", np.array2string(tvecs.flatten(), formatter={'float_kind':lambda x: "%.6f" % x}))
 
-            ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(x_axis_coords, y_axis_coords)
-            if not self.running:
-                return -1  # Exit early
-            if not ret:
-                logger.debug(f"{self.name} - Stop request to process during calibrate_camera ")
-                return None  # Calibration failed
-
-            # Successful detection and calibration
-            self.found_coords.emit(x_axis_coords, y_axis_coords, mtx, dist, rvecs, tvecs)
-
-            origin, x, y, z = self.calibrationCamera.get_origin_xyz()
-            frame = self.draw_xyz(frame, origin, x, y, z)
-            frame = self.draw(frame, x_axis_coords, y_axis_coords)
-            frame = self.draw_calibration_info(frame, ret, mtx, dist)
-
-            self.frame = frame
-            logger.debug(f"{self.name} reticle detection success.\n")
-
+            # Step 3: Reproject 3D points to 2D image points using camera instriscis and extrinsics
+            objpts_x_coords = get_axis_object_points(axis='x', coord_range=10) # TODO change the parameters
+            objpts_y_coords = get_axis_object_points(axis='y', coord_range=10)
+            self.x_coords = get_projected_points(objpts_x_coords, rvecs, tvecs, imtx, idist) # Reporject 3D points to 2D image points
+            self.y_coords = get_projected_points(objpts_y_coords, rvecs, tvecs, imtx, idist)
+            self.origin, self.x, self.y, self.z = get_origin_xyz(
+                imgpoints=np.array(self.x_coords, dtype=np.float32),
+                mtx=imtx,
+                dist=idist,
+                rvecs=rvecs,
+                tvecs=tvecs,
+                center_index_x=len(self.x_coords) // 2,  # or set specific index if known
+                axis_length=10 
+            )
+            
+            # Step 4: Emit data
+            self.found_coords.emit(
+                self.x_coords,
+                self.y_coords,
+                imtx,
+                idist,
+                tuple(rvecs.flatten()),
+                tuple(tvecs.flatten())
+            )
+            
             return 1
 
         def stop_running(self):
@@ -209,37 +238,40 @@ class ReticleDetectManager(QObject):
             """Start the worker running."""
             self.running = True
 
-        def start_detection(self):
-            """Start the reticle detection."""
-            self.is_detection_on = True
-
-        def stop_detection(self):
-            """Stop the reticle detection."""
-            self.is_detection_on = False
-
         def run(self):
+            logger.debug(f"{self.name} - Thread started")
             """Run the worker thread."""
             while self.running:
-                if self.frame is not None:
-                    logger.debug(f"{self.name} - Thread started")
-                    result = self.process(self.frame)
-                    if result == -1:
-                        logger.debug(f"{self.name} - Outside request to stop processing")
-                        self.finished.emit()
-                        return  # Exit early
-                    if result is None:
-                        logger.debug(f"{self.name} - Detection failed")
-                        self.finished.emit()
-                        return  # Exit early
-                    if result == 1:
-                        logger.debug(f"{self.name} - Detection success")
+                if self.new:
+                    self.new = False
+                    if not self.found and not self.on_process:
+                        # Detect first time
+                        self.on_process = True
+                        result = self.process(self.frame)
+
+                        if result is None:
+                            logger.debug(f"{self.name} - Detection failed")
+                            self.detect_failed.emit()
+                            self.finished.emit()
+                            return  # Exit early
+                        else:
+                            logger.debug(f"{self.name} - Detection success")
+                            self.frame_processed.emit(self.frame)
+                            self.found = True
+                            self.on_process = False
+
+                        """
+                        if result == -1:
+                            logger.debug(f"{self.name} - Outside request to stop processing")
+                            self.finished.emit()
+                            return  # Exit early
+                        """
+                    if self.found:
+                        self._draw()  # Draw axis and coordinates
                         self.frame_processed.emit(self.frame)
-                        self.finished.emit()
-                        return
-                time.sleep(0.001)
-            logger.debug(f"{self.name} - while self.running is false")
+                time.sleep(0.01)
+            logger.debug(f"{self.name} - stop running")
             self.finished.emit()
-            return
 
         def set_name(self, name):
             """Set name as camera serial number."""
@@ -270,6 +302,7 @@ class ReticleDetectManager(QObject):
 
         self.worker.frame_processed.connect(self.frame_processed)
         self.worker.found_coords.connect(self.found_coords)
+        self.worker.detect_failed.connect(self.detect_failed)
 
     def process(self, frame):
         """Process the frame using the worker.

@@ -13,9 +13,9 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 from parallax.cameras.calibration_camera import CalibrationCamera
 from parallax.cameras.calibration_camera import get_axis_object_points, get_projected_points, get_origin_xyz
-from parallax.reticle_detection_basic.mask_generator import MaskGenerator
-from parallax.reticle_detection_basic.reticle_detection import ReticleDetection
-from parallax.reticle_detection_basic.reticle_detection_coords_interests import ReticleDetectCoordsInterest
+from parallax.reticle_detection.mask_generator import MaskGenerator
+from parallax.reticle_detection.reticle_detection import ReticleDetection
+from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -183,6 +183,7 @@ class ReticleDetectManager(QObject):
             self.success, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(self.x_coords, self.y_coords)
             if not self.running: return -1
             if not self.success: return None
+            print("rvecs:", rvecs, "tvecs:", tvecs)
 
             # Step 4: Reproject 3D points to 2D image points using camera instriscis and extrinsics
             objpts_x_coords = get_axis_object_points(axis='x', coord_range=10)

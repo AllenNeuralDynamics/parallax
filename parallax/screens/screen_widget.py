@@ -11,8 +11,8 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 from parallax.screens.no_filter import NoFilter
 from parallax.probe_detection.probe_detect_manager import ProbeDetectManager
-from parallax.reticle_detection_basic.reticle_detect_manager import ReticleDetectManager
-from parallax.reticle_detection_cnn.reticle_detect_manager import ReticleDetectManagerCNN
+from parallax.reticle_detection.manager_opencv import ReticleDetectManager
+from parallax.reticle_detection.manager_cnn import ReticleDetectManagerCNN
 from parallax.screens.axis_filter import AxisFilter
 
 # Set logger name

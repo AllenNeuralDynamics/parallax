@@ -1,7 +1,7 @@
 import pytest
 import cv2
 import os
-from parallax.reticle_detection_basic.mask_generator import MaskGenerator
+from parallax.reticle_detection.mask_generator import MaskGenerator
 
 RETICLE_DIR = "tests/test_data/mask_generator/Reticle/"
 
