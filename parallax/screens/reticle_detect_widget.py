@@ -1,5 +1,7 @@
 import os
 import logging
+import sys
+from pathlib import Path
 from PyQt5.QtWidgets import QWidget, QToolButton, QPushButton, QFileDialog
 from PyQt5.QtCore import QPoint, QTimer, QCoreApplication
 from PyQt5.QtGui import QFont
@@ -22,12 +24,9 @@ class ReticleDetectWidget(QWidget):
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
-        try:
-            import sfm
+        if self._is_superpoint_available():
             self.settingMenu.radioButton2.setEnabled(True)
-        except ImportError:
-            self.settingMenu.radioButton2.setEnabled(False)
-
+            
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
         )
@@ -35,6 +34,31 @@ class ReticleDetectWidget(QWidget):
         self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
         self.screen.reticle_coords_detected.connect(self._reticle_detected)
         self.screen.reticle_coords_detect_fail.connect(self._reticle_detect_failed)
+
+    def _is_superpoint_available(self):
+        """Check if SFM and SuperPoint + LightGlue are available by verifying import and file presence."""
+        # Check if sfm can be imported
+        try:
+            import sfm  # noqa: F401
+        except ImportError:
+            logger.warning("[WARN] SFM package is not installed or not importable.")
+            return False
+
+        # Configure external path and add to sys.path if needed
+        external_path = Path(__file__).resolve().parent.parent.parent / "external"
+        os.environ["PARALLAX_EXTERNAL_PATH"] = str(external_path)
+
+        if str(external_path) not in sys.path:
+            sys.path.append(str(external_path))
+
+        # Check if SuperPoint model file exists
+        superpoint_file = external_path / "SuperGluePretrainedNetwork" / "models" / "superpoint.py"
+        if superpoint_file.exists():
+            logger.debug("[INFO] SuperPoint + LightGlue is available (sfm import + folder check passed)")
+            return True
+        else:
+            logger.warning("[WARN] SuperPoint + LightGlue not available (superpoint.py missing)")
+            return False
 
     def _run_detection(self):
         # Disable button and change appearance

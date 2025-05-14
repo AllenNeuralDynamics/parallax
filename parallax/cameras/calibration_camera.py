@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 import scipy.spatial.transform as Rscipy
 
+
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -645,3 +646,27 @@ def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
     print(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
 
     return QW, QX, QY, QZ, TX, TY, TZ
+
+def get_rvec_and_tvec(quat, tvecs):
+    """
+    Convert quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ)
+    to rotation vector (rvecs) and translation vector (tvecs).
+
+    Args:
+        quat (tuple): Quaternion as (QW, QX, QY, QZ).
+        tvecs (np.ndarray): Translation vector (3x1 or 1x3).
+
+    Returns:
+        rvecs (np.ndarray): Rotation vector (3x1).
+        tvecs (np.ndarray): Translation vector (3x1).
+    """
+    #QW, QX, QY, QZ = quat
+    QX, QY, QZ, QW = quat  # scipy expects [QX, QY, QZ, QW] order
+    # scipy expects [QX, QY, QZ, QW] order
+    rotation = Rscipy.Rotation.from_quat([QX, QY, QZ, QW])
+    R_mat = rotation.as_matrix()
+    rvecs, _ = cv2.Rodrigues(R_mat)
+    
+    tvecs = np.asarray(tvecs).reshape(3, 1)
+
+    return rvecs, tvecs

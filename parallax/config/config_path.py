@@ -3,6 +3,7 @@ This module defines the paths used in the project and sets up logging.
 """
 import os
 import logging
+from pathlib import Path
 
 PARALLAX_ASCII = r"""
   _____                _ _
@@ -24,7 +25,6 @@ stages_dir = os.path.join(data_dir, "stages")
 debug_dir = os.path.join(project_root, "debug")
 debug_img_dir = os.path.join(debug_dir, "debug-images")
 
-
 # file
 settings_file = os.path.join(data_dir, "settings.json")
 stage_server_config_file = os.path.join(data_dir, "stage_server_config.json")
@@ -34,6 +34,15 @@ reticle_metadata_file = os.path.join(data_dir, "reticle_metadata.json")
 os.makedirs(data_dir, exist_ok=True)
 os.makedirs(debug_dir, exist_ok=True)
 os.makedirs(debug_img_dir, exist_ok=True)
+
+
+# CNN
+cnn_img_dir = Path(os.path.join(debug_dir, "cnn_img_dir"))
+cnn_export_dir = os.path.join(debug_dir, "cnn_export_dir")
+os.makedirs(cnn_img_dir, exist_ok=True)
+os.makedirs(cnn_export_dir, exist_ok=True)
+cnn_img_path = Path(cnn_img_dir)
+cnn_export_path = Path(cnn_export_dir)
 
 
 def setup_logging():
