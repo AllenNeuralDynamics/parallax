@@ -5,7 +5,7 @@ import shutil
 
 from sfm.localization_pipeline import extract_and_match_features, localize
 from parallax.config.config_path import cnn_img_path, cnn_export_path
-from parallax.reticle_detection.base_manager import BaseReticleManager, BaseReticleWorker
+from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker
 from parallax.cameras.calibration_camera import (
     imtx, idist, get_axis_object_points, get_projected_points, get_origin_xyz, get_rvec_and_tvec
 )
@@ -17,10 +17,11 @@ logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ReticleDetectManagerCNN(BaseReticleManager):
     """CNN-based Reticle Detection Manager with Worker handling localization via SFM."""
-    class Worker(BaseReticleWorker):
+    class ProcessWorker(BaseProcessWorker):
         """Worker that performs SFM-based reticle detection and coordinate projection."""
     
         def process(self, frame):
+            """
             print(f"{self.name} - Starting frame processing...")
             image_path = cnn_img_path / f"{self.name}.jpg"
             export_path = cnn_export_path / self.name
@@ -59,7 +60,14 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             self.found_coords.emit(self.x_coords, self.y_coords, imtx, idist,
                                    tuple(rvecs.flatten()), tuple(tvecs.flatten()))
             return 1
+            """
+            pass
+    
+    class DrawWorker(BaseDrawWorker):
+        def process(self, frame):
+            pass
+        
 
     def __init__(self, camera_name,  test_mode=False):
-        super().__init__(camera_name, WorkerClass=self.Worker)
+        super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode

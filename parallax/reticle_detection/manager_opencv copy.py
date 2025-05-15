@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 
-from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker
+from parallax.reticle_detection.base_manager import BaseReticleManager, BaseReticleWorker
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.reticle_detection.reticle_detection import ReticleDetection
 from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
@@ -15,52 +15,7 @@ IMG_SIZE_ORIGINAL = (4000, 3000)
 
 
 class ReticleDetectManager(BaseReticleManager):
-    class ProcessWorker(BaseProcessWorker):
-        def __init__(self, name, test_mode=False):
-            super().__init__(name)
-            self.test_mode = test_mode
-            self.mask_detect = MaskGenerator(initial_detect=True)
-            self.reticleDetector = ReticleDetection(IMG_SIZE_ORIGINAL, self.mask_detect, self.name, test_mode=self.test_mode)
-            self.coordsInterests = ReticleDetectCoordsInterest()
-            self.calibrationCamera = CalibrationCamera(self.name)
-    
-        def process(self, frame):
-            # Step 1: Run detection
-            success, processed_frame, _, inliner_lines = self.reticleDetector.get_coords(frame, lambda: self.running)
-            if not self.running: return -1
-            if not success: return None
-
-            # Step 2: Analyze coordinates of interest
-            success, self.x_coords, self.y_coords = self.coordsInterests.get_coords_interest(inliner_lines)
-            if not self.running: return -1
-            if not success: return None
-
-            # Step 3: Camera calibration
-            success, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(self.x_coords, self.y_coords)
-            if not self.running: return -1
-            if not success: return None
-            print(f"rvecs: {rvecs}, tvecs: {tvecs}")
-
-            # Step 4: Reproject 3D axis points
-            objpts_x_coords = get_axis_object_points(axis='x', coord_range=10)
-            objpts_y_coords = get_axis_object_points(axis='y', coord_range=10)
-            x_coords_ = get_projected_points(objpts_x_coords, rvecs[0], tvecs[0], mtx, dist)
-            y_coords_ = get_projected_points(objpts_y_coords, rvecs[0], tvecs[0], mtx, dist)
-            self.origin, self.x, self.y, self.z = get_origin_xyz(
-                imgpoints=np.array(self.x_coords, dtype=np.float32),
-                mtx=mtx,
-                dist=dist,
-                rvecs=rvecs[0],
-                tvecs=tvecs[0],
-                center_index_x=len(self.x_coords) // 2,
-                axis_length=10
-            )
-
-            # Emit data
-            self.signals.found_coords.emit(self.x_coords, self.y_coords, mtx, dist, rvecs, tvecs)
-            return 1
-
-    class DrawWorker(BaseDrawWorker):
+    class Worker(BaseReticleWorker):
         def __init__(self, name, test_mode=False):
             super().__init__(name)
             self.test_mode = test_mode
@@ -106,5 +61,5 @@ class ReticleDetectManager(BaseReticleManager):
             return 1
 
     def __init__(self, camera_name,  test_mode=False):
-        super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
+        super().__init__(camera_name, WorkerClass=self.Worker)
         self.test_mode = test_mode
