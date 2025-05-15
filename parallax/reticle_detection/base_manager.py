@@ -20,12 +20,8 @@ class BaseDrawWorker(QObject):
         self.frame = None
 
         # Drawing variables
-        self.origin = None
-        self.x = None
-        self.y = None
-        self.z = None
-        self.x_coords = None
-        self.y_coords = None
+        self.origin, self.x, self.y, self.z = None, None, None, None
+        self.x_coords, self.y_coords = None, None
 
     def update_frame(self, frame):
         self.frame = frame
@@ -91,7 +87,6 @@ class BaseDrawWorker(QObject):
         dot_y = int(center_y + radius * math.sin(angle))
         cv2.circle(self.frame, center, radius, (100, 100, 100), 10)
         cv2.circle(self.frame, (dot_x, dot_y), dot_radius, color, -1)
-
 
 class ProcessWorkerSignal(QObject):
     detect_failed = pyqtSignal()
@@ -205,7 +200,6 @@ class BaseReticleManager(QObject):
         self.worker.start_running()
         self.thread.start()
 
-        #---------- Process Worker ---
         self.init_process_thread()
         self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
@@ -216,6 +210,7 @@ class BaseReticleManager(QObject):
             self.worker.stop_running()
         if self.processWorker:
             self.processWorker.stop_running()
+
         if self.thread is not None:
             self.thread.quit()
             self.thread.wait()
@@ -243,5 +238,3 @@ class BaseReticleManager(QObject):
             self.worker.x_coords = self.processWorker.x_coords
             self.worker.y_coords = self.processWorker.y_coords
             self.worker.found = True
-
-            
