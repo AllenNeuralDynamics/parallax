@@ -7,12 +7,20 @@ import math
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-class BaseDrawWorker(QObject):
+class DrawWorkerSignal(QObject):
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
 
+"""
+class BaseDrawWorker(QObject):
+    finished = pyqtSignal()
+    frame_processed = pyqtSignal(object)
+"""
+
+class BaseDrawWorker(QRunnable):
     def __init__(self, name):
         super().__init__()
+        self.signals = (DrawWorkerSignal())
         self.name = name
         self.running = False
         self.new = False
@@ -33,13 +41,13 @@ class BaseDrawWorker(QObject):
             if self.new:                
                 if self.found:
                     self._draw_result()
-                    self.frame_processed.emit(self.frame)
+                    self.signals.frame_processed.emit(self.frame)
                 else:
                     self._draw_progress()
-                    self.frame_processed.emit(self.frame)
+                    self.signals.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.01)
-        self.finished.emit()
+        self.signals.finished.emit()
 
     def start_running(self):
         self.running = True
@@ -119,18 +127,16 @@ class BaseProcessWorker(QRunnable):
             result = self.process(self.frame)
             if result == -1:
                 logger.debug(f"{self.name} - Outside request to stop processing")
-                self.signals.finished.emit()
-                return  # Exit early
             if result is None:
                 logger.debug(f"{self.name} - Detection failed")
                 self.signals.detect_failed.emit()
-                self.signals.finished.emit()
-                return  # Exit early
             if result == 1:
                 logger.debug(f"{self.name} - Detection success")
                 self.signals.found.emit()
-            #self.signals.finished.emit()
+            self.signals.finished.emit()
             return
+        self.signals.finished.emit()
+        return
 
     def process(self, frame):
         raise NotImplementedError("Subclasses must implement this method.")
@@ -158,7 +164,7 @@ class BaseReticleManager(QObject):
         super().__init__()
         self.name = name
         self.WorkerClass = WorkerClass
-        self.thread = None
+        #self.thread = None
         self.worker = None
 
         self.processWorkerClass = ProcessWorkerClass
@@ -167,7 +173,7 @@ class BaseReticleManager(QObject):
         self.threadpool = QThreadPool()
         print( f"Thread max count: {self.threadpool.maxThreadCount()}")
 
-    def init_thread(self):
+    def _init_draw_thread(self):
         self.thread = QThread()
         self.worker = self.WorkerClass(self.name)
         self.worker.moveToThread(self.thread)
@@ -179,10 +185,15 @@ class BaseReticleManager(QObject):
         self.thread.finished.connect(self.onThreadFinished)
         self.worker.frame_processed.connect(self.frame_processed)
 
+    def init_draw_thread(self):
+        self.worker = self.WorkerClass(self.name)
+        self.worker.signals.finished.connect(self.onDrawThreadFinished)
+        self.worker.signals.frame_processed.connect(self.frame_processed)
+
     def init_process_thread(self):
         #------------------ Process Thread---------
         self.processWorker = self.processWorkerClass(self.name)
-        self.processWorker.signals.finished.connect(self.onThreadFinished)
+        self.processWorker.signals.finished.connect(self.onProcessThreadFinished)
         self.processWorker.signals.found_coords.connect(self.found_coords)
         self.processWorker.signals.detect_failed.connect(self.detect_failed)
         self.processWorker.signals.found.connect(self.process_success)
@@ -195,10 +206,16 @@ class BaseReticleManager(QObject):
             self.processWorker.update_frame(frame)
 
     def start(self):
+        if self.worker is not None or self.processWorker is not None:
+            logger.debug(f"{self.name} Previous thread not cleaned up")
+            return
+
         logger.debug(f"{self.name} Starting thread")
-        self.init_thread()
+        self.init_draw_thread()
         self.worker.start_running()
-        self.thread.start()
+        self.threadpool.start(self.worker)
+        #self.worker.start_running()
+        #self.thread.start()
 
         self.init_process_thread()
         self.processWorker.start_running()
@@ -211,14 +228,22 @@ class BaseReticleManager(QObject):
         if self.processWorker:
             self.processWorker.stop_running()
 
+        """
         if self.thread is not None:
             self.thread.quit()
             self.thread.wait()
+        """
 
-    def onThreadFinished(self):
+    def onDrawThreadFinished(self):
         """Handle thread finished signal."""
-        logger.debug(f"{self.name} Thread finished")
-        self.thread = None
+        logger.debug(f"{self.name} Draw Thread finished")
+        #self.thread = None
+        self.worker = None
+
+    def onProcessThreadFinished(self):
+        """Handle thread finished signal."""
+        logger.debug(f"{self.name} Process Thread finished")
+        self.processWorker = None
 
     def set_name(self, camera_name):
         """Set camera name."""
