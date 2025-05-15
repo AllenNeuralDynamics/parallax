@@ -36,7 +36,6 @@ class BaseReticleWorker(QObject):
     def run(self):
         while self.running:
             if self.new:
-                self.new = False
                 if not self.found and not self.on_process:
                     self.on_process = True
                     result = self.process(self.frame)
@@ -49,15 +48,17 @@ class BaseReticleWorker(QObject):
                         self.detect_failed.emit()
                         self.finished.emit()
                         return  # Exit early
-                    
-                    logger.debug(f"{self.name} - Detection success")
-                    self.frame_processed.emit(self.frame)
-                    self.found = True
-                    self.on_process = False
+                    if result == 1:
+                        logger.debug(f"{self.name} - Detection success")
+                        self.frame_processed.emit(self.frame)
+                        self.found = True
+                        self.on_process = False
 
                 if self.found:
                     self._draw()
                     self.frame_processed.emit(self.frame)
+
+                self.new = False
 
             time.sleep(0.01)
         self.finished.emit()
