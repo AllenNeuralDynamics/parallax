@@ -734,7 +734,7 @@ class MockCamera(BaseCamera):
         else:
             frame = self.random_data[self._next_frame]
             self._next_frame = (self._next_frame + 1) % self.random_data.shape[0]
-            return frame
+            return frame.copy()
 
     def set_data(self, filepath):
         """Set image or video as the mock data source"""
