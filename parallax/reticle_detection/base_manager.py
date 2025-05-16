@@ -11,11 +11,6 @@ class DrawWorkerSignal(QObject):
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
 
-"""
-class BaseDrawWorker(QObject):
-    finished = pyqtSignal()
-    frame_processed = pyqtSignal(object)
-"""
 
 class BaseDrawWorker(QRunnable):
     def __init__(self, name):
@@ -38,7 +33,7 @@ class BaseDrawWorker(QRunnable):
     @pyqtSlot()
     def run(self):
         while self.running:
-            if self.new:                
+            if self.new:
                 if self.state == "Found":
                     self._draw_result()
                 elif self.state == "InProcess":
@@ -159,6 +154,7 @@ class ProcessWorkerSignal(QObject):
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
     state = pyqtSignal(str)  # "Found", "Failed", "Stopped", "InProcess"
 
+
 class BaseProcessWorker(QRunnable):
     def __init__(self, name):
         super().__init__()
@@ -211,6 +207,7 @@ class BaseProcessWorker(QRunnable):
     def stop_running(self):
         self.running = False
 
+
 class BaseReticleManager(QObject):
     name = "None"
     frame_processed = pyqtSignal(object)
@@ -236,7 +233,6 @@ class BaseReticleManager(QObject):
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.found_coords.connect(self.found_coords)
         self.processWorker.signals.state.connect(self._state)
-        #self.processWorker.signals.detect_failed.connect(self.detect_failed)
 
     def process(self, frame):
         if self.worker:
@@ -253,8 +249,6 @@ class BaseReticleManager(QObject):
         self._init_draw_thread()
         self.worker.start_running()
         self.threadpool.start(self.worker)
-        #self.worker.start_running()
-        #self.thread.start()
 
         self._init_process_thread()
         self.processWorker.start_running()
@@ -263,31 +257,24 @@ class BaseReticleManager(QObject):
     def stop(self):
         logger.debug(f"{self.name} Stopping thread")
         if self.worker and self.processWorker is None:  # State: Found, Failed
-            self._state("Stopped")
+            self._state("Stopped")  # Stop the draw worker. processWoker is already stopped
 
         # State: InProgress
-        self._state("Stopping")
+        self._state("Stopping")  # Both Draw and Process worker were in progres. DrawWorker draw progress.
         if self.processWorker:
-            self.processWorker.stop_running()
-
+            self.processWorker.stop_running()  # Stop the processWorker. After finishing, stop the DrawWorker
 
     def _onDrawThreadFinished(self):
         """Handle thread finished signal."""
         print(f"{self.name} Draw Thread finished")
         self.worker = None
-        # TODO check both worker is finished, then emit finish and 'Detect'button enable
         if self.processWorker is None:
             self.finished.emit()
-            #self.detect_failed.emit()
-            #self._state("Stopped")
-            
 
     def _onProcessThreadFinished(self):
         """Handle thread finished signal."""
         print(f"{self.name} Process Thread finished")
         self.processWorker = None
-        # TODO check both worker is finished, then emit finish and 'Detect'button enable
-
 
     def set_name(self, camera_name):
         """Set camera name."""
@@ -318,6 +305,3 @@ class BaseReticleManager(QObject):
             self.worker.state = "Stopping"
         elif state == "Stopped":
             self.worker.stop_running()
-        
-
- 
