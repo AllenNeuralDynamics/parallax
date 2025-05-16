@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import shutil
 
-from sfm.localization_pipeline import extract_and_match_features, localize
+from sfm.localization_pipeline import extract_features, match_features_to_ref, localize
 from parallax.config.config_path import cnn_img_path, cnn_export_path
 from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker
 from parallax.cameras.calibration_camera import (
@@ -20,7 +20,11 @@ class ReticleDetectManagerCNN(BaseReticleManager):
         def __init__(self, name, test_mode=False):
             super().__init__(name)
             self.test_mode = test_mode
-            
+
+        def _clean_output(self, image_path, export_path):
+            image_path.unlink(missing_ok=True)
+            shutil.rmtree(export_path, ignore_errors=True)
+
         def process(self, frame):
             print(f"{self.name} - Starting frame processing...")
             image_path = cnn_img_path / f"{self.name}.jpg"
@@ -30,16 +34,24 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             cv2.imwrite(str(image_path), frame)
 
             # Run SFM once to extract and match features
-            extract_and_match_features(cnn_img_path, f"{self.name}.jpg", export_path)
+            extract_features(cnn_img_path, f"{self.name}.jpg", export_path)
+            if not self.running:
+                self._clean_output(image_path, export_path)
+                return -1
+
+            match_features_to_ref(f"{self.name}.jpg", export_path)
+            if not self.running:
+                self._clean_output(image_path, export_path)
+                return -1
             result = localize(export_path, f"{self.name}.jpg", visualize=False)
 
             # Clean up SFM output
-            image_path.unlink(missing_ok=True)
-            shutil.rmtree(export_path, ignore_errors=True)
+            self._clean_output(image_path, export_path)
 
             if result is None:
                 logger.error("Localization failed.")
                 return None
+            if not self.running: return -1
 
             # Convert result to rotation and translation vectors
             rvecs, tvecs = get_rvec_and_tvec(result['rotation']['quat'], result['translation'])
@@ -55,6 +67,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
                 np.array(self.x_coords, dtype=np.float32), imtx, idist, rvecs, tvecs,
                 center_index_x=len(self.x_coords) // 2, axis_length=10
             )
+            if not self.running: return -1
 
             # Emit detected coordinates
             self.signals.found_coords.emit(self.x_coords, self.y_coords, imtx, idist,

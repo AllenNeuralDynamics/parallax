@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QObject, pyqtSignal, QThread, QThreadPool, QRunnable, pyqtSlot
+from PyQt5.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
 import time
 import numpy as np
 import cv2
@@ -149,7 +149,6 @@ class BaseDrawWorker(QRunnable):
             cv2.putText(self.frame, text, (text_x, text_y), font, font_scale, color, thickness, cv2.LINE_AA)
 
 class ProcessWorkerSignal(QObject):
-    #detect_failed = pyqtSignal()
     finished = pyqtSignal()
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
     state = pyqtSignal(str)  # "Found", "Failed", "Stopped", "InProcess"
@@ -256,6 +255,9 @@ class BaseReticleManager(QObject):
 
     def stop(self):
         logger.debug(f"{self.name} Stopping thread")
+        if self.worker is None and self.processWorker is None:  # State: Stopped
+            return
+
         if self.worker and self.processWorker is None:  # State: Found, Failed
             self._state("Stopped")  # Stop the draw worker. processWoker is already stopped
 
