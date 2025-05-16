@@ -33,7 +33,7 @@ class ReticleDetectWidget(QWidget):
         self.settingMenu.run_pushBtn.clicked.connect(self._run_detection)
         self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
         self.screen.reticle_coords_detected.connect(self._reticle_detected)
-        #self.screen.reticle_coords_detect_fail.connect(self._reticle_detect_failed)
+        self.screen.reticle_coords_detect_finished.connect(self._enalbe_run_button)
 
     def _is_superpoint_available(self):
         """Check if SFM and SuperPoint + LightGlue are available by verifying import and file presence."""
@@ -80,18 +80,16 @@ class ReticleDetectWidget(QWidget):
             if self.screen.get_camera_color_type() == "Color":
                 self.screen.run_cnn_reticle_detection()
 
+    def _enalbe_run_button(self):
+        # Enable button
+        self.settingMenu.run_pushBtn.setEnabled(True)
+        self.settingMenu.run_pushBtn.setText("Run")
+
     def _reset_detection(self):
         print("Resetting to default")
         # TODO Reset from the model
         self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
         self.screen.run_no_filter()
-
-        # TODO - Wait pevious detection to finish
-        
-        # Enable button
-        self.settingMenu.run_pushBtn.setEnabled(True)
-        self.settingMenu.run_pushBtn.setText("Run")
-        pass
 
     def _reticle_detected(self):
         # Enable button

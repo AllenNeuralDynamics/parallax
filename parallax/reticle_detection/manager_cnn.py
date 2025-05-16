@@ -59,6 +59,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             # Emit detected coordinates
             self.signals.found_coords.emit(self.x_coords, self.y_coords, imtx, idist,
                                    tuple(rvecs.flatten()), tuple(tvecs.flatten()))
+            if not self.running: return -1
             return 1
     
     class DrawWorker(BaseDrawWorker):

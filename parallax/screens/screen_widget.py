@@ -29,7 +29,7 @@ class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(str, tuple)  # camera name, (x, y)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
-    #reticle_coords_detect_fail = pyqtSignal()
+    reticle_coords_detect_finished = pyqtSignal()
     # camera name, timestamp, sn, stage_info, pixel_coords
     probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)
 
@@ -99,7 +99,7 @@ class ScreenWidget(pg.GraphicsView):
         )
         self.reticleDetector.found_coords.connect(self.found_reticle_coords)
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
-        #self.reticleDetector.detect_failed.connect(self.reticle_coords_detect_fail)
+        self.reticleDetector.finished.connect(self.reticle_coords_detect_finished)
 
         # Reticle Detection using CNN (Superpoint + Lightglue)
         self.reticleDetectorCNN = ReticleDetectManagerCNN(self.camera_name, test_mode=self.model.test)
@@ -108,7 +108,7 @@ class ScreenWidget(pg.GraphicsView):
         )
         self.reticleDetectorCNN.found_coords.connect(self.found_reticle_coords)
         self.reticleDetectorCNN.found_coords.connect(self.reticle_coords_detected)
-        #self.reticleDetectorCNN.detect_failed.connect(self.reticle_coords_detect_fail)
+        self.reticleDetectorCNN.finished.connect(self.reticle_coords_detect_finished)
 
         # Probe Detection
         self.probeDetector = ProbeDetectManager(self.model, self.camera_name)

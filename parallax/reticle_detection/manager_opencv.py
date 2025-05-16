@@ -58,6 +58,7 @@ class ReticleDetectManager(BaseReticleManager):
 
             # Emit data
             self.signals.found_coords.emit(self.x_coords, self.y_coords, mtx, dist, rvecs, tvecs)
+            if not self.running: return -1
             return 1
 
     class DrawWorker(BaseDrawWorker):
