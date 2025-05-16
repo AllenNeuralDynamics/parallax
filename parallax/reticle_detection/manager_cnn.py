@@ -16,12 +16,12 @@ logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 class ReticleDetectManagerCNN(BaseReticleManager):
-    """CNN-based Reticle Detection Manager with Worker handling localization via SFM."""
     class ProcessWorker(BaseProcessWorker):
-        """Worker that performs SFM-based reticle detection and coordinate projection."""
-    
+        def __init__(self, name, test_mode=False):
+            super().__init__(name)
+            self.test_mode = test_mode
+            
         def process(self, frame):
-            """
             print(f"{self.name} - Starting frame processing...")
             image_path = cnn_img_path / f"{self.name}.jpg"
             export_path = cnn_export_path / self.name
@@ -57,17 +57,15 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             )
 
             # Emit detected coordinates
-            self.found_coords.emit(self.x_coords, self.y_coords, imtx, idist,
+            self.signals.found_coords.emit(self.x_coords, self.y_coords, imtx, idist,
                                    tuple(rvecs.flatten()), tuple(tvecs.flatten()))
             return 1
-            """
-            pass
     
     class DrawWorker(BaseDrawWorker):
-        def process(self, frame):
-            pass
-        
-
+        def __init__(self, name, test_mode=False):
+            super().__init__(name)
+            self.test_mode = test_mode
+    
     def __init__(self, camera_name,  test_mode=False):
         super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode

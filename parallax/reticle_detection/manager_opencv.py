@@ -39,7 +39,7 @@ class ReticleDetectManager(BaseReticleManager):
             success, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(self.x_coords, self.y_coords)
             if not self.running: return -1
             if not success: return None
-            print(f"rvecs: {rvecs}, tvecs: {tvecs}")
+            #print(f"rvecs: {rvecs}, tvecs: {tvecs}")
 
             # Step 4: Reproject 3D axis points
             objpts_x_coords = get_axis_object_points(axis='x', coord_range=10)

@@ -24,7 +24,7 @@ class BaseDrawWorker(QRunnable):
         self.name = name
         self.running = False
         self.new = False
-        self.found = False
+        self.state = None  # "Found", "InProcess", "Failed"
         self.frame = None
 
         # Drawing variables
@@ -39,12 +39,13 @@ class BaseDrawWorker(QRunnable):
     def run(self):
         while self.running:
             if self.new:                
-                if self.found:
+                if self.state == "Found":
                     self._draw_result()
-                    self.signals.frame_processed.emit(self.frame)
-                else:
+                elif self.state == "InProcess":
                     self._draw_progress()
-                    self.signals.frame_processed.emit(self.frame)
+                elif self.state == "Failed":
+                    self._draw_failed()
+                self.signals.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.01)
         self.signals.finished.emit()
@@ -54,6 +55,51 @@ class BaseDrawWorker(QRunnable):
 
     def stop_running(self):
         self.running = False
+
+    def _draw_failed(self):
+        # Draw text
+        text = "Detection       Failed"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 5
+        color = (0, 0, 255)  # Red
+        thickness = 10
+        text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
+        text_x = (self.frame.shape[1] - text_size[0]) // 2 -  130
+        text_y = (self.frame.shape[0] + text_size[1]) // 2
+        cv2.putText(self.frame, text, (text_x, text_y), font, font_scale, color, thickness, cv2.LINE_AA)
+
+        # Emoji face center and size
+        center = (self.frame.shape[1] // 2, self.frame.shape[0] // 2)
+        face_radius = 200
+        face_color = (255, 255, 0)  # Yellow face
+
+        # Draw face
+        cv2.circle(self.frame, center, face_radius, face_color, -1)
+
+        # Draw eyes
+        eye_radius = 20
+        eye_offset_x = 60
+        eye_offset_y = 50
+        eye_color = (0, 0, 0)  # Black eyes
+        left_eye = (center[0] - eye_offset_x, center[1] - eye_offset_y)
+        right_eye = (center[0] + eye_offset_x, center[1] - eye_offset_y)
+        cv2.circle(self.frame, left_eye, eye_radius, eye_color, -1)
+        cv2.circle(self.frame, right_eye, eye_radius, eye_color, -1)
+
+        # Draw sad mouth
+        mouth_center = (center[0], center[1] + 70)
+        mouth_axes = (80, 40)
+        cv2.ellipse(self.frame, mouth_center, mouth_axes, 0, 0, 180, (0, 0, 0), 5)
+
+        # Animate tears
+        tear_color = (0, 0, 255)  # Blue tears
+        tear_length = 30
+        time_offset = int((time.time() * 10) % 30)  # Animate by moving tears down
+        tear1 = (left_eye[0], left_eye[1] + eye_radius + time_offset)
+        tear2 = (right_eye[0], right_eye[1] + eye_radius + time_offset)
+        cv2.line(self.frame, (tear1[0], tear1[1]), (tear1[0], tear1[1] + tear_length), tear_color, 5)
+        cv2.line(self.frame, (tear2[0], tear2[1]), (tear2[0], tear2[1] + tear_length), tear_color, 5)
+
 
     def _draw_result(self):
         if self.origin and self.x and self.y and self.z:
@@ -100,7 +146,7 @@ class ProcessWorkerSignal(QObject):
     detect_failed = pyqtSignal()
     finished = pyqtSignal()
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
-    found = pyqtSignal()
+    state = pyqtSignal(str)  # "Found", "Failed", "Stopped", "InProcess"
 
 class BaseProcessWorker(QRunnable):
     def __init__(self, name):
@@ -111,12 +157,8 @@ class BaseProcessWorker(QRunnable):
         self.running = False
 
         # Drawing variables
-        self.origin = None
-        self.x = None
-        self.y = None
-        self.z = None
-        self.x_coords = None
-        self.y_coords = None
+        self.origin, self.x, self.y, self.z = None, None, None, None
+        self.x_coords, self.y_coords = None, None
 
     @pyqtSlot()
     def run(self):
@@ -124,15 +166,19 @@ class BaseProcessWorker(QRunnable):
             if self.frame is None:
                 time.sleep(0.01)
                 continue
+            self.signals.state.emit("InProcess")
             result = self.process(self.frame)
             if result == -1:
                 logger.debug(f"{self.name} - Outside request to stop processing")
+                self.signals.state.emit("Stopped")
             if result is None:
                 logger.debug(f"{self.name} - Detection failed")
-                self.signals.detect_failed.emit()
+                #self.signals.detect_failed.emit()
+                self.signals.state.emit("Failed")
             if result == 1:
                 logger.debug(f"{self.name} - Detection success")
-                self.signals.found.emit()
+                self.signals.state.emit("Found")
+
             self.signals.finished.emit()
             return
         self.signals.finished.emit()
@@ -164,15 +210,12 @@ class BaseReticleManager(QObject):
         super().__init__()
         self.name = name
         self.WorkerClass = WorkerClass
-        #self.thread = None
         self.worker = None
-
         self.processWorkerClass = ProcessWorkerClass
         self.processWorker = None
-
         self.threadpool = QThreadPool()
-        print( f"Thread max count: {self.threadpool.maxThreadCount()}")
 
+    """
     def _init_draw_thread(self):
         self.thread = QThread()
         self.worker = self.WorkerClass(self.name)
@@ -184,19 +227,22 @@ class BaseReticleManager(QObject):
         self.thread.finished.connect(self.thread.deleteLater)
         self.thread.finished.connect(self.onThreadFinished)
         self.worker.frame_processed.connect(self.frame_processed)
+    """
 
-    def init_draw_thread(self):
+    def _init_draw_thread(self):
         self.worker = self.WorkerClass(self.name)
-        self.worker.signals.finished.connect(self.onDrawThreadFinished)
+        self.worker.signals.finished.connect(self._onDrawThreadFinished)
         self.worker.signals.frame_processed.connect(self.frame_processed)
 
-    def init_process_thread(self):
+    def _init_process_thread(self):
         #------------------ Process Thread---------
         self.processWorker = self.processWorkerClass(self.name)
-        self.processWorker.signals.finished.connect(self.onProcessThreadFinished)
+        self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.found_coords.connect(self.found_coords)
+        self.processWorker.signals.state.connect(self._state)
         self.processWorker.signals.detect_failed.connect(self.detect_failed)
-        self.processWorker.signals.found.connect(self.process_success)
+
+        #self.processWorker.signals.detect_failed.connect(self.detect_failed)
         #self.processWorker.signals.finished.connect(self.processWorker.deleteLater)
 
     def process(self, frame):
@@ -207,17 +253,17 @@ class BaseReticleManager(QObject):
 
     def start(self):
         if self.worker is not None or self.processWorker is not None:
-            logger.debug(f"{self.name} Previous thread not cleaned up")
+            print(f"{self.name} Previous thread not cleaned up")
             return
 
         logger.debug(f"{self.name} Starting thread")
-        self.init_draw_thread()
+        self._init_draw_thread()
         self.worker.start_running()
         self.threadpool.start(self.worker)
         #self.worker.start_running()
         #self.thread.start()
 
-        self.init_process_thread()
+        self._init_process_thread()
         self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
 
@@ -234,15 +280,15 @@ class BaseReticleManager(QObject):
             self.thread.wait()
         """
 
-    def onDrawThreadFinished(self):
+    def _onDrawThreadFinished(self):
         """Handle thread finished signal."""
-        logger.debug(f"{self.name} Draw Thread finished")
+        print(f"{self.name} Draw Thread finished")
         #self.thread = None
         self.worker = None
 
-    def onProcessThreadFinished(self):
+    def _onProcessThreadFinished(self):
         """Handle thread finished signal."""
-        logger.debug(f"{self.name} Process Thread finished")
+        print(f"{self.name} Process Thread finished")
         self.processWorker = None
 
     def set_name(self, camera_name):
@@ -253,8 +299,10 @@ class BaseReticleManager(QObject):
         if self.processWorker is not None:
             self.processWorker.set_name(self.name)
 
-    def process_success(self):
-        if self.worker:
+    def _state(self, state):
+        if state == "InProcess":
+            self.worker.state = "InProcess" 
+        elif state == "Found" and self.worker:
             # Drawing variables
             self.worker.origin = self.processWorker.origin
             self.worker.x = self.processWorker.x
@@ -262,4 +310,10 @@ class BaseReticleManager(QObject):
             self.worker.z = self.processWorker.z
             self.worker.x_coords = self.processWorker.x_coords
             self.worker.y_coords = self.processWorker.y_coords
-            self.worker.found = True
+            self.worker.state = "Found"
+        elif state == "Failed" and self.worker:
+            self.worker.state = "Failed"
+        elif state == "Stopped":
+            pass
+
+ 

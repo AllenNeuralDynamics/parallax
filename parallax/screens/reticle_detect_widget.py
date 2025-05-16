@@ -33,7 +33,7 @@ class ReticleDetectWidget(QWidget):
         self.settingMenu.run_pushBtn.clicked.connect(self._run_detection)
         self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
         self.screen.reticle_coords_detected.connect(self._reticle_detected)
-        self.screen.reticle_coords_detect_fail.connect(self._reticle_detect_failed)
+        #self.screen.reticle_coords_detect_fail.connect(self._reticle_detect_failed)
 
     def _is_superpoint_available(self):
         """Check if SFM and SuperPoint + LightGlue are available by verifying import and file presence."""
@@ -98,9 +98,10 @@ class ReticleDetectWidget(QWidget):
         self.settingMenu.run_pushBtn.setText("Detected")
         # Draw other filters
 
+    """
     def _reticle_detect_failed(self):
         print(f"{self.screen.camera_name} Detection failed")
-        self._reset_detection()
+        self._reset_detection()"""
 
     def _get_setting_button(self):
         btn = QToolButton(self.parent)
