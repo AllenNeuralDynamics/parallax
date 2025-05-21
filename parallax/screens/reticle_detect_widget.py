@@ -70,13 +70,13 @@ class ReticleDetectWidget(QWidget):
 
         # Run open cv default detection
         if self.settingMenu.radioButton1.isChecked():
-            print("Running OpenCV detection")
+            print(f"{self.name} - Running OpenCV detection")
             if self.screen.get_camera_color_type() == "Color":
                 self.screen.run_reticle_detection()
 
         # SuperPoint + LightGlue detection
         elif self.settingMenu.radioButton2.isChecked():
-            print("Running SuperPoint + LightGlue")
+            print(f"{self.name} - Running SuperPoint + LightGlue")
             if self.screen.get_camera_color_type() == "Color":
                 self.screen.run_cnn_reticle_detection()
 
@@ -86,7 +86,6 @@ class ReticleDetectWidget(QWidget):
         self.settingMenu.run_pushBtn.setText("Run")
 
     def _reset_detection(self):
-        print("Resetting to default")
         # TODO Reset from the model
         self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
         self.screen.run_no_filter()

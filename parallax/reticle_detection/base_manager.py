@@ -268,14 +268,12 @@ class BaseReticleManager(QObject):
 
     def _onDrawThreadFinished(self):
         """Handle thread finished signal."""
-        print(f"{self.name} Draw Thread finished")
         self.worker = None
         if self.processWorker is None:
             self.finished.emit()
 
     def _onProcessThreadFinished(self):
         """Handle thread finished signal."""
-        print(f"{self.name} Process Thread finished")
         self.processWorker = None
 
     def set_name(self, camera_name):
