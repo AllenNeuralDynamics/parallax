@@ -167,7 +167,7 @@ class ReticleDetecthandler(QWidget):
         )
 
         msg = f"{self.model.camera_intrinsic.keys()}"
-        self.reticleCalibrationLabel.setText(msg)
+        #self.reticleCalibrationLabel.setText(msg)
 
         """
         # Reset models

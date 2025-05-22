@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
+from PyQt5.QtGui import QFont
 import time
 import numpy as np
 import cv2
@@ -56,10 +57,10 @@ class BaseDrawWorker(QRunnable):
     def _draw_failed(self):
         # Draw text
         text = "Detection       Failed"
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 5
+        font = cv2.FONT_HERSHEY_PLAIN
+        font_scale = 10
         color = (0, 0, 255)  # Red
-        thickness = 10
+        thickness = 5
         text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
         text_x = (self.frame.shape[1] - text_size[0]) // 2 -  130
         text_y = (self.frame.shape[0] + text_size[1]) // 2
@@ -139,10 +140,10 @@ class BaseDrawWorker(QRunnable):
         cv2.circle(self.frame, (dot_x, dot_y), dot_radius, color, -1)
 
         if text is not None:
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            font_scale = 3
+            font = cv2.FONT_HERSHEY_PLAIN
+            font_scale = 5
             color = (0, 0, 255)  # Red
-            thickness = 5
+            thickness = 3
             text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
             text_x = (self.frame.shape[1] - text_size[0]) // 2
             text_y = (self.frame.shape[0] + text_size[1]) // 2 + 250
