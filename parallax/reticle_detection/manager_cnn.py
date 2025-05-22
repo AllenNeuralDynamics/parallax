@@ -5,14 +5,20 @@ import shutil
 import subprocess
 import sys
 import time
-import sfm
 from pathlib import Path
-
+import logging
 from parallax.config.config_path import cnn_img_dir, cnn_export_dir
 from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker
 from parallax.cameras.calibration_camera import (
     imtx, idist, get_axis_object_points, get_projected_points, get_origin_xyz, get_rvec_and_tvec
 )
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+
+try:
+    import sfm  # noqa: F401
+except ImportError:
+    logger.warning("[WARN] SFM package is not installed.")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -33,6 +39,12 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             shutil.rmtree(image_path, ignore_errors=True)
             shutil.rmtree(export_path, ignore_errors=True)
 
+        def preprocess_iamge(self, image):
+            # Preprocess the image if needed
+            image = cv2.GaussianBlur(image, (5, 5), 0)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            return image
+
         def process(self, frame):
             image_dir = cnn_img_dir / f"{self.name}"
             image_dir.mkdir(parents=True, exist_ok=True)
@@ -40,22 +52,25 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             export_dir = cnn_export_dir / f"{self.name}"
 
             # Save frame to disk
+            frame = self.preprocess_iamge(frame)
             cv2.imwrite(str(image_dir / query), frame)
 
             # Run SFM once to extract and match features
+            print(f"{self.name} - Extracting Features...")
             result = self._run_feature_cli(str(image_dir), query, str(export_dir))
             if result == -1 or result is None:
                 self._clean_output(image_dir, export_dir)
                 return result
 
+            print(f"{self.name} - Matching Features...")
             result = self._run_match_cli(query, str(export_dir))
             if result == -1 or result is None:
-                self._clean_output(image_dir / query, export_dir)
+                self._clean_output(image_dir, export_dir)
                 return result
 
+            print(f"{self.name} - Localizing...")
             for attempt in range(1, MAX_RETRIES + 1):
                 result = self._run_localize_cli(query, str(export_dir))
-                print(result)
 
                 if result in (-1, None):
                     return result
@@ -74,10 +89,10 @@ class ReticleDetectManagerCNN(BaseReticleManager):
 
                 except Exception as e:
                     logger.warning(f"Failed to parse localization result on attempt {attempt}: {e}")
-                    self._clean_output(image_dir / query, export_dir)
+                    self._clean_output(image_dir, export_dir)
                     return None
 
-            self._clean_output(image_dir / query, export_dir)
+            self._clean_output(image_dir, export_dir)
             # Reproject axis points
             objpts_x_coords = get_axis_object_points('x', 10)
             objpts_y_coords = get_axis_object_points('y', 10)

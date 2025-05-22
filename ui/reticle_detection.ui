@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>182</width>
-    <height>110</height>
+    <width>171</width>
+    <height>119</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -46,13 +46,20 @@ font: 8pt;
      </property>
     </widget>
    </item>
+   <item row="3" column="0">
+    <widget class="QPushButton" name="run_pushBtn">
+     <property name="text">
+      <string>Run</string>
+     </property>
+    </widget>
+   </item>
    <item row="2" column="0">
     <widget class="QRadioButton" name="radioButton2">
      <property name="enabled">
       <bool>false</bool>
      </property>
      <property name="text">
-      <string>SuperPoint+LightGlue</string>
+      <string>SuperPoint</string>
      </property>
     </widget>
    </item>
@@ -67,28 +74,17 @@ font: 8pt;
       </font>
      </property>
      <property name="text">
-      <string>Detection Algorithm</string>
+      <string>Algorithm</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
      </property>
     </widget>
    </item>
    <item row="4" column="0">
-    <widget class="QPushButton" name="run_pushBtn">
-     <property name="text">
-      <string>Run</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0">
     <widget class="QPushButton" name="reset_pushBtn">
      <property name="text">
       <string>Reset</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="result_label">
-     <property name="text">
-      <string>Result:</string>
      </property>
     </widget>
    </item>

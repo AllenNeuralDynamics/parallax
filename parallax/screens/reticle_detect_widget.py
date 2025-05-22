@@ -41,7 +41,7 @@ class ReticleDetectWidget(QWidget):
         try:
             import sfm  # noqa: F401
         except ImportError:
-            logger.warning("[WARN] SFM package is not installed or not importable.")
+            logger.warning("[WARN] SFM package is not installed.")
             return False
 
         # Configure external path and add to sys.path if needed
@@ -70,13 +70,13 @@ class ReticleDetectWidget(QWidget):
 
         # Run open cv default detection
         if self.settingMenu.radioButton1.isChecked():
-            print(f"{self.name} - Running OpenCV detection")
+            print(f"{self.screen.camera_name} - Running OpenCV detection")
             if self.screen.get_camera_color_type() == "Color":
                 self.screen.run_reticle_detection()
 
         # SuperPoint + LightGlue detection
         elif self.settingMenu.radioButton2.isChecked():
-            print(f"{self.name} - Running SuperPoint + LightGlue")
+            print(f"{self.screen.camera_name} - Running SuperPoint + LightGlue")
             if self.screen.get_camera_color_type() == "Color":
                 self.screen.run_cnn_reticle_detection()
 
@@ -86,19 +86,12 @@ class ReticleDetectWidget(QWidget):
         self.settingMenu.run_pushBtn.setText("Run")
 
     def _reset_detection(self):
-        # TODO Reset from the model
         self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
         self.screen.run_no_filter()
 
     def _reticle_detected(self):
         # Enable button
         self.settingMenu.run_pushBtn.setText("Detected")
-        # Draw other filters
-
-    """
-    def _reticle_detect_failed(self):
-        print(f"{self.screen.camera_name} Detection failed")
-        self._reset_detection()"""
 
     def _get_setting_button(self):
         btn = QToolButton(self.parent)
