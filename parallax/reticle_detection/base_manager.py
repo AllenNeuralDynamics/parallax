@@ -1,12 +1,12 @@
 from PyQt5.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
-from PyQt5.QtGui import QFont
+from parallax.config.config_path import debug_img_dir
 import time
 import numpy as np
 import cv2
 import logging
 import math
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 class DrawWorkerSignal(QObject):
     finished = pyqtSignal()
@@ -22,6 +22,7 @@ class BaseDrawWorker(QRunnable):
         self.new = False
         self.state = None  # "Found", "InProcess", "Failed"
         self.frame = None
+        self.draw_flag = True
 
         # Drawing variables
         self.origin, self.x, self.y, self.z = None, None, None, None
@@ -37,6 +38,7 @@ class BaseDrawWorker(QRunnable):
             if self.new:
                 if self.state == "Found":
                     self._draw_result()
+                    self._save_debug_image()
                 elif self.state == "InProcess":
                     self._draw_progress()
                 elif self.state == "Failed":
@@ -98,6 +100,20 @@ class BaseDrawWorker(QRunnable):
         cv2.line(self.frame, (tear1[0], tear1[1]), (tear1[0], tear1[1] + tear_length), tear_color, 5)
         cv2.line(self.frame, (tear2[0], tear2[1]), (tear2[0], tear2[1] + tear_length), tear_color, 5)
 
+    def _save_debug_image(self):
+        if self.draw_flag is False:
+            return
+        if logger.getEffectiveLevel() != logging.DEBUG:
+            return
+        self.draw_flag = False
+        # Save the image with a unique name
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        debug_image_path = f"{debug_img_dir}/{self.name}_{timestamp}.jpg"
+        # Change RGB to BGR
+        if self.frame.shape[2] == 3:
+            self.frame = cv2.cvtColor(self.frame, cv2.COLOR_RGB2BGR)
+        # Save the image
+        cv2.imwrite(debug_image_path, self.frame)
 
     def _draw_result(self):
         if self.origin and self.x and self.y and self.z:
@@ -107,16 +123,18 @@ class BaseDrawWorker(QRunnable):
 
     def _draw_coords(self, x_axis_coords, y_axis_coords):
         """Draw axis points on the frame."""
+        size = 2 if logger.getEffectiveLevel() == logging.DEBUG else 7
         for pixel in x_axis_coords:
-            cv2.circle(self.frame, tuple(pixel), 9, (255, 255, 0), -1)
+            cv2.circle(self.frame, tuple(pixel), size, (255, 255, 0), -1)
         for pixel in y_axis_coords:
-            cv2.circle(self.frame, tuple(pixel), 9, (0, 255, 255), -1)
+            cv2.circle(self.frame, tuple(pixel), size, (0, 255, 255), -1)
 
     def _draw_xyz(self, origin, x, y, z):
         """Draw the XYZ axes on the frame."""
-        self.frame = cv2.line(self.frame, origin, x, (255, 0, 0), 3)  # Red line
-        self.frame = cv2.line(self.frame, origin, y, (0, 255, 0), 3)  # Green line
-        self.frame = cv2.line(self.frame, origin, z, (0, 0, 255), 3)  # Blue line
+        size = 1 if logger.getEffectiveLevel() == logging.DEBUG else 3
+        self.frame = cv2.line(self.frame, origin, x, (255, 0, 0), size)  # Red line
+        self.frame = cv2.line(self.frame, origin, y, (0, 255, 0), size)  # Green line
+        self.frame = cv2.line(self.frame, origin, z, (0, 0, 255), size)  # Blue line
 
     def set_name(self, name):
         """Set name as camera serial number."""
@@ -148,6 +166,7 @@ class BaseDrawWorker(QRunnable):
             text_x = (self.frame.shape[1] - text_size[0]) // 2
             text_y = (self.frame.shape[0] + text_size[1]) // 2 + 250
             cv2.putText(self.frame, text, (text_x, text_y), font, font_scale, color, thickness, cv2.LINE_AA)
+
 
 class ProcessWorkerSignal(QObject):
     finished = pyqtSignal()
