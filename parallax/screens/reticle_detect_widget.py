@@ -2,8 +2,8 @@ import os
 import logging
 import sys
 from pathlib import Path
-from PyQt5.QtWidgets import QWidget, QToolButton, QPushButton, QFileDialog
-from PyQt5.QtCore import QPoint, QTimer, QCoreApplication
+from PyQt5.QtWidgets import QWidget, QToolButton
+from PyQt5.QtCore import QPoint, QCoreApplication
 from PyQt5.QtGui import QFont
 from PyQt5.uic import loadUi
 
@@ -26,7 +26,7 @@ class ReticleDetectWidget(QWidget):
         self.settingMenu = self._get_setting_menu()
         if self._is_superpoint_available():
             self.settingMenu.radioButton2.setEnabled(True)
-            
+
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
         )
@@ -104,7 +104,7 @@ class ReticleDetectWidget(QWidget):
             QCoreApplication.translate("MainWindow", "DETECT \u25ba", None)
         )
         return btn
-    
+
     def _get_setting_menu(self):
         # Initialize the settings menu UI from the .ui file
         detectMenu = QWidget(self.parent)

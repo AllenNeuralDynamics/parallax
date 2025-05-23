@@ -6,7 +6,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-import logging
 from parallax.config.config_path import cnn_img_dir, cnn_export_dir
 from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker
 from parallax.cameras.calibration_camera import (
@@ -14,6 +13,7 @@ from parallax.cameras.calibration_camera import (
 )
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
 
 try:
     import sfm  # noqa: F401
@@ -43,7 +43,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             # Preprocess the image if needed
             image = cv2.GaussianBlur(image, (5, 5), 0)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            return image
+            return
 
         def process(self, frame):
             image_dir = cnn_img_dir / f"{self.name}"
@@ -79,10 +79,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
                     values = list(map(float, result.strip().split()))
                     quat, tvec = np.array(values[:4]), np.array(values[4:])
                     rvecs, tvecs = get_rvec_and_tvec(quat, tvec)
-
-                    logger.info(f"Attempt {attempt}: rvecs = {rvecs}")
-                    logger.info(f"tvecs = {np.array2string(tvecs.flatten(), formatter={'float_kind': lambda x: '%.6f' % x})}")
-                    logger.info(f"tvecs distance = {np.linalg.norm(tvecs):.2f}")
+                    logger.info(f"Attempt {attempt}: tvec dist - {np.linalg.norm(tvecs):.2f}")
 
                     if np.linalg.norm(tvecs) <= DIST_THRESHOLD:
                         break
@@ -102,14 +99,18 @@ class ReticleDetectManagerCNN(BaseReticleManager):
                 np.array(self.x_coords, dtype=np.float32), imtx, idist, rvecs, tvecs,
                 center_index_x=len(self.x_coords) // 2, axis_length=10
             )
-            if not self.running: return -1
+            if not self.running:
+                return -1
 
             # Emit detected coordinates
-            self.signals.found_coords.emit(self.x_coords, self.y_coords, imtx, idist,
-                                   tuple(rvecs.flatten()), tuple(tvecs.flatten()))
-            if not self.running: return -1
+            self.signals.found_coords.emit(
+                self.x_coords, self.y_coords, imtx, idist,
+                tuple(rvecs.flatten()), tuple(tvecs.flatten())
+            )
+            if not self.running:
+                return -1
             return 1
-    
+
         def _run_feature_cli(self, image_dir, image_name, export_dir):
             return self._run_cli_step("feature", [
                 "--image_dir", image_dir,
@@ -170,7 +171,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
         def __init__(self, name, test_mode=False):
             super().__init__(name)
             self.test_mode = test_mode
-    
+
     def __init__(self, camera_name,  test_mode=False):
         super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode

@@ -20,26 +20,33 @@ class ReticleDetectManager(BaseReticleManager):
             super().__init__(name)
             self.test_mode = test_mode
             self.mask_detect = MaskGenerator(initial_detect=True)
-            self.reticleDetector = ReticleDetection(IMG_SIZE_ORIGINAL, self.mask_detect, self.name, test_mode=self.test_mode)
+            self.reticleDetector = ReticleDetection(
+                IMG_SIZE_ORIGINAL, self.mask_detect, self.name, test_mode=self.test_mode
+            )
             self.coordsInterests = ReticleDetectCoordsInterest()
             self.calibrationCamera = CalibrationCamera(self.name)
-    
+
         def process(self, frame):
             # Step 1: Run detection
             success, processed_frame, _, inliner_lines = self.reticleDetector.get_coords(frame, lambda: self.running)
-            if not self.running: return -1
-            if not success: return None
+            if not self.running:
+                return -1
+            if not success:
+                return None
 
             # Step 2: Analyze coordinates of interest
             success, self.x_coords, self.y_coords = self.coordsInterests.get_coords_interest(inliner_lines)
-            if not self.running: return -1
-            if not success: return None
+            if not self.running:
+                return -1
+            if not success:
+                return None
 
             # Step 3: Camera calibration
             success, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(self.x_coords, self.y_coords)
-            if not self.running: return -1
-            if not success: return None
-            #print(f"rvecs: {rvecs}, tvecs: {tvecs}")
+            if not self.running:
+                return -1
+            if not success:
+                return None
 
             # Step 4: Reproject 3D axis points
             objpts_x_coords = get_axis_object_points(axis='x', coord_range=10)
@@ -58,14 +65,15 @@ class ReticleDetectManager(BaseReticleManager):
 
             # Emit data
             self.signals.found_coords.emit(self.x_coords, self.y_coords, mtx, dist, rvecs, tvecs)
-            if not self.running: return -1
+            if not self.running:
+                return -1
             return 1
 
     class DrawWorker(BaseDrawWorker):
         def __init__(self, name, test_mode=False):
             super().__init__(name)
             self.test_mode = test_mode
-    
+
     def __init__(self, camera_name,  test_mode=False):
         super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode

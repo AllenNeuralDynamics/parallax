@@ -100,7 +100,7 @@ class CalibrationCamera:
             (nCoords_per_axis * 2, 2)
         ).astype(np.float32)
         return coords_lines_reshaped
-    
+
     def _get_changed_data_format(self, x_axis, y_axis):
         """
         Combine and format x and y axis coordinates into a single array.
@@ -574,6 +574,7 @@ def get_projected_points(objpoints, rvec, tvec, mtx, dist):
     imgpoints, _ = cv2.projectPoints(objpoints, rvec, tvec, mtx, dist)
     return np.round(imgpoints.reshape(-1, 2)).astype(np.int32)
 
+
 def get_axis_object_points(axis='x', coord_range=10, world_scale=0.2):
     """
     Generate 1D object points along a given axis.
@@ -597,6 +598,7 @@ def get_axis_object_points(axis='x', coord_range=10, world_scale=0.2):
         raise ValueError("axis must be 'x' or 'y'")
 
     return np.round(points * world_scale, 2)
+
 
 def get_origin_xyz(imgpoints, mtx, dist, rvecs, tvecs, center_index_x=0, axis_length=5):
     """
@@ -629,10 +631,10 @@ def get_origin_xyz(imgpoints, mtx, dist, rvecs, tvecs, center_index_x=0, axis_le
 
     return origin, x, y, z
 
-    
+
 def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
     """
-    Print the quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ) 
+    Print the quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ)
     derived from a rotation vector and translation vector.
     Args:
         rvecs (np.ndarray): Rotation vector (3x1 or 1x3).
@@ -646,6 +648,7 @@ def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
     print(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
 
     return QW, QX, QY, QZ, TX, TY, TZ
+
 
 def get_rvec_and_tvec(quat, tvecs):
     """
@@ -664,7 +667,7 @@ def get_rvec_and_tvec(quat, tvecs):
     rotation = Rscipy.Rotation.from_quat([QX, QY, QZ, QW])
     R_mat = rotation.as_matrix()
     rvecs, _ = cv2.Rodrigues(R_mat)
-    
+
     tvecs = np.asarray(tvecs).reshape(3, 1)
 
     return rvecs, tvecs

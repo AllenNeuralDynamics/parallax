@@ -1,7 +1,6 @@
 """
 This module defines the paths used in the project and sets up logging.
 """
-import os
 import logging
 from pathlib import Path
 
@@ -43,6 +42,7 @@ cnn_export_dir.mkdir(parents=True, exist_ok=True)
 
 # Font
 fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")
+
 
 # Logging setup
 def setup_logging():

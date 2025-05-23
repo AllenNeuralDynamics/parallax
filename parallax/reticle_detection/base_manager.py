@@ -8,6 +8,7 @@ import math
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class DrawWorkerSignal(QObject):
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
@@ -64,7 +65,7 @@ class BaseDrawWorker(QRunnable):
         color = (0, 0, 255)  # Red
         thickness = 5
         text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
-        text_x = (self.frame.shape[1] - text_size[0]) // 2 -  130
+        text_x = (self.frame.shape[1] - text_size[0]) // 2 - 130
         text_y = (self.frame.shape[0] + text_size[1]) // 2
         cv2.putText(self.frame, text, (text_x, text_y), font, font_scale, color, thickness, cv2.LINE_AA)
 
@@ -199,7 +200,6 @@ class BaseProcessWorker(QRunnable):
                 self.signals.state.emit("Stopped")
             if result is None:
                 logger.debug(f"{self.name} - Detection failed")
-                #self.signals.detect_failed.emit()
                 self.signals.state.emit("Failed")
             if result == 1:
                 logger.debug(f"{self.name} - Detection success")
@@ -212,14 +212,14 @@ class BaseProcessWorker(QRunnable):
 
     def process(self, frame):
         raise NotImplementedError("Subclasses must implement this method.")
-    
+
     def update_frame(self, frame):
         self.frame = frame
 
     def set_name(self, name):
         """Set name as camera serial number."""
         self.name = name
-    
+
     def start_running(self):
         self.running = True
 
@@ -307,9 +307,9 @@ class BaseReticleManager(QObject):
     def _state(self, state):
         if self.worker is None:
             return
-        
+
         if state == "InProcess":
-            self.worker.state = "InProcess" 
+            self.worker.state = "InProcess"
         elif state == "Found":
             # Drawing variables
             self.worker.origin = self.processWorker.origin

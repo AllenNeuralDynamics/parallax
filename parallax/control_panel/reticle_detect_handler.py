@@ -7,8 +7,7 @@ from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-RETICLE_DETECT_WAIT_TIME = 10000  # 20 seconds
+logger.setLevel(logging.DEBUG)
 
 
 class ReticleDetecthandler(QWidget):
@@ -48,7 +47,7 @@ class ReticleDetecthandler(QWidget):
         self.acceptButton.hide()
         self.rejectButton.hide()
         self.acceptButton.clicked.connect(
-            self.reticle_detect_accept_detected_status
+            self.reticle_detect_accept_deteqwercted_status
         )
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
         self.get_pos_x_from_user_timer = QTimer()
@@ -93,7 +92,6 @@ class ReticleDetecthandler(QWidget):
                 screen.run_no_filter()
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
-
 
         # Hide Accept and Reject Button
         self.acceptButton.hide()
@@ -142,7 +140,6 @@ class ReticleDetecthandler(QWidget):
         self.continue_if_positive_x_axis_from_user()
         logger.debug(f"2 self.filter: {self.filter}")
 
-
     def reticle_detect_process_status(self):
         """
         Updates the UI and internal state to reflect that the reticle detection process is underway.
@@ -154,7 +151,6 @@ class ReticleDetecthandler(QWidget):
         # Check at least two screens are detected.
         if len(self.model.camera_intrinsic) < 2:
             msg = "At least two screens are required for Triangulation."
-            #self.reticleCalibrationLabel.setText(msg)
             QMessageBox.warning(self, "Reticle Detection Failed", msg)
             return
 
@@ -167,16 +163,7 @@ class ReticleDetecthandler(QWidget):
         )
 
         msg = f"{self.model.camera_intrinsic.keys()}"
-        #self.reticleCalibrationLabel.setText(msg)
-
-        """
-        # Reset models
-        self.model.reset_coords_intrinsic_extrinsic()
-        for screen in self.screen_widgets:
-            screen.reticle_coords_detected.connect(
-                self.reticle_detect_two_screens
-            )
-        """
+        print(f"Stereo Cameras: {msg}")
 
         self.filter = "reticle_detection"
         logger.debug(f"filter: {self.filter}")

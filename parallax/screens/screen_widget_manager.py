@@ -141,8 +141,6 @@ class ScreenWidgetManager:
                 screen, screen_index, screen_setting.settingMenu.snComboBox.currentText()
             )
         )
-        #verticalLayout.addWidget(screen_setting.settingButton)
-        #verticalLayout.addWidget(reticle_detector.detectButton)
 
         # Create a horizontal layout for the buttons
         button_row = QHBoxLayout()
@@ -152,7 +150,6 @@ class ScreenWidgetManager:
 
         # Add the button row to the vertical layout
         verticalLayout.addLayout(button_row)
-
 
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
         self.screen_widgets.append(screen)

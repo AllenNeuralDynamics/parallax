@@ -265,7 +265,7 @@ class ProbeDetectManager(QObject):
                     cv2.circle(frame, (x, y), 1, color, -1)
 
             return frame
-        
+
         def process_draw_reticle(self, frame):
             """
             Draw reticle and debug coordinates on the frame.
@@ -273,7 +273,7 @@ class ProbeDetectManager(QObject):
             if self.reticle_coords:
                 for coords in self.reticle_coords:
                     for i, (x, y) in enumerate(coords):
-                        color =self.colormap_reticle[i][0].tolist()
+                        color = self.colormap_reticle[i][0].tolist()
                         cv2.circle(frame, (x, y), 7, color, -1)
 
             if self.reticle_coords_debug is not None:
