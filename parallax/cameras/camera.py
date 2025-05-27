@@ -699,6 +699,7 @@ class MockCamera(BaseCamera):
     n_cameras = 0
 
     def __init__(self):
+        """Initialize the mock camera with default settings"""
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
 
@@ -713,9 +714,14 @@ class MockCamera(BaseCamera):
         self.last_capture_time = time.time()
 
     def name(self, sn_only=False):
+        """Get the name of the mock camera"""
         return self._name
 
     def get_last_image_data(self):
+        """Get the last image data from the mock camera.
+        Returns:
+            numpy.ndarray: The last image data as a numpy array.
+        """
         # Video
         if self.video_cap is not None:
             ret, frame = self.video_cap.read()
@@ -752,7 +758,7 @@ class MockCamera(BaseCamera):
         elif ext in [".mp4", ".avi", ".mov", ".mkv"]:
             cap = cv2.VideoCapture(filepath)
             if not cap.isOpened():
-                raise ValueError(f"Could not open video from {filepath}")
+                raise ValueError(f"Could not open video from14 {filepath}")
             self.video_cap = cap
             self.data = None  # Clear image if previously set
 
