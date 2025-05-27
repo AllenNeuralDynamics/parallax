@@ -1,3 +1,4 @@
+"""Reticle detection widget"""
 import os
 import logging
 import sys
@@ -16,6 +17,7 @@ class ReticleDetectWidget(QWidget):
     """Settings menu widget to control a microscope screen."""
 
     def __init__(self, parent, model, screen):
+        """Initialize the ReticleDetectWidget with a parent, model, and screen."""
         super().__init__()
         # Add setting button
         self.model = model
@@ -61,6 +63,7 @@ class ReticleDetectWidget(QWidget):
             return False
 
     def _run_detection(self):
+        """Run the reticle detection based on the selected method."""
         # Disable button and change appearance
         self.settingMenu.run_pushBtn.setEnabled(False)
         self.settingMenu.run_pushBtn.setText("Running...")
@@ -81,19 +84,23 @@ class ReticleDetectWidget(QWidget):
                 self.screen.run_cnn_reticle_detection()
 
     def _enalbe_run_button(self):
+        """Enable the run button after detection is finished."""
         # Enable button
         self.settingMenu.run_pushBtn.setEnabled(True)
         self.settingMenu.run_pushBtn.setText("Run")
 
     def _reset_detection(self):
+        """Reset the reticle detection settings."""
         self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
         self.screen.run_no_filter()
 
     def _reticle_detected(self):
+        """Handle the event when reticle coordinates are detected."""
         # Enable button
         self.settingMenu.run_pushBtn.setText("Detected")
 
     def _get_setting_button(self):
+        """Create and return the settings button for reticle detection."""
         btn = QToolButton(self.parent)
         btn.setObjectName("Detect")
         font_grpbox = QFont()  # TODO move to config file
@@ -106,6 +113,7 @@ class ReticleDetectWidget(QWidget):
         return btn
 
     def _get_setting_menu(self):
+        """Create and return the settings menu for reticle detection."""
         # Initialize the settings menu UI from the .ui file
         detectMenu = QWidget(self.parent)
         ui = os.path.join(ui_dir, "reticle_detection.ui")
@@ -115,6 +123,7 @@ class ReticleDetectWidget(QWidget):
         return detectMenu
 
     def _show_detect_menu(self, is_checked):
+        """Show or hide the detection settings menu based on the button state."""
         if is_checked:
             # Show the setting menu next to setting button
             button_pos_global = self.detectButton.mapToGlobal(QPoint(0, 0))

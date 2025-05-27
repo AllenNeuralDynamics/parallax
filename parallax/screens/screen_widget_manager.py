@@ -1,4 +1,4 @@
-
+"""Screen widget manager for handling microscope displays and settings."""
 import logging
 from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QGridLayout, QHBoxLayout
 from PyQt5.QtGui import QFont
@@ -16,6 +16,7 @@ class ScreenWidgetManager:
     """Manages microscope display and settings."""
 
     def __init__(self, model, nColumnsSpinBox):
+        """Initialize ScreenWidgetManager."""
         self.model = model
         self.nColumnsSpinBox = nColumnsSpinBox  # Spin box for number of columns (UI)
         self.screen_widgets = []
@@ -31,6 +32,7 @@ class ScreenWidgetManager:
             self._display_microscope(self.model.nMockCameras)
 
     def _config_nColumnsSpinBox(self):
+        """Configure the nColumnsSpinBox based on available cameras."""
         # Configure the column spin box
         if self.model.nPySpinCameras:
             self.nColumnsSpinBox.setMaximum(max(self.model.nPySpinCameras, 1))
@@ -43,6 +45,7 @@ class ScreenWidgetManager:
         )
 
     def _get_cols_cnt(self):
+        """Get the number of columns based on user settings or available cameras."""
         # Load column configuration from user preferences
         cols_cnt = UserSettingsManager.load_settings_item("main", "nColumn")
         if cols_cnt is None or 0:
@@ -90,6 +93,7 @@ class ScreenWidgetManager:
                     break
 
     def _display_microscope(self, nCams=1):
+        """Display microscope screens based on the number of cameras."""
         rows, cols, cnt = (nCams // self.cols_cnt, self.cols_cnt, 0)
         rows += 1 if nCams % cols else 0
         for row_idx in range(rows):
@@ -101,6 +105,7 @@ class ScreenWidgetManager:
                     break
 
     def _createNewGroupBox(self, rows, cols, screen_index=None):
+        """Create a new group box for a microscope screen."""
         # Generate unique names based on screen index
         newNameMicroscope = f"Microscope_{screen_index+1}"
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)

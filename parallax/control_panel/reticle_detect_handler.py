@@ -1,3 +1,4 @@
+""" Reticle detection handler for the Parallax control panel."""
 import logging
 import os
 from PyQt5.QtCore import QTimer, pyqtSignal
@@ -11,6 +12,7 @@ logger.setLevel(logging.DEBUG)
 
 
 class ReticleDetecthandler(QWidget):
+    """Handles reticle detection and calibration in the Parallax control panel."""
     reticleDetectionStatusChanged = pyqtSignal(str)
 
     def __init__(self, model, screen_widgets, filter):
@@ -105,8 +107,8 @@ class ReticleDetecthandler(QWidget):
             }
             QPushButton:hover {
                 background-color: #641e1e;
-            }
-        """)
+            }"""
+        )
         self.reticle_detection_status = "default"
         self.reticleCalibrationLabel.setText("")
         self.triangulate_btn.setChecked(False)
@@ -126,7 +128,6 @@ class ReticleDetecthandler(QWidget):
         Finalizes the reticle detection process, accepting the detected
         reticle position and updating the UI accordingly.
         """
-
         # Change the button to green.
         self.triangulate_btn.setStyleSheet(
             "color: white;"
@@ -167,8 +168,6 @@ class ReticleDetecthandler(QWidget):
 
         self.filter = "reticle_detection"
         logger.debug(f"filter: {self.filter}")
-
-        # TODO--
         self.reticle_detect_detected_status()
 
     def reticle_detect_detected_status(self):

@@ -1,3 +1,4 @@
+"""Base manager for reticle detection workers."""
 from PyQt5.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
 from parallax.config.config_path import debug_img_dir
 import time
@@ -10,12 +11,15 @@ logger.setLevel(logging.WARNING)
 
 
 class DrawWorkerSignal(QObject):
+    """Signals for the DrawWorker."""
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
 
 
 class BaseDrawWorker(QRunnable):
+    """Base worker for drawing reticle detection results on frames."""
     def __init__(self, name):
+        """Initialize the worker with a name."""
         super().__init__()
         self.signals = (DrawWorkerSignal())
         self.name = name
@@ -30,11 +34,13 @@ class BaseDrawWorker(QRunnable):
         self.x_coords, self.y_coords = None, None
 
     def update_frame(self, frame):
+        """Update the frame to be processed."""
         self.frame = frame
         self.new = True
 
     @pyqtSlot()
     def run(self):
+        """Run the worker to draw results on the frame."""
         while self.running:
             if self.new:
                 if self.state == "Found":
@@ -52,12 +58,15 @@ class BaseDrawWorker(QRunnable):
         self.signals.finished.emit()
 
     def start_running(self):
+        """Start the worker to process frames."""
         self.running = True
 
     def stop_running(self):
+        """Stop the worker from processing frames."""
         self.running = False
 
     def _draw_failed(self):
+        """Draw a sad emoji face with text indicating detection failure."""
         # Draw text
         text = "Detection       Failed"
         font = cv2.FONT_HERSHEY_PLAIN
@@ -102,6 +111,7 @@ class BaseDrawWorker(QRunnable):
         cv2.line(self.frame, (tear2[0], tear2[1]), (tear2[0], tear2[1] + tear_length), tear_color, 5)
 
     def _save_debug_image(self):
+        """Save the current frame as a debug image if in DEBUG mode."""
         if self.draw_flag is False:
             return
         if logger.getEffectiveLevel() != logging.DEBUG:
@@ -117,6 +127,7 @@ class BaseDrawWorker(QRunnable):
         cv2.imwrite(debug_image_path, self.frame)
 
     def _draw_result(self):
+        """Draw the detected reticle coordinates and axes on the frame."""
         if self.origin and self.x and self.y and self.z:
             self._draw_xyz(self.origin, self.x, self.y, self.z)
         if self.x_coords is not None and self.y_coords is not None:
@@ -170,13 +181,16 @@ class BaseDrawWorker(QRunnable):
 
 
 class ProcessWorkerSignal(QObject):
+    """Signals for the ProcessWorker."""
     finished = pyqtSignal()
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
     state = pyqtSignal(str)  # "Found", "Failed", "Stopped", "InProcess"
 
 
 class BaseProcessWorker(QRunnable):
+    """Base worker for processing frames to detect reticle coordinates."""
     def __init__(self, name):
+        """Initialize the worker with a name."""
         super().__init__()
         self.signals = (ProcessWorkerSignal())
         self.name = name
@@ -189,6 +203,7 @@ class BaseProcessWorker(QRunnable):
 
     @pyqtSlot()
     def run(self):
+        """Run the worker to process frames for reticle detection."""
         while self.running:
             if self.frame is None:
                 time.sleep(0.01)
@@ -211,9 +226,13 @@ class BaseProcessWorker(QRunnable):
         return
 
     def process(self, frame):
+        """Process the frame to detect reticle coordinates.
+        Args:
+            frame (np.ndarray): The frame to process."""
         raise NotImplementedError("Subclasses must implement this method.")
 
     def update_frame(self, frame):
+        """Update the frame to be processed."""
         self.frame = frame
 
     def set_name(self, name):
@@ -221,19 +240,23 @@ class BaseProcessWorker(QRunnable):
         self.name = name
 
     def start_running(self):
+        """Start the worker to process frames."""
         self.running = True
 
     def stop_running(self):
+        """Stop the worker from processing frames."""
         self.running = False
 
 
 class BaseReticleManager(QObject):
+    """Base manager for reticle detection workers."""
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
     finished = pyqtSignal()
 
     def __init__(self, name, WorkerClass, ProcessWorkerClass):
+        """Initialize the reticle manager with worker classes and a name."""
         super().__init__()
         self.name = name
         self.WorkerClass = WorkerClass
@@ -243,23 +266,27 @@ class BaseReticleManager(QObject):
         self.threadpool = QThreadPool()
 
     def _init_draw_thread(self):
+        """Initialize the draw worker thread."""
         self.worker = self.WorkerClass(self.name)
         self.worker.signals.finished.connect(self._onDrawThreadFinished)
         self.worker.signals.frame_processed.connect(self.frame_processed)
 
     def _init_process_thread(self):
+        """Initialize the process worker thread."""
         self.processWorker = self.processWorkerClass(self.name)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.found_coords.connect(self.found_coords)
         self.processWorker.signals.state.connect(self._state)
 
     def process(self, frame):
+        """Process the frame to detect reticle coordinates."""
         if self.worker:
             self.worker.update_frame(frame)
         if self.processWorker:
             self.processWorker.update_frame(frame)
 
     def start(self):
+        """Start the reticle detection threads."""
         if self.worker is not None or self.processWorker is not None:
             print(f"{self.name} Previous thread not cleaned up")
             return
@@ -274,6 +301,7 @@ class BaseReticleManager(QObject):
         self.threadpool.start(self.processWorker)
 
     def stop(self):
+        """Stop the reticle detection threads."""
         logger.debug(f"{self.name} Stopping thread")
         if self.worker is None and self.processWorker is None:  # State: Stopped
             return
@@ -305,6 +333,7 @@ class BaseReticleManager(QObject):
             self.processWorker.set_name(self.name)
 
     def _state(self, state):
+        """Update the state of the worker based on the given state."""
         if self.worker is None:
             return
 

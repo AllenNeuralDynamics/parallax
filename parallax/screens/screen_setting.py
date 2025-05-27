@@ -1,3 +1,4 @@
+"""Screen settings widget for controlling microscope camera settings."""
 import os
 import logging
 from PyQt5.QtWidgets import QWidget, QToolButton, QPushButton, QFileDialog
@@ -15,6 +16,7 @@ class ScreenSetting(QWidget):
     """Settings menu widget to control a microscope screen."""
 
     def __init__(self, parent, model, screen):
+        """Initialize the ScreenSetting with a parent, model, and screen."""
         super().__init__()
         # Add setting button
         self.model = model
@@ -35,6 +37,7 @@ class ScreenSetting(QWidget):
         )
 
     def _setup_settingMenu(self):
+        """Setup the settings menu with all necessary controls."""
         self._setup_sn()
         self._custom_name()
         self._exposure()
@@ -44,6 +47,7 @@ class ScreenSetting(QWidget):
         self._color_channel()
 
     def _show_settings_menu(self, is_checked):
+        """Show or hide the settings menu based on the button toggle state."""
         if is_checked:
             self.settings_refresh_timer.start(500)  # Update setting menu every 500ms
             # Show the setting menu next to setting button
@@ -58,6 +62,7 @@ class ScreenSetting(QWidget):
             self.settingMenu.hide()
 
     def _exposure(self):
+        """Setup exposure settings in the settings menu."""
         # Exposure
         self.settingMenu.expSlider.valueChanged.connect(
             lambda: self.screen.set_camera_setting(
@@ -79,6 +84,7 @@ class ScreenSetting(QWidget):
         )
 
     def _gamma(self):
+        """Setup gamma settings in the settings menu."""
         # Gamma
         self.settingMenu.gammaSlider.valueChanged.connect(
             lambda: self.screen.set_camera_setting(
@@ -107,6 +113,7 @@ class ScreenSetting(QWidget):
         )
 
     def _gain(self):
+        """Setup gain settings in the settings menu."""
         # Gain
         self.settingMenu.gainSlider.valueChanged.connect(
             lambda: self.screen.set_camera_setting(
@@ -128,11 +135,13 @@ class ScreenSetting(QWidget):
         )
 
     def _white_balance(self):
+        """Setup white balance settings in the settings menu."""
         # W/B
         settingLayout = self.settingMenu.layout()
         settingLayout.addWidget(self.settingMenu.wbAuto, 5, 1, 2, 1)
 
     def _color_channel(self):
+        """Setup color channel settings in the settings menu."""
         # Blue Channel
         self.settingMenu.wbSliderBlue.valueChanged.connect(
             lambda: self.screen.set_camera_setting(
@@ -178,6 +187,7 @@ class ScreenSetting(QWidget):
         )
 
     def _custom_name(self):
+        """Setup custom name settings in the settings menu."""
         # Custom name
         customName = UserSettingsManager.load_settings_item(self.sn, "customName")
         customName = customName if customName else self.parent.objectName()
@@ -198,11 +208,13 @@ class ScreenSetting(QWidget):
         )
 
     def _update_groupbox_name(self, microscopeGrp, customName):
+        """Update the group box name with the custom name."""
         if customName:
             microscopeGrp.setTitle(customName)
             microscopeGrp.setObjectName(customName)
 
     def _setup_sn(self):
+        """Setup the serial number (S/N) settings in the settings menu."""
         # S/N
         # Add the list of cameras (serial number) in ComboBox
         for sn in self.model.cameras_sn:
@@ -216,6 +228,7 @@ class ScreenSetting(QWidget):
             logger.error("SN not found in the list")
 
     def _get_setting_menu(self, parent):
+        """Initialize the settings menu UI from the .ui file."""
         # Initialize the settings menu UI from the .ui file
         settingMenu = QWidget(parent)
         setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
@@ -226,12 +239,14 @@ class ScreenSetting(QWidget):
         return settingMenu
 
     def _add_btn_for_dummy(self, settingMenu):
+        """Add a button for dummy data if the model is in dummy mode."""
         if self.model.dummy:
             dummy_btn = QPushButton("...", settingMenu)
             dummy_btn.setMaximumWidth(50)
             dummy_btn.clicked.connect(self._open_file_dialog)
 
     def _open_file_dialog(self):
+        """Open a file dialog to select an image or video for the mock camera."""
         # Open file dialog to select an image or video
         file_path, _ = QFileDialog.getOpenFileName(
             None,
@@ -244,6 +259,7 @@ class ScreenSetting(QWidget):
             self.screen.mock_cam_set_data(file_path)
 
     def _get_setting_button(self, parent):
+        """Create and return the settings button for the screen."""
         btn = QToolButton(parent)
         btn.setObjectName("Setting")
         font_grpbox = QFont()  # TODO move to config file
@@ -256,6 +272,7 @@ class ScreenSetting(QWidget):
         return btn
 
     def _update_setting_menu(self):
+        """ Update the settings menu with the current camera settings."""
         # update sn
         self.sn = self.screen.get_camera_name()
 

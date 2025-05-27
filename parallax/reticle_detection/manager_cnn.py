@@ -1,3 +1,4 @@
+"""Parallax Camera Base Binding"""
 import logging
 import cv2
 import numpy as np
@@ -30,22 +31,28 @@ DIST_THRESHOLD = 500.0
 
 
 class ReticleDetectManagerCNN(BaseReticleManager):
+    """Manager for reticle detection using SuperPoint + Light Glue."""
     class ProcessWorker(BaseProcessWorker):
+        """Worker for processing frames with CNN-based reticle detection."""
         def __init__(self, name, test_mode=False):
+            """Initializes the CNN-based reticle detection worker."""
             super().__init__(name)
             self.test_mode = test_mode
 
         def _clean_output(self, image_path, export_path):
+            """Cleans up output directories after processing."""
             shutil.rmtree(image_path, ignore_errors=True)
             shutil.rmtree(export_path, ignore_errors=True)
 
         def preprocess_iamge(self, image):
+            """Preprocess the image for reticle detection."""
             # Preprocess the image if needed
             image = cv2.GaussianBlur(image, (5, 5), 0)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             return image
 
         def process(self, frame):
+            """Process a single frame to detect reticle coordinates."""
             image_dir = cnn_img_dir / f"{self.name}"
             image_dir.mkdir(parents=True, exist_ok=True)
             query = f"{self.name}.jpg"
@@ -112,6 +119,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             return 1
 
         def _run_feature_cli(self, image_dir, image_name, export_dir):
+            """Run the feature extraction CLI command."""
             return self._run_cli_step("feature", [
                 "--image_dir", image_dir,
                 "--query", image_name,
@@ -119,18 +127,21 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             ])
 
         def _run_match_cli(self, image_name, export_dir):
+            """Run the feature matching CLI command."""
             return self._run_cli_step("match", [
                 "--query", image_name,
                 "--export_dir", export_dir
             ])
 
         def _run_localize_cli(self, image_name, export_dir):
+            """Run the localization CLI command."""
             return self._run_cli_step("localize", [
                 "--query", image_name,
                 "--export_dir", export_dir
             ])
 
         def _run_cli_step(self, step, args):
+            """Run a specific CLI step for reticle detection."""
             script_name = {
                 "feature": "cli_feature.py",
                 "match": "cli_match.py",
@@ -168,10 +179,13 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             return stdout
 
     class DrawWorker(BaseDrawWorker):
+        """Worker for drawing reticle detection results."""
         def __init__(self, name, test_mode=False):
+            """Initializes the draw worker for reticle detection."""
             super().__init__(name)
             self.test_mode = test_mode
 
     def __init__(self, camera_name,  test_mode=False):
+        """Initializes the reticle detection manager with CNN-based methods."""
         super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode
