@@ -47,7 +47,7 @@ class ReticleDetecthandler(QWidget):
         self.acceptButton.hide()
         self.rejectButton.hide()
         self.acceptButton.clicked.connect(
-            self.reticle_detect_accept_deteqwercted_status
+            self.reticle_detect_accept_detected_status
         )
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
         self.get_pos_x_from_user_timer = QTimer()

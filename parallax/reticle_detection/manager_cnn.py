@@ -43,7 +43,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             # Preprocess the image if needed
             image = cv2.GaussianBlur(image, (5, 5), 0)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            return
+            return image
 
         def process(self, frame):
             image_dir = cnn_img_dir / f"{self.name}"
