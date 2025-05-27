@@ -81,26 +81,6 @@ class CalibrationCamera:
         self.imgpoints = None
         self.objpoints = None
 
-    def _get_changed_data_format_deprecate(self, x_axis, y_axis):
-        """
-        Change data format for calibration.
-
-        Args:
-            x_axis (list): X-axis coordinates.
-            y_axis (list): Y-axis coordinates.
-
-        Returns:
-            numpy.ndarray: Reshaped coordinates.
-        """
-        x_axis = np.array(x_axis)
-        y_axis = np.array(y_axis)
-        coords_lines = np.vstack([x_axis, y_axis])
-        nCoords_per_axis = self.n_interest_pixels * 2 + 1
-        coords_lines_reshaped = coords_lines.reshape(
-            (nCoords_per_axis * 2, 2)
-        ).astype(np.float32)
-        return coords_lines_reshaped
-
     def _get_changed_data_format(self, x_axis, y_axis):
         """
         Combine and format x and y axis coordinates into a single array.

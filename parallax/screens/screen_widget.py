@@ -376,14 +376,6 @@ class ScreenWidget(pg.GraphicsView):
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)
 
-    def reset_reticle_coords_deprecate(self):
-        """Reset reticle coordinates. """
-        self.reticle_coords = None
-        self.mtx = None
-        self.dist = None
-        self.rvecs = None
-        self.tvecs = None
-
     def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""
         self.probe_detect_last_timestamp = timestamp
@@ -400,10 +392,6 @@ class ScreenWidget(pg.GraphicsView):
             self.probe_detect_last_sn,
             self.probe_detect_last_coords,
         )
-
-    def get_camera_intrinsic_deprecate(self):
-        """Get the camera intrinsic parameters."""
-        return self.mtx, self.dist, self.rvecs, self.tvecs
 
     def get_reticle_coords(self):
         """Get the reticle coordinates."""
