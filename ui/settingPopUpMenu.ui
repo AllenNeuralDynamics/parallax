@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>248</width>
+    <width>285</width>
     <height>200</height>
    </rect>
   </property>
@@ -18,7 +18,7 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>400</width>
+    <width>500</width>
     <height>300</height>
    </size>
   </property>
@@ -40,7 +40,7 @@ font: 8pt;
     <widget class="QLabel" name="nameLabel">
      <property name="minimumSize">
       <size>
-       <width>70</width>
+       <width>90</width>
        <height>0</height>
       </size>
      </property>
@@ -139,7 +139,7 @@ font: 8pt;
     <widget class="QLineEdit" name="customName">
      <property name="minimumSize">
       <size>
-       <width>100</width>
+       <width>120</width>
        <height>0</height>
       </size>
      </property>
