@@ -40,7 +40,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             shutil.rmtree(image_path, ignore_errors=True)
             shutil.rmtree(export_path, ignore_errors=True)
 
-        def preprocess_iamge(self, image):
+        def preprocess_image(self, image):
             """Preprocess the image for reticle detection."""
             # Preprocess the image if needed
             image = cv2.GaussianBlur(image, (5, 5), 0)
@@ -55,7 +55,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             export_dir = cnn_export_dir / f"{self.name}"
 
             # Save frame to disk
-            frame = self.preprocess_iamge(frame)
+            frame = self.preprocess_image(frame)
             cv2.imwrite(str(image_dir / query), frame)
 
             # Run SFM once to extract and match features
