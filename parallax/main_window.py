@@ -25,7 +25,7 @@ from parallax.handlers.recording_manager import RecordingManager
 from parallax.control_panel.control_panel import ControlPanel
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
-from parallax.config.config_path import ui_dir
+from parallax.config.config_path import ui_dir, fira_font_dir
 
 
 # Set logger name
@@ -121,11 +121,8 @@ class MainWindow(QMainWindow):
         It uses the QFontDatabase to load the font and applies it to the QApplication instance.
         """
         # Load Fira Code font
-        fira_code_font_path = os.path.join(
-            ui_dir, "font/FiraCode-VariableFont_wght.ttf"
-        )
-        QFontDatabase.addApplicationFont(fira_code_font_path)
-        fira_code_font = QFont("Fira Code Light", 10)  # Setting font size to 10
+        QFontDatabase.addApplicationFont(fira_font_dir)
+        fira_code_font = QFont("Fira Code Light", 9)  # Setting font size to 9
         QApplication.setFont(fira_code_font)
 
     def refresh_cameras(self):

@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - dev
 
 jobs:
   # Job 1: Linters for Pull Requests
@@ -28,7 +29,7 @@ jobs:
         run: flake8 parallax tests
         continue-on-error: true
 
-  # Job 2: Build Documentation for Pushes to Main
+  # Job 2: Build Documentation for PR to Main and Dev Branches
   build-docs:
     runs-on: ubuntu-latest
     steps:

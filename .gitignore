@@ -17,6 +17,7 @@ build/
 wheels/
 lib/
 dist/
+external/
 
 # Sphinx documentation
 docs/_build/

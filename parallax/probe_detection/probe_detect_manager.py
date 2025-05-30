@@ -245,23 +245,18 @@ class ProbeDetectManager(QObject):
 
         def process_draw_reticle(self, frame):
             """
-            Draw reticle coordinates on the frame for visualization.
-
-            Args:
-                frame (numpy.ndarray): Input frame.
-
-            Returns:
-                numpy.ndarray: Frame with reticle coordinates drawn.
+            Draw reticle and debug coordinates on the frame.
             """
-            if self.reticle_coords is not None:
+            if self.reticle_coords:
                 for coords in self.reticle_coords:
-                    for point_idx, (x, y) in enumerate(coords):
-                        color = self.colormap_reticle[point_idx][0].tolist()
+                    for i, (x, y) in enumerate(coords):
+                        color = self.colormap_reticle[i][0].tolist()
                         cv2.circle(frame, (x, y), 7, color, -1)
 
             if self.reticle_coords_debug is not None:
-                for point_idx, (x, y) in enumerate(self.reticle_coords_debug[0]):
-                    color = self.colormap_reticle_debug[point_idx][0].tolist()
+                points = np.asarray(self.reticle_coords_debug[0]).reshape(-1, 2)
+                for i, (x, y) in enumerate(points):
+                    color = self.colormap_reticle_debug[i][0].tolist()
                     cv2.circle(frame, (x, y), 1, color, -1)
 
             return frame

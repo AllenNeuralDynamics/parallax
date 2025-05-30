@@ -5,6 +5,7 @@ import argparse
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command line arguments for the Parallax application."""
     parser = argparse.ArgumentParser(
         description="Parallax: A GUI application for acute in vivo acute electrophysiology experiments.",
         prog="python -m parallax",

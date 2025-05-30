@@ -6,19 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>407</width>
-    <height>300</height>
+    <width>285</width>
+    <height>200</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>407</width>
+    <width>150</width>
     <height>200</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>400</width>
+    <width>500</width>
     <height>300</height>
    </size>
   </property>
@@ -29,7 +29,7 @@
    <string notr="true">QWidget{
 background-color: rgb(58, 58, 58);
 color: #FFFFFF;
-font: 9pt;
+font: 8pt;
 }</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
@@ -40,7 +40,7 @@ font: 9pt;
     <widget class="QLabel" name="nameLabel">
      <property name="minimumSize">
       <size>
-       <width>100</width>
+       <width>90</width>
        <height>0</height>
       </size>
      </property>
@@ -49,6 +49,14 @@ font: 9pt;
        <width>16777215</width>
        <height>20</height>
       </size>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>8</pointsize>
+       <weight>50</weight>
+       <italic>false</italic>
+       <bold>false</bold>
+      </font>
      </property>
      <property name="text">
       <string>Name:</string>
@@ -131,9 +139,17 @@ font: 9pt;
     <widget class="QLineEdit" name="customName">
      <property name="minimumSize">
       <size>
-       <width>100</width>
+       <width>120</width>
        <height>0</height>
       </size>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>8</pointsize>
+       <weight>50</weight>
+       <italic>false</italic>
+       <bold>false</bold>
+      </font>
      </property>
      <property name="text">
       <string>Microscope</string>
@@ -231,7 +247,7 @@ font: 9pt;
      </property>
      <property name="font">
       <font>
-       <pointsize>9</pointsize>
+       <pointsize>8</pointsize>
        <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
@@ -268,7 +284,7 @@ font: 9pt;
      </property>
      <property name="font">
       <font>
-       <pointsize>9</pointsize>
+       <pointsize>8</pointsize>
        <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
@@ -321,8 +337,8 @@ font: 9pt;
     <widget class="QPushButton" name="expAuto">
      <property name="maximumSize">
       <size>
-       <width>30</width>
-       <height>30</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
      <property name="text">
@@ -334,8 +350,8 @@ font: 9pt;
     <widget class="QPushButton" name="gainAuto">
      <property name="maximumSize">
       <size>
-       <width>30</width>
-       <height>30</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
      <property name="text">
@@ -347,8 +363,8 @@ font: 9pt;
     <widget class="QPushButton" name="wbAuto">
      <property name="maximumSize">
       <size>
-       <width>30</width>
-       <height>30</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
      <property name="text">
@@ -360,8 +376,8 @@ font: 9pt;
     <widget class="QPushButton" name="gammaAuto">
      <property name="maximumSize">
       <size>
-       <width>30</width>
-       <height>30</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
      <property name="text">
