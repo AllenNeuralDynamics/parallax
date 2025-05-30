@@ -8,23 +8,17 @@ import sys
 import time
 from pathlib import Path
 from parallax.config.config_path import cnn_img_dir, cnn_export_dir
-from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker
+from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker, DetectionResult
 from parallax.cameras.calibration_camera import (
     imtx, idist, get_axis_object_points, get_projected_points, get_origin_xyz, get_rvec_and_tvec
 )
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-
 try:
     import sfm  # noqa: F401
 except ImportError:
     logger.warning("[WARN] SFM package is not installed.")
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 MAX_RETRIES = 10
 DIST_THRESHOLD = 500.0
@@ -38,6 +32,8 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             """Initializes the CNN-based reticle detection worker."""
             super().__init__(name)
             self.test_mode = test_mode
+            self.rvecs = None
+            self.tvecs = None
 
         def _clean_output(self, image_path, export_path):
             """Cleans up output directories after processing."""
@@ -65,58 +61,52 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             # Run SFM once to extract and match features
             print(f"{self.name} - Extracting Features...")
             result = self._run_feature_cli(str(image_dir), query, str(export_dir))
-            if result == -1 or result is None:
+            if result == DetectionResult.STOPPED or result is DetectionResult.FAILED:
                 self._clean_output(image_dir, export_dir)
                 return result
 
             print(f"{self.name} - Matching Features...")
             result = self._run_match_cli(query, str(export_dir))
-            if result == -1 or result is None:
+            if result == DetectionResult.STOPPED or result is DetectionResult.FAILED:
                 self._clean_output(image_dir, export_dir)
                 return result
 
             print(f"{self.name} - Localizing...")
             for attempt in range(1, MAX_RETRIES + 1):
-                result = self._run_localize_cli(query, str(export_dir))
+                self.rvecs, self.tvecs = None, None
 
-                if result in (-1, None):
+                result = self._run_localize_cli(query, str(export_dir))
+                if result == DetectionResult.STOPPED or result is DetectionResult.FAILED:
+                    self._clean_output(image_dir, export_dir)
                     return result
 
-                try:
-                    values = list(map(float, result.strip().split()))
-                    quat, tvec = np.array(values[:4]), np.array(values[4:])
-                    rvecs, tvecs = get_rvec_and_tvec(quat, tvec)
-                    logger.info(f"Attempt {attempt}: tvec dist - {np.linalg.norm(tvecs):.2f}")
-
-                    if np.linalg.norm(tvecs) <= DIST_THRESHOLD:
+                if result == DetectionResult.SUCCESS:
+                    logger.info(f"Attempt {attempt}: tvec dist - {np.linalg.norm(self.tvecs):.2f}")
+                    if np.linalg.norm(self.tvecs) <= DIST_THRESHOLD:
                         break
-
-                except Exception as e:
-                    logger.warning(f"Failed to parse localization result on attempt {attempt}: {e}")
-                    self._clean_output(image_dir, export_dir)
-                    return None
 
             self._clean_output(image_dir, export_dir)
             # Reproject axis points
             objpts_x_coords = get_axis_object_points('x', 10)
             objpts_y_coords = get_axis_object_points('y', 10)
-            self.x_coords = get_projected_points(objpts_x_coords, rvecs, tvecs, imtx, idist)
-            self.y_coords = get_projected_points(objpts_y_coords, rvecs, tvecs, imtx, idist)
+            self.x_coords = get_projected_points(objpts_x_coords, self.rvecs, self.tvecs, imtx, idist)
+            self.y_coords = get_projected_points(objpts_y_coords, self.rvecs, self.tvecs, imtx, idist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
-                np.array(self.x_coords, dtype=np.float32), imtx, idist, rvecs, tvecs,
+                np.array(self.x_coords, dtype=np.float32), imtx, idist, self.rvecs, self.tvecs,
                 center_index_x=len(self.x_coords) // 2, axis_length=10
             )
             if not self.running:
-                return -1
+                return DetectionResult.STOPPED
 
             # Emit detected coordinates
             self.signals.found_coords.emit(
                 self.x_coords, self.y_coords, imtx, idist,
-                tuple(rvecs.flatten()), tuple(tvecs.flatten())
+                tuple(self.rvecs.flatten()), tuple(self.tvecs.flatten())
             )
             if not self.running:
-                return -1
-            return 1
+                return DetectionResult.STOPPED
+
+            return DetectionResult.SUCCESS
 
         def _run_feature_cli(self, image_dir, image_name, export_dir):
             """Run the feature extraction CLI command."""
@@ -168,15 +158,24 @@ class ReticleDetectManagerCNN(BaseReticleManager):
                     except subprocess.TimeoutExpired:
                         process.kill()
 
-                    return -1
+                    return DetectionResult.STOPPED
                 time.sleep(0.5)
 
             stdout, stderr = process.communicate()
             if process.returncode != 0:
                 print(f"{step.title()} step failed:\n{stderr}")
-                return None
+                return DetectionResult.FAILED
+            
+            if step == "localize":
+                try:
+                    values = list(map(float, stdout.strip().split()))
+                    quat, tvec = np.array(values[:4]), np.array(values[4:])
+                    self.rvecs, self.tvecs = get_rvec_and_tvec(quat, tvec)
+                except Exception as e:
+                    logger.warning(f"Localization parse failed: {e}")
+                    return DetectionResult.FAILED
 
-            return stdout
+            return DetectionResult.SUCCESS
 
     class DrawWorker(BaseDrawWorker):
         """Worker for drawing reticle detection results."""

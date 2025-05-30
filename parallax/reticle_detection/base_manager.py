@@ -6,8 +6,15 @@ import numpy as np
 import cv2
 import logging
 import math
+from enum import Enum
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
+class DetectionResult(Enum):
+    """Enum for detection results."""
+    STOPPED = -1
+    FAILED = 0
+    SUCCESS = 1
 
 
 class DrawWorkerSignal(QObject):
@@ -210,13 +217,13 @@ class BaseProcessWorker(QRunnable):
                 continue
             self.signals.state.emit("InProcess")
             result = self.process(self.frame)
-            if result == -1:
+            if result == DetectionResult.STOPPED:
                 logger.debug(f"{self.name} - Outside request to stop processing")
                 self.signals.state.emit("Stopped")
-            if result is None:
+            if result is DetectionResult.FAILED:
                 logger.debug(f"{self.name} - Detection failed")
                 self.signals.state.emit("Failed")
-            if result == 1:
+            if result == DetectionResult.SUCCESS:
                 logger.debug(f"{self.name} - Detection success")
                 self.signals.state.emit("Found")
 

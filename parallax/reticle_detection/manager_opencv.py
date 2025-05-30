@@ -2,7 +2,7 @@
 import logging
 import numpy as np
 
-from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker
+from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker, DetectionResult
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.reticle_detection.reticle_detection import ReticleDetection
 from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
@@ -10,7 +10,7 @@ from parallax.cameras.calibration_camera import CalibrationCamera
 from parallax.cameras.calibration_camera import get_axis_object_points, get_projected_points, get_origin_xyz
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 IMG_SIZE_ORIGINAL = (4000, 3000)
 
@@ -35,23 +35,23 @@ class ReticleDetectManager(BaseReticleManager):
             # Step 1: Run detection
             success, processed_frame, _, inliner_lines = self.reticleDetector.get_coords(frame, lambda: self.running)
             if not self.running:
-                return -1
+                return DetectionResult.STOPPED
             if not success:
-                return None
+                return DetectionResult.FAILED
 
             # Step 2: Analyze coordinates of interest
             success, self.x_coords, self.y_coords = self.coordsInterests.get_coords_interest(inliner_lines)
             if not self.running:
-                return -1
+                return DetectionResult.STOPPED
             if not success:
-                return None
+                return DetectionResult.FAILED
 
             # Step 3: Camera calibration
             success, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(self.x_coords, self.y_coords)
             if not self.running:
-                return -1
+                return DetectionResult.STOPPED
             if not success:
-                return None
+                return DetectionResult.FAILED
 
             # Step 4: Reproject 3D axis points
             objpts_x_coords = get_axis_object_points(axis='x', coord_range=10)
@@ -71,8 +71,9 @@ class ReticleDetectManager(BaseReticleManager):
             # Emit data
             self.signals.found_coords.emit(self.x_coords, self.y_coords, mtx, dist, rvecs, tvecs)
             if not self.running:
-                return -1
-            return 1
+                return DetectionResult.STOPPED
+
+            return DetectionResult.SUCCESS
 
     class DrawWorker(BaseDrawWorker):
         """Worker for drawing reticle detection results."""
