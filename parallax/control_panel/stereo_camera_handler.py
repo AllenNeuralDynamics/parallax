@@ -1,3 +1,4 @@
+"""Stereo Camera Handler Module"""
 import math
 import logging
 import numpy as np
@@ -9,7 +10,9 @@ logger.setLevel(logging.WARNING)
 
 # parallax/stage_widget/stereo_calibrator.py
 class StereoCameraHandler:
+    """Handles stereo camera calibration by performing calibration between pairs of cameras"""
     def __init__(self, model, screen_widgets):
+        """Initializes the StereoCameraHandler with a model and screen widgets."""
         self.model = model
         self.screen_widgets = screen_widgets
         self.calibrationStereo = None

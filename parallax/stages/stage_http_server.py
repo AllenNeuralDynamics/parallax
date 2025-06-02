@@ -13,7 +13,7 @@ from .stage_controller import StageController
 
 # Set up logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 
 class StageHttpServer(QObject):
@@ -49,7 +49,7 @@ class StageHttpServer(QObject):
         site = web.TCPSite(runner, "localhost", self.port)
         await site.start()
 
-        logger.info(f"Async HTTP server running on http://localhost:{self.port}")
+        logger.debug(f"Async HTTP server running on http://localhost:{self.port}")
 
     async def handle_get(self, request):
         """Handle GET request asynchronously"""

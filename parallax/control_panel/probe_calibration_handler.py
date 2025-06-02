@@ -1,3 +1,4 @@
+"""Probe Calibration Handler"""
 import logging
 import os
 import numpy as np
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProbeCalibrationHandler(QWidget):
+    """Handles the probe calibration process, including detection, calibration, and metadata management."""
     def __init__(self, model, screen_widgets, filter, reticle_selector):
         """
         Args:
@@ -69,6 +71,7 @@ class ProbeCalibrationHandler(QWidget):
         self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector_comboBox)
 
     def init_stages(self, stageListener, stageUI):
+        """Initializes the probe calibration handler with stage listener and UI."""
         self.probe_calibration_btn.setEnabled(False)
         self.probe_calibration_btn.clicked.connect(
             self.probe_detection_button_handler
@@ -99,12 +102,14 @@ class ProbeCalibrationHandler(QWidget):
         self.calculator = Calculator(self.model, self.reticle_selector_comboBox)
 
     def refresh_stages(self):
+        """Refreshes the stage information in the probe calibration handler."""
         # Remove old stage infos from calculator
         self.calculator.remove_stage_groupbox()
         # Add stages on calculator
         self.calculator.add_stage_groupbox()  # Add stage infos to calculator
 
     def reticle_detection_status_change(self, status):
+        """Updates the reticle detection status and performs actions based on the new status."""
         self.reticle_detection_status = status
 
         if self.reticle_detection_status == "default":
