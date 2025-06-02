@@ -46,7 +46,6 @@ readme = {file = "README.md"}
 [project.optional-dependencies]
 dev = ['parallax-app[linters]']
 camera = ["spinnaker-python"]
-sfm = ["sfm @ git+https://github.com/AllenNeuralDynamics/sfm.git@main"]
 
 linters = [
     'codespell',
