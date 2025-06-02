@@ -301,11 +301,22 @@ class Model(QObject):
         """
         self.probeDetectors.append(probeDetector)
 
-    def reset_coords_intrinsic_extrinsic(self):
-        """Reset coordinates intrinsic extrinsic."""
-        self.coords_axis = {}
-        self.camera_intrinsic = {}
-        self.camera_extrinsic = {}
+    def reset_coords_intrinsic_extrinsic(self, sn=None):
+        """Reset all or specific camera's coordinates, intrinsic, and extrinsic parameters.
+
+        Args:
+            sn (str, optional): Serial number of the camera. If provided, only that camera's data will be removed.
+        """
+        if sn is None:
+            # Reset all
+            self.coords_axis = {}
+            self.camera_intrinsic = {}
+            self.camera_extrinsic = {}
+        else:
+            # Remove only the specified camera's data
+            self.coords_axis.pop(sn, None)
+            self.camera_intrinsic.pop(sn, None)
+            self.camera_extrinsic.pop(sn, None)
 
     def add_pos_x(self, camera_name, pt):
         """Add position for the x-axis for a specific camera.

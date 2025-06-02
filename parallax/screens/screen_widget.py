@@ -11,7 +11,8 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 from parallax.screens.no_filter import NoFilter
 from parallax.probe_detection.probe_detect_manager import ProbeDetectManager
-from parallax.reticle_detection.reticle_detect_manager import ReticleDetectManager
+from parallax.reticle_detection.manager_opencv import ReticleDetectManager
+from parallax.reticle_detection.manager_cnn import ReticleDetectManagerCNN
 from parallax.screens.axis_filter import AxisFilter
 
 # Set logger name
@@ -28,6 +29,7 @@ class ScreenWidget(pg.GraphicsView):
     selected = pyqtSignal(str, tuple)  # camera name, (x, y)
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
+    reticle_coords_detect_finished = pyqtSignal()
     # camera name, timestamp, sn, stage_info, pixel_coords
     probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)
 
@@ -97,6 +99,16 @@ class ScreenWidget(pg.GraphicsView):
         )
         self.reticleDetector.found_coords.connect(self.found_reticle_coords)
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
+        self.reticleDetector.finished.connect(self.reticle_coords_detect_finished)
+
+        # Reticle Detection using CNN (Superpoint + Lightglue)
+        self.reticleDetectorCNN = ReticleDetectManagerCNN(self.camera_name, test_mode=self.model.test)
+        self.reticleDetectorCNN.frame_processed.connect(
+            self.set_image_from_data
+        )
+        self.reticleDetectorCNN.found_coords.connect(self.found_reticle_coords)
+        self.reticleDetectorCNN.found_coords.connect(self.reticle_coords_detected)
+        self.reticleDetectorCNN.finished.connect(self.reticle_coords_detect_finished)
 
         # Probe Detection
         self.probeDetector = ProbeDetectManager(self.model, self.camera_name)
@@ -157,6 +169,7 @@ class ScreenWidget(pg.GraphicsView):
         self.filter.process(data)
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
+        self.reticleDetectorCNN.process(data)
         captured_time = self.camera.get_last_capture_time(millisecond=True)  # TODO Move to probeDetector
         self.probeDetector.process(data, captured_time)
 
@@ -307,28 +320,43 @@ class ScreenWidget(pg.GraphicsView):
         self.camera = camera
         self.camera_name = self.get_camera_name()
         self.reticleDetector.set_name(self.camera_name)
+        self.reticleDetectorCNN.set_name(self.camera_name)
         self.probeDetector.set_name(self.camera_name)
         self.axisFilter.set_name(self.camera_name)
         self.filter.set_name(self.camera_name)
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
-        logger.debug(f"{self.camera_name} - run_reticle_detection")
+        logger.debug(f"{self.camera_name} - run_reticle_detection ")
         self.filter.stop()
         self.axisFilter.stop()
+        self.probeDetector.stop()
+        self.reticleDetectorCNN.stop()
         self.reticleDetector.start()
+
+    def run_cnn_reticle_detection(self):
+        """Run reticle detection by stopping the filter and starting the reticle detector."""
+        logger.debug(f"{self.camera_name} - run_reticle_detection ")
+        self.filter.stop()
+        self.axisFilter.stop()
+        self.probeDetector.stop()
+        self.reticleDetector.stop()
+        self.reticleDetectorCNN.start()
 
     def run_probe_detection(self):
         """Run probe detection by stopping the filter and starting the probe detector."""
         logger.debug(f"{self.camera_name} - run_probe_detection")
         self.filter.stop()
         self.axisFilter.stop()
+        self.reticleDetector.stop()
+        self.reticleDetectorCNN.stop()
         self.probeDetector.start()
 
     def run_no_filter(self):
         """Run without any filter by stopping the reticle detector and probe detector."""
         logger.debug(f"{self.camera_name} - run no_filter")
         self.reticleDetector.stop()
+        self.reticleDetectorCNN.stop()
         self.probeDetector.stop()
         self.axisFilter.stop()
         self.filter.start()
@@ -338,24 +366,15 @@ class ScreenWidget(pg.GraphicsView):
         logger.debug(f"{self.camera_name} - run_axis_filter")
         self.filter.stop()
         self.reticleDetector.stop()
-        logger.debug("reticleDetector stopped")
+        self.reticleDetectorCNN.stop()
+        self.probeDetector.stop()
         self.axisFilter.start()
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist, rvecs, tvecs):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
-        self.reticle_coords = [x_coords, y_coords]
-        self.mtx = mtx
-        self.dist = dist
-        self.rvecs = rvecs
-        self.tvecs = tvecs
-
-    def reset_reticle_coords(self):
-        """Reset reticle coordinates."""
-        self.reticle_coords = None
-        self.mtx = None
-        self.dist = None
-        self.rvecs = None
-        self.tvecs = None
+        coords = [x_coords, y_coords]
+        self.model.add_coords_axis(self.camera_name, coords)
+        self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)
 
     def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""
@@ -373,10 +392,6 @@ class ScreenWidget(pg.GraphicsView):
             self.probe_detect_last_sn,
             self.probe_detect_last_coords,
         )
-
-    def get_camera_intrinsic(self):
-        """Get the camera intrinsic parameters."""
-        return self.mtx, self.dist, self.rvecs, self.tvecs
 
     def get_reticle_coords(self):
         """Get the reticle coordinates."""

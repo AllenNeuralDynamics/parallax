@@ -1,11 +1,13 @@
-
+"""Screen widget manager for handling microscope displays and settings."""
 import logging
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QGridLayout
+from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QGridLayout, QHBoxLayout
 from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_setting import ScreenSetting
+from parallax.screens.reticle_detect_widget import ReticleDetectWidget
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,7 @@ class ScreenWidgetManager:
     """Manages microscope display and settings."""
 
     def __init__(self, model, nColumnsSpinBox):
+        """Initialize ScreenWidgetManager."""
         self.model = model
         self.nColumnsSpinBox = nColumnsSpinBox  # Spin box for number of columns (UI)
         self.screen_widgets = []
@@ -29,6 +32,7 @@ class ScreenWidgetManager:
             self._display_microscope(self.model.nMockCameras)
 
     def _config_nColumnsSpinBox(self):
+        """Configure the nColumnsSpinBox based on available cameras."""
         # Configure the column spin box
         if self.model.nPySpinCameras:
             self.nColumnsSpinBox.setMaximum(max(self.model.nPySpinCameras, 1))
@@ -41,6 +45,7 @@ class ScreenWidgetManager:
         )
 
     def _get_cols_cnt(self):
+        """Get the number of columns based on user settings or available cameras."""
         # Load column configuration from user preferences
         cols_cnt = UserSettingsManager.load_settings_item("main", "nColumn")
         if cols_cnt is None or 0:
@@ -88,6 +93,7 @@ class ScreenWidgetManager:
                     break
 
     def _display_microscope(self, nCams=1):
+        """Display microscope screens based on the number of cameras."""
         rows, cols, cnt = (nCams // self.cols_cnt, self.cols_cnt, 0)
         rows += 1 if nCams % cols else 0
         for row_idx in range(rows):
@@ -99,6 +105,7 @@ class ScreenWidgetManager:
                     break
 
     def _createNewGroupBox(self, rows, cols, screen_index=None):
+        """Create a new group box for a microscope screen."""
         # Generate unique names based on screen index
         newNameMicroscope = f"Microscope_{screen_index+1}"
         microscopeGrp = QGroupBox(self.scrollAreaWidgetContents)
@@ -124,9 +131,14 @@ class ScreenWidgetManager:
         screen_setting = ScreenSetting(
                 parent=microscopeGrp,
                 model=self.model,
-                screen=screen,
-                screen_index=screen_index
-        )
+                screen=screen
+            )
+
+        reticle_detector = ReticleDetectWidget(
+                parent=microscopeGrp,
+                model=self.model,
+                screen=screen
+            )
 
         # If serial number is changed, connect to update_screen function and update setting menu
         screen_setting.settingMenu.snComboBox.currentIndexChanged.connect(
@@ -134,7 +146,16 @@ class ScreenWidgetManager:
                 screen, screen_index, screen_setting.settingMenu.snComboBox.currentText()
             )
         )
-        verticalLayout.addWidget(screen_setting.settingButton)
+
+        # Create a horizontal layout for the buttons
+        button_row = QHBoxLayout()
+        button_row.setAlignment(Qt.AlignLeft)
+        button_row.addWidget(screen_setting.settingButton)
+        button_row.addWidget(reticle_detector.detectButton)
+
+        # Add the button row to the vertical layout
+        verticalLayout.addLayout(button_row)
+
         self.gridLayout.addWidget(microscopeGrp, rows, cols, 1, 1)
         self.screen_widgets.append(screen)
 
