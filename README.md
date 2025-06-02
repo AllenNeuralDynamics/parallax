@@ -59,7 +59,7 @@ Please review their [license](https://github.com/magicleap/SuperGluePretrainedNe
 Manual Setup Instructions
 Clone the repository into the external/ folder in your Parallax project root:
 ```bash
-pip install parallax-app[sfm]
+pip install git+https://github.com/AllenNeuralDynamics/sfm.git@main
 git clone https://github.com/magicleap/SuperGluePretrainedNetwork.git external/SuperGluePretrainedNetwork
 ```
 Verify your folder structure looks like this:
