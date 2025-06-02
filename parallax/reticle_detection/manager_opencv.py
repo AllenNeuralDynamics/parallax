@@ -37,6 +37,7 @@ class ReticleDetectManager(BaseReticleManager):
             if not self.running:
                 return DetectionResult.STOPPED
             if not success:
+                logger.debug("[WARN] get_coords failed.")
                 return DetectionResult.FAILED
 
             # Step 2: Analyze coordinates of interest
@@ -44,6 +45,7 @@ class ReticleDetectManager(BaseReticleManager):
             if not self.running:
                 return DetectionResult.STOPPED
             if not success:
+                logger.debug("[WARN] get_coords_interest failed.")
                 return DetectionResult.FAILED
 
             # Step 3: Camera calibration
