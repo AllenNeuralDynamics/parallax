@@ -530,26 +530,15 @@ class CalibrationStereo(CalibrationCamera):
 # Utils
 def get_projected_points(objpoints, rvec, tvec, mtx, dist):
     """
-    Projects 3D object points onto the 2D image plane and returns pixel coordinates.
-    Parameters:
-        objpoints (list): List of 3D object points.
-        rvec (np.ndarray): Rotation vector.
-        tvec (np.ndarray): Translation vector.
-        mtx (np.ndarray): Camera matrix.
-        dist (np.ndarray): Distortion coefficients.
+    Project 3D object points to 2D image points using camera parameters.
+    Args:
+        objpoints (np.ndarray): 3D object points (N x 3).
+        rvec (np.ndarray): Rotation vector (3x1).
+        tvec (np.ndarray): Translation vector (3x1).
+        mtx (np.ndarray): Camera intrinsic matrix (3x3).
+        dist (np.ndarray): Distortion coefficients (1x5).
     Returns:
-        list: List of pixel coordinates corresponding to the object points.
-    """
-
-    """
-    pixel_coordinates = []
-    for points in objpoints:
-        # Project the 3D object points to 2D image points
-        imgpoints, _ = cv2.projectPoints(points, rvec, tvec, mtx, dist)
-        # Convert to integer tuples and append to the list
-        imgpoints_tuples = [tuple(map(lambda x: int(round(x)), point)) for point in imgpoints.reshape(-1, 2)]
-        pixel_coordinates.append(imgpoints_tuples)
-    return pixel_coordinates
+        np.ndarray: Projected 2D image points (N x 1 x 2) rounded to integer coordinates.
     """
     imgpoints, _ = cv2.projectPoints(objpoints, rvec, tvec, mtx, dist)
     return np.round(imgpoints.reshape(-1, 2)).astype(np.int32)
