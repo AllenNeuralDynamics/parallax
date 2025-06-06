@@ -138,9 +138,8 @@ class Model(QObject):
 
     def refresh_stages(self):
         """Search for connected stages"""
-        if not self.dummy:
-            self.scan_for_usb_stages()
-            self.init_transforms()
+        self.scan_for_usb_stages()
+        self.init_transforms()
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
