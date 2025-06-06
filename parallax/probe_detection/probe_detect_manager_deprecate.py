@@ -286,8 +286,8 @@ class ProbeDetectManager(QObject):
             logger.debug("probe_detect_manager running ")
             while self.running:
                 if self.new:
-                    print(f"{self.name} .")
                     if self.is_detection_on:
+                        print(f"{self.name} .")
                         self.frame, self.timestamp = self.process(
                             self.frame, self.timestamp
                         )
@@ -403,44 +403,23 @@ class ProbeDetectManager(QObject):
         """
         Initialize the worker thread and set up signal connections.
         """
+        if self.thread is not None:
+            self.clean()  # Clean up existing thread and worker before reinitializing
         self.thread = QThread()
         self.worker = self.Worker(self.name, self.model)
         self.worker.moveToThread(self.thread)
 
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.finished.connect(self.onThreadFinished)
+        self.thread.destroyed.connect(self.onThreadDestroyed)
+        self.threadDeleted = False
 
         self.worker.frame_processed.connect(self.frame_processed)
         self.worker.found_coords.connect(self.found_coords_print)
-
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.destroyed.connect(self.onWorkerDestroyed)
         logger.debug(f"{self.name} init camera name")
-
-    def start(self):
-        """
-        Start the probe detection manager by initializing the worker thread and running it.
-        """
-        logger.debug(f" {self.name} Starting thread")
-        self.init_thread()  # Reinitialize and start the worker and thread
-        self.worker.start_running()
-        self.thread.start()
-
-    def stop(self):
-        """
-        Stop the probe detection manager by halting the worker thread.
-        """
-        logger.debug(f" {self.name} Stopping thread")
-        if self.worker is not None:
-            self.worker.stop_running()
-
-    def onThreadFinished(self):
-        """
-        Callback function when the thread is finished.
-        """
-        logger.debug(f"{self.name} thread Fisnished")
-        self.thread = None
 
     def process(self, frame, timestamp):
         """
@@ -471,13 +450,43 @@ class ProbeDetectManager(QObject):
             )
         self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
 
+    def start(self):
+        """
+        Start the probe detection manager by initializing the worker thread and running it.
+        """
+        logger.debug(f" {self.name} Starting thread")
+        self.init_thread()  # Reinitialize and start the worker and thread
+        self.worker.start_running()
+        self.thread.start()
+
+    def stop(self):
+        """
+        Stop the probe detection manager by halting the worker thread.
+        """
+        logger.debug(f" {self.name} Stopping thread")
+        if self.worker is not None:
+            self.worker.stop_running()
+
+    def onWorkerDestroyed(self):
+        """
+        Cleanup function to handle when the worker is destroyed.
+        """
+        logger.debug(f"{self.name} worker destroyed")
+
+    def onThreadDestroyed(self):
+        """
+        Callback function when the thread is destroyed.
+        """
+        logger.debug(f"{self.name} thread destroyed")
+        self.threadDeleted = True
+        self.thread = None
+
     def start_detection(self, sn):  # Call from stage listener.
         """Start the probe detection for a specific serial number.
 
         Args:
             sn (str): Serial number.
         """
-        print("Starting detection for", sn)
         if self.worker is not None:
             self.worker.update_sn(sn)
             self.worker.start_detection()
@@ -522,3 +531,25 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.set_name(self.name)
         logger.debug(f"{self.name} set camera name")
+
+    def clean(self):
+        """
+        Clean up the worker and thread resources.
+        """
+        logger.debug(f"{self.name} Cleaning the thread")
+        if self.worker is not None:
+            self.worker.stop_running()
+
+        if self.thread and not self.threadDeleted and self.thread.isRunning():
+            self.thread.quit()  # Ask the thread to quit
+            self.thread.wait()  # Wait for the thread to finish
+        self.thread = None  # Clear the reference to the thread
+        self.worker = None  # Clear the reference to the worker
+        self.threadDeleted = True
+        logger.debug(f"{self.name} Cleaned the thread")
+
+    def __del__(self):
+        """
+        Destructor to ensure proper cleanup when the object is deleted.
+        """
+        self.clean()
