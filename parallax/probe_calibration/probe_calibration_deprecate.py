@@ -80,8 +80,7 @@ class ProbeCalibration(QObject):
 
         # create file for points.csv
         self.log_dir = None
-        self.csv_file = None
-        self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._create_file()
 
     def reset_calib(self, sn=None):
         """
@@ -108,9 +107,12 @@ class ProbeCalibration(QObject):
 
         self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
 
-
     def _create_file(self):
-        self.log_dir = os.path.join(stages_dir, f"log_{self.timestamp}")
+        """
+        Creates or clears the CSV file used to store local and global points during calibration.
+        """
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_dir = os.path.join(stages_dir, f"log_{timestamp}")
         os.makedirs(self.log_dir, exist_ok=True)  # Create the log directory if it doesn't exist
         self.csv_file = os.path.join(self.log_dir, "points.csv")
 
@@ -299,8 +301,7 @@ class ProbeCalibration(QObject):
 
         return transformation_matrix
 
-    #def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=40):  # TODO
-    def _get_transM(self, df, remove_noise=False, save_to_csv=False, file_name=None, noise_threshold=40):
+    def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=40):
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
 
@@ -353,12 +354,8 @@ class ProbeCalibration(QObject):
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
         # Check if stage_z_global is under 10 microns
-        """
         if self.stage.stage_z_global < 10:
             return  # Do not update if condition is met (to avoid noise)
-        """
-        if self.csv_file is None:
-            self._create_file()
 
         new_row_data = {
             'sn': self.stage.sn,

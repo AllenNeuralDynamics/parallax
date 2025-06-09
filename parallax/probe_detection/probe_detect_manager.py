@@ -286,7 +286,6 @@ class ProbeDetectManager(QObject):
             logger.debug("probe_detect_manager running ")
             while self.running:
                 if self.new:
-                    print(f"{self.name} .")
                     if self.is_detection_on:
                         self.frame, self.timestamp = self.process(
                             self.frame, self.timestamp
@@ -488,6 +487,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number.
         """
+        print("Stopping detection for", sn)
         if self.worker is not None:
             self.worker.stop_detection()
 
