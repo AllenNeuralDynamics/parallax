@@ -67,15 +67,15 @@ def test_first_cmp(setup_curr_bg_cmp_processor, sample_images):
 
         # Call the method to test for each frame
         ret, precise_tip = processor.first_cmp(curr_img, mask, org_img)
-
+        print(ret, precise_tip)
         if precise_tip:
             tip = processor.ProbeDetector.probe_tip
             print(f"Frame {i}: Precise tip found: {precise_tip}, tip: {tip}")
             break
 
     # Perform assertions
-    assert ret is not False, f"Return value of ret should not be None."
-    assert precise_tip is not False, f"Precise_tip should be detected."
+    assert ret is True, "Expected 'ret' to be True when detection succeeds."
+    assert precise_tip is True, f"Precise_tip should be detected."
     assert isinstance(tip, tuple), "The tip should be a tuple."
     assert len(tip) == 2, "The tip should contain two elements (x, y)."
    
@@ -107,14 +107,14 @@ def test_update_cmp(setup_curr_bg_cmp_processor, sample_images):
         
         # Simulate the next frame (using the same or next image in the sequence)
         ret, precise_tip = processor.update_cmp(curr_img, mask, org_img)
-
+        print(ret, precise_tip)
         if precise_tip:
             tip = processor.ProbeDetector.probe_tip
             print(f"Frame {i}: Precise tip found: {precise_tip}, tip: {tip}")
             break
 
     # Perform assertions
-    assert ret is not False, f"Return value of ret should not be None."
-    assert precise_tip is not False, f"Precise_tip should be detected."
+    assert ret is True, f"Expected 'ret' to be True when detection succeeds."
+    assert precise_tip is True, f"Precise_tip should be detected."
     assert isinstance(tip, tuple), "The tip should be a tuple."
     assert len(tip) == 2, "The tip should contain two elements (x, y)."
