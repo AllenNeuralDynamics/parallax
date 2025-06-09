@@ -78,7 +78,6 @@ def test_first_cmp(setup_curr_bg_cmp_processor, sample_images):
     assert precise_tip is True, f"Precise_tip should be detected."
     assert isinstance(tip, tuple), "The tip should be a tuple."
     assert len(tip) == 2, "The tip should contain two elements (x, y)."
-   
 
 def test_update_cmp(setup_curr_bg_cmp_processor, sample_images):
     """Test the update_cmp method with multiple images."""
@@ -104,7 +103,7 @@ def test_update_cmp(setup_curr_bg_cmp_processor, sample_images):
             if ret_:
                 is_first_detect = False
                 continue
-        
+
         # Simulate the next frame (using the same or next image in the sequence)
         ret, precise_tip = processor.update_cmp(curr_img, mask, org_img)
         print(ret, precise_tip)
