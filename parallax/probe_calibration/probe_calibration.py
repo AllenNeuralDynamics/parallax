@@ -9,6 +9,7 @@ import os
 import datetime
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from PyQt5.QtCore import QObject, pyqtSignal
 from .coords_transformation import RotationTransformation
 from .bundle_adjustment import BALProblem, BALOptimizer
@@ -73,14 +74,14 @@ class ProbeCalibration(QObject):
             ]
         )
 
-        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
+        self.transM_LR, self.transM_LR_prev = None, None
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self.avg_err = None
         self.last_row = None
 
         # create file for points.csv
         self.log_dir = None
-        self._create_file()
+        self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def reset_calib(self, sn=None):
         """
@@ -111,17 +112,14 @@ class ProbeCalibration(QObject):
         """
         Creates or clears the CSV file used to store local and global points during calibration.
         """
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_dir = os.path.join(stages_dir, f"log_{timestamp}")
-        os.makedirs(self.log_dir, exist_ok=True)  # Create the log directory if it doesn't exist
-        self.csv_file = os.path.join(self.log_dir, "points.csv")
-
-        # Check if the file exists and remove it if it does
-        if os.path.exists(self.csv_file):
-            os.remove(self.csv_file)
+        self.log_dir = Path(stages_dir) / f"log_{self.timestamp}"
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        points_file = self.log_dir / "points.csv"
+        if points_file.exists():
+            points_file.unlink()  # Deletes the file
 
         # Create a new file and write column names
-        with open(self.csv_file, "w", newline="") as file:
+        with open(points_file, "w", newline="") as file:
             writer = csv.writer(file)
             # Define column names
             self.column_names = [
@@ -148,16 +146,24 @@ class ProbeCalibration(QObject):
         Args:
             sn (str, optional): The serial number of the stage to clear. If None, clears all stages.
         """
-        self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
+        self.transM_LR, self.transM_LR_prev = None, None
         self.scale = np.array([1, 1, 1])
 
-        if sn is None:
-            self._create_file()
-        else:
-            self.df = pd.read_csv(self.csv_file)
-            self.df = self.df[self.df["sn"] != sn]
-            self.df.to_csv(self.csv_file, index=False)
+        if sn:
             self.model.add_transform(sn, self.transM_LR, self.scale)
+
+        if self.log_dir is None:
+            return
+
+        points_path = self.log_dir / "points.csv"
+        if sn is None:
+            if points_path.exists():
+                points_path.unlink()  # Deletes the file
+        else:
+            if points_path.exists():
+                self.df = pd.read_csv(points_path)
+                self.df = self.df[self.df["sn"] != sn]
+                self.df.to_csv(points_path, index=False)
 
     def _remove_duplicates(self, df):
         """
@@ -185,7 +191,7 @@ class ProbeCalibration(QObject):
         Returns:
             pd.DataFrame: Filtered DataFrame containing only the rows for the specified stage.
         """
-        self.df = pd.read_csv(self.csv_file)
+        self.df = pd.read_csv(self.log_dir / "points.csv")
         return self.df[self.df["sn"] == sn]
 
     def _get_local_global_points(self, df):
@@ -211,7 +217,7 @@ class ProbeCalibration(QObject):
         Returns:
             pd.DataFrame: Filtered DataFrame for the current stage.
         """
-        self.df = pd.read_csv(self.csv_file)
+        self.df = pd.read_csv(self.log_dir / "points.csv")
         # Filter the DataFrame based on self.stage.sn
         filtered_df = self.df[self.df["sn"] == self.stage.sn]
 
@@ -357,6 +363,9 @@ class ProbeCalibration(QObject):
         if self.stage.stage_z_global < 0:
             return  # Do not update if condition is met (to avoid noise)
 
+        if self.log_dir is None or not (self.log_dir / "points.csv").exists():
+            self._create_file()
+
         new_row_data = {
             'sn': self.stage.sn,
             'local_x': self.stage.stage_x,
@@ -384,7 +393,7 @@ class ProbeCalibration(QObject):
 
         # Read the entire CSV file to check for duplicates
         try:
-            with open(self.csv_file, "r", newline='') as file:
+            with open(self.log_dir / "points.csv", "r", newline='') as file:
                 reader = list(csv.DictReader(file))
                 for row in reversed(reader):
                     if (row['sn'] == new_row_data['sn'] and
@@ -402,9 +411,10 @@ class ProbeCalibration(QObject):
             logger.error("File does not exist")
 
         # Write the new row to the CSV file
-        with open(self.csv_file, "a", newline='') as file:
+        with open(self.log_dir / "points.csv", "a", newline='') as file:
             writer = csv.DictWriter(file, fieldnames=new_row_data.keys())
             writer.writerow(new_row_data)
+            logger.debug(f"New point added: {new_row_data}")
 
     def _is_criteria_met_transM(self):
         """
@@ -825,7 +835,7 @@ class ProbeCalibration(QObject):
                 if self.transM_LR is None:
                     print("Calibration is not completed yet.", sn)
                     return
-                self.point_mesh_not_calibrated = PointMesh(self.model, self.csv_file, self.stage.sn,
+                self.point_mesh_not_calibrated = PointMesh(self.model, self.log_dir / "points.csv", self.stage.sn,
                                                            self.transM_LR, self.scale)
                 self.point_mesh_not_calibrated.show()
         else:
