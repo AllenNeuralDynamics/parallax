@@ -355,7 +355,7 @@ class ProbeCalibration(QObject):
             self.file_name = self._save_df_to_csv(df.iloc[valid_indices], file_name)
         return transformation_matrix
 
-    def _update_local_global_point(self, debug_info=None):
+    def _write_local_global_point(self, debug_info=None):
         """
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
@@ -739,7 +739,8 @@ class ProbeCalibration(QObject):
         """
         # update points in the file
         self.stage = stage
-        self._update_local_global_point(debug_info)  # Do no update if it is duplicates
+        self._write_local_global_point(debug_info)  # Do no update if it is duplicates
+        print(" -update")
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
         self.transM_LR = self._get_transM(filtered_df, noise_threshold=100)
@@ -750,6 +751,7 @@ class ProbeCalibration(QObject):
         self.LR_err_L2_current = self._l2_error_current_point()
         self._update_min_max_x_y_z()    # update min max x,y,z
         self._update_info_ui()          # update transformation matrix and overall LR in UI
+        print(" - ")
         ret = self._is_enough_points()  # if ret, complete calibration
         if ret:
             print("Before")
