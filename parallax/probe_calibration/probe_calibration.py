@@ -75,6 +75,7 @@ class ProbeCalibration(QObject):
         )
 
         self.transM_LR, self.transM_LR_prev = None, None
+        self.LR_err_L2_current = 1e10
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self.avg_err = None
         self.last_row = None
@@ -627,9 +628,14 @@ class ProbeCalibration(QObject):
             else:
                 error = self.LR_err_L2_current
 
+            if self.transM_LR is None:
+                transM = np.full((4, 4), np.inf)
+            else:
+                transM = self.transM_LR
+
             self.transM_info.emit(
                 sn,
-                self.transM_LR,
+                transM,
                 self.scale,
                 error,
                 np.array([x_diff, y_diff, z_diff])
@@ -750,6 +756,8 @@ class ProbeCalibration(QObject):
         print(" -write")
 
         self._update_min_max_x_y_z()    # update min max x,y,z and emit signals if criteria met
+        self._update_info_ui()          # update transformation matrix and overall LR in UI
+        print(" -update info UI")
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
         self.transM_LR = self._get_transM(filtered_df, noise_threshold=100)
@@ -758,8 +766,6 @@ class ProbeCalibration(QObject):
 
         # Check criteria
         self.LR_err_L2_current = self._l2_error_current_point()
-        self._update_info_ui()          # update transformation matrix and overall LR in UI
-        print(" -update info UI")
         ret = self._is_enough_points()  # if ret, complete calibration
         if ret:
             print("Before")
