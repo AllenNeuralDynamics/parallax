@@ -60,8 +60,8 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.stage = None
 
-        self.threshold_min_max = 3000
-        self.threshold_min_max_z = 1000
+        self.threshold_min_max = 2000
+        self.threshold_min_max_z = 1500
         self.LR_err_L2_threshold = 15
         self.threshold_avg_error = 20
         self.threshold_matrix = np.array(
@@ -74,16 +74,13 @@ class ProbeCalibration(QObject):
         )
 
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
-        self.LR_err_L2_current = float("inf")
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self.avg_err = None
         self.last_row = None
-        #self.transM_LR = np.zeros((4, 4), dtype=np.float64)
 
         # create file for points.csv
         self.log_dir = None
-        self.csv_file = None
-        self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._create_file()
 
     def reset_calib(self, sn=None):
         """
@@ -110,9 +107,12 @@ class ProbeCalibration(QObject):
 
         self.transM_LR_prev = np.zeros((4, 4), dtype=np.float64)
 
-
     def _create_file(self):
-        self.log_dir = os.path.join(stages_dir, f"log_{self.timestamp}")
+        """
+        Creates or clears the CSV file used to store local and global points during calibration.
+        """
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.log_dir = os.path.join(stages_dir, f"log_{timestamp}")
         os.makedirs(self.log_dir, exist_ok=True)  # Create the log directory if it doesn't exist
         self.csv_file = os.path.join(self.log_dir, "points.csv")
 
@@ -151,7 +151,7 @@ class ProbeCalibration(QObject):
         self.model_LR, self.transM_LR, self.transM_LR_prev = None, None, None
         self.scale = np.array([1, 1, 1])
 
-        if sn is None or self.csv_file is None:
+        if sn is None:
             self._create_file()
         else:
             self.df = pd.read_csv(self.csv_file)
@@ -301,8 +301,7 @@ class ProbeCalibration(QObject):
 
         return transformation_matrix
 
-    def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=40):  # TODO
-    #def _get_transM(self, df, remove_noise=False, save_to_csv=False, file_name=None, noise_threshold=40):
+    def _get_transM(self, df, remove_noise=True, save_to_csv=False, file_name=None, noise_threshold=40):
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
 
@@ -334,7 +333,7 @@ class ProbeCalibration(QObject):
         valid_indices = np.ones(len(local_points), dtype=bool)
 
         if remove_noise:
-            if self._is_criteria_met_points_min_max() and len(local_points) > 6 \
+            if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
                     and self.R is not None and self.origin is not None:
                 local_points, global_points, valid_indices = self._remove_outliers(
                     local_points, global_points, threshold=noise_threshold)
@@ -350,20 +349,13 @@ class ProbeCalibration(QObject):
             self.file_name = self._save_df_to_csv(df.iloc[valid_indices], file_name)
         return transformation_matrix
 
-    def _write_local_global_point(self, debug_info=None):
+    def _update_local_global_point(self, debug_info=None):
         """
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
         # Check if stage_z_global is under 10 microns
-        if self.stage.stage_z_global < 0:
+        if self.stage.stage_z_global < 10:
             return  # Do not update if condition is met (to avoid noise)
-
-        # Test
-        #if self.stage.stage_z_global > 1000:
-        #    return  # Do not update if condition is met (to avoid noise)
-
-        if self.csv_file is None:
-            self._create_file()
 
         new_row_data = {
             'sn': self.stage.sn,
@@ -605,32 +597,26 @@ class ProbeCalibration(QObject):
             save_to_csv (bool): Whether to save the information to a CSV file.
             file_name (str, optional): The name of the CSV file to save to.
         """
-        if self.transM_LR is None or self.scale is None:
-            return
-
         sn = self.stage.sn
-        if sn is None and sn not in self.stages:
-            logger.error("Stage serial number is not set or not found in stages.")
-            return
+        if sn is not None and sn in self.stages:
+            stage_data = self.stages[sn]
 
-        stage_data = self.stages[sn]
+            x_diff = stage_data['max_x'] - stage_data['min_x']
+            y_diff = stage_data['max_y'] - stage_data['min_y']
+            z_diff = stage_data['max_z'] - stage_data['min_z']
 
-        x_diff = stage_data['max_x'] - stage_data['min_x']
-        y_diff = stage_data['max_y'] - stage_data['min_y']
-        z_diff = stage_data['max_z'] - stage_data['min_z']
+            if disp_avg_error:
+                error = self.avg_err
+            else:
+                error = self.LR_err_L2_current
 
-        if disp_avg_error:
-            error = self.avg_err
-        else:
-            error = self.LR_err_L2_current
-
-        self.transM_info.emit(
-            sn,
-            self.transM_LR,
-            self.scale,
-            error,
-            np.array([x_diff, y_diff, z_diff])
-        )
+            self.transM_info.emit(
+                sn,
+                self.transM_LR,
+                self.scale,
+                error,
+                np.array([x_diff, y_diff, z_diff])
+            )
 
         if save_to_csv:
             self._save_transM_to_csv(file_name)
@@ -734,16 +720,16 @@ class ProbeCalibration(QObject):
         print(f" [{S[0]:.5f}, {S[1]:.5f}, {S[2]:.5f}]")
         print("==> Average L2 between stage and global: ", self.avg_err)
 
-    def update_deprecate(self, stage, debug_info=None):
+    def update(self, stage, debug_info=None):
         """
         Main method to update calibration with a new stage position and check if calibration is complete.
 
         Args:
             stage (Stage): The current stage object with new position data.
-        """     
+        """
         # update points in the file
         self.stage = stage
-        self._write_local_global_point(debug_info)  # Do no update if it is duplicates
+        self._update_local_global_point(debug_info)  # Do no update if it is duplicates
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
         self.transM_LR = self._get_transM(filtered_df, noise_threshold=100)
@@ -755,33 +741,6 @@ class ProbeCalibration(QObject):
         self._update_min_max_x_y_z()    # update min max x,y,z
         self._update_info_ui()          # update transformation matrix and overall LR in UI
         ret = self._is_enough_points()  # if ret, complete calibration
-        if ret:
-            print("Before")
-            self._print_formatted_transM()
-            self.complete_calibration(filtered_df)
-
-    def update(self, stage, debug_info=None):  #TODO
-        """
-        Main method to update calibration with a new stage position and check if calibration is complete.
-
-        Args:
-            stage (Stage): The current stage object with new position data.
-        """
-        # update points in the file
-        self.stage = stage
-        self._update_min_max_x_y_z()    # update min max x,y,z
-        self._update_info_ui()          # update transformation matrix and overall LR in UI
-
-        self._write_local_global_point(debug_info)  # Do no update if it is duplicates
-
-        filtered_df = self._filter_df_by_sn(self.stage.sn)
-        self.transM_LR = self._get_transM(filtered_df, remove_noise=False)
-        if self.transM_LR is None:
-            return
-
-        # Check criteria
-        self.LR_err_L2_current = self._l2_error_current_point()
-        ret = self._is_enough_points()  # if ret, complete calibration # TODO
         if ret:
             print("Before")
             self._print_formatted_transM()
