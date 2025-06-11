@@ -353,8 +353,8 @@ class ProbeCalibration(QObject):
         """
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
-        # Check if stage_z_global is under 10 microns
-        if self.stage.stage_z_global < 10:
+        # Check if stage_z_global is under 0 microns
+        if self.stage.stage_z_global < 0:
             return  # Do not update if condition is met (to avoid noise)
 
         new_row_data = {
