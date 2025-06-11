@@ -61,8 +61,8 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.stage = None
 
-        self.threshold_min_max = 2000
-        self.threshold_min_max_z = 1500
+        self.threshold_min_max = 1000
+        self.threshold_min_max_z = 50
         self.LR_err_L2_threshold = 15
         self.threshold_avg_error = 20
         self.threshold_matrix = np.array(
@@ -465,6 +465,13 @@ class ProbeCalibration(QObject):
         self.stages[sn]['min_z'] = min(self.stages[sn]['min_z'], self.stage.stage_z)
         self.stages[sn]['max_z'] = max(self.stages[sn]['max_z'], self.stage.stage_z)
 
+        # Check if the stage movement has exceeded the thresholds for x, y, and z axes
+        stage_data = self.stages[sn]
+        if (stage_data['max_x'] - stage_data['min_x'] > self.threshold_min_max or
+            stage_data['max_y'] - stage_data['min_y'] > self.threshold_min_max or
+                stage_data['max_z'] - stage_data['min_z'] > self.threshold_min_max_z):
+            self._enough_points_emit_signal()
+
     def _is_criteria_met_points_min_max(self):
         """
         Checks if the stage movement has exceeded predefined thresholds for x, y, and z axes.
@@ -478,16 +485,16 @@ class ProbeCalibration(QObject):
         sn = self.stage.sn
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]
-
-            if (stage_data['max_x'] - stage_data['min_x'] > self.threshold_min_max or
-                stage_data['max_y'] - stage_data['min_y'] > self.threshold_min_max or
-                    stage_data['max_z'] - stage_data['min_z'] > self.threshold_min_max_z):
-                self._enough_points_emit_signal()
-
+            if stage_data.get('signal_emitted_x', True) and \
+                stage_data.get('signal_emitted_y', True) and \
+                stage_data.get('signal_emitted_z', True):
+                return True
+            """
             if (stage_data['max_x'] - stage_data['min_x'] > self.threshold_min_max and
                 stage_data['max_y'] - stage_data['min_y'] > self.threshold_min_max and
                     stage_data['max_z'] - stage_data['min_z'] > self.threshold_min_max_z):
                 return True
+            """
         return False
 
     def _apply_transformation(self):
@@ -740,7 +747,9 @@ class ProbeCalibration(QObject):
         # update points in the file
         self.stage = stage
         self._write_local_global_point(debug_info)  # Do no update if it is duplicates
-        print(" -update")
+        print(" -write")
+
+        self._update_min_max_x_y_z()    # update min max x,y,z and emit signals if criteria met
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
         self.transM_LR = self._get_transM(filtered_df, noise_threshold=100)
@@ -749,9 +758,8 @@ class ProbeCalibration(QObject):
 
         # Check criteria
         self.LR_err_L2_current = self._l2_error_current_point()
-        self._update_min_max_x_y_z()    # update min max x,y,z
         self._update_info_ui()          # update transformation matrix and overall LR in UI
-        print(" - ")
+        print(" -update info UI")
         ret = self._is_enough_points()  # if ret, complete calibration
         if ret:
             print("Before")
