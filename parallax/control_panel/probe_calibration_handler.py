@@ -571,12 +571,11 @@ class ProbeCalibrationHandler(QWidget):
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
-        if self.calib_x.isVisible():
-            # Change the button to green.
-            self.calib_x.setStyleSheet(
-                "color: white;"
-                "background-color: #84c083;"
-            )
+        # Change the button to green.
+        self.calib_x.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
         self.calib_status_x = True
 
     def calib_y_complete(self, switch_probe=False):
@@ -586,12 +585,11 @@ class ProbeCalibrationHandler(QWidget):
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
-        if self.calib_y.isVisible():
-            # Change the button to green.
-            self.calib_y.setStyleSheet(
-                "color: white;"
-                "background-color: #84c083;"
-            )
+        # Change the button to green.
+        self.calib_y.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
         self.calib_status_y = True
 
     def calib_z_complete(self, switch_probe=False):
@@ -601,12 +599,11 @@ class ProbeCalibrationHandler(QWidget):
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
-        if self.calib_z.isVisible():
-            # Change the button to green.
-            self.calib_z.setStyleSheet(
-                "color: white;"
-                "background-color: #84c083;"
-            )
+        # Change the button to green.
+        self.calib_z.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
         self.calib_status_z = True
 
     def view_trajectory_button_handler(self):
