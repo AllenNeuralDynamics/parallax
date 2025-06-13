@@ -83,7 +83,7 @@ class Worker(QObject):
 
     dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
     stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
-    stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving.
+    stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving for a certain time.
     LOW_FREQ_INTERVAL = 500  # Interval for low frequency data fetching (in ms).
     HIGH_FREQ_INTERVAL = 100  # Interval for high frequency data fetching (in ms).
     IDLE_TIME = 0.5
@@ -159,11 +159,12 @@ class Worker(QObject):
 
             self.emit_all_stages(data)  # Update all stages
             change_detected = self._is_any_stage_move(data)  # Check if there is any significant change
+            current_time = time.time()
 
             if (
                 not change_detected
                 and self.curr_interval == self.HIGH_FREQ_INTERVAL
-                and time.time() - self.last_move_detected_time >= self.IDLE_TIME
+                and current_time - self.last_move_detected_time >= self.IDLE_TIME
             ):
                 # If stage is not moving for idle_time, switch to low freq mode
                 logger.debug("low freq mode")
@@ -232,7 +233,6 @@ class StageListener(QObject):
         super().__init__()
         self.model = model
         self.coordsConverter = CoordsConverter(self.model)
-        self.timestamp_local, self.timestamp_img_captured = None, None
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
         self.stage_ui = stage_ui
@@ -240,8 +240,8 @@ class StageListener(QObject):
         self.worker.dataChanged.connect(self.handleDataChange)
         self.worker.stage_moving.connect(self.stageMovingStatus)
         self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
-        self.buffer_size = 20
-        self.buffer_ts_local_coords = deque(maxlen=self.buffer_size)
+        #self.buffer_size = 20
+        #self.buffer_ts_local_coords = deque(maxlen=self.buffer_size)
         self.stage_global_data = None
         self.transM_dict = {}
         self.scale_dict = {}
@@ -293,16 +293,12 @@ class StageListener(QObject):
                 dt.second,
             )
 
+    """
     def append_to_buffer(self, ts, stage):
-        """Append stage data to the buffer.
-
-        Args:
-            ts (str): Timestamp.
-            stage (Stage): Stage object.
-        """
         self.buffer_ts_local_coords.append(
             (ts, [stage.stage_x, stage.stage_y, stage.stage_z])
         )
+    """
 
     def handleDataChange(self, probe):
         """Handle changes in stage data.
@@ -315,7 +311,7 @@ class StageListener(QObject):
         if stage is None:
             return
 
-        # update into modelss
+        # update into models
         local_x = round(probe.get("Stage_X", 0) * 1000, 1)
         local_y = round(probe.get("Stage_Y", 0) * 1000, 1)
         local_z = 15000 - round(probe.get("Stage_Z", 0) * 1000, 1)
@@ -337,10 +333,12 @@ class StageListener(QObject):
             self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
             if global_pts is not None:                      # If stage is calibrated,
                 self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
+            """
             else:
                 # if not calibrated, added stage info to buffer for calibration
                 self.timestamp_local = self.get_timestamp(millisecond=True)
                 self.append_to_buffer(self.timestamp_local, stage)
+            """
 
         # Update stage info
         self._update_stages_info(stage)
@@ -389,20 +387,14 @@ class StageListener(QObject):
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 
+    """
     def _change_time_format(self, str_time):
-        """Change the time format from string to datetime."""
+
         fmt = "%Y%m%d-%H%M%S.%f"
         date_time = datetime.strptime(str_time, fmt)
         return date_time
 
     def _find_closest_local_coords(self):
-        """Find the closest local coordinates based on the image capture timestamp.
-
-        Returns:
-            tuple: (closest_ts, closest_coords)
-                - closest_ts (str): Closest timestamp.
-                - closest_coords (list): Closest local coordinates.
-        """
         closest_ts = None
         closest_coords = None
         # Initialize a variable to track the smallest time difference
@@ -423,8 +415,9 @@ class StageListener(QObject):
                 closest_coords = local_coords
 
         return closest_ts, closest_coords
+    """
 
-    def handleGlobalDataChange(self, sn, global_coords, ts_img_captured, cam0, pt0, cam1, pt1):
+    def handleGlobalDataChange_deprecate(self, sn, global_coords, ts_img_captured, cam0, pt0, cam1, pt1):
         """Handle changes in global stage data.
 
         Args:
@@ -490,6 +483,66 @@ class StageListener(QObject):
                 # self.probeCalibrationLabel.setText(content)
                 """
 
+    def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
+        """Handle changes in global stage data and emit calibration update if selected."""
+
+        # Convert global coordinates to microns
+        global_coords_x = round(global_coords[0][0] * 1000, 1)
+        global_coords_y = round(global_coords[0][1] * 1000, 1)
+        global_coords_z = round(global_coords[0][2] * 1000, 1)
+
+        # Initialize stage_global_data if needed
+        if self.stage_global_data is None:
+            stage_info = {
+                "SerialNumber": sn,
+                "Id": None,
+                "Stage_X": float(stage["stage_x"]),
+                "Stage_Y": float(stage["stage_y"]),
+                "Stage_Z": float(stage["stage_z"]),
+            }
+            self.stage_global_data = Stage(stage_info)
+
+        # Update stage_global_data
+        self.sn = sn
+        self.stage_global_data.sn = sn
+        self.stage_global_data.stage_x = float(stage["stage_x"])
+        self.stage_global_data.stage_y = float(stage["stage_y"])
+        self.stage_global_data.stage_z = float(stage["stage_z"])
+        self.stage_global_data.stage_x_global = global_coords_x
+        self.stage_global_data.stage_y_global = global_coords_y
+        self.stage_global_data.stage_z_global = global_coords_z
+
+        # Debug info to track image capture and local coordinates
+        debug_info = {
+            "ts_local_coords": stage_ts,
+            "ts_img_captured": ts_img_captured,
+            "cam0": cam0,
+            "pt0": pt0,
+            "cam1": cam1,
+            "pt1": pt1,
+        }
+
+        # Update model's stage global coordinates
+        moving_stage = self.model.stages.get(sn)
+        if moving_stage is not None:
+            moving_stage.stage_x_global = global_coords_x
+            moving_stage.stage_y_global = global_coords_y
+            moving_stage.stage_z_global = global_coords_z
+
+        # Emit probe calibration request if selected
+        if self.stage_ui.get_selected_stage_sn() == sn:
+            self.probeCalibRequest.emit(self.stage_global_data, debug_info)
+            self.stage_ui.updateStageGlobalCoords()
+        else:
+            print("Moving probe not selected.")
+            # Optional: UI feedback for non-selected probe
+            # content = (
+            #     "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
+            # )
+            # self.probeCalibrationLabel.setText(content)
+
+
+
     def stageMovingStatus(self, probe):
         """Handle stage moving status.
 
@@ -509,7 +562,7 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
-            probeDetector.enable_calibration(sn)
+            probeDetector.enable_calibration(self.worker.last_move_detected_time + self.worker.IDLE_TIME, sn)
 
     def _get_stage_info_json(self, stage):
         """Create a JSON representation of the stage information."""

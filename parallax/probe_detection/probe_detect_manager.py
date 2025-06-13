@@ -146,8 +146,8 @@ class DrawWorker(QRunnable):
 class ProcessWorkerSignal(QObject):
     """Signals for the ProcessWorker."""
     finished = pyqtSignal()
-    tip_stopped = pyqtSignal(str, str, tuple)
-    tip_moving = pyqtSignal(str, str, tuple)
+    tip_stopped = pyqtSignal(float, float, str, tuple)
+    tip_moving = pyqtSignal(float, str, tuple)
 
 
 class ProcessWorker(QRunnable):
@@ -174,6 +174,8 @@ class ProcessWorker(QRunnable):
         self.is_detection_on = False
         self.is_calib = False
         self.new = False
+        self.stage_ts = None
+        self.img_ts = None
 
         self.prev_img = None
         self.reticle_zone = None
@@ -227,10 +229,10 @@ class ProcessWorker(QRunnable):
         """
         self.frame = frame
         self.new = True
-        self.timestamp = timestamp
+        self.img_ts = timestamp
 
     @pyqtSlot()
-    def process(self, frame, timestamp):
+    def process(self):
         """Process the frame for probe detection.
         1. First run currPrevCmpProcess
         2. If it fails on 1, run currBgCmpProcess
@@ -240,10 +242,10 @@ class ProcessWorker(QRunnable):
         Returns:
             tuple: Processed frame and timestamp.
         """
-        if frame.ndim > 2:
-            gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if self.frame.ndim > 2:
+            gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         else:
-            gray_img = frame
+            gray_img = self.frame
 
         resized_img = cv2.resize(gray_img, self.IMG_SIZE)
         self.curr_img = cv2.GaussianBlur(resized_img, (9, 9), 0)
@@ -253,7 +255,7 @@ class ProcessWorker(QRunnable):
                 self.IMG_SIZE, self.mask_detect, self.name
             )
             self.reticle_zone = reticle.get_reticle_zone(
-                frame
+                self.frame
             )  # Generate X and Y Coordinates zone
             self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
 
@@ -264,18 +266,20 @@ class ProcessWorker(QRunnable):
                 self.ret_crop, self.ret_tip = self.currPrevCmpProcess.first_cmp(
                     self.curr_img, self.prev_img, mask, gray_img
                 )
-                if self.name == "22517664":
-                    logger.debug("22517664 - first frame (currPrevCmp)")
                 if self.ret_crop is False:
                     self.ret_crop, self.ret_tip = self.currBgCmpProcess.first_cmp(
                         self.curr_img, mask, gray_img
                     )
-                    if self.name == "22517664":
-                        logger.debug("22517664 - first frame (currBgCmp)")
 
             else:  # Tracking for the known probe
                 is_first_detect = False
                 if self.is_calib and self.probe_stopped:  # stage is stopped and first frame
+                    if self.stage_ts - self.img_ts > 0:
+                        print(
+                            f"{self.name} - Stage ts: {self.stage_ts}, img ts: {self.img_ts}"
+                        )
+                        return
+
                     self.ret_crop, self.ret_tip = self.currPrevCmpProcess.update_cmp(
                         self.curr_img, self.prev_img, mask, gray_img
                     )
@@ -286,7 +290,7 @@ class ProcessWorker(QRunnable):
                         )
                         self.is_curr_bg_comp = True if (self.ret_crop and self.ret_tip) else False
                     if self.is_curr_prev_comp or self.is_curr_bg_comp:
-                        self.signals.tip_stopped.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
+                        self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org)
                         #cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0), -1)
                         self.prev_img = self.curr_img
                         self.probe_stopped = False
@@ -310,20 +314,19 @@ class ProcessWorker(QRunnable):
                         )
                         is_curr_bg_comp = True if (ret_crop and ret_tip) else False
                     if is_curr_prev_comp or is_curr_bg_comp:
-                        self.signals.tip_moving.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
+                        self.signals.tip_moving.emit(self.img_ts, self.sn, self.probeDetect.probe_tip_org)
                         #cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0), -1)
                         pass
 
             if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
-                frame = self.debug_draw_boundary(frame, is_first_detect,
+                self.frame = self.debug_draw_boundary(self.frame, is_first_detect,
                                                  self.ret_crop,
                                                  self.ret_tip,
                                                  self.is_curr_prev_comp,
                                                  self.is_curr_bg_comp)
         else:
             self.prev_img = self.curr_img
-
-        return frame, timestamp
+        return
 
     def stop_running(self):
         """Stop the worker from running."""
@@ -356,9 +359,7 @@ class ProcessWorker(QRunnable):
             if self.new:
                 if self.is_detection_on:
                     #logger.debug(f"{self.name} - Processing frame")
-                    self.frame, self.timestamp = self.process(
-                        self.frame, self.timestamp
-                    )
+                    self.process()
                 #self.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.001)
@@ -439,6 +440,10 @@ class ProcessWorker(QRunnable):
                 cv2.line(frame, tip, base, color_crop, 1)
         return frame
 
+    def update_stage_timestamp(self, stage_ts):
+        """Update the stage timestamp."""
+        self.stage_ts = stage_ts
+
 
 class ProbeDetectManager(QObject):
     """
@@ -447,7 +452,7 @@ class ProbeDetectManager(QObject):
     """
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(str, str, tuple, tuple)
+    found_coords = pyqtSignal(float, float, str, dict, tuple)
 
     def __init__(self, model, camera_name):
         """
@@ -529,8 +534,8 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
 
-    @pyqtSlot(str, str, tuple)
-    def found_tip_coords(self, timestamp, sn, pixel_coords):
+    @pyqtSlot(float, float, str, tuple)
+    def found_tip_coords(self, stage_ts, img_ts, sn, pixel_coords):
         """
         Emit the found coordinates signal after detection.
 
@@ -545,15 +550,15 @@ class ProbeDetectManager(QObject):
 
         moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:
-            stage_info = (
-                moving_stage.stage_x,
-                moving_stage.stage_y,
-                moving_stage.stage_z,
-            )
-        self.found_coords.emit(timestamp, sn, stage_info, pixel_coords)
-        print(f"{timestamp} -{self.name} Emit {pixel_coords}")
+            stage_info = {
+                "stage_x": moving_stage.stage_x,
+                "stage_y": moving_stage.stage_y,
+                "stage_z": moving_stage.stage_z,
+            }
+        self.found_coords.emit(stage_ts, img_ts, sn, stage_info, pixel_coords)
+        print(f"{self.name} Emit - s({stage_ts}) i({img_ts}) -{pixel_coords}")
 
-    def found_tip_coords_moving(self, timestamp, sn, pixel_coords):
+    def found_tip_coords_moving(self, img_ts, sn, pixel_coords):
         """
         Emit the found coordinates signal after detection.
 
@@ -564,8 +569,8 @@ class ProbeDetectManager(QObject):
         """
         # Update into screen
         if self.worker is not None:
+            self.worker.update_tip_coords(pixel_coords, color=(0, 255, 255))
             pass
-            #self.worker.update_tip_coords(pixel_coords, color=(0, 255, 255))
 
     def start_detection(self, sn):  # Call from stage listener.
         """Start the probe detection for a specific serial number.
@@ -588,7 +593,7 @@ class ProbeDetectManager(QObject):
         if self.processWorker is not None:
             self.processWorker.stop_detection()
 
-    def enable_calibration(self, sn):  # Call from stage listener.
+    def enable_calibration(self, stage_ts, sn):  # Call from stage listener.
         """
         Enable calibration mode for the worker. (stage is stopped)
 
@@ -597,6 +602,7 @@ class ProbeDetectManager(QObject):
         """
         #print("Enabling calibration for", sn)
         if self.processWorker is not None:
+            self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
 
     def disable_calibration(self, sn):  # Call from stage listener.

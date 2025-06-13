@@ -12,7 +12,7 @@ from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
@@ -138,9 +138,9 @@ class ProbeCalibrationHandler(QWidget):
 
             return calibrationStereo, camA_best, camB_best
 
-    def probe_detect_on_two_screens(self, cam_name, timestamp, sn, stage_info, pixel_coords):
+    def probe_detect_on_two_screens(self, cam_name, stage_stopped_ts, timestamp, sn, stage, pixel_coords):
         """Detect probe coordinates on all screens."""
-        cam_name_cmp, timestamp_cmp, sn_cmp = cam_name, timestamp, sn  # Coords tip detected screen
+        cam_name_cmp, stage_stopped_ts_cmp, timestamp_cmp, sn_cmp = cam_name, stage_stopped_ts, timestamp, sn  # Coords tip detected screen
         tip_coordsA, tip_coordsB = None, None
 
         if cam_name_cmp is None or timestamp_cmp is None or sn_cmp is None:
@@ -159,12 +159,13 @@ class ProbeCalibrationHandler(QWidget):
                 continue
 
             if cam_name in [self.camA_best, self.camB_best]:
-                timestamp, sn, tip_coord = screen.get_last_detect_probe_info()
-                if (sn is None) or (tip_coord is None) or (timestamp is None):
+                stage_stopped_ts, img_ts, sn, tip_coord = screen.get_last_detect_probe_info()
+
+                if (sn is None) or (tip_coord is None) or (img_ts is None) or (stage_stopped_ts is None):
                     return
                 if sn != sn_cmp:
                     return
-                if timestamp_cmp[:-2] != timestamp[:-2]:
+                if stage_stopped_ts != stage_stopped_ts_cmp: #  Removve legacy codes. TODO emit after probe stopped. 
                     return
 
                 if cam_name == self.camA_best:
@@ -180,16 +181,19 @@ class ProbeCalibrationHandler(QWidget):
         )
 
         self.stageListener.handleGlobalDataChange(
-            sn_cmp,
+            sn,
+            stage,
             global_coords,
+            stage_stopped_ts,
             timestamp_cmp,
             self.camA_best,
             tip_coordsA,
             self.camB_best,
             tip_coordsB,
         )
+        logger.debug(f"=====\n s: {stage_stopped_ts}\n i: {img_ts}\n ({stage['stage_x']}, {stage['stage_y']}, {stage['stage_z']}) {global_coords}")
 
-    def probe_detect_on_screens(self, camA, timestampA, snA, stage_info, tip_coordsA):
+    def probe_detect_on_screens(self, camA, stage_ts, timestampA, snA, stage_info, tip_coordsA):
         """Detect probe coordinates on all screens."""
         tip_coordsB = None
 

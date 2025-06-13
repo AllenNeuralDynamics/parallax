@@ -753,11 +753,10 @@ class ProbeCalibration(QObject):
         # update points in the file
         self.stage = stage
         self._write_local_global_point(debug_info)  # Do no update if it is duplicates
-        print(" -write")
+        #print(f" {debug_info.get('ts_img_captured', '')} -write ")
 
         self._update_min_max_x_y_z()    # update min max x,y,z and emit signals if criteria met
         self._update_info_ui()          # update transformation matrix and overall LR in UI
-        print(" -update info UI")
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
         self.transM_LR = self._get_transM(filtered_df, noise_threshold=100)
