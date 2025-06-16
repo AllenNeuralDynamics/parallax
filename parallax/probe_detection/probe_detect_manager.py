@@ -140,8 +140,8 @@ class DrawWorker(QRunnable):
         """
         self.tip_coords = tip_coords
         self.tip_coords_color = color
-        #if self.frame is not None and tip_coords is not None:
-        #    cv2.circle(self.frame, tip_coords, 5, color, -1)
+        if self.frame is not None and tip_coords is not None:
+            cv2.circle(self.frame, tip_coords, 5, color, -1)
 
 class ProcessWorkerSignal(QObject):
     """Signals for the ProcessWorker."""
@@ -233,100 +233,112 @@ class ProcessWorker(QRunnable):
 
     @pyqtSlot()
     def process(self):
-        """Process the frame for probe detection.
-        1. First run currPrevCmpProcess
-        2. If it fails on 1, run currBgCmpProcess
-        Args:
-            frame (numpy.ndarray): Input frame.
-            timestamp (str): Timestamp of the frame.
-        Returns:
-            tuple: Processed frame and timestamp.
         """
-        if self.frame.ndim > 2:
-            gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        else:
-            gray_img = self.frame
+        Main probe detection logic:
+        1. Prepares the current image.
+        2. Handles reticle zone setup.
+        3. Runs comparison via currPrevCmpProcess or currBgCmpProcess.
+        4. Emits signal when probe is found or moving.
+        """
+        self._prepare_current_image()
 
-        resized_img = cv2.resize(gray_img, self.IMG_SIZE)
-        self.curr_img = cv2.GaussianBlur(resized_img, (9, 9), 0)
-        mask = self.mask_detect.process(resized_img)  # Generate Mask
-        if self.mask_detect.is_reticle_exist and self.reticle_zone is None:
-            reticle = ReticleDetection(
-                self.IMG_SIZE, self.mask_detect, self.name
+        if self.prev_img is None:
+            self.prev_img = self.curr_img
+            return  # First frame, nothing to compare
+
+        self._set_reticle_zone()
+
+        if self.probeDetect.angle is None:
+            self._run_first_cmp()
+        else:
+            self._run_tracking_cmp()
+
+        if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
+            self.frame = self.debug_draw_boundary(
+                self.frame,
+                self.is_first_detect,
+                self.ret_crop,
+                self.ret_tip,
+                self.is_curr_prev_comp,
+                self.is_curr_bg_comp
             )
-            self.reticle_zone = reticle.get_reticle_zone(
-                self.frame
-            )  # Generate X and Y Coordinates zone
+
+    def _prepare_current_image(self):
+        """Convert and blur the frame, generate mask."""
+        if self.frame.ndim > 2:
+            self.gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        else:
+            self.gray_img = self.frame
+        resized_img = cv2.resize(self.gray_img, self.IMG_SIZE)
+        self.curr_img = cv2.GaussianBlur(resized_img, (9, 9), 0)
+        self.mask = self.mask_detect.process(resized_img)
+
+    def _set_reticle_zone(self):
+        if self.mask_detect.is_reticle_exist and self.reticle_zone is None:
+            reticle = ReticleDetection(self.IMG_SIZE, self.mask_detect, self.name)
+            self.reticle_zone = reticle.get_reticle_zone(self.frame)
             self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
 
-        if self.prev_img is not None:
-            if self.probeDetect.angle is None:
-                # Detecting probe for the first time
-                is_first_detect = True
-                self.ret_crop, self.ret_tip = self.currPrevCmpProcess.first_cmp(
-                    self.curr_img, self.prev_img, mask, gray_img
+    def _run_first_cmp(self):
+        self.is_first_detect = True
+        self.ret_crop, self.ret_tip = self.currPrevCmpProcess.first_cmp(
+            self.curr_img, self.prev_img, self.mask, self.curr_img
+        )
+        if not self.ret_crop:
+            self.ret_crop, self.ret_tip = self.currBgCmpProcess.first_cmp(
+                self.curr_img, self.mask, self.curr_img
+            )
+
+    def _run_tracking_cmp(self):
+        self.is_first_detect = False
+        self.is_curr_prev_comp = False
+        self.is_curr_bg_comp = False
+
+        if self.is_calib and self.probe_stopped:
+            if self.stage_ts - self.img_ts > 0:
+                logger.debug(f"{self.name} - Stage ts: {self.stage_ts}, img ts: {self.img_ts}")
+                return
+
+            self.ret_crop, self.ret_tip = self.currPrevCmpProcess.update_cmp(
+                self.curr_img, self.prev_img, self.mask, self.gray_img
+            )
+            self.is_curr_prev_comp = bool(self.ret_crop and self.ret_tip)
+
+            if not self.is_curr_prev_comp:
+                self.ret_crop, self.ret_tip = self.currBgCmpProcess.update_cmp(
+                    self.curr_img, self.mask, self.gray_img
                 )
-                if self.ret_crop is False:
-                    self.ret_crop, self.ret_tip = self.currBgCmpProcess.first_cmp(
-                        self.curr_img, mask, gray_img
-                    )
+                self.is_curr_bg_comp = bool(self.ret_crop and self.ret_tip)
 
-            else:  # Tracking for the known probe
-                is_first_detect = False
-                if self.is_calib and self.probe_stopped:  # stage is stopped and first frame
-                    if self.stage_ts - self.img_ts > 0:
-                        print(
-                            f"{self.name} - Stage ts: {self.stage_ts}, img ts: {self.img_ts}"
-                        )
-                        return
+            if self.is_curr_prev_comp or self.is_curr_bg_comp:
+                self.signals.tip_stopped.emit(
+                    self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org
+                )
+                self.prev_img = self.curr_img
 
-                    self.ret_crop, self.ret_tip = self.currPrevCmpProcess.update_cmp(
-                        self.curr_img, self.prev_img, mask, gray_img
-                    )
-                    self.is_curr_prev_comp = True if (self.ret_crop and self.ret_tip) else False
-                    if self.is_curr_prev_comp is False:
-                        self.ret_crop, self.ret_tip = self.currBgCmpProcess.update_cmp(
-                            self.curr_img, mask, gray_img
-                        )
-                        self.is_curr_bg_comp = True if (self.ret_crop and self.ret_tip) else False
-                    if self.is_curr_prev_comp or self.is_curr_bg_comp:
-                        self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org)
-                        #cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0), -1)
-                        self.prev_img = self.curr_img
-                        self.probe_stopped = False
+            self.probe_stopped = False
 
-                elif self.is_calib and not self.probe_stopped:  # stage is stopped and second frame
-                    if self.is_curr_prev_comp or self.is_curr_bg_comp:
-                        pass
-                        #self.signals.tip_stopped.emit(timestamp, self.sn, self.probeDetect.probe_tip_org)
-                        #cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 0, 0), -1)
+        elif self.is_calib and not self.probe_stopped:
+            pass  # No signal emission for 2nd stopped frame
 
-                else:  # stage is moving
-                    self.probe_stopped = True
-                    is_curr_prev_comp, is_curr_bg_comp = False, False
-                    ret_crop, ret_tip = self.currPrevCmpProcess.update_cmp(
-                        self.curr_img, self.prev_img, mask, gray_img
-                    )
-                    is_curr_prev_comp = True if (ret_crop and ret_tip) else False
-                    if is_curr_prev_comp is False:
-                        ret_crop, ret_tip = self.currBgCmpProcess.update_cmp(
-                            self.curr_img, mask, gray_img
-                        )
-                        is_curr_bg_comp = True if (ret_crop and ret_tip) else False
-                    if is_curr_prev_comp or is_curr_bg_comp:
-                        self.signals.tip_moving.emit(self.img_ts, self.sn, self.probeDetect.probe_tip_org)
-                        #cv2.circle(frame, self.probeDetect.probe_tip_org, 5, (255, 255, 0), -1)
-                        pass
+        else:  # stage is moving
+            self.probe_stopped = True
+            ret_crop, ret_tip = self.currPrevCmpProcess.update_cmp(
+                self.curr_img, self.prev_img, self.mask, self.gray_img, get_fine_tip=False
+            )
+            self.is_curr_prev_comp = bool(ret_crop and ret_tip)
 
-            if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
-                self.frame = self.debug_draw_boundary(self.frame, is_first_detect,
-                                                 self.ret_crop,
-                                                 self.ret_tip,
-                                                 self.is_curr_prev_comp,
-                                                 self.is_curr_bg_comp)
-        else:
-            self.prev_img = self.curr_img
-        return
+            if not self.is_curr_prev_comp:
+                ret_crop, ret_tip = self.currBgCmpProcess.update_cmp(
+                    self.curr_img, self.mask, self.gray_img, get_fine_tip=False
+                )
+                self.is_curr_bg_comp = bool(ret_crop and ret_tip)
+
+            if self.is_curr_prev_comp or self.is_curr_bg_comp:
+                self.signals.tip_moving.emit(
+                    self.img_ts, self.sn, self.probeDetect.probe_tip_org
+                )
+
 
     def stop_running(self):
         """Stop the worker from running."""
@@ -556,7 +568,7 @@ class ProbeDetectManager(QObject):
                 "stage_z": moving_stage.stage_z,
             }
         self.found_coords.emit(stage_ts, img_ts, sn, stage_info, pixel_coords)
-        print(f"{self.name} Emit - s({stage_ts}) i({img_ts}) -{pixel_coords}")
+        logger.debug(f"{self.name} Emit - s({stage_ts}) i({img_ts}) -{pixel_coords}")
 
     def found_tip_coords_moving(self, img_ts, sn, pixel_coords):
         """
@@ -600,6 +612,8 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
+        if self.worker is not None:
+            self.worker.update_tip_coords(None, None)
         #print("Enabling calibration for", sn)
         if self.processWorker is not None:
             self.processWorker.update_stage_timestamp(stage_ts)
