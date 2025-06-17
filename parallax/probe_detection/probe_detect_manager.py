@@ -250,18 +250,6 @@ class ProcessWorker(QRunnable):
         else:
             self._run_tracking_cmp()
 
-        """
-        if logger.getEffectiveLevel() == logging.DEBUG and self.is_calib:
-            self.frame = self.debug_draw_boundary(
-                self.frame,
-                self.is_first_detect,
-                self.ret_crop,
-                self.ret_tip,
-                self.is_curr_prev_comp,
-                self.is_curr_bg_comp
-            )
-        """
-
     def _prepare_current_image(self):
         """Convert and blur the frame, generate mask."""
         if self.frame.ndim > 2:
