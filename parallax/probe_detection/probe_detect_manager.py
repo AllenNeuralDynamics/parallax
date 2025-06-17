@@ -310,20 +310,11 @@ class ProcessWorker(QRunnable):
             self.stopped_first_frame = False
 
         else:  # stage is moving
-            ret = self.currPrevCmpProcess.update_cmp(
-                                        self.curr_img,
-                                        self.prev_img,
-                                        self.mask,
-                                        self.gray_img,
-                                        get_fine_tip=False
-                                    )
-
-            if not ret:
-                ret = self.currBgCmpProcess.update_cmp(
+            self.currBgCmpProcess.update_cmp(
                                     self.curr_img,
                                     self.mask,
                                     self.gray_img,
-                                    get_fine_tip=False
+                                    get_fine_tip=True
                                 )
 
             if ret:
@@ -503,8 +494,7 @@ class ProbeDetectManager(QObject):
         """
         # Update into screen
         if self.worker is not None:
-            self.worker.update_tip_coords(pixel_coords, color=(0, 255, 255))
-            pass
+            self.worker.update_tip_coords(pixel_coords, color=(255, 255, 0))
 
     def start_detection(self, sn):  # Call from stage listener.
         """Start the probe detection for a specific serial number.
