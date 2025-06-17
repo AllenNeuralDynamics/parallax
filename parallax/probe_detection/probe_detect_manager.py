@@ -59,7 +59,7 @@ class DrawWorker(QRunnable):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-        self.frame = frame
+        self.frame = frame.copy()  # To seperate frame with ProcessWorker
         self.new = True
         self.timestamp = timestamp
 
