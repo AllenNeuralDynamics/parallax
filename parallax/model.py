@@ -140,7 +140,7 @@ class Model(QObject):
         for camera in self.cameras:
             if camera.name(sn_only=True) == camera_name:
                 return (camera.width, camera.height)
-        return None
+        return (4000, 3000)  # Default resolution if camera not found
 
     def set_stage_listener_url(self, url):
         """Set the URL for the stage listener.

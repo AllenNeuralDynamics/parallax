@@ -58,7 +58,7 @@ class CurrPrevCmpProcessor():
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = None, None, None, None
         self.top, self.bottom, self.left, self.right = None, None, None, None
 
-    def first_cmp(self, curr_img, prev_img, mask, org_img):
+    def first_cmp(self, org_img, prev_img, mask):
         """Perform first comparison.
 
         Args:
@@ -70,18 +70,18 @@ class CurrPrevCmpProcessor():
         Returns:
             bool: True if probe is detected, False otherwise.
         """
-        ret, ret_precise_tip = False, False
         self.mask = mask
+        curr_img = org_img
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
         if not self._apply_threshold():
-            return ret, ret_precise_tip
+            return False
 
         ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
         if ret:
-            logger.debug("CurrPrevCmpProcessor First::detect")
             #ret_precise_tip = self._get_precise_tip(org_img)
+            pass
 
-        return ret, self.ProbeDetector.probe_tip
+        return ret
 
     def update_cmp(self, curr_img, prev_img, mask, org_img, get_fine_tip=True):
         """Update the comparison.
@@ -95,27 +95,26 @@ class CurrPrevCmpProcessor():
         Returns:
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
-        ret, ret_precise_tip = False, False
         self.mask = mask
         self.ProbeDetector.probe_tip_org = None
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
         ret = self._apply_threshold()
         if not ret:
-            return ret, ret_precise_tip
+            return False
 
         ret = self._update_crop()
         if ret:
             logger.debug("CurrPrevCmpProcessor Update::detect")
             if get_fine_tip:
-                ret_precise_tip = self._get_precise_tip(org_img)
+                if not self._get_precise_tip(org_img):
+                    return False
             else:
-                ret_precise_tip = self.ProbeDetector.probe_tip
                 self.ProbeDetector.probe_tip_org = UtilsCoords.scale_coords_to_original(
                     self.ProbeDetector.probe_tip,
                     self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
                 )
 
-        return ret, ret_precise_tip
+        return ret
 
     def _update_crop(self):
         """Update the crop region.
