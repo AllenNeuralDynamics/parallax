@@ -79,11 +79,11 @@ class CurrPrevCmpProcessor():
         ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
         if ret:
             logger.debug("CurrPrevCmpProcessor First::detect")
-            ret_precise_tip = self._get_precise_tip(org_img)
+            #ret_precise_tip = self._get_precise_tip(org_img)
 
-        return ret, ret_precise_tip
+        return ret, self.ProbeDetector.probe_tip
 
-    def update_cmp(self, curr_img, prev_img, mask, org_img):
+    def update_cmp(self, curr_img, prev_img, mask, org_img, get_fine_tip=True):
         """Update the comparison.
 
         Args:
@@ -106,7 +106,14 @@ class CurrPrevCmpProcessor():
         ret = self._update_crop()
         if ret:
             logger.debug("CurrPrevCmpProcessor Update::detect")
-            ret_precise_tip = self._get_precise_tip(org_img)
+            if get_fine_tip:
+                ret_precise_tip = self._get_precise_tip(org_img)
+            else:
+                ret_precise_tip = self.ProbeDetector.probe_tip
+                self.ProbeDetector.probe_tip_org = UtilsCoords.scale_coords_to_original(
+                    self.ProbeDetector.probe_tip,
+                    self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                )
 
         return ret, ret_precise_tip
 

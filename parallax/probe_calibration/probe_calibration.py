@@ -18,7 +18,7 @@ from parallax.config.config_path import stages_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
@@ -61,10 +61,10 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.stage = None
 
-        self.threshold_min_max = 1000
+        self.threshold_min_max = 2000
         self.threshold_min_max_z = 50
-        self.LR_err_L2_threshold = 15
-        self.threshold_avg_error = 20
+        self.LR_err_L2_threshold = 35
+        self.threshold_avg_error = 40
         self.threshold_matrix = np.array(
             [
                 [0.00002, 0.00002, 0.00002, 50.0],
@@ -74,7 +74,7 @@ class ProbeCalibration(QObject):
             ]
         )
 
-        self.transM_LR, self.transM_LR_prev = None, None
+        self.transM_LR, self.transM_LR_prev = None, np.zeros((4, 4), dtype=np.float64)
         self.LR_err_L2_current = 1e10
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
         self.avg_err = None
@@ -147,7 +147,7 @@ class ProbeCalibration(QObject):
         Args:
             sn (str, optional): The serial number of the stage to clear. If None, clears all stages.
         """
-        self.transM_LR, self.transM_LR_prev = None, None
+        self.transM_LR, self.transM_LR_prev = None, np.zeros((4, 4), dtype=np.float64)
         self.scale = np.array([1, 1, 1])
 
         if sn:
@@ -596,7 +596,9 @@ class ProbeCalibration(QObject):
         # 2. L2 error (Global and Exp) is less than some values (e.g. 20 mincrons)
         # 3. transM_LR difference in some epsilon value
         # 4. L2 error (Global and Exp) is less than some values (e.g. 20 mincrons)
-        if self._is_criteria_met_points_min_max():
+
+        """
+        if not self._is_criteria_met_points_min_max():
             if self._is_criteria_avg_error_threshold():
                 if self._is_criteria_met_transM():
                     if self._is_criteria_met_l2_error():
@@ -605,6 +607,32 @@ class ProbeCalibration(QObject):
 
         self.transM_LR_prev = self.transM_LR
         return False
+        """
+
+
+        if not self._is_criteria_met_points_min_max():
+            logger.debug("Not enough movement range in X, Y, or Z.")
+            return False
+
+        if not self._is_criteria_avg_error_threshold():
+            logger.debug("Average error is above the threshold.")
+            return False
+
+        """
+        if not self._is_criteria_met_transM():
+            logger.debug("Transformation matrix is not stable.")
+            self.transM_LR_prev = self.transM_LR
+            return False
+        
+
+        if not self._is_criteria_met_l2_error():
+            logger.debug("L2 error is above the threshold.")
+            return False
+        """
+
+        logger.debug("All criteria met: calibration can proceed.")
+        return True
+
 
     def _update_info_ui(self, disp_avg_error=False, save_to_csv=False, file_name=None):
         """
@@ -753,7 +781,6 @@ class ProbeCalibration(QObject):
         # update points in the file
         self.stage = stage
         self._write_local_global_point(debug_info)  # Do no update if it is duplicates
-        #print(f" {debug_info.get('ts_img_captured', '')} -write ")
 
         self._update_min_max_x_y_z()    # update min max x,y,z and emit signals if criteria met
         self._update_info_ui()          # update transformation matrix and overall LR in UI
@@ -761,6 +788,7 @@ class ProbeCalibration(QObject):
         filtered_df = self._filter_df_by_sn(self.stage.sn)
         self.transM_LR = self._get_transM(filtered_df, noise_threshold=100)
         if self.transM_LR is None:
+            logger.debug("Transformation matrix is None, not enough points for calibration.")
             return
 
         # Check criteria

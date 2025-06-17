@@ -97,14 +97,14 @@ class CurrBgCmpProcessor():
         ret = self._detect_probe()
         if ret:
             logger.debug("FirstCurrBgCmpProcessor:: detect")
-            ret_precise_tip = self._get_precise_tip(org_img)
+            #ret_precise_tip = self._get_precise_tip(org_img)
             self.bg = cv2.bitwise_not(
                 cv2.bitwise_xor(self.diff_img, self.curr_img), mask=self.mask
             )
 
-        return ret, ret_precise_tip
+        return ret, self.ProbeDetector.probe_tip
 
-    def update_cmp(self, curr_img, mask, org_img):
+    def update_cmp(self, curr_img, mask, org_img, get_fine_tip=True):
         """Update the comparison.
 
         Args:
@@ -126,12 +126,19 @@ class CurrBgCmpProcessor():
         self._preprocess_diff_image(self.curr_img)
         ret = self._update_crop()
         if ret:
-            ret_precise_tip_ret = self._get_precise_tip(org_img)
-            if ret_precise_tip_ret:
-                self._update_bg(extended_offset=10)
+            if get_fine_tip:
+                ret_precise_tip_ret = self._get_precise_tip(org_img)
+            else:
+                ret_precise_tip_ret = self.ProbeDetector.probe_tip
+                self.ProbeDetector.probe_tip_org = UtilsCoords.scale_coords_to_original(
+                    self.ProbeDetector.probe_tip,
+                    self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                )
+
+            #if ret_precise_tip_ret:
+            self._update_bg(extended_offset=10)
 
         logger.debug(f"update: {ret}, precise_tip: {ret_precise_tip_ret}")
-
         if logger.getEffectiveLevel() == logging.DEBUG:
             save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_bg.jpg")
             cv2.imwrite(save_path, self.bg)

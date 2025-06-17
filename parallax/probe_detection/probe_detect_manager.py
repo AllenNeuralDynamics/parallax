@@ -184,7 +184,6 @@ class ProcessWorker(QRunnable):
         self.sn = None
         self.IMG_SIZE = (1000, 750)
         self.IMG_SIZE_ORIGINAL = (4000, 3000)
-        self.CROP_INIT = 50
         self.mask_detect = MaskGenerator()
         self.probe_stopped = False
         self.is_curr_prev_comp, self.is_curr_bg_comp = False, False
