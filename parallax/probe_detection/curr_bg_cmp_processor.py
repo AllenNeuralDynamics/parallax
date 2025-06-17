@@ -75,7 +75,7 @@ class CurrBgCmpProcessor():
         """
         self.reticle_zone = reticle_zone
 
-    def first_cmp(self, org_img, mask):
+    def first_cmp(self, org_img, mask, running_flag=lambda: True):
         """Perform first comparison
 
         Args:
@@ -92,8 +92,17 @@ class CurrBgCmpProcessor():
         self.curr_img = self._get_binary(self.curr_img)
         if self.bg is None:
             self._create_bg(self.curr_img)
+        if not running_flag():
+            return False
+
         self._preprocess_diff_image(self.curr_img)
+        if not running_flag():
+            return False
+
         ret = self._detect_probe()
+        if not running_flag():
+            return False
+
         if ret:
             #ret_precise_tip = self._get_precise_tip(org_img)
             self.bg = cv2.bitwise_not(
@@ -102,7 +111,7 @@ class CurrBgCmpProcessor():
 
         return ret
 
-    def update_cmp(self, curr_img, mask, org_img, get_fine_tip=True):
+    def update_cmp(self, curr_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True):
         """Update the comparison.
 
         Args:
@@ -119,9 +128,15 @@ class CurrBgCmpProcessor():
         self.curr_img = self._get_binary(self.curr_img)
         if self.bg is None:
             self._create_bg(self.curr_img)
+        if not running_flag():
+            return False
 
         self._preprocess_diff_image(self.curr_img)
+        if not running_flag():
+            return False
         ret = self._update_crop()
+        if not running_flag():
+            return False
         if ret:
             if get_fine_tip:
                 if not self._get_precise_tip(org_img):
@@ -131,7 +146,8 @@ class CurrBgCmpProcessor():
                     self.ProbeDetector.probe_tip,
                     self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
                 )
-
+            if not running_flag():
+                return False
             #if ret_precise_tip_ret:
             self._update_bg(extended_offset=10)
 

@@ -58,7 +58,7 @@ class CurrPrevCmpProcessor():
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = None, None, None, None
         self.top, self.bottom, self.left, self.right = None, None, None, None
 
-    def first_cmp(self, org_img, prev_img, mask):
+    def first_cmp(self, org_img, prev_img, mask, running_flag=lambda: True):
         """Perform first comparison.
 
         Args:
@@ -73,7 +73,12 @@ class CurrPrevCmpProcessor():
         self.mask = mask
         curr_img = org_img
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
+        if not running_flag():
+            return False
+
         if not self._apply_threshold():
+            return False
+        if not running_flag():
             return False
 
         ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
@@ -83,7 +88,7 @@ class CurrPrevCmpProcessor():
 
         return ret
 
-    def update_cmp(self, curr_img, prev_img, mask, org_img, get_fine_tip=True):
+    def update_cmp(self, curr_img, prev_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True):
         """Update the comparison.
 
         Args:
@@ -98,11 +103,16 @@ class CurrPrevCmpProcessor():
         self.mask = mask
         self.ProbeDetector.probe_tip_org = None
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
+        if not running_flag():
+            return False
+
         ret = self._apply_threshold()
-        if not ret:
+        if not ret or not running_flag():
             return False
 
         ret = self._update_crop()
+        if not running_flag():
+            return False
         if ret:
             logger.debug("CurrPrevCmpProcessor Update::detect")
             if get_fine_tip:

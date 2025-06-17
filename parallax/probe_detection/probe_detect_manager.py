@@ -238,6 +238,8 @@ class ProcessWorker(QRunnable):
         4. Emits signal when probe is found or moving.
         """
         self._prepare_current_image()
+        if not self.running:
+            return
 
         if self.prev_img is None:
             self.prev_img = self.curr_img
@@ -269,11 +271,17 @@ class ProcessWorker(QRunnable):
 
     def _run_first_cmp(self):
         """Run the first comparison to detect probe tip."""
-        ret = self.currPrevCmpProcess.first_cmp(self.curr_img, self.prev_img, self.mask)
+        ret = self.currPrevCmpProcess.first_cmp(self.curr_img, self.prev_img, self.mask, lambda: self.running)
+        if not self.running:
+            return
+
         if not ret:
-            ret = self.currBgCmpProcess.first_cmp(self.curr_img, self.mask)
+            ret = self.currBgCmpProcess.first_cmp(self.curr_img, self.mask, lambda: self.running)
         if ret:
             logger.debug(f"{self.name} - First comparison successful")
+        else:
+            logger.debug(f"{self.name} - First comparison failed")
+            return
 
     def _run_tracking_cmp(self):
         """Run comparison to detect probe tip and emit signals."""
@@ -298,7 +306,7 @@ class ProcessWorker(QRunnable):
             self.stopped_first_frame = False
 
         else:  # stage is moving
-            self.currBgCmpProcess.update_cmp(
+            ret = self.currBgCmpProcess.update_cmp(
                                     self.curr_img,
                                     self.mask,
                                     self.gray_img,
@@ -400,6 +408,10 @@ class ProbeDetectManager(QObject):
         """
         Start the probe detection manager by initializing the worker thread and running it.
         """
+        wait_time = 0
+        while (self.worker is not None or self.processWorker is not None) and wait_time < 3.0:
+            time.sleep(0.1)
+            wait_time += 0.1
         if self.worker is not None or self.processWorker is not None:
             print(f"{self.name} Previous thread not cleaned up")
             return
