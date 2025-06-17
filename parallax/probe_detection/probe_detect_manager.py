@@ -156,7 +156,7 @@ class ProcessWorker(QRunnable):
     image processing, probe detection, and reticle detection, and communicates results
     through PyQt signals.
     """
-    def __init__(self, name):
+    def __init__(self, name, resolution):
         """
         Initialize the Worker object with camera and model data.
         Args:
@@ -170,7 +170,6 @@ class ProcessWorker(QRunnable):
         self.frame = None
 
         self.name = name  # Camera serial number
-        self.running = False
         self.is_detection_on = False
         self.is_calib = False
         self.new = False
@@ -183,10 +182,12 @@ class ProcessWorker(QRunnable):
         self.probes = {}
         self.sn = None
         self.IMG_SIZE = (1000, 750)
-        self.IMG_SIZE_ORIGINAL = (4000, 3000)
-        self.mask_detect = MaskGenerator()
+        self.IMG_SIZE_ORIGINAL = resolution
         self.probe_stopped = False
         self.is_curr_prev_comp, self.is_curr_bg_comp = False, False
+        self.mask_detect = MaskGenerator()
+
+        print(self.IMG_SIZE_ORIGINAL)
 
     def update_sn(self, sn):
         """Update the serial number and initialize probe detectors.
@@ -489,7 +490,9 @@ class ProbeDetectManager(QObject):
 
     def _init_process_thread(self):
         """Initialize the process worker thread."""
-        self.processWorker = ProcessWorker(self.name)
+        # Get width and height from model
+        camera_resolution = self.model.get_camera_resolution(self.name)
+        self.processWorker = ProcessWorker(self.name, camera_resolution)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.tip_stopped.connect(self.found_tip_coords)
         self.processWorker.signals.tip_moving.connect(self.found_tip_coords_moving)
