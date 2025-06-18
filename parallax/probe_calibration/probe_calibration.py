@@ -61,18 +61,32 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.stage = None
 
-        self.threshold_min_max = 2000
-        self.threshold_min_max_z = 50
-        self.LR_err_L2_threshold = 35
-        self.threshold_avg_error = 40
+        #self.threshold_min_max = 2000
+        #self.threshold_min_max_z = 50
+        #self.LR_err_L2_threshold = 35
+        #self.threshold_avg_error = 40
+        self.threshold_min_max = 1500
+        self.threshold_min_max_z = 200
+        self.LR_err_L2_threshold = 50  # TODO Remove / Add close to center points. 
+        self.threshold_avg_error = 50
+
         self.threshold_matrix = np.array(
+            [
+                [0.001, 0.001, 0.001, 10.0],
+                [0.001, 0.001, 0.001, 10.0],
+                [0.001, 0.001, 0.001, 10.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]
+        )
+
+        """ Original threshold matrix
             [
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.00002, 0.00002, 0.00002, 50.0],
                 [0.0, 0.0, 0.0, 0.0],
             ]
-        )
+        """
 
         self.transM_LR, self.transM_LR_prev = None, np.zeros((4, 4), dtype=np.float64)
         self.LR_err_L2_current = 1e10
@@ -99,6 +113,10 @@ class ProbeCalibration(QObject):
                 'max_y': float("-inf"),
                 'min_z': float("inf"),
                 'max_z': float("-inf"),
+                'min_gx': float("inf"),
+                'max_gx': float("-inf"),
+                'min_gy': float("inf"),
+                'max_gy': float("-inf"),
                 'signal_emitted_x': False,
                 'signal_emitted_y': False,
                 'signal_emitted_z': False,
@@ -340,7 +358,7 @@ class ProbeCalibration(QObject):
         valid_indices = np.ones(len(local_points), dtype=bool)
 
         if remove_noise:
-            if self._is_criteria_met_points_min_max() and len(local_points) > 10 \
+            if self._is_criteria_met_points_min_max() and len(local_points) >= 6 \
                     and self.R is not None and self.origin is not None:
                 local_points, global_points, valid_indices = self._remove_outliers(
                     local_points, global_points, threshold=noise_threshold)
@@ -425,6 +443,7 @@ class ProbeCalibration(QObject):
             bool: True if the criteria are met, otherwise False.
         """
         diff_matrix = np.abs(self.transM_LR - self.transM_LR_prev)
+        logger.debug("Diff matrix:\n%s", diff_matrix)
         if np.all(diff_matrix <= self.threshold_matrix):
             return True
         else:
@@ -455,23 +474,67 @@ class ProbeCalibration(QObject):
                 'min_x': float("inf"), 'max_x': float("-inf"),
                 'min_y': float("inf"), 'max_y': float("-inf"),
                 'min_z': float("inf"), 'max_z': float("-inf"),
+                'min_gx': float("inf"), 'max_gx': float("-inf"),
+                'min_gy': float("inf"), 'max_gy': float("-inf"),
                 'signal_emitted_x': False, 'signal_emitted_y': False,
                 'signal_emitted_z': False, 'calib_completed': False
             }
 
-        self.stages[sn]['min_x'] = min(self.stages[sn]['min_x'], self.stage.stage_x)
-        self.stages[sn]['max_x'] = max(self.stages[sn]['max_x'], self.stage.stage_x)
-        self.stages[sn]['min_y'] = min(self.stages[sn]['min_y'], self.stage.stage_y)
-        self.stages[sn]['max_y'] = max(self.stages[sn]['max_y'], self.stage.stage_y)
-        self.stages[sn]['min_z'] = min(self.stages[sn]['min_z'], self.stage.stage_z)
-        self.stages[sn]['max_z'] = max(self.stages[sn]['max_z'], self.stage.stage_z)
+        stage = self.stages[sn]
 
-        # Check if the stage movement has exceeded the thresholds for x, y, and z axes
-        stage_data = self.stages[sn]
-        if (stage_data['max_x'] - stage_data['min_x'] > self.threshold_min_max or
-            stage_data['max_y'] - stage_data['min_y'] > self.threshold_min_max or
-                stage_data['max_z'] - stage_data['min_z'] > self.threshold_min_max_z):
-            self._enough_points_emit_signal()
+        # Local min/max
+        stage['min_x'] = min(stage['min_x'], self.stage.stage_x)
+        stage['max_x'] = max(stage['max_x'], self.stage.stage_x)
+        stage['min_y'] = min(stage['min_y'], self.stage.stage_y)
+        stage['max_y'] = max(stage['max_y'], self.stage.stage_y)
+        stage['min_z'] = min(stage['min_z'], self.stage.stage_z)
+        stage['max_z'] = max(stage['max_z'], self.stage.stage_z)
+
+        # Global min/max
+        stage['min_gx'] = min(stage['min_gx'], self.stage.stage_x_global)
+        stage['max_gx'] = max(stage['max_gx'], self.stage.stage_x_global)
+        stage['min_gy'] = min(stage['min_gy'], self.stage.stage_y_global)
+        stage['max_gy'] = max(stage['max_gy'], self.stage.stage_y_global)
+
+        return sn
+
+    def _send_signal(self, sn):
+        stage = self.stages[sn]
+        # Check if the stage movement has exceeded the thresholds for x, y, and z axes\
+        if (stage['max_x'] - stage['min_x'] > self.threshold_min_max) and\
+            (stage['min_gx'] < 0 and stage['max_gx'] > 0) and\
+            stage['signal_emitted_x'] is False:
+            self.calib_complete_x.emit(sn)
+            stage['signal_emitted_x'] = True
+
+        if (stage['max_y'] - stage['min_y'] > self.threshold_min_max) and\
+            (stage['min_gy'] < 0 and stage['max_gy'] > 0) and\
+            stage['signal_emitted_y'] is False:
+            self.calib_complete_y.emit(sn)
+            stage['signal_emitted_y'] = True
+
+        if (stage['max_z'] - stage['min_z'] > self.threshold_min_max_z) and\
+            stage['signal_emitted_z'] is False:
+            self.calib_complete_z.emit(sn)
+            stage['signal_emitted_z'] = True
+
+    def _is_criteria_number_of_points(self):
+        """
+        Checks if the number of calibration points for the current stage is sufficient.
+
+        Returns:
+            bool: True if more than 5 points are available, False otherwise.
+        """
+        try:
+            df = self._filter_df_by_sn(self.stage.sn)
+            if len(df) > 5:
+                return True
+            else:
+                logger.debug(f"Not enough points: {len(df)} (need > 5)")
+                return False
+        except Exception as e:
+            logger.error(f"Error in _is_criteria_number_of_points: {e}")
+            return False
 
     def _is_criteria_met_points_min_max(self):
         """
@@ -549,36 +612,6 @@ class ProbeCalibration(QObject):
         else:
             return False
 
-    def _enough_points_emit_signal(self):
-        """
-        Emits calibration complete signals based on the sufficiency of point ranges in each direction.
-        """
-        sn = self.stage.sn
-        if sn is not None and sn in self.stages:
-            stage_data = self.stages[sn]
-
-            if (
-                not stage_data.get('signal_emitted_x', False)
-                and stage_data['max_x'] - stage_data['min_x'] > self.threshold_min_max
-            ):
-                self.calib_complete_x.emit(sn)
-                stage_data['signal_emitted_x'] = True
-            if (
-                not stage_data.get('signal_emitted_y', False)
-                and stage_data['max_y'] - stage_data['min_y'] > self.threshold_min_max
-            ):
-                self.calib_complete_y.emit(sn)
-                stage_data['signal_emitted_y'] = True
-            if (
-                not stage_data.get('signal_emitted_z', False)
-                and stage_data['max_z'] - stage_data['min_z'] > self.threshold_min_max_z
-            ):
-                self.calib_complete_z.emit(sn)
-                stage_data['signal_emitted_z'] = True
-
-            # Update self.stages with the new signal emitted status
-            self.stages[sn] = stage_data
-
     def _is_enough_points(self):
         """
         Determines whether enough points have been collected for calibration.
@@ -608,7 +641,9 @@ class ProbeCalibration(QObject):
         self.transM_LR_prev = self.transM_LR
         return False
         """
-
+        if not self._is_criteria_number_of_points():
+            logger.debug("Not enough points collected for calibration.")
+            return False
 
         if not self._is_criteria_met_points_min_max():
             logger.debug("Not enough movement range in X, Y, or Z.")
@@ -618,13 +653,12 @@ class ProbeCalibration(QObject):
             logger.debug("Average error is above the threshold.")
             return False
 
-        """
         if not self._is_criteria_met_transM():
             logger.debug("Transformation matrix is not stable.")
             self.transM_LR_prev = self.transM_LR
             return False
         
-
+        """
         if not self._is_criteria_met_l2_error():
             logger.debug("L2 error is above the threshold.")
             return False
@@ -782,7 +816,8 @@ class ProbeCalibration(QObject):
         self.stage = stage
         self._write_local_global_point(debug_info)  # Do no update if it is duplicates
 
-        self._update_min_max_x_y_z()    # update min max x,y,z and emit signals if criteria met
+        sn = self._update_min_max_x_y_z()    # update min max x,y,z and emit signals if criteria met
+        self._send_signal(sn)                # emit signals if criteria met
         self._update_info_ui()          # update transformation matrix and overall LR in UI
 
         filtered_df = self._filter_df_by_sn(self.stage.sn)
@@ -819,7 +854,7 @@ class ProbeCalibration(QObject):
         print("ProbeCalibration: complete_calibration")
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.file_name = f"points_{self.stage.sn}_{timestamp}.csv"
-        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=20)
+        self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=30)
 
         if self.transM_LR is None:
             return
@@ -873,17 +908,20 @@ class ProbeCalibration(QObject):
             - If calibration is incomplete, it shows the trajectory for the current stage.
             - If calibration is complete, it displays the PointMesh instance for the 3D trajectory.
         """
-        if not self.stages.get(sn, {}).get('calib_completed', False):
-            if sn == self.stage.sn:
-                if self.transM_LR is None:
-                    print("Calibration is not completed yet.", sn)
-                    return
-                self.point_mesh_not_calibrated = PointMesh(self.model, self.log_dir / "points.csv", self.stage.sn,
-                                                           self.transM_LR, self.scale)
-                self.point_mesh_not_calibrated.show()
-        else:
-            # If calib is completed, show the PointMesh instance.
-            self.point_mesh[sn].show()
+        try:
+            if not self.stages.get(sn, {}).get('calib_completed', False):
+                if sn == self.stage.sn:
+                    if self.transM_LR is None:
+                        print("Calibration is not completed yet.", sn)
+                        return
+                    self.point_mesh_not_calibrated = PointMesh(self.model, self.log_dir / "points.csv", self.stage.sn,
+                                                            self.transM_LR, self.scale)
+                    self.point_mesh_not_calibrated.show()
+            else:
+                # If calib is completed, show the PointMesh instance.
+                self.point_mesh[sn].show()
+        except Exception as e:
+            print(f"[WARN] view_3d_trajectory failed: {e}")
 
     def run_bundle_adjustment(self, file_path):
         """
