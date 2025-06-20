@@ -271,10 +271,34 @@ class ProbeCalibrationHandler(QWidget):
             logger.debug("User clicked No.")
             return False
 
+    def _is_probe_calibration_thread_available(self):
+        """
+        Checks if the probe calibration thread is running and returns its status.
+
+        Returns:
+            bool: True if the probe calibration thread is running, False otherwise.
+        """
+        for screen in self.screen_widgets:
+            camera_name = screen.get_camera_name()
+            if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
+                if screen.probeDetector.processWorker is not None or screen.probeDetector.worker is not None:
+                    return False
+        return True
+
     def probe_detection_button_handler(self):
         """Handle the probe detection button click."""
         if self.probe_calibration_btn.isChecked():
-            self.probe_detect_process_status()
+            # Check probe calibration thread status
+            if not self._is_probe_calibration_thread_available():
+                # msg
+                QMessageBox.warning(
+                    self,
+                    "Probe Detection",
+                    "Probe calibration is not ready. Please try again few seconds later.",
+                )
+                self.probe_calibration_btn.setChecked(False)
+            else:
+                self.probe_detect_process_status()
         else:
             response = self.probe_overwrite_popup_window()
             if response:
