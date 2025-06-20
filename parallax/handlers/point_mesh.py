@@ -41,7 +41,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from parallax.config.config_path import ui_dir
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 class PointMesh(QWidget):
     """
@@ -109,9 +109,11 @@ class PointMesh(QWidget):
         """
         Show the PointMesh widget.
         """
+        logger.debug("[PointMesh] show() called")
         self._init_ui()
         self._update_canvas()
         super().show()  # Show the widget
+        logger.debug("[PointMesh] show() complete")
 
     def _init_ui(self):
         """
@@ -121,6 +123,7 @@ class PointMesh(QWidget):
             self.web_view.close()
         self.web_view = QWebEngineView(self)
         self.ui.verticalLayout1.addWidget(self.web_view)
+        logger.debug("[PointMesh] Web view initialized")
 
     def _set_transM(self, transM, scale):
         """
@@ -313,6 +316,7 @@ class PointMesh(QWidget):
         # Convert the Plotly figure to HTML and display it in the web view
         html_content = fig.to_html(include_plotlyjs='cdn')
         self.web_view.setHtml(html_content)
+        logger.debug("[PointMesh] Canvas updated with new plot")
 
     def _on_resize(self, event):
         """
