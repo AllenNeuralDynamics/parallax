@@ -51,6 +51,9 @@ class DrawWorker(QRunnable):
         self.frame = None
         self.tip_coords = None
         self.tip_coords_color = (0, 255, 0)
+        self.h = None
+        self.w = None
+        self.status = "first_detect"
         self.register_colormap()
 
     def update_frame(self, frame, timestamp):
@@ -63,7 +66,7 @@ class DrawWorker(QRunnable):
         self.new = True
         self.timestamp = timestamp
 
-    def process_draw_reticle(self):
+    def _draw_reticle(self):
         """
         Draw reticle and debug coordinates on the frame.
         """
@@ -103,8 +106,9 @@ class DrawWorker(QRunnable):
         logger.debug(f"{self.name} - draw worker running ")
         while self.running:
             if self.new:
-                self.process_draw_reticle()
-                self.process_draw_tip()
+                self._draw_reticle()
+                self._draw_tip()
+                self._draw_detection_status()
                 self.signals.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.001)
@@ -125,12 +129,30 @@ class DrawWorker(QRunnable):
         self.reticle_coords = coords
         self.reticle_coords_debug = coords_debug
 
-    def process_draw_tip(self):
+    def _draw_tip(self):
         """
         Draw the probe tip on the frame.
         """
         if self.tip_coords is not None and self.frame is not None:
             cv2.circle(self.frame, self.tip_coords, 5, self.tip_coords_color, -1)
+
+    def _draw_detection_status(self):
+        """
+        Draws a boundary on the frame to indicate detection status:
+        - Red border if status is "first_detect"
+        - Yellow border if status is "update"
+        """
+        if self.h is None or self.w is None:
+            self.h, self.w = self.frame.shape[:2]
+
+        thickness = 30
+        if self.status == "first_detect":
+            color = (255, 0, 0)  # Red
+        elif self.status == "update":
+            color = (255, 255, 0)  # Yellow
+        else:
+            return  # Unknown status; do not draw
+        cv2.rectangle(self.frame, (0, 0), (self.w - 1, self.h - 1), color, thickness)
 
     def update_tip_coords(self, tip_coords, color=(0, 255, 0)):
         """Update the tip coordinates on the frame.
@@ -143,11 +165,16 @@ class DrawWorker(QRunnable):
         if self.frame is not None and tip_coords is not None:
             cv2.circle(self.frame, tip_coords, 5, color, -1)
 
+    def update_status(self, status):
+        """Update the status of the worker."""
+        self.status = status
+
 class ProcessWorkerSignal(QObject):
     """Signals for the ProcessWorker."""
     finished = pyqtSignal()
     tip_stopped = pyqtSignal(float, float, str, tuple)
     tip_moving = pyqtSignal(float, str, tuple)
+    status = pyqtSignal(str)
 
 
 class ProcessWorker(QRunnable):
@@ -245,9 +272,8 @@ class ProcessWorker(QRunnable):
             self.prev_img = self.curr_img
             return  # First frame, nothing to compare
 
-        self._set_reticle_zone()
-
         if self.probeDetect.angle is None:
+            #self._set_reticle_zone()
             self._run_first_cmp()
         else:
             self._run_tracking_cmp()
@@ -264,7 +290,7 @@ class ProcessWorker(QRunnable):
 
     def _set_reticle_zone(self):
         """Set the reticle zone if it does not exist."""
-        if self.mask_detect.is_reticle_exist and self.reticle_zone is None:
+        if self.mask_detect.is_reticle_exist:
             reticle = ReticleDetection(self.IMG_SIZE, self.mask_detect, self.name)
             self.reticle_zone = reticle.get_reticle_zone(self.frame)
             self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
@@ -279,6 +305,7 @@ class ProcessWorker(QRunnable):
             ret = self.currBgCmpProcess.first_cmp(self.curr_img, self.mask, lambda: self.running)
         if ret:
             logger.debug(f"{self.name} - First comparison successful")
+            self.signals.status.emit("update")
         else:
             logger.debug(f"{self.name} - First comparison failed")
             return
@@ -310,7 +337,7 @@ class ProcessWorker(QRunnable):
                                     self.curr_img,
                                     self.mask,
                                     self.gray_img,
-                                    get_fine_tip=True
+                                    get_fine_tip=False
                                 )
 
             if ret:
@@ -403,6 +430,7 @@ class ProbeDetectManager(QObject):
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.tip_stopped.connect(self.found_tip_coords)
         self.processWorker.signals.tip_moving.connect(self.found_tip_coords_moving)
+        self.processWorker.signals.status.connect(self.worker.update_status)
 
     def start(self):
         """
