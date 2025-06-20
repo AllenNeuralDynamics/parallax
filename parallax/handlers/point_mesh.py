@@ -32,6 +32,7 @@ point_mesh_widget.show()
 """
 
 import os
+import logging
 import pandas as pd
 import plotly.graph_objs as go
 from PyQt5.QtWidgets import QWidget, QPushButton
@@ -39,7 +40,8 @@ from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from parallax.config.config_path import ui_dir
-
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 class PointMesh(QWidget):
     """
