@@ -241,7 +241,7 @@ class ProcessWorker(QRunnable):
                 self.currBgCmpProcess = self.probes[self.sn][
                     "currBgCmpProcess"
                 ]
-            else:
+            else:         
                 pass
 
     def update_frame(self, frame, timestamp):
@@ -368,7 +368,6 @@ class ProcessWorker(QRunnable):
         self.probe_stopped = False
         self.stopped_first_frame = False
 
-
     def run(self):
         """Run the worker thread."""
         logger.debug(f"{self.name} - Process worker running ")
@@ -389,6 +388,14 @@ class ProcessWorker(QRunnable):
         """Update the stage timestamp."""
         self.stage_ts = stage_ts
 
+    def clicked_position(self, pt):
+        """Handle clicked position for calibration."""
+        if self.probeDetect.angle:
+            if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
+                self.signals.tip_stopped.emit(
+                    self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org
+                )
+                print("Emit tip stopped signal with coords:", self.probeDetect.probe_tip_org)
 
 class ProbeDetectManager(QObject):
     """
@@ -592,3 +599,8 @@ class ProbeDetectManager(QObject):
         reticle_coords = self.model.get_coords_axis(name)
         reticle_coords_debug = self.model.get_coords_for_debug(name)
         return reticle_coords, reticle_coords_debug
+
+    def clicked_position(self, pt):
+        """Get clicked position."""
+        if self.processWorker is not None:
+            self.processWorker.clicked_position(pt)

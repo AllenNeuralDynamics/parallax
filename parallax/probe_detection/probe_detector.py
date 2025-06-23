@@ -400,14 +400,15 @@ class ProbeDetector:
         ret = False
         img = self._contour_preprocessing(img, thresh=contour_thresh)
         if img is None:
-            print(f"{self.sn} first_detect_probe:: contour_preprocessing fail")
+            #print(f"{self.sn} first_detect_probe:: contour_preprocessing fail")
             return ret
 
         ret, highest_point, lowest_point = self._hough_line_first_detection(
             img, minLineLength=hough_minLineLength, maxLineGap=50
         )  # update self.angle
         if not ret:
-            print(f"{self.sn} first_detect_probe:: hough_line_first_detection fail")
+            #print(f"{self.sn} first_detect_probe:: hough_line_first_detection fail")
+            return ret
 
         if ret:
             self.probe_tip, self.probe_base = self._get_probe_point(
@@ -425,7 +426,7 @@ class ProbeDetector:
                 self.probe_base[1] + offset_y,
             )
             logger.debug(f"tip : {self.probe_tip}, base: {self.probe_base}")
-            print(f"{self.sn} first_detect_probe:: probe_tip: {self.probe_tip}, probe_base: {self.probe_base}, direction: {self.probe_tip_direction}")
+            #print(f"{self.sn} first_detect_probe:: probe_tip: {self.probe_tip}, probe_base: {self.probe_base}, direction: {self.probe_tip_direction}")
         return ret
 
     def update_probe(

@@ -288,6 +288,7 @@ class ScreenWidget(pg.GraphicsView):
         None
         """
         self.axisFilter.clicked_position(pos)
+        self.probeDetector.clicked_position(pos)
 
     def _image_clicked(self, event):
         """

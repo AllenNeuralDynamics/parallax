@@ -174,7 +174,10 @@ class ProbeFineTipDetector:
             return False, tip
 
         precise_tip = cls._detect_closest_centroid(img, tip, offset_x, offset_y, direction)
-        precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base, offset=3)
+        if base is None:
+            precise_tip_extended = precise_tip
+        else:
+            precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base, offset=3)
 
         if logger.getEffectiveLevel() == logging.DEBUG:
             x, y = precise_tip_extended[0]-offset_x, precise_tip_extended[1]-offset_y
