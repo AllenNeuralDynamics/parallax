@@ -65,14 +65,14 @@ QMessageBox QPushButton:pressed {
    <property name="geometry">
     <rect>
      <x>130</x>
-     <y>20</y>
+     <y>30</y>
      <width>100</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>100</width>
+     <width>90</width>
      <height>40</height>
     </size>
    </property>
@@ -91,14 +91,14 @@ QMessageBox QPushButton:pressed {
    <property name="geometry">
     <rect>
      <x>240</x>
-     <y>20</y>
+     <y>30</y>
      <width>100</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>100</width>
+     <width>90</width>
      <height>40</height>
     </size>
    </property>
@@ -117,14 +117,14 @@ QMessageBox QPushButton:pressed {
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>20</y>
+     <y>30</y>
      <width>100</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>100</width>
+     <width>90</width>
      <height>40</height>
     </size>
    </property>
@@ -143,14 +143,14 @@ QMessageBox QPushButton:pressed {
    <property name="geometry">
     <rect>
      <x>400</x>
-     <y>20</y>
+     <y>30</y>
      <width>100</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>100</width>
+     <width>90</width>
      <height>40</height>
     </size>
    </property>
@@ -164,7 +164,7 @@ QMessageBox QPushButton:pressed {
    <property name="geometry">
     <rect>
      <x>350</x>
-     <y>30</y>
+     <y>40</y>
      <width>40</width>
      <height>21</height>
     </rect>
@@ -194,14 +194,14 @@ QMessageBox QPushButton:pressed {
    <property name="geometry">
     <rect>
      <x>620</x>
-     <y>20</y>
+     <y>30</y>
      <width>100</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>100</width>
+     <width>90</width>
      <height>40</height>
     </size>
    </property>
@@ -221,14 +221,14 @@ QMessageBox QPushButton:pressed {
    <property name="geometry">
     <rect>
      <x>510</x>
-     <y>20</y>
+     <y>30</y>
      <width>100</width>
      <height>40</height>
     </rect>
    </property>
    <property name="minimumSize">
     <size>
-     <width>100</width>
+     <width>90</width>
      <height>40</height>
     </size>
    </property>
@@ -248,7 +248,7 @@ QMessageBox QPushButton:pressed {
    <property name="geometry">
     <rect>
      <x>730</x>
-     <y>30</y>
+     <y>40</y>
      <width>51</width>
      <height>23</height>
     </rect>
@@ -271,8 +271,8 @@ QMessageBox QPushButton:pressed {
   <widget class="QPushButton" name="moveStageXY">
    <property name="geometry">
     <rect>
-     <x>800</x>
-     <y>20</y>
+     <x>790</x>
+     <y>30</y>
      <width>61</width>
      <height>41</height>
     </rect>
