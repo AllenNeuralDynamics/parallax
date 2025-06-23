@@ -61,13 +61,8 @@ class ProbeCalibration(QObject):
         self.inliers = []
         self.stage = None
 
-        #self.threshold_min_max = 2000
-        #self.threshold_min_max_z = 50
-        #self.LR_err_L2_threshold = 35
-        #self.threshold_avg_error = 40
         self.threshold_min_max = 1500
         self.threshold_min_max_z = 200
-        self.LR_err_L2_threshold = 50  # TODO Remove / Add close to center points. 
         self.threshold_avg_error = 50
 
         self.threshold_matrix = np.array(
@@ -78,15 +73,6 @@ class ProbeCalibration(QObject):
                 [0.0, 0.0, 0.0, 0.0],
             ]
         )
-
-        """ Original threshold matrix
-            [
-                [0.00002, 0.00002, 0.00002, 50.0],
-                [0.00002, 0.00002, 0.00002, 50.0],
-                [0.00002, 0.00002, 0.00002, 50.0],
-                [0.0, 0.0, 0.0, 0.0],
-            ]
-        """
 
         self.transM_LR, self.transM_LR_prev = None, np.zeros((4, 4), dtype=np.float64)
         self.LR_err_L2_current = 1e10
@@ -600,47 +586,18 @@ class ProbeCalibration(QObject):
 
         return LR_err_L2
 
-    def _is_criteria_met_l2_error(self):
-        """
-        Evaluates if the L2 error between the transformed point and the actual global point is within threshold.
-
-        Returns:
-            bool: True if the error is within threshold, otherwise False.
-        """
-        if self.LR_err_L2_current <= self.LR_err_L2_threshold:
-            return True
-        else:
-            return False
-
     def _is_enough_points(self):
         """
         Determines whether enough points have been collected for calibration.
 
         The criteria include:
         - Minimum range of movement in x, y, z directions.
-        - Acceptable L2 error between local and global points.
         - Stable transformation matrix across iterations.
 
         Returns:
             bool: True if enough points have been collected for calibration, otherwise False.
         """
-        # End Criteria:
-        # 1. distance maxX-minX, maxY-minY, maxZ-minZ
-        # 2. L2 error (Global and Exp) is less than some values (e.g. 20 mincrons)
-        # 3. transM_LR difference in some epsilon value
-        # 4. L2 error (Global and Exp) is less than some values (e.g. 20 mincrons)
 
-        """
-        if not self._is_criteria_met_points_min_max():
-            if self._is_criteria_avg_error_threshold():
-                if self._is_criteria_met_transM():
-                    if self._is_criteria_met_l2_error():
-                        logger.debug("Enough points gathered.")
-                        return True
-
-        self.transM_LR_prev = self.transM_LR
-        return False
-        """
         if not self._is_criteria_number_of_points():
             logger.debug("Not enough points collected for calibration.")
             return False
@@ -657,12 +614,6 @@ class ProbeCalibration(QObject):
             logger.debug("Transformation matrix is not stable.")
             self.transM_LR_prev = self.transM_LR
             return False
-        
-        """
-        if not self._is_criteria_met_l2_error():
-            logger.debug("L2 error is above the threshold.")
-            return False
-        """
 
         logger.debug("All criteria met: calibration can proceed.")
         return True
