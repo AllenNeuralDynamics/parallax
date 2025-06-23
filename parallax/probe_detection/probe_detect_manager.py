@@ -76,10 +76,10 @@ class DrawWorker(QRunnable):
                     color = self.colormap_reticle[i][0].tolist()
                     cv2.circle(self.frame, (x, y), 7, color, -1)
         if self.reticle_coords_debug is not None:
-            points = np.asarray(self.reticle_coords_debug[0]).reshape(-1, 2)
+            points = np.asarray(self.reticle_coords_debug).reshape(-1, 2)
             for i, (x, y) in enumerate(points):
                 color = self.colormap_reticle_debug[i][0].tolist()
-                cv2.circle(self.frame, (x, y), 1, color, -1)
+                cv2.circle(self.frame, (x, y), 3, color, -1)
 
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
@@ -95,9 +95,8 @@ class DrawWorker(QRunnable):
                     cv2.COLORMAP_JET if idx == 0 else cv2.COLORMAP_WINTER,
                 )
         if self.reticle_coords_debug is not None:
-            indices = np.linspace(
-                0, 255, len(self.reticle_coords_debug[0]), endpoint=True, dtype=np.uint8
-            )
+            n = len(self.reticle_coords_debug)
+            indices = np.linspace(0, 255, n, endpoint=True, dtype=np.uint8)
             self.colormap_reticle_debug = cv2.applyColorMap(indices, cv2.COLORMAP_JET)
 
     @pyqtSlot()
