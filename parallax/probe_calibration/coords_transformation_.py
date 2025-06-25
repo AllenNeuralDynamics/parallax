@@ -8,7 +8,7 @@ Classes:
                               (rotation, translation, and scaling) to fit measured points to global points.
 """
 import numpy as np
-from scipy.optimize import leastsq
+from scipy.optimize import least_squares
 
 
 class RotationTransformation:
@@ -178,28 +178,54 @@ class RotationTransformation:
             tuple: A tuple containing the translation vector (origin), rotation matrix (R),
                    scaling factors (scale), and the average error (avg_err).
         """
-        x0 = np.array([0, 0, 0, 0, 0, 0])
+        x0 = np.array([0, 0, 0, 0, 0, 0])  # initial guess: (x, y, z, x_t, y_t, z_t)
+
 
         if len(measured_pts) <= 3 or len(global_pts) <= 3:
             raise ValueError("At least three points are required for optimization.")
 
         # Optimize without reflection
-        res1 = leastsq(self.func, x0, args=(measured_pts, global_pts, False), maxfev=5000)
-        avg_error1 = self.avg_error(res1[0], measured_pts, global_pts, False)
+        #res1 = leastsq(self.func, x0, args=(measured_pts, global_pts, False), maxfev=5000)
+        res1 = least_squares(
+            self.func,
+            x0,
+            args=(measured_pts, global_pts, False),
+            loss="cauchy",
+            ftol=1e-12,     # tighter cost function tolerance
+            xtol=1e-12,     # tighter parameter update tolerance
+            gtol=1e-12,     # gradient norm tolerance (for optimality)
+            max_nfev=10000  # allow more function evaluations if needed
+        )
+        
+        avg_error1 = self.avg_error(res1.x, measured_pts, global_pts, False)
 
         # Optimize with reflection
-        res2 = leastsq(self.func, x0, args=(measured_pts, global_pts, True), maxfev=5000)
-        avg_error2 = self.avg_error(res2[0], measured_pts, global_pts, True)
+        #res2 = leastsq(self.func, x0, args=(measured_pts, global_pts, True), maxfev=5000)
+        res2 = least_squares(
+            self.func,
+            x0,
+            args=(measured_pts, global_pts, True),
+            loss="cauchy",
+            ftol=1e-12,     # tighter cost function tolerance
+            xtol=1e-12,     # tighter parameter update tolerance
+            gtol=1e-12,     # gradient norm tolerance (for optimality)
+            max_nfev=10000  # allow more function evaluations if needed
+        )
+        avg_error2 = self.avg_error(res2.x, measured_pts, global_pts, True)
 
         # Select the transformation with the smaller total error
         if avg_error1 < avg_error2:
-            rez = res1[0]
+            rez = res1.x
             R = self.combineAngles(rez[2], rez[1], rez[0], reflect_z=False)
             avg_err = avg_error1
+            print("average error1:", avg_err)
+            print("res1:", res1)
         else:
-            rez = res2[0]
+            rez = res2.x
             R = self.combineAngles(rez[2], rez[1], rez[0], reflect_z=True)
-            avg_err = avg_error1
+            avg_err = avg_error2
+            print("average error2:", avg_err)
+            print("res2:", res2)
 
         origin = rez[3:6]
         scale = np.array([1, 1, 1])
