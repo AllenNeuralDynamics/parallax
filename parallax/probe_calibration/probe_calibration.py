@@ -725,11 +725,13 @@ class ProbeCalibration(QObject):
 
         df = self._filter_df_by_sn(self.stage.sn)
 
+        self.transM_LR = self._get_transM(df)
         if self._is_criteria_met_points_min_max() and len(df) >= self.THRESHOLD_N_PTS \
                 and self.R is not None and self.origin is not None:
             print("===============")
             # Iteratively remove outliers and refit transformation
-            for threshold in range(430, 29, -100):
+              # Get transM without removing outliers
+            for threshold in range(430, 29, -100):  # Remove from larger to smaller outliers
                 df_ = self._remove_outliers(df, threshold=threshold)
                 if not self._is_trajectory_distance_sufficient(df_) or len(df_) < self.THRESHOLD_N_PTS:
                     break
@@ -737,8 +739,6 @@ class ProbeCalibration(QObject):
                 self.transM_LR = self._get_transM(df)
                 print(f"len(df): {len(df)}, threshold: {threshold}, average error: {self.avg_err}")
             print("===============")
-        else:
-            self.transM_LR = self._get_transM(df)
 
         if self.transM_LR is None:
             logger.debug("Transformation matrix is None, not enough points for calibration.")
