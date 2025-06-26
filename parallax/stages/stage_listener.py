@@ -240,8 +240,6 @@ class StageListener(QObject):
         self.worker.dataChanged.connect(self.handleDataChange)
         self.worker.stage_moving.connect(self.stageMovingStatus)
         self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
-        #self.buffer_size = 20
-        #self.buffer_ts_local_coords = deque(maxlen=self.buffer_size)
         self.stage_global_data = None
         self.transM_dict = {}
         self.scale_dict = {}
@@ -293,13 +291,6 @@ class StageListener(QObject):
                 dt.second,
             )
 
-    """
-    def append_to_buffer(self, ts, stage):
-        self.buffer_ts_local_coords.append(
-            (ts, [stage.stage_x, stage.stage_y, stage.stage_z])
-        )
-    """
-
     def handleDataChange(self, probe):
         """Handle changes in stage data.
 
@@ -333,12 +324,6 @@ class StageListener(QObject):
             self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
             if global_pts is not None:                      # If stage is calibrated,
                 self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
-            """
-            else:
-                # if not calibrated, added stage info to buffer for calibration
-                self.timestamp_local = self.get_timestamp(millisecond=True)
-                self.append_to_buffer(self.timestamp_local, stage)
-            """
 
         # Update stage info
         self._update_stages_info(stage)
@@ -386,102 +371,6 @@ class StageListener(QObject):
                 self.scale_dict.pop(sn)
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
-
-    """
-    def _change_time_format(self, str_time):
-
-        fmt = "%Y%m%d-%H%M%S.%f"
-        date_time = datetime.strptime(str_time, fmt)
-        return date_time
-
-    def _find_closest_local_coords(self):
-        closest_ts = None
-        closest_coords = None
-        # Initialize a variable to track the smallest time difference
-        # Use a large initial value
-        smallest_time_diff = float("inf")
-
-        for ts, local_coords in self.buffer_ts_local_coords:
-            ts_datetime = self._change_time_format(ts)
-            time_diff = (self.ts_img_captured - ts_datetime).total_seconds()
-
-            if time_diff < 0:
-                break
-
-            # Ensure we're not exceeding the global timestamp and the time difference is the smallest so far
-            if 0 <= time_diff < smallest_time_diff:
-                smallest_time_diff = time_diff
-                closest_ts = ts
-                closest_coords = local_coords
-
-        return closest_ts, closest_coords
-    """
-
-    def handleGlobalDataChange_deprecate(self, sn, global_coords, ts_img_captured, cam0, pt0, cam1, pt1):
-        """Handle changes in global stage data.
-
-        Args:
-            sn (str): Serial number of the stage.
-            coords (list): Global coordinates.
-            ts_img_captured (str): Timestamp of the captured image.
-        """
-        self.ts_img_captured = self._change_time_format(ts_img_captured)
-        ts_local_coords, local_coords = self._find_closest_local_coords()
-
-        logger.debug(
-            f"\ntimestamp local:{ts_local_coords} img_captured:{ts_img_captured}"
-        )
-        global_coords_x = round(global_coords[0][0] * 1000, 1)
-        global_coords_y = round(global_coords[0][1] * 1000, 1)
-        global_coords_z = round(global_coords[0][2] * 1000, 1)
-
-        if self.stage_global_data is None:
-            stage_info = {}
-            stage_info["SerialNumber"] = sn
-            stage_info["Id"] = None
-            stage_info["Stage_X"] = local_coords[0]
-            stage_info["Stage_Y"] = local_coords[1]
-            stage_info["Stage_Z"] = local_coords[2]
-            self.stage_global_data = Stage(stage_info)
-
-        if local_coords is not None:
-            self.sn = sn
-            self.stage_global_data.sn = sn
-            self.stage_global_data.stage_x = local_coords[0]
-            self.stage_global_data.stage_y = local_coords[1]
-            self.stage_global_data.stage_z = local_coords[2]
-            self.stage_global_data.stage_x_global = global_coords_x
-            self.stage_global_data.stage_y_global = global_coords_y
-            self.stage_global_data.stage_z_global = global_coords_z
-
-            # Debug info
-            debug_info = {}
-            debug_info["ts_local_coords"] = ts_local_coords
-            debug_info["ts_img_captured"] = ts_img_captured
-            debug_info["cam0"] = cam0
-            debug_info["pt0"] = pt0
-            debug_info["cam1"] = cam1
-            debug_info["pt1"] = pt1
-
-            # Update into UI
-            moving_stage = self.model.stages.get(sn)
-            if moving_stage is not None:
-                moving_stage.stage_x_global = global_coords_x
-                moving_stage.stage_y_global = global_coords_y
-                moving_stage.stage_z_global = global_coords_z
-
-            if self.stage_ui.get_selected_stage_sn() == sn:
-                self.probeCalibRequest.emit(self.stage_global_data, debug_info)
-                self.stage_ui.updateStageGlobalCoords()
-            else:
-                # TODO
-                print("Moving probe not selected.")
-                """
-                content = (
-                    "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-                )
-                # self.probeCalibrationLabel.setText(content)
-                """
 
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
         """Handle changes in global stage data and emit calibration update if selected."""
@@ -540,8 +429,6 @@ class StageListener(QObject):
             #     "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
             # )
             # self.probeCalibrationLabel.setText(content)
-
-
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.
