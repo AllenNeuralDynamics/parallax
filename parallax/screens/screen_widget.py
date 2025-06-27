@@ -31,7 +31,7 @@ class ScreenWidget(pg.GraphicsView):
     reticle_coords_detected = pyqtSignal()
     reticle_coords_detect_finished = pyqtSignal()
     # camera name, timestamp, sn, stage_info, pixel_coords
-    probe_coords_detected = pyqtSignal(str, str, str, tuple, tuple)
+    probe_coords_detected = pyqtSignal(str, float, float, str, dict, tuple)
 
     def __init__(self, camera, model=None, parent=None):
         """Init screen widget object"""
@@ -67,6 +67,7 @@ class ScreenWidget(pg.GraphicsView):
         self.probe_detect_last_timestamp = None
         self.probe_detect_last_sn = None
         self.probe_detect_last_coords = None
+        self.probe_last_stopped_timestamp = None
 
         # camera
         self.camera = camera
@@ -170,8 +171,9 @@ class ScreenWidget(pg.GraphicsView):
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
         self.reticleDetectorCNN.process(data)
-        captured_time = self.camera.get_last_capture_time(millisecond=True)  # TODO Move to probeDetector
-        self.probeDetector.process(data, captured_time)
+        #captured_time = self.camera.get_last_capture_time(millisecond=True)  # TODO Move to probeDetector
+        #self.probeDetector.process(data, captured_time)
+        self.probeDetector.process(data, self.camera.last_capture_time)
 
     def is_camera(self):
         """
@@ -286,6 +288,7 @@ class ScreenWidget(pg.GraphicsView):
         None
         """
         self.axisFilter.clicked_position(pos)
+        self.probeDetector.clicked_position(pos)
 
     def _image_clicked(self, event):
         """
@@ -376,18 +379,20 @@ class ScreenWidget(pg.GraphicsView):
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)
 
-    def found_probe_coords(self, timestamp, probe_sn, stage_info, tip_coords):
+    def found_probe_coords(self, stage_ts, img_ts, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""
-        self.probe_detect_last_timestamp = timestamp
+        self.probe_last_stopped_timestamp = stage_ts
+        self.probe_detect_last_timestamp = img_ts
         self.probe_detect_last_sn = probe_sn
         self.stage_info = stage_info
         self.probe_detect_last_coords = tip_coords
 
-        self.probe_coords_detected.emit(self.camera_name, timestamp, probe_sn, stage_info, tip_coords)
+        self.probe_coords_detected.emit(self.camera_name, stage_ts, img_ts, probe_sn, stage_info, tip_coords)
 
     def get_last_detect_probe_info(self):
         """Get the last detected probe information."""
         return (
+            self.probe_last_stopped_timestamp,
             self.probe_detect_last_timestamp,
             self.probe_detect_last_sn,
             self.probe_detect_last_coords,

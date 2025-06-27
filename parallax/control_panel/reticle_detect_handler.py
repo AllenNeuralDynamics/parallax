@@ -8,7 +8,7 @@ from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class ReticleDetecthandler(QWidget):

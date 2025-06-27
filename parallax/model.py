@@ -128,6 +128,20 @@ class Model(QObject):
         self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
         self.nPySpinCameras = len([cam for cam in self.cameras if isinstance(cam, PySpinCamera)])
 
+    def get_camera_resolution(self, camera_name):
+        """Get the resolution of a specific camera.
+
+        Args:
+            camera_name (str): The name of the camera.
+
+        Returns:
+            tuple: The resolution of the camera in the format (width, height).
+        """
+        for camera in self.cameras:
+            if camera.name(sn_only=True) == camera_name:
+                return (camera.width, camera.height)
+        return (4000, 3000)  # Default resolution if camera not found
+
     def set_stage_listener_url(self, url):
         """Set the URL for the stage listener.
 
@@ -138,9 +152,8 @@ class Model(QObject):
 
     def refresh_stages(self):
         """Search for connected stages"""
-        if not self.dummy:
-            self.scan_for_usb_stages()
-            self.init_transforms()
+        self.scan_for_usb_stages()
+        self.init_transforms()
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""

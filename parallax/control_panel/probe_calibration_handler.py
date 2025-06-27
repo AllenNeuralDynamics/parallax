@@ -78,6 +78,7 @@ class ProbeCalibrationHandler(QWidget):
         )
 
         self.stageListener = stageListener
+        self.stageListener.init_probe_calib_label(self.probeCalibrationLabel)
         self.stageUI = stageUI
         self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.probeCalibration = ProbeCalibration(self.model, self.stageListener)
@@ -138,9 +139,9 @@ class ProbeCalibrationHandler(QWidget):
 
             return calibrationStereo, camA_best, camB_best
 
-    def probe_detect_on_two_screens(self, cam_name, timestamp, sn, stage_info, pixel_coords):
+    def probe_detect_on_two_screens(self, cam_name, stage_stopped_ts, timestamp, sn, stage, pixel_coords):
         """Detect probe coordinates on all screens."""
-        cam_name_cmp, timestamp_cmp, sn_cmp = cam_name, timestamp, sn  # Coords tip detected screen
+        cam_name_cmp, stage_stopped_ts_cmp, timestamp_cmp, sn_cmp = cam_name, stage_stopped_ts, timestamp, sn  # Coords tip detected screen
         tip_coordsA, tip_coordsB = None, None
 
         if cam_name_cmp is None or timestamp_cmp is None or sn_cmp is None:
@@ -159,12 +160,13 @@ class ProbeCalibrationHandler(QWidget):
                 continue
 
             if cam_name in [self.camA_best, self.camB_best]:
-                timestamp, sn, tip_coord = screen.get_last_detect_probe_info()
-                if (sn is None) or (tip_coord is None) or (timestamp is None):
+                stage_stopped_ts, img_ts, sn, tip_coord = screen.get_last_detect_probe_info()
+
+                if (sn is None) or (tip_coord is None) or (img_ts is None) or (stage_stopped_ts is None):
                     return
                 if sn != sn_cmp:
                     return
-                if timestamp_cmp[:-2] != timestamp[:-2]:
+                if stage_stopped_ts != stage_stopped_ts_cmp: #  Removve legacy codes. TODO emit after probe stopped. 
                     return
 
                 if cam_name == self.camA_best:
@@ -180,16 +182,19 @@ class ProbeCalibrationHandler(QWidget):
         )
 
         self.stageListener.handleGlobalDataChange(
-            sn_cmp,
+            sn,
+            stage,
             global_coords,
+            stage_stopped_ts,
             timestamp_cmp,
             self.camA_best,
             tip_coordsA,
             self.camB_best,
             tip_coordsB,
         )
+        logger.debug(f"=====\n s: {stage_stopped_ts}\n i: {img_ts}\n ({stage['stage_x']}, {stage['stage_y']}, {stage['stage_z']}) {global_coords}")
 
-    def probe_detect_on_screens(self, camA, timestampA, snA, stage_info, tip_coordsA):
+    def probe_detect_on_screens(self, camA, stage_ts, timestampA, snA, stage_info, tip_coordsA):
         """Detect probe coordinates on all screens."""
         tip_coordsB = None
 
@@ -267,10 +272,34 @@ class ProbeCalibrationHandler(QWidget):
             logger.debug("User clicked No.")
             return False
 
+    def _is_probe_calibration_thread_available(self):
+        """
+        Checks if the probe calibration thread is running and returns its status.
+
+        Returns:
+            bool: True if the probe calibration thread is running, False otherwise.
+        """
+        for screen in self.screen_widgets:
+            camera_name = screen.get_camera_name()
+            if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
+                if screen.probeDetector.processWorker is not None or screen.probeDetector.worker is not None:
+                    return False
+        return True
+
     def probe_detection_button_handler(self):
         """Handle the probe detection button click."""
         if self.probe_calibration_btn.isChecked():
-            self.probe_detect_process_status()
+            # Check probe calibration thread status
+            if not self._is_probe_calibration_thread_available():
+                # msg
+                QMessageBox.warning(
+                    self,
+                    "Probe Detection",
+                    "Probe calibration is not ready. Please try again few seconds later.",
+                )
+                self.probe_calibration_btn.setChecked(False)
+            else:
+                self.probe_detect_process_status()
         else:
             response = self.probe_overwrite_popup_window()
             if response:
@@ -571,12 +600,11 @@ class ProbeCalibrationHandler(QWidget):
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
-        if self.calib_x.isVisible():
-            # Change the button to green.
-            self.calib_x.setStyleSheet(
-                "color: white;"
-                "background-color: #84c083;"
-            )
+        # Change the button to green.
+        self.calib_x.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
         self.calib_status_x = True
 
     def calib_y_complete(self, switch_probe=False):
@@ -586,12 +614,11 @@ class ProbeCalibrationHandler(QWidget):
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
-        if self.calib_y.isVisible():
-            # Change the button to green.
-            self.calib_y.setStyleSheet(
-                "color: white;"
-                "background-color: #84c083;"
-            )
+        # Change the button to green.
+        self.calib_y.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
         self.calib_status_y = True
 
     def calib_z_complete(self, switch_probe=False):
@@ -601,12 +628,11 @@ class ProbeCalibrationHandler(QWidget):
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
-        if self.calib_z.isVisible():
-            # Change the button to green.
-            self.calib_z.setStyleSheet(
-                "color: white;"
-                "background-color: #84c083;"
-            )
+        # Change the button to green.
+        self.calib_z.setStyleSheet(
+            "color: white;"
+            "background-color: #84c083;"
+        )
         self.calib_status_z = True
 
     def view_trajectory_button_handler(self):

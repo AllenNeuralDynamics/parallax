@@ -58,7 +58,7 @@ class CurrPrevCmpProcessor():
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = None, None, None, None
         self.top, self.bottom, self.left, self.right = None, None, None, None
 
-    def first_cmp(self, curr_img, prev_img, mask, org_img):
+    def first_cmp(self, org_img, prev_img, mask, running_flag=lambda: True):
         """Perform first comparison.
 
         Args:
@@ -70,20 +70,25 @@ class CurrPrevCmpProcessor():
         Returns:
             bool: True if probe is detected, False otherwise.
         """
-        ret, ret_precise_tip = False, False
         self.mask = mask
+        curr_img = org_img
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
+        if not running_flag():
+            return False
+
         if not self._apply_threshold():
-            return ret, ret_precise_tip
+            return False
+        if not running_flag():
+            return False
 
         ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
         if ret:
-            logger.debug("CurrPrevCmpProcessor First::detect")
-            ret_precise_tip = self._get_precise_tip(org_img)
+            #ret_precise_tip = self._get_precise_tip(org_img)
+            pass
 
-        return ret, ret_precise_tip
+        return ret
 
-    def update_cmp(self, curr_img, prev_img, mask, org_img):
+    def update_cmp(self, curr_img, prev_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True):
         """Update the comparison.
 
         Args:
@@ -95,20 +100,31 @@ class CurrPrevCmpProcessor():
         Returns:
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
-        ret, ret_precise_tip = False, False
         self.mask = mask
         self.ProbeDetector.probe_tip_org = None
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
+        if not running_flag():
+            return False
+
         ret = self._apply_threshold()
-        if not ret:
-            return ret, ret_precise_tip
+        if not ret or not running_flag():
+            return False
 
         ret = self._update_crop()
+        if not running_flag():
+            return False
         if ret:
-            logger.debug("CurrPrevCmpProcessor Update::detect")
-            ret_precise_tip = self._get_precise_tip(org_img)
+            logger.debug(f"{self.cam_name} CurrPrevCmpProcessor Update::detect")
+            if get_fine_tip:
+                if not self._get_precise_tip(org_img):
+                    return False
+            else:
+                self.ProbeDetector.probe_tip_org = UtilsCoords.scale_coords_to_original(
+                    self.ProbeDetector.probe_tip,
+                    self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                )
 
-        return ret, ret_precise_tip
+        return ret
 
     def _update_crop(self):
         """Update the crop region.
@@ -180,7 +196,7 @@ class CurrPrevCmpProcessor():
         else:
             return None, None, None, None
 
-    def _get_precise_tip(self, org_img):
+    def _get_precise_tip(self, org_img, probe_tip_original_coords=None, probe_base_original_coords=None):
         """Get precise probe tip using original image
 
         Args:
@@ -191,14 +207,15 @@ class CurrPrevCmpProcessor():
         """
         ret = False
 
-        probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
-            self.ProbeDetector.probe_tip,
-            self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-        )
-        probe_base_original_coords = UtilsCoords.scale_coords_to_original(
-            self.ProbeDetector.probe_base,
-            self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-        )
+        if probe_tip_original_coords is None:
+            probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
+                self.ProbeDetector.probe_tip,
+                self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            )
+            probe_base_original_coords = UtilsCoords.scale_coords_to_original(
+                self.ProbeDetector.probe_base,
+                self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            )
 
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = UtilsCrops.calculate_crop_region(
             probe_tip_original_coords,
