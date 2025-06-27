@@ -245,6 +245,7 @@ class StageListener(QObject):
         self.scale_dict = {}
         self.snapshot_folder_path = None
         self.stages_info = {}
+        self.probeCalibrationLabel =  None
 
         # Connect the snapshot button
         self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
@@ -260,36 +261,8 @@ class StageListener(QObject):
         # Update URL
         self.worker.update_url(self.model.stage_listener_url)
 
-    def get_timestamp(self, millisecond=False):
-        """Get the last moved time of the stage.
-
-        Args:
-            millisecond (bool): Include milliseconds in the timestamp.
-
-        Returns:
-            str: Last moved time as a string.
-        """
-        ts = time.time()
-        dt = datetime.fromtimestamp(ts)
-        if millisecond:
-            return "%04d%02d%02d-%02d%02d%02d.%03d" % (
-                dt.year,
-                dt.month,
-                dt.day,
-                dt.hour,
-                dt.minute,
-                dt.second,
-                dt.microsecond // 1000,
-            )
-        else:
-            return "%04d%02d%02d-%02d%02d%02d" % (
-                dt.year,
-                dt.month,
-                dt.day,
-                dt.hour,
-                dt.minute,
-                dt.second,
-            )
+    def init_probe_calib_label(self, probe_calib_label):
+        self.probeCalibrationLabel = probe_calib_label
 
     def handleDataChange(self, probe):
         """Handle changes in stage data.
@@ -423,12 +396,10 @@ class StageListener(QObject):
             self.probeCalibRequest.emit(self.stage_global_data, debug_info)
             self.stage_ui.updateStageGlobalCoords()
         else:
-            print("Moving probe not selected.")
-            # Optional: UI feedback for non-selected probe
-            # content = (
-            #     "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-            # )
-            # self.probeCalibrationLabel.setText(content)
+            print(f"Stage {sn} is not selected, skipping probe calibration request.")
+            if self.probeCalibrationLabel:
+                msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
+                self.probeCalibrationLabel.setText(msg)
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.

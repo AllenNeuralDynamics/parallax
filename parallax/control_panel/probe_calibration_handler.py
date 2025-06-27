@@ -78,6 +78,7 @@ class ProbeCalibrationHandler(QWidget):
         )
 
         self.stageListener = stageListener
+        self.stageListener.init_probe_calib_label(self.probeCalibrationLabel)
         self.stageUI = stageUI
         self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.probeCalibration = ProbeCalibration(self.model, self.stageListener)
