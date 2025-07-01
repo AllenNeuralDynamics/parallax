@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1271</width>
-    <height>254</height>
+    <width>1041</width>
+    <height>122</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>resources/sextant.png</normaloff>resources/sextant.png</iconset>
+    <normaloff>../ui/resources/sextant.png</normaloff>../ui/resources/sextant.png</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true">QWidget{
@@ -328,79 +328,6 @@ QPushButton#snapshotButton:pressed {
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1271</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuCameras">
-    <property name="title">
-     <string>Cameras</string>
-    </property>
-    <addaction name="actionStreaming"/>
-    <addaction name="separator"/>
-    <addaction name="actionVideo_Recording"/>
-    <addaction name="actionSnapshot"/>
-    <addaction name="actionFile_Location"/>
-    <addaction name="separator"/>
-    <addaction name="actionDevices"/>
-   </widget>
-   <widget class="QMenu" name="menuHelp">
-    <property name="title">
-     <string>Help</string>
-    </property>
-    <addaction name="actionDocumentation"/>
-    <addaction name="separator"/>
-    <addaction name="actionAbout"/>
-    <addaction name="actionContact_Support"/>
-   </widget>
-   <addaction name="menuCameras"/>
-   <addaction name="menuHelp"/>
-  </widget>
-  <action name="actionStreaming">
-   <property name="text">
-    <string>Streaming</string>
-   </property>
-  </action>
-  <action name="actionVideo_Recording">
-   <property name="text">
-    <string>Video Recording</string>
-   </property>
-  </action>
-  <action name="actionSnapshot">
-   <property name="text">
-    <string>Snapshot</string>
-   </property>
-  </action>
-  <action name="actionFile_Location">
-   <property name="text">
-    <string>File Location</string>
-   </property>
-  </action>
-  <action name="actionDevices">
-   <property name="text">
-    <string>Devices</string>
-   </property>
-  </action>
-  <action name="actionDocumentation">
-   <property name="text">
-    <string>Documentation</string>
-   </property>
-  </action>
-  <action name="actionAbout">
-   <property name="text">
-    <string>About</string>
-   </property>
-  </action>
-  <action name="actionContact_Support">
-   <property name="text">
-    <string>Contact Support</string>
-   </property>
-  </action>
  </widget>
  <resources/>
  <connections/>
