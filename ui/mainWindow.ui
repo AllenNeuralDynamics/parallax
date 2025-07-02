@@ -344,9 +344,9 @@ QPushButton#snapshotButton:pressed {
     <addaction name="actionDevices"/>
     <addaction name="actionStreaming"/>
     <addaction name="separator"/>
-    <addaction name="actionVideo_Recording"/>
+    <addaction name="actionRecording"/>
     <addaction name="actionSnapshot"/>
-    <addaction name="actionFile_Location"/>
+    <addaction name="actionDir"/>
     <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -379,24 +379,28 @@ QPushButton#snapshotButton:pressed {
    </attribute>
    <addaction name="actionDevices"/>
    <addaction name="actionStreaming"/>
-   <addaction name="actionVideo_Recording"/>
+   <addaction name="actionRecording"/>
    <addaction name="actionSnapshot"/>
    <addaction name="separator"/>
-   <addaction name="actionFile_Location"/>
+   <addaction name="actionDir"/>
   </widget>
   <action name="actionStreaming">
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
-     <normaloff>:/Icons/play.png</normaloff>:/Icons/play.png</iconset>
+     <normaloff>:/Icons/play.png</normaloff>
+     <normalon>:/Icons/pause.png</normalon>:/Icons/play.png</iconset>
    </property>
    <property name="text">
     <string>Streaming</string>
    </property>
   </action>
-  <action name="actionVideo_Recording">
+  <action name="actionRecording">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -418,7 +422,7 @@ QPushButton#snapshotButton:pressed {
     <string>Snapshot</string>
    </property>
   </action>
-  <action name="actionFile_Location">
+  <action name="actionDir">
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
      <normaloff>:/Icons/folder.png</normaloff>:/Icons/folder.png</iconset>
