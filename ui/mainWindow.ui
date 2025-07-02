@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1271</width>
-    <height>254</height>
+    <height>163</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -49,7 +49,7 @@ QPushButton#startButton:disabled:!checked {
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
-    <item row="1" column="0">
+    <item row="0" column="0">
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <property name="leftMargin">
        <number>10</number>
@@ -341,13 +341,13 @@ QPushButton#snapshotButton:pressed {
     <property name="title">
      <string>Cameras</string>
     </property>
+    <addaction name="actionDevices"/>
     <addaction name="actionStreaming"/>
     <addaction name="separator"/>
     <addaction name="actionVideo_Recording"/>
     <addaction name="actionSnapshot"/>
     <addaction name="actionFile_Location"/>
     <addaction name="separator"/>
-    <addaction name="actionDevices"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -361,27 +361,76 @@ QPushButton#snapshotButton:pressed {
    <addaction name="menuCameras"/>
    <addaction name="menuHelp"/>
   </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="movable">
+    <bool>true</bool>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionDevices"/>
+   <addaction name="actionStreaming"/>
+   <addaction name="actionVideo_Recording"/>
+   <addaction name="actionSnapshot"/>
+   <addaction name="separator"/>
+   <addaction name="actionFile_Location"/>
+  </widget>
   <action name="actionStreaming">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/play.png</normaloff>:/Icons/play.png</iconset>
+   </property>
    <property name="text">
     <string>Streaming</string>
    </property>
   </action>
   <action name="actionVideo_Recording">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/recordingButton.png</normaloff>:/Icons/recordingButton.png</iconset>
+   </property>
    <property name="text">
     <string>Video Recording</string>
    </property>
   </action>
   <action name="actionSnapshot">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/snapshotButton_white.png</normaloff>:/Icons/snapshotButton_white.png</iconset>
+   </property>
    <property name="text">
     <string>Snapshot</string>
    </property>
   </action>
   <action name="actionFile_Location">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/folder.png</normaloff>:/Icons/folder.png</iconset>
+   </property>
    <property name="text">
     <string>File Location</string>
    </property>
   </action>
   <action name="actionDevices">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/list.png</normaloff>:/Icons/list.png</iconset>
+   </property>
    <property name="text">
     <string>Devices</string>
    </property>
@@ -402,6 +451,8 @@ QPushButton#snapshotButton:pressed {
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="resources/resources_from_qt.qrc"/>
+ </resources>
  <connections/>
 </ui>
