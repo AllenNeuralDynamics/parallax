@@ -92,8 +92,8 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.control_panel)
         self.verticalLayout_4.addWidget(splitter)
 
-        # Start button. If toggled, start camera acquisition
-        self.startButton.clicked.connect(self.start_button_handler)
+        # Streaming button. If toggled, start camera acquisition
+        self.actionStreaming.triggered.connect(self.start_button_handler)
 
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
@@ -160,50 +160,41 @@ class MainWindow(QMainWindow):
 
     def start_button_handler(self):
         """
-        Handles the start button press event.
-
-        If the start button is checked, initiate acquisition from all cameras and start refreshing images.
-        If unchecked, stop acquisition from all cameras and stop refreshing images.
+        Handles the actionStreaming toggle.
+        Starts or stops camera acquisition and image refreshing depending on the action's checked state.
         """
-        # Initialize the list to keep track of cameras that have been started or stopped
-        refresh_camera_list = []
+        is_streaming = self.actionStreaming.isChecked()
+        self.model.refresh_camera = is_streaming
 
-        # Check if the start button is toggled on
-        if self.startButton.isChecked():
+        if is_streaming:
             print("\nRefreshing Screens")
             self.model.refresh_camera = True
-            # Camera begin acquisition
+            # Start acquisition for all cameras
             for screen in self.screen_widget_manager.screen_widgets:
-                camera_name = screen.get_camera_name()
-                if camera_name not in refresh_camera_list:
-                    screen.start_acquisition_camera()
-                    refresh_camera_list.append(camera_name)
+                screen.start_acquisition_camera()
 
-            # Refreshing images to display screen
+            # Start refreshing images
             self.refresh_timer.start(125)
 
-            # Start button is checked, enable record and snapshot button.
+            # Enable controls
             self.recordButton.setEnabled(True)
             self.snapshotButton.setEnabled(True)
 
         else:
             print("Stop Refreshing Screens")
             self.model.refresh_camera = False
-            # Start button is unchecked, disable record and snapshot button.
-            self.recordButton.setEnabled(False)
-            self.recordButton.setChecked(False)
-            self.snapshotButton.setEnabled(False)
-
-            # Stop Refresh: stop refreshing images to display screen
+            # Stop refreshing images
             if self.refresh_timer.isActive():
                 self.refresh_timer.stop()
 
-            # End acquisition from camera: stop acquiring images from camera to framebuffer
+            # Stop acquisition for all cameras
             for screen in self.screen_widget_manager.screen_widgets:
-                camera_name = screen.get_camera_name()
-                if camera_name not in refresh_camera_list:
-                    screen.stop_acquisition_camera()
-                    refresh_camera_list.append(camera_name)
+                screen.stop_acquisition_camera()
+
+            # Disable and reset control buttons
+            self.recordButton.setChecked(False)
+            self.recordButton.setEnabled(False)
+            self.snapshotButton.setEnabled(False)
 
     def refresh(self):
         """Refreshing from framebuffer to screen"""

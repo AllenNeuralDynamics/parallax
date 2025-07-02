@@ -402,7 +402,8 @@ QPushButton#snapshotButton:pressed {
    </property>
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
-     <normaloff>:/Icons/recordingButton.png</normaloff>:/Icons/recordingButton.png</iconset>
+     <normaloff>:/Icons/recordingButton.png</normaloff>
+     <normalon>:/Icons/recording_on.gif</normalon>:/Icons/recordingButton.png</iconset>
    </property>
    <property name="text">
     <string>Video Recording</string>
