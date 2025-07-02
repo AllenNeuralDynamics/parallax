@@ -76,7 +76,7 @@ class MainWindow(QMainWindow):
             self.resize(width, height)
 
         # Attach directory selection event handler for saving files
-        self.browseDirButton.clicked.connect(self.dir_setting_handler)
+        self.actionDir.triggered.connect(self.dir_setting_handler)
 
         # Create the widget for screen
         self.scrollArea = QScrollArea(self.centralwidget)
@@ -97,12 +97,12 @@ class MainWindow(QMainWindow):
 
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
-        self.snapshotButton.clicked.connect(
+        self.actionSnapshot.triggered.connect(
             lambda: self.recordingManager.save_last_image(
                 self.dirLabel.text(), self.screen_widget_manager.screen_widgets
             )
         )
-        self.recordButton.clicked.connect(
+        self.actionRecording.triggered.connect(
             self.record_button_handler
         )  # Recording video button
 
@@ -152,7 +152,7 @@ class MainWindow(QMainWindow):
         Handles the record button press event.
         If the record button is checked, start recording. Otherwise, stop recording.
         """
-        if self.recordButton.isChecked():
+        if self.actionRecording.isChecked():
             save_path = self.dirLabel.text()
             self.recordingManager.save_recording(save_path, self.screen_widget_manager.screen_widgets)
         else:
@@ -177,8 +177,9 @@ class MainWindow(QMainWindow):
             self.refresh_timer.start(125)
 
             # Enable controls
-            self.recordButton.setEnabled(True)
-            self.snapshotButton.setEnabled(True)
+            self.actionRecording.setEnabled(True)
+            self.actionSnapshot.setEnabled(True)
+            self.actionDir.setEnabled(True)
 
         else:
             print("Stop Refreshing Screens")
@@ -192,9 +193,10 @@ class MainWindow(QMainWindow):
                 screen.stop_acquisition_camera()
 
             # Disable and reset control buttons
-            self.recordButton.setChecked(False)
-            self.recordButton.setEnabled(False)
-            self.snapshotButton.setEnabled(False)
+            self.actionRecording.setChecked(False)
+            self.actionRecording.setEnabled(False)
+            self.actionSnapshot.setEnabled(False)
+            self.actionDir.setEnabled(False)
 
     def refresh(self):
         """Refreshing from framebuffer to screen"""
