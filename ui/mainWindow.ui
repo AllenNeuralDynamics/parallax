@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1271</width>
+    <width>956</width>
     <height>163</height>
    </rect>
   </property>
@@ -55,7 +55,7 @@ QPushButton#startButton:disabled:!checked {
        <number>10</number>
       </property>
       <property name="topMargin">
-       <number>35</number>
+       <number>10</number>
       </property>
       <property name="rightMargin">
        <number>20</number>
@@ -333,7 +333,7 @@ QPushButton#snapshotButton:pressed {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1271</width>
+     <width>956</width>
      <height>21</height>
     </rect>
    </property>
@@ -358,7 +358,15 @@ QPushButton#snapshotButton:pressed {
     <addaction name="actionAbout"/>
     <addaction name="actionContact_Support"/>
    </widget>
+   <widget class="QMenu" name="menuStages">
+    <property name="title">
+     <string>Stages</string>
+    </property>
+    <addaction name="actionServer"/>
+    <addaction name="actionSave_Info"/>
+   </widget>
    <addaction name="menuCameras"/>
+   <addaction name="menuStages"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QToolBar" name="toolBar">
@@ -383,6 +391,20 @@ QPushButton#snapshotButton:pressed {
    <addaction name="actionSnapshot"/>
    <addaction name="separator"/>
    <addaction name="actionDir"/>
+   <addaction name="separator"/>
+  </widget>
+  <widget class="QToolBar" name="toolBar_stages">
+   <property name="windowTitle">
+    <string>toolBar_2</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionServer"/>
+   <addaction name="actionSave_Info"/>
   </widget>
   <action name="actionStreaming">
    <property name="checkable">
@@ -393,8 +415,8 @@ QPushButton#snapshotButton:pressed {
    </property>
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
-     <normaloff>:/Icons/play.png</normaloff>
-     <normalon>:/Icons/pause.png</normalon>:/Icons/play.png</iconset>
+     <normaloff>:/Icons/pause.png</normaloff>
+     <normalon>:/Icons/play.png</normalon>:/Icons/pause.png</iconset>
    </property>
    <property name="text">
     <string>Streaming</string>
@@ -453,6 +475,24 @@ QPushButton#snapshotButton:pressed {
   <action name="actionContact_Support">
    <property name="text">
     <string>Contact Support</string>
+   </property>
+  </action>
+  <action name="actionServer">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/mpmServer.png</normaloff>:/Icons/mpmServer.png</iconset>
+   </property>
+   <property name="text">
+    <string>Server Config</string>
+   </property>
+  </action>
+  <action name="actionSave_Info">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/save.png</normaloff>:/Icons/save.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save Info</string>
    </property>
   </action>
  </widget>

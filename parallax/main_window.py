@@ -78,10 +78,6 @@ class MainWindow(QMainWindow):
         # Attach directory selection event handler for saving files
         self.actionDir.triggered.connect(self.dir_setting_handler)
 
-        # Create the widget for screen
-        self.scrollArea = QScrollArea(self.centralwidget)
-        self.scrollArea.setWidgetResizable(True)
-
         # Dynamically generate Microscope display
         self.screen_widget_manager = ScreenWidgetManager(self.model, self.nColumnsSpinBox)
 
