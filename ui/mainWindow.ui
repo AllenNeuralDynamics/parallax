@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>956</width>
-    <height>163</height>
+    <height>350</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -49,6 +49,25 @@ QPushButton#startButton:disabled:!checked {
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
+    <item row="1" column="0">
+     <widget class="QMdiArea" name="mdiArea">
+      <property name="styleSheet">
+       <string notr="true">QWidget{
+background-color: rgb(11,11,11);
+color: #FFFFFF;
+}</string>
+      </property>
+      <property name="background">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>47</red>
+         <green>47</green>
+         <blue>47</blue>
+        </color>
+       </brush>
+      </property>
+     </widget>
+    </item>
     <item row="0" column="0">
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <property name="leftMargin">
