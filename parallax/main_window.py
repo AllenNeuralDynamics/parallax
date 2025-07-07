@@ -125,16 +125,15 @@ class MainWindow(QMainWindow):
         It adds mock cameras for testing purposes and scans for actual cameras if the application
         is not in dummy mode. This ensures that the list of available cameras is always up-to-date.
         """
-        # Add mock cameras for testing purposes
-        self.model.add_mock_cameras()
-        # If not in dummy mode, scan for actual available cameras
-        if not self.model.dummy:
+        if self.model.dummy:
+            # Add mock cameras for testing purposes
+            self.model.add_mock_cameras()
+        else:
+            # If not in dummy mode, scan for actual available cameras
             try:
                 self.model.scan_for_cameras()
             except Exception as e:
-                print(
-                    f" Something still holds a reference to the camera.\n {e}"
-                )
+                print(f" Something still holds a reference to the camera.\n {e}")
 
     def refresh_stages(self):
         """Search for connected stages"""
