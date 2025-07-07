@@ -38,39 +38,53 @@ class ScreenWidgetManager:
         self._device_menu()
 
     def start_streaming(self):
-        """Start camera acquisition and refresh."""
+        """Start camera acquisition and refresh only for visible screens."""
         self.model.refresh_camera = True
+
         for screen in self.screen_widgets:
-            screen.start_acquisition_camera()
+            sn = screen.camera.name(sn_only=True)
+            if self.model.cameras.get(sn, {}).get('visible', False):
+                screen.start_acquisition_camera()
+                print("Starting acquisition for camera:", sn)
 
         self.refresh_timer.timeout.connect(self._refresh_screens)
         self.refresh_timer.start(125)
 
     def stop_streaming(self):
-        """Stop camera acquisition and refresh."""
+        """Stop acquisition and refresh only for visible screens."""
         self.model.refresh_camera = False
         if self.refresh_timer.isActive():
             self.refresh_timer.stop()
+
         for screen in self.screen_widgets:
-            screen.stop_acquisition_camera()
+            sn = screen.camera.name(sn_only=True)
+            if self.model.cameras.get(sn, {}).get('visible', False):
+                screen.stop_acquisition_camera()
+                print("Stopping acquisition for camera:", sn)
 
     def _refresh_screens(self):
-        """Refresh all screens."""
+        """Refresh only visible screens."""
         for screen in self.screen_widgets:
-            screen.refresh()
+            sn = screen.camera.name(sn_only=True)
+            if self.model.cameras.get(sn, {}).get('visible', False):
+                screen.refresh()
 
     def _request_streaming(self, on: bool, sn: str):
-        """Request camera to start streaming."""
+        """Start or stop streaming for a specific camera based on visibility toggle."""
+        camera_data = self.model.cameras.get(sn, None)
+        if not camera_data:
+            return  # Camera not found
+
+        screen = next((s for s in self.screen_widgets if s.camera.name(sn_only=True) == sn), None)
+        if not screen:
+            return  # Screen not found
+
         if on:
-            for screen in self.screen_widgets:
-                if screen.camera.name(sn_only = True) == sn:
-                    screen.start_acquisition_camera()
-                    break
+            screen.start_acquisition_camera()
+            self.model.set_camera_visibility(sn, True)
         else:
-            for screen in self.screen_widgets:
-                if screen.camera.name(sn_only = True) == sn:
-                    screen.stop_acquisition_camera()
-                    break
+            self.model.set_camera_visibility(sn, False)
+            screen.stop_acquisition_camera()
 
     def _add_screen_subwindow(self, screen_index: int):
         name = f"Microscope_{screen_index + 1}"
@@ -154,7 +168,17 @@ class ScreenWidgetManager:
     def _toggle_visibility(self, checked, subwindow):
         """Show or hide a subwindow based on the menu toggle."""
         self._update_active_camera_list(subwindow, visible=checked)
-        # Request camera to start or stop streaming
+
+        # Find serial number associated with this subwindow
+        for name, sw in self.subwindows:
+            if sw == subwindow:
+                index = self.subwindows.index((name, sw))
+                sn = list(self.model.cameras.keys())[index]
+                break
+        else:
+            return
+
+        self._request_streaming(checked, sn)
         subwindow.setVisible(checked)
 
     def _update_active_camera_list(self, subwindow, visible: bool):
@@ -173,7 +197,6 @@ class ScreenWidgetManager:
         # Update visibility state in the model
         self.model.set_camera_visibility(serial_number, visible)
         print("Active cameras:", self.model.get_visible_camera_sns())
-
 
     def _close_event(self, event, subwindow):
         """Handle subwindow close and uncheck the corresponding menu item."""
