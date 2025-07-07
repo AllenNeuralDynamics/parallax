@@ -16,31 +16,35 @@ def model():
     return Model(args, version="V2")
 
 def test_scan_for_cameras(model):
-    """Test scanning for cameras and updating the model's camera list."""
-    # Create a mock PySpin camera object.
+    """Test scanning for cameras and updating the model's camera pool."""
     mock_camera_pyspin = MagicMock()
 
-    # Correct the patch target to where `list_cameras` is used in `model.py`
-    with patch('parallax.model.list_cameras', return_value=[MockCamera(), PySpinCamera(mock_camera_pyspin)]) as mock_list_cameras:
-        # Call the method to scan for cameras.
+    with patch('parallax.model.list_cameras', return_value=[MockCamera(), PySpinCamera(mock_camera_pyspin)]):
         model.scan_for_cameras()
 
-        # Print the serial numbers for debugging.
-        print("Serial numbers of detected cameras: ", model.cameras_sn)
-        print("Number of Mock Cameras: ", model.nMockCameras)
-        print("Number of PySpin Cameras: ", model.nPySpinCameras)
-    
-        # Verify that both cameras are present in the model's list.
-        assert len(model.cameras) == 2, "The model should have 2 cameras."
-        assert isinstance(model.cameras[0], MockCamera), "The first camera should be a MockCamera."
-        assert isinstance(model.cameras[1], PySpinCamera), "The second camera should be a PySpinCamera."
+        # Access camera pool structure
+        cam_keys = list(model.cameras.keys())
+        cam_values = list(model.cameras.values())
 
-        # Check the counts of each type of camera.
-        assert model.nMockCameras == 1, "There should be 1 MockCamera."
-        assert model.nPySpinCameras == 1, "There should be 1 PySpinCamera."
+        # Check that two cameras are added
+        assert len(model.cameras) == 2, "There should be 2 cameras in the pool."
 
-        # Verify that the camera serial numbers are correctly updated.
-        assert len(model.cameras_sn) == 2, "The model should have serial numbers for 2 cameras."
+        # Verify first is MockCamera, second is PySpinCamera
+        assert isinstance(cam_values[0]['obj'], MockCamera)
+        assert isinstance(cam_values[1]['obj'], PySpinCamera)
+
+        # Check visibility is set
+        assert cam_values[0]['visible'] is True
+        assert cam_values[1]['visible'] is True
+
+        # Check camera serial numbers
+        assert len(cam_keys) == 2
+        assert cam_keys[0] == cam_values[0]['obj'].name(sn_only=True)
+        assert cam_keys[1] == cam_values[1]['obj'].name(sn_only=True)
+
+        # Check PySpin count
+        n_pyspin = sum(isinstance(v['obj'], PySpinCamera) for v in model.cameras.values())
+        assert n_pyspin == 1, "There should be 1 PySpinCamera."
 
 def test_add_stage(model):
     """Test adding a stage to the model."""
