@@ -14,7 +14,7 @@ Classes:
 import logging
 import os
 
-from PyQt5.QtCore import QStandardPaths, QTimer
+from PyQt5.QtCore import QStandardPaths
 from PyQt5.QtGui import QFont, QFontDatabase
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import (QApplication, QFileDialog,
@@ -104,10 +104,6 @@ class MainWindow(QMainWindow):
             self.record_button_handler
         )  # Recording video button
 
-        # Refreshing the screen timer
-        self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.refresh)
-
         # Toggle start button on init
         self.start_button_handler()
 
@@ -166,41 +162,16 @@ class MainWindow(QMainWindow):
 
         if is_streaming:
             print("\nRefreshing Screens")
-            self.model.refresh_camera = True
-            # Start acquisition for all cameras
-            for screen in self.screen_widget_manager.screen_widgets:
-                screen.start_acquisition_camera()
-
-            # Start refreshing images
-            self.refresh_timer.start(125)
-
-            # Enable controls
-            self.actionRecording.setEnabled(True)
-            self.actionSnapshot.setEnabled(True)
-            self.actionDir.setEnabled(True)
-
+            self.screen_widget_manager.start_streaming()
         else:
             print("Stop Refreshing Screens")
-            self.model.refresh_camera = False
-            # Stop refreshing images
-            if self.refresh_timer.isActive():
-                self.refresh_timer.stop()
+            self.screen_widget_manager.stop_streaming()
 
-            # Stop acquisition for all cameras
-            for screen in self.screen_widget_manager.screen_widgets:
-                screen.stop_acquisition_camera()
-
-            # Disable and reset control buttons
+        self.actionRecording.setEnabled(is_streaming)
+        self.actionSnapshot.setEnabled(is_streaming)
+        self.actionDir.setEnabled(is_streaming)
+        if not is_streaming:
             self.actionRecording.setChecked(False)
-            self.actionRecording.setEnabled(False)
-            self.actionSnapshot.setEnabled(False)
-            self.actionDir.setEnabled(False)
-
-
-    def refresh(self):
-        """Refreshing from framebuffer to screen"""
-        for screen in self.screen_widget_manager.screen_widgets:
-            screen.refresh()  # Refresh the screens
 
     def dir_setting_handler(self):
         """

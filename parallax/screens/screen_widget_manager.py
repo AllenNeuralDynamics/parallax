@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QMenu,
 )
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.screens.screen_setting import ScreenSetting
@@ -29,11 +29,35 @@ class ScreenWidgetManager:
         self.subwindows = []
         self.menu_actions = {}  # Maps subwindows to their corresponding menu actions
 
+        self.refresh_timer = QTimer()
+
         n_cams = self.model.nPySpinCameras or self.model.nMockCameras
         for i in range(n_cams):
             self._add_screen_subwindow(i)
 
         self._device_menu()
+
+    def start_streaming(self):
+        """Start camera acquisition and refresh."""
+        self.model.refresh_camera = True
+        for screen in self.screen_widgets:
+            screen.start_acquisition_camera()
+
+        self.refresh_timer.timeout.connect(self._refresh_screens)
+        self.refresh_timer.start(125)
+
+    def stop_streaming(self):
+        """Stop camera acquisition and refresh."""
+        self.model.refresh_camera = False
+        if self.refresh_timer.isActive():
+            self.refresh_timer.stop()
+        for screen in self.screen_widgets:
+            screen.stop_acquisition_camera()
+
+    def _refresh_screens(self):
+        """Refresh all screens."""
+        for screen in self.screen_widgets:
+            screen.refresh()
 
     def _add_screen_subwindow(self, screen_index: int):
         name = f"Microscope_{screen_index + 1}"
@@ -114,7 +138,28 @@ class ScreenWidgetManager:
 
     def _toggle_visibility(self, checked, subwindow):
         """Show or hide a subwindow based on the menu toggle."""
+        self._update_active_camera_list(subwindow, visible=checked)
+        # Request camera to start or stop streaming
         subwindow.setVisible(checked)
+
+    def _update_active_camera_list(self, subwindow, visible: bool):
+        """Add or remove the camera's serial number based on subwindow visibility."""
+        for name, sw in self.subwindows:
+            if sw == subwindow:
+                index = self.subwindows.index((name, sw))
+                serial_number = self.model.cameras_sn[index]
+                break
+        else:
+            return  # Subwindow not found
+
+        if visible:
+            if serial_number not in self.model.active_camera_sn:
+                self.model.active_camera_sn.append(serial_number)
+        else:
+            if serial_number in self.model.active_camera_sn:
+                self.model.active_camera_sn.remove(serial_number)
+
+        print("Active cameras:", self.model.active_camera_sn)
 
     def _close_event(self, event, subwindow):
         """Handle subwindow close and uncheck the corresponding menu item."""

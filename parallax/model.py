@@ -32,9 +32,10 @@ class Model(QObject):
         self.nMockCameras = getattr(args, "nCameras", 1)
 
         # cameras
-        self.refresh_camera = False
-        self.cameras = []  # instance of cameras
-        self.cameras_sn = []  # camera serial numbers
+        self.refresh_camera = False     # Status of camera streaming
+        self.cameras = []               # instance of cameras
+        self.cameras_sn = []            # camera serial numbers
+        self.active_camera_sn = []     # active camera serial numbers showing the on the app
         self.nPySpinCameras = 0
 
         # point mesh
@@ -126,6 +127,7 @@ class Model(QObject):
         """Scan and detect all available cameras."""
         self.cameras = list_cameras(version=self.version) + self.cameras
         self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
+        self.active_camera_sn = self.cameras_sn.copy()
         self.nPySpinCameras = len([cam for cam in self.cameras if isinstance(cam, PySpinCamera)])
 
     def get_camera_resolution(self, camera_name):
