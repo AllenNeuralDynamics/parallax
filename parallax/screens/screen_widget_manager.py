@@ -40,12 +40,11 @@ class ScreenWidgetManager:
     def start_streaming(self):
         """Start camera acquisition and refresh only for visible screens."""
         self.model.refresh_camera = True
-
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
             if self.model.cameras.get(sn, {}).get('visible', False):
                 screen.start_acquisition_camera()
-                print("Starting acquisition for camera:", sn)
+                print("Camera acquisition started for:", sn)
 
         self.refresh_timer.timeout.connect(self._refresh_screens)
         self.refresh_timer.start(125)
@@ -60,7 +59,7 @@ class ScreenWidgetManager:
             sn = screen.camera.name(sn_only=True)
             if self.model.cameras.get(sn, {}).get('visible', False):
                 screen.stop_acquisition_camera()
-                print("Stopping acquisition for camera:", sn)
+                print("Camera acquisition stopped for:", sn)
 
     def _refresh_screens(self):
         """Refresh only visible screens."""
@@ -80,11 +79,15 @@ class ScreenWidgetManager:
             return  # Screen not found
 
         if on:
-            screen.start_acquisition_camera()
             self.model.set_camera_visibility(sn, True)
+            if self.model.refresh_camera:
+                screen.start_acquisition_camera()
+                print("Camera acquisition started for:", sn)
         else:
             self.model.set_camera_visibility(sn, False)
-            screen.stop_acquisition_camera()
+            if self.model.refresh_camera:
+                screen.stop_acquisition_camera()
+                print("Camera acquisition stopped for:", sn)
 
     def _add_screen_subwindow(self, screen_index: int):
         name = f"Microscope_{screen_index + 1}"
@@ -196,7 +199,6 @@ class ScreenWidgetManager:
 
         # Update visibility state in the model
         self.model.set_camera_visibility(serial_number, visible)
-        print("Active cameras:", self.model.get_visible_camera_sns())
 
     def _close_event(self, event, subwindow):
         """Handle subwindow close and uncheck the corresponding menu item."""
