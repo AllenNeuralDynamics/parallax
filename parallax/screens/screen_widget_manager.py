@@ -1,6 +1,13 @@
-"""Screen widget manager for handling microscope displays and settings."""
 import logging
-from PyQt5.QtWidgets import QGroupBox, QVBoxLayout, QWidget, QHBoxLayout, QMdiSubWindow, QMdiArea, QMenu
+from PyQt5.QtWidgets import (
+    QGroupBox,
+    QVBoxLayout,
+    QWidget,
+    QHBoxLayout,
+    QMdiSubWindow,
+    QMdiArea,
+    QMenu,
+)
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
@@ -20,7 +27,7 @@ class ScreenWidgetManager:
         self.device_menu = device_menu
         self.screen_widgets = []
         self.subwindows = []
-        self.menu_actions = {}
+        self.menu_actions = {}  # Maps subwindows to their corresponding menu actions
 
         n_cams = self.model.nPySpinCameras or self.model.nMockCameras
         for i in range(n_cams):
@@ -38,7 +45,7 @@ class ScreenWidgetManager:
         group_box.setFont(font_grpbox)
         layout = QVBoxLayout(group_box)
 
-        # Screens
+        # Screen
         screen = ScreenWidget(
             self.model.cameras[screen_index],
             model=self.model,
@@ -65,68 +72,62 @@ class ScreenWidgetManager:
         # Subwindow setup
         sub = QMdiSubWindow()
         sub.setWidget(container)
-        sub.setWindowTitle(f"Microscope {screen_index + 1}")
+        sub.setWindowTitle(name)
         width, height = self._get_size()
         sub.resize(width, height)
         x, y = self._get_pos(screen_index)
         sub.move(x, y)
         self.mdi_area.addSubWindow(sub)
+
+        # Install custom closeEvent handler to sync menu toggle
+        sub.closeEvent = lambda event, sw=sub: self._close_event(event, sw)
+
         sub.show()
 
-        # Add to lists for management
+        # Track screen widget and subwindow
         self.screen_widgets.append(screen)
         self.subwindows.append((name, sub))
 
     def _get_size(self):
-        """
-        Return width and height based on half the mdi_area's width
-        and a 4:3 aspect ratio.
-        """
+        """Return width and height based on half the mdi_area's width and a 4:3 aspect ratio."""
         total_width = self.mdi_area.viewport().width()
         width = total_width // 2
-        height = int(width * 3 / 4)  # 4:3 ratio # TODO
+        height = int(width * 3 / 4)
+        # Fixed fallback size (optional)
         width, height = (800, 600)
         return width, height
 
     def _get_pos(self, index: int):
-        """
-        Return (x, y) position for a given index in a 2-column layout.
-        Automatically calculates spacing based on window size.
-        """
+        """Return (x, y) position for a given index in a 2-column layout."""
         width, height = self._get_size()
         spacing = 10
         columns = 2
-
         col = index % columns
         row = index // columns
-
         x = col * (width + spacing)
         y = row * (height + spacing)
         return x, y
 
+    def list_screen_widgets(self):
+        """Return list of all screen widgets."""
+        return self.screen_widgets
+
+    def _toggle_visibility(self, checked, subwindow):
+        """Show or hide a subwindow based on the menu toggle."""
+        subwindow.setVisible(checked)
+
+    def _close_event(self, event, subwindow):
+        """Handle subwindow close and uncheck the corresponding menu item."""
+        action = self.menu_actions.get(subwindow)
+        if action:
+            action.setChecked(False)
+        event.accept()
+
     def _device_menu(self):
-        """
-        Add each microscope screen (QGroupBox) as a checkable item in the device_menu.
-        Toggling the check state shows/hides the corresponding subwindow.
-        Closing a subwindow also unchecks the menu.
-        """
+        """Add each microscope subwindow to the device menu as a checkable action."""
         for name, subwindow in self.subwindows:
             action = self.device_menu.addAction(name)
             action.setCheckable(True)
             action.setChecked(True)
-
-            # Toggle visibility when menu is clicked
-            def toggle_visibility(checked, sw=subwindow):
-                sw.setVisible(checked)
-
-            action.toggled.connect(toggle_visibility)
-
-            # Store the action so we can uncheck it later
+            action.toggled.connect(lambda checked, sw=subwindow: self._toggle_visibility(checked, sw))
             self.menu_actions[subwindow] = action
-
-            def close_event(event, sw=subwindow, act=action):
-                act.setChecked(False)  # Uncheck menu when closed
-                event.accept()  # Accept the close event
-
-            subwindow.closeEvent = close_event
-

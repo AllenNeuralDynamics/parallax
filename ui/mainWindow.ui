@@ -364,16 +364,14 @@ QPushButton#snapshotButton:pressed {
      <property name="title">
       <string>Devices</string>
      </property>
-     <addaction name="actionMock_Camera"/>
     </widget>
-    <addaction name="actionDevices"/>
+    <addaction name="menuDevices"/>
+    <addaction name="separator"/>
     <addaction name="actionStreaming"/>
     <addaction name="separator"/>
     <addaction name="actionRecording"/>
     <addaction name="actionSnapshot"/>
     <addaction name="actionDir"/>
-    <addaction name="separator"/>
-    <addaction name="menuDevices"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -411,7 +409,6 @@ QPushButton#snapshotButton:pressed {
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionDevices"/>
    <addaction name="actionStreaming"/>
    <addaction name="actionRecording"/>
    <addaction name="actionSnapshot"/>
@@ -477,15 +474,6 @@ QPushButton#snapshotButton:pressed {
    </property>
    <property name="text">
     <string>File Location</string>
-   </property>
-  </action>
-  <action name="actionDevices">
-   <property name="icon">
-    <iconset resource="resources/resources_from_qt.qrc">
-     <normaloff>:/Icons/list.png</normaloff>:/Icons/list.png</iconset>
-   </property>
-   <property name="text">
-    <string>Devices</string>
    </property>
   </action>
   <action name="actionDocumentation">
