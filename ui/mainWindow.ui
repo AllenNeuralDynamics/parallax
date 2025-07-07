@@ -360,6 +360,12 @@ QPushButton#snapshotButton:pressed {
     <property name="title">
      <string>Cameras</string>
     </property>
+    <widget class="QMenu" name="menuDevices">
+     <property name="title">
+      <string>Devices</string>
+     </property>
+     <addaction name="actionMock_Camera"/>
+    </widget>
     <addaction name="actionDevices"/>
     <addaction name="actionStreaming"/>
     <addaction name="separator"/>
@@ -367,6 +373,7 @@ QPushButton#snapshotButton:pressed {
     <addaction name="actionSnapshot"/>
     <addaction name="actionDir"/>
     <addaction name="separator"/>
+    <addaction name="menuDevices"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -434,8 +441,8 @@ QPushButton#snapshotButton:pressed {
    </property>
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
-     <normaloff>:/Icons/pause.png</normaloff>
-     <normalon>:/Icons/play.png</normalon>:/Icons/pause.png</iconset>
+     <normaloff>:/Icons/play.png</normaloff>
+     <normalon>:/Icons/pause.png</normalon>:/Icons/play.png</iconset>
    </property>
    <property name="text">
     <string>Streaming</string>
@@ -512,6 +519,14 @@ QPushButton#snapshotButton:pressed {
    </property>
    <property name="text">
     <string>Save Info</string>
+   </property>
+  </action>
+  <action name="actionMock_Camera">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Mock Camera</string>
    </property>
   </action>
  </widget>

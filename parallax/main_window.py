@@ -80,7 +80,7 @@ class MainWindow(QMainWindow):
 
         # Dynamically generate Microscope display
         #self.screen_widget_manager = ScreenWidgetManager(self.model, self.nColumnsSpinBox)
-        self.screen_widget_manager = ScreenWidgetManager(self.model, self.mdiArea)
+        self.screen_widget_manager = ScreenWidgetManager(self.model, self.mdiArea, self.menuDevices)
 
         # Control Panel
         self.control_panel = ControlPanel(self.model, self.screen_widget_manager.screen_widgets)
@@ -195,6 +195,7 @@ class MainWindow(QMainWindow):
             self.actionRecording.setEnabled(False)
             self.actionSnapshot.setEnabled(False)
             self.actionDir.setEnabled(False)
+
 
     def refresh(self):
         """Refreshing from framebuffer to screen"""
