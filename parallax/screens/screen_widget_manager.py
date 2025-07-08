@@ -1,4 +1,5 @@
-import logging, os
+import logging
+import os
 from PyQt5.QtWidgets import (
     QGroupBox,
     QVBoxLayout,
@@ -9,7 +10,7 @@ from PyQt5.QtWidgets import (
     QMenu,
 )
 from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, QEvent, QObject
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.screens.screen_setting import ScreenSetting
@@ -17,14 +18,14 @@ from parallax.screens.reticle_detect_widget import ReticleDetectWidget
 from parallax.config.config_path import ui_dir
 
 
-
 logger = logging.getLogger(__name__)
 
 
-class ScreenWidgetManager:
+class ScreenWidgetManager(QObject):
     """Manages microscope display and settings."""
 
     def __init__(self, model, mdi_area: QMdiArea, device_menu: QMenu):
+        super().__init__()
         self.model = model
         self.mdi_area = mdi_area
         self.device_menu = device_menu
@@ -134,11 +135,16 @@ class ScreenWidgetManager:
         sub.setWidget(container)
         sub.setWindowTitle(name)
         sub.setWindowIcon(QIcon(os.path.join(ui_dir, "resources", "sextant.png")))
+        sub.setStyleSheet("QMdiSubWindow { background-color: white; }")
+
         width, height = self._get_size()
         sub.resize(width, height)
         x, y = self._get_pos(screen_index)
         sub.move(x, y)
         self.mdi_area.addSubWindow(sub)
+
+        # Install event filter to track move/resize
+        sub.installEventFilter(self)
 
         # Install custom closeEvent handler to sync menu toggle
         sub.closeEvent = lambda event, sw=sub: self._close_event(event, sw)
@@ -147,13 +153,13 @@ class ScreenWidgetManager:
         # Track screen widget and subwindow
         self.screen_widgets.append(screen)
         self.subwindows.append((name, sub))
+        self._resize_mdi_area_to_fit()
 
     def _get_size(self):
         """Return width and height based on half the mdi_area's width and a 4:3 aspect ratio."""
         total_width = self.mdi_area.viewport().width()
         width = total_width // 2
         height = int(width * 3 / 4)
-        # Fixed fallback size (optional)
         width, height = (800, 600)
         return width, height
 
@@ -168,15 +174,29 @@ class ScreenWidgetManager:
         y = row * (height + spacing)
         return x, y
 
+    def _resize_mdi_area_to_fit(self):
+        if not self.mdi_area.subWindowList():
+            return
+
+        right = bottom = 0
+        for sub in self.mdi_area.subWindowList():
+            geom = sub.geometry()
+            right = max(right, geom.x() + geom.width())
+            bottom = max(bottom, geom.y() + geom.height())
+
+        self.mdi_area.setMinimumSize(right, bottom)
+
+    def eventFilter(self, obj, event):
+        if isinstance(obj, QMdiSubWindow):
+            if event.type() in (QEvent.Move, QEvent.Resize):
+                self._resize_mdi_area_to_fit()
+        return False
+
     def list_screen_widgets(self):
-        """Return list of all screen widgets."""
         return self.screen_widgets
 
     def _toggle_visibility(self, checked, subwindow):
-        """Show or hide a subwindow based on the menu toggle."""
         self._update_active_camera_list(subwindow, visible=checked)
-
-        # Find serial number associated with this subwindow
         for name, sw in self.subwindows:
             if sw == subwindow:
                 index = self.subwindows.index((name, sw))
@@ -189,30 +209,23 @@ class ScreenWidgetManager:
         subwindow.setVisible(checked)
 
     def _update_active_camera_list(self, subwindow, visible: bool):
-        """
-        Update camera visibility status based on subwindow toggle.
-        """
-        # Find serial number for the given subwindow
         for name, sw in self.subwindows:
             if sw == subwindow:
                 index = self.subwindows.index((name, sw))
                 serial_number = list(self.model.cameras.keys())[index]
                 break
         else:
-            return  # Subwindow not found
+            return
 
-        # Update visibility state in the model
         self.model.set_camera_visibility(serial_number, visible)
 
     def _close_event(self, event, subwindow):
-        """Handle subwindow close and uncheck the corresponding menu item."""
         action = self.menu_actions.get(subwindow)
         if action:
             action.setChecked(False)
         event.accept()
 
     def _device_menu(self):
-        """Add each microscope subwindow to the device menu as a checkable action."""
         for name, subwindow in self.subwindows:
             action = self.device_menu.addAction(name)
             action.setCheckable(True)

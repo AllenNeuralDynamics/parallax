@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>956</width>
+    <width>800</width>
     <height>350</height>
    </rect>
   </property>
@@ -67,8 +67,8 @@ QPushButton#startButton:disabled:!checked {
        <widget class="QMdiArea" name="mdiArea">
         <property name="minimumSize">
          <size>
-          <width>100</width>
-          <height>400</height>
+          <width>0</width>
+          <height>0</height>
          </size>
         </property>
         <property name="styleSheet">
@@ -97,7 +97,7 @@ color: #FFFFFF;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>956</width>
+     <width>800</width>
      <height>21</height>
     </rect>
    </property>
