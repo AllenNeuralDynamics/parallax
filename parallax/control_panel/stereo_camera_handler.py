@@ -162,15 +162,21 @@ class StereoCameraHandler:
                 - img_coords (list): List of reticle coordinates detected on each camera.
         """
         cam_names, intrinsics, img_coords = [], [], []
+        visible_sns = set(self.model.get_visible_camera_sns())
+
         # Get coords and intrinsic parameters from the screens
         for screen in self.screen_widgets:
             camera_name = screen.get_camera_name()
+            if camera_name not in visible_sns:
+                continue  # Skip screens that are not currently visible
+
             coords = self.model.get_coords_axis(camera_name)
             intrinsic = self.model.get_camera_intrinsic(camera_name)
             if coords is not None:
                 cam_names.append(camera_name)
                 img_coords.append(coords)
                 intrinsics.append(intrinsic)
+
         return cam_names, intrinsics, img_coords
 
     def _get_results_calibrate_stereo(self, camA, coordsA, itmxA, camB, coordsB, itmxB):

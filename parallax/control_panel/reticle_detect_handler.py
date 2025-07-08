@@ -293,23 +293,19 @@ class ReticleDetecthandler(QWidget):
 
     def is_positive_x_axis_detected(self):
         """
-        Checks whether the positive x-axis has been detected on all screens.
-
-        This method compares the detected coordinates for each camera with the list of cameras
-        that have positive x-axis coordinates available. It returns True if the positive x-axis
-        has been detected on all cameras, otherwise returns False.
+        Checks whether the positive x-axis has been detected on all visible screens
+        that have detected reticle coordinates.
 
         Returns:
-            bool: True if the positive x-axis has been detected on all screens, False otherwise.
+            bool: True if positive x-axis is detected on all relevant screens, False otherwise.
         """
-        pos_x_detected_screens = []
-        for cam_name in self.coords_detected_screens:
-            pos_x = self.model.get_pos_x(cam_name)
-            if pos_x is not None:
-                pos_x_detected_screens.append(cam_name)
+        detected = set(self.coords_detected_screens)    # Reticle detected screens
+        visible = set(self.model.get_visible_camera_sns())    # Visible screnens
+        candidates = detected & visible             # cameras that are both detected and currently visible
 
-        logger.debug(f"coords_detected_screens: {self.coords_detected_screens}")
-        return set(self.coords_detected_screens) == set(pos_x_detected_screens)
+        pos_x_detected = {sn for sn in candidates if self.model.get_pos_x(sn) is not None}
+
+        return candidates == pos_x_detected
 
     def continue_if_positive_x_axis_from_user(self):
         """Get the positive x-axis coordinate of the reticle from the user."""
