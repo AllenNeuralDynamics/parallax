@@ -79,14 +79,19 @@ class MainWindow(QMainWindow):
         self.actionDir.triggered.connect(self.dir_setting_handler)
 
         # Dynamically generate Microscope display
-        #self.screen_widget_manager = ScreenWidgetManager(self.model, self.nColumnsSpinBox)
         self.screen_widget_manager = ScreenWidgetManager(self.model, self.mdiArea, self.menuDevices)
 
         # Control Panel
         self.control_panel = ControlPanel(self.model, self.screen_widget_manager.screen_widgets)
+
+        # Wrap mdiArea inside a scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(self.mdiArea)
+
+        # Add to splitter
         splitter = QSplitter()
-        #splitter.addWidget(self.screen_widget_manager.scrollAreaWidgetContents)
-        splitter.addWidget(self.mdiArea)
+        splitter.addWidget(scroll_area)
         splitter.addWidget(self.control_panel)
         self.verticalLayout.addWidget(splitter)
 
