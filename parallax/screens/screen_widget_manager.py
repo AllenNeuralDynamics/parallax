@@ -1,4 +1,4 @@
-import logging
+import logging, os
 from PyQt5.QtWidgets import (
     QGroupBox,
     QVBoxLayout,
@@ -8,12 +8,15 @@ from PyQt5.QtWidgets import (
     QMdiArea,
     QMenu,
 )
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt, QTimer
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.screens.screen_setting import ScreenSetting
 from parallax.screens.reticle_detect_widget import ReticleDetectWidget
+from parallax.config.config_path import ui_dir
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +96,7 @@ class ScreenWidgetManager:
         name = f"Microscope_{screen_index + 1}"
         group_box = QGroupBox(name)
         group_box.setObjectName(name)
-        group_box.setStyleSheet("background-color: rgb(58, 58, 58);")
+        group_box.setStyleSheet("background-color: rgb(25, 25, 25);")
         font_grpbox = QFont()
         font_grpbox.setPointSize(8)
         group_box.setFont(font_grpbox)
@@ -124,12 +127,13 @@ class ScreenWidgetManager:
         container = QWidget()
         container_layout = QVBoxLayout(container)
         container_layout.addWidget(group_box)
-        container_layout.setContentsMargins(10, 10, 10, 10)
+        container_layout.setContentsMargins(10, 5, 5, 5)
 
         # Subwindow setup
         sub = QMdiSubWindow()
         sub.setWidget(container)
         sub.setWindowTitle(name)
+        sub.setWindowIcon(QIcon(os.path.join(ui_dir, "resources", "sextant.png")))
         width, height = self._get_size()
         sub.resize(width, height)
         x, y = self._get_pos(screen_index)

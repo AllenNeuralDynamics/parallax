@@ -70,8 +70,8 @@ class MainWindow(QMainWindow):
         self._set_font()
 
         # Load existing user preferences
-        _, directory, width, height = (UserSettingsManager.load_mainWindow_settings())
-        self.dirLabel.setText(directory)
+        _, self.dir, width, height = (UserSettingsManager.load_mainWindow_settings())
+        #self.dirLabel.setText(directory)
         if width is not None and height is not None:
             self.resize(width, height)
 
@@ -88,16 +88,19 @@ class MainWindow(QMainWindow):
         #splitter.addWidget(self.screen_widget_manager.scrollAreaWidgetContents)
         splitter.addWidget(self.mdiArea)
         splitter.addWidget(self.control_panel)
-        self.verticalLayout_4.addWidget(splitter)
+        self.verticalLayout.addWidget(splitter)
 
         # Streaming button. If toggled, start camera acquisition
         self.actionStreaming.triggered.connect(self.start_button_handler)
+
+        # Fetch the default documents directory path
+        self.dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
 
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
         self.actionSnapshot.triggered.connect(
             lambda: self.recordingManager.save_last_image(
-                self.dirLabel.text(), self.screen_widget_manager.screen_widgets
+                self.dir, self.screen_widget_manager.screen_widgets
             )
         )
         self.actionRecording.triggered.connect(
@@ -146,8 +149,8 @@ class MainWindow(QMainWindow):
         If the record button is checked, start recording. Otherwise, stop recording.
         """
         if self.actionRecording.isChecked():
-            save_path = self.dirLabel.text()
-            self.recordingManager.save_recording(save_path, self.screen_widget_manager.screen_widgets)
+            #save_path = self.dirLabel.text()
+            self.recordingManager.save_recording(self.dir, self.screen_widget_manager.screen_widgets)
         else:
             self.recordingManager.stop_recording(self.screen_widget_manager.screen_widgets)
 
@@ -181,17 +184,10 @@ class MainWindow(QMainWindow):
         This is a crucial function for users who need to save data or configurations, as it provides a
         simple and intuitive way to specify the location where files should be saved.
         """
-        # Fetch the default documents directory path
-        documents_dir = QStandardPaths.writableLocation(
-            QStandardPaths.DocumentsLocation
-        )
+
         # Open a dialog to allow the user to select a directory
-        directory = QFileDialog.getExistingDirectory(
-            self, "Select Directory", documents_dir
-        )
-        # If a directory is chosen, update the label to display the chosen path
-        if directory:
-            self.dirLabel.setText(directory)
+        self.dir =  QFileDialog.getExistingDirectory(self, "Select Directory", self.dir)
+        print("Selected directory:", self.dir)
 
     def save_user_configs(self):
         """
@@ -202,11 +198,11 @@ class MainWindow(QMainWindow):
         width and height. It then passes these values to the `save_user_configs` method
         of the `user_setting` object to be saved.
         """
-        nColumn = self.nColumnsSpinBox.value()
-        directory = self.dirLabel.text()
+        #nColumn = self.nColumnsSpinBox.value()
+        #directory = self.dirLabel.text()
         width = self.width()
         height = self.height()
-        UserSettingsManager.save_user_configs(nColumn, directory, width, height)
+        UserSettingsManager.save_user_configs(0, self.dir, width, height)
 
     def closeEvent(self, event):
         """
