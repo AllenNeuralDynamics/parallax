@@ -86,6 +86,8 @@ class MainWindow(QMainWindow):
                                           self.screen_widget_manager.screen_widgets,
                                           self.actionServer,
                                           self.actionSaveInfo,
+                                          self.actionTrajectory,
+                                          self.actionCalculator
                                         )
 
         # Wrap mdiArea inside a scroll area

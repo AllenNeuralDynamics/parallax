@@ -4,7 +4,7 @@ import os
 import numpy as np
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
+from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget, QAction
 from parallax.config.config_path import ui_dir
 
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
-    def __init__(self, model, screen_widgets, filter, reticle_selector):
+    def __init__(self, model, screen_widgets, filter, reticle_selector, actionTrajectory: QAction=None, actionCalculator: QAction=None):
         """
         Args:
             stage_widget (StageWidget): Reference to the parent StageWidget instance.
@@ -29,6 +29,8 @@ class ProbeCalibrationHandler(QWidget):
         self.screen_widgets = screen_widgets
         self.filter = filter
         self.reticle_selector_comboBox = reticle_selector    # Combobox for reticle selector
+        self.actionTrajectory = actionTrajectory
+        self.actionCalculator = actionCalculator
 
         self.reticle_detection_status = "default"  # options: default, process, accepted
         self.selected_stage_id = None
@@ -59,10 +61,14 @@ class ProbeCalibrationHandler(QWidget):
         self.probeCalibrationLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.viewTrajectory_btn = self.findChild(QPushButton, "viewTrajectory_btn")
         self.viewTrajectory_btn.clicked.connect(self.view_trajectory_button_handler)
+        if self.actionTrajectory is not None:
+            self.actionTrajectory.triggered.connect(self.view_trajectory_button_handler)
 
         # Calculation Button
         self.calculation_btn = self.findChild(QPushButton, "calculation_btn")
         self.calculation_btn.clicked.connect(self.calculation_button_handler)
+        if self.actionCalculator is not None:
+            self.actionCalculator.triggered.connect(self.calculation_button_handler)
 
         # Reticle Button
         self.reticle_metadata_btn = self.findChild(QPushButton, "reticle_btn")
@@ -88,6 +94,7 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_y.hide()
         self.calib_z.hide()
         self.viewTrajectory_btn.hide()
+        self.actionTrajectory.setEnabled(False)
         self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
         self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
         self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
@@ -100,6 +107,7 @@ class ProbeCalibrationHandler(QWidget):
 
         # Calculator Button
         self.calculation_btn.hide()
+        self.actionCalculator.setEnabled(False)
         self.calculator = Calculator(self.model, self.reticle_selector_comboBox)
 
     def refresh_stages(self):
@@ -453,8 +461,12 @@ class ProbeCalibrationHandler(QWidget):
         self.hide_x_y_z()
         if not self.viewTrajectory_btn.isVisible():
             self.viewTrajectory_btn.show()
+        if not self.actionTrajectory.isEnabled():
+            self.actionTrajectory.setEnabled(True)
         if not self.calculation_btn.isVisible():
             self.calculation_btn.show()
+        if not self.actionCalculator.isEnabled():
+            self.actionCalculator.setEnabled(True)
         if not self.reticle_metadata_btn.isVisible():
             self.reticle_metadata_btn.show()
         if self.filter == "probe_detection":
@@ -553,6 +565,8 @@ class ProbeCalibrationHandler(QWidget):
             self.display_probe_calib_status(transM, scale, L2_err, dist_traveled)
             if not self.viewTrajectory_btn.isVisible():
                 self.viewTrajectory_btn.show()
+            if not self.actionTrajectory.isEnabled():
+                self.actionTrajectory.setEnabled(True)
         else:
             logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 
@@ -578,6 +592,8 @@ class ProbeCalibrationHandler(QWidget):
         """
         if self.viewTrajectory_btn.isVisible():
             self.viewTrajectory_btn.hide()
+        if self.actionTrajectory.isEnabled():
+            self.actionTrajectory.setEnabled(False)
 
     def hide_calculation_btn(self):
         """
@@ -585,6 +601,8 @@ class ProbeCalibrationHandler(QWidget):
         """
         if self.calculation_btn.isVisible():
             self.calculation_btn.hide()
+        if self.actionCalculator.isEnabled():
+            self.actionCalculator.setEnabled(False)
 
     def hide_reticle_metadata_btn(self):
         """

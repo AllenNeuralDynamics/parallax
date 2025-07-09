@@ -8,7 +8,7 @@ initializing components, and linking user actions to calibration processes.
 
 import logging
 import os
-from PyQt5.QtWidgets import QSizePolicy, QSpacerItem, QWidget
+from PyQt5.QtWidgets import QSizePolicy, QSpacerItem, QWidget, QAction
 from PyQt5.uic import loadUi
 
 from parallax.stages.stage_listener import StageListener
@@ -28,7 +28,13 @@ logger.setLevel(logging.WARNING)
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
-    def __init__(self, model, screen_widgets, actionServer=None, actionSaveInfo=None):
+    def __init__(self,
+                 model,
+                 screen_widgets,
+                 actionServer: QAction=None,
+                 actionSaveInfo: QAction=None,
+                 actionTrajectory: QAction=None,
+                 actionCalculator: QAction=None):
         """
         Initializes the StageWidget instance with model, UI directory, and screen widgets.
 
@@ -42,6 +48,8 @@ class ControlPanel(QWidget):
         self.screen_widgets = screen_widgets
         self.actionServer = actionServer
         self.actionSaveInfo = actionSaveInfo
+        self.actionTrajectory = actionTrajectory
+        self.actionCalculator = actionCalculator
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(350)
 
@@ -56,7 +64,9 @@ class ControlPanel(QWidget):
             self.model,
             self.screen_widgets,
             self.filter,
-            self.reticle_selector
+            self.reticle_selector,
+            self.actionTrajectory,
+            self.actionCalculator
         )
         self.reticle_handler.reticleDetectionStatusChanged.connect(
             self.probe_calib_handler.reticle_detection_status_change

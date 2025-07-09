@@ -133,7 +133,7 @@ color: #FFFFFF;
     </property>
     <addaction name="actionServer"/>
     <addaction name="actionSaveInfo"/>
-    <addaction name="actionTranjectory"/>
+    <addaction name="actionTrajectory"/>
     <addaction name="actionCalculator"/>
    </widget>
    <widget class="QMenu" name="menuReticles">
@@ -192,7 +192,7 @@ color: #FFFFFF;
    </attribute>
    <addaction name="actionServer"/>
    <addaction name="actionSaveInfo"/>
-   <addaction name="actionTranjectory"/>
+   <addaction name="actionTrajectory"/>
    <addaction name="actionCalculator"/>
    <addaction name="separator"/>
   </widget>
@@ -321,7 +321,10 @@ color: #FFFFFF;
     <string>Reticles Metadata</string>
    </property>
   </action>
-  <action name="actionTranjectory">
+  <action name="actionTrajectory">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
      <normaloff>:/Icons/3D_map.png</normaloff>:/Icons/3D_map.png</iconset>
@@ -331,6 +334,9 @@ color: #FFFFFF;
    </property>
   </action>
   <action name="actionCalculator">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
      <normaloff>:/Icons/calc.png</normaloff>:/Icons/calc.png</iconset>

@@ -289,7 +289,7 @@ QPushButton:hover {
       </property>
       <property name="icon">
        <iconset>
-        <normaloff>resources/reticle_gray.png</normaloff>resources/reticle_gray.png</iconset>
+        <normaloff>resources/reticle_balck.png</normaloff>resources/reticle_balck.png</iconset>
       </property>
      </widget>
     </item>
