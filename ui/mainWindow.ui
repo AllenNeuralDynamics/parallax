@@ -132,7 +132,7 @@ color: #FFFFFF;
      <string>Stages</string>
     </property>
     <addaction name="actionServer"/>
-    <addaction name="actionSave_Info"/>
+    <addaction name="actionSaveInfo"/>
     <addaction name="actionTranjectory"/>
     <addaction name="actionCalculator"/>
    </widget>
@@ -191,7 +191,7 @@ color: #FFFFFF;
     <bool>false</bool>
    </attribute>
    <addaction name="actionServer"/>
-   <addaction name="actionSave_Info"/>
+   <addaction name="actionSaveInfo"/>
    <addaction name="actionTranjectory"/>
    <addaction name="actionCalculator"/>
    <addaction name="separator"/>
@@ -280,7 +280,7 @@ color: #FFFFFF;
     <string>Server Config</string>
    </property>
   </action>
-  <action name="actionSave_Info">
+  <action name="actionSaveInfo">
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
      <normaloff>:/Icons/save.png</normaloff>:/Icons/save.png</iconset>

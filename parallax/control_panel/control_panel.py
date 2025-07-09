@@ -28,7 +28,7 @@ logger.setLevel(logging.WARNING)
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
-    def __init__(self, model, screen_widgets, actionServer=None, menuStages=None):
+    def __init__(self, model, screen_widgets, actionServer=None, actionSaveInfo=None):
         """
         Initializes the StageWidget instance with model, UI directory, and screen widgets.
 
@@ -41,7 +41,7 @@ class ControlPanel(QWidget):
         self.model = model
         self.screen_widgets = screen_widgets
         self.actionServer = actionServer
-        self.menuStages = menuStages
+        self.actionSaveInfo = actionSaveInfo
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(350)
 
@@ -115,9 +115,8 @@ class ControlPanel(QWidget):
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
 
         # Start refreshing stage info
-        self.stageListener = StageListener(self.model, self.stageUI)
+        self.stageListener = StageListener(self.model, self.stageUI, self.actionSaveInfo)
         self.stageListener.start()
-
         self.probe_calib_handler.init_stages(self.stageListener, self.stageUI)
 
         # Stage Http Server

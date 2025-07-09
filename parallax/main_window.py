@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
         self.control_panel = ControlPanel(self.model,
                                           self.screen_widget_manager.screen_widgets,
                                           self.actionServer,
-                                          self.menuStages
+                                          self.actionSaveInfo,
                                         )
 
         # Wrap mdiArea inside a scroll area
