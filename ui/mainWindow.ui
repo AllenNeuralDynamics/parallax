@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>350</height>
+    <width>1018</width>
+    <height>624</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>800</width>
+    <width>0</width>
     <height>0</height>
    </size>
   </property>
@@ -97,8 +97,8 @@ color: #FFFFFF;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
-     <height>21</height>
+     <width>1018</width>
+     <height>31</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuCameras">
@@ -133,8 +133,27 @@ color: #FFFFFF;
     </property>
     <addaction name="actionServer"/>
     <addaction name="actionSave_Info"/>
+    <addaction name="actionTranjectory"/>
+    <addaction name="actionCalculator"/>
+   </widget>
+   <widget class="QMenu" name="menuReticles">
+    <property name="title">
+     <string>Reticles</string>
+    </property>
+    <widget class="QMenu" name="menuDetection">
+     <property name="title">
+      <string>Detection</string>
+     </property>
+     <addaction name="actionOpenCV"/>
+    </widget>
+    <addaction name="separator"/>
+    <addaction name="menuDetection"/>
+    <addaction name="actionTriangulate"/>
+    <addaction name="separator"/>
+    <addaction name="actionReticles_Metadata"/>
    </widget>
    <addaction name="menuCameras"/>
+   <addaction name="menuReticles"/>
    <addaction name="menuStages"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -173,6 +192,22 @@ color: #FFFFFF;
    </attribute>
    <addaction name="actionServer"/>
    <addaction name="actionSave_Info"/>
+   <addaction name="actionTranjectory"/>
+   <addaction name="actionCalculator"/>
+   <addaction name="separator"/>
+  </widget>
+  <widget class="QToolBar" name="toolBar_2">
+   <property name="windowTitle">
+    <string>toolBar_2</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionTriangulate"/>
+   <addaction name="actionReticles_Metadata"/>
   </widget>
   <action name="actionStreaming">
    <property name="checkable">
@@ -254,12 +289,54 @@ color: #FFFFFF;
     <string>Save Info</string>
    </property>
   </action>
-  <action name="actionMock_Camera">
-   <property name="checkable">
-    <bool>true</bool>
+  <action name="actionMetadata">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/reticle_balck.png</normaloff>:/Icons/reticle_balck.png</iconset>
    </property>
    <property name="text">
-    <string>Mock Camera</string>
+    <string>Metadata</string>
+   </property>
+  </action>
+  <action name="actionOpenCV">
+   <property name="text">
+    <string>OpenCV</string>
+   </property>
+  </action>
+  <action name="actionTriangulate">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/triangle.png</normaloff>:/Icons/triangle.png</iconset>
+   </property>
+   <property name="text">
+    <string>Triangulate</string>
+   </property>
+  </action>
+  <action name="actionReticles_Metadata">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/reticle_balck.png</normaloff>:/Icons/reticle_balck.png</iconset>
+   </property>
+   <property name="text">
+    <string>Reticles Metadata</string>
+   </property>
+  </action>
+  <action name="actionTranjectory">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/3D_map.png</normaloff>:/Icons/3D_map.png</iconset>
+   </property>
+   <property name="text">
+    <string>Tranjectory</string>
+   </property>
+  </action>
+  <action name="actionCalculator">
+   <property name="icon">
+    <iconset resource="resources/resources_from_qt.qrc">
+     <normaloff>:/Icons/calc.png</normaloff>:/Icons/calc.png</iconset>
+   </property>
+   <property name="text">
+    <string>Calculator</string>
    </property>
   </action>
  </widget>

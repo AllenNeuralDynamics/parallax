@@ -82,7 +82,11 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self.mdiArea, self.menuDevices)
 
         # Control Panel
-        self.control_panel = ControlPanel(self.model, self.screen_widget_manager.screen_widgets)
+        self.control_panel = ControlPanel(self.model,
+                                          self.screen_widget_manager.screen_widgets,
+                                          self.actionServer,
+                                          self.menuStages
+                                        )
 
         # Wrap mdiArea inside a scroll area
         scroll_area = QScrollArea()

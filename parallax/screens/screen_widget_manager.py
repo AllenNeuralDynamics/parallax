@@ -40,6 +40,7 @@ class ScreenWidgetManager(QObject):
             self._add_screen_subwindow(i)
 
         self._device_menu()
+        self._resize_mdi_area_to_fit()
 
     def start_streaming(self):
         """Start camera acquisition and refresh only for visible screens."""
@@ -48,7 +49,6 @@ class ScreenWidgetManager(QObject):
             sn = screen.camera.name(sn_only=True)
             if self.model.cameras.get(sn, {}).get('visible', False):
                 screen.start_acquisition_camera()
-                print("Camera acquisition started for:", sn)
 
         self.refresh_timer.timeout.connect(self._refresh_screens)
         self.refresh_timer.start(125)
@@ -153,20 +153,21 @@ class ScreenWidgetManager(QObject):
         # Track screen widget and subwindow
         self.screen_widgets.append(screen)
         self.subwindows.append((name, sub))
-        self._resize_mdi_area_to_fit()
 
     def _get_size(self):
-        """Return width and height based on half the mdi_area's width and a 4:3 aspect ratio."""
+        """Return width and height to fit subwindows inside mdiArea in a 2-column layout."""
         total_width = self.mdi_area.viewport().width()
-        width = total_width // 2
-        height = int(width * 3 / 4)
-        width, height = (800, 600)
+        columns = 2
+        spacing = 10
+        width = (total_width - (columns + 1) * spacing) // columns
+        height = int(width * 3 / 4)  # 4:3 aspect ratio
+
         return width, height
 
     def _get_pos(self, index: int):
         """Return (x, y) position for a given index in a 2-column layout."""
         width, height = self._get_size()
-        spacing = 10
+        spacing = 2
         columns = 2
         col = index % columns
         row = index // columns

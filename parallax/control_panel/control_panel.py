@@ -28,7 +28,7 @@ logger.setLevel(logging.WARNING)
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
-    def __init__(self, model, screen_widgets):
+    def __init__(self, model, screen_widgets, actionServer=None, menuStages=None):
         """
         Initializes the StageWidget instance with model, UI directory, and screen widgets.
 
@@ -40,6 +40,8 @@ class ControlPanel(QWidget):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
+        self.actionServer = actionServer
+        self.menuStages = menuStages
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(350)
 
@@ -79,6 +81,8 @@ class ControlPanel(QWidget):
         # Stage Server IP Config
         self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages
         self.stage_server_ipconfig_btn.clicked.connect(self.stage_server_ipconfig_btn_handler)
+        if self.actionServer is not None:
+            self.actionServer.triggered.connect(self.stage_server_ipconfig_btn_handler)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.refresh_stages)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.probe_calib_handler.refresh_stages)
 
