@@ -19,11 +19,16 @@ logger = logging.getLogger(__name__)
 
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
-    def __init__(self, model, screen_widgets, filter, reticle_selector, actionTrajectory: QAction=None, actionCalculator: QAction=None):
-        """
-        Args:
-            stage_widget (StageWidget): Reference to the parent StageWidget instance.
-        """
+    def __init__(
+            self,
+            model,
+            screen_widgets,
+            filter,
+            reticle_selector,
+            actionTrajectory: QAction = None,
+            actionCalculator: QAction = None,
+            actionReticlesMetadata: QAction = None,
+        ):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
@@ -31,6 +36,7 @@ class ProbeCalibrationHandler(QWidget):
         self.reticle_selector_comboBox = reticle_selector    # Combobox for reticle selector
         self.actionTrajectory = actionTrajectory
         self.actionCalculator = actionCalculator
+        self.actionReticlesMetadata = actionReticlesMetadata
 
         self.reticle_detection_status = "default"  # options: default, process, accepted
         self.selected_stage_id = None
@@ -75,6 +81,8 @@ class ProbeCalibrationHandler(QWidget):
         self.reticle_metadata_btn.clicked.connect(self.reticle_button_handler)
         self.reticle_metadata_btn.hide()
         self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector_comboBox)
+        if self.actionReticlesMetadata is not None:
+            self.actionReticlesMetadata.triggered.connect(self.reticle_button_handler)
 
     def init_stages(self, stageListener, stageUI):
         """Initializes the probe calibration handler with stage listener and UI."""

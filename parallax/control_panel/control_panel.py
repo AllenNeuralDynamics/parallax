@@ -76,7 +76,8 @@ class ControlPanel(QWidget):
             self.filter,
             self.reticle_selector,
             self.actionTrajectory,
-            self.actionCalculator
+            self.actionCalculator,
+            self.actionReticlesMetadata
         )
         self.reticle_handler.reticleDetectionStatusChanged.connect(
             self.probe_calib_handler.reticle_detection_status_change

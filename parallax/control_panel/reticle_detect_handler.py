@@ -43,7 +43,8 @@ class ReticleDetecthandler(QWidget):
             "default"  # options: default, detected, accepted
         )
         self.triangulate_btn.clicked.connect(self.triangulate_btn_handler)
-        self.actionTriangulate.triggered.connect(self._check_triangulate_btn)
+        if self.actionTriangulate is not None:
+            self.actionTriangulate.triggered.connect(self._check_triangulate_btn)
 
         # Hide Accept and Reject Button in Reticle Detection
         self.acceptButton.hide()

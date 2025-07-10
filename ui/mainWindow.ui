@@ -140,14 +140,7 @@ color: #FFFFFF;
     <property name="title">
      <string>Reticles</string>
     </property>
-    <widget class="QMenu" name="menuDetection">
-     <property name="title">
-      <string>Detection</string>
-     </property>
-     <addaction name="actionOpenCV"/>
-    </widget>
     <addaction name="separator"/>
-    <addaction name="menuDetection"/>
     <addaction name="actionTriangulate"/>
     <addaction name="separator"/>
     <addaction name="actionReticlesMetadata"/>
