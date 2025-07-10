@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1018</width>
+    <width>762</width>
     <height>624</height>
    </rect>
   </property>
@@ -97,8 +97,8 @@ color: #FFFFFF;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1018</width>
-     <height>31</height>
+     <width>762</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuCameras">
@@ -150,7 +150,7 @@ color: #FFFFFF;
     <addaction name="menuDetection"/>
     <addaction name="actionTriangulate"/>
     <addaction name="separator"/>
-    <addaction name="actionReticles_Metadata"/>
+    <addaction name="actionReticlesMetadata"/>
    </widget>
    <addaction name="menuCameras"/>
    <addaction name="menuReticles"/>
@@ -207,7 +207,7 @@ color: #FFFFFF;
     <bool>false</bool>
    </attribute>
    <addaction name="actionTriangulate"/>
-   <addaction name="actionReticles_Metadata"/>
+   <addaction name="actionReticlesMetadata"/>
   </widget>
   <action name="actionStreaming">
    <property name="checkable">
@@ -312,7 +312,7 @@ color: #FFFFFF;
     <string>Triangulate</string>
    </property>
   </action>
-  <action name="actionReticles_Metadata">
+  <action name="actionReticlesMetadata">
    <property name="icon">
     <iconset resource="resources/resources_from_qt.qrc">
      <normaloff>:/Icons/reticle_balck.png</normaloff>:/Icons/reticle_balck.png</iconset>

@@ -29,12 +29,15 @@ class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
     def __init__(self,
-                 model,
-                 screen_widgets,
-                 actionServer: QAction=None,
-                 actionSaveInfo: QAction=None,
-                 actionTrajectory: QAction=None,
-                 actionCalculator: QAction=None):
+            model,
+            screen_widgets,
+            actionServer: QAction=None,
+            actionSaveInfo: QAction=None,
+            actionTrajectory: QAction=None,
+            actionCalculator: QAction=None,
+            actionTriangulate: QAction=None,
+            actionReticlesMetadata: QAction=None
+        ):
         """
         Initializes the StageWidget instance with model, UI directory, and screen widgets.
 
@@ -50,6 +53,8 @@ class ControlPanel(QWidget):
         self.actionSaveInfo = actionSaveInfo
         self.actionTrajectory = actionTrajectory
         self.actionCalculator = actionCalculator
+        self.actionTriangulate = actionTriangulate
+        self.actionReticlesMetadata = actionReticlesMetadata
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(350)
 
@@ -57,7 +62,12 @@ class ControlPanel(QWidget):
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
-        self.reticle_handler = ReticleDetecthandler(model, self.screen_widgets, self.filter)
+        self.reticle_handler = ReticleDetecthandler(
+                model,
+                self.screen_widgets,
+                self.filter,
+                self.actionTriangulate
+            )
         self.stage_status_ui.layout().addWidget(self.reticle_handler)
 
         self.probe_calib_handler = ProbeCalibrationHandler(

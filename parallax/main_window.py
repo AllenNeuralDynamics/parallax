@@ -87,7 +87,9 @@ class MainWindow(QMainWindow):
                                           self.actionServer,
                                           self.actionSaveInfo,
                                           self.actionTrajectory,
-                                          self.actionCalculator
+                                          self.actionCalculator,
+                                          self.actionTriangulate,
+                                          self.actionReticlesMetadata
                                         )
 
         # Wrap mdiArea inside a scroll area
@@ -120,6 +122,7 @@ class MainWindow(QMainWindow):
 
         # Toggle start button on init
         self.start_button_handler()
+
 
     def _set_font(self):
         """

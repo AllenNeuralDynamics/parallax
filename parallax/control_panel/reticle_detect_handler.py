@@ -2,7 +2,7 @@
 import logging
 import os
 from PyQt5.QtCore import QTimer, pyqtSignal
-from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
+from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget, QAction
 from PyQt5.uic import loadUi
 from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
@@ -15,7 +15,7 @@ class ReticleDetecthandler(QWidget):
     """Handles reticle detection and calibration in the Parallax control panel."""
     reticleDetectionStatusChanged = pyqtSignal(str)
 
-    def __init__(self, model, screen_widgets, filter):
+    def __init__(self, model, screen_widgets, filter, actionTriangulate: QAction=None):
         """
         Args:
             stage_widget (StageWidget): Reference to the parent StageWidget instance.
@@ -24,6 +24,7 @@ class ReticleDetecthandler(QWidget):
         self.model = model
         self.screen_widgets = screen_widgets
         self.filter = filter  # TODO move filter to screen widget
+        self.actionTriangulate = actionTriangulate
         self.camera_handler = StereoCameraHandler(model, self.screen_widgets)
 
         # UI
@@ -41,9 +42,8 @@ class ReticleDetecthandler(QWidget):
         self.reticle_detection_status = (
             "default"  # options: default, detected, accepted
         )
-        self.triangulate_btn.clicked.connect(
-            self.triangulate_btn_handler
-        )
+        self.triangulate_btn.clicked.connect(self.triangulate_btn_handler)
+        self.actionTriangulate.triggered.connect(self._check_triangulate_btn)
 
         # Hide Accept and Reject Button in Reticle Detection
         self.acceptButton.hide()
@@ -54,6 +54,9 @@ class ReticleDetecthandler(QWidget):
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
+
+    def _check_triangulate_btn(self):
+        self.triangulate_btn.click()
 
     def triangulate_btn_handler(self):
         """
