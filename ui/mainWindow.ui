@@ -124,8 +124,7 @@ color: #FFFFFF;
     </property>
     <addaction name="actionDocumentation"/>
     <addaction name="separator"/>
-    <addaction name="actionAbout"/>
-    <addaction name="actionContact_Support"/>
+    <addaction name="actionContactSupport"/>
    </widget>
    <widget class="QMenu" name="menuStages">
     <property name="title">
@@ -259,7 +258,7 @@ color: #FFFFFF;
     <string>About</string>
    </property>
   </action>
-  <action name="actionContact_Support">
+  <action name="actionContactSupport">
    <property name="text">
     <string>Contact Support</string>
    </property>

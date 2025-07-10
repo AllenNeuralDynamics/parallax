@@ -13,6 +13,7 @@ Classes:
 
 import logging
 import os
+import webbrowser
 
 from PyQt5.QtCore import QStandardPaths
 from PyQt5.QtGui import QFont, QFontDatabase
@@ -27,6 +28,7 @@ from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from parallax.config.config_path import ui_dir, fira_font_dir
 from ui.resources import rc 
+
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -123,6 +125,14 @@ class MainWindow(QMainWindow):
         # Toggle start button on init
         self.start_button_handler()
 
+        # actionDocumentation
+        self.actionDocumentation.triggered.connect(
+            lambda: webbrowser.open("https://parallax.readthedocs.io/")
+        )
+
+        self.actionContactSupport.triggered.connect(
+            lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
+        )
 
     def _set_font(self):
         """
