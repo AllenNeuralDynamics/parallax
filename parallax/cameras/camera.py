@@ -439,7 +439,7 @@ class PySpinCamera(BaseCamera):
         Begins the image acquisition process in continuous mode and starts the capture loop in a separate thread.
         """
         if self.running:
-            print("Error: camera is already running")
+            logger.debug("Error: camera is already running")
             return -1
 
         try:

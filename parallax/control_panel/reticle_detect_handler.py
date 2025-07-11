@@ -308,6 +308,9 @@ class ReticleDetecthandler(QWidget):
         candidates = detected & visible             # cameras that are both detected and currently visible
 
         pos_x_detected = {sn for sn in candidates if self.model.get_pos_x(sn) is not None}
+        print("\nCandidates cameras:", candidates)
+        print("visible cameras:", visible)
+        print("Detected cameras with positive x-axis:", pos_x_detected)
 
         return candidates == pos_x_detected
 

@@ -47,10 +47,12 @@ class ScreenWidgetManager(QObject):
     def start_streaming(self):
         """Start camera acquisition and refresh only for visible screens."""
         self.model.refresh_camera = True
+
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
             if self.model.cameras.get(sn, {}).get('visible', False):
                 screen.start_acquisition_camera()
+                logger.debug("Camera acquisition started for:", sn)
 
         self.refresh_timer.timeout.connect(self._refresh_screens)
         self.refresh_timer.start(125)
@@ -65,7 +67,7 @@ class ScreenWidgetManager(QObject):
             sn = screen.camera.name(sn_only=True)
             if self.model.cameras.get(sn, {}).get('visible', False):
                 screen.stop_acquisition_camera()
-                print("Camera acquisition stopped for:", sn)
+                logger.debug("Camera acquisition stopped for:", sn)
 
     def _refresh_screens(self):
         """Refresh only visible screens."""
@@ -88,12 +90,12 @@ class ScreenWidgetManager(QObject):
             self.model.set_camera_visibility(sn, True)
             if self.model.refresh_camera:
                 screen.start_acquisition_camera()
-                print("Camera acquisition started for:", sn)
+                logger.debug("Camera acquisition started for:", sn)
         else:
             self.model.set_camera_visibility(sn, False)
             if self.model.refresh_camera:
                 screen.stop_acquisition_camera()
-                print("Camera acquisition stopped for:", sn)
+                logger.debug("Camera acquisition stopped for:", sn)
 
     def _add_screen_dock(self, screen_index: int):
         name = f"Microscope {screen_index + 1}"
@@ -133,11 +135,13 @@ class ScreenWidgetManager(QObject):
 
         # Sync visibility to menu action (when dock is closed or reopened)
         def sync_action_to_dock_visibility(visible, sw=dock):
+            logger.debug("Dock visibility changed:", visible, "for", sw.objectName())
             action = self.menu_actions.get(sw)
             if action:
                 action.blockSignals(True)
                 action.setChecked(visible)
                 action.blockSignals(False)
+            self._toggle_streaming(visible, sn)
 
         dock.visibilityChanged.connect(sync_action_to_dock_visibility)
         self.main_window.addDockWidget(Qt.LeftDockWidgetArea, dock)
@@ -145,45 +149,13 @@ class ScreenWidgetManager(QObject):
         self.screen_widgets.append(screen)
         self.dock_widgets.append((name, dock))
 
-
-    def list_screen_widgets(self):
-        return self.screen_widgets
-
-    def _toggle_visibility(self, checked, dock_widget):
-        self._update_active_camera_list(dock_widget, visible=checked)
-
-        for name, dw in self.dock_widgets:
-            if dw == dock_widget:
-                index = self.dock_widgets.index((name, dw))
-                sn = list(self.model.cameras.keys())[index]
-                break
-        else:
-            return
-
-        self._toggle_streaming(checked, sn)
-        dock_widget.setVisible(checked)
-
-    def _update_active_camera_list(self, dock_widget, visible: bool):
-        for name, dw in self.dock_widgets:
-            if dw == dock_widget:
-                index = self.dock_widgets.index((name, dw))
-                serial_number = list(self.model.cameras.keys())[index]
-                break
-        else:
-            return
-
-        self.model.set_camera_visibility(serial_number, visible)
-
-    def _close_event(self, event, subwindow):
-        action = self.menu_actions.get(subwindow)
-        if action:
-            action.setChecked(False)
-        event.accept()
-
     def _device_menu(self):
         for name, dock in self.dock_widgets:
             action = self.device_menu.addAction(name)
             action.setCheckable(True)
             action.setChecked(True)
-            action.toggled.connect(lambda checked, sw=dock: self._toggle_visibility(checked, sw))
+            action.toggled.connect(lambda checked, dock=dock: self._toggle_visibility(checked, dock))
             self.menu_actions[dock] = action
+
+    def _toggle_visibility(self, checked, dock_widget):
+        dock_widget.setVisible(checked)
