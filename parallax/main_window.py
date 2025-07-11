@@ -19,7 +19,7 @@ from PyQt5.QtCore import QStandardPaths
 from PyQt5.QtGui import QFont, QFontDatabase
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import (QApplication, QFileDialog,
-                             QMainWindow, QScrollArea, QSplitter)
+                             QMainWindow, QSplitter)
 from PyQt5.uic import loadUi
 
 from parallax.handlers.recording_manager import RecordingManager
@@ -73,7 +73,6 @@ class MainWindow(QMainWindow):
 
         # Load existing user preferences
         _, self.dir, width, height = (UserSettingsManager.load_mainWindow_settings())
-        #self.dirLabel.setText(directory)
         if width is not None and height is not None:
             self.resize(width, height)
 
@@ -81,8 +80,6 @@ class MainWindow(QMainWindow):
         self.actionDir.triggered.connect(self.dir_setting_handler)
 
         # Dynamically generate Microscope display
-        #self.screen_widget_manager = ScreenWidgetManager(self.model, self.mdiArea, self.menuDevices)
-        #self.setCentralWidget(self.viewer)  # e.g. your main central camera view
         self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
@@ -95,11 +92,6 @@ class MainWindow(QMainWindow):
                                           self.actionTriangulate,
                                           self.actionReticlesMetadata
                                         )
-
-        # Wrap mdiArea inside a scroll area
-        #scroll_area = QScrollArea()
-        #scroll_area.setWidgetResizable(True)
-        #scroll_area.setWidget(self.mdiArea)
 
         # Add to splitter
         splitter = QSplitter()
