@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>620</width>
-    <height>240</height>
+    <width>407</width>
+    <height>222</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -78,9 +78,19 @@ QMenuBar::item:selected {
     background: #bbbbbb;
     color: black;
 }
-</string>
+
+QMenu::item:selected {
+    background-color: #bbbbbb;
+    color: black;
+}</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="maximumSize">
+    <size>
+     <width>400</width>
+     <height>16777215</height>
+    </size>
+   </property>
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="1" column="0">
      <layout class="QVBoxLayout" name="verticalLayout">
@@ -105,7 +115,7 @@ QMenuBar::item:selected {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>620</width>
+     <width>407</width>
      <height>21</height>
     </rect>
    </property>

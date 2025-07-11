@@ -96,7 +96,7 @@ class ScreenWidgetManager(QObject):
                 print("Camera acquisition stopped for:", sn)
 
     def _add_screen_dock(self, screen_index: int):
-        name = f"Microscope_{screen_index + 1}"
+        name = f"Microscope {screen_index + 1}"
         group_box = QGroupBox(name)
         group_box.setObjectName(name)
         group_box.setStyleSheet("background-color: rgb(25, 25, 25);")
@@ -129,6 +129,7 @@ class ScreenWidgetManager(QObject):
         dock.setObjectName(name)
         dock.setFloating(False)
         dock.setMinimumWidth(300)
+        dock.setWindowIcon(QIcon(os.path.join(ui_dir, "resources", "microscope.png")))
 
         # Sync visibility to menu action (when dock is closed or reopened)
         def sync_action_to_dock_visibility(visible, sw=dock):
