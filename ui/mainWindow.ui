@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>762</width>
-    <height>624</height>
+    <width>620</width>
+    <height>240</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -24,28 +24,61 @@
     <normaloff>resources/sextant.png</normaloff>resources/sextant.png</iconset>
   </property>
   <property name="styleSheet">
-   <string notr="true">QWidget{
-background-color: rgb(00,00,00);
-color: #FFFFFF;
+   <string notr="true">QWidget {
+    background-color: rgb(0, 0, 0);
+    color: #FFFFFF;
 }
-QPushButton{
-	background-color: black;
+
+QPushButton {
+    background-color: black;
 }
- QPushButton:pressed {
-     background-color: rgb(224, 0, 0);     
+
+QPushButton:pressed {
+    background-color: rgb(224, 0, 0);
 }
+
 QPushButton:hover {
-     background-color: rgb(100, 30, 30);
+    background-color: rgb(100, 30, 30);
 }
+
 QPushButton#startButton:disabled:checked {
-	color: gray;
+    color: gray;
+    background-color: #ffaaaa;
 }
-QPushButton#startButton:disabled:checked {
-	background-color: #ffaaaa;
-}
+
 QPushButton#startButton:disabled:!checked {
-	background-color: lightGreen;
-}</string>
+    background-color: lightGreen;
+}
+
+QDockWidget::title {
+    color: black;
+    background-color: rgb(20, 20, 20);
+    padding-left: 5px;
+    font-weight: bold;
+}
+
+QTabBar::tab {
+    background: #2d2d2d;
+    color: white;
+    padding: 6px;
+    border: 1px solid #555;
+}
+
+QTabBar::tab:selected {
+    background: #444;
+    font-weight: bold;
+}
+
+QTabWidget::pane {
+    border-top: 2px solid #555;
+    background-color: #1e1e1e;
+}
+
+QMenuBar::item:selected {
+    background: #bbbbbb;
+    color: black;
+}
+</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
@@ -63,31 +96,6 @@ QPushButton#startButton:disabled:!checked {
       <property name="bottomMargin">
        <number>10</number>
       </property>
-      <item>
-       <widget class="QMdiArea" name="mdiArea">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QWidget{
-background-color: rgb(11,11,11);
-color: #FFFFFF;
-}</string>
-        </property>
-        <property name="background">
-         <brush brushstyle="SolidPattern">
-          <color alpha="255">
-           <red>47</red>
-           <green>47</green>
-           <blue>47</blue>
-          </color>
-         </brush>
-        </property>
-       </widget>
-      </item>
      </layout>
     </item>
    </layout>
@@ -97,7 +105,7 @@ color: #FFFFFF;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>762</width>
+     <width>620</width>
      <height>21</height>
     </rect>
    </property>

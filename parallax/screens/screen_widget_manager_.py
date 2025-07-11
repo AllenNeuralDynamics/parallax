@@ -8,8 +8,6 @@ from PyQt5.QtWidgets import (
     QMdiSubWindow,
     QMdiArea,
     QMenu,
-    QMainWindow,
-    QDockWidget,
 )
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtCore import Qt, QTimer, QEvent, QObject
@@ -26,23 +24,23 @@ logger = logging.getLogger(__name__)
 class ScreenWidgetManager(QObject):
     """Manages microscope display and settings."""
 
-    def __init__(self, model, main_window: QMainWindow, device_menu: QMenu):
+    def __init__(self, model, mdi_area: QMdiArea, device_menu: QMenu):
         super().__init__()
         self.model = model
-        self.main_window = main_window
+        self.mdi_area = mdi_area
         self.device_menu = device_menu
         self.screen_widgets = []
-        self.dock_widgets = []
-        self.menu_actions = {}
+        self.subwindows = []
+        self.menu_actions = {}  # Maps subwindows to their corresponding menu actions
 
         self.refresh_timer = QTimer()
 
-        self.main_window.setDockNestingEnabled(True)
         n_cams = len(self.model.cameras)
         for i in range(n_cams):
-            self._add_screen_dock(i)
+            self._add_screen_subwindow(i)
 
         self._device_menu()
+        self._resize_mdi_area_to_fit()
 
     def start_streaming(self):
         """Start camera acquisition and refresh only for visible screens."""
@@ -74,7 +72,7 @@ class ScreenWidgetManager(QObject):
             if self.model.cameras.get(sn, {}).get('visible', False):
                 screen.refresh()
 
-    def _toggle_streaming(self, on: bool, sn: str):
+    def _request_streaming(self, on: bool, sn: str):
         """Start or stop streaming for a specific camera based on visibility toggle."""
         camera_data = self.model.cameras.get(sn, None)
         if not camera_data:
@@ -95,7 +93,7 @@ class ScreenWidgetManager(QObject):
                 screen.stop_acquisition_camera()
                 print("Camera acquisition stopped for:", sn)
 
-    def _add_screen_dock(self, screen_index: int):
+    def _add_screen_subwindow(self, screen_index: int):
         name = f"Microscope_{screen_index + 1}"
         group_box = QGroupBox(name)
         group_box.setObjectName(name)
@@ -105,11 +103,15 @@ class ScreenWidgetManager(QObject):
         group_box.setFont(font_grpbox)
         layout = QVBoxLayout(group_box)
 
+        # Screen
         sn = list(self.model.cameras.keys())[screen_index]
         camera = self.model.cameras[sn]['obj']
 
-        # Screen
-        screen = ScreenWidget(camera, model=self.model, parent=group_box)
+        screen = ScreenWidget(
+            camera,
+            model=self.model,
+            parent=group_box,
+        )
         screen.setObjectName("Screen")
         layout.addWidget(screen)
 
@@ -122,50 +124,95 @@ class ScreenWidgetManager(QObject):
         button_row.addWidget(reticle_detector.detectButton)
         layout.addLayout(button_row)
 
-        # Create QDockWidget
-        dock = QDockWidget(name, self.main_window)
-        dock.setWidget(group_box)
-        dock.setAllowedAreas(Qt.LeftDockWidgetArea)
-        dock.setObjectName(name)
-        dock.setFloating(False)
-        dock.setMinimumWidth(300)
+        # Wrap QGroupBox in a QWidget for subwindow
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.addWidget(group_box)
+        container_layout.setContentsMargins(10, 5, 5, 5)
 
-        # Sync visibility to menu action (when dock is closed or reopened)
-        def sync_action_to_dock_visibility(visible, sw=dock):
-            action = self.menu_actions.get(sw)
-            if action:
-                action.blockSignals(True)
-                action.setChecked(visible)
-                action.blockSignals(False)
+        # Subwindow setup
+        sub = QMdiSubWindow()
+        sub.setWidget(container)
+        sub.setWindowTitle(name)
+        sub.setWindowIcon(QIcon(os.path.join(ui_dir, "resources", "sextant.png")))
+        sub.setStyleSheet("QMdiSubWindow { background-color: white; }")
 
-        dock.visibilityChanged.connect(sync_action_to_dock_visibility)
-        self.main_window.addDockWidget(Qt.LeftDockWidgetArea, dock)
+        width, height = self._get_size()
+        sub.resize(width, height)
+        x, y = self._get_pos(screen_index)
+        sub.move(x, y)
+        self.mdi_area.addSubWindow(sub)
 
+        # Install event filter to track move/resize
+        sub.installEventFilter(self)
+
+        # Install custom closeEvent handler to sync menu toggle
+        sub.closeEvent = lambda event, sw=sub: self._close_event(event, sw)
+        sub.show()
+
+        # Track screen widget and subwindow
         self.screen_widgets.append(screen)
-        self.dock_widgets.append((name, dock))
+        self.subwindows.append((name, sub))
 
+    def _get_size(self):
+        """Return width and height to fit subwindows inside mdiArea in a 2-column layout."""
+        total_width = self.mdi_area.viewport().width()
+        columns = 2
+        spacing = 10
+        width = (total_width - (columns + 1) * spacing) // columns
+        height = int(width * 3 / 4)  # 4:3 aspect ratio
+
+        return width, height
+
+    def _get_pos(self, index: int):
+        """Return (x, y) position for a given index in a 2-column layout."""
+        width, height = self._get_size()
+        spacing = 2
+        columns = 2
+        col = index % columns
+        row = index // columns
+        x = col * (width + spacing)
+        y = row * (height + spacing)
+        return x, y
+
+    def _resize_mdi_area_to_fit(self):
+        if not self.mdi_area.subWindowList():
+            return
+
+        right = bottom = 0
+        for sub in self.mdi_area.subWindowList():
+            geom = sub.geometry()
+            right = max(right, geom.x() + geom.width())
+            bottom = max(bottom, geom.y() + geom.height())
+
+        self.mdi_area.setMinimumSize(right, bottom)
+
+    def eventFilter(self, obj, event):
+        if isinstance(obj, QMdiSubWindow):
+            if event.type() in (QEvent.Move, QEvent.Resize):
+                self._resize_mdi_area_to_fit()
+        return False
 
     def list_screen_widgets(self):
         return self.screen_widgets
 
-    def _toggle_visibility(self, checked, dock_widget):
-        self._update_active_camera_list(dock_widget, visible=checked)
-
-        for name, dw in self.dock_widgets:
-            if dw == dock_widget:
-                index = self.dock_widgets.index((name, dw))
+    def _toggle_visibility(self, checked, subwindow):
+        self._update_active_camera_list(subwindow, visible=checked)
+        for name, sw in self.subwindows:
+            if sw == subwindow:
+                index = self.subwindows.index((name, sw))
                 sn = list(self.model.cameras.keys())[index]
                 break
         else:
             return
 
-        self._toggle_streaming(checked, sn)
-        dock_widget.setVisible(checked)
+        self._request_streaming(checked, sn)
+        subwindow.setVisible(checked)
 
-    def _update_active_camera_list(self, dock_widget, visible: bool):
-        for name, dw in self.dock_widgets:
-            if dw == dock_widget:
-                index = self.dock_widgets.index((name, dw))
+    def _update_active_camera_list(self, subwindow, visible: bool):
+        for name, sw in self.subwindows:
+            if sw == subwindow:
+                index = self.subwindows.index((name, sw))
                 serial_number = list(self.model.cameras.keys())[index]
                 break
         else:
@@ -180,9 +227,9 @@ class ScreenWidgetManager(QObject):
         event.accept()
 
     def _device_menu(self):
-        for name, dock in self.dock_widgets:
+        for name, subwindow in self.subwindows:
             action = self.device_menu.addAction(name)
             action.setCheckable(True)
             action.setChecked(True)
-            action.toggled.connect(lambda checked, sw=dock: self._toggle_visibility(checked, sw))
-            self.menu_actions[dock] = action
+            action.toggled.connect(lambda checked, sw=subwindow: self._toggle_visibility(checked, sw))
+            self.menu_actions[subwindow] = action
