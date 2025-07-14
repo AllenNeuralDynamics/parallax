@@ -75,7 +75,7 @@ class CurrBgCmpProcessor():
         """
         self.reticle_zone = reticle_zone
 
-    def first_cmp(self, curr_img, mask, org_img):
+    def first_cmp(self, org_img, mask, running_flag=lambda: True):
         """Perform first comparison
 
         Args:
@@ -87,24 +87,31 @@ class CurrBgCmpProcessor():
             bool: True if probe is detected, False otherwise.
         """
         logger.debug("CurrBgCmpProcessor::first_cmp")
-        ret, ret_precise_tip = False, False
         self.mask = mask
-        self.curr_img = curr_img
+        self.curr_img = org_img
         self.curr_img = self._get_binary(self.curr_img)
         if self.bg is None:
             self._create_bg(self.curr_img)
+        if not running_flag():
+            return False
+
         self._preprocess_diff_image(self.curr_img)
+        if not running_flag():
+            return False
+
         ret = self._detect_probe()
+        if not running_flag():
+            return False
+
         if ret:
-            logger.debug("FirstCurrBgCmpProcessor:: detect")
-            ret_precise_tip = self._get_precise_tip(org_img)
+            #ret_precise_tip = self._get_precise_tip(org_img)
             self.bg = cv2.bitwise_not(
                 cv2.bitwise_xor(self.diff_img, self.curr_img), mask=self.mask
             )
 
-        return ret, ret_precise_tip
+        return ret
 
-    def update_cmp(self, curr_img, mask, org_img):
+    def update_cmp(self, curr_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True):
         """Update the comparison.
 
         Args:
@@ -115,22 +122,34 @@ class CurrBgCmpProcessor():
         Returns:
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
-        ret, ret_precise_tip_ret = False, False
         self.mask = mask
         self.ProbeDetector.probe_tip_org = None
         self.curr_img = curr_img
         self.curr_img = self._get_binary(self.curr_img)
         if self.bg is None:
             self._create_bg(self.curr_img)
+        if not running_flag():
+            return False
 
         self._preprocess_diff_image(self.curr_img)
+        if not running_flag():
+            return False
         ret = self._update_crop()
+        if not running_flag():
+            return False
         if ret:
-            ret_precise_tip_ret = self._get_precise_tip(org_img)
-            if ret_precise_tip_ret:
-                self._update_bg(extended_offset=10)
-
-        logger.debug(f"update: {ret}, precise_tip: {ret_precise_tip_ret}")
+            if get_fine_tip:
+                if not self._get_precise_tip(org_img):
+                    return False
+            else:
+                self.ProbeDetector.probe_tip_org = UtilsCoords.scale_coords_to_original(
+                    self.ProbeDetector.probe_tip,
+                    self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                )
+            if not running_flag():
+                return False
+            #if ret_precise_tip_ret:
+            self._update_bg(extended_offset=10)
 
         if logger.getEffectiveLevel() == logging.DEBUG:
             save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_bg.jpg")
@@ -138,7 +157,7 @@ class CurrBgCmpProcessor():
             save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_diff.jpg")
             cv2.imwrite(save_path, self.diff_img)
 
-        return ret, ret_precise_tip_ret
+        return ret
 
     def _update_bg(self, extended_offset=10):
         """Update the background image."""

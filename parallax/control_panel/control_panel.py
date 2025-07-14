@@ -8,7 +8,7 @@ initializing components, and linking user actions to calibration processes.
 
 import logging
 import os
-from PyQt5.QtWidgets import QSizePolicy, QSpacerItem, QWidget
+from PyQt5.QtWidgets import QSizePolicy, QSpacerItem, QWidget, QAction
 from PyQt5.uic import loadUi
 
 from parallax.stages.stage_listener import StageListener
@@ -28,7 +28,16 @@ logger.setLevel(logging.WARNING)
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
-    def __init__(self, model, screen_widgets):
+    def __init__(self,
+            model,
+            screen_widgets,
+            actionServer: QAction=None,
+            actionSaveInfo: QAction=None,
+            actionTrajectory: QAction=None,
+            actionCalculator: QAction=None,
+            actionTriangulate: QAction=None,
+            actionReticlesMetadata: QAction=None
+        ):
         """
         Initializes the StageWidget instance with model, UI directory, and screen widgets.
 
@@ -40,6 +49,12 @@ class ControlPanel(QWidget):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
+        self.actionServer = actionServer
+        self.actionSaveInfo = actionSaveInfo
+        self.actionTrajectory = actionTrajectory
+        self.actionCalculator = actionCalculator
+        self.actionTriangulate = actionTriangulate
+        self.actionReticlesMetadata = actionReticlesMetadata
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(350)
 
@@ -47,14 +62,22 @@ class ControlPanel(QWidget):
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
-        self.reticle_handler = ReticleDetecthandler(model, self.screen_widgets, self.filter)
+        self.reticle_handler = ReticleDetecthandler(
+                model,
+                self.screen_widgets,
+                self.filter,
+                self.actionTriangulate
+            )
         self.stage_status_ui.layout().addWidget(self.reticle_handler)
 
         self.probe_calib_handler = ProbeCalibrationHandler(
             self.model,
             self.screen_widgets,
             self.filter,
-            self.reticle_selector
+            self.reticle_selector,
+            self.actionTrajectory,
+            self.actionCalculator,
+            self.actionReticlesMetadata
         )
         self.reticle_handler.reticleDetectionStatusChanged.connect(
             self.probe_calib_handler.reticle_detection_status_change
@@ -79,6 +102,8 @@ class ControlPanel(QWidget):
         # Stage Server IP Config
         self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages
         self.stage_server_ipconfig_btn.clicked.connect(self.stage_server_ipconfig_btn_handler)
+        if self.actionServer is not None:
+            self.actionServer.triggered.connect(self.stage_server_ipconfig_btn_handler)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.refresh_stages)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.probe_calib_handler.refresh_stages)
 
@@ -111,9 +136,8 @@ class ControlPanel(QWidget):
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
 
         # Start refreshing stage info
-        self.stageListener = StageListener(self.model, self.stageUI)
+        self.stageListener = StageListener(self.model, self.stageUI, self.actionSaveInfo)
         self.stageListener.start()
-
         self.probe_calib_handler.init_stages(self.stageListener, self.stageUI)
 
         # Stage Http Server

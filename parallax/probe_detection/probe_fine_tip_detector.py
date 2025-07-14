@@ -14,15 +14,12 @@ import logging
 import os
 import cv2
 import numpy as np
+import time
 from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
-
 
 class ProbeFineTipDetector:
     """Class for detecting the fine tip of the probe in an image."""
@@ -168,14 +165,24 @@ class ProbeFineTipDetector:
     def get_precise_tip(cls, img, tip, base, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
         """Get the precise tip coordinates from the image."""
         if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_img_dir, f"{cam_name}_tip.jpg")
+            save_path = os.path.join(debug_img_dir, f"{cam_name}_tip_{time.time()}.jpg")
             cv2.imwrite(save_path, img)
-
+        
         img = cls._preprocess_image(img)
         if not cls._is_valid(img):
             logger.debug("Boundary check failed.")
             return False, tip
 
         precise_tip = cls._detect_closest_centroid(img, tip, offset_x, offset_y, direction)
-        precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base, offset=3)
+        if base is None:
+            precise_tip_extended = precise_tip
+        else:
+            precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base, offset=3)
+
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            x, y = precise_tip_extended[0]-offset_x, precise_tip_extended[1]-offset_y
+            cv2.circle(img, (x, y), 5, (0, 255, 0), -1)
+            save_path = os.path.join(debug_img_dir, f"{cam_name}_tip_{time.time()}.jpg")
+            cv2.imwrite(save_path, img)
+
         return True, precise_tip_extended

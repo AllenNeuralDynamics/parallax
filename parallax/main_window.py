@@ -13,12 +13,13 @@ Classes:
 
 import logging
 import os
+import webbrowser
 
-from PyQt5.QtCore import QStandardPaths, QTimer
+from PyQt5.QtCore import QStandardPaths
 from PyQt5.QtGui import QFont, QFontDatabase
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import (QApplication, QFileDialog,
-                             QMainWindow, QScrollArea, QSplitter)
+                             QMainWindow, QSplitter)
 from PyQt5.uic import loadUi
 
 from parallax.handlers.recording_manager import RecordingManager
@@ -26,6 +27,7 @@ from parallax.control_panel.control_panel import ControlPanel
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from parallax.config.config_path import ui_dir, fira_font_dir
+from ui.resources import rc 
 
 
 # Set logger name
@@ -70,48 +72,61 @@ class MainWindow(QMainWindow):
         self._set_font()
 
         # Load existing user preferences
-        _, directory, width, height = (UserSettingsManager.load_mainWindow_settings())
-        self.dirLabel.setText(directory)
+        _, self.dir, width, height = (UserSettingsManager.load_mainWindow_settings())
         if width is not None and height is not None:
             self.resize(width, height)
 
         # Attach directory selection event handler for saving files
-        self.browseDirButton.clicked.connect(self.dir_setting_handler)
-
-        # Create the widget for screen
-        self.scrollArea = QScrollArea(self.centralwidget)
-        self.scrollArea.setWidgetResizable(True)
+        self.actionDir.triggered.connect(self.dir_setting_handler)
 
         # Dynamically generate Microscope display
-        self.screen_widget_manager = ScreenWidgetManager(self.model, self.nColumnsSpinBox)
+        self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
-        self.control_panel = ControlPanel(self.model, self.screen_widget_manager.screen_widgets)
-        splitter = QSplitter()
-        splitter.addWidget(self.screen_widget_manager.scrollAreaWidgetContents)
-        splitter.addWidget(self.control_panel)
-        self.verticalLayout_4.addWidget(splitter)
+        self.control_panel = ControlPanel(self.model,
+                                          self.screen_widget_manager.screen_widgets,
+                                          self.actionServer,
+                                          self.actionSaveInfo,
+                                          self.actionTrajectory,
+                                          self.actionCalculator,
+                                          self.actionTriangulate,
+                                          self.actionReticlesMetadata
+                                        )
 
-        # Start button. If toggled, start camera acquisition
-        self.startButton.clicked.connect(self.start_button_handler)
+        # Add to splitter
+        splitter = QSplitter()
+        #splitter.addWidget(scroll_area)
+        splitter.addWidget(self.control_panel)
+        self.verticalLayout.addWidget(splitter)
+
+        # Streaming button. If toggled, start camera acquisition
+        self.actionStreaming.triggered.connect(self.start_button_handler)
+
+        # Fetch the default documents directory path
+        self.dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
 
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
-        self.snapshotButton.clicked.connect(
+        self.actionSnapshot.triggered.connect(
             lambda: self.recordingManager.save_last_image(
-                self.dirLabel.text(), self.screen_widget_manager.screen_widgets
+                self.dir, self.screen_widget_manager.screen_widgets
             )
         )
-        self.recordButton.clicked.connect(
+        self.actionRecording.triggered.connect(
             self.record_button_handler
         )  # Recording video button
 
-        # Refreshing the screen timer
-        self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.refresh)
-
         # Toggle start button on init
         self.start_button_handler()
+
+        # actionDocumentation
+        self.actionDocumentation.triggered.connect(
+            lambda: webbrowser.open("https://parallax.readthedocs.io/")
+        )
+
+        self.actionContactSupport.triggered.connect(
+            lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
+        )
 
     def _set_font(self):
         """
@@ -131,85 +146,52 @@ class MainWindow(QMainWindow):
         It adds mock cameras for testing purposes and scans for actual cameras if the application
         is not in dummy mode. This ensures that the list of available cameras is always up-to-date.
         """
-        # Add mock cameras for testing purposes
-        self.model.add_mock_cameras()
-        # If not in dummy mode, scan for actual available cameras
-        if not self.model.dummy:
+        if self.model.dummy:
+            # Add mock cameras for testing purposes
+            self.model.add_mock_cameras()
+        else:
+            # If not in dummy mode, scan for actual available cameras
             try:
                 self.model.scan_for_cameras()
             except Exception as e:
-                print(
-                    f" Something still holds a reference to the camera.\n {e}"
-                )
+                print(f" Something still holds a reference to the camera.\n {e}")
 
     def refresh_stages(self):
         """Search for connected stages"""
-        if not self.model.dummy:
-            self.model.scan_for_usb_stages()
-            self.model.init_transforms()
+        self.model.scan_for_usb_stages()
+        self.model.init_transforms()
 
     def record_button_handler(self):
         """
         Handles the record button press event.
         If the record button is checked, start recording. Otherwise, stop recording.
         """
-        if self.recordButton.isChecked():
-            save_path = self.dirLabel.text()
-            self.recordingManager.save_recording(save_path, self.screen_widget_manager.screen_widgets)
+        if self.actionRecording.isChecked():
+            #save_path = self.dirLabel.text()
+            self.recordingManager.save_recording(self.dir, self.screen_widget_manager.screen_widgets)
         else:
             self.recordingManager.stop_recording(self.screen_widget_manager.screen_widgets)
 
     def start_button_handler(self):
         """
-        Handles the start button press event.
-
-        If the start button is checked, initiate acquisition from all cameras and start refreshing images.
-        If unchecked, stop acquisition from all cameras and stop refreshing images.
+        Handles the actionStreaming toggle.
+        Starts or stops camera acquisition and image refreshing depending on the action's checked state.
         """
-        # Initialize the list to keep track of cameras that have been started or stopped
-        refresh_camera_list = []
+        is_streaming = self.actionStreaming.isChecked()
+        self.model.refresh_camera = is_streaming
 
-        # Check if the start button is toggled on
-        if self.startButton.isChecked():
+        if is_streaming:
             print("\nRefreshing Screens")
-            self.model.refresh_camera = True
-            # Camera begin acquisition
-            for screen in self.screen_widget_manager.screen_widgets:
-                camera_name = screen.get_camera_name()
-                if camera_name not in refresh_camera_list:
-                    screen.start_acquisition_camera()
-                    refresh_camera_list.append(camera_name)
-
-            # Refreshing images to display screen
-            self.refresh_timer.start(125)
-
-            # Start button is checked, enable record and snapshot button.
-            self.recordButton.setEnabled(True)
-            self.snapshotButton.setEnabled(True)
-
+            self.screen_widget_manager.start_streaming()
         else:
             print("Stop Refreshing Screens")
-            self.model.refresh_camera = False
-            # Start button is unchecked, disable record and snapshot button.
-            self.recordButton.setEnabled(False)
-            self.recordButton.setChecked(False)
-            self.snapshotButton.setEnabled(False)
+            self.screen_widget_manager.stop_streaming()
 
-            # Stop Refresh: stop refreshing images to display screen
-            if self.refresh_timer.isActive():
-                self.refresh_timer.stop()
-
-            # End acquisition from camera: stop acquiring images from camera to framebuffer
-            for screen in self.screen_widget_manager.screen_widgets:
-                camera_name = screen.get_camera_name()
-                if camera_name not in refresh_camera_list:
-                    screen.stop_acquisition_camera()
-                    refresh_camera_list.append(camera_name)
-
-    def refresh(self):
-        """Refreshing from framebuffer to screen"""
-        for screen in self.screen_widget_manager.screen_widgets:
-            screen.refresh()  # Refresh the screens
+        self.actionRecording.setEnabled(is_streaming)
+        self.actionSnapshot.setEnabled(is_streaming)
+        self.actionDir.setEnabled(is_streaming)
+        if not is_streaming:
+            self.actionRecording.setChecked(False)
 
     def dir_setting_handler(self):
         """
@@ -220,17 +202,10 @@ class MainWindow(QMainWindow):
         This is a crucial function for users who need to save data or configurations, as it provides a
         simple and intuitive way to specify the location where files should be saved.
         """
-        # Fetch the default documents directory path
-        documents_dir = QStandardPaths.writableLocation(
-            QStandardPaths.DocumentsLocation
-        )
+
         # Open a dialog to allow the user to select a directory
-        directory = QFileDialog.getExistingDirectory(
-            self, "Select Directory", documents_dir
-        )
-        # If a directory is chosen, update the label to display the chosen path
-        if directory:
-            self.dirLabel.setText(directory)
+        self.dir =  QFileDialog.getExistingDirectory(self, "Select Directory", self.dir)
+        print("Selected directory:", self.dir)
 
     def save_user_configs(self):
         """
@@ -241,11 +216,11 @@ class MainWindow(QMainWindow):
         width and height. It then passes these values to the `save_user_configs` method
         of the `user_setting` object to be saved.
         """
-        nColumn = self.nColumnsSpinBox.value()
-        directory = self.dirLabel.text()
+        #nColumn = self.nColumnsSpinBox.value()
+        #directory = self.dirLabel.text()
         width = self.width()
         height = self.height()
-        UserSettingsManager.save_user_configs(nColumn, directory, width, height)
+        UserSettingsManager.save_user_configs(0, self.dir, width, height)
 
     def closeEvent(self, event):
         """
