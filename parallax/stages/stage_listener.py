@@ -228,7 +228,7 @@ class StageListener(QObject):
 
     probeCalibRequest = pyqtSignal(QObject, dict)
 
-    def __init__(self, model, stage_ui):
+    def __init__(self, model, stage_ui, actionSaveInfo=None):
         """Initialize Stage Listener object"""
         super().__init__()
         self.model = model
@@ -236,6 +236,7 @@ class StageListener(QObject):
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
         self.stage_ui = stage_ui
+        self.actionSaveInfo = actionSaveInfo
         self.thread.started.connect(self.worker.start)
         self.worker.dataChanged.connect(self.handleDataChange)
         self.worker.stage_moving.connect(self.stageMovingStatus)
@@ -249,6 +250,8 @@ class StageListener(QObject):
 
         # Connect the snapshot button
         self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
+        if self.actionSaveInfo is not None:
+            self.actionSaveInfo.triggered.connect(self._snapshot_stage)
 
     def start(self):
         """Start the stage listener."""

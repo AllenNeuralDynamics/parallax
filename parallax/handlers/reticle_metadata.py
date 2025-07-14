@@ -54,7 +54,6 @@ class ReticleMetadata(QWidget):
         super().__init__()
         self.model = model
         self.reticle_selector = reticle_selector
-
         self.ui = loadUi(os.path.join(ui_dir, "reticle_metadata.ui"), self)
         self.default_size = self.size()
         self.setWindowTitle("Reticle Metadata")

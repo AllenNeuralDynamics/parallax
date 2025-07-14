@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>541</width>
-    <height>783</height>
+    <width>306</width>
+    <height>354</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,29 +25,13 @@ color: #FFFFFF;
      <x>10</x>
      <y>10</y>
      <width>289</width>
-     <height>715</height>
+     <height>331</height>
     </rect>
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <property name="verticalSpacing">
      <number>1</number>
     </property>
-    <item row="5" column="0" rowspan="2" colspan="8">
-     <widget class="QLabel" name="probeCalibrationLabel">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>600</height>
-       </size>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-      </property>
-     </widget>
-    </item>
     <item row="3" column="1">
      <widget class="QPushButton" name="calib_x">
       <property name="enabled">
@@ -305,7 +289,29 @@ QPushButton:hover {
       </property>
       <property name="icon">
        <iconset>
-        <normaloff>resources/reticle_gray.png</normaloff>resources/reticle_gray.png</iconset>
+        <normaloff>resources/reticle_balck.png</normaloff>resources/reticle_balck.png</iconset>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0" colspan="8">
+     <widget class="QLabel" name="probeCalibrationLabel">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>100</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>400</height>
+       </size>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
       </property>
      </widget>
     </item>

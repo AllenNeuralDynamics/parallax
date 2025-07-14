@@ -6,6 +6,7 @@ parallax/*.png
 *.npz
 *.pkl
 *.csv
+*.qrc
 training
 env
 gitkey

@@ -313,7 +313,6 @@ class ProbeCalibration(QObject):
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
-        #return transformation_matrix
         return transformation_matrix
 
 
@@ -506,7 +505,6 @@ class ProbeCalibration(QObject):
             np.array: The transformed global point.
         """
         local_point = np.array(
-            # [self.stage.stage_x, self.stage.stage_y, self.stage.stage_z, 1]
             [self.stage.stage_x, self.stage.stage_y, self.stage.stage_z]
         )
 
@@ -553,7 +551,6 @@ class ProbeCalibration(QObject):
             logger.debug("Not enough points collected for calibration.")
             return False
 
-        #if not self._is_criteria_met_points_min_max():
         if not self._is_trajectory_distance_sufficient(df):
             logger.debug("Not enough movement range in X, Y, or Z.")
             return False
@@ -728,7 +725,7 @@ class ProbeCalibration(QObject):
         self.transM_LR = self._get_transM(df)
         if self._is_criteria_met_points_min_max() and len(df) >= self.THRESHOLD_N_PTS \
                 and self.R is not None and self.origin is not None:
-            print("===============")
+            logger.debug("===============")
             # Iteratively remove outliers and refit transformation
               # Get transM without removing outliers
             for threshold in range(430, 29, -100):  # Remove from larger to smaller outliers
@@ -737,8 +734,8 @@ class ProbeCalibration(QObject):
                     break
                 df = df_
                 self.transM_LR = self._get_transM(df)
-                print(f"len(df): {len(df)}, threshold: {threshold}, average error: {self.avg_err}")
-            print("===============")
+                logger.debug(f"len(df): {len(df)}, threshold: {threshold}, average error: {self.avg_err}")
+            logger.debug("===============")
 
         if self.transM_LR is None:
             logger.debug("Transformation matrix is None, not enough points for calibration.")
@@ -785,10 +782,8 @@ class ProbeCalibration(QObject):
             6. Initializes the PointMesh instance for 3D visualization.
         """
         # save the filtered points to a new file
-        print("ProbeCalibration: complete_calibration")
+        logger.debug("ProbeCalibration: complete_calibration")
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        #self.file_name = f"points_{self.stage.sn}_{timestamp}.csv"
-        #self.transM_LR = self._get_transM(filtered_df, save_to_csv=True, file_name=self.file_name, noise_threshold=30)
         self.file_name = self._save_df_to_csv(df, f"points_{self.stage.sn}_{timestamp}.csv")
 
         #if self.transM_LR is None:

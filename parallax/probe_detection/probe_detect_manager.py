@@ -212,6 +212,10 @@ class ProcessWorker(QRunnable):
         self.stopped_first_frame = True
         self.mask_detect = MaskGenerator()
 
+        self.probeDetect = None
+        self.currPrevCmpProcess = None
+        self.currBgCmpProcess = None
+
     def update_sn(self, sn):
         """Update the serial number and initialize probe detectors.
         Args:
@@ -390,6 +394,9 @@ class ProcessWorker(QRunnable):
 
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
+        if self.probeDetect is None:
+            return
+    
         if self.probeDetect.angle:
             if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
                 self.signals.tip_stopped.emit(

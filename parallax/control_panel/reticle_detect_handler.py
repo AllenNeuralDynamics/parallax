@@ -2,7 +2,7 @@
 import logging
 import os
 from PyQt5.QtCore import QTimer, pyqtSignal
-from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
+from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget, QAction
 from PyQt5.uic import loadUi
 from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
@@ -15,7 +15,7 @@ class ReticleDetecthandler(QWidget):
     """Handles reticle detection and calibration in the Parallax control panel."""
     reticleDetectionStatusChanged = pyqtSignal(str)
 
-    def __init__(self, model, screen_widgets, filter):
+    def __init__(self, model, screen_widgets, filter, actionTriangulate: QAction=None):
         """
         Args:
             stage_widget (StageWidget): Reference to the parent StageWidget instance.
@@ -24,6 +24,7 @@ class ReticleDetecthandler(QWidget):
         self.model = model
         self.screen_widgets = screen_widgets
         self.filter = filter  # TODO move filter to screen widget
+        self.actionTriangulate = actionTriangulate
         self.camera_handler = StereoCameraHandler(model, self.screen_widgets)
 
         # UI
@@ -41,9 +42,9 @@ class ReticleDetecthandler(QWidget):
         self.reticle_detection_status = (
             "default"  # options: default, detected, accepted
         )
-        self.triangulate_btn.clicked.connect(
-            self.triangulate_btn_handler
-        )
+        self.triangulate_btn.clicked.connect(self.triangulate_btn_handler)
+        if self.actionTriangulate is not None:
+            self.actionTriangulate.triggered.connect(self._check_triangulate_btn)
 
         # Hide Accept and Reject Button in Reticle Detection
         self.acceptButton.hide()
@@ -54,6 +55,9 @@ class ReticleDetecthandler(QWidget):
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
+
+    def _check_triangulate_btn(self):
+        self.triangulate_btn.click()
 
     def triangulate_btn_handler(self):
         """
@@ -164,7 +168,7 @@ class ReticleDetecthandler(QWidget):
         )
 
         msg = f"{self.model.camera_intrinsic.keys()}"
-        print(f"Stereo Cameras: {msg}")
+        logger.debug(f"Stereo Cameras: {msg}")
 
         self.filter = "reticle_detection"
         logger.debug(f"filter: {self.filter}")
@@ -293,23 +297,22 @@ class ReticleDetecthandler(QWidget):
 
     def is_positive_x_axis_detected(self):
         """
-        Checks whether the positive x-axis has been detected on all screens.
-
-        This method compares the detected coordinates for each camera with the list of cameras
-        that have positive x-axis coordinates available. It returns True if the positive x-axis
-        has been detected on all cameras, otherwise returns False.
+        Checks whether the positive x-axis has been detected on all visible screens
+        that have detected reticle coordinates.
 
         Returns:
-            bool: True if the positive x-axis has been detected on all screens, False otherwise.
+            bool: True if positive x-axis is detected on all relevant screens, False otherwise.
         """
-        pos_x_detected_screens = []
-        for cam_name in self.coords_detected_screens:
-            pos_x = self.model.get_pos_x(cam_name)
-            if pos_x is not None:
-                pos_x_detected_screens.append(cam_name)
+        detected = set(self.coords_detected_screens)    # Reticle detected screens
+        visible = set(self.model.get_visible_camera_sns())    # Visible screnens
+        candidates = detected & visible             # cameras that are both detected and currently visible
 
-        logger.debug(f"coords_detected_screens: {self.coords_detected_screens}")
-        return set(self.coords_detected_screens) == set(pos_x_detected_screens)
+        pos_x_detected = {sn for sn in candidates if self.model.get_pos_x(sn) is not None}
+        logger.debug("\nCandidates cameras:", candidates)
+        logger.debug("visible cameras:", visible)
+        logger.debug("Detected cameras with positive x-axis:", pos_x_detected)
+
+        return candidates == pos_x_detected
 
     def continue_if_positive_x_axis_from_user(self):
         """Get the positive x-axis coordinate of the reticle from the user."""

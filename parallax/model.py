@@ -30,12 +30,11 @@ class Model(QObject):
         self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
         self.reticle_detection = getattr(args, "reticle_detection", "default")
         self.nMockCameras = getattr(args, "nCameras", 1)
+        self.nPySpinCameras = 0
 
         # cameras
-        self.refresh_camera = False
-        self.cameras = []  # instance of cameras
-        self.cameras_sn = []  # camera serial numbers
-        self.nPySpinCameras = 0
+        self.refresh_camera = False     # Status of camera streaming
+        self.cameras = OrderedDict()  # {sn: {'obj': camera_obj, 'visible': bool}}
 
         # point mesh
         self.point_mesh_instances = {}
@@ -76,6 +75,19 @@ class Model(QObject):
         # clicked pts
         self.clicked_pts = OrderedDict()
 
+    def get_camera(self, sn):
+        return self.cameras.get(sn, {}).get('obj', None)
+
+    def get_visible_cameras(self):
+        return [v['obj'] for v in self.cameras.values() if v['visible']]
+
+    def get_visible_camera_sns(self):
+        return [sn for sn, v in self.cameras.items() if v['visible']]
+
+    def set_camera_visibility(self, sn, visible):
+        if sn in self.cameras:
+            self.cameras[sn]['visible'] = visible
+
     def add_calibration(self, cal):
         """Add a calibration.
 
@@ -103,44 +115,32 @@ class Model(QObject):
         for stage_sn in self.stages.keys():
             self.transforms[stage_sn] = [None, None]
 
-    def add_video_source(self, video_source):
-        """Add a video source (camera).
-
-        Args:
-            video_source: The camera object to add to the model's camera list.
-        """
-        self.cameras.append(video_source)
-
     def add_mock_cameras(self):
         """Add mock cameras for testing purposes.
 
         Args:
             n (int): The number of mock cameras to add.
         """
-        for i in range(self.nMockCameras):
-            mockCamera = MockCamera()
-            self.cameras.append(mockCamera)
-            self.cameras_sn.append(mockCamera.name(sn_only=True))
+        for _ in range(self.nMockCameras):
+            cam = MockCamera()
+            sn = cam.name(sn_only=True)
+            self.cameras[sn] = {'obj': cam, 'visible': True}
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
-        self.cameras = list_cameras(version=self.version) + self.cameras
-        self.cameras_sn = [camera.name(sn_only=True) for camera in self.cameras]
-        self.nPySpinCameras = len([cam for cam in self.cameras if isinstance(cam, PySpinCamera)])
+        cams = list_cameras(version=self.version)
+        for cam in cams:
+            sn = cam.name(sn_only=True)
+            self.cameras[sn] = {'obj': cam, 'visible': True}
 
-    def get_camera_resolution(self, camera_name):
-        """Get the resolution of a specific camera.
+        self.nPySpinCameras = sum(isinstance(cam['obj'], PySpinCamera) for cam in self.cameras.values())
+        self.nMockCameras = sum(isinstance(cam['obj'], MockCamera) for cam in self.cameras.values())
 
-        Args:
-            camera_name (str): The name of the camera.
-
-        Returns:
-            tuple: The resolution of the camera in the format (width, height).
-        """
-        for camera in self.cameras:
-            if camera.name(sn_only=True) == camera_name:
-                return (camera.width, camera.height)
-        return (4000, 3000)  # Default resolution if camera not found
+    def get_camera_resolution(self, camera_sn):
+        camera = self.cameras.get(camera_sn, {}).get('obj', None)
+        if camera:
+            return (camera.width, camera.height)
+        return (4000, 3000)
 
     def set_stage_listener_url(self, url):
         """Set the URL for the stage listener.

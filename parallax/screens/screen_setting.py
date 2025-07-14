@@ -217,7 +217,7 @@ class ScreenSetting(QWidget):
         """Setup the serial number (S/N) settings in the settings menu."""
         # S/N
         # Add the list of cameras (serial number) in ComboBox
-        for sn in self.model.cameras_sn:
+        for sn in self.model.cameras.keys():
             self.settingMenu.snComboBox.addItem(sn)
 
         # Select the sn for the current screen
