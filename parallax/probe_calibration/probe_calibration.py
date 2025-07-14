@@ -737,8 +737,8 @@ class ProbeCalibration(QObject):
                 logger.debug(f"len(df): {len(df)}, threshold: {threshold}, average error: {self.avg_err}")
             logger.debug("===============")
 
-        if self.transM_LR is None:
-            logger.debug("Transformation matrix is None, not enough points for calibration.")
+        if self.transM_LR is None or len(df) < self.THRESHOLD_N_PTS:
+            logger.debug("Not enough points for calibration.")
             return
 
         # Check criteria
