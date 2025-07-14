@@ -98,7 +98,7 @@ class ScreenWidgetManager(QObject):
                 logger.debug("Camera acquisition stopped for:", sn)
 
     def _add_screen_dock(self, screen_index: int):
-        name = f"Microscope {screen_index + 1}"
+        name = f"Microscope{screen_index + 1}"
         group_box = QGroupBox(name)
         group_box.setObjectName(name)
         group_box.setStyleSheet("background-color: rgb(25, 25, 25);")
