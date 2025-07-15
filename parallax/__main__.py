@@ -7,11 +7,12 @@ from .main_window import MainWindow
 from .model import Model
 from .config.config_path import setup_logging, PARALLAX_ASCII
 from .config.cli import parse_args, print_arg_info
-
+from . import __version__
 
 # Main function to run the Parallax application
 if __name__ == "__main__":
     # Print the ASCII art
+    print(f"Parallax version {__version__}")
     print(PARALLAX_ASCII)
 
     # Parse command line arguments
