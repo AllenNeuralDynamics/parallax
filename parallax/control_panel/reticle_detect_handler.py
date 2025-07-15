@@ -146,7 +146,12 @@ class ReticleDetecthandler(QWidget):
         self.rejectButton.hide()
 
         # Check at least two screens are detected.
-        if len(self.model.camera_intrinsic) < 2:
+        valid_intrinsics = [
+            sn for sn in self.model.get_visible_camera_sns()
+            if self.model.get_camera_intrinsic(sn)
+        ]
+
+        if len(valid_intrinsics) < 2:
             msg = "At least two screens are required for Triangulation."
             QMessageBox.warning(self, "Reticle Detection Failed", msg)
             return
@@ -159,7 +164,7 @@ class ReticleDetecthandler(QWidget):
             "background-color: #ffaaaa;"
         )
 
-        msg = f"{self.model.camera_intrinsic.keys()}"
+        msg = f"{valid_intrinsics}"
         logger.debug(f"Stereo Cameras: {msg}")
 
         self.filter = "reticle_detection"
@@ -305,27 +310,6 @@ class ReticleDetecthandler(QWidget):
                 coords_detected_cam_name.append(cam_name)
 
         return coords_detected_cam_name
-
-    def register_reticle_coords_intrinsic_to_model(self):
-        """
-        Registers the detected reticle coordinates and corresponding intrinsic camera parameters
-        into the model. For each screen widget, it retrieves the reticle coordinates, the intrinsic
-        matrix (mtx), distortion coefficients (dist), rotation vectors (rvec), and translation vectors (tvec).
-
-        This method stores the reticle coordinates and intrinsic camera parameters in the model for
-        each screen where the reticle coordinates are detected.
-
-        If no reticle coordinates are found on a screen, the method skips that screen.
-        """
-        # Register into the model
-        for screen in self.screen_widgets:
-            coords = screen.get_reticle_coords()
-            mtx, dist, rvec, tvec = screen.get_camera_intrinsic()
-            camera_name = screen.get_camera_name()
-            # Retister the reticle coords in the model
-            if coords is not None:
-                self.model.add_coords_axis(camera_name, coords)
-                self.model.add_camera_intrinsic(camera_name, mtx, dist, rvec, tvec)
 
     def enable_reticle_detection_buttons(self):
         """

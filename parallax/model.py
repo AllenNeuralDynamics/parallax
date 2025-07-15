@@ -71,8 +71,6 @@ class Model(QObject):
         self.probeDetectors = []
 
         # coords axis
-        self.pos_x = {}
-        self.camera_intrinsic = {}
         self.camera_extrinsic = {}
         self.best_camera_pair = None
         self.stereo_calib_instance = {}
@@ -335,12 +333,8 @@ class Model(QObject):
         """
         print("reset_coords_intrinsic_extrinsic: ", sn)
         if sn is None:
-            # Reset all
-            self.camera_intrinsic = {}
             self.camera_extrinsic = {}
         else:
-            # Remove only the specified camera's data
-            self.camera_intrinsic.pop(sn, None)
             self.camera_extrinsic.pop(sn, None)
 
         if sn is None:
@@ -368,72 +362,32 @@ class Model(QObject):
                     'rvec': None,
                     'tvec': None
                 }
-    def reset_coords_intrinsic_extrinsic_tmp(self, sn=None):
-        """
-        Reset all or specific camera's coordinates, intrinsic, and extrinsic parameters.
 
-        Args:
-            sn (str, optional): Serial number of the camera. If provided, only that camera's data will be cleared.
-        """
-        if sn is None:
-            # Reset all cameras
-            for cam in self.cameras.values():
-                cam['coords_axis'] = None
-                cam['coords_debug'] = None
-                cam['pos_x'] = None
-                cam['intrinsic'] = {
-                    'mtx': None,
-                    'dist': None,
-                    'rvec': None,
-                    'tvec': None
-                }
-            self.camera_extrinsic = {}
-            self.best_camera_pair = None
-        else:
-            if sn in self.cameras:
-                self.cameras[sn]['coords_axis'] = None
-                self.cameras[sn]['coords_debug'] = None
-                self.cameras[sn]['pos_x'] = None
-                self.cameras[sn]['intrinsic'] = {
-                    'mtx': None,
-                    'dist': None,
-                    'rvec': None,
-                    'tvec': None
-                }
-            # Clean up any stereo pairs involving this camera
-            keys_to_remove = [
-                k for k in self.camera_extrinsic.keys()
-                if sn in k.split("-")
-            ]
-            for k in keys_to_remove:
-                self.camera_extrinsic.pop(k, None)
-            if self.best_camera_pair and sn in self.best_camera_pair:
-                self.best_camera_pair = None
-
-
-    def add_pos_x(self, camera_name, pt):
+    def add_pos_x(self, sn, pt):
         """Add position for the x-axis for a specific camera.
 
         Args:
-            camera_name (str): The name of the camera.
+            sn (str): The name of the camera.
             pt: The position of the x-axis.
         """
-        self.pos_x[camera_name] = pt
+        if sn in self.cameras:
+            self.cameras[sn]['pos_x'] = pt
 
-    def get_pos_x(self, camera_name):
+    def get_pos_x(self, sn):
         """Get the position for the x-axis of a specific camera.
 
         Args:
             camera_name (str): The name of the camera.
 
         Returns:
-            The position of the x-axis for the camera.
+            The position of the x-axis for the camera, or None.
         """
-        return self.pos_x.get(camera_name)
+        return self.cameras.get(sn, {}).get('pos_x')
 
     def reset_pos_x(self):
         """Reset all x-axis positions."""
-        self.pos_x = {}
+        for cam in self.cameras.values():
+            cam['pos_x'] = None
 
     def add_coords_axis(self, sn, coords):
         """Add axis coordinates for a specific camera.
@@ -480,20 +434,26 @@ class Model(QObject):
         """
         return self.cameras[sn].get('coords_debug')
 
-    def add_camera_intrinsic(self, camera_name, mtx, dist, rvec, tvec):
+    def add_camera_intrinsic(self, sn, mtx, dist, rvec, tvec):
         """Add intrinsic camera parameters for a specific camera.
 
         Args:
-            camera_name (str): The name of the camera.
+            sn (str): The name of the camera.
             mtx (numpy.ndarray): The camera matrix.
             dist (numpy.ndarray): The distortion coefficients.
             rvec (numpy.ndarray): The rotation vector.
             tvec (numpy.ndarray): The translation vector.
         """
-        self.camera_intrinsic[camera_name] = [mtx, dist, rvec, tvec]
-        print("Added camera intrinsic for %s" % camera_name)
+        #self.camera_intrinsic[sn] = [mtx, dist, rvec, tvec]
+        print("Added camera intrinsic for %s" % sn)
+        self.cameras[sn]['intrinsic'] = {
+            'mtx': mtx,
+            'dist': dist,
+            'rvec': rvec,
+            'tvec': tvec
+        }
 
-    def get_camera_intrinsic(self, camera_name):
+    def get_camera_intrinsic(self, sn):
         """Get intrinsic camera parameters for a specific camera.
 
         Args:
@@ -502,7 +462,9 @@ class Model(QObject):
         Returns:
             list: The intrinsic parameters [mtx, dist, rvec, tvec] for the camera.
         """
-        return self.camera_intrinsic.get(camera_name)
+        #return self.camera_intrinsic.get(sn)
+        return self.cameras[sn].get('intrinsic', {})
+
 
     def add_stereo_calib_instance(self, sorted_key, instance):
         """Add stereo calibration instance.
