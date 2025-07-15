@@ -78,7 +78,6 @@ class Model(QObject):
         self.stereo_calib_instance = {}
         self.calibration = None
         self.calibrations = {}
-        self.coords_debug = {}
 
         # Transformation matrices of stages to global coords
         self.transforms = {}
@@ -454,7 +453,6 @@ class Model(QObject):
         Returns:
             list: The axis coordinates for the given camera.
         """
-        print("get_coords_axis: %s" % sn)
         return self.cameras[sn].get('coords_axis')
 
     def reset_coords_axis(self):
@@ -462,25 +460,25 @@ class Model(QObject):
         for cam in self.cameras.values():
             cam['coords_axis'] = None
 
-    def add_coords_for_debug(self, camera_name, coords):
+    def add_coords_for_debug(self, sn, coords):
         """Add debug coordinates for a specific camera.
 
         Args:
-            camera_name (str): The name of the camera.
+            sn (str): The name of the camera.
             coords (list): The coordinates used for debugging.
         """
-        self.coords_debug[camera_name] = coords
+        self.cameras[sn]['coords_debug'] = coords
 
-    def get_coords_for_debug(self, camera_name):
+    def get_coords_for_debug(self, sn):
         """Get debug coordinates for a specific camera.
 
         Args:
-            camera_name (str): The name of the camera.
+            sn (str): The name of the camera.
 
         Returns:
             list: The debug coordinates for the given camera.
         """
-        return self.coords_debug.get(camera_name)
+        return self.cameras[sn].get('coords_debug')
 
     def add_camera_intrinsic(self, camera_name, mtx, dist, rvec, tvec):
         """Add intrinsic camera parameters for a specific camera.
