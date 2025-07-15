@@ -205,7 +205,7 @@ class ReticleDetecthandler(QWidget):
         If any screen does not have detected reticle coordinates, the method returns without further processing.
         """
         for screen in self.screen_widgets:
-            coords = screen.get_reticle_coords()
+            coords = self.model.get_coords_axis(screen.camera_name)
             if coords is None:
                 return
         # Found the coords
@@ -227,7 +227,7 @@ class ReticleDetecthandler(QWidget):
         """
         reticle_detected_screen_cnt = 0
         for screen in self.screen_widgets:
-            coords = screen.get_reticle_coords()
+            coords = self.model.get_coords_axis(screen.camera_name)
             if coords is not None:
                 reticle_detected_screen_cnt += 1
 

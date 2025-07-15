@@ -51,16 +51,11 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target = pg.TargetItem()
         self.view_box.addItem(self.click_target)
         self.click_target.setVisible(False)
-
         self.click_target2 = pg.TargetItem()
         self.view_box.addItem(self.click_target2)
         self.click_target2.setVisible(False)
+        self.focochan = None
 
-        self.camera_actions = []
-        self.focochan_actions = []
-        self.filter_actions = []
-        self.detector_actions = []
-        self.reticle_coords = None
         self.mtx, self.dist, self.rvecs, self.tvecs = None, None, None, None
 
         # probe
@@ -72,7 +67,6 @@ class ScreenWidget(pg.GraphicsView):
         # camera
         self.camera = camera
         self.camera_name = self.get_camera_name()
-        self.focochan = None
 
         # Dynamically set zoom limits based on image size
         width, height = self.camera.width, self.camera.height
@@ -397,10 +391,6 @@ class ScreenWidget(pg.GraphicsView):
             self.probe_detect_last_sn,
             self.probe_detect_last_coords,
         )
-
-    def get_reticle_coords(self):
-        """Get the reticle coordinates."""
-        return self.reticle_coords
 
     def get_selected(self):
         """
