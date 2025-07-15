@@ -56,8 +56,6 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target2.setVisible(False)
         self.focochan = None
 
-        self.mtx, self.dist, self.rvecs, self.tvecs = None, None, None, None
-
         # probe
         self.probe_detect_last_timestamp = None
         self.probe_detect_last_sn = None
@@ -165,8 +163,6 @@ class ScreenWidget(pg.GraphicsView):
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
         self.reticleDetectorCNN.process(data)
-        #captured_time = self.camera.get_last_capture_time(millisecond=True)  # TODO Move to probeDetector
-        #self.probeDetector.process(data, captured_time)
         self.probeDetector.process(data, self.camera.last_capture_time)
 
     def is_camera(self):
@@ -369,6 +365,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist, rvecs, tvecs):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
+        print("found_reticle_coords: ", self.camera_name)
         coords = [x_coords, y_coords]
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)

@@ -86,14 +86,6 @@ class ReticleDetecthandler(QWidget):
         Resets the reticle detection process to its default state and updates the UI accordingly.
         """
         for screen in self.screen_widgets:
-            if self.reticle_detection_status != "accepted":
-                try:
-                    screen.reticle_coords_detected.disconnect(
-                        self.reticle_detect_two_screens
-                    )
-                except BaseException:
-                    logger.debug("Signal not connected. Skipping disconnect.")
-
             if self.filter != "no_filter":
                 screen.run_no_filter()
         self.filter = "no_filter"
@@ -191,52 +183,6 @@ class ReticleDetecthandler(QWidget):
             "color: white;"
             "background-color: #bc9e44;"
         )
-
-    def reticle_detect_all_screen(self):
-        """
-        Detects the reticle coordinates on all screens for Bundle Adjustment. This method checks each screen widget
-        for reticle detection results and updates the detection status if the reticle has been
-        successfully detected on all screens.
-
-        The method proceeds with the detection process by calling the `reticle_detect_detected_status`
-        method to update the UI and status. Additionally, it registers the detected reticle coordinates
-        and intrinsic parameters into the model using the `register_reticle_coords_intrinsic_to_model` method.
-
-        If any screen does not have detected reticle coordinates, the method returns without further processing.
-        """
-        for screen in self.screen_widgets:
-            coords = self.model.get_coords_axis(screen.camera_name)
-            if coords is None:
-                return
-        # Found the coords
-        self.reticle_detect_detected_status()
-        self.register_reticle_coords_intrinsic_to_model()
-
-    def reticle_detect_two_screens(self):
-        """
-        Detects the reticle coordinates on two screens for a stereo pair. This method checks each screen widget
-        for reticle detection results and counts the number of screens with detected reticle
-        coordinates. If the reticle is detected on at least two screens, it updates the UI
-        and detection status by calling the `reticle_detect_detected_status` method.
-
-        After detecting the reticle on two screens, it registers the detected reticle
-        coordinates and intrinsic parameters into the model using the
-        `register_reticle_coords_intrinsic_to_model` method.
-
-        If fewer than two screens have detected reticle coordinates, the method exits early.
-        """
-        reticle_detected_screen_cnt = 0
-        for screen in self.screen_widgets:
-            coords = self.model.get_coords_axis(screen.camera_name)
-            if coords is not None:
-                reticle_detected_screen_cnt += 1
-
-        if reticle_detected_screen_cnt >= 2:
-            # Found the coords
-            self.reticle_detect_detected_status()
-        else:
-            return
-        self.register_reticle_coords_intrinsic_to_model()
 
     def reticle_overwrite_popup_window(self):
         """

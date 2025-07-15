@@ -150,9 +150,6 @@ class AxisFilter(QObject):
                         self.reticle_coords[0], self.reticle_coords[1], mtx, dist, rvecs, tvecs
                 )
 
-            # Register the camera intrinsic parameters and coords  to the model
-            self.model.add_coords_axis(self.name, self.reticle_coords)
-            self.model.add_camera_intrinsic(self.name, mtx, dist, rvecs, tvecs)  # TODO No calib. just modify rvec tvec
             self.model.add_pos_x(self.name, self.pos_x)
 
         def reset_pos_x(self):

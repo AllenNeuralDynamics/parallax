@@ -1,0 +1,30 @@
+model:
+  cameras:
+    MockCamera0:
+      visible: True
+      coords_axis:
+      coords_debug:
+      pos_x:
+      intrinsic:
+        mtx:
+        dist:
+        rvec:
+        tvec:
+
+    MockCamera1:
+      module: numpy
+      class: array
+      kwds:
+        - [0.0, -1.0, 0.0, 110.0]
+        - [1.0,  0.0, 0.0, 210.0]
+        - [0.0,  0.0, 1.0, 310.0]
+        - [0.0,  0.0, 0.0, 1.0]
+
+  stage:
+    module: numpy
+    class: array
+    kwds:
+      - [1.0, 0.0, 0.0, 10.0]
+      - [0.0, 1.0, 0.0, 20.0]
+      - [0.0, 0.0, 1.0, 30.0]
+      - [0.0, 0.0, 0.0, 1.0]

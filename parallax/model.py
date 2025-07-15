@@ -35,6 +35,21 @@ class Model(QObject):
         # cameras
         self.refresh_camera = False     # Status of camera streaming
         self.cameras = OrderedDict()  # {sn: {'obj': camera_obj, 'visible': bool}}
+        """
+        self.cameras[sn] = {
+            'obj': cam,
+            'visible': True,
+            'coords_axis': None,
+            'coords_debug': None,
+            'pos_x': None,
+            'intrinsic': {
+                'mtx': None,
+                'dist': None,
+                'rvec': None,
+                'tvec': None
+            }
+        }
+        """
 
         # point mesh
         self.point_mesh_instances = {}
@@ -56,7 +71,6 @@ class Model(QObject):
         self.probeDetectors = []
 
         # coords axis
-        self.coords_axis = {}
         self.pos_x = {}
         self.camera_intrinsic = {}
         self.camera_extrinsic = {}
@@ -320,16 +334,83 @@ class Model(QObject):
         Args:
             sn (str, optional): Serial number of the camera. If provided, only that camera's data will be removed.
         """
+        print("reset_coords_intrinsic_extrinsic: ", sn)
         if sn is None:
             # Reset all
-            self.coords_axis = {}
             self.camera_intrinsic = {}
             self.camera_extrinsic = {}
         else:
             # Remove only the specified camera's data
-            self.coords_axis.pop(sn, None)
             self.camera_intrinsic.pop(sn, None)
             self.camera_extrinsic.pop(sn, None)
+
+        if sn is None:
+            # Reset all cameras
+            for cam in self.cameras.values():
+                cam['coords_axis'] = None
+                cam['coords_debug'] = None
+                cam['pos_x'] = None
+                cam['intrinsic'] = {
+                    'mtx': None,
+                    'dist': None,
+                    'rvec': None,
+                    'tvec': None
+                }
+            self.camera_extrinsic = {}
+            self.best_camera_pair = None
+        else:
+            if sn in self.cameras:
+                self.cameras[sn]['coords_axis'] = None
+                self.cameras[sn]['coords_debug'] = None
+                self.cameras[sn]['pos_x'] = None
+                self.cameras[sn]['intrinsic'] = {
+                    'mtx': None,
+                    'dist': None,
+                    'rvec': None,
+                    'tvec': None
+                }
+    def reset_coords_intrinsic_extrinsic_tmp(self, sn=None):
+        """
+        Reset all or specific camera's coordinates, intrinsic, and extrinsic parameters.
+
+        Args:
+            sn (str, optional): Serial number of the camera. If provided, only that camera's data will be cleared.
+        """
+        if sn is None:
+            # Reset all cameras
+            for cam in self.cameras.values():
+                cam['coords_axis'] = None
+                cam['coords_debug'] = None
+                cam['pos_x'] = None
+                cam['intrinsic'] = {
+                    'mtx': None,
+                    'dist': None,
+                    'rvec': None,
+                    'tvec': None
+                }
+            self.camera_extrinsic = {}
+            self.best_camera_pair = None
+        else:
+            if sn in self.cameras:
+                self.cameras[sn]['coords_axis'] = None
+                self.cameras[sn]['coords_debug'] = None
+                self.cameras[sn]['pos_x'] = None
+                self.cameras[sn]['intrinsic'] = {
+                    'mtx': None,
+                    'dist': None,
+                    'rvec': None,
+                    'tvec': None
+                }
+            # Clean up any stereo pairs involving this camera
+            keys_to_remove = [
+                k for k in self.camera_extrinsic.keys()
+                if sn in k.split("-")
+            ]
+            for k in keys_to_remove:
+                self.camera_extrinsic.pop(k, None)
+            if self.best_camera_pair and sn in self.best_camera_pair:
+                self.best_camera_pair = None
+
 
     def add_pos_x(self, camera_name, pt):
         """Add position for the x-axis for a specific camera.
@@ -355,25 +436,31 @@ class Model(QObject):
         """Reset all x-axis positions."""
         self.pos_x = {}
 
-    def add_coords_axis(self, camera_name, coords):
+    def add_coords_axis(self, sn, coords):
         """Add axis coordinates for a specific camera.
 
         Args:
-            camera_name (str): The name of the camera.
+            sn (str): The name of the camera.
             coords (list): The axis coordinates to be added.
         """
-        self.coords_axis[camera_name] = coords
+        self.cameras[sn]['coords_axis'] = coords
 
-    def get_coords_axis(self, camera_name):
+    def get_coords_axis(self, sn):
         """Get axis coordinates for a specific camera.
 
         Args:
-            camera_name (str): The name of the camera.
+            sn (str): The name of the camera.
 
         Returns:
             list: The axis coordinates for the given camera.
         """
-        return self.coords_axis.get(camera_name)
+        print("get_coords_axis: %s" % sn)
+        return self.cameras[sn].get('coords_axis')
+
+    def reset_coords_axis(self):
+        """Reset axis coordinates for all cameras."""
+        for cam in self.cameras.values():
+            cam['coords_axis'] = None
 
     def add_coords_for_debug(self, camera_name, coords):
         """Add debug coordinates for a specific camera.
@@ -406,6 +493,7 @@ class Model(QObject):
             tvec (numpy.ndarray): The translation vector.
         """
         self.camera_intrinsic[camera_name] = [mtx, dist, rvec, tvec]
+        print("Added camera intrinsic for %s" % camera_name)
 
     def get_camera_intrinsic(self, camera_name):
         """Get intrinsic camera parameters for a specific camera.
