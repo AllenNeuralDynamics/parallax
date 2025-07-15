@@ -373,6 +373,8 @@ class Model(QObject):
         if sn in self.cameras:
             self.cameras[sn]['pos_x'] = pt
 
+            print("pos_x: ", self.cameras[sn]['pos_x'])
+
     def get_pos_x(self, sn):
         """Get the position for the x-axis of a specific camera.
 
@@ -444,14 +446,20 @@ class Model(QObject):
             rvec (numpy.ndarray): The rotation vector.
             tvec (numpy.ndarray): The translation vector.
         """
-        #self.camera_intrinsic[sn] = [mtx, dist, rvec, tvec]
-        print("Added camera intrinsic for %s" % sn)
         self.cameras[sn]['intrinsic'] = {
             'mtx': mtx,
             'dist': dist,
             'rvec': rvec,
             'tvec': tvec
         }
+
+        print("\nAdded camera intrinsic", sn)
+        print("coords_axis: ", self.cameras[sn]['coords_axis'])
+        print("coords_debug: ", self.cameras[sn]['coords_debug'])
+        
+        print("self.cameras[sn]['intrinsic']: ", self.cameras[sn]['intrinsic'])
+
+
 
     def get_camera_intrinsic(self, sn):
         """Get intrinsic camera parameters for a specific camera.
