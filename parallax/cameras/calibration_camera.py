@@ -143,6 +143,7 @@ class CalibrationCamera:
             flags=myflags1,
             criteria=CRIT,
         )
+        print(self.mtx, self.dist, self.rvecs, self.tvecs)
 
         format_mtxt = (
             "\n".join(

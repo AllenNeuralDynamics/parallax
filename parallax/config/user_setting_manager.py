@@ -17,7 +17,7 @@ import os
 import yaml
 import numpy as np
 
-from parallax.config.config_path import settings_file
+from parallax.config.config_path import settings_file, session_file
 
 
 # Set logger name
@@ -166,13 +166,18 @@ class UserSettingsManager:
         # Write updated settings back to file
         cls.save_settings(settings)
 
-class ModelConfigLoader:
+class CameraConfigManager:
     @classmethod
-    def load_from_yaml(cls, model, path):
-        with open(path, "r") as f:
+    def load_from_yaml(cls, model):
+        with open(session_file, "r") as f:
             data = yaml.safe_load(f)
+            if data is None:
+                print("[ModelConfigLoader] YAML file is empty.")
+                return
 
         cam_configs = data.get("model", {}).get("cameras", {})
+        print("\nsession_file loaded:", session_file)
+        print(cam_configs)
 
         for sn, camera in model.cameras.items():
             if sn not in cam_configs:
@@ -182,11 +187,20 @@ class ModelConfigLoader:
 
             # Update top-level fields (visible, coords_axis, etc.)
             for key in ["visible", "coords_axis", "coords_debug", "pos_x"]:
-                if key in cam_cfg:
-                    if key == "pos_x":
-                        camera[key] = tuple(cam_cfg[key])
-                    else:
-                        camera[key] = cam_cfg[key]
+                if key not in cam_cfg:
+                    continue
+                if cam_cfg[key] is None:
+                    continue
+
+                if key == "pos_x":
+                    camera[key] = tuple(cam_cfg[key])
+                elif key == "coords_axis" or key == "coords_debug":
+                    # Convert list of list of points into list of np.ndarrays
+                    print(f"\ncamera[{key}].type:", type(cam_cfg[key]))
+                    camera[key] = np.array(cam_cfg[key])
+                    print(f"camera[{key}].type:", type(cam_cfg[key]))
+                else:
+                    camera[key] = cam_cfg[key]
 
             # Update nested intrinsic values
             if "intrinsic" in cam_cfg:
@@ -208,3 +222,78 @@ class ModelConfigLoader:
                     camera["intrinsic"]["tvec"] = (tvec,)
 
         print("[ModelConfigLoader] YAML camera config loaded into existing model.cameras.")
+    
+    @classmethod
+    def save_to_yaml(cls, model, sn):
+        output = {}
+
+        # Load existing YAML if available
+        if os.path.exists(session_file):
+            with open(session_file, "r") as f:
+                output = yaml.safe_load(f) or {}
+                print("\nsession_file loaded:", session_file)
+        if "model" not in output:
+            output["model"] = {}
+        if "cameras" not in output["model"]:
+            output["model"]["cameras"] = {}
+
+        if sn not in model.cameras:
+            print(f"[CameraConfigManager] Camera '{sn}' not found in model.")
+            return
+
+        camera = model.cameras[sn]
+        cam_cfg = {}
+
+        # Convert basic fields
+        for key in ["visible", "coords_debug"]:
+            if key in camera:
+                cam_cfg[key] = camera[key]
+
+        # Handle pos_x
+        if "pos_x" in camera and camera["pos_x"] is not None:
+            cam_cfg["pos_x"] = list(camera["pos_x"])
+
+        # Handle coords_axis (list of arrays or lists)
+        if "coords_axis" in camera and camera["coords_axis"] is not None:
+            cam_cfg["coords_axis"] = []
+            for path in camera["coords_axis"]:
+                path_converted = [list(pt) if isinstance(pt, np.ndarray) else pt for pt in path]
+                cam_cfg["coords_axis"].append(path_converted)
+
+        # Handle intrinsic parameters
+        intrinsic = camera.get("intrinsic", {})
+        if intrinsic:
+            intr_dict = {}
+            if "mtx" in intrinsic and intrinsic["mtx"] is not None:
+                intr_dict["mtx"] = intrinsic["mtx"].tolist()
+            if "dist" in intrinsic and intrinsic["dist"] is not None:
+                intr_dict["dist"] = intrinsic["dist"].tolist()
+            if "rvec" in intrinsic and intrinsic["rvec"] is not None:
+                intr_dict["rvec"] = intrinsic["rvec"][0].flatten().tolist()
+            if "tvec" in intrinsic and intrinsic["tvec"] is not None:
+                intr_dict["tvec"] = intrinsic["tvec"][0].flatten().tolist()
+            cam_cfg["intrinsic"] = intr_dict
+
+        # Update only this camera
+        output["model"]["cameras"][sn] = cam_cfg
+        print(output)
+
+        with open(session_file, "w") as f:
+            #yaml.safe_dump(output, f, sort_keys=False)
+            yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
+
+        print(f"[CameraConfigManager] Saved YAML for camera: {sn}")
+
+
+# Helper function to sanitize data for YAML serialization
+def sanitize_for_yaml(obj):
+    if isinstance(obj, dict):
+        return {sanitize_for_yaml(k): sanitize_for_yaml(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_for_yaml(i) for i in obj]
+    elif isinstance(obj, tuple):
+        return tuple(sanitize_for_yaml(i) for i in obj)
+    elif isinstance(obj, np.generic):
+        return obj.item()  # Convert numpy scalars to Python scalars
+    else:
+        return obj

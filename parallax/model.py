@@ -10,6 +10,8 @@ from collections import OrderedDict
 from PyQt5.QtCore import QObject
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
+from parallax.config.user_setting_manager import CameraConfigManager
+
 
 
 class Model(QObject):
@@ -146,6 +148,13 @@ class Model(QObject):
 
         self.nPySpinCameras = sum(isinstance(cam['obj'], PySpinCamera) for cam in self.cameras.values())
         self.nMockCameras = sum(isinstance(cam['obj'], MockCamera) for cam in self.cameras.values())
+
+    def load_camera_config(self):
+        # Add the config from yaml file
+        CameraConfigManager.load_from_yaml(self)
+        for sn, cam in self.cameras.items():
+            print("\nsn: ", sn)
+            print("cam: ", cam)
 
     def get_camera_resolution(self, camera_sn):
         camera = self.cameras.get(camera_sn, {}).get('obj', None)
@@ -459,7 +468,12 @@ class Model(QObject):
         
         print("self.cameras[sn]['intrinsic']: ", self.cameras[sn]['intrinsic'])
 
+        # TODO
+        self._save_camera_config(sn)
 
+    def _save_camera_config(self, sn):
+        """Save camera configuration to a YAML file."""
+        CameraConfigManager.save_to_yaml(self, sn)
 
     def get_camera_intrinsic(self, sn):
         """Get intrinsic camera parameters for a specific camera.

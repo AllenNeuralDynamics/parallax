@@ -39,9 +39,7 @@ class AxisFilter(QObject):
 
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(
-            np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple
-        )
+        found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
 
         def __init__(self, name, model):
             """
@@ -147,6 +145,13 @@ class AxisFilter(QObject):
                     self.reticle_coords[0], self.reticle_coords[1]
             )
             if ret:
+                print("self.reticle_coords[0].type:", type(self.reticle_coords[0]))
+                print("self.reticle_coords[1].type:", type(self.reticle_coords[1]))
+                print("mtx.type:", type(mtx))
+                print("dist.type:", type(dist))
+                print("rvecs.type:", type(rvecs))
+                print("tvecs.type:", type(tvecs))
+                print("self.pos_x.type:", type(self.pos_x))
                 self.found_coords.emit(
                         self.reticle_coords[0], self.reticle_coords[1], mtx, dist, rvecs, tvecs
                 )
