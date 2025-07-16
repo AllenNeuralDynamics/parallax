@@ -29,7 +29,8 @@ dependencies = [
     "scikit-learn",
     "plotly",
     "PyQtWebEngine",
-    "aiohttp"
+    "aiohttp",
+    "pyyaml"
    ]
  
 [tool.setuptools.packages.find]

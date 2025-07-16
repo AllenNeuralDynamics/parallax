@@ -14,8 +14,11 @@ Example:
 import json
 import logging
 import os
+import yaml
+import numpy as np
 
 from parallax.config.config_path import settings_file
+
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -162,3 +165,46 @@ class UserSettingsManager:
 
         # Write updated settings back to file
         cls.save_settings(settings)
+
+class ModelConfigLoader:
+    @classmethod
+    def load_from_yaml(cls, model, path):
+        with open(path, "r") as f:
+            data = yaml.safe_load(f)
+
+        cam_configs = data.get("model", {}).get("cameras", {})
+
+        for sn, camera in model.cameras.items():
+            if sn not in cam_configs:
+                continue  # No YAML config for this camera
+
+            cam_cfg = cam_configs[sn]
+
+            # Update top-level fields (visible, coords_axis, etc.)
+            for key in ["visible", "coords_axis", "coords_debug", "pos_x"]:
+                if key in cam_cfg:
+                    if key == "pos_x":
+                        camera[key] = tuple(cam_cfg[key])
+                    else:
+                        camera[key] = cam_cfg[key]
+
+            # Update nested intrinsic values
+            if "intrinsic" in cam_cfg:
+                camera.setdefault("intrinsic", {})
+                intrinsic = cam_cfg["intrinsic"]
+
+                if "mtx" in intrinsic:
+                    camera["intrinsic"]["mtx"] = np.array(intrinsic["mtx"], dtype=np.float64)
+
+                if "dist" in intrinsic:
+                    camera["intrinsic"]["dist"] = np.array(intrinsic["dist"], dtype=np.float64)
+
+                if "rvec" in intrinsic:
+                    rvec = np.array(intrinsic["rvec"], dtype=np.float64).reshape(3, 1)
+                    camera["intrinsic"]["rvec"] = (rvec,)
+
+                if "tvec" in intrinsic:
+                    tvec = np.array(intrinsic["tvec"], dtype=np.float64).reshape(3, 1)
+                    camera["intrinsic"]["tvec"] = (tvec,)
+
+        print("[ModelConfigLoader] YAML camera config loaded into existing model.cameras.")

@@ -30,6 +30,7 @@ debug_dir.mkdir(parents=True, exist_ok=True)
 debug_img_dir.mkdir(parents=True, exist_ok=True)
 
 # File paths
+session_file = data_dir / "dummy_session.yaml"
 settings_file = data_dir / "settings.json"
 stage_server_config_file = data_dir / "stage_server_config.json"
 reticle_metadata_file = data_dir / "reticle_metadata.json"

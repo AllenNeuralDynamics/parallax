@@ -24,9 +24,9 @@ from PyQt5.uic import loadUi
 
 from parallax.handlers.recording_manager import RecordingManager
 from parallax.control_panel.control_panel import ControlPanel
-from parallax.config.user_setting_manager import UserSettingsManager
+from parallax.config.user_setting_manager import UserSettingsManager, ModelConfigLoader
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
-from parallax.config.config_path import ui_dir, fira_font_dir
+from parallax.config.config_path import ui_dir, fira_font_dir, session_file
 from ui.resources import rc 
 
 
@@ -63,6 +63,11 @@ class MainWindow(QMainWindow):
         logger.debug(
             f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
         )
+        # Add the config from yaml file
+        ModelConfigLoader.load_from_yaml(self.model, session_file)
+        for sn, cam in self.model.cameras.items():
+            print("\nsn: ", sn)
+            print("cam: ", cam)
 
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")

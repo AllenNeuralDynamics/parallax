@@ -16,10 +16,7 @@ import scipy.spatial.transform as Rscipy
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 # Objectpoints
 WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
