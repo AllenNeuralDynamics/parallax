@@ -123,7 +123,8 @@ class ScreenWidget(pg.GraphicsView):
         """
         Refresh the image displayed in the screen widget. (Continuously)
         """
-        if self.camera:
+        #if self.camera:
+        if self.camera.running:
             data = self.camera.get_last_image_data()
             self._set_data(data)
 
