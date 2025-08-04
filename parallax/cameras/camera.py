@@ -445,7 +445,6 @@ class PySpinCamera(BaseCamera):
             self.camera.BeginAcquisition()
             logger.debug(f"BeginAcquisition {self.name(sn_only=True)} ")
             self.running = True
-            #self.schedule_camera_reinit()
             self.capture_thread = threading.Thread(
                 target=self.capture_loop, daemon=True
             )

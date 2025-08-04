@@ -116,7 +116,7 @@ QMenu::item:selected {
      <x>0</x>
      <y>0</y>
      <width>407</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuCameras">
@@ -128,7 +128,6 @@ QMenu::item:selected {
       <string>Devices</string>
      </property>
     </widget>
-    <addaction name="actionRefresh"/>
     <addaction name="menuDevices"/>
     <addaction name="separator"/>
     <addaction name="actionStreaming"/>
@@ -184,7 +183,6 @@ QMenu::item:selected {
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionRefresh"/>
    <addaction name="actionStreaming"/>
    <addaction name="actionRecording"/>
    <addaction name="actionSnapshot"/>
@@ -355,15 +353,6 @@ QMenu::item:selected {
    </property>
    <property name="text">
     <string>Calculator</string>
-   </property>
-  </action>
-  <action name="actionRefresh">
-   <property name="icon">
-    <iconset resource="resources/resources_from_qt.qrc">
-     <normaloff>:/Icons/refresh.png</normaloff>:/Icons/refresh.png</iconset>
-   </property>
-   <property name="text">
-    <string>Refresh</string>
    </property>
   </action>
  </widget>
