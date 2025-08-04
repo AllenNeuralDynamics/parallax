@@ -545,9 +545,9 @@ class PySpinCamera(BaseCamera):
                 self.video_recording_idle.clear()
 
                 frame = self.get_last_image_data()
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-
-                self.video_output.write(frame)
+                if frame is not None:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    self.video_output.write(frame)
                 self.video_recording_idle.set()
         except Exception as e:
             logger.error("An error occurred while recording the video: ", e)
