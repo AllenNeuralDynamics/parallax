@@ -110,9 +110,7 @@ class PySpinCamera(BaseCamera):
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
-
         self.last_image = None
-        self.capture_thread_finished = threading.Event()
 
         self.video_output = None
         self.video_recording_on = threading.Event()
@@ -451,26 +449,6 @@ class PySpinCamera(BaseCamera):
             self.capture_thread.start()
         except Exception as e:
             logger.error(f"An error occurred while starting the camera: {e}")
-            print(f"Error: An error occurred while starting the camera {e}")
-
-    def schedule_camera_reinit(self):
-        """
-        Runs from a safe context (not the capture thread) to handle reinitialization.
-        """
-        def _reinit_worker():
-            logger.debug(f"{self.name(sn_only=True)} Waiting for capture loop to end...")
-            self.capture_thread_finished.wait()
-            logger.debug("capture_thread_finished sigaled. Waiting for capture thread to join...")
-            if self.capture_thread.is_alive():
-                self.capture_thread.join()
-                logger.debug(f"{self.name(sn_only=True)} Capture thread joined...")
-
-            self.camera.EndAcquisition()
-            logger.debug("EndAcquisition called.")
-            self.last_image = None
-            logger.debug(f"{self.name(sn_only=True)} cleared...")
-
-        threading.Thread(target=_reinit_worker, daemon=True).start()
 
     def capture_loop(self):
         """
