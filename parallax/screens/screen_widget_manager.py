@@ -47,7 +47,6 @@ class ScreenWidgetManager(QObject):
     def start_streaming(self):
         """Start camera acquisition and refresh only for visible screens."""
         self.model.refresh_camera = True
-        print("start_streaming")
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
             if self.model.cameras.get(sn, {}).get('visible', False):

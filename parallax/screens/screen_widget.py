@@ -123,9 +123,12 @@ class ScreenWidget(pg.GraphicsView):
         """
         Refresh the image displayed in the screen widget. (Continuously)
         """
-        #if self.camera:
         if self.camera.running:
             data = self.camera.get_last_image_data()
+            if data is None:
+                logger.warning(f"{self.camera_name} - No data received from camera.")
+                return
+
             self._set_data(data)
 
     def start_acquisition_camera(self):
