@@ -234,16 +234,6 @@ class PySpinCamera(BaseCamera):
 
         self.camera_info()
 
-        # acquisition on initialization
-        if VERSION == "V1":
-            # begin acquisition
-            # V1: Start continuous acquisition on initialization.
-            self.begin_continuous_acquisition()
-        elif VERSION == "V2":
-            # V2: Start continuous acquisition when 'Start' button is toggled and end acquisition when untoggled.
-            # On initialization, start onetime acquisition to get one frame.
-            pass
-
     def set_wb(self, channel, wb=1.2):
         """
         Sets the white balance of the camera.
@@ -487,12 +477,10 @@ class PySpinCamera(BaseCamera):
         """
         Continuous loop to capture images while the camera is running.
         """
-        print("Capture loop started for camera:", self.name(sn_only=True))
         while self.running:
             self.capture()
 
-        logger.debug("Capture loop ended.")
-        #self.capture_thread_finished.set()  # Signal that loop is done
+        logger.warning(f"{self.name(sn_only=True)} Capture loop ended.")
 
     def capture(self):
         """
@@ -527,18 +515,14 @@ class PySpinCamera(BaseCamera):
 
         except PySpin.SpinnakerException as e:
             logger.error(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
-            #print(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
-
             # Check for specific error messages
             # Spinnaker: Stream has been aborted. [-1012]
             # Spinnaker: Camera has been removed from the list and is no longer valid. [-1002]
             if "[-1012]" in str(e):
                 if self.running:
                     self.running = False
-                    logger.debug("running set to False")
-                    #self.camera.EndAcquisition()
+                    print(f"{self.name(sn_only=True)} Stream has been aborted. Stopping camera. \n {str(e)}")
 
-        # If video recording is active, record the image
         try:
             # Record the image if video recording is active
             if self.video_recording_on.is_set():
@@ -552,42 +536,6 @@ class PySpinCamera(BaseCamera):
         except Exception as e:
             logger.error("An error occurred while recording the video: ", e)
             print(f"Error {self.name(sn_only=True)}: An error occurred while recording the video.")
-
-
-    def reinit_camera(self):
-        """
-        Attempts to safely reinitialize the camera session after an error.
-        """
-        logger.debug(f"{self.name(sn_only=True)} Reinitializing camera session...")
-        logger.debug(f"{self.name(sn_only=True)} - instance: {PySpinCamera.pyspin_instance}")
-        # Reacquire system and camera
-        if PySpinCamera.pyspin_instance is None:
-            PySpinCamera.pyspin_instance = PySpin.System.GetInstance()
-            PySpinCamera.pyspin_instance.UpdateCameras()
-
-        cam_list = PySpinCamera.pyspin_instance.GetCameras()
-        logger.debug(f"cam_list: {cam_list}")
-        for i in range(cam_list.GetSize()):
-            cam = cam_list.GetByIndex(i)
-            logger.debug(f"cam.DeviceSerialNumber(): {cam.DeviceSerialNumber()}")
-            if cam.DeviceSerialNumber() == self.name(sn_only=True):
-                self.camera = cam
-                break
-        else:
-            return
-
-        logger.debug(f"{self.name(sn_only=True)} Camera found in system after reinit.")
-        self.camera.Init()
-        self.node_map = self.camera.GetNodeMap()
-        self.tldnm = self.camera.GetTLDeviceNodeMap()
-
-        # Restart acquisition
-        # End Acquisition?
-        self.begin_continuous_acquisition()
-        self.running = True
-
-        logger.debug(f"{self.name(sn_only=True)} Camera reinitialized successfully.")
-
 
     def save_last_image(
             self, filepath, isTimestamp=False, custom_name="Microscope_"):

@@ -85,7 +85,6 @@ class ScreenWidgetManager(QObject):
         if not screen:
             return  # Screen not found
 
-        print("_toggle_streaming:", on, "for camera:", sn)
         if on:
             self.model.set_camera_visibility(sn, True)
             if self.model.refresh_camera:
