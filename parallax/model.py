@@ -464,8 +464,7 @@ class Model(QObject):
 
         print("\nAdded camera intrinsic", sn)
         print("coords_axis: ", self.cameras[sn]['coords_axis'])
-        print("coords_debug: ", self.cameras[sn]['coords_debug'])
-        
+        #print("coords_debug: ", self.cameras[sn]['coords_debug'])
         print("self.cameras[sn]['intrinsic']: ", self.cameras[sn]['intrinsic'])
 
         # TODO
