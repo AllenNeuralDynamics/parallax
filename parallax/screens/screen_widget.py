@@ -8,6 +8,8 @@ import logging
 import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, pyqtSignal
+import cv2
+import numpy as np
 
 from parallax.screens.no_filter import NoFilter
 from parallax.probe_detection.probe_detect_manager import ProbeDetectManager
@@ -67,13 +69,13 @@ class ScreenWidget(pg.GraphicsView):
         self.camera_name = self.get_camera_name()
 
         # Dynamically set zoom limits based on image size
-        width, height = self.camera.width, self.camera.height
-        if height is not None and width:
+        self.width, self.height = self.camera.width, self.camera.height
+        if self.height is not None and self.width:
             self.view_box.setLimits(
-                xMin=-width, xMax=width * 2,  # Prevent panning outside image boundaries
-                yMin=-height, yMax=height * 2,
-                maxXRange=width * 10,
-                maxYRange=height * 10
+                xMin=-self.width, xMax=self.width * 2,  # Prevent panning outside image boundaries
+                yMin=-self.height, yMax=self.height * 2,
+                maxXRange=self.width * 10,
+                maxYRange=self.height * 10
             )
 
         # No filter
@@ -115,9 +117,32 @@ class ScreenWidget(pg.GraphicsView):
         """
         Refresh the image displayed in the screen widget. (Continuously)
         """
-        if self.camera:
+        if self.camera.running:
             data = self.camera.get_last_image_data()
+            if data is None:
+                logger.warning(f"{self.camera_name} - No data received from camera.")
+                return
             self._set_data(data)
+        else:
+            placeholder_data = self._generate_stopped_message_image()
+            self._set_data(placeholder_data)
+
+    def _generate_stopped_message_image(self):
+        img = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+
+        message = "Camera not running. Check the connection."
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 3
+        thickness = 5
+
+        # Get text size to center it
+        (text_width, text_height), _ = cv2.getTextSize(message, font, font_scale, thickness)
+        x = (self.width - text_width) // 2
+        y = (self.height + text_height) // 2
+
+        cv2.putText(img, message, (x, y), font, font_scale, (255, 0, 0), thickness)
+
+        return img
 
     def start_acquisition_camera(self):
         """
