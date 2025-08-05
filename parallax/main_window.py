@@ -64,7 +64,6 @@ class MainWindow(QMainWindow):
             f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
         )
 
-
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
         loadUi(ui, self)
@@ -169,7 +168,6 @@ class MainWindow(QMainWindow):
         If the record button is checked, start recording. Otherwise, stop recording.
         """
         if self.actionRecording.isChecked():
-            #save_path = self.dirLabel.text()
             self.recordingManager.save_recording(self.dir, self.screen_widget_manager.screen_widgets)
         else:
             self.recordingManager.stop_recording(self.screen_widget_manager.screen_widgets)
@@ -218,8 +216,6 @@ class MainWindow(QMainWindow):
         width and height. It then passes these values to the `save_user_configs` method
         of the `user_setting` object to be saved.
         """
-        #nColumn = self.nColumnsSpinBox.value()
-        #directory = self.dirLabel.text()
         width = self.width()
         height = self.height()
         UserSettingsManager.save_user_configs(0, self.dir, width, height)
