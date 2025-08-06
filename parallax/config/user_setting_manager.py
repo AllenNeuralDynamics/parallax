@@ -169,6 +169,7 @@ class UserSettingsManager:
 class CameraConfigManager:
     @classmethod
     def load_from_yaml(cls, model):
+        print("[ModelConfigLoader] Loading YAML camera config from:")
         with open(session_file, "r") as f:
             data = yaml.safe_load(f)
             if data is None:
@@ -176,8 +177,8 @@ class CameraConfigManager:
                 return
 
         cam_configs = data.get("model", {}).get("cameras", {})
-        print("\nsession_file loaded:", session_file)
-        print(cam_configs)
+        #print("\nsession_file loaded:", session_file)
+        #print(cam_configs)
 
         for sn, camera in model.cameras.items():
             if sn not in cam_configs:
@@ -195,10 +196,8 @@ class CameraConfigManager:
                 if key == "pos_x":
                     camera[key] = tuple(cam_cfg[key])
                 elif key == "coords_axis" or key == "coords_debug":
-                    # Convert list of list of points into list of np.ndarrays
-                    print(f"\ncamera[{key}].type:", type(cam_cfg[key]))
+                    # Convert list to np.ndarrays
                     camera[key] = np.array(cam_cfg[key])
-                    print(f"camera[{key}].type:", type(cam_cfg[key]))
                 else:
                     camera[key] = cam_cfg[key]
 
@@ -221,17 +220,18 @@ class CameraConfigManager:
                     tvec = np.array(intrinsic["tvec"], dtype=np.float64).reshape(3, 1)
                     camera["intrinsic"]["tvec"] = (tvec,)
 
-        print("[ModelConfigLoader] YAML camera config loaded into existing model.cameras.")
+        print("[ModelConfigLoader] YAML camera config loaded into model.")
     
     @classmethod
     def save_to_yaml(cls, model, sn):
+        print("[CameraConfigManager] Saving YAML for camera:", sn)
         output = {}
 
         # Load existing YAML if available
         if os.path.exists(session_file):
             with open(session_file, "r") as f:
                 output = yaml.safe_load(f) or {}
-                print("\nsession_file loaded:", session_file)
+                #print("\nsession_file loaded:", session_file)
         if "model" not in output:
             output["model"] = {}
         if "cameras" not in output["model"]:
@@ -276,24 +276,21 @@ class CameraConfigManager:
 
         # Update only this camera
         output["model"]["cameras"][sn] = cam_cfg
-        print(output)
+        #print(output)
 
         with open(session_file, "w") as f:
             #yaml.safe_dump(output, f, sort_keys=False)
             yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
 
-        print(f"[CameraConfigManager] Saved YAML for camera: {sn}")
-
-
 # Helper function to sanitize data for YAML serialization
 def sanitize_for_yaml(obj):
-    if isinstance(obj, dict):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
         return {sanitize_for_yaml(k): sanitize_for_yaml(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
+    elif isinstance(obj, (list, tuple, set)):
         return [sanitize_for_yaml(i) for i in obj]
-    elif isinstance(obj, tuple):
-        return tuple(sanitize_for_yaml(i) for i in obj)
-    elif isinstance(obj, np.generic):
-        return obj.item()  # Convert numpy scalars to Python scalars
+    elif isinstance(obj, (np.integer, np.floating)):
+        return obj.item()  # Convert NumPy scalar types to native Python
     else:
         return obj

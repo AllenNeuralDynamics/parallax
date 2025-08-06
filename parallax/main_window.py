@@ -27,7 +27,7 @@ from parallax.control_panel.control_panel import ControlPanel
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from parallax.config.config_path import ui_dir, fira_font_dir
-from ui.resources import rc 
+from ui.resources import rc
 
 
 # Set logger name

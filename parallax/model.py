@@ -36,7 +36,7 @@ class Model(QObject):
 
         # cameras
         self.refresh_camera = False     # Status of camera streaming
-        self.cameras = OrderedDict()  # {sn: {'obj': camera_obj, 'visible': bool}}
+        self.cameras = OrderedDict()
         """
         self.cameras[sn] = {
             'obj': cam,
@@ -152,9 +152,10 @@ class Model(QObject):
     def load_camera_config(self):
         # Add the config from yaml file
         CameraConfigManager.load_from_yaml(self)
+        print("\nLoaded camera config:")
         for sn, cam in self.cameras.items():
-            print("\nsn: ", sn)
-            print("cam: ", cam)
+            print("sn: ", sn)
+            #print("cam: ", cam)
 
     def get_camera_resolution(self, camera_sn):
         camera = self.cameras.get(camera_sn, {}).get('obj', None)
@@ -340,7 +341,7 @@ class Model(QObject):
         Args:
             sn (str, optional): Serial number of the camera. If provided, only that camera's data will be removed.
         """
-        print("reset_coords_intrinsic_extrinsic: ", sn)
+        #print("reset_coords_intrinsic_extrinsic: ", sn)
         if sn is None:
             self.camera_extrinsic = {}
         else:
@@ -463,11 +464,10 @@ class Model(QObject):
         }
 
         print("\nAdded camera intrinsic", sn)
-        print("coords_axis: ", self.cameras[sn]['coords_axis'])
+        #print("coords_axis: ", self.cameras[sn]['coords_axis'])
         #print("coords_debug: ", self.cameras[sn]['coords_debug'])
-        print("self.cameras[sn]['intrinsic']: ", self.cameras[sn]['intrinsic'])
+        #print("self.cameras[sn]['intrinsic']: ", self.cameras[sn]['intrinsic'])
 
-        # TODO
         self._save_camera_config(sn)
 
     def _save_camera_config(self, sn):
