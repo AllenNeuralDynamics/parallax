@@ -138,6 +138,7 @@ class AxisFilter(QObject):
             # Finding the closest point to pt
             self.pos_x = min(pts, key=lambda pt: self.squared_distance(pt, input_pt))
             self.pos_x = tuple(self.pos_x)
+            self.model.add_pos_x(self.name, self.pos_x)
 
             # sort the reticle points and register to the model
             self.sort_reticle_points()
@@ -156,7 +157,7 @@ class AxisFilter(QObject):
                         self.reticle_coords[0], self.reticle_coords[1], mtx, dist, rvecs, tvecs
                 )
 
-            self.model.add_pos_x(self.name, self.pos_x)
+            
 
         def reset_pos_x(self):
             """Reset the position of the x-axis (pos_x) in the model."""

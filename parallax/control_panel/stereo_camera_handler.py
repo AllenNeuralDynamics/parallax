@@ -167,7 +167,7 @@ class StereoCameraHandler:
             intrinsic = self.model.get_camera_intrinsic(sn)
             coords = self.model.get_coords_axis(sn)
 
-            if coords and intrinsic:
+            if coords is not None and intrinsic is not None:
                 intrinsics.append([
                     intrinsic.get("mtx"),
                     intrinsic.get("dist"),

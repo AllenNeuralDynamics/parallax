@@ -42,7 +42,7 @@ class ReticleDetecthandler(QWidget):
         self.reticle_detection_status = (
             "default"  # options: default, detected, accepted
         )
-        self.triangulate_btn.clicked.connect(self.triangulate_btn_handler)
+        self.triangulate_btn.clicked.connect(self._triangulate_btn_handler)
         if self.actionTriangulate is not None:
             self.actionTriangulate.triggered.connect(self._check_triangulate_btn)
 
@@ -50,16 +50,16 @@ class ReticleDetecthandler(QWidget):
         self.acceptButton.hide()
         self.rejectButton.hide()
         self.acceptButton.clicked.connect(
-            self.reticle_detect_accept_detected_status
+            self._reticle_detect_accept_detected_status
         )
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
         self.get_pos_x_from_user_timer = QTimer()
-        self.get_pos_x_from_user_timer.timeout.connect(self.check_positive_x_axis)
+        self.get_pos_x_from_user_timer.timeout.connect(self._check_positive_x_axis)
 
     def _check_triangulate_btn(self):
         self.triangulate_btn.click()
 
-    def triangulate_btn_handler(self):
+    def _triangulate_btn_handler(self):
         """
         Handles clicks on the reticle detection button, initiating or canceling reticle detection.
         """
@@ -67,12 +67,12 @@ class ReticleDetecthandler(QWidget):
         logger.debug(f"triangulate_btn.isChecked(): {self.triangulate_btn.isChecked()}")
         if self.triangulate_btn.isChecked():
             # Run reticle detectoin
-            self.reticle_detect_process_status()
+            self._reticle_detect_process_status()
             # Init probe calibration property
             # self.probeCalibration.reset_calib(sn = self.selected_stage_id)
         else:
             if self.reticle_detection_status == "accepted":
-                response = self.reticle_overwrite_popup_window()
+                response = self._reticle_overwrite_popup_window()
                 if response:
                     # Overwrite the result
                     self.reticle_detect_default_status()
@@ -119,7 +119,7 @@ class ReticleDetecthandler(QWidget):
 
         self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
 
-    def reticle_detect_accept_detected_status(self):
+    def _reticle_detect_accept_detected_status(self):
         """
         Finalizes the reticle detection process, accepting the detected
         reticle position and updating the UI accordingly.
@@ -134,10 +134,10 @@ class ReticleDetecthandler(QWidget):
         self.rejectButton.hide()
 
         # Get user input of positive x axis
-        self.continue_if_positive_x_axis_from_user()
+        self._continue_if_positive_x_axis_from_user()
         logger.debug(f"2 self.filter: {self.filter}")
 
-    def reticle_detect_process_status(self):
+    def _reticle_detect_process_status(self):
         """
         Updates the UI and internal state to reflect that the reticle detection process is underway.
         """
@@ -169,9 +169,9 @@ class ReticleDetecthandler(QWidget):
 
         self.filter = "reticle_detection"
         logger.debug(f"filter: {self.filter}")
-        self.reticle_detect_detected_status()
+        self._reticle_detect_detected_status()
 
-    def reticle_detect_detected_status(self):
+    def _reticle_detect_detected_status(self):
         """
         Updates the UI and internal state to reflect that the reticle has been detected.
         """
@@ -189,7 +189,7 @@ class ReticleDetecthandler(QWidget):
             "background-color: #bc9e44;"
         )
 
-    def reticle_overwrite_popup_window(self):
+    def _reticle_overwrite_popup_window(self):
         """
         Displays a confirmation dialog to decide whether to overwrite the current reticle position.
 
@@ -214,7 +214,7 @@ class ReticleDetecthandler(QWidget):
             logger.debug("User clicked No.")
             return False
 
-    def check_positive_x_axis(self):
+    def _check_positive_x_axis(self):
         """
         Checks for the detection of the positive x-axis on all screens and proceeds with calibration if detected.
 
@@ -225,7 +225,7 @@ class ReticleDetecthandler(QWidget):
         Returns:
             None
         """
-        if self.is_positive_x_axis_detected():
+        if self._is_positive_x_axis_detected():
             self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected
 
             # Continue to calibrate stereo
@@ -233,7 +233,7 @@ class ReticleDetecthandler(QWidget):
             if msg is not None:
                 self.reticleCalibrationLabel.setText(msg)
 
-            self.enable_reticle_detection_buttons()
+            self._enable_reticle_detection_buttons()
             logger.debug("Positive x-axis detected on all screens.")
             for screen in self.screen_widgets:
                 screen.run_no_filter()
@@ -243,10 +243,10 @@ class ReticleDetecthandler(QWidget):
             logger.debug(f"1 self.filter: {self.filter}")
             self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
         else:
-            self.coords_detected_screens = self.get_coords_detected_screens()
+            self.coords_detected_screens = self._get_coords_detected_screens()
             logger.debug("Checking again for user input of positive x-axis...")
 
-    def is_positive_x_axis_detected(self):
+    def _is_positive_x_axis_detected(self):
         """
         Checks whether the positive x-axis has been detected on all visible screens
         that have detected reticle coordinates.
@@ -265,16 +265,16 @@ class ReticleDetecthandler(QWidget):
 
         return candidates == pos_x_detected
 
-    def continue_if_positive_x_axis_from_user(self):
+    def _continue_if_positive_x_axis_from_user(self):
         """Get the positive x-axis coordinate of the reticle from the user."""
         for screen in self.screen_widgets:
             screen.run_axis_filter()
 
-        self.select_positive_x_popup_window()
-        self.coords_detected_screens = self.get_coords_detected_screens()
+        self._select_positive_x_popup_window()
+        self.coords_detected_screens = self._get_coords_detected_screens()
         self.get_pos_x_from_user_timer.start(1000)
 
-    def select_positive_x_popup_window(self):
+    def _select_positive_x_popup_window(self):
         """
         Displays a popup window instructing the user to click the positive x-axis
         on each screen during the calibration process.
@@ -291,7 +291,7 @@ class ReticleDetecthandler(QWidget):
         message = ("Click positive x-axis on each screen")
         QMessageBox.warning(self, "Calibration", message)
 
-    def get_coords_detected_screens(self):
+    def _get_coords_detected_screens(self):
         """
         Retrieves the list of camera names where reticle coordinates have been detected.
 
@@ -311,7 +311,7 @@ class ReticleDetecthandler(QWidget):
 
         return coords_detected_cam_name
 
-    def enable_reticle_detection_buttons(self):
+    def _enable_reticle_detection_buttons(self):
         """
         Enables the reticle and probe calibration buttons in the UI.
 
