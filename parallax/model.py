@@ -52,6 +52,8 @@ class Model(QObject):
             }
         }
         """
+        # Reticle detection
+        self.reticle_detection_status = "default"  # options: default, detected, accepted
 
         # point mesh
         self.point_mesh_instances = {}

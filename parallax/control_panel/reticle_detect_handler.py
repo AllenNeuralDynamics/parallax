@@ -13,7 +13,7 @@ logger.setLevel(logging.WARNING)
 
 class ReticleDetecthandler(QWidget):
     """Handles reticle detection and calibration in the Parallax control panel."""
-    reticleDetectionStatusChanged = pyqtSignal(str)
+    reticleDetectionStatusChanged = pyqtSignal()
 
     def __init__(self, model, screen_widgets, filter, actionTriangulate: QAction=None):
         """
@@ -39,9 +39,10 @@ class ReticleDetecthandler(QWidget):
         self.reticleCalibrationLabel = self.findChild(QLabel, "reticleCalibResultLabel")
 
         # Reticle Widget
-        self.reticle_detection_status = (
-            "default"  # options: default, detected, accepted
-        )
+        #self.reticle_detection_status = (
+        #    "default"  # options: default, detected, accepted
+        #)
+
         self.triangulate_btn.clicked.connect(self._triangulate_btn_handler)
         if self.actionTriangulate is not None:
             self.actionTriangulate.triggered.connect(self._check_triangulate_btn)
@@ -63,7 +64,7 @@ class ReticleDetecthandler(QWidget):
         """
         Handles clicks on the reticle detection button, initiating or canceling reticle detection.
         """
-        logger.debug(f"\n{self.reticle_detection_status}")
+        logger.debug(f"\n{self.model.reticle_detection_status}")
         logger.debug(f"triangulate_btn.isChecked(): {self.triangulate_btn.isChecked()}")
         if self.triangulate_btn.isChecked():
             # Run reticle detectoin
@@ -71,7 +72,7 @@ class ReticleDetecthandler(QWidget):
             # Init probe calibration property
             # self.probeCalibration.reset_calib(sn = self.selected_stage_id)
         else:
-            if self.reticle_detection_status == "accepted":
+            if self.model.reticle_detection_status == "accepted":
                 response = self._reticle_overwrite_popup_window()
                 if response:
                     # Overwrite the result
@@ -105,7 +106,7 @@ class ReticleDetecthandler(QWidget):
                 background-color: #641e1e;
             }"""
         )
-        self.reticle_detection_status = "default"
+        self.model.reticle_detection_status = "default"
         self.reticleCalibrationLabel.setText("")
         self.triangulate_btn.setChecked(False)
 
@@ -117,7 +118,7 @@ class ReticleDetecthandler(QWidget):
         if not self.triangulate_btn.isEnabled():
             self.triangulate_btn.setEnabled(True)
 
-        self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
+        self.reticleDetectionStatusChanged.emit()
 
     def _reticle_detect_accept_detected_status(self):
         """
@@ -176,8 +177,8 @@ class ReticleDetecthandler(QWidget):
         Updates the UI and internal state to reflect that the reticle has been detected.
         """
         # Found the coords
-        self.reticle_detection_status = "detected"
-        self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
+        self.model.reticle_detection_status = "detected"
+        self.reticleDetectionStatusChanged.emit()
 
         # Show Accept and Reject Button
         self.acceptButton.show()
@@ -239,9 +240,9 @@ class ReticleDetecthandler(QWidget):
                 screen.run_no_filter()
 
             # Send the signal to update the reticle detection status
-            self.reticle_detection_status = "accepted"
+            self.model.reticle_detection_status = "accepted"
             logger.debug(f"1 self.filter: {self.filter}")
-            self.reticleDetectionStatusChanged.emit(self.reticle_detection_status)
+            self.reticleDetectionStatusChanged.emit()
         else:
             self.coords_detected_screens = self._get_coords_detected_screens()
             logger.debug("Checking again for user input of positive x-axis...")
@@ -327,4 +328,4 @@ class ReticleDetecthandler(QWidget):
         # Enable triangulate_btn button
         if not self.triangulate_btn.isEnabled():
             self.triangulate_btn.setEnabled(True)
-        logger.debug(self.reticle_detection_status)
+        logger.debug(self.model.reticle_detection_status)

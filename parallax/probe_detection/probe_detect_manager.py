@@ -70,7 +70,7 @@ class DrawWorker(QRunnable):
         """
         Draw reticle and debug coordinates on the frame.
         """
-        if self.reticle_coords:
+        if self.reticle_coords is not None:
             for coords in self.reticle_coords:
                 for i, (x, y) in enumerate(coords):
                     color = self.colormap_reticle[i][0].tolist()

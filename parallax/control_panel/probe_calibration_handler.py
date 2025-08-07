@@ -38,7 +38,6 @@ class ProbeCalibrationHandler(QWidget):
         self.actionCalculator = actionCalculator
         self.actionReticlesMetadata = actionReticlesMetadata
 
-        self.reticle_detection_status = "default"  # options: default, process, accepted
         self.selected_stage_id = None
         self.stageUI = None
         self.stageListener = None
@@ -125,13 +124,13 @@ class ProbeCalibrationHandler(QWidget):
         # Add stages on calculator
         self.calculator.add_stage_groupbox()  # Add stage infos to calculator
 
-    def reticle_detection_status_change(self, status):
+    def reticle_detection_status_change(self):
         """Updates the reticle detection status and performs actions based on the new status."""
-        self.reticle_detection_status = status
+        #self.reticle_detection_status = status
 
-        if self.reticle_detection_status == "default":
+        if self.model.reticle_detection_status == "default":
             self.probe_detect_default_status()
-        if self.reticle_detection_status == "accepted":
+        if self.model.reticle_detection_status == "accepted":
             self.enable_probe_calibration_btn()
 
     def enable_probe_calibration_btn(self):
@@ -399,7 +398,7 @@ class ProbeCalibrationHandler(QWidget):
         self.transM, self.L2_err, self.dist_travled = None, None, None
         self.scale = np.array([1, 1, 1])
         self.probeCalibration.reset_calib(sn=sn)
-        self.reticle_metadata.default_reticle_selector(self.reticle_detection_status)
+        self.reticle_metadata.default_reticle_selector()
         self.probe_detect_default_status_ui(sn=sn)
         if sn is None:
             self.probeCalibration.clear()

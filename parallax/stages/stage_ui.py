@@ -203,12 +203,12 @@ class StageUI(QWidget):
         self.ui.global_coords_y.setText("-")
         self.ui.global_coords_z.setText("-")
 
-    def reticle_detection_status_change(self, status):
+    def reticle_detection_status_change(self):
         """
         Update the reticle detection status in the UI.
 
         Args:
             status (str): The new status of the reticle detection.
         """
-        if status == "default":
+        if self.model.reticle_detection_status == "default":
             self.updateStageGlobalCoords_default()
