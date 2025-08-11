@@ -125,6 +125,7 @@ class ControlPanel(QWidget):
         Returns:
             None
         """
+        logger.debug("Initializing stages...")
         # refresh the stage using server IP address
         self.stage_server_ipconfig.update_url(init=True)
         self.stage_server_ipconfig.refresh_stages()  # Update stages to model
@@ -143,8 +144,12 @@ class ControlPanel(QWidget):
         # Stage Http Server
         self.stage_http_server = StageHttpServer(self.model, self.stageListener.stages_info)
 
+        # Apply reticle detection status
+        self.reticle_handler.apply_reticle_detection_status()
+
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""
+        print("Refreshing stages with updated server configuration...")
         # If URL is not updated or invalid, do nothing
         if not self.stage_server_ipconfig.update_url():
             return
@@ -155,12 +160,14 @@ class ControlPanel(QWidget):
 
         # Update reticle/probe detection status to default
         self.reticle_handler.reticle_detect_default_status()
+        #self.reticle_handler.apply_reticle_detection_status()
 
         # Refresh calculator and update uril on stage listenler
         self.probe_calib_handler.refresh_stages()
 
         # Update url on StageLinstener
         self.stageListener.update_url()
+        print("Stages refreshed successfully.")
 
     def stage_server_ipconfig_btn_handler(self):
         """

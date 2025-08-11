@@ -126,8 +126,6 @@ class ProbeCalibrationHandler(QWidget):
 
     def reticle_detection_status_change(self):
         """Updates the reticle detection status and performs actions based on the new status."""
-        #self.reticle_detection_status = status
-
         if self.model.reticle_detection_status == "default":
             self.probe_detect_default_status()
         if self.model.reticle_detection_status == "accepted":
@@ -355,7 +353,7 @@ class ProbeCalibrationHandler(QWidget):
 
         self.probeCalibrationLabel.setText("")
         self.probe_calibration_btn.setChecked(False)
-        if self.reticle_detection_status == "default":
+        if self.model.reticle_detection_status == "default":
             self.probe_calibration_btn.setEnabled(False)
 
         if self.filter == "probe_detection":

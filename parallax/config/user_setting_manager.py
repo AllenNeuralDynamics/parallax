@@ -166,10 +166,38 @@ class UserSettingsManager:
         # Write updated settings back to file
         cls.save_settings(settings)
 
+class SessionConfigManager:
+    @classmethod
+    def load_from_yaml(cls, model):
+        print("[ModelConfigLoader] Loading YAML session config")
+        with open(session_file, "r") as f:
+            data = yaml.safe_load(f)
+            if data is None:
+                print("[ModelConfigLoader] YAML file is empty.")
+                return
+
+        stat = data.get("model", {}).get("reticle_detection_status", "default")
+        model.reticle_detection_status = stat
+        print("[ModelConfigLoader] Loaded reticle_detection_status:", model.reticle_detection_status)
+
+    @classmethod
+    def save_to_yaml(cls, model):
+        print("[CameraConfigManager] Saving YAML for session:", model.reticle_detection_status)
+        output = {}
+        if os.path.exists(session_file):
+            with open(session_file, "r") as f:
+                output = yaml.safe_load(f) or {}
+        output.setdefault("model", {})
+        output["model"]["reticle_detection_status"] = model.reticle_detection_status
+
+        with open(session_file, "w") as f:
+            yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
+
+
 class CameraConfigManager:
     @classmethod
     def load_from_yaml(cls, model):
-        print("[ModelConfigLoader] Loading YAML camera config from:")
+        print("[ModelConfigLoader] Loading YAML camera config")
         with open(session_file, "r") as f:
             data = yaml.safe_load(f)
             if data is None:
@@ -220,7 +248,6 @@ class CameraConfigManager:
                     tvec = np.array(intrinsic["tvec"], dtype=np.float64).reshape(3, 1)
                     camera["intrinsic"]["tvec"] = (tvec,)
 
-        print("[ModelConfigLoader] YAML camera config loaded into model.")
     
     @classmethod
     def save_to_yaml(cls, model, sn):

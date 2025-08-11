@@ -10,7 +10,7 @@ from collections import OrderedDict
 from PyQt5.QtCore import QObject
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
-from parallax.config.user_setting_manager import CameraConfigManager
+from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager
 
 
 
@@ -52,7 +52,7 @@ class Model(QObject):
             }
         }
         """
-        # Reticle detection
+        # Session Config
         self.reticle_detection_status = "default"  # options: default, detected, accepted
 
         # point mesh
@@ -89,6 +89,9 @@ class Model(QObject):
 
         # clicked pts
         self.clicked_pts = OrderedDict()
+
+        # Restore Session Config
+        self.load_session_config()
 
     def get_camera(self, sn):
         return self.cameras.get(sn, {}).get('obj', None)
@@ -158,6 +161,12 @@ class Model(QObject):
         for sn, cam in self.cameras.items():
             print("sn: ", sn)
             #print("cam: ", cam)
+
+    def load_session_config(self):
+        SessionConfigManager.load_from_yaml(self)
+
+    def save_session_config(self):
+        SessionConfigManager.save_to_yaml(self)
 
     def get_camera_resolution(self, camera_sn):
         camera = self.cameras.get(camera_sn, {}).get('obj', None)

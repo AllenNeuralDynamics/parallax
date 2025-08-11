@@ -38,11 +38,7 @@ class ReticleDetecthandler(QWidget):
         self.rejectButton = self.findChild(QPushButton, "rejectButton")
         self.reticleCalibrationLabel = self.findChild(QLabel, "reticleCalibResultLabel")
 
-        # Reticle Widget
-        #self.reticle_detection_status = (
-        #    "default"  # options: default, detected, accepted
-        #)
-
+        # Connect buttons to handlers
         self.triangulate_btn.clicked.connect(self._triangulate_btn_handler)
         if self.actionTriangulate is not None:
             self.actionTriangulate.triggered.connect(self._check_triangulate_btn)
@@ -56,6 +52,20 @@ class ReticleDetecthandler(QWidget):
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self._check_positive_x_axis)
+
+        self.coords_detected_screens = None
+
+    def apply_reticle_detection_status(self):
+        print("Applying reticle detection status:", self.model.reticle_detection_status)
+        if self.model.reticle_detection_status == "default":
+            self.reticle_detect_default_status()
+        elif self.model.reticle_detection_status == "accepted":
+            self.triangulate_btn.setChecked(True)
+            self._check_positive_x_axis()
+            #self._reticle_detect_accept_detected_status()
+        elif self.model.reticle_detection_status == "detected":
+            self.triangulate_btn.setChecked(True)
+            self._reticle_detect_detected_status()
 
     def _check_triangulate_btn(self):
         self.triangulate_btn.click()
@@ -106,7 +116,9 @@ class ReticleDetecthandler(QWidget):
                 background-color: #641e1e;
             }"""
         )
-        self.model.reticle_detection_status = "default"
+        if self.model.reticle_detection_status != "default":
+            self.model.reticle_detection_status = "default"
+            self.model.save_session_config()
         self.reticleCalibrationLabel.setText("")
         self.triangulate_btn.setChecked(False)
 
@@ -125,11 +137,14 @@ class ReticleDetecthandler(QWidget):
         Finalizes the reticle detection process, accepting the detected
         reticle position and updating the UI accordingly.
         """
+
+        """
         # Change the button to green.
         self.triangulate_btn.setStyleSheet(
             "color: white;"
             "background-color: #84c083;"
         )
+        """
         # Show Accept and Reject Button
         self.acceptButton.hide()
         self.rejectButton.hide()
@@ -177,7 +192,9 @@ class ReticleDetecthandler(QWidget):
         Updates the UI and internal state to reflect that the reticle has been detected.
         """
         # Found the coords
-        self.model.reticle_detection_status = "detected"
+        if self.model.reticle_detection_status != "detected":
+            self.model.reticle_detection_status = "detected"
+            self.model.save_session_config()
         self.reticleDetectionStatusChanged.emit()
 
         # Show Accept and Reject Button
@@ -226,8 +243,10 @@ class ReticleDetecthandler(QWidget):
         Returns:
             None
         """
+
         if self._is_positive_x_axis_detected():
-            self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected
+            if self.get_pos_x_from_user_timer.isActive():
+                self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected
 
             # Continue to calibrate stereo
             msg = self.camera_handler.start_calibrate()
@@ -238,10 +257,18 @@ class ReticleDetecthandler(QWidget):
             logger.debug("Positive x-axis detected on all screens.")
             for screen in self.screen_widgets:
                 screen.run_no_filter()
+            logger.debug(f"1 self.filter: {self.filter}")
+
+            # Change the button to green.
+            self.triangulate_btn.setStyleSheet(
+                "color: white;"
+                "background-color: #84c083;"
+            )
 
             # Send the signal to update the reticle detection status
-            self.model.reticle_detection_status = "accepted"
-            logger.debug(f"1 self.filter: {self.filter}")
+            if self.model.reticle_detection_status != "accepted":
+                self.model.reticle_detection_status = "accepted"
+                self.model.save_session_config()
             self.reticleDetectionStatusChanged.emit()
         else:
             self.coords_detected_screens = self._get_coords_detected_screens()
@@ -255,6 +282,8 @@ class ReticleDetecthandler(QWidget):
         Returns:
             bool: True if positive x-axis is detected on all relevant screens, False otherwise.
         """
+        if self.coords_detected_screens is None:
+            self.coords_detected_screens = self._get_coords_detected_screens()
         detected = set(self.coords_detected_screens)    # Reticle detected screens
         visible = set(self.model.get_visible_camera_sns())    # Visible screnens
         candidates = detected & visible             # cameras that are both detected and currently visible
