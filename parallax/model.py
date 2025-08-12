@@ -70,6 +70,8 @@ class Model(QObject):
         self.stages_calib = {}
         self.stage_listener_url = None
         self.stage_ipconfig_instance = None
+        # Transformation matrices of stages to global coords
+        self.transforms = {}
 
         # probe detector
         self.probeDetectors = []
@@ -81,17 +83,11 @@ class Model(QObject):
         self.calibration = None
         self.calibrations = {}
 
-        # Transformation matrices of stages to global coords
-        self.transforms = {}
-
         # Reticle metadata
         self.reticle_metadata = {}
 
         # clicked pts
         self.clicked_pts = OrderedDict()
-
-        # Restore Session Config
-        self.load_session_config()
 
     def get_camera(self, sn):
         return self.cameras.get(sn, {}).get('obj', None)

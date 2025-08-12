@@ -156,8 +156,13 @@ class MainWindow(QMainWindow):
         Asks the user if they want to restore the previous session.
         """
         if self._session_restore_popup_window():
-            # Logic to restore the session
-            pass
+            # Restore coinfigs
+            self.model.load_camera_config()
+            self.model.load_session_config()
+            self.control_panel.reticle_handler.apply_reticle_detection_status()
+        else:
+            # TODO: Clea up previous session configs
+            print("Not restoring previous session.")
 
     def _set_font(self):
         """
@@ -186,7 +191,6 @@ class MainWindow(QMainWindow):
                 self.model.scan_for_cameras()
             except Exception as e:
                 print(f" Something still holds a reference to the camera.\n {e}")
-        self.model.load_camera_config()
 
     def refresh_stages(self):
         """Search for connected stages"""
