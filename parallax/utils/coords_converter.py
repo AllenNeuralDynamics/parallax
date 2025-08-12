@@ -16,11 +16,9 @@ class CoordsConverter:
     Converts between local and global coordinates using transformation matrices
     and scale factors. It also applies reticle adjustments for specific reticles.
     """
-    def __init__(self, model):
-        """Initialize the CoordsConverter class."""
-        self.model = model
 
-    def local_to_global(self, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
+    @staticmethod
+    def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
         Converts local coordinates to global coordinates using the transformation matrix and scale factors.
         Args:
@@ -30,7 +28,7 @@ class CoordsConverter:
         Returns:
             ndarray: The global coordinates (µm).
         """
-        transM, scale = self.model.transforms.get(sn, (None, None))
+        transM, scale = model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
             logger.debug(f"TransM not found for {sn}")
             return None
@@ -43,11 +41,12 @@ class CoordsConverter:
 
         if reticle is not None:
             # Apply the reticle offset and rotation adjustment
-            global_pts = self._apply_reticle_adjustments(global_pts[:3], reticle)
+            global_pts = CoordsConverter._apply_reticle_adjustments(model, global_pts[:3], reticle)
 
         return np.round(global_pts[:3], 1)
 
-    def global_to_local(self, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
+    @staticmethod
+    def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
         Applies the inverse transformation to convert global coordinates to local coordinates.
 
@@ -58,13 +57,13 @@ class CoordsConverter:
         Returns:
             ndarray: The transformed local coordinates (µm).
         """
-        transM, scale = self.model.transforms.get(sn, (None, None))
+        transM, scale = model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
             logger.warning(f"Transformation matrix and scale not found for {sn}")
             return None
 
         if reticle and reticle != "Global coords":
-            global_pts = self._apply_reticle_adjustments_inverse(global_pts, reticle)
+            global_pts = CoordsConverter._apply_reticle_adjustments_inverse(model, global_pts, reticle)
 
         # Transpose the 3x3 rotation part
         R_T = transM[:3, :3].T
@@ -75,7 +74,8 @@ class CoordsConverter:
 
         return np.round(local_pts, 1)
 
-    def distance_global_to_local(self, sn: str, dist: float, axis: str) -> float:
+    @staticmethod
+    def distance_global_to_local(model, sn: str, dist: float, axis: str) -> float:
         """
         Converts a distance from global coordinates to local coordinates based on the transformation scale.
         Args:
@@ -85,7 +85,7 @@ class CoordsConverter:
         Returns:
             float: The converted distance in local coordinates (µm).
         """
-        transM, scale = self.model.transforms.get(sn, (None, None))
+        transM, scale = model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
             logger.warning(f"Transformation matrix and scale not found for {sn}")
             return dist
@@ -102,7 +102,8 @@ class CoordsConverter:
 
         return dist
 
-    def distance_local_to_global(self, sn: str, dist: float, axis: str) -> float:
+    @staticmethod
+    def distance_local_to_global(model, sn: str, dist: float, axis: str) -> float:
         """
         Converts a distance from local coordinates to global coordinates based on the transformation scale.
         Args:
@@ -112,7 +113,7 @@ class CoordsConverter:
         Returns:
             float: The converted distance in global coordinates (µm).
         """
-        transM, scale = self.model.transforms.get(sn, (None, None))
+        transM, scale = model.transforms.get(sn, (None, None))
         if transM is None or scale is None:
             logger.warning(f"Transformation matrix and scale not found for {sn}")
             return dist
@@ -129,7 +130,8 @@ class CoordsConverter:
 
         return dist
 
-    def _apply_reticle_adjustments_inverse(self, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
+    @staticmethod
+    def _apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
         """
         Applies the inverse of the selected reticle's adjustments (rotation and offsets)
         to the given global coordinates.
@@ -144,7 +146,7 @@ class CoordsConverter:
         reticle_global_pts = np.array(reticle_global_pts)
 
         # Get the reticle metadata
-        reticle_metadata = self.model.get_reticle_metadata(reticle)
+        reticle_metadata = model.get_reticle_metadata(reticle)
 
         if not reticle_metadata:  # Prevent applying adjustments with missing metadata
             logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
@@ -168,7 +170,8 @@ class CoordsConverter:
 
         return np.array(global_point)
 
-    def _apply_reticle_adjustments(self, global_pts: np.ndarray, reticle: str) -> np.ndarray:
+    @staticmethod
+    def _apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np.ndarray:
         """
         Applies the selected reticle's adjustments (rotation and offsets) to the given global coordinates.
         Args:
@@ -177,7 +180,7 @@ class CoordsConverter:
         Returns:
             tuple: The adjusted global coordinates (x, y, z).
         """
-        reticle_metadata = self.model.get_reticle_metadata(reticle)
+        reticle_metadata = model.get_reticle_metadata(reticle)
 
         if not reticle_metadata:  # Prevent applying adjustments with missing metadata
             logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")

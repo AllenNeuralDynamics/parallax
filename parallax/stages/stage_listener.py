@@ -232,7 +232,6 @@ class StageListener(QObject):
         """Initialize Stage Listener object"""
         super().__init__()
         self.model = model
-        self.coordsConverter = CoordsConverter(self.model)
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
         self.stage_ui = stage_ui
@@ -289,7 +288,7 @@ class StageListener(QObject):
         stage.stage_y_offset = probe.get("Stage_YOffset", 0) * 1000  # Convert to um
         stage.stage_z_offset = 15000 - (probe.get("Stage_ZOffset", 0) * 1000)  # Convert to um
         local_pts = np.array([local_x, local_y, local_z])
-        global_pts = self.coordsConverter.local_to_global(sn, local_pts)
+        global_pts = CoordsConverter.local_to_global(self.model, sn, local_pts)
         if global_pts is not None:
             stage.stage_x_global = global_pts[0]
             stage.stage_y_global = global_pts[1]

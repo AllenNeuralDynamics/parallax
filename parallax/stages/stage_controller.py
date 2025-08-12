@@ -44,8 +44,6 @@ class StageController(QObject):
         """
         super().__init__()
         self.model = model
-        self.coords_converter = CoordsConverter(self.model)
-
         self.timer_count = 0
         self.timer = QTimer(self)
         self.timer.setInterval(1000)  # 1 second
@@ -146,11 +144,7 @@ class StageController(QObject):
         if command.get("world") == "global":
             # Convert global distance to local distance
             logger.info(f"Distance (global): {distance} um")
-            distance = self.coords_converter.distance_global_to_local(
-                                                                        stage_sn,
-                                                                        distance,
-                                                                        axis="z"
-                                                                    )
+            distance = CoordsConverter.distance_global_to_local(self.model, stage_sn, distance, axis="z")
             logger.info(f"Distance (local): {distance} um")
 
         # update command to coarse and the command
@@ -242,7 +236,7 @@ class StageController(QObject):
             if command.get("world", None) == "global":
                 # coords_converter unit is um, so convert mm to µm
                 global_pts_um = np.array([x*1000, y*1000, z*1000], dtype=float)
-                local_pts_um = self.coords_converter.global_to_local(stage_sn, global_pts_um)
+                local_pts_um = CoordsConverter.global_to_local(self.model, stage_sn, global_pts_um)
                 if local_pts_um is None:
                     logger.warning(f"Failed to convert global coordinates to local for stage {stage_sn}.")
                     return

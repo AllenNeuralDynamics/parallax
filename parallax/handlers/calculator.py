@@ -38,7 +38,6 @@ class Calculator(QWidget):
         super().__init__()
         self.model = model
         self.stage_controller = StageController(self.model)
-        self.coords_converter = CoordsConverter(self.model)
         self.reticle_selector = reticle_selector
         self.reticle = None
 
@@ -164,11 +163,11 @@ class Calculator(QWidget):
         logger.debug(f"User Input (Local): {self.reticle}")
         trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
-            local_pts_ret = self.coords_converter.global_to_local(sn, global_pts, self.reticle)
+            local_pts_ret = CoordsConverter.global_to_local(self.model, sn, global_pts, self.reticle)
             if local_pts_ret is not None:
                 self._show_local_pts_result(sn, local_pts_ret)
         elif trans_type == "local_to_global":
-            global_pts_ret = self.coords_converter.local_to_global(sn, local_pts, self.reticle)
+            global_pts_ret = CoordsConverter.local_to_global(self.model, sn, local_pts, self.reticle)
             if global_pts_ret is not None:
                 self._show_global_pts_result(sn, global_pts_ret)
         else:
@@ -431,8 +430,8 @@ class Calculator(QWidget):
 
             try:
                 # Apply transformations to get global points for Z=15 and Z=0
-                global_pts_z15 = self.coords_converter.local_to_global(stage_sn, local_pts_z15)
-                global_pts_z0 = self.coords_converter.local_to_global(stage_sn, local_pts_z0)
+                global_pts_z15 = CoordsConverter.local_to_global(self.model, stage_sn, local_pts_z15)
+                global_pts_z0 = CoordsConverter.local_to_global(self.model, stage_sn, local_pts_z0)
 
                 if global_pts_z15 is None or global_pts_z0 is None:
                     return False  # Transformation failed, return False
