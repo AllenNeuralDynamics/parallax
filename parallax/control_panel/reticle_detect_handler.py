@@ -197,9 +197,11 @@ class ReticleDetecthandler(QWidget):
             self.model.save_session_config()
         self.reticleDetectionStatusChanged.emit()
 
-        # Show Accept and Reject Button
+        # UI Updates
         self.acceptButton.show()
         self.rejectButton.show()
+        if self.triangulate_btn.isEnabled():
+            self.triangulate_btn.setEnabled(False)
 
         # Change the button to brown.
         self.triangulate_btn.setStyleSheet(
@@ -243,6 +245,7 @@ class ReticleDetecthandler(QWidget):
         Returns:
             None
         """
+
 
         if self._is_positive_x_axis_detected():
             if self.get_pos_x_from_user_timer.isActive():
