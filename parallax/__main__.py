@@ -29,6 +29,7 @@ if __name__ == "__main__":
     model = Model(args)
     main_window = MainWindow(model)
     main_window.show()
+    main_window.ask_session_restore()
     app.exec()
 
     # Clean up on exit

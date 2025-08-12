@@ -19,7 +19,7 @@ from PyQt5.QtCore import QStandardPaths
 from PyQt5.QtGui import QFont, QFontDatabase
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import (QApplication, QFileDialog,
-                             QMainWindow, QSplitter)
+                             QMainWindow, QSplitter, QMessageBox)
 from PyQt5.uic import loadUi
 
 from parallax.handlers.recording_manager import RecordingManager
@@ -127,6 +127,37 @@ class MainWindow(QMainWindow):
         self.actionContactSupport.triggered.connect(
             lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
         )
+
+    def _session_restore_popup_window(self):
+        """
+        Displays a confirmation dialog asking the user if they want to restore the previous session.
+
+        Returns:
+            bool: True if the user confirms the restore, False otherwise.
+        """
+        message = ("Restore previous session?")
+        response = QMessageBox.warning(
+            self,
+            "Session Restore",
+            message,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if response == QMessageBox.Yes:
+            logger.debug("User clicked Yes.")
+            return True
+        else:
+            logger.debug("User clicked No.")
+            return False
+
+    def ask_session_restore(self):
+        """
+        Asks the user if they want to restore the previous session.
+        """
+        if self._session_restore_popup_window():
+            # Logic to restore the session
+            pass
 
     def _set_font(self):
         """
