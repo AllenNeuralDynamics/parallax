@@ -109,7 +109,7 @@ class StageUI(QWidget):
         """Update the displayed stage serial number."""
         stage_id = self.get_current_stage_id()
         if stage_id:
-            self.selected_stage = self.model.stages.get(stage_id)
+            self.selected_stage = self.model.stages.get(stage_id).get('obj', None)
             if self.selected_stage:
                 self.ui.stage_sn.setText(" " + self.selected_stage.sn)
         else:
@@ -119,7 +119,7 @@ class StageUI(QWidget):
         """Update the displayed local coordinates of the selected stage."""
         stage_id = self.get_current_stage_id()
         if stage_id:
-            self.selected_stage = self.model.stages.get(stage_id)
+            self.selected_stage = self.model.stages.get(stage_id).get('obj', None)
             if self.selected_stage:
                 # unit is µm
                 self.ui.local_coords_x.setText(str(self.selected_stage.stage_x))

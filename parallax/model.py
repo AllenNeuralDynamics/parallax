@@ -13,7 +13,6 @@ from parallax.stages.stage_listener import Stage, StageInfo
 from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager
 
 
-
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""
 
@@ -65,9 +64,40 @@ class Model(QObject):
         self.reticle_metadata_instance = None
 
         # stage
-        self.nStages = 0
-        self.stages = {}
-        self.stages_calib = {}
+        self.stages = {}  # Dictionary to hold stage instances
+        #self.stages_calib = {}
+        """
+            Args:
+            stage_sn (str): The serial number of the stage.
+            info (dict): Calibration information for the stage.
+
+            info['detection_status']
+            info['transM']
+            info['L2_err']
+            info['scale']
+            info['dist_traveled']
+            info['status_x']
+            info['status_y']
+            info['status_z']
+        """
+        """ TODO Move the stage structure
+        stages[sn] = {
+            'obj' : Stage(stage_info=instance),
+            'is_calib': False,
+            'calib_info': {
+                'detection_status': None,
+                'transM': None,
+                'L2_err': None,
+                'scale': None,
+                'dist_traveled': None,
+                'status_x': None,
+                'status_y': None,
+                'status_z': None
+            }
+        }
+
+        """
+
         self.stage_listener_url = None
         self.stage_ipconfig_instance = None
         # Transformation matrices of stages to global coords
@@ -121,14 +151,14 @@ class Model(QObject):
     def init_stages(self):
         """Initialize stages by clearing the current stages and calibration data."""
         self.stages = {}
-        self.stages_calib = {}
+        #self.stages_calib = {}
 
+    """
     def init_transforms(self):
-        """Initialize the transformation matrices for all stages."""
         self.transforms = {}
         for stage_sn in self.stages.keys():
             self.transforms[stage_sn] = [None, None]
-
+    """
     def add_mock_cameras(self):
         """Add mock cameras for testing purposes.
 
@@ -181,7 +211,7 @@ class Model(QObject):
     def refresh_stages(self):
         """Search for connected stages"""
         self.scan_for_usb_stages()
-        self.init_transforms()
+        #self.init_transforms()
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
@@ -191,7 +221,6 @@ class Model(QObject):
         for instance in instances:
             stage = Stage(stage_info=instance)
             self.add_stage(stage)
-        self.nStages = len(self.stages)
 
     def add_stage(self, stage):
         """Add a stage to the model.
@@ -199,7 +228,11 @@ class Model(QObject):
         Args:
             stage: Stage object to add to the model.
         """
-        self.stages[stage.sn] = stage
+        self.stages[stage.sn] = {
+            "obj": stage,
+            "is_calib": False,
+            "calib_info": None
+        }
 
     def get_stage(self, stage_sn):
         """Retrieve a stage by its serial number.
@@ -210,7 +243,7 @@ class Model(QObject):
         Returns:
             Stage: The stage object corresponding to the given serial number.
         """
-        return self.stages.get(stage_sn)
+        return self.stages.get(stage_sn, {}).get("obj", None)
 
     def add_stage_calib_info(self, stage_sn, info):
         """Add calibration information for a specific stage.
@@ -228,7 +261,8 @@ class Model(QObject):
             info['status_y']
             info['status_z']
         """
-        self.stages_calib[stage_sn] = info
+        #self.stages_calib[stage_sn] = info
+        self.stages[stage_sn]["calib_info"] = info
 
     def get_stage_calib_info(self, stage_sn):
         """Get calibration information for a specific stage.
@@ -239,11 +273,14 @@ class Model(QObject):
         Returns:
             dict: Calibration information for the given stage.
         """
-        return self.stages_calib.get(stage_sn)
+        #return self.stages_calib.get(stage_sn)
+        return self.stages.get(stage_sn, {}).get("calib_info", None)
 
     def reset_stage_calib_info(self):
         """Reset stage calibration info."""
-        self.stages_calib = {}
+        #self.stages_calib = {}
+        for stage in self.stages.values():
+            stage["calib_info"] = None
 
     def add_pts(self, camera_name, pts):
         """Add detected points for a camera.
@@ -280,7 +317,7 @@ class Model(QObject):
         """Reset all detected points."""
         self.clicked_pts = OrderedDict()
 
-    def add_transform(self, stage_sn, transform, scale):
+    def add_transform(self, stage_sn, transform):
         """Add transformation matrix for a stage to convert local coordinates to global coordinates.
 
         Args:
@@ -288,7 +325,11 @@ class Model(QObject):
             transform (numpy.ndarray): The transformation matrix.
             scale (numpy.ndarray): The scale factors for the transformation.
         """
-        self.transforms[stage_sn] = [transform, scale]
+        #self.transforms[stage_sn] = [transform, scale]
+        #self.stages[stage_sn]["detection_status"] = "calibrated"
+        if self.stages[stage_sn]["calib_info"] is not None:
+            self.stages[stage_sn]["calib_info"]['transM'] = transform
+
 
     def get_transform(self, stage_sn):
         """Get the transformation matrix for a specific stage.
@@ -299,7 +340,19 @@ class Model(QObject):
         Returns:
             tuple: The transformation matrix and scale factors.
         """
-        return self.transforms.get(stage_sn)
+        #return self.transforms.get(stage_sn)
+        return self.stages.get(stage_sn, {}).get("calib_info", {}).get('transM', None)
+
+
+    def set_calibration_status(self, stage_sn, status):
+        """Set the calibration status for a specific stage.
+
+        Args:
+            stage_sn (str): The serial number of the stage.
+            status (bool): The calibration status to set.
+        """
+        if stage_sn in self.stages:
+            self.stages[stage_sn]["is_calib"] = status
 
     def add_reticle_metadata(self, reticle_name, metadata):
         """Add reticle metadata.

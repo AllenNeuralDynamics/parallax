@@ -8,7 +8,6 @@ import logging
 import time
 import numpy as np
 import requests
-from collections import deque
 from datetime import datetime
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
@@ -254,7 +253,7 @@ class StageListener(QObject):
 
     def start(self):
         """Start the stage listener."""
-        if self.model.nStages != 0:
+        if len(self.model.stages) != 0:
             self.worker.moveToThread(self.thread)
             self.thread.start()
 
@@ -273,8 +272,9 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         sn = probe["SerialNumber"]
-        stage = self.model.stages.get(sn)  # Check if the stage is in the model's stages
-        if stage is None:
+        #stage = self.model.stages.get(sn)  # Check if the stage is in the model's stages
+        stage = self.model.stages.get(sn).get("obj", None)
+        if not stage:
             return
 
         # update into models
@@ -347,6 +347,63 @@ class StageListener(QObject):
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 
+    def handleGlobalDataChange_(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
+        """Handle changes in global stage data and emit calibration update if selected."""
+
+        # Convert global coordinates to microns
+        global_coords_x = round(global_coords[0][0] * 1000, 1)
+        global_coords_y = round(global_coords[0][1] * 1000, 1)
+        global_coords_z = round(global_coords[0][2] * 1000, 1)
+
+        # Initialize stage_global_data if needed
+        if self.stage_global_data is None:
+            stage_info = {
+                "SerialNumber": sn,
+                "Id": None,
+                "Stage_X": float(stage["stage_x"]),
+                "Stage_Y": float(stage["stage_y"]),
+                "Stage_Z": float(stage["stage_z"]),
+            }
+            self.stage_global_data = Stage(stage_info)
+
+        # Update stage_global_data
+        self.sn = sn
+        self.stage_global_data.sn = sn
+        self.stage_global_data.stage_x = float(stage["stage_x"])
+        self.stage_global_data.stage_y = float(stage["stage_y"])
+        self.stage_global_data.stage_z = float(stage["stage_z"])
+        self.stage_global_data.stage_x_global = global_coords_x
+        self.stage_global_data.stage_y_global = global_coords_y
+        self.stage_global_data.stage_z_global = global_coords_z
+
+        # Debug info to track image capture and local coordinates
+        debug_info = {
+            "ts_local_coords": stage_ts,
+            "ts_img_captured": ts_img_captured,
+            "cam0": cam0,
+            "pt0": pt0,
+            "cam1": cam1,
+            "pt1": pt1,
+        }
+
+        # Update model's stage global coordinates
+        moving_stage = self.model.stages.get(sn).get("obj", None)
+        if moving_stage is not None:
+            moving_stage.stage_x_global = global_coords_x
+            moving_stage.stage_y_global = global_coords_y
+            moving_stage.stage_z_global = global_coords_z
+
+        # Emit probe calibration request if selected
+        if self.stage_ui.get_selected_stage_sn() == sn:
+            self.probeCalibRequest.emit(self.stage_global_data, debug_info)
+            self.stage_ui.updateStageGlobalCoords()
+        else:
+            print(f"Stage {sn} is not selected, skipping probe calibration request.")
+            if self.probeCalibrationLabel:
+                msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
+                self.probeCalibrationLabel.setText(msg)
+
+
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
         """Handle changes in global stage data and emit calibration update if selected."""
 
@@ -387,7 +444,7 @@ class StageListener(QObject):
         }
 
         # Update model's stage global coordinates
-        moving_stage = self.model.stages.get(sn)
+        moving_stage = self.model.stages.get(sn).get("obj", None)
         if moving_stage is not None:
             moving_stage.stage_x_global = global_coords_x
             moving_stage.stage_y_global = global_coords_y

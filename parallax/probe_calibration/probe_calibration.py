@@ -42,6 +42,7 @@ class ProbeCalibration(QObject):
     calib_complete = pyqtSignal()
     transM_info = pyqtSignal(str, object, np.ndarray, float, object)
 
+    """
     THRESHOLD_MIN_MAX = 1500
     THRESHOLD_MIN_MAX_Z = 200
     THRESHOLD_AVG_ERROR = 50
@@ -50,6 +51,19 @@ class ProbeCalibration(QObject):
         [0.001, 0.001, 0.001, 5.0],
         [0.001, 0.001, 0.001, 5.0],
         [0.001, 0.001, 0.001, 5.0],
+        [0.0,   0.0,   0.0,   0.0],
+    ])
+    """
+
+    # Test
+    THRESHOLD_MIN_MAX = 0
+    THRESHOLD_MIN_MAX_Z = 0
+    THRESHOLD_AVG_ERROR = 0
+    THRESHOLD_N_PTS = 1
+    THRESHOLD_MATRIX = np.array([
+        [1, 1, 1, 5000.0],
+        [1, 1, 1, 5000.0],
+        [1, 1, 1, 5000.0],
         [0.0,   0.0,   0.0,   0.0],
     ])
 
@@ -75,7 +89,7 @@ class ProbeCalibration(QObject):
         self.transM_LR, self.transM_LR_prev = None, np.zeros((4, 4), dtype=np.float64)
         self.LR_err_L2_current = 1e10
         self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
-        self.avg_err = None
+        self.avg_err = float("inf")
         self.last_row = None
 
         # create file for points.csv
@@ -153,7 +167,8 @@ class ProbeCalibration(QObject):
         self.scale = np.array([1, 1, 1])
 
         if sn:
-            self.model.add_transform(sn, self.transM_LR, self.scale)
+            #self.model.add_transform(sn, self.transM_LR, self.scale)
+            self.model.add_transform(sn, self.transM_LR)
 
         if self.log_dir is None:
             return
@@ -299,7 +314,7 @@ class ProbeCalibration(QObject):
 
         return transformation_matrix
 
-    def _get_transM(self, df):
+    def _get_transM_(self, df):
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
         """
@@ -315,6 +330,16 @@ class ProbeCalibration(QObject):
 
         return transformation_matrix
 
+    def _get_transM(self, df):
+        """
+        Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
+        """
+        transformation_matrix = np.array([[ 0.00022096,  0.00040148,  0.00077288, 10.74532844],
+                                           [ 0.00059317,  0.00100706,  0.00065941, 10.70425755],
+                                           [ 0.00052806,  0.00054255,  0.00000783, 10.19893086],
+                                           [ 0.          ,  0.          ,  0.          ,  0.        ]])
+
+        return transformation_matrix
 
     def _write_local_global_point(self, debug_info=None):
         """
@@ -723,6 +748,7 @@ class ProbeCalibration(QObject):
         df = self._filter_df_by_sn(self.stage.sn)
 
         self.transM_LR = self._get_transM(df)
+
         if self._is_criteria_met_points_min_max() and len(df) >= self.THRESHOLD_N_PTS \
                 and self.R is not None and self.origin is not None:
             logger.debug("===============")
@@ -745,6 +771,8 @@ class ProbeCalibration(QObject):
         self.LR_err_L2_current = self._l2_error_current_point()
         if self._is_enough_points(df):  # if ret, complete calibration
             self.complete_calibration(df)
+
+        #self.complete_calibration(df)
 
     def _is_trajectory_distance_sufficient(self, df):
         if min(df['global_x']) > 0 or max(df['global_x']) < 0 or \
@@ -809,7 +837,9 @@ class ProbeCalibration(QObject):
                 return
 
         # Register into model
-        self.model.add_transform(self.stage.sn, self.transM_LR, self.scale)
+        #self.model.add_transform(self.stage.sn, self.transM_LR, self.scale)
+        self.model.add_transform(self.stage.sn, self.transM_LR)
+        self.model.set_calibration_status(self.stage.sn, True)
 
         # Emit the signal to indicate that calibration is complete
         self.calib_complete.emit()
