@@ -325,8 +325,6 @@ class Model(QObject):
             transform (numpy.ndarray): The transformation matrix.
             scale (numpy.ndarray): The scale factors for the transformation.
         """
-        #self.transforms[stage_sn] = [transform, scale]
-        #self.stages[stage_sn]["detection_status"] = "calibrated"
         if self.stages[stage_sn]["calib_info"] is not None:
             self.stages[stage_sn]["calib_info"]['transM'] = transform
 
@@ -340,9 +338,7 @@ class Model(QObject):
         Returns:
             tuple: The transformation matrix and scale factors.
         """
-        #return self.transforms.get(stage_sn)
         return self.stages.get(stage_sn, {}).get("calib_info", {}).get('transM', None)
-
 
     def set_calibration_status(self, stage_sn, status):
         """Set the calibration status for a specific stage.
