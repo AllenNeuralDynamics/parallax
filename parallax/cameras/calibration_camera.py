@@ -16,7 +16,7 @@ import scipy.spatial.transform as Rscipy
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 # Objectpoints
 WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
