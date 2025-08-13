@@ -65,22 +65,7 @@ class Model(QObject):
 
         # stage
         self.stages = {}  # Dictionary to hold stage instances
-        #self.stages_calib = {}
         """
-            Args:
-            stage_sn (str): The serial number of the stage.
-            info (dict): Calibration information for the stage.
-
-            info['detection_status']
-            info['transM']
-            info['L2_err']
-            info['scale']
-            info['dist_traveled']
-            info['status_x']
-            info['status_y']
-            info['status_z']
-        """
-        """ TODO Move the stage structure
         stages[sn] = {
             'obj' : Stage(stage_info=instance),
             'is_calib': False,
@@ -95,13 +80,10 @@ class Model(QObject):
                 'status_z': None
             }
         }
-
         """
 
         self.stage_listener_url = None
         self.stage_ipconfig_instance = None
-        # Transformation matrices of stages to global coords
-        self.transforms = {}
 
         # probe detector
         self.probeDetectors = []
@@ -231,7 +213,7 @@ class Model(QObject):
         self.stages[stage.sn] = {
             "obj": stage,
             "is_calib": False,
-            "calib_info": None
+            "calib_info": {}
         }
 
     def get_stage(self, stage_sn):
@@ -280,7 +262,7 @@ class Model(QObject):
         """Reset stage calibration info."""
         #self.stages_calib = {}
         for stage in self.stages.values():
-            stage["calib_info"] = None
+            stage["calib_info"] = {}
 
     def add_pts(self, camera_name, pts):
         """Add detected points for a camera.
@@ -325,9 +307,10 @@ class Model(QObject):
             transform (numpy.ndarray): The transformation matrix.
             scale (numpy.ndarray): The scale factors for the transformation.
         """
-        if self.stages[stage_sn]["calib_info"] is not None:
+        if self.stages[stage_sn]["calib_info"] is not {}:
             self.stages[stage_sn]["calib_info"]['transM'] = transform
 
+        print("Added transform for stage:", stage_sn, self.stages[stage_sn])
 
     def get_transform(self, stage_sn):
         """Get the transformation matrix for a specific stage.
@@ -349,6 +332,9 @@ class Model(QObject):
         """
         if stage_sn in self.stages:
             self.stages[stage_sn]["is_calib"] = status
+
+        print("Set calibration status for stage:", stage_sn, "to", status)
+        # TODO Save to Yaml
 
     def is_calibrated(self, stage_sn):
         """Check if a specific stage is calibrated.

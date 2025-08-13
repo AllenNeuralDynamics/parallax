@@ -239,7 +239,7 @@ class Worker(QObject):
 class StageListener(QObject):
     """Class for listening to stage updates."""
 
-    probeCalibRequest = pyqtSignal(QObject, dict)
+    probeCalibRequest = pyqtSignal(object, dict)
 
     def __init__(self, model, stage_ui, actionSaveInfo=None):
         """Initialize Stage Listener object"""

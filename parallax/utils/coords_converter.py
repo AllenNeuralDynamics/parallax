@@ -30,7 +30,6 @@ class CoordsConverter:
         if model.is_calibrated(sn):
             transM = model.get_transform(sn)
         else:
-            logger.warning(f"Stage {sn} is not calibrated. Cannot convert local to global coordinates.")
             return None
 
         if transM is None:

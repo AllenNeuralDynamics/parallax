@@ -331,9 +331,9 @@ class ProbeCalibration(QObject):
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
         """
-        transformation_matrix = np.array([[ 0.00022096,  0.00040148,  0.00077288, 10.74532844],
-                                           [ 0.00059317,  0.00100706,  0.00065941, 10.70425755],
-                                           [ 0.00052806,  0.00054255,  0.00000783, 10.19893086],
+        transformation_matrix = np.array([[ 0.00022096,  0.00040148,  0.00077288, 1.74532844],
+                                           [ 0.00059317,  0.00100706,  0.00065941, 1.70425755],
+                                           [ 0.00052806,  0.00054255,  0.00000783, 1.19893086],
                                            [ 0.          ,  0.          ,  0.          ,  0.        ]])
 
         return transformation_matrix
@@ -734,7 +734,7 @@ class ProbeCalibration(QObject):
         Args:
             stage (Stage): The current stage object with new position data.
         """
-        logger.debug("ProbeCalibration: update", stage.sn)
+        logger.debug(f"ProbeCalibration: update {stage.sn}")
         # update points in the file
         self.stage = stage
         self._write_local_global_point(debug_info)  # Do no update if it is duplicates
@@ -746,7 +746,7 @@ class ProbeCalibration(QObject):
         df = self._filter_df_by_sn(self.stage.sn)
 
         self.transM_LR = self._get_transM(df)
-
+        """
         if self._is_criteria_met_points_min_max() and len(df) >= self.THRESHOLD_N_PTS \
                 and self.R is not None and self.origin is not None:
             logger.debug("===============")
@@ -769,8 +769,8 @@ class ProbeCalibration(QObject):
         self.LR_err_L2_current = self._l2_error_current_point()
         if self._is_enough_points(df):  # if ret, complete calibration
             self.complete_calibration(df)
-
-        #self.complete_calibration(df)
+        """
+        self.complete_calibration(df)
 
     def _is_trajectory_distance_sufficient(self, df):
         if min(df['global_x']) > 0 or max(df['global_x']) < 0 or \
