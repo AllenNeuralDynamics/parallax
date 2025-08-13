@@ -41,7 +41,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from parallax.config.config_path import ui_dir
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 class PointMesh(QWidget):
     """
