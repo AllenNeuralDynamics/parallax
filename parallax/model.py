@@ -219,7 +219,7 @@ class Model(QObject):
         instances = stage_info.get_instances()
         self.init_stages()
         for instance in instances:
-            stage = Stage(stage_info=instance)
+            stage = Stage.from_info(info=instance)
             self.add_stage(stage)
 
     def add_stage(self, stage):
@@ -353,6 +353,17 @@ class Model(QObject):
         """
         if stage_sn in self.stages:
             self.stages[stage_sn]["is_calib"] = status
+
+    def is_calibrated(self, stage_sn):
+        """Check if a specific stage is calibrated.
+
+        Args:
+            stage_sn (str): The serial number of the stage.
+
+        Returns:
+            bool: The calibration status of the stage.
+        """
+        return self.stages.get(stage_sn, {}).get("is_calib", False)
 
     def add_reticle_metadata(self, reticle_name, metadata):
         """Add reticle metadata.
