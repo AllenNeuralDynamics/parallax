@@ -144,7 +144,6 @@ class StageController(QObject):
         if command.get("world") == "global":
             # Convert global distance to local distance
             logger.info(f"Distance (global): {distance} um")
-            distance = CoordsConverter.distance_global_to_local(self.model, stage_sn, distance, axis="z")
             logger.info(f"Distance (local): {distance} um")
 
         # update command to coarse and the command

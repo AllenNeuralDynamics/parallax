@@ -9,6 +9,8 @@ import time
 import numpy as np
 import requests
 from datetime import datetime
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
@@ -16,64 +18,76 @@ from parallax.utils.coords_converter import CoordsConverter
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
-class StageInfo(QObject):
+class StageInfo:
     """Retrieve and manage information about the stages."""
 
-    def __init__(self, url):
-        """Initialize StageInfo thread"""
-        super().__init__()
+    def __init__(self, url: str):
+        """Initialize StageInfo."""
         self.url = url
         self.nStages = 0
         self.stages_sn = []
 
-    def get_instances(self):
+    def get_instances(self) -> list:
         """Get the instances of the stages.
 
         Returns:
-            list: List of stage instances.
+            list: List of stage instance dicts.
         """
         stages = []
         try:
             response = requests.get(self.url, timeout=1)
             if response.status_code == 200:
                 data = response.json()
-                self.nStages = data["Probes"]
-                for i in range(self.nStages):
-                    stage = data["ProbeArray"][i]
+                self.nStages = data.get("Probes", 0)
+                for stage in data.get("ProbeArray", []):
                     self.stages_sn.append(stage["SerialNumber"])
                     stages.append(stage)
         except Exception as e:
             print("Stage HttpServer not enabled.")
-            logger.debug(f"Stage HttpServer not enabled.: {e}")
+            logger.debug(f"Stage HttpServer not enabled: {e}")
 
         return stages
 
 
-class Stage(QObject):
+@dataclass
+class Stage:
     """Represents an individual stage with its properties."""
+    sn: str
+    name: Optional[str] = None
+    stage_x: Optional[float] = None
+    stage_y: Optional[float] = None
+    stage_z: Optional[float] = None
+    stage_x_global: Optional[float] = None
+    stage_y_global: Optional[float] = None
+    stage_z_global: Optional[float] = None
+    stage_x_offset: float = 0.0
+    stage_y_offset: float = 0.0
+    stage_z_offset: float = 0.0
+    yaw: Optional[float] = None
+    pitch: Optional[float] = None
+    roll: Optional[float] = None
+    shank_cnt: int = 1
 
-    def __init__(self, stage_info=None):
-        """Initialize Stage thread"""
-        QObject.__init__(self)
-        if stage_info is not None:
-            self.sn = stage_info["SerialNumber"]
-            self.name = stage_info["Id"]
-            self.stage_x = stage_info["Stage_X"] * 1000
-            self.stage_y = stage_info["Stage_Y"] * 1000
-            self.stage_z = 15000 - stage_info["Stage_Z"] * 1000
-            self.stage_x_global = None
-            self.stage_y_global = None
-            self.stage_z_global = None
-            self.stage_x_offset = stage_info.get("Stage_XOffset", 0) * 1000
-            self.stage_y_offset = stage_info.get("Stage_YOffset", 0) * 1000
-            self.stage_z_offset = 15000 - (stage_info.get("Stage_ZOffset", 0) * 1000)
-            self.yaw = None
-            self.pitch = None
-            self.roll = None
-            self.shank_cnt = 1
+    @classmethod
+    def from_info(cls, info: Dict[str, Any]) -> "Stage":
+        """Create a Stage from a stage_info dictionary."""
+        return cls(
+            sn=info["SerialNumber"],
+            name=info["Id"],
+            stage_x=info["Stage_X"] * 1000,
+            stage_y=info["Stage_Y"] * 1000,
+            stage_z=15000 - info["Stage_Z"] * 1000,
+            stage_x_offset=info.get("Stage_XOffset", 0) * 1000,
+            stage_y_offset=info.get("Stage_YOffset", 0) * 1000,
+            stage_z_offset=15000 - (info.get("Stage_ZOffset", 0) * 1000),
+            yaw=None,
+            pitch=None,
+            roll=None,
+            shank_cnt=1
+        )
 
 
 class Worker(QObject):
@@ -346,63 +360,6 @@ class StageListener(QObject):
                 self.scale_dict.pop(sn)
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
-
-    def handleGlobalDataChange_(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
-        """Handle changes in global stage data and emit calibration update if selected."""
-
-        # Convert global coordinates to microns
-        global_coords_x = round(global_coords[0][0] * 1000, 1)
-        global_coords_y = round(global_coords[0][1] * 1000, 1)
-        global_coords_z = round(global_coords[0][2] * 1000, 1)
-
-        # Initialize stage_global_data if needed
-        if self.stage_global_data is None:
-            stage_info = {
-                "SerialNumber": sn,
-                "Id": None,
-                "Stage_X": float(stage["stage_x"]),
-                "Stage_Y": float(stage["stage_y"]),
-                "Stage_Z": float(stage["stage_z"]),
-            }
-            self.stage_global_data = Stage(stage_info)
-
-        # Update stage_global_data
-        self.sn = sn
-        self.stage_global_data.sn = sn
-        self.stage_global_data.stage_x = float(stage["stage_x"])
-        self.stage_global_data.stage_y = float(stage["stage_y"])
-        self.stage_global_data.stage_z = float(stage["stage_z"])
-        self.stage_global_data.stage_x_global = global_coords_x
-        self.stage_global_data.stage_y_global = global_coords_y
-        self.stage_global_data.stage_z_global = global_coords_z
-
-        # Debug info to track image capture and local coordinates
-        debug_info = {
-            "ts_local_coords": stage_ts,
-            "ts_img_captured": ts_img_captured,
-            "cam0": cam0,
-            "pt0": pt0,
-            "cam1": cam1,
-            "pt1": pt1,
-        }
-
-        # Update model's stage global coordinates
-        moving_stage = self.model.stages.get(sn).get("obj", None)
-        if moving_stage is not None:
-            moving_stage.stage_x_global = global_coords_x
-            moving_stage.stage_y_global = global_coords_y
-            moving_stage.stage_z_global = global_coords_z
-
-        # Emit probe calibration request if selected
-        if self.stage_ui.get_selected_stage_sn() == sn:
-            self.probeCalibRequest.emit(self.stage_global_data, debug_info)
-            self.stage_ui.updateStageGlobalCoords()
-        else:
-            print(f"Stage {sn} is not selected, skipping probe calibration request.")
-            if self.probeCalibrationLabel:
-                msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-                self.probeCalibrationLabel.setText(msg)
-
 
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
         """Handle changes in global stage data and emit calibration update if selected."""
