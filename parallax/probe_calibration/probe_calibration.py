@@ -19,9 +19,6 @@ from parallax.config.config_path import stages_dir
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 
 class ProbeCalibration(QObject):
@@ -737,6 +734,7 @@ class ProbeCalibration(QObject):
         Args:
             stage (Stage): The current stage object with new position data.
         """
+        logger.debug("ProbeCalibration: update", stage.sn)
         # update points in the file
         self.stage = stage
         self._write_local_global_point(debug_info)  # Do no update if it is duplicates
