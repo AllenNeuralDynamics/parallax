@@ -6,10 +6,12 @@ and handling point mesh instances for 3D visualization.
 This class integrates various hardware components such as cameras and stages and handles
 their initialization, configuration, and transformations between local and global coordinates.
 """
+import numpy as np
 from collections import OrderedDict
 from PyQt5.QtCore import QObject
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
+from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
 
 
@@ -74,7 +76,7 @@ class Model(QObject):
                 'transM': None,
                 'L2_err': None,
                 'scale': None,
-                'dist_traveled': None,
+                'dist_travel': None,
                 'status_x': None,
                 'status_y': None,
                 'status_z': None
@@ -195,9 +197,10 @@ class Model(QObject):
         self.init_stages()
         for instance in instances:
             stage = Stage.from_info(info=instance)
-            self.add_stage(stage)
+            calib_info = StageCalibrationInfo()
+            self.add_stage(stage, calib_info)
 
-    def add_stage(self, stage):
+    def add_stage(self, stage, calib_info):
         """Add a stage to the model.
 
         Args:
@@ -206,7 +209,7 @@ class Model(QObject):
         self.stages[stage.sn] = {
             "obj": stage,
             "is_calib": False,
-            "calib_info": {}
+            "calib_info": calib_info
         }
 
     def get_stage(self, stage_sn):
@@ -220,24 +223,12 @@ class Model(QObject):
         """
         return self.stages.get(stage_sn, {}).get("obj", None)
 
+    """
     def add_stage_calib_info(self, stage_sn, info):
-        """Add calibration information for a specific stage.
-
-        Args:
-            stage_sn (str): The serial number of the stage.
-            info (dict): Calibration information for the stage.
-
-            info['detection_status']
-            info['transM']
-            info['L2_err']
-            info['scale']
-            info['dist_traveled']
-            info['status_x']
-            info['status_y']
-            info['status_z']
-        """
         #self.stages_calib[stage_sn] = info
+        print("add_stage_calib_info: ", stage_sn, info)
         self.stages[stage_sn]["calib_info"] = info
+    """
 
     def get_stage_calib_info(self, stage_sn):
         """Get calibration information for a specific stage.
@@ -249,13 +240,13 @@ class Model(QObject):
             dict: Calibration information for the given stage.
         """
         #return self.stages_calib.get(stage_sn)
-        return self.stages.get(stage_sn, {}).get("calib_info", {})
+        return self.stages.get(stage_sn, {}).get("calib_info", None)
 
     def reset_stage_calib_info(self):
-        """Reset stage calibration info."""
-        #self.stages_calib = {}
-        for stage in self.stages.values():
-            stage["calib_info"] = {}
+        """Reset stage calibration info for all stages."""
+        for sn, stage in self.stages.items():
+            stage["is_calib"] = False
+            stage["calib_info"] = StageCalibrationInfo()
 
     def add_pts(self, camera_name, pts):
         """Add detected points for a camera.
@@ -292,45 +283,47 @@ class Model(QObject):
         """Reset all detected points."""
         self.clicked_pts = OrderedDict()
 
-    def add_transform(self, stage_sn, transform):
-        """Add transformation matrix for a stage to convert local coordinates to global coordinates.
-
-        Args:
-            stage_sn (str): The serial number of the stage.
-            transform (numpy.ndarray): The transformation matrix.
-            scale (numpy.ndarray): The scale factors for the transformation.
+    def add_transform(self, stage_sn, transform: np.ndarray):
         """
-        if self.stages[stage_sn]["calib_info"] is not {}:
-            self.stages[stage_sn]["calib_info"]['transM'] = transform
+        Add transformation matrix for a stage to convert local coordinates to global coordinates.
+        """
+        print("add_transform: ", stage_sn, transform)
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            print(f"add_transform: stage '{stage_sn}' not found")
+            return
 
+        calib = stage.get("calib_info")
+        if not calib:
+            print(f"add_transform: stage '{stage_sn}' has no calibration info")
+            return
+
+        calib.transM = transform
         print("Added transform for stage:", stage_sn, self.stages[stage_sn])
 
+
     def get_transform(self, stage_sn):
-        """Get the transformation matrix for a specific stage.
-
-        Args:
-            stage_sn (str): The serial number of the stage.
-
-        Returns:
-            tuple: The transformation matrix and scale factors.
         """
-        return self.stages.get(stage_sn, {}).get("calib_info", {}).get('transM', None)
+        Get the transformation matrix for a specific stage.
+        Returns None if missing.
+        """
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            return None
+        calib = stage.get("calib_info")
+        return calib.transM if calib else None
 
-    def set_calibration_status(self, stage_sn, status):
-        """Set the calibration status for a specific stage.
-
-        Args:
-            stage_sn (str): The serial number of the stage.
-            status (bool): The calibration status to set.
+    def set_calibration_status(self, stage_sn, status: bool):
+        """
+        Set the calibration status for a specific stage.
         """
         if stage_sn in self.stages:
             self.stages[stage_sn]["is_calib"] = status
-
         print("Set calibration status for stage:", stage_sn, "to", status)
-        self.save_stage_config()
+        self.save_stage_config(stage_sn)
 
-    def save_stage_config(self):
-        StageConfigManager.save_to_yaml(self)
+    def save_stage_config(self, stage_sn):
+        StageConfigManager.save_to_yaml(self, stage_sn)
 
     def load_stage_config(self):
         StageConfigManager.load_from_yaml(self)

@@ -19,6 +19,7 @@ import numpy as np
 
 from parallax.config.config_path import settings_file, session_file
 from parallax.stages.stage_listener import Stage
+from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from dataclasses import is_dataclass, asdict
 
 # Set logger name
@@ -211,10 +212,14 @@ class StageConfigManager:
             calib_info = stage.get("calib_info", {})
             if "transM" in calib_info and isinstance(calib_info["transM"], list):
                 calib_info["transM"] = np.array(calib_info["transM"], dtype=float)
+            if "dist_travel" in calib_info and isinstance(calib_info["dist_travel"], list):
+                calib_info["dist_travel"] = np.array(calib_info["dist_travel"], dtype=float)
 
-            # Restore Stage dataclass if needed
+            # Restore Stage dataclass
             if "obj" in stage and isinstance(stage["obj"], dict):
                 stage["obj"] = Stage(**stage["obj"])
+            if "calib_info" in stage and isinstance(stage["calib_info"], dict):
+                stage["calib_info"] = StageCalibrationInfo(**stage["calib_info"])
 
             model.stages[sn] = stage
 
