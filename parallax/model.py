@@ -75,7 +75,6 @@ class Model(QObject):
                 'detection_status': None,
                 'transM': None,
                 'L2_err': None,
-                'scale': None,
                 'dist_travel': None,
                 'status_x': None,
                 'status_y': None,

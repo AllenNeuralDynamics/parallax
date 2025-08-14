@@ -25,7 +25,7 @@ interact with the point sets and visualize their trajectories in 3D.
 Example:
 --------
 # Instantiate the PointMesh widget
-point_mesh_widget = PointMesh(model, file_path, sn, transM, scale)
+point_mesh_widget = PointMesh(model, file_path, sn, transM)
 
 # Show the widget
 point_mesh_widget.show()
@@ -49,7 +49,7 @@ class PointMesh(QWidget):
     integrating with Plotly for rendering and allowing users to interact with the displayed points.
     """
 
-    def __init__(self, model, file_path, sn, transM, scale, transM_BA=None, scale_BA=None, calib_completed=False):
+    def __init__(self, model, file_path, sn, transM, transM_BA=None, calib_completed=False):
         """
         Initializes the PointMesh widget.
 
@@ -58,9 +58,7 @@ class PointMesh(QWidget):
         file_path (str): Path to the CSV file containing the point data.
         sn (str): The serial number (identifier) for the stage.
         transM (np.ndarray): Transformation matrix for local-to-global conversion.
-        scale (np.ndarray): Scale applied to local coordinates.
         transM_BA (np.ndarray, optional): Transformation matrix after bundle adjustment.
-        scale_BA (np.ndarray, optional): Scale applied to coordinates after bundle adjustment.
         calib_completed (bool, optional): Flag indicating if calibration is completed.
         """
 
@@ -73,7 +71,7 @@ class PointMesh(QWidget):
         self.calib_completed = calib_completed
         self.web_view = None
 
-        # Initialize transformation matrices, translation vectors, and scale dictionaries
+        # Initialize transformation matrices, translation vectors
         self.R, self.R_BA = {}, {}
         self.T, self.T_BA = {}, {}
         self.S, self.S_BA = {}, {}
@@ -94,12 +92,12 @@ class PointMesh(QWidget):
                             Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
 
         # Initialize the widget
-        self._set_transM(transM, scale)
+        self._set_transM(transM)
 
-        # Apply transformation matrix and scale from bundle adjustment if available
-        if transM_BA is not None and scale_BA is not None and \
+        # Apply transformation matrix from bundle adjustment if available
+        if transM_BA is not None and \
                 self.model.bundle_adjustment and self.calib_completed:
-            self.set_transM_BA(transM_BA, scale_BA)
+            self.set_transM_BA(transM_BA)
 
         # Parse the CSV file and initialize the UI
         self._parse_csv()
@@ -125,29 +123,25 @@ class PointMesh(QWidget):
         self.ui.verticalLayout1.addWidget(self.web_view)
         logger.debug("[PointMesh] Web view initialized")
 
-    def _set_transM(self, transM, scale):
+    def _set_transM(self, transM):
         """
-        Set the transformation matrix, translation vector, and scale for the stage.
+        Set the transformation matrix, translation vector for the stage.
 
         Parameters:
         transM (np.ndarray): Transformation matrix for local-to-global conversion.
-        scale (np.ndarray): Scale applied to local coordinates.
         """
         self.R[self.sn] = transM[:3, :3]
         self.T[self.sn] = transM[:3, 3]
-        self.S[self.sn] = scale[:3]
 
-    def set_transM_BA(self, transM, scale):
+    def set_transM_BA(self, transM):
         """
-        Sets the transformation matrix and scale after bundle adjustment.
+        Sets the transformation matrix after bundle adjustment.
 
         Parameters:
         transM (np.ndarray): Bundle-adjusted transformation matrix.
-        scale (np.ndarray): Bundle-adjusted scaling factors.
         """
         self.R_BA[self.sn] = transM[:3, :3]
         self.T_BA[self.sn] = transM[:3, 3]
-        self.S_BA[self.sn] = scale[:3]
 
     def _parse_csv(self):
         """
@@ -159,7 +153,7 @@ class PointMesh(QWidget):
 
         # Extract local points and convert them to global coordinates
         self.local_pts_org = self.df[['local_x', 'local_y', 'local_z']].values
-        self.local_pts = self._local_to_global(self.local_pts_org, self.R[self.sn], self.T[self.sn], self.S[self.sn])
+        self.local_pts = self._local_to_global(self.local_pts_org, self.R[self.sn], self.T[self.sn])
         self.points_dict['local_pts'] = self.local_pts
 
         # Extract global points
@@ -183,7 +177,7 @@ class PointMesh(QWidget):
         for i, key in enumerate(self.points_dict.keys()):
             self.colors[key] = color_list[i % len(color_list)]
 
-    def _local_to_global(self, local_pts, R, t, scale=None):
+    def _local_to_global(self, local_pts, R, t):
         """
         Converts local points to global coordinates using the transformation matrix.
 
@@ -191,13 +185,10 @@ class PointMesh(QWidget):
         local_pts (np.ndarray): Local coordinates of the points.
         R (np.ndarray): Rotation matrix for transformation.
         t (np.ndarray): Translation vector for transformation.
-        scale (np.ndarray, optional): Scaling factors applied to the local coordinates.
 
         Returns:
         np.ndarray: Transformed global coordinates.
         """
-        if scale is not None:
-            local_pts = local_pts * scale
         global_coords_exp = R @ local_pts.T + t.reshape(-1, 1)
         return global_coords_exp.T
 

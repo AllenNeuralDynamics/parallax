@@ -255,7 +255,6 @@ class StageListener(QObject):
         self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
         self.stage_global_data = None
         self.transM_dict = {}
-        self.scale_dict = {}
         self.snapshot_folder_path = None
         self.stages_info = {}
         self.probeCalibrationLabel =  None
@@ -328,7 +327,7 @@ class StageListener(QObject):
 
         self.stages_info[stage.sn] = self._get_stage_info_json(stage)
 
-    def requestUpdateGlobalDataTransformM(self, sn, transM, scale):
+    def requestUpdateGlobalDataTransformM(self, sn, transM):
         """
         Stores or updates a transformation matrix for a specific stage identified by its serial number.
         This method updates an internal dictionary, `transM_dict`, mapping stage serial numbers to their
@@ -339,8 +338,7 @@ class StageListener(QObject):
             transM (np.ndarray): A 4x4 numpy array representing the transformation matrix for the specified stage.
         """
         self.transM_dict[sn] = transM
-        self.scale_dict[sn] = scale
-        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM} {scale}")
+        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM}")
 
     def requestClearGlobalDataTransformM(self, sn=None):
         """
@@ -352,12 +350,9 @@ class StageListener(QObject):
         """
         if sn is None:  # Not specified, clear all (Use case: reticle Dection is reset)
             self.transM_dict = {}
-            self.scale_dict = {}
         else:
             if self.transM_dict.get(sn) is not None:
                 self.transM_dict.pop(sn)
-            if self.scale_dict.get(sn) is not None:
-                self.scale_dict.pop(sn)
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 

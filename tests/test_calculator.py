@@ -35,7 +35,7 @@ def test_set_current_reticle(setup_calculator, qtbot):
 
     assert calculator.reticle == "B", "Reticle should be set to 'B'"
 
-@pytest.mark.parametrize("localX, localY, localZ, transM_LR, scale, expected_globalX, expected_globalY, expected_globalZ", [
+@pytest.mark.parametrize("localX, localY, localZ, transM_LR, expected_globalX, expected_globalY, expected_globalZ", [
     # Case 1: Complex transformation with scaling (your initial case)
     (10775.0, 6252.0, 6418.0, 
      np.array([[0.991319402, 0.079625596, -0.104621259, -10801.14725],
@@ -55,11 +55,11 @@ def test_set_current_reticle(setup_calculator, qtbot):
      110.0, 220.0, 330.0)
 ])
 
-def test_transform_local_to_global(setup_calculator, qtbot, localX, localY, localZ, transM_LR, scale, expected_globalX, expected_globalY, expected_globalZ):
+def test_transform_local_to_global(setup_calculator, qtbot, localX, localY, localZ, transM_LR, expected_globalX, expected_globalY, expected_globalZ):
     calculator, model, stage_controller = setup_calculator
 
-    # Inject transformation matrix and scale into the mocked model
-    model.transforms['stage1'] = (transM_LR, scale)
+    # Inject transformation matrixinto the mocked model
+    model.transforms['stage1'] = (transM_LR)
 
     # Input local coordinates
     qtbot.keyClicks(calculator.findChild(QLineEdit, 'localX_stage1'), str(localX))
@@ -89,8 +89,7 @@ def test_transform_global_to_local(setup_calculator, qtbot):
 
     # Inject transformation into model
     transM_LR = np.array([[1, 0, 0, 5], [0, 1, 0, 5], [0, 0, 1, 5], [0, 0, 0, 1]])
-    scale = np.array([1, 1, 1])
-    model.transforms['stage1'] = (transM_LR, scale)
+    model.transforms['stage1'] = (transM_LR)
 
     calculator._convert('stage1')
 

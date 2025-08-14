@@ -25,7 +25,6 @@ class StageCalibrationInfo:
     detection_status: bool = False
     transM: Optional[np.ndarray] = None
     L2_err: Optional[float] = None
-    scale: Optional[float] = None
     dist_travel: Optional[np.ndarray] = None
     status_x: Optional[str] = None
     status_y: Optional[str] = None
@@ -36,7 +35,6 @@ class StageCalibrationInfo:
         detection_status: Optional[bool] = None,
         transM: Optional[np.ndarray] = None,
         L2_err: Optional[float] = None,
-        scale: Optional[float] = None,
         dist_travel: Optional[np.ndarray] = None,
         status_x: Optional[str] = None,
         status_y: Optional[str] = None,
@@ -48,8 +46,6 @@ class StageCalibrationInfo:
             self.transM = transM
         if L2_err is not None:
             self.L2_err = L2_err
-        if scale is not None:
-            self.scale = scale
         if dist_travel is not None:
             self.dist_travel = dist_travel
         if status_x is not None:
@@ -87,11 +83,10 @@ class ProbeCalibrationHandler(QWidget):
         self.camA_best = None
         self.camB_best = None
 
-        # Probe Widget
+        # Probe Widget for the currently selected stage
         self.probe_detection_status = "default"    # options: default, process, accepted
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travel = None, None, None
-        self.scale = np.array([1, 1, 1])
         self.moving_stage_id = None
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
@@ -449,7 +444,6 @@ class ProbeCalibrationHandler(QWidget):
         self.probe_detection_status = "default"
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travled = None, None, None
-        self.scale = np.array([1, 1, 1])
         self.probeCalibration.reset_calib(sn=sn)
         self.reticle_metadata.default_reticle_selector()
         self.probe_detect_default_status_ui(sn=sn)
@@ -547,17 +541,16 @@ class ProbeCalibrationHandler(QWidget):
         # Update reticle selector
         self.reticle_metadata.load_metadata_from_file()
 
-    def update_probe_calib_status_transM(self, transformation_matrix, scale):
+    def update_probe_calib_status_transM(self, transformation_matrix):
         """
-        Updates the probe calibration status with the transformation matrix and scale.
-        Extracts the rotation matrix (R), translation vector (T), and scale (S) and formats
+        Updates the probe calibration status with the transformation matrix.
+        Extracts the rotation matrix (R), translation vector (T) formats
         them into a string to be displayed in the UI.
         """
         # Extract the rotation matrix (top-left 3x3)
         R = transformation_matrix[:3, :3]
         # Extract the translation vector (top 3 elements of the last column)
         T = transformation_matrix[:3, 3]
-        S = scale[:3]
 
         # Set the formatted string as the label's text
         content = (
@@ -569,8 +562,6 @@ class ProbeCalibrationHandler(QWidget):
             f" [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]<br>"
             f"<b>T: </b>"
             f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]<br>"
-            f"<b>S: </b>"
-            f" [{S[0]:.5f}, {S[1]:.5f}, {S[2]:.5f}]<br>"
             f"</small></span>"
         )
         return content
@@ -590,6 +581,8 @@ class ProbeCalibrationHandler(QWidget):
         """
         Formats the distance traveled in the X, Y, and Z directions for display in the UI.
         """
+        if dist_travel is None:
+            return
         x, y, z = dist_travel[0], dist_travel[1], dist_travel[2]
         content = (
             f"<span style='color:yellow;'><small>[Distance traveled (µm)]<br></small></span>"
@@ -599,31 +592,30 @@ class ProbeCalibrationHandler(QWidget):
         )
         return content
 
-    def display_probe_calib_status(self, transM, scale, L2_err, dist_travel):
+    def display_probe_calib_status(self, transM, L2_err, dist_travel):
         """
         Displays the full probe calibration status, including the transformation matrix, L2 error,
         and distance traveled. It combines the formatted content for each of these elements and
         updates the UI label.
         """
-        content_transM = self.update_probe_calib_status_transM(transM, scale)
+        content_transM = self.update_probe_calib_status_transM(transM)
         content_L2 = self.update_probe_calib_status_L2(L2_err)
         content_L2_travel = self.update_probe_calib_status_distance_traveled(dist_travel)
         # Display the transformation matrix, L2 error, and distance traveled
         full_content = content_transM + content_L2 + content_L2_travel
         self.probeCalibrationLabel.setText(full_content)
 
-    def update_probe_calib_status(self, moving_stage_id, transM, scale=np.array([1.0, 1.0, 1.0]), L2_err=0.0, dist_travel=np.array([0.0, 0.0, 0.0])):
+    def update_probe_calib_status(self, moving_stage_id, transM, L2_err=0.0, dist_travel=np.array([0.0, 0.0, 0.0])):
         """
         Updates the probe calibration status based on the moving stage ID and the provided calibration data.
         If the selected stage matches the moving stage, the calibration data is displayed on the UI.
         """
         self.transM, self.L2_err, self.dist_travled = transM, L2_err, dist_travel
-        self.scale = scale
         self.moving_stage_id = moving_stage_id
 
         if self.moving_stage_id == self.selected_stage_id:
             # If moving stage is the selected stage, update the probe calibration status on UI
-            self.display_probe_calib_status(transM, scale, L2_err, dist_travel)
+            self.display_probe_calib_status(transM, L2_err, dist_travel)
             if not self.viewTrajectory_btn.isVisible():
                 self.viewTrajectory_btn.show()
             if not self.actionTrajectory.isEnabled():
@@ -761,20 +753,6 @@ class ProbeCalibrationHandler(QWidget):
             "background-color: black;"
         )
 
-    """
-    def get_stage_info(self):
-        info = {}
-        info['detection_status'] = self.probe_detection_status
-        info['transM'] = self.transM
-        info['L2_err'] = self.L2_err
-        info['scale'] = self.scale
-        info['dist_travel'] = self.dist_travled
-        info['status_x'] = self.calib_status_x
-        info['status_y'] = self.calib_status_y
-        info['status_z'] = self.calib_status_z
-        return info
-    """
-
     def update_stage_info_to_model(self, stage_id) -> None:
         """
         Update the stored StageCalibrationInfo for a stage with the current object's values.
@@ -788,7 +766,6 @@ class ProbeCalibrationHandler(QWidget):
             detection_status=self.probe_detection_status,
             transM=self.transM,
             L2_err=self.L2_err,
-            scale=self.scale,
             dist_travel=self.dist_travel,
             status_x=self.calib_status_x,
             status_y=self.calib_status_y,
@@ -799,7 +776,6 @@ class ProbeCalibrationHandler(QWidget):
         if isinstance(info, StageCalibrationInfo):
             self.transM = info.transM
             self.L2_err = info.L2_err
-            self.scale = info.scale
             self.dist_travel = info.dist_travel
             self.calib_status_x = info.status_x
             self.calib_status_y = info.status_y
@@ -853,12 +829,12 @@ class ProbeCalibrationHandler(QWidget):
             if self.calib_status_z:
                 self.calib_z_complete(switch_probe=True)
             if self.transM is not None:
-                self.display_probe_calib_status(self.transM, self.scale, self.L2_err, self.dist_travled)
+                self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travel)
             else:
                 self.probeCalibrationLabel.setText("")
         elif probe_detection_status == "accepted":
             self.probe_detect_accepted_status(switch_probe=True)
             if self.transM is not None:
-                self.display_probe_calib_status(self.transM, self.scale, self.L2_err, self.dist_travled)
+                self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travel)
 
         self.probe_detection_status = probe_detection_status

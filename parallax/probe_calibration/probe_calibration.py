@@ -31,15 +31,14 @@ class ProbeCalibration(QObject):
         calib_complete_y (str): Signal emitted when calibration for the Y-axis is complete.
         calib_complete_z (str): Signal emitted when calibration for the Z-axis is complete.
         calib_complete (str, object, np.ndarray): Signal emitted when the full calibration is complete.
-        transM_info (str, object, np.ndarray, float, object): Signal emitted with transformation matrix information.
+        transM_info (str, object, float, object): Signal emitted with transformation matrix information.
     """
     calib_complete_x = pyqtSignal(str)
     calib_complete_y = pyqtSignal(str)
     calib_complete_z = pyqtSignal(str)
     calib_complete = pyqtSignal()
-    transM_info = pyqtSignal(str, object, np.ndarray, float, object)
+    transM_info = pyqtSignal(str, object, float, object)
 
-    """
     THRESHOLD_MIN_MAX = 1500
     THRESHOLD_MIN_MAX_Z = 200
     THRESHOLD_AVG_ERROR = 50
@@ -51,7 +50,6 @@ class ProbeCalibration(QObject):
         [0.0,   0.0,   0.0,   0.0],
     ])
     """
-
     # Test
     THRESHOLD_MIN_MAX = 0
     THRESHOLD_MIN_MAX_Z = 0
@@ -63,6 +61,7 @@ class ProbeCalibration(QObject):
         [1, 1, 1, 5000.0],
         [0.0,   0.0,   0.0,   0.0],
     ])
+    """
 
     def __init__(self, model, stage_listener):
         """
@@ -85,7 +84,7 @@ class ProbeCalibration(QObject):
 
         self.transM_LR, self.transM_LR_prev = None, np.zeros((4, 4), dtype=np.float64)
         self.LR_err_L2_current = 1e10
-        self.origin, self.R, self.scale = None, None, np.array([1, 1, 1])
+        self.origin, self.R = None, None
         self.avg_err = float("inf")
         self.last_row = None
 
@@ -161,10 +160,8 @@ class ProbeCalibration(QObject):
             sn (str, optional): The serial number of the stage to clear. If None, clears all stages.
         """
         self.transM_LR, self.transM_LR_prev = None, np.zeros((4, 4), dtype=np.float64)
-        self.scale = np.array([1, 1, 1])
 
         if sn:
-            #self.model.add_transform(sn, self.transM_LR, self.scale)
             self.model.add_transform(sn, self.transM_LR)
 
         if self.log_dir is None:
@@ -249,11 +246,7 @@ class ProbeCalibration(QObject):
         Returns:
             numpy.ndarray: The L2 distance between the points.
         """
-        R, t, s = self.R, self.origin, self.scale
-
-        # Apply the scaling factors obtained from fit_params
-        local_points = local_points * s
-
+        R, t= self.R, self.origin
         global_coords_exp = R @ local_points.T + t.reshape(-1, 1)
         global_coords_exp = global_coords_exp.T
 
@@ -305,13 +298,13 @@ class ProbeCalibration(QObject):
         if len(local_points) <= 3 or len(global_points) <= 3:
             logger.warning("Not enough points for calibration.")
             return None
-        self.origin, self.R, self.scale, self.avg_err = self.transformer.fit_params(local_points, global_points)
+        self.origin, self.R, self.avg_err = self.transformer.fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
         return transformation_matrix
 
-    def _get_transM_(self, df):
+    def _get_transM(self, df):
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
         """
@@ -321,13 +314,13 @@ class ProbeCalibration(QObject):
             logger.warning("Not enough points for calibration.")
             return None
 
-        self.origin, self.R, self.scale, self.avg_err = self.transformer.fit_params(local_points, global_points)
+        self.origin, self.R, self.avg_err = self.transformer.fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
         return transformation_matrix
 
-    def _get_transM(self, df):
+    def _get_transM_test(self, df):
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
         """
@@ -526,15 +519,8 @@ class ProbeCalibration(QObject):
         Returns:
             np.array: The transformed global point.
         """
-        local_point = np.array(
-            [self.stage.stage_x, self.stage.stage_y, self.stage.stage_z]
-        )
-
-        # Apply the scaling factors obtained from fit_params
-        local_point = local_point * self.scale
+        local_point = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z])
         local_point = np.append(local_point, 1)
-
-        # Apply the transformation matrix
         global_point = np.dot(self.transM_LR, local_point)
         return global_point[:3]
 
@@ -592,7 +578,7 @@ class ProbeCalibration(QObject):
 
     def _update_info_ui(self, disp_avg_error=False, save_to_csv=False, file_name=None):
         """
-        Updates the UI with calibration information, such as transformation matrix, scale, and error.
+        Updates the UI with calibration information, such as transformation matrix and error.
 
         Args:
             disp_avg_error (bool): Whether to display the average error or the L2 error.
@@ -620,7 +606,6 @@ class ProbeCalibration(QObject):
             self.transM_info.emit(
                 sn,
                 transM,
-                self.scale,
                 error,
                 np.array([x_diff, y_diff, z_diff])
             )
@@ -657,8 +642,6 @@ class ProbeCalibration(QObject):
         R = self.transM_LR[:3, :3]
         # Extract the translation vector (first 3 elements of the last column)
         T = self.transM_LR[:3, 3]
-        # Extract the scale
-        S = self.scale[:3]
 
         # Format the data as a dictionary
         data = {
@@ -666,7 +649,6 @@ class ProbeCalibration(QObject):
             'R_1_0': [R[1, 0]], 'R_1_1': [R[1, 1]], 'R_1_2': [R[1, 2]],
             'R_2_0': [R[2, 0]], 'R_2_1': [R[2, 1]], 'R_2_2': [R[2, 2]],
             'T_0': [T[0]], 'T_1': [T[1]], 'T_2': [T[2]],
-            'S_0': [S[0]], 'S_1': [S[1]], 'S_2': [S[2]],
             'avg_err': [self.avg_err]
         }
 
@@ -688,13 +670,12 @@ class ProbeCalibration(QObject):
     def _print_formatted_transM(self):
         """
         Prints the transformation matrix in a formatted way, including the rotation matrix,
-        translation vector, and scale factors. This helps visualize the relationship
+        translation vector. This helps visualize the relationship
         between local stage coordinates and global reticle coordinates after calibration.
 
         The output includes:
         - The rotation matrix (R): Describes the orientation transformation.
         - The translation vector (T): Represents the offset in global coordinates.
-        - The scaling factors (S): Represent the scaling applied along the x, y, and z local coordinates.
         - The average L2 error between stage and global coordinates.
 
         This function outputs the results to the console.
@@ -707,14 +688,11 @@ class ProbeCalibration(QObject):
             [<R_20>, <R_21>, <R_22>]]
             Translation vector:
             [<T_0>, <T_1>, <T_2>]
-            Scale:
-            [<S_0>, <S_1>, <S_2>]
             ==> Average L2 between stage and global: <average error value>
         """
         R = self.transM_LR[:3, :3]
         # Extract the translation vector (top 3 elements of the last column)
         T = self.transM_LR[:3, 3]
-        S = self.scale[:3]
 
         print("stage sn: ", self.stage.sn)
         print("Rotation matrix:")
@@ -723,8 +701,6 @@ class ProbeCalibration(QObject):
         print(f"  [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]")
         print("Translation vector:")
         print(f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]")
-        print("Scale:")
-        print(f" [{S[0]:.5f}, {S[1]:.5f}, {S[2]:.5f}]")
         print("==> Average L2 between stage and global: ", self.avg_err)
 
     def update(self, stage, debug_info=None):
@@ -746,7 +722,7 @@ class ProbeCalibration(QObject):
         df = self._filter_df_by_sn(self.stage.sn)
 
         self.transM_LR = self._get_transM(df)
-        """
+
         if self._is_criteria_met_points_min_max() and len(df) >= self.THRESHOLD_N_PTS \
                 and self.R is not None and self.origin is not None:
             logger.debug("===============")
@@ -769,8 +745,6 @@ class ProbeCalibration(QObject):
         self.LR_err_L2_current = self._l2_error_current_point()
         if self._is_enough_points(df):  # if ret, complete calibration
             self.complete_calibration(df)
-        """
-        self.complete_calibration(df)
 
     def _is_trajectory_distance_sufficient(self, df):
         if min(df['global_x']) > 0 or max(df['global_x']) < 0 or \
@@ -803,7 +777,7 @@ class ProbeCalibration(QObject):
             1. Saves the filtered points to a new CSV file.
             2. Updates the transformation matrix based on the filtered points.
             3. If bundle adjustment is enabled, optimizes the transformation matrix.
-            4. Registers the transformation matrix and scaling factors into the model.
+            4. Registers the transformation matrix into the model.
             5. Emits a signal indicating that calibration is complete.
             6. Initializes the PointMesh instance for 3D visualization.
         """
@@ -822,7 +796,7 @@ class ProbeCalibration(QObject):
                              file_name=f"transM_{self.stage.sn}_{timestamp}.csv")
 
         if self.model.bundle_adjustment:
-            self.old_transM, self.old_scale = self.transM_LR, self.scale
+            self.old_transM = self.transM_LR
             ret = self.run_bundle_adjustment(self.file_name)
             if ret:
                 print("\n=========================================================")
@@ -841,17 +815,17 @@ class ProbeCalibration(QObject):
         # Emit the signal to indicate that calibration is complete
         self.calib_complete.emit()
         logger.debug(
-            f"complete probe calibration {self.stage.sn}, {self.transM_LR}, {self.scale}"
+            f"complete probe calibration {self.stage.sn}, {self.transM_LR}"
         )
 
         # Init PointMesh
         if not self.model.bundle_adjustment:
             self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn,
-                                                       self.transM_LR, self.scale, calib_completed=True)
+                                                       self.transM_LR, calib_completed=True)
         else:
             self.point_mesh[self.stage.sn] = PointMesh(self.model, self.file_name, self.stage.sn,
-                                                       self.old_transM, self.old_scale,
-                                                       self.transM_LR, self.scale, calib_completed=True)
+                                                       self.old_transM,
+                                                       self.transM_LR, calib_completed=True)
         self.stages[self.stage.sn]['calib_completed'] = True
 
     def view_3d_trajectory(self, sn):
@@ -872,7 +846,7 @@ class ProbeCalibration(QObject):
                         print("Calibration is not completed yet.", sn)
                         return
                     self.point_mesh_not_calibrated = PointMesh(self.model, self.log_dir / "points.csv", self.stage.sn,
-                                                            self.transM_LR, self.scale)
+                                                            self.transM_LR)
                     self.point_mesh_not_calibrated.show()
             else:
                 # If calib is completed, show the PointMesh instance.

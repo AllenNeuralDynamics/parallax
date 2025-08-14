@@ -132,7 +132,6 @@ class Calculator(QWidget):
         Args:
             stage_sn (str): The serial number of the stage.
             transM (ndarray): The transformation matrix for coordinate conversion.
-            scale (ndarray): The scale factors for the coordinates.
 
         Returns:
             function: A lambda function for performing coordinate conversion.
@@ -148,8 +147,6 @@ class Calculator(QWidget):
 
         Args:
             sn (str): The serial number of the stage.
-            transM (ndarray): The transformation matrix.
-            scale (ndarray): The scale factors applied to the coordinates.
         """
         # Enable the groupBox for the stage
         globalX = self.findChild(QLineEdit, f"globalX_{sn}").text()
