@@ -191,7 +191,6 @@ class SessionConfigManager:
             yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
 
 
-
 class StageConfigManager:
     @classmethod
     def load_from_yaml(cls, model) -> None:

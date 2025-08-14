@@ -12,7 +12,7 @@ from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +123,19 @@ class ProbeCalibrationHandler(QWidget):
         self.calculator.remove_stage_groupbox()
         # Add stages on calculator
         self.calculator.add_stage_groupbox()  # Add stage infos to calculator
+
+    def apply_probe_calibration_status(self):
+        """
+        Applies the current probe calibration status to the UI and model.
+        This method updates the probe calibration button style and visibility based on the current status.
+        """
+        print("Apply probe calibration status", self.selected_stage_id, self.model.is_calibrated(self.selected_stage_id))
+        # Get status of selected stage on ui and apply the appropriate style 
+        if self.model.is_calibrated(self.selected_stage_id):
+            self.update_probe_calib_status(
+                self.selected_stage_id, self.model.get_transform(self.selected_stage_id)
+            )
+            self.probe_detect_accepted_status(switch_probe=True)
 
     def reticle_detection_status_change(self):
         """Updates the reticle detection status and performs actions based on the new status."""
@@ -450,6 +463,7 @@ class ProbeCalibrationHandler(QWidget):
             stage_sn (str): The serial number of the stage for which the probe position is accepted.
             transformation_matrix (np.ndarray): The transformation matrix obtained from the probe calibration process.
         """
+        print("Probe detection accepted status", self.probe_detection_status)
         if self.probe_detection_status == "accepted":
             return
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
@@ -556,7 +570,7 @@ class ProbeCalibrationHandler(QWidget):
         full_content = content_transM + content_L2 + content_L2_travel
         self.probeCalibrationLabel.setText(full_content)
 
-    def update_probe_calib_status(self, moving_stage_id, transM, scale, L2_err, dist_traveled):
+    def update_probe_calib_status(self, moving_stage_id, transM, scale=np.array([1.0, 1.0, 1.0]), L2_err=0.0, dist_traveled=np.array([0.0, 0.0, 0.0])):
         """
         Updates the probe calibration status based on the moving stage ID and the provided calibration data.
         If the selected stage matches the moving stage, the calibration data is displayed on the UI.
@@ -758,13 +772,14 @@ class ProbeCalibrationHandler(QWidget):
         # Load the current stage's calibration info
         info = self.model.get_stage_calib_info(curr_stage_id)
         logger.debug(f"Loaded stage {curr_stage_id} info: {info}")
-        if info is not None:
+        if info != {}:
             self.update_stage_info(info)
             probe_detection_status = info['detection_status']
         else:
             probe_detection_status = "default"
 
         # Go to the appropriate status based on the info
+        logger.debug(f"probe_detection_status: {probe_detection_status}")
         if probe_detection_status == "default":
             self.probe_detect_default_status(sn=self.selected_stage_id)  # Reset the probe detection status
         elif probe_detection_status == "process":

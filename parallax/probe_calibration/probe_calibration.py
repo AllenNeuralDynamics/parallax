@@ -835,7 +835,6 @@ class ProbeCalibration(QObject):
                 return
 
         # Register into model
-        #self.model.add_transform(self.stage.sn, self.transM_LR, self.scale)
         self.model.add_transform(self.stage.sn, self.transM_LR)
         self.model.set_calibration_status(self.stage.sn, True)
 

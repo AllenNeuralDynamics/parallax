@@ -249,7 +249,7 @@ class Model(QObject):
             dict: Calibration information for the given stage.
         """
         #return self.stages_calib.get(stage_sn)
-        return self.stages.get(stage_sn, {}).get("calib_info", None)
+        return self.stages.get(stage_sn, {}).get("calib_info", {})
 
     def reset_stage_calib_info(self):
         """Reset stage calibration info."""

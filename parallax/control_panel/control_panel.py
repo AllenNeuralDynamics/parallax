@@ -144,9 +144,6 @@ class ControlPanel(QWidget):
         # Stage Http Server
         self.stage_http_server = StageHttpServer(self.model, self.stageListener.stages_info)
 
-        # Apply reticle detection status
-        self.reticle_handler.apply_reticle_detection_status()
-
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""
         print("Refreshing stages with updated server configuration...")
@@ -160,9 +157,8 @@ class ControlPanel(QWidget):
 
         # Update reticle/probe detection status to default
         self.reticle_handler.reticle_detect_default_status()
-        #self.reticle_handler.apply_reticle_detection_status()
 
-        # Refresh calculator and update uril on stage listenler
+        # Refresh calculator and update url on stage listener
         self.probe_calib_handler.refresh_stages()
 
         # Update url on StageLinstener
