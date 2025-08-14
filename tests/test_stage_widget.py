@@ -103,7 +103,7 @@ def test_update_stages(stage_widget, mock_model):
         'transM': np.eye(4),
         'scale': np.array([1, 1, 1]),
         'L2_err': 0.005,
-        'dist_traveled': [0, 0, 0],
+        'dist_travel': [0, 0, 0],
         'status_x': True,
         'status_y': True,
         'status_z': True

@@ -66,7 +66,7 @@ def test_add_stage_calib_info(model):
         'transM': [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
         'L2_err': 0.01,
         'scale': [1, 1, 1],
-        'dist_traveled': 100,
+        'dist_travel': 100,
         'status_x': 'OK',
         'status_y': 'OK',
         'status_z': 'OK'
