@@ -170,6 +170,9 @@ class Model(QObject):
     def save_session_config(self):
         SessionConfigManager.save_to_yaml(self)
 
+    def clear_session_config(self):
+        SessionConfigManager.clear_yaml()
+
     def get_camera_resolution(self, camera_sn):
         camera = self.cameras.get(camera_sn, {}).get('obj', None)
         if camera:

@@ -163,8 +163,8 @@ class MainWindow(QMainWindow):
             self.control_panel.reticle_handler.apply_reticle_detection_status()
             self.control_panel.probe_calib_handler.apply_probe_calibration_status()
         else:
-            # TODO: Clea up previous session configs
-            print("Not restoring previous session.")
+            # Clear yaml file
+            self.model.clear_session_config()
 
     def _set_font(self):
         """

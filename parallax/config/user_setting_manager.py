@@ -191,6 +191,18 @@ class SessionConfigManager:
         with open(session_file, "w") as f:
             yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
 
+    @classmethod
+    def clear_yaml(cls):
+        """Overwrite session file to an empty default structure."""
+        output = {"model": {
+            "reticle_detection_status": "default",
+            "stages": {},
+            "cameras": {}
+        }}
+        with open(session_file, "w") as f:
+            yaml.safe_dump(output, f, sort_keys=False)
+        print("[SessionConfigManager] Session YAML cleared.")
+
 
 class StageConfigManager:
     @classmethod
