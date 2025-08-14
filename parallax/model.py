@@ -303,7 +303,6 @@ class Model(QObject):
         calib.transM = transform
         print("Added transform for stage:", stage_sn, self.stages[stage_sn])
 
-
     def get_transform(self, stage_sn):
         """
         Get the transformation matrix for a specific stage.
@@ -515,9 +514,9 @@ class Model(QObject):
         #print("coords_debug: ", self.cameras[sn]['coords_debug'])
         #print("self.cameras[sn]['intrinsic']: ", self.cameras[sn]['intrinsic'])
 
-        self._save_camera_config(sn)
+        self.save_camera_config(sn)
 
-    def _save_camera_config(self, sn):
+    def save_camera_config(self, sn):
         """Save camera configuration to a YAML file."""
         CameraConfigManager.save_to_yaml(self, sn)
 

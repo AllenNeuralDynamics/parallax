@@ -77,10 +77,8 @@ class ReticleDetecthandler(QWidget):
         logger.debug(f"\n{self.model.reticle_detection_status}")
         logger.debug(f"triangulate_btn.isChecked(): {self.triangulate_btn.isChecked()}")
         if self.triangulate_btn.isChecked():
-            # Run reticle detectoin
+            # Run reticle detection
             self._reticle_detect_process_status()
-            # Init probe calibration property
-            # self.probeCalibration.reset_calib(sn = self.selected_stage_id)
         else:
             if self.model.reticle_detection_status == "accepted":
                 response = self._reticle_overwrite_popup_window()
