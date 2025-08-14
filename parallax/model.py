@@ -10,7 +10,7 @@ from collections import OrderedDict
 from PyQt5.QtCore import QObject
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
-from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager
+from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
 
 
 class Model(QObject):
@@ -133,14 +133,7 @@ class Model(QObject):
     def init_stages(self):
         """Initialize stages by clearing the current stages and calibration data."""
         self.stages = {}
-        #self.stages_calib = {}
 
-    """
-    def init_transforms(self):
-        self.transforms = {}
-        for stage_sn in self.stages.keys():
-            self.transforms[stage_sn] = [None, None]
-    """
     def add_mock_cameras(self):
         """Add mock cameras for testing purposes.
 
@@ -193,10 +186,10 @@ class Model(QObject):
     def refresh_stages(self):
         """Search for connected stages"""
         self.scan_for_usb_stages()
-        #self.init_transforms()
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
+        print("Scanning for USB stages...")
         stage_info = StageInfo(self.stage_listener_url)
         instances = stage_info.get_instances()
         self.init_stages()
@@ -334,7 +327,13 @@ class Model(QObject):
             self.stages[stage_sn]["is_calib"] = status
 
         print("Set calibration status for stage:", stage_sn, "to", status)
-        # TODO Save to Yaml
+        self.save_stage_config()
+
+    def save_stage_config(self):
+        StageConfigManager.save_to_yaml(self)
+
+    def load_stage_config(self):
+        StageConfigManager.load_from_yaml(self)
 
     def is_calibrated(self, stage_sn):
         """Check if a specific stage is calibrated.

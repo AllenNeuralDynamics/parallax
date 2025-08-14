@@ -159,6 +159,7 @@ class MainWindow(QMainWindow):
             # Restore coinfigs
             self.model.load_camera_config()
             self.model.load_session_config()
+            self.model.load_stage_config()
             self.control_panel.reticle_handler.apply_reticle_detection_status()
         else:
             # TODO: Clea up previous session configs
@@ -195,7 +196,6 @@ class MainWindow(QMainWindow):
     def refresh_stages(self):
         """Search for connected stages"""
         self.model.scan_for_usb_stages()
-        self.model.init_transforms()
 
     def record_button_handler(self):
         """

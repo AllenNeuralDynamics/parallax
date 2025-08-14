@@ -18,7 +18,8 @@ import yaml
 import numpy as np
 
 from parallax.config.config_path import settings_file, session_file
-
+from parallax.stages.stage_listener import Stage
+from dataclasses import is_dataclass, asdict
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -190,14 +191,75 @@ class SessionConfigManager:
             yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
 
 
-class CameraConfigManager:
+
+class StageConfigManager:
     @classmethod
-    def load_from_yaml(cls, model):
-        print("[ModelConfigLoader] Loading YAML camera config")
+    def load_from_yaml(cls, model) -> None:
+        """Load stages from YAML and restore numpy arrays and dataclasses."""
         with open(session_file, "r") as f:
             data = yaml.safe_load(f)
             if data is None:
-                print("[ModelConfigLoader] YAML file is empty.")
+                print("[CameraConfigManager] YAML file is empty.")
+                return
+
+        stages = data.get("model", {}).get("stages", {})
+        for sn, stage in stages.items():
+            if sn not in model.stages:
+                print(f"[StageConfigManager] Stage '{sn}' not found in model.")
+                continue
+
+            # Convert transM back to numpy array if present
+            calib_info = stage.get("calib_info", {})
+            if "transM" in calib_info and isinstance(calib_info["transM"], list):
+                calib_info["transM"] = np.array(calib_info["transM"], dtype=float)
+
+            # Restore Stage dataclass if needed
+            if "obj" in stage and isinstance(stage["obj"], dict):
+                stage["obj"] = Stage(**stage["obj"])
+
+            model.stages[sn] = stage
+
+        print(f"[StageConfigManager] Loaded {len(model.stages)} stage(s) from YAML.")
+
+    @classmethod
+    def save_to_yaml(cls, model, sn: str) -> None:
+        """Save stage configuration for a specific serial number to YAML.
+
+        Args:
+            model: The model object containing stages dictionary.
+            sn (str): Stage serial number to save.
+        """
+        print("[StageConfigManager] Saving YAML for session:", sn)
+
+        # Load existing YAML if present
+        output = {}
+        if os.path.exists(session_file):
+            with open(session_file, "r") as f:
+                output = yaml.safe_load(f) or {}
+        output.setdefault("model", {})
+        output["model"].setdefault("stages", {})
+
+        if sn not in model.stages:
+            print(f"[StageConfigManager] Stage '{sn}' not found in model.")
+            return
+
+        # Sanitize before saving
+        stage_data = sanitize_for_yaml(model.stages[sn])
+        output["model"]["stages"][sn] = stage_data
+
+        # Write back to YAML
+        with open(session_file, "w") as f:
+            yaml.safe_dump(output, f, sort_keys=False)
+        print(f"[StageConfigManager] Saved stage '{sn}' successfully.")
+
+class CameraConfigManager:
+    @classmethod
+    def load_from_yaml(cls, model):
+        print("[CameraConfigManager] Loading YAML camera config")
+        with open(session_file, "r") as f:
+            data = yaml.safe_load(f)
+            if data is None:
+                print("[CameraConfigManager] YAML file is empty.")
                 return
 
         cam_configs = data.get("model", {}).get("cameras", {})
@@ -307,6 +369,8 @@ class CameraConfigManager:
 
 # Helper function to sanitize data for YAML serialization
 def sanitize_for_yaml(obj):
+    if is_dataclass(obj):
+        return sanitize_for_yaml(asdict(obj))
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     elif isinstance(obj, dict):
