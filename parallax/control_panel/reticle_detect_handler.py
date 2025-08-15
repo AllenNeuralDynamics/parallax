@@ -192,7 +192,9 @@ class ReticleDetecthandler(QWidget):
         # Found the coords
         if self.model.reticle_detection_status != "detected":
             self.model.reticle_detection_status = "detected"
-            self.model.save_session_config()
+
+        self.model.reset_pos_x()
+        self.model.save_session_config()
         self.reticleDetectionStatusChanged.emit()
 
         # UI Updates
