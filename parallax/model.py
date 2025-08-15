@@ -162,7 +162,6 @@ class Model(QObject):
         print("\nLoaded camera config:")
         for sn, cam in self.cameras.items():
             print("sn: ", sn)
-            #print("cam: ", cam)
 
     def load_session_config(self):
         SessionConfigManager.load_from_yaml(self)
@@ -387,7 +386,6 @@ class Model(QObject):
         Args:
             sn (str, optional): Serial number of the camera. If provided, only that camera's data will be removed.
         """
-        #print("reset_coords_intrinsic_extrinsic: ", sn)
         if sn is None:
             self.camera_extrinsic = {}
         else:

@@ -22,7 +22,7 @@ class StageCalibrationInfo:
     """
     Holds the probe calibration information.
     """
-    detection_status: bool = False
+    detection_status: str = "default"  # options: default, process, accepted
     transM: Optional[np.ndarray] = None
     L2_err: Optional[float] = None
     dist_travel: Optional[np.ndarray] = None
@@ -32,7 +32,7 @@ class StageCalibrationInfo:
 
     def update(
         self,
-        detection_status: Optional[bool] = None,
+        detection_status: Optional[str] = "default",
         transM: Optional[np.ndarray] = None,
         L2_err: Optional[float] = None,
         dist_travel: Optional[np.ndarray] = None,
