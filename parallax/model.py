@@ -399,12 +399,7 @@ class Model(QObject):
                 cam['coords_axis'] = None
                 cam['coords_debug'] = None
                 cam['pos_x'] = None
-                cam['intrinsic'] = {
-                    'mtx': None,
-                    'dist': None,
-                    'rvec': None,
-                    'tvec': None
-                }
+                cam['intrinsic'] = None
             self.camera_extrinsic = {}
             self.best_camera_pair = None
         else:
@@ -412,12 +407,7 @@ class Model(QObject):
                 self.cameras[sn]['coords_axis'] = None
                 self.cameras[sn]['coords_debug'] = None
                 self.cameras[sn]['pos_x'] = None
-                self.cameras[sn]['intrinsic'] = {
-                    'mtx': None,
-                    'dist': None,
-                    'rvec': None,
-                    'tvec': None
-                }
+                self.cameras[sn]['intrinsic'] = None
 
     def add_pos_x(self, sn, pt):
         """Add position for the x-axis for a specific camera.
@@ -530,8 +520,7 @@ class Model(QObject):
             list: The intrinsic parameters [mtx, dist, rvec, tvec] for the camera.
         """
         #return self.camera_intrinsic.get(sn)
-        return self.cameras[sn].get('intrinsic', {})
-
+        return self.cameras[sn].get('intrinsic', None)
 
     def add_stereo_calib_instance(self, sorted_key, instance):
         """Add stereo calibration instance.

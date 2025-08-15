@@ -167,15 +167,18 @@ class StereoCameraHandler:
             intrinsic = self.model.get_camera_intrinsic(sn)
             coords = self.model.get_coords_axis(sn)
 
-            if coords is not None and intrinsic is not None:
-                intrinsics.append([
-                    intrinsic.get("mtx"),
-                    intrinsic.get("dist"),
-                    intrinsic.get("rvec"),
-                    intrinsic.get("tvec"),
-                ])
-                cam_names.append(sn)
-                img_coords.append(coords)
+            if intrinsic is None or coords is None:
+                logger.debug(f"Camera {sn} has no intrinsic or coordinates data.")
+                continue
+
+            intrinsics.append([
+                intrinsic.get("mtx"),
+                intrinsic.get("dist"),
+                intrinsic.get("rvec"),
+                intrinsic.get("tvec"),
+            ])
+            cam_names.append(sn)
+            img_coords.append(coords)
 
         return cam_names, intrinsics, img_coords
 
