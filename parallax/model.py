@@ -72,7 +72,7 @@ class Model(QObject):
             'obj' : Stage(stage_info=instance),
             'is_calib': False,
             'calib_info': {
-                'detection_status': None,
+                'detection_status': "default",  # options: default, process, accepted
                 'transM': None,
                 'L2_err': None,
                 'dist_travel': None,
@@ -302,6 +302,24 @@ class Model(QObject):
         calib.transM = transform
         print("Added transform for stage:", stage_sn, self.stages[stage_sn])
 
+    """
+    def update_calib_info(self, stage_sn, transM, L2, dist_travel):
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            print(f"update_calib_info: stage '{stage_sn}' not found")
+            return
+
+        calib = stage.get("calib_info")
+        if not calib:
+            print(f"update_calib_info: stage '{stage_sn}' has no calibration info")
+            return
+
+        calib.transM = transM
+        calib.L2_err = L2
+        calib.dist_travel = dist_travel
+        print("Updated calibration info for stage:", stage_sn, self.stages[stage_sn])
+    """
+
     def get_transform(self, stage_sn):
         """
         Get the transformation matrix for a specific stage.
@@ -313,13 +331,33 @@ class Model(QObject):
         calib = stage.get("calib_info")
         return calib.transM if calib else None
 
+    def get_L2_err(self, stage_sn):
+        """
+        Get the L2 error for a specific stage.
+        """
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            return None
+        calib = stage.get("calib_info")
+        return calib.L2_err if calib else None
+
+    def get_L2_travel(self, stage_sn):
+        """
+        Get the L2 travel for a specific stage.
+        """
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            return None
+        calib = stage.get("calib_info")
+        return calib.dist_travel if calib else None
+
     def set_calibration_status(self, stage_sn, status: bool):
         """
         Set the calibration status for a specific stage.
         """
         if stage_sn in self.stages:
             self.stages[stage_sn]["is_calib"] = status
-        print("Set calibration status for stage:", stage_sn, "to", status)
+        print("\nSet calibration status for stage:", stage_sn, "to", status)
         self.save_stage_config(stage_sn)
 
     def save_stage_config(self, stage_sn):

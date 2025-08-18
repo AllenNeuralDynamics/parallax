@@ -52,16 +52,17 @@ class ProbeCalibration(QObject):
     ])
     """
     # Test
-    THRESHOLD_MIN_MAX = 0
-    THRESHOLD_MIN_MAX_Z = 0
-    THRESHOLD_AVG_ERROR = 0
-    THRESHOLD_N_PTS = 1
+    THRESHOLD_MIN_MAX = 100
+    THRESHOLD_MIN_MAX_Z = 10
+    THRESHOLD_AVG_ERROR = 1000
+    THRESHOLD_N_PTS = 3
     THRESHOLD_MATRIX = np.array([
         [1, 1, 1, 5000.0],
         [1, 1, 1, 5000.0],
         [1, 1, 1, 5000.0],
         [0.0,   0.0,   0.0,   0.0],
     ])
+    
 
     def __init__(self, model, stage_listener):
         """
@@ -304,7 +305,7 @@ class ProbeCalibration(QObject):
 
         return transformation_matrix
 
-    def _get_transM_(self, df):
+    def _get_transM(self, df):
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
         """
@@ -320,7 +321,7 @@ class ProbeCalibration(QObject):
 
         return transformation_matrix
 
-    def _get_transM(self, df):
+    def _get_transM_test(self, df):
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
         """
@@ -723,7 +724,7 @@ class ProbeCalibration(QObject):
 
         self.transM_LR = self._get_transM(df)
 
-        """
+
         if self._is_criteria_met_points_min_max() and len(df) >= self.THRESHOLD_N_PTS \
                 and self.R is not None and self.origin is not None:
             logger.debug("===============")
@@ -746,8 +747,8 @@ class ProbeCalibration(QObject):
         self.LR_err_L2_current = self._l2_error_current_point()
         if self._is_enough_points(df):  # if ret, complete calibration
             self.complete_calibration(df)
-        """
-        self.complete_calibration(df)
+        
+        # self.complete_calibration(df)  #TEST
 
     def _is_trajectory_distance_sufficient(self, df):
         if min(df['global_x']) > 0 or max(df['global_x']) < 0 or \
