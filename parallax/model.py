@@ -243,11 +243,17 @@ class Model(QObject):
         #return self.stages_calib.get(stage_sn)
         return self.stages.get(stage_sn, {}).get("calib_info", None)
 
-    def reset_stage_calib_info(self):
+    def reset_stage_calib_info(self, sn=None):
         """Reset stage calibration info for all stages."""
-        for sn, stage in self.stages.items():
-            stage["is_calib"] = False
-            stage["calib_info"] = StageCalibrationInfo()
+        if sn is None:
+            for sn, stage in self.stages.items():
+                stage["is_calib"] = False
+                stage["calib_info"] = StageCalibrationInfo()
+                StageConfigManager.save_to_yaml(self, sn)
+        else:
+            self.stages[sn]["is_calib"] = False
+            self.stages[sn]["calib_info"] = StageCalibrationInfo()
+            StageConfigManager.save_to_yaml(self, sn)
 
     def add_pts(self, camera_name, pts):
         """Add detected points for a camera.

@@ -354,7 +354,7 @@ class ProbeCalibrationHandler(QWidget):
 
     def probe_detection_button_handler(self):
         """Handle the probe detection button click."""
-        if self.probe_calibration_btn.isChecked():
+        if self.probe_calibration_btn.isChecked():  # Proceed detection
             # Check probe calibration thread status
             if not self._is_probe_calibration_thread_available():
                 # msg
@@ -366,7 +366,7 @@ class ProbeCalibrationHandler(QWidget):
                 self.probe_calibration_btn.setChecked(False)
             else:
                 self.probe_detect_process_status()
-        else:
+        else:  # Reset detection
             response = self.probe_overwrite_popup_window()
             if response:
                 self.probe_detect_default_status(sn=self.selected_stage_id)
@@ -452,6 +452,11 @@ class ProbeCalibrationHandler(QWidget):
         self.probe_detect_default_status_ui(sn=sn)
         if sn is None:
             self.probeCalibration.clear()
+
+        if sn is not None:
+            self.model.reset_stage_calib_info(sn)
+        else:
+            self.model.reset_stage_calib_info()
 
     def probe_detect_process_status(self):
         """

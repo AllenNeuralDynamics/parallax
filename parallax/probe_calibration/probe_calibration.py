@@ -751,6 +751,10 @@ class ProbeCalibration(QObject):
         # self.complete_calibration(df)  #TEST
 
     def _is_trajectory_distance_sufficient(self, df):
+        if df.empty:
+            logger.debug("Trajectory data is empty.")
+            return False
+
         if min(df['global_x']) > 0 or max(df['global_x']) < 0 or \
            min(df['global_y']) > 0 or max(df['global_y']) < 0:
             logger.debug("Trajectory distance not cross to axis.")
@@ -813,8 +817,8 @@ class ProbeCalibration(QObject):
                 return
 
         # Register into model
-        self.model.add_transform(self.stage.sn, self.transM_LR)
-        self.model.set_calibration_status(self.stage.sn, True)
+        #self.model.add_transform(self.stage.sn, self.transM_LR)
+        #self.model.set_calibration_status(self.stage.sn, True)
 
         # Emit the signal to indicate that calibration is complete
         self.calib_complete.emit()
