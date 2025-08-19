@@ -30,6 +30,19 @@ class StageCalibrationInfo:
     status_y: Optional[str] = None
     status_z: Optional[str] = None
 
+    # Movement tracking
+    min_x: float = float("inf")
+    max_x: float = float("-inf")
+    min_y: float = float("inf")
+    max_y: float = float("-inf")
+    min_z: float = float("inf")
+    max_z: float = float("-inf")
+    min_gx: float = float("inf")
+    max_gx: float = float("-inf")
+    min_gy: float = float("inf")
+    max_gy: float = float("-inf")
+
+    # TODO Remove
     def update(
         self,
         detection_status: Optional[str] = "default",
@@ -39,8 +52,18 @@ class StageCalibrationInfo:
         status_x: Optional[str] = None,
         status_y: Optional[str] = None,
         status_z: Optional[str] = None,
+        min_x: Optional[float] = None,
+        max_x: Optional[float] = None,
+        min_y: Optional[float] = None,
+        max_y: Optional[float] = None,
+        min_z: Optional[float] = None,
+        max_z: Optional[float] = None,
+        min_gx: Optional[float] = None,
+        max_gx: Optional[float] = None,
+        min_gy: Optional[float] = None,
+        max_gy: Optional[float] = None
     ) -> None:
-        if detection_status is not None:
+        if detection_status != "default":
             self.detection_status = detection_status
         if transM is not None:
             self.transM = transM
@@ -54,6 +77,26 @@ class StageCalibrationInfo:
             self.status_y = status_y
         if status_z is not None:
             self.status_z = status_z
+        if min_x is not None:
+            self.min_x = min_x
+        if max_x is not None:
+            self.max_x = max_x
+        if min_y is not None:
+            self.min_y = min_y
+        if max_y is not None:
+            self.max_y = max_y
+        if min_z is not None:
+            self.min_z = min_z
+        if max_z is not None:
+            self.max_z = max_z
+        if min_gx is not None:
+            self.min_gx = min_gx
+        if max_gx is not None:
+            self.max_gx = max_gx
+        if min_gy is not None:
+            self.min_gy = min_gy
+        if max_gy is not None:
+            self.max_gy = max_gy
 
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
@@ -139,9 +182,7 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_z.hide()
         self.viewTrajectory_btn.hide()
         self.actionTrajectory.setEnabled(False)
-        self.probeCalibration.calib_complete_x.connect(self.calib_x_complete)
-        self.probeCalibration.calib_complete_y.connect(self.calib_y_complete)
-        self.probeCalibration.calib_complete_z.connect(self.calib_z_complete)
+
         self.probeCalibration.calib_complete.connect(
             self.probe_detect_accepted_status
         )
@@ -631,12 +672,27 @@ class ProbeCalibrationHandler(QWidget):
             # If moving stage is the selected stage, update the probe calibration status on UI
             self.display_probe_calib_status(transM, L2_err, dist_travel)
 
+            # Update x, y, z UIs
+            self._update_xyz(moving_stage_id)
+
             if not self.viewTrajectory_btn.isVisible():
                 self.viewTrajectory_btn.show()
             if not self.actionTrajectory.isEnabled():
                 self.actionTrajectory.setEnabled(True)
         else:
             logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
+
+    def _update_xyz(self, sn):
+        calib_info = self.model.get_stage_calib_info(sn)
+        if calib_info is None:
+            return
+
+        if calib_info.status_x and self.calib_status_x is False:
+            self.calib_x_complete(sn)
+        if calib_info.status_y and self.calib_status_y is False:
+            self.calib_y_complete(sn)
+        if calib_info.status_z and self.calib_status_z is False:
+            self.calib_z_complete(sn)
 
     def hide_x_y_z(self):
         """

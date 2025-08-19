@@ -27,15 +27,9 @@ class ProbeCalibration(QObject):
     by transforming local stage coordinates to global reticle coordinates.
 
     Signals:
-        calib_complete_x (str): Signal emitted when calibration for the X-axis is complete.
-        calib_complete_y (str): Signal emitted when calibration for the Y-axis is complete.
-        calib_complete_z (str): Signal emitted when calibration for the Z-axis is complete.
         calib_complete (str, object, np.ndarray): Signal emitted when the full calibration is complete.
         transM_info (str, object, float, object): Signal emitted with transformation matrix information.
     """
-    calib_complete_x = pyqtSignal(str)
-    calib_complete_y = pyqtSignal(str)
-    calib_complete_z = pyqtSignal(str)
     calib_complete = pyqtSignal()
     transM_info = pyqtSignal(str, object, float, object)
 
@@ -419,62 +413,32 @@ class ProbeCalibration(QObject):
         else:
             return False
 
-    def _update_min_max_x_y_z(self):
-        """
-        Updates the minimum and maximum x, y, z coordinates for the current stage.
+    def _update_min_max_x_y_z(self, stage, calib_info):
+        calib_info.min_x = min(calib_info.min_x, stage.stage_x)
+        calib_info.max_x = max(calib_info.max_x, stage.stage_x)
+        calib_info.min_y = min(calib_info.min_y, stage.stage_y)
+        calib_info.max_y = max(calib_info.max_y, stage.stage_y)
+        calib_info.min_z = min(calib_info.min_z, stage.stage_z)
+        calib_info.max_z = max(calib_info.max_z, stage.stage_z)
+        calib_info.min_gx = min(calib_info.min_gx, stage.stage_x_global)
+        calib_info.max_gx = max(calib_info.max_gx, stage.stage_x_global)
+        calib_info.min_gy = min(calib_info.min_gy, stage.stage_y_global)
+        calib_info.max_gy = max(calib_info.max_gy, stage.stage_y_global)
 
-        This method tracks the range of movement for the x, y, and z axes for a given stage
-        and updates the corresponding minimum and maximum values.
-        """
-        sn = self.stage.sn
-        if sn not in self.stages:
-            self.stages[sn] = {
-                'min_x': float("inf"), 'max_x': float("-inf"),
-                'min_y': float("inf"), 'max_y': float("-inf"),
-                'min_z': float("inf"), 'max_z': float("-inf"),
-                'min_gx': float("inf"), 'max_gx': float("-inf"),
-                'min_gy': float("inf"), 'max_gy': float("-inf"),
-                'signal_emitted_x': False, 'signal_emitted_y': False,
-                'signal_emitted_z': False, 'calib_completed': False
-            }
-
-        stage = self.stages[sn]
-
-        # Local min/max
-        stage['min_x'] = min(stage['min_x'], self.stage.stage_x)
-        stage['max_x'] = max(stage['max_x'], self.stage.stage_x)
-        stage['min_y'] = min(stage['min_y'], self.stage.stage_y)
-        stage['max_y'] = max(stage['max_y'], self.stage.stage_y)
-        stage['min_z'] = min(stage['min_z'], self.stage.stage_z)
-        stage['max_z'] = max(stage['max_z'], self.stage.stage_z)
-
-        # Global min/max
-        stage['min_gx'] = min(stage['min_gx'], self.stage.stage_x_global)
-        stage['max_gx'] = max(stage['max_gx'], self.stage.stage_x_global)
-        stage['min_gy'] = min(stage['min_gy'], self.stage.stage_y_global)
-        stage['max_gy'] = max(stage['max_gy'], self.stage.stage_y_global)
-
-        return sn
-
-    def _send_signal(self, sn):
-        stage = self.stages[sn]
+    def _update_movement(self, calib_info):
+        logger.debug(f"Updating movement for {calib_info}")
         # Check if the stage movement has exceeded the thresholds for x, y, and z axes
-        if (stage['max_x'] - stage['min_x'] > self.THRESHOLD_MIN_MAX) and\
-            (stage['min_gx'] < 0 and stage['max_gx'] > 0) and\
-            stage['signal_emitted_x'] is False:
-            self.calib_complete_x.emit(sn)
-            stage['signal_emitted_x'] = True
+        if (calib_info.max_x - calib_info.min_x > self.THRESHOLD_MIN_MAX) and \
+            (calib_info.min_gx < 0 < calib_info.max_gx) and not calib_info.status_x:
+            calib_info.status_x = True
 
-        if (stage['max_y'] - stage['min_y'] > self.THRESHOLD_MIN_MAX) and\
-            (stage['min_gy'] < 0 and stage['max_gy'] > 0) and\
-            stage['signal_emitted_y'] is False:
-            self.calib_complete_y.emit(sn)
-            stage['signal_emitted_y'] = True
+        if (calib_info.max_y - calib_info.min_y > self.THRESHOLD_MIN_MAX) and \
+            (calib_info.min_gy < 0 < calib_info.max_gy) and not calib_info.status_y:
+            calib_info.status_y = True
 
-        if (stage['max_z'] - stage['min_z'] > self.THRESHOLD_MIN_MAX_Z) and\
-            stage['signal_emitted_z'] is False:
-            self.calib_complete_z.emit(sn)
-            stage['signal_emitted_z'] = True
+        if (calib_info.max_z - calib_info.min_z > self.THRESHOLD_MIN_MAX_Z) and \
+            not calib_info.status_z:
+            calib_info.status_z = True
 
     def _is_criteria_number_of_points(self, df):
         """
@@ -576,7 +540,6 @@ class ProbeCalibration(QObject):
         logger.debug("All criteria met: calibration can proceed.")
         return True
 
-
     def _update_info_ui(self, disp_avg_error=False, save_to_csv=False, file_name=None):
         """
         Updates the UI with calibration information, such as transformation matrix and error.
@@ -587,12 +550,14 @@ class ProbeCalibration(QObject):
             file_name (str, optional): The name of the CSV file to save to.
         """
         sn = self.stage.sn
+        calib_info = self.model.get_stage_calib_info(sn)
         if sn is not None and sn in self.stages:
             stage_data = self.stages[sn]
 
-            x_diff = stage_data['max_x'] - stage_data['min_x']
-            y_diff = stage_data['max_y'] - stage_data['min_y']
-            z_diff = stage_data['max_z'] - stage_data['min_z']
+            x_diff = calib_info.max_x - calib_info.min_x
+            y_diff = calib_info.max_y - calib_info.min_y
+            z_diff = calib_info.max_z - calib_info.min_z
+            print(f"x_diff: {x_diff}, y_diff: {y_diff}, z_diff: {z_diff}")
 
             if disp_avg_error:
                 error = self.avg_err
@@ -712,12 +677,16 @@ class ProbeCalibration(QObject):
             stage (Stage): The current stage object with new position data.
         """
         logger.debug(f"ProbeCalibration: update {stage.sn}")
+        calib_info = self.model.get_stage_calib_info(stage.sn)
+        if calib_info is None:
+            return
+
         # update points in the file
         self.stage = stage
         self._write_local_global_point(debug_info)  # Do no update if it is duplicates
 
-        sn = self._update_min_max_x_y_z()    # update min max x,y,z and emit signals if criteria met
-        self._send_signal(sn)                # emit signals if criteria met
+        self._update_min_max_x_y_z(stage, calib_info)    # update min max x,y,z and emit signals if criteria met
+        self._update_movement(calib_info)
         self._update_info_ui()          # update transformation matrix and overall LR in UI
 
         df = self._filter_df_by_sn(self.stage.sn)

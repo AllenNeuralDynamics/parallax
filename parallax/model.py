@@ -13,7 +13,7 @@ from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, lis
 from parallax.stages.stage_listener import Stage, StageInfo
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
-
+from typing import Optional
 
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""
@@ -231,16 +231,8 @@ class Model(QObject):
         self.stages[stage_sn]["calib_info"] = info
     """
 
-    def get_stage_calib_info(self, stage_sn):
-        """Get calibration information for a specific stage.
-
-        Args:
-            stage_sn (str): The serial number of the stage.
-
-        Returns:
-            dict: Calibration information for the given stage.
-        """
-        #return self.stages_calib.get(stage_sn)
+    def get_stage_calib_info(self, stage_sn) -> Optional[StageCalibrationInfo]:
+        """Get calibration information for a specific stage."""
         return self.stages.get(stage_sn, {}).get("calib_info", None)
 
     def reset_stage_calib_info(self, sn=None):
