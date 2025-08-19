@@ -167,20 +167,20 @@ class UserSettingsManager:
 class SessionConfigManager:
     @classmethod
     def load_from_yaml(cls, model):
-        print("[ModelConfigLoader] Loading YAML session config")
+        logger.debug("[ModelConfigLoader] Loading YAML session config")
         with open(session_file, "r") as f:
             data = yaml.safe_load(f)
             if data is None:
-                print("[ModelConfigLoader] YAML file is empty.")
+                logger.debug("[ModelConfigLoader] YAML file is empty.")
                 return
 
         stat = data.get("model", {}).get("reticle_detection_status", "default")
         model.reticle_detection_status = stat
-        print("[ModelConfigLoader] Loaded reticle_detection_status:", model.reticle_detection_status)
+        logger.debug("[ModelConfigLoader] Loaded reticle_detection_status:", model.reticle_detection_status)
 
     @classmethod
     def save_to_yaml(cls, model):
-        print("[CameraConfigManager] Saving YAML for session:", model.reticle_detection_status)
+        logger.debug("[CameraConfigManager] Saving YAML for session:", model.reticle_detection_status)
         output = {}
         if os.path.exists(session_file):
             with open(session_file, "r") as f:
@@ -201,7 +201,7 @@ class SessionConfigManager:
         }}
         with open(session_file, "w") as f:
             yaml.safe_dump(output, f, sort_keys=False)
-        print("[SessionConfigManager] Session YAML cleared.")
+        logger.debug("[SessionConfigManager] Session YAML cleared.")
 
 
 class StageConfigManager:
@@ -211,13 +211,13 @@ class StageConfigManager:
         with open(session_file, "r") as f:
             data = yaml.safe_load(f)
             if data is None:
-                print("[CameraConfigManager] YAML file is empty.")
+                logger.debug("[CameraConfigManager] YAML file is empty.")
                 return
 
         stages = data.get("model", {}).get("stages", {})
         for sn, stage in stages.items():
             if sn not in model.stages:
-                print(f"[StageConfigManager] Stage '{sn}' not found in model.")
+                logger.debug(f"[StageConfigManager] Stage '{sn}' not found in model.")
                 continue
 
             # Convert transM back to numpy array if present
@@ -235,7 +235,7 @@ class StageConfigManager:
 
             model.stages[sn] = stage
 
-        print(f"[StageConfigManager] Loaded {len(model.stages)} stage(s) from YAML.")
+        logger.debug(f"[StageConfigManager] Loaded {len(model.stages)} stage(s) from YAML.")
 
     @classmethod
     def save_to_yaml(cls, model, sn: str) -> None:
@@ -245,7 +245,7 @@ class StageConfigManager:
             model: The model object containing stages dictionary.
             sn (str): Stage serial number to save.
         """
-        print("[StageConfigManager] Saving YAML for session:", sn)
+        logger.debug("[StageConfigManager] Saving YAML for session:", sn)
 
         # Load existing YAML if present
         output = {}
@@ -256,7 +256,7 @@ class StageConfigManager:
         output["model"].setdefault("stages", {})
 
         if sn not in model.stages:
-            print(f"[StageConfigManager] Stage '{sn}' not found in model.")
+            logger.debug(f"[StageConfigManager] Stage '{sn}' not found in model.")
             return
 
         # Sanitize before saving
@@ -266,21 +266,19 @@ class StageConfigManager:
         # Write back to YAML
         with open(session_file, "w") as f:
             yaml.safe_dump(output, f, sort_keys=False)
-        print(f"[StageConfigManager] Saved stage '{sn}' successfully.")
+        logger.debug(f"[StageConfigManager] Saved stage '{sn}' successfully.")
 
 class CameraConfigManager:
     @classmethod
     def load_from_yaml(cls, model):
-        print("[CameraConfigManager] Loading YAML camera config")
+        logger.debug("[CameraConfigManager] Loading YAML camera config")
         with open(session_file, "r") as f:
             data = yaml.safe_load(f)
             if data is None:
-                print("[CameraConfigManager] YAML file is empty.")
+                logger.debug("[CameraConfigManager] YAML file is empty.")
                 return
 
         cam_configs = data.get("model", {}).get("cameras", {})
-        #print("\nsession_file loaded:", session_file)
-        #print(cam_configs)
 
         for sn, camera in model.cameras.items():
             if sn not in cam_configs:
@@ -322,24 +320,23 @@ class CameraConfigManager:
                     tvec = np.array(intrinsic["tvec"], dtype=np.float64).reshape(3, 1)
                     camera["intrinsic"]["tvec"] = (tvec,)
 
-    
+
     @classmethod
     def save_to_yaml(cls, model, sn):
-        print("[CameraConfigManager] Saving YAML for camera:", sn)
+        logger.debug("[CameraConfigManager] Saving YAML for camera:", sn)
         output = {}
 
         # Load existing YAML if available
         if os.path.exists(session_file):
             with open(session_file, "r") as f:
                 output = yaml.safe_load(f) or {}
-                #print("\nsession_file loaded:", session_file)
         if "model" not in output:
             output["model"] = {}
         if "cameras" not in output["model"]:
             output["model"]["cameras"] = {}
 
         if sn not in model.cameras:
-            print(f"[CameraConfigManager] Camera '{sn}' not found in model.")
+            logger.debug(f"[CameraConfigManager] Camera '{sn}' not found in model.")
             return
 
         camera = model.cameras[sn]
@@ -377,10 +374,8 @@ class CameraConfigManager:
 
         # Update only this camera
         output["model"]["cameras"][sn] = cam_cfg
-        #print(output)
 
         with open(session_file, "w") as f:
-            #yaml.safe_dump(output, f, sort_keys=False)
             yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
 
 # Helper function to sanitize data for YAML serialization
