@@ -71,6 +71,9 @@ class ReticleDetectManager(BaseReticleManager):
             )
 
             # Emit data
+            logger.debug("OpenCV")
+            logger.debug(f"rvecs: {rvecs}")
+            logger.debug(f"tvecs: {tvecs}")
             self.signals.found_coords.emit(self.x_coords, self.y_coords, mtx, dist, rvecs, tvecs)
             if not self.running:
                 return DetectionResult.STOPPED

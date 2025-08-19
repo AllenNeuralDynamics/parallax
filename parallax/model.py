@@ -220,13 +220,6 @@ class Model(QObject):
         """
         return self.stages.get(stage_sn, {}).get("obj", None)
 
-    """
-    def add_stage_calib_info(self, stage_sn, info):
-        #self.stages_calib[stage_sn] = info
-        print("add_stage_calib_info: ", stage_sn, info)
-        self.stages[stage_sn]["calib_info"] = info
-    """
-
     def get_stage_calib_info(self, stage_sn) -> Optional[StageCalibrationInfo]:
         """Get calibration information for a specific stage."""
         return self.stages.get(stage_sn, {}).get("calib_info", None)
@@ -282,7 +275,6 @@ class Model(QObject):
         """
         Add transformation matrix for a stage to convert local coordinates to global coordinates.
         """
-        print("add_transform: ", stage_sn, transform)
         stage = self.stages.get(stage_sn)
         if not stage:
             print(f"add_transform: stage '{stage_sn}' not found")
@@ -294,25 +286,6 @@ class Model(QObject):
             return
 
         calib.transM = transform
-        print("Added transform for stage:", stage_sn, self.stages[stage_sn])
-
-    """
-    def update_calib_info(self, stage_sn, transM, L2, dist_travel):
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            print(f"update_calib_info: stage '{stage_sn}' not found")
-            return
-
-        calib = stage.get("calib_info")
-        if not calib:
-            print(f"update_calib_info: stage '{stage_sn}' has no calibration info")
-            return
-
-        calib.transM = transM
-        calib.L2_err = L2
-        calib.dist_travel = dist_travel
-        print("Updated calibration info for stage:", stage_sn, self.stages[stage_sn])
-    """
 
     def get_transform(self, stage_sn):
         """
@@ -351,7 +324,7 @@ class Model(QObject):
         """
         if stage_sn in self.stages:
             self.stages[stage_sn]["is_calib"] = status
-        print("\nSet calibration status for stage:", stage_sn, "to", status)
+
         self.save_stage_config(stage_sn)
 
     def get_calibration_status(self, stage_sn):
@@ -534,11 +507,6 @@ class Model(QObject):
             'tvec': tvec
         }
 
-        print("\nAdded camera intrinsic", sn)
-        #print("coords_axis: ", self.cameras[sn]['coords_axis'])
-        #print("coords_debug: ", self.cameras[sn]['coords_debug'])
-        #print("self.cameras[sn]['intrinsic']: ", self.cameras[sn]['intrinsic'])
-
         self.save_camera_config(sn)
 
     def save_camera_config(self, sn):
@@ -554,7 +522,6 @@ class Model(QObject):
         Returns:
             list: The intrinsic parameters [mtx, dist, rvec, tvec] for the camera.
         """
-        #return self.camera_intrinsic.get(sn)
         return self.cameras[sn].get('intrinsic', None)
 
     def add_stereo_calib_instance(self, sorted_key, instance):

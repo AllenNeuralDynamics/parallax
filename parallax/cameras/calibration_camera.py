@@ -143,7 +143,6 @@ class CalibrationCamera:
             flags=myflags1,
             criteria=CRIT,
         )
-        #print(self.mtx, self.dist, self.rvecs, self.tvecs)
 
         format_mtxt = (
             "\n".join(
@@ -635,6 +634,7 @@ def get_rvec_and_tvec(quat, tvecs):
     R_mat = rotation.as_matrix()
     rvecs, _ = cv2.Rodrigues(R_mat)
 
-    tvecs = np.asarray(tvecs).reshape(3, 1)
-
+    rvecs = rvecs.reshape(3, 1).astype(np.float64)
+    tvecs = np.array(tvecs, dtype=np.float64).reshape(3, 1)
+    rvecs, tvecs = (rvecs,), (tvecs,)
     return rvecs, tvecs

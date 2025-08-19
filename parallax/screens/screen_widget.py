@@ -390,10 +390,11 @@ class ScreenWidget(pg.GraphicsView):
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist, rvecs, tvecs):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
-        #print("found_reticle_coords: ", self.camera_name)
+        print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {rvecs}\ntvecs: {tvecs}")
         coords = [x_coords, y_coords]
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)
+
 
     def found_probe_coords(self, stage_ts, img_ts, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""

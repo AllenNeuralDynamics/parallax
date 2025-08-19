@@ -295,7 +295,6 @@ class CameraConfigManager(BaseConfigManager):
 
             # Intrinsic
             intr = cam_cfg.get("intrinsic", {})
-            print(intr)
             if intr:
                 camera.setdefault("intrinsic", {})
                 if "mtx" in intr:
@@ -348,10 +347,8 @@ class CameraConfigManager(BaseConfigManager):
             if intrinsic.get("dist") is not None:
                 intr_dict["dist"] = intrinsic["dist"].tolist()
             if intrinsic.get("rvec") is not None:
-                print(intrinsic.get("rvec"))
                 intr_dict["rvec"] = intrinsic["rvec"][0].flatten().tolist()
             if intrinsic.get("tvec") is not None:
-                print(intrinsic.get("tvec"))
                 intr_dict["tvec"] = intrinsic["tvec"][0].flatten().tolist()
             cam_cfg["intrinsic"] = intr_dict
 
