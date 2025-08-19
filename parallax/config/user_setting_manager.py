@@ -164,219 +164,200 @@ class UserSettingsManager:
         # Write updated settings back to file
         cls.save_settings(settings)
 
-class SessionConfigManager:
+
+class BaseConfigManager:
+    """Shared utilities for all ConfigManagers."""
+    @staticmethod
+    def _load_yaml() -> dict:
+        """Always return a dict. If no file, create empty structure."""
+        if not os.path.exists(session_file):
+            return {"model": {"stages": {}, "cameras": {}, "reticle_detection_status": "default"}}
+        with open(session_file, "r") as f:
+            data = yaml.safe_load(f) or {}
+        return data
+
+    @staticmethod
+    def _save_yaml(data: dict) -> None:
+        """Write dictionary to session_file, always sanitized."""
+        os.makedirs(os.path.dirname(session_file), exist_ok=True)
+        with open(session_file, "w") as f:
+            yaml.safe_dump(sanitize_for_yaml(data), f, sort_keys=False)
+
+    @classmethod
+    def _get_model_block(cls) -> dict:
+        """Convenience getter for the 'model' block."""
+        data = cls._load_yaml()
+        if "model" not in data:
+            data["model"] = {"stages": {}, "cameras": {}, "reticle_detection_status": "default"}
+        return data
+
+
+
+# =========================
+# SessionConfigManager
+# =========================
+class SessionConfigManager(BaseConfigManager):
     @classmethod
     def load_from_yaml(cls, model):
-        logger.debug("[ModelConfigLoader] Loading YAML session config")
-        with open(session_file, "r") as f:
-            data = yaml.safe_load(f)
-            if data is None:
-                logger.debug("[ModelConfigLoader] YAML file is empty.")
-                return
-
-        stat = data.get("model", {}).get("reticle_detection_status", "default")
-        model.reticle_detection_status = stat
-        logger.debug("[ModelConfigLoader] Loaded reticle_detection_status:", model.reticle_detection_status)
+        data = cls._load_yaml()
+        model.reticle_detection_status = data.get("model", {}).get("reticle_detection_status", "default")
 
     @classmethod
     def save_to_yaml(cls, model):
-        logger.debug("[CameraConfigManager] Saving YAML for session:", model.reticle_detection_status)
-        output = {}
-        if os.path.exists(session_file):
-            with open(session_file, "r") as f:
-                output = yaml.safe_load(f) or {}
-        output.setdefault("model", {})
-        output["model"]["reticle_detection_status"] = model.reticle_detection_status
-
-        with open(session_file, "w") as f:
-            yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
+        data = cls._load_yaml()
+        data.setdefault("model", {})
+        data["model"]["reticle_detection_status"] = model.reticle_detection_status
+        cls._save_yaml(data)
 
     @classmethod
     def clear_yaml(cls):
-        """Overwrite session file to an empty default structure."""
-        output = {"model": {
-            "reticle_detection_status": "default",
-            "stages": {},
-            "cameras": {}
-        }}
-        with open(session_file, "w") as f:
-            yaml.safe_dump(output, f, sort_keys=False)
-        logger.debug("[SessionConfigManager] Session YAML cleared.")
+        output = {"model": {"reticle_detection_status": "default", "stages": {}, "cameras": {}}}
+        cls._save_yaml(output)
 
 
-class StageConfigManager:
+# =========================
+# StageConfigManager
+# =========================
+class StageConfigManager(BaseConfigManager):
     @classmethod
     def load_from_yaml(cls, model) -> None:
-        """Load stages from YAML and restore numpy arrays and dataclasses."""
-        with open(session_file, "r") as f:
-            data = yaml.safe_load(f)
-            if data is None:
-                logger.debug("[CameraConfigManager] YAML file is empty.")
-                return
+        """Load stages from YAML and restore numpy arrays/dataclasses."""
+        logger.debug("[StageConfigManager] Loading stages from YAML")
+        data = cls._load_yaml()
+        model_block = data.get("model", {})
+        stages = model_block.get("stages", {})
 
-        stages = data.get("model", {}).get("stages", {})
         for sn, stage in stages.items():
             if sn not in model.stages:
-                logger.debug(f"[StageConfigManager] Stage '{sn}' not found in model.")
+                logger.debug(f"[StageConfigManager] Stage '{sn}' not in model; skipping.")
                 continue
 
-            # Convert transM back to numpy array if present
+            # Convert arrays back inside calib_info
             calib_info = stage.get("calib_info", {})
             if "transM" in calib_info and isinstance(calib_info["transM"], list):
                 calib_info["transM"] = np.array(calib_info["transM"], dtype=float)
             if "dist_travel" in calib_info and isinstance(calib_info["dist_travel"], list):
                 calib_info["dist_travel"] = np.array(calib_info["dist_travel"], dtype=float)
 
-            # Restore Stage dataclass
+            # Rehydrate dataclasses lazily to avoid circular imports
             if "obj" in stage and isinstance(stage["obj"], dict):
+                from parallax.model import Stage  # adjust module if needed
                 stage["obj"] = Stage(**stage["obj"])
             if "calib_info" in stage and isinstance(stage["calib_info"], dict):
                 stage["calib_info"] = StageCalibrationInfo(**stage["calib_info"])
 
             model.stages[sn] = stage
 
-        logger.debug(f"[StageConfigManager] Loaded {len(model.stages)} stage(s) from YAML.")
+        logger.debug(f"[StageConfigManager] Loaded {len(model.stages)} stage(s).")
 
     @classmethod
     def save_to_yaml(cls, model, sn: str) -> None:
-        """Save stage configuration for a specific serial number to YAML.
-
-        Args:
-            model: The model object containing stages dictionary.
-            sn (str): Stage serial number to save.
-        """
-        logger.debug("[StageConfigManager] Saving YAML for session:", sn)
-
-        # Load existing YAML if present
-        output = {}
-        if os.path.exists(session_file):
-            with open(session_file, "r") as f:
-                output = yaml.safe_load(f) or {}
-        output.setdefault("model", {})
-        output["model"].setdefault("stages", {})
-
+        """Save one stage entry into YAML."""
+        logger.debug(f"[StageConfigManager] Saving stage '{sn}' to YAML")
         if sn not in model.stages:
             logger.debug(f"[StageConfigManager] Stage '{sn}' not found in model.")
             return
 
-        # Sanitize before saving
-        stage_data = sanitize_for_yaml(model.stages[sn])
-        output["model"]["stages"][sn] = stage_data
+        data = cls._load_yaml()
+        data.setdefault("model", {})
+        data["model"].setdefault("stages", {})
 
-        # Write back to YAML
-        with open(session_file, "w") as f:
-            yaml.safe_dump(output, f, sort_keys=False)
+        data["model"]["stages"][sn] = sanitize_for_yaml(model.stages[sn])
+        cls._save_yaml(data)
         logger.debug(f"[StageConfigManager] Saved stage '{sn}' successfully.")
 
-class CameraConfigManager:
-    @classmethod
-    def load_from_yaml(cls, model):
-        logger.debug("[CameraConfigManager] Loading YAML camera config")
-        with open(session_file, "r") as f:
-            data = yaml.safe_load(f)
-            if data is None:
-                logger.debug("[CameraConfigManager] YAML file is empty.")
-                return
 
+# =========================
+# CameraConfigManager
+# =========================
+class CameraConfigManager(BaseConfigManager):
+    @classmethod
+    def load_from_yaml(cls, model) -> None:
+        logger.debug("[CameraConfigManager] Loading YAML camera config")
+        data = cls._load_yaml()
         cam_configs = data.get("model", {}).get("cameras", {})
 
         for sn, camera in model.cameras.items():
             if sn not in cam_configs:
-                continue  # No YAML config for this camera
-
+                continue
             cam_cfg = cam_configs[sn]
 
-            # Update top-level fields (visible, coords_axis, etc.)
+            # Basic fields
             for key in ["visible", "coords_axis", "coords_debug", "pos_x"]:
-                if key not in cam_cfg:
+                if key not in cam_cfg or cam_cfg[key] is None:
                     continue
-                if cam_cfg[key] is None:
-                    continue
-
                 if key == "pos_x":
                     camera[key] = tuple(cam_cfg[key])
-                elif key == "coords_axis" or key == "coords_debug":
-                    # Convert list to np.ndarrays
+                elif key in ("coords_axis", "coords_debug"):
                     camera[key] = np.array(cam_cfg[key])
                 else:
                     camera[key] = cam_cfg[key]
 
-            # Update nested intrinsic values
-            if "intrinsic" in cam_cfg:
+            # Intrinsic
+            intr = cam_cfg.get("intrinsic", {})
+            print(intr)
+            if intr:
                 camera.setdefault("intrinsic", {})
-                intrinsic = cam_cfg["intrinsic"]
-
-                if "mtx" in intrinsic:
-                    camera["intrinsic"]["mtx"] = np.array(intrinsic["mtx"], dtype=np.float64)
-
-                if "dist" in intrinsic:
-                    camera["intrinsic"]["dist"] = np.array(intrinsic["dist"], dtype=np.float64)
-
-                if "rvec" in intrinsic:
-                    rvec = np.array(intrinsic["rvec"], dtype=np.float64).reshape(3, 1)
+                if "mtx" in intr:
+                    camera["intrinsic"]["mtx"] = np.array(intr["mtx"], dtype=np.float64)
+                if "dist" in intr:
+                    camera["intrinsic"]["dist"] = np.array(intr["dist"], dtype=np.float64)
+                if "rvec" in intr:
+                    rvec = np.array(intr["rvec"], dtype=np.float64).reshape(3, 1)
                     camera["intrinsic"]["rvec"] = (rvec,)
-
-                if "tvec" in intrinsic:
-                    tvec = np.array(intrinsic["tvec"], dtype=np.float64).reshape(3, 1)
+                if "tvec" in intr:
+                    tvec = np.array(intr["tvec"], dtype=np.float64).reshape(3, 1)
                     camera["intrinsic"]["tvec"] = (tvec,)
 
-
     @classmethod
-    def save_to_yaml(cls, model, sn):
-        logger.debug("[CameraConfigManager] Saving YAML for camera:", sn)
-        output = {}
-
-        # Load existing YAML if available
-        if os.path.exists(session_file):
-            with open(session_file, "r") as f:
-                output = yaml.safe_load(f) or {}
-        if "model" not in output:
-            output["model"] = {}
-        if "cameras" not in output["model"]:
-            output["model"]["cameras"] = {}
-
+    def save_to_yaml(cls, model, sn: str) -> None:
+        logger.debug(f"[CameraConfigManager] Saving YAML for camera '{sn}'")
         if sn not in model.cameras:
             logger.debug(f"[CameraConfigManager] Camera '{sn}' not found in model.")
             return
 
+        data = cls._load_yaml()
+        data.setdefault("model", {})
+        data["model"].setdefault("cameras", {})
+
         camera = model.cameras[sn]
         cam_cfg = {}
 
-        # Convert basic fields
+        # Basic fields
         for key in ["visible", "coords_debug"]:
             if key in camera:
                 cam_cfg[key] = camera[key]
 
-        # Handle pos_x
-        if "pos_x" in camera and camera["pos_x"] is not None:
+        # pos_x
+        if camera.get("pos_x") is not None:
             cam_cfg["pos_x"] = list(camera["pos_x"])
 
-        # Handle coords_axis (list of arrays or lists)
-        if "coords_axis" in camera and camera["coords_axis"] is not None:
+        # coords_axis: list of paths, each may contain np arrays
+        if camera.get("coords_axis") is not None:
             cam_cfg["coords_axis"] = []
             for path in camera["coords_axis"]:
                 path_converted = [list(pt) if isinstance(pt, np.ndarray) else pt for pt in path]
                 cam_cfg["coords_axis"].append(path_converted)
 
-        # Handle intrinsic parameters
+        # Intrinsic
         intrinsic = camera.get("intrinsic", {})
         if intrinsic:
             intr_dict = {}
-            if "mtx" in intrinsic and intrinsic["mtx"] is not None:
+            if intrinsic.get("mtx") is not None:
                 intr_dict["mtx"] = intrinsic["mtx"].tolist()
-            if "dist" in intrinsic and intrinsic["dist"] is not None:
+            if intrinsic.get("dist") is not None:
                 intr_dict["dist"] = intrinsic["dist"].tolist()
-            if "rvec" in intrinsic and intrinsic["rvec"] is not None:
+            if intrinsic.get("rvec") is not None:
+                print(intrinsic.get("rvec"))
                 intr_dict["rvec"] = intrinsic["rvec"][0].flatten().tolist()
-            if "tvec" in intrinsic and intrinsic["tvec"] is not None:
+            if intrinsic.get("tvec") is not None:
+                print(intrinsic.get("tvec"))
                 intr_dict["tvec"] = intrinsic["tvec"][0].flatten().tolist()
             cam_cfg["intrinsic"] = intr_dict
 
-        # Update only this camera
-        output["model"]["cameras"][sn] = cam_cfg
-
-        with open(session_file, "w") as f:
-            yaml.safe_dump(sanitize_for_yaml(output), f, sort_keys=False)
+        data["model"]["cameras"][sn] = cam_cfg
+        cls._save_yaml(data)
+        logger.debug(f"[CameraConfigManager] Saved camera '{sn}' successfully.")
 
 # Helper function to sanitize data for YAML serialization
 def sanitize_for_yaml(obj):

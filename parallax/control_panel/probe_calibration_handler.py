@@ -151,7 +151,6 @@ class ProbeCalibrationHandler(QWidget):
         Applies the current probe calibration status to the UI and model.
         This method updates the probe calibration button style and visibility based on the current status.
         """
-        print("Apply probe calibration status", self.selected_stage_id, self.model.is_calibrated(self.selected_stage_id))
         # Get status of selected stage on ui and apply the appropriate style 
         if self.model.is_calibrated(self.selected_stage_id):
             self.update_probe_calib_status(

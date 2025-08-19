@@ -157,11 +157,7 @@ class Model(QObject):
         self.nMockCameras = sum(isinstance(cam['obj'], MockCamera) for cam in self.cameras.values())
 
     def load_camera_config(self):
-        # Add the config from yaml file
         CameraConfigManager.load_from_yaml(self)
-        print("\nLoaded camera config:")
-        for sn, cam in self.cameras.items():
-            print("sn: ", sn)
 
     def load_session_config(self):
         SessionConfigManager.load_from_yaml(self)

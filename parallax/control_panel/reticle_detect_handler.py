@@ -56,7 +56,6 @@ class ReticleDetecthandler(QWidget):
         self.coords_detected_screens = None
 
     def apply_reticle_detection_status(self):
-        print("Applying reticle detection status:", self.model.reticle_detection_status)
         if self.model.reticle_detection_status == "default":
             self.reticle_detect_default_status()
         elif self.model.reticle_detection_status == "accepted":
