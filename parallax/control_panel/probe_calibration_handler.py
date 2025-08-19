@@ -42,62 +42,6 @@ class StageCalibrationInfo:
     min_gy: float = float("inf")
     max_gy: float = float("-inf")
 
-    # TODO Remove
-    def update(
-        self,
-        detection_status: Optional[str] = "default",
-        transM: Optional[np.ndarray] = None,
-        L2_err: Optional[float] = None,
-        dist_travel: Optional[np.ndarray] = None,
-        status_x: Optional[str] = None,
-        status_y: Optional[str] = None,
-        status_z: Optional[str] = None,
-        min_x: Optional[float] = None,
-        max_x: Optional[float] = None,
-        min_y: Optional[float] = None,
-        max_y: Optional[float] = None,
-        min_z: Optional[float] = None,
-        max_z: Optional[float] = None,
-        min_gx: Optional[float] = None,
-        max_gx: Optional[float] = None,
-        min_gy: Optional[float] = None,
-        max_gy: Optional[float] = None
-    ) -> None:
-        if detection_status != "default":
-            self.detection_status = detection_status
-        if transM is not None:
-            self.transM = transM
-        if L2_err is not None:
-            self.L2_err = L2_err
-        if dist_travel is not None:
-            self.dist_travel = dist_travel
-        if status_x is not None:
-            self.status_x = status_x
-        if status_y is not None:
-            self.status_y = status_y
-        if status_z is not None:
-            self.status_z = status_z
-        if min_x is not None:
-            self.min_x = min_x
-        if max_x is not None:
-            self.max_x = max_x
-        if min_y is not None:
-            self.min_y = min_y
-        if max_y is not None:
-            self.max_y = max_y
-        if min_z is not None:
-            self.min_z = min_z
-        if max_z is not None:
-            self.max_z = max_z
-        if min_gx is not None:
-            self.min_gx = min_gx
-        if max_gx is not None:
-            self.max_gx = max_gx
-        if min_gy is not None:
-            self.min_gy = min_gy
-        if max_gy is not None:
-            self.max_gy = max_gy
-
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
     def __init__(
@@ -488,7 +432,7 @@ class ProbeCalibrationHandler(QWidget):
         self.probe_detection_status = "default"
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travel = None, None, None
-        self.probeCalibration.reset_calib(sn=sn)
+        self.probeCalibration.reset_calib()
         self.reticle_metadata.default_reticle_selector()
         self.probe_detect_default_status_ui(sn=sn)
         if sn is None:
@@ -833,15 +777,14 @@ class ProbeCalibrationHandler(QWidget):
             logger.warning(f"No calibration info found for stage {stage_id}.")
             return
 
-        stage_info.update(
-            detection_status=self.probe_detection_status,
-            transM=self.transM,
-            L2_err=self.L2_err,
-            dist_travel=self.dist_travel,
-            status_x=self.calib_status_x,
-            status_y=self.calib_status_y,
-            status_z=self.calib_status_z,
-        )
+        stage_info.detection_status = self.probe_detection_status
+        stage_info.transM = self.transM
+        stage_info.L2_err = self.L2_err
+        stage_info.dist_travel = self.dist_travel
+        stage_info.status_x = self.calib_status_x
+        stage_info.status_y = self.calib_status_y
+        stage_info.status_z = self.calib_status_z
+
         print("Updated stage info for:", stage_info)
 
     def update_stage_info(self, info):

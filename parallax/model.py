@@ -358,6 +358,11 @@ class Model(QObject):
         print("\nSet calibration status for stage:", stage_sn, "to", status)
         self.save_stage_config(stage_sn)
 
+    def get_calibration_status(self, stage_sn):
+        if stage_sn in self.stages:
+            return self.stages[stage_sn]["is_calib"]
+        return False
+
     def save_stage_config(self, stage_sn):
         StageConfigManager.save_to_yaml(self, stage_sn)
 
