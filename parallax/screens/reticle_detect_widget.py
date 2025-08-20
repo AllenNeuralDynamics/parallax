@@ -92,6 +92,7 @@ class ReticleDetectWidget(QWidget):
     def _reset_detection(self):
         """Reset the reticle detection settings."""
         self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
+        self.model.save_camera_config(self.screen.camera_name)
         self.screen.run_no_filter()
 
     def _reticle_detected(self):

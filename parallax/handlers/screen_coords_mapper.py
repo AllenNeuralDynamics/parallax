@@ -103,9 +103,9 @@ class ScreenCoordsMapper():
         """
         self.reticle_selector.addItem("Proj Global coords")
 
-    def reticle_detection_status_change(self, reticle_detect_status):
+    def reticle_detection_status_change(self):
         """Change the reticle detection status and update the dropdown accordingly."""
-        if reticle_detect_status == "accepted":
+        if self.model.reticle_detection_status == "accepted":
             self.add_global_coords_to_dropdown()
 
     def _apply_reticle_adjustments(self, global_pts):

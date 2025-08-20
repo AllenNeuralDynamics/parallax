@@ -1,30 +1,38 @@
 """
 This module provides utility classes for manipulating coordinates and calculating
 crop regions within images.
-- UtilsCoords: scaling coordinates between original and resized images
-- UtilsCrops: calculating crop regions based on specified criteria.
+
+Classes:
+    UtilsCoords: Utility methods for scaling coordinates between original and resized images.
+    UtilsCrops: Utility methods for calculating and validating crop regions.
 """
+
+from typing import Tuple
 
 
 class UtilsCoords:
-    """Utility class for scaling coordinates between original and resized images."""
+    """
+    Utility class for scaling coordinates between original and resized images.
 
-    def __init__(self):
-        """init"""
-        pass
+    All methods are implemented as static methods, since no instance or class state is required.
+    """
 
-    @classmethod
-    def scale_coords_to_original(self, tip, original_size, resized_size):
+    @staticmethod
+    def scale_coords_to_original(
+        tip: Tuple[int, int],
+        original_size: Tuple[int, int],
+        resized_size: Tuple[int, int]
+    ) -> Tuple[int, int]:
         """
         Scale coordinates from a resized image back to the original image dimensions.
 
         Args:
-            tip (tuple): The (x, y) coordinates of the tip in the resized image.
-            original_size (tuple): The (width, height) of the original image.
-            resized_size (tuple): The (width, height) of the resized image.
+            tip (Tuple[int, int]): The (x, y) coordinates of the tip in the resized image.
+            original_size (Tuple[int, int]): The (width, height) of the original image.
+            resized_size (Tuple[int, int]): The (width, height) of the resized image.
 
         Returns:
-            tuple: The scaled (x, y) coordinates of the tip in the original image.
+            Tuple[int, int]: The scaled (x, y) coordinates of the tip in the original image.
         """
         x, y = tip
         original_width, original_height = original_size
@@ -38,18 +46,22 @@ class UtilsCoords:
 
         return (original_x, original_y)
 
-    @classmethod
-    def scale_coords_to_resized_img(self, tip, original_size, resized_size):
+    @staticmethod
+    def scale_coords_to_resized_img(
+        tip: Tuple[int, int],
+        original_size: Tuple[int, int],
+        resized_size: Tuple[int, int]
+    ) -> Tuple[int, int]:
         """
         Scale coordinates from the original image to a resized image.
 
         Args:
-            tip (tuple): The (x, y) coordinates of the tip in the original image.
-            original_size (tuple): The (width, height) of the original image.
-            resized_size (tuple): The (width, height) of the resized image.
+            tip (Tuple[int, int]): The (x, y) coordinates of the tip in the original image.
+            original_size (Tuple[int, int]): The (width, height) of the original image.
+            resized_size (Tuple[int, int]): The (width, height) of the resized image.
 
         Returns:
-            tuple: The scaled (x, y) coordinates of the tip in the resized image.
+            Tuple[int, int]: The scaled (x, y) coordinates of the tip in the resized image.
         """
         x, y = tip
         original_width, original_height = original_size
@@ -65,24 +77,30 @@ class UtilsCoords:
 
 
 class UtilsCrops:
-    """Utility class for calculating crop regions based on tip and base coordinates."""
+    """
+    Utility class for calculating crop regions and checking point positions relative to them.
 
-    def __init__(self):
-        """Initialize the UtilsCrops object."""
-        pass
+    All methods are implemented as static methods, since no instance or class state is required.
+    """
 
-    @classmethod
-    def calculate_crop_region(self, tip, base, crop_size, IMG_SIZE):
-        """Calculate the crop region based on tip and base coordinates.
+    @staticmethod
+    def calculate_crop_region(
+        tip: Tuple[int, int],
+        base: Tuple[int, int],
+        crop_size: int,
+        IMG_SIZE: Tuple[int, int]
+    ) -> Tuple[int, int, int, int]:
+        """
+        Calculate the crop region based on tip and base coordinates.
 
         Args:
-            tip (tuple): Coordinates of the tip (x, y).
-            base (tuple): Coordinates of the base (x, y).
-            crop_size (int): Size of the crop region.
-            IMG_SIZE (tuple): Size of the image (width, height).
+            tip (Tuple[int, int]): Coordinates of the tip (x, y).
+            base (Tuple[int, int]): Coordinates of the base (x, y).
+            crop_size (int): Half-size of the crop region in pixels.
+            IMG_SIZE (Tuple[int, int]): Size of the image as (width, height).
 
         Returns:
-            tuple: Crop region coordinates (top, bottom, left, right).
+            Tuple[int, int, int, int]: Crop region coordinates as (top, bottom, left, right).
         """
         tip_x, tip_y = tip
         base_x, base_y = base
@@ -92,20 +110,30 @@ class UtilsCrops:
         right = min(max(tip_x, base_x) + crop_size, IMG_SIZE[0])
         return top, bottom, left, right
 
-    @classmethod
-    def is_point_on_crop_region(self, point, top, bottom, left, right, buffer=5):
-        """Check if a point is on the crop region boundary.
+    @staticmethod
+    def is_point_on_crop_region(
+        point: Tuple[int, int],
+        top: int,
+        bottom: int,
+        left: int,
+        right: int,
+        buffer: int = 5
+    ) -> bool:
+        """
+        Check if a point is on or near the crop region boundary.
 
         Args:
-            point (tuple): Coordinates of the point (x, y).
+            point (Tuple[int, int]): Coordinates of the point (x, y).
             top (int): Top coordinate of the crop region.
             bottom (int): Bottom coordinate of the crop region.
             left (int): Left coordinate of the crop region.
             right (int): Right coordinate of the crop region.
-            buffer (int): Buffer size around the crop region boundary. Defaults to 5.
+            buffer (int, optional): Buffer size around the crop boundary to consider "on edge".
+                                    Defaults to 5.
 
         Returns:
-            bool: True if the point is on the crop region boundary, False otherwise.
+            bool: True if the point is within the buffer distance of any crop region edge,
+                  False otherwise.
         """
         x, y = point
         return (

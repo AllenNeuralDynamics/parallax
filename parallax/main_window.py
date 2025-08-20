@@ -19,7 +19,7 @@ from PyQt5.QtCore import QStandardPaths
 from PyQt5.QtGui import QFont, QFontDatabase
 # Import required PyQt5 modules and other libraries
 from PyQt5.QtWidgets import (QApplication, QFileDialog,
-                             QMainWindow, QSplitter)
+                             QMainWindow, QSplitter, QMessageBox)
 from PyQt5.uic import loadUi
 
 from parallax.handlers.recording_manager import RecordingManager
@@ -27,7 +27,7 @@ from parallax.control_panel.control_panel import ControlPanel
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from parallax.config.config_path import ui_dir, fira_font_dir
-from ui.resources import rc 
+from ui.resources import rc
 
 
 # Set logger name
@@ -128,6 +128,44 @@ class MainWindow(QMainWindow):
             lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
         )
 
+    def _session_restore_popup_window(self):
+        """
+        Displays a confirmation dialog asking the user if they want to restore the previous session.
+
+        Returns:
+            bool: True if the user confirms the restore, False otherwise.
+        """
+        message = ("Restore previous session?")
+        response = QMessageBox.warning(
+            self,
+            "Session Restore",
+            message,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if response == QMessageBox.Yes:
+            logger.debug("User clicked Yes.")
+            return True
+        else:
+            logger.debug("User clicked No.")
+            return False
+
+    def ask_session_restore(self):
+        """
+        Asks the user if they want to restore the previous session.
+        """
+        if self._session_restore_popup_window():
+            # Restore coinfigs
+            self.model.load_camera_config()
+            self.model.load_session_config()
+            self.model.load_stage_config()
+            self.control_panel.reticle_handler.apply_reticle_detection_status()
+            self.control_panel.probe_calib_handler.apply_probe_calibration_status()
+        else:
+            # Clear yaml file
+            self.model.clear_session_config()
+
     def _set_font(self):
         """
         Load the font for the application.
@@ -159,7 +197,6 @@ class MainWindow(QMainWindow):
     def refresh_stages(self):
         """Search for connected stages"""
         self.model.scan_for_usb_stages()
-        self.model.init_transforms()
 
     def record_button_handler(self):
         """
@@ -167,7 +204,6 @@ class MainWindow(QMainWindow):
         If the record button is checked, start recording. Otherwise, stop recording.
         """
         if self.actionRecording.isChecked():
-            #save_path = self.dirLabel.text()
             self.recordingManager.save_recording(self.dir, self.screen_widget_manager.screen_widgets)
         else:
             self.recordingManager.stop_recording(self.screen_widget_manager.screen_widgets)
@@ -216,8 +252,6 @@ class MainWindow(QMainWindow):
         width and height. It then passes these values to the `save_user_configs` method
         of the `user_setting` object to be saved.
         """
-        #nColumn = self.nColumnsSpinBox.value()
-        #directory = self.dirLabel.text()
         width = self.width()
         height = self.height()
         UserSettingsManager.save_user_configs(0, self.dir, width, height)

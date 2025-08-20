@@ -13,9 +13,6 @@ import numpy as np
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 
 class ProbeDetector:
@@ -400,14 +397,14 @@ class ProbeDetector:
         ret = False
         img = self._contour_preprocessing(img, thresh=contour_thresh)
         if img is None:
-            #print(f"{self.sn} first_detect_probe:: contour_preprocessing fail")
+            logger.warning(f"{self.sn} first_detect_probe:: contour_preprocessing fail")
             return ret
 
         ret, highest_point, lowest_point = self._hough_line_first_detection(
             img, minLineLength=hough_minLineLength, maxLineGap=50
         )  # update self.angle
         if not ret:
-            #print(f"{self.sn} first_detect_probe:: hough_line_first_detection fail")
+            logger.warning(f"{self.sn} first_detect_probe:: hough_line_first_detection fail")
             return ret
 
         if ret:
@@ -425,8 +422,7 @@ class ProbeDetector:
                 self.probe_base[0] + offset_x,
                 self.probe_base[1] + offset_y,
             )
-            logger.debug(f"tip : {self.probe_tip}, base: {self.probe_base}")
-            #print(f"{self.sn} first_detect_probe:: probe_tip: {self.probe_tip}, probe_base: {self.probe_base}, direction: {self.probe_tip_direction}")
+            logger.debug(f"{self.sn} first_detect_probe:: probe_tip: {self.probe_tip}, probe_base: {self.probe_base}, direction: {self.probe_tip_direction}")
         return ret
 
     def update_probe(

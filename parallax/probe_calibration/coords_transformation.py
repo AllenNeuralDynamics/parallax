@@ -127,12 +127,10 @@ class RotationTransformation:
         """
         R = self.combineAngles(x[2], x[1], x[0], reflect_z=reflect_z)
         origin = np.array([x[3], x[4], x[5]]).T
-        #scale = np.array([x[6], x[7], x[8]])  # scaling factors for x, y, z axes
 
         error_values = np.zeros(len(global_pts) * 3)
         for i in range(len(global_pts)):
             global_pt = global_pts[i, :].T
-            #measured_pt = measured_pts[i, :].T * scale
             measured_pt = measured_pts[i, :].T
             global_pt_exp = R @ measured_pt + origin
             error_values[i * 3: (i + 1) * 3] = global_pt - global_pt_exp
@@ -175,8 +173,7 @@ class RotationTransformation:
             global_pts (numpy.ndarray): The global points (target coordinates).
 
         Returns:
-            tuple: A tuple containing the translation vector (origin), rotation matrix (R),
-                   scaling factors (scale), and the average error (avg_err).
+            tuple: A tuple containing the translation vector (origin), rotation matrix (R), and the average error (avg_err).
         """
         x0 = np.array([0, 0, 0, 0, 0, 0])
 
@@ -202,5 +199,4 @@ class RotationTransformation:
             avg_err = avg_error1
 
         origin = rez[3:6]
-        scale = np.array([1, 1, 1])
-        return origin, R, scale, avg_err  # translation vector, rotation matrix, and scaling factors
+        return origin, R, avg_err  # translation vector, rotation matrix, and scaling factors

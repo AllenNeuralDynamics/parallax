@@ -1,6 +1,6 @@
 """
 This module provides a class for converting between local and global coordinates
-using transformation matrices and scale factors.
+using transformation matrices.
 """
 import logging
 import numpy as np
@@ -13,16 +13,13 @@ logger.setLevel(logging.WARNING)
 
 class CoordsConverter:
     """
-    Converts between local and global coordinates using transformation matrices
-    and scale factors. It also applies reticle adjustments for specific reticles.
+    Converts between local and global coordinates using transformation matrices. It also applies reticle adjustments for specific reticles.
     """
-    def __init__(self, model):
-        """Initialize the CoordsConverter class."""
-        self.model = model
 
-    def local_to_global(self, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
+    @staticmethod
+    def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
-        Converts local coordinates to global coordinates using the transformation matrix and scale factors.
+        Converts local coordinates to global coordinates using the transformation matrix.
         Args:
             sn (str): The serial number of the stage.
             local_pts (ndarray): The local coordinates (µm) to convert.
@@ -30,24 +27,29 @@ class CoordsConverter:
         Returns:
             ndarray: The global coordinates (µm).
         """
-        transM, scale = self.model.transforms.get(sn, (None, None))
-        if transM is None or scale is None:
+        if model.is_calibrated(sn):
+            transM = model.get_transform(sn)
+        else:
+            return None
+
+        if transM is None:
             logger.debug(f"TransM not found for {sn}")
             return None
 
-        # Apply scale, convert to homogeneous coordinates, and transform
-        global_pts = np.dot(transM, np.append(local_pts * scale, 1))
+        # Apply transM, convert to homogeneous coordinates, and transform
+        global_pts = np.dot(transM, np.append(local_pts, 1))
 
         logger.debug(f"local_to_global: {local_pts} -> {global_pts[:3]}")
         logger.debug(f"R: {transM[:3, :3]}\nT: {transM[:3, 3]}")
 
         if reticle is not None:
             # Apply the reticle offset and rotation adjustment
-            global_pts = self._apply_reticle_adjustments(global_pts[:3], reticle)
+            global_pts = CoordsConverter._apply_reticle_adjustments(model, global_pts[:3], reticle)
 
         return np.round(global_pts[:3], 1)
 
-    def global_to_local(self, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
+    @staticmethod
+    def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
         Applies the inverse transformation to convert global coordinates to local coordinates.
 
@@ -58,78 +60,29 @@ class CoordsConverter:
         Returns:
             ndarray: The transformed local coordinates (µm).
         """
-        transM, scale = self.model.transforms.get(sn, (None, None))
-        if transM is None or scale is None:
-            logger.warning(f"Transformation matrix and scale not found for {sn}")
+        if model.is_calibrated(sn):
+            transM = model.get_transform(sn)
+        else:
+            logger.warning(f"Stage {sn} is not calibrated. Cannot convert global to local coordinates.")
+            return None
+
+        if transM is None:
+            logger.warning(f"Transformation matrix not found for {sn}")
             return None
 
         if reticle and reticle != "Global coords":
-            global_pts = self._apply_reticle_adjustments_inverse(global_pts, reticle)
+            global_pts = CoordsConverter._apply_reticle_adjustments_inverse(model, global_pts, reticle)
 
         # Transpose the 3x3 rotation part
         R_T = transM[:3, :3].T
         local_pts = np.dot(R_T, global_pts - transM[:3, 3])
-        local_pts /= scale
         logger.debug(f"global_to_local {global_pts} -> {local_pts}")
         logger.debug(f"R.T: {R_T}\nT: {transM[:3, 3]}")
 
         return np.round(local_pts, 1)
 
-    def distance_global_to_local(self, sn: str, dist: float, axis: str) -> float:
-        """
-        Converts a distance from global coordinates to local coordinates based on the transformation scale.
-        Args:
-            sn (str): The serial number of the stage.
-            dist (float): The distance in global coordinates (µm).
-            axis (str): The axis along which to convert the distance ('x', 'y', or 'z').
-        Returns:
-            float: The converted distance in local coordinates (µm).
-        """
-        transM, scale = self.model.transforms.get(sn, (None, None))
-        if transM is None or scale is None:
-            logger.warning(f"Transformation matrix and scale not found for {sn}")
-            return dist
-
-        if axis == "x":
-            dist *= np.abs(scale[0])
-        elif axis == "y":
-            dist *= np.abs(scale[1])
-        elif axis == "z":
-            dist *= np.abs(scale[2])
-        else:
-            logger.warning(f"Invalid axis '{axis}' for distance conversion.")
-            return dist
-
-        return dist
-
-    def distance_local_to_global(self, sn: str, dist: float, axis: str) -> float:
-        """
-        Converts a distance from local coordinates to global coordinates based on the transformation scale.
-        Args:
-            sn (str): The serial number of the stage.
-            dist (float): The distance in local coordinates (µm).
-            axis (str): The axis along which to convert the distance ('x', 'y', or 'z').
-        Returns:
-            float: The converted distance in global coordinates (µm).
-        """
-        transM, scale = self.model.transforms.get(sn, (None, None))
-        if transM is None or scale is None:
-            logger.warning(f"Transformation matrix and scale not found for {sn}")
-            return dist
-
-        if axis == "x":
-            dist /= np.abs(scale[0])
-        elif axis == "y":
-            dist /= np.abs(scale[1])
-        elif axis == "z":
-            dist /= np.abs(scale[2])
-        else:
-            logger.warning(f"Invalid axis '{axis}' for distance conversion.")
-            return dist
-
-        return dist
-
-    def _apply_reticle_adjustments_inverse(self, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
+    @staticmethod
+    def _apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
         """
         Applies the inverse of the selected reticle's adjustments (rotation and offsets)
         to the given global coordinates.
@@ -144,7 +97,7 @@ class CoordsConverter:
         reticle_global_pts = np.array(reticle_global_pts)
 
         # Get the reticle metadata
-        reticle_metadata = self.model.get_reticle_metadata(reticle)
+        reticle_metadata = model.get_reticle_metadata(reticle)
 
         if not reticle_metadata:  # Prevent applying adjustments with missing metadata
             logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
@@ -168,7 +121,8 @@ class CoordsConverter:
 
         return np.array(global_point)
 
-    def _apply_reticle_adjustments(self, global_pts: np.ndarray, reticle: str) -> np.ndarray:
+    @staticmethod
+    def _apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np.ndarray:
         """
         Applies the selected reticle's adjustments (rotation and offsets) to the given global coordinates.
         Args:
@@ -177,7 +131,7 @@ class CoordsConverter:
         Returns:
             tuple: The adjusted global coordinates (x, y, z).
         """
-        reticle_metadata = self.model.get_reticle_metadata(reticle)
+        reticle_metadata = model.get_reticle_metadata(reticle)
 
         if not reticle_metadata:  # Prevent applying adjustments with missing metadata
             logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")

@@ -53,17 +53,10 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target = pg.TargetItem()
         self.view_box.addItem(self.click_target)
         self.click_target.setVisible(False)
-
         self.click_target2 = pg.TargetItem()
         self.view_box.addItem(self.click_target2)
         self.click_target2.setVisible(False)
-
-        self.camera_actions = []
-        self.focochan_actions = []
-        self.filter_actions = []
-        self.detector_actions = []
-        self.reticle_coords = None
-        self.mtx, self.dist, self.rvecs, self.tvecs = None, None, None, None
+        self.focochan = None
 
         # probe
         self.probe_detect_last_timestamp = None
@@ -74,7 +67,6 @@ class ScreenWidget(pg.GraphicsView):
         # camera
         self.camera = camera
         self.camera_name = self.get_camera_name()
-        self.focochan = None
 
         # Dynamically set zoom limits based on image size
         self.width, self.height = self.camera.width, self.camera.height
@@ -196,8 +188,6 @@ class ScreenWidget(pg.GraphicsView):
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
         self.reticleDetectorCNN.process(data)
-        #captured_time = self.camera.get_last_capture_time(millisecond=True)  # TODO Move to probeDetector
-        #self.probeDetector.process(data, captured_time)
         self.probeDetector.process(data, self.camera.last_capture_time)
 
     def is_camera(self):
@@ -400,9 +390,11 @@ class ScreenWidget(pg.GraphicsView):
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist, rvecs, tvecs):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
+        print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {rvecs}\ntvecs: {tvecs}")
         coords = [x_coords, y_coords]
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)
+
 
     def found_probe_coords(self, stage_ts, img_ts, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""
@@ -422,10 +414,6 @@ class ScreenWidget(pg.GraphicsView):
             self.probe_detect_last_sn,
             self.probe_detect_last_coords,
         )
-
-    def get_reticle_coords(self):
-        """Get the reticle coordinates."""
-        return self.reticle_coords
 
     def get_selected(self):
         """

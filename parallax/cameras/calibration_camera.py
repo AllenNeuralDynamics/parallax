@@ -17,9 +17,6 @@ import scipy.spatial.transform as Rscipy
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
 
 # Objectpoints
 WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
@@ -637,6 +634,7 @@ def get_rvec_and_tvec(quat, tvecs):
     R_mat = rotation.as_matrix()
     rvecs, _ = cv2.Rodrigues(R_mat)
 
-    tvecs = np.asarray(tvecs).reshape(3, 1)
-
+    rvecs = rvecs.reshape(3, 1).astype(np.float64)
+    tvecs = np.array(tvecs, dtype=np.float64).reshape(3, 1)
+    rvecs, tvecs = (rvecs,), (tvecs,)
     return rvecs, tvecs
