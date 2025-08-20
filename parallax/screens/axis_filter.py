@@ -81,7 +81,7 @@ class AxisFilter(QObject):
 
             pos_x = self.model.get_pos_x(self.name)
             if pos_x is not None:
-                #print(f"{self.name} pos_x: {pos_x}")
+                logger.info(f"{self.name} pos_x: {pos_x}")
                 cv2.circle(self.frame, pos_x, 15, (255, 0, 0), -1)
 
             self.frame_processed.emit(self.frame)
@@ -146,18 +146,9 @@ class AxisFilter(QObject):
                     self.reticle_coords[0], self.reticle_coords[1]
             )
             if ret:
-                #print("self.reticle_coords[0].type:", type(self.reticle_coords[0]))
-                #print("self.reticle_coords[1].type:", type(self.reticle_coords[1]))
-                #print("mtx.type:", type(mtx))
-                #print("dist.type:", type(dist))
-                #print("rvecs.type:", type(rvecs))
-                #print("tvecs.type:", type(tvecs))
-                #print("self.pos_x.type:", type(self.pos_x))
                 self.found_coords.emit(
                         self.reticle_coords[0], self.reticle_coords[1], mtx, dist, rvecs, tvecs
                 )
-
-            
 
         def reset_pos_x(self):
             """Reset the position of the x-axis (pos_x) in the model."""

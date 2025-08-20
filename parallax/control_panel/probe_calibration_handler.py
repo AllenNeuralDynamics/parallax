@@ -491,7 +491,6 @@ class ProbeCalibrationHandler(QWidget):
             stage_sn (str): The serial number of the stage for which the probe position is accepted.
             transformation_matrix (np.ndarray): The transformation matrix obtained from the probe calibration process.
         """
-        print("Probe detection accepted status", self.probe_detection_status, switch_probe)
         if self.probe_detection_status == "accepted":
             return
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
@@ -783,8 +782,6 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.status_x = self.calib_status_x
         stage_info.status_y = self.calib_status_y
         stage_info.status_z = self.calib_status_z
-
-        print("Updated stage info for:", stage_info)
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):

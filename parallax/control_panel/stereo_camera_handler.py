@@ -84,7 +84,7 @@ class StereoCameraHandler:
                 err, instance, retval, R_AB, T_AB, E_AB, F_AB = self._get_results_calibrate_stereo(
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
-                print("\n\n----------------------------------------------------")
+                print("\n----------------------------------------------------")
                 print(f"camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
                 logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³ ===")
                 logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")

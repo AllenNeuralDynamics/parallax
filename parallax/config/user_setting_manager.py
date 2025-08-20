@@ -192,7 +192,6 @@ class BaseConfigManager:
         return data
 
 
-
 # =========================
 # SessionConfigManager
 # =========================
@@ -355,6 +354,7 @@ class CameraConfigManager(BaseConfigManager):
         data["model"]["cameras"][sn] = cam_cfg
         cls._save_yaml(data)
         logger.debug(f"[CameraConfigManager] Saved camera '{sn}' successfully.")
+
 
 # Helper function to sanitize data for YAML serialization
 def sanitize_for_yaml(obj):

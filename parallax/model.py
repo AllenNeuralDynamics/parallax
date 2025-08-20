@@ -327,7 +327,7 @@ class Model(QObject):
 
         self.save_stage_config(stage_sn)
 
-    def get_calibration_status(self, stage_sn):
+    def is_stage_calibrated(self, stage_sn):
         if stage_sn in self.stages:
             return self.stages[stage_sn]["is_calib"]
         return False

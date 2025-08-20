@@ -437,13 +437,13 @@ class ProbeCalibration(QObject):
         global_point = np.dot(self.transM_LR, local_point)
         return global_point[:3]
 
-    def _l2_error_current_point(self):
+    def _update_l2_error_current_point(self):
         """
         Computes the L2 error between the transformed local point and the global point.
-
-        Returns:
-            float: The L2 error.
         """
+        if self.transM_LR is None:
+            return None
+
         transformed_point = self._apply_transformation()
         global_point = np.array(
             [
@@ -452,9 +452,8 @@ class ProbeCalibration(QObject):
                 self.stage.stage_z_global,
             ]
         )
-        LR_err_L2 = np.linalg.norm(transformed_point - global_point)
-
-        return LR_err_L2
+        self.LR_err_L2_current = np.linalg.norm(transformed_point - global_point)
+        return
 
     def _is_enough_points(self, df):
         """
@@ -627,11 +626,9 @@ class ProbeCalibration(QObject):
         self.stage = stage
 
         # update points in the file
-        #self.stage = stage
         self._write_local_global_point(stage, debug_info)  # Do no update if it is duplicates
         self._update_min_max_x_y_z(stage)    # update min max x,y,z and emit signals if criteria met
         self._update_movement(sn)
-        self._update_info_ui(sn)  # update transformation matrix and overall LR in UI
         df = self._filter_df_by_sn(sn)
         self.transM_LR = self._get_transM(df)
 
@@ -639,7 +636,7 @@ class ProbeCalibration(QObject):
                 and self.R is not None and self.origin is not None:
             logger.debug("===============")
             # Iteratively remove outliers and refit transformation
-              # Get transM without removing outliers
+            # Get transM without removing outliers
             for threshold in range(430, 29, -100):  # Remove from larger to smaller outliers
                 df_ = self._remove_outliers(df, threshold=threshold)
                 if not self._is_trajectory_distance_sufficient(df_) or len(df_) < self.THRESHOLD_N_PTS:
@@ -649,12 +646,14 @@ class ProbeCalibration(QObject):
                 logger.debug(f"len(df): {len(df)}, threshold: {threshold}, average error: {self.avg_err}")
             logger.debug("===============")
 
+        self._update_l2_error_current_point()
+        self._update_info_ui(sn)  # update transformation matrix and overall LR in UI
+
         if self.transM_LR is None or len(df) < self.THRESHOLD_N_PTS:
             logger.debug("Not enough points for calibration.")
             return
 
         # Check criteria
-        self.LR_err_L2_current = self._l2_error_current_point()
         if self._is_enough_points(df):  # if ret, complete calibration
             self.complete_calibration(sn, df)
 
@@ -746,17 +745,28 @@ class ProbeCalibration(QObject):
             - If calibration is complete, it displays the PointMesh instance for the 3D trajectory.
         """
         try:
-            if self.model.get_calibration_status(sn):
+            if not self.model.is_stage_calibrated(sn):
+                if self.stage is None or self.stage.sn is None:
+                    print(f"[WARN] Stage has not calibrated {sn}.")
+                    return
+
                 if sn == self.stage.sn:
                     if self.transM_LR is None:
-                        print("Calibration is not completed yet.", sn)
+                        print(f"[WARN] Stage has not calibrated {sn}.")
                         return
-                    self.point_mesh_not_calibrated = PointMesh(self.model, self.log_dir / "points.csv", self.stage.sn,
-                                                            self.transM_LR)
+                    self.point_mesh_not_calibrated = PointMesh(
+                        self.model,
+                        self.log_dir / "points.csv",
+                        self.stage.sn,
+                        self.transM_LR
+                    )
                     self.point_mesh_not_calibrated.show()
             else:
                 # If calib is completed, show the PointMesh instance.
-                self.point_mesh[sn].show()
+                if sn in self.point_mesh and self.point_mesh[sn] is not None:
+                    self.point_mesh[sn].show()
+                else:
+                    print(f"[WARN] Restored session does not support trajectory map for {sn}.")
         except Exception as e:
             print(f"[WARN] view_3d_trajectory failed: {e}")
 
