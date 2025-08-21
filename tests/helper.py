@@ -2,7 +2,10 @@
 import json
 import pytest
 from unittest.mock import MagicMock, Mock
+
 from parallax.model import Model
+from parallax.stages.stage_listener import Stage
+from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 
 # ----------------------------
 # Fixture: shared Model
@@ -17,11 +20,19 @@ def model():
     args.nCameras = 1
     m = Model(args)
     m.stage_listener_url = "http://localhost:8080/"
+
+    # Seed a stage entry so StageListener.handleDataChange can update it
+    sn = "SN0001"
+    m.stages[sn] = {
+        "obj": Stage(sn=sn, name="A"),
+        "is_calib": False,
+        "calib_info": StageCalibrationInfo(),
+    }
     return m
 
 
 # ----------------------------
-# Example server payload
+# Example server payload (from your screenshot)
 # ----------------------------
 stage_server_txt = {
     "Version": "1.9.0.0",
@@ -68,10 +79,7 @@ stage_server_txt = {
 # Test helpers
 # ----------------------------
 def mock_get_request(payload, status_code=200):
-    """
-    Build a mock object that mimics requests.get(...) response.
-    Use in @patch("requests.get", return_value=mock_get_request(...)).
-    """
+    """Build a mock object that mimics requests.get(...)."""
     resp = Mock()
     resp.status_code = status_code
     resp.json.return_value = payload
@@ -79,10 +87,7 @@ def mock_get_request(payload, status_code=200):
 
 
 def mock_stage_instances(n=1):
-    """
-    Return a list of stage dicts like the HTTP server would.
-    Useful for patching StageInfo.get_instances without network I/O.
-    """
+    """Return a list of stage dicts (Python 3.8–safe)."""
     base = {
         "SerialNumber": "SN0001",
         "Id": "A1",
@@ -93,12 +98,14 @@ def mock_stage_instances(n=1):
         "Stage_YOffset": 0.2,
         "Stage_ZOffset": 0.3,
     }
-    return [
-        {**base, **{"SerialNumber": f"SN{i:04d}", "Id": f"A{i}"}}
-        for i in range(1, n + 1)
-    ]
+    items = []
+    for i in range(1, n + 1):
+        d = dict(base)
+        d.update({"SerialNumber": "SN%04d" % i, "Id": "A%d" % i})
+        items.append(d)
+    return items
 
 
 def stage_server_raw_text():
-    """Return the payload as a compact JSON string (like browser .text)."""
+    """Return the payload as a compact JSON string (like response.text)."""
     return json.dumps(stage_server_txt, separators=(",", ":"))
