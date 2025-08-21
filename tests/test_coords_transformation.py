@@ -50,12 +50,10 @@ def test_fit_params(transformer):
     measured_pts = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
     global_pts = np.array([[2, 3, 4], [5, 6, 7], [8, 9, 10], [11, 12, 13]])
 
-    origin, rotation_matrix, scale, avg_err = transformer.fit_params(measured_pts, global_pts)
+    origin, rotation_matrix, avg_err = transformer.fit_params(measured_pts, global_pts)
     
     # Expected values based on the simplified test data
     expected_origin = np.array([1, 1, 1])
-    expected_scale = np.array([1, 1, 1])
 
     assert np.allclose(origin, expected_origin), f"Expected origin {expected_origin}, got {origin}"
-    assert np.allclose(scale, expected_scale), f"Expected scale {expected_scale}, got {scale}"
     assert avg_err < 1e-7, f"Expected avg error to be near 0, got {avg_err}"
