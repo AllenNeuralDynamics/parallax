@@ -31,7 +31,7 @@ def make_worker_payload_from_helper(src):
 
 @pytest.fixture(scope="function")
 def stage_listener(model):
-    """StageListener with a mocked UI and (optional) label."""
+    """StageListener with a mocked UI and a seeded model.stages entry."""
     # Minimal stage_ui mock that exposes the methods StageListener uses:
     stage_ui = Mock()
     stage_ui.ui = Mock()
@@ -43,12 +43,29 @@ def stage_listener(model):
     stage_ui.updateStageGlobalCoords = Mock()
     stage_ui.updateStageGlobalCoords_default = Mock()
 
-    # Build listener (actionSaveInfo not needed in tests)
+    # Build listener
     sl = StageListener(model, stage_ui, actionSaveInfo=None)
-    # If you want to test probeCalibrationLabel messages later:
     sl.init_probe_calib_label(Mock())
-    return sl
 
+    # ✅ Seed a stage object for SN0001 so handleDataChange() can write into it
+    sn = "SN0001"
+    stage_obj = Mock()
+    stage_obj.sn = sn
+    # defaults; handleDataChange() will overwrite these
+    stage_obj.stage_x = 0
+    stage_obj.stage_y = 0
+    stage_obj.stage_z = 0
+    stage_obj.stage_x_global = 0
+    stage_obj.stage_y_global = 0
+    stage_obj.stage_z_global = 0
+
+    # Model needs the expected structure: { sn: {"obj": <stage>} }
+    sl.model.stages = {sn: {"obj": stage_obj}}
+
+    # Also ensure probeDetectors exists to avoid attribute errors in other paths
+    sl.model.probeDetectors = []
+
+    return sl
 
 # ----------------------------
 # Tests
