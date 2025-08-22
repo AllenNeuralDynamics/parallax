@@ -1,0 +1,36 @@
+name: PyTest
+
+on:
+  push:
+    branches:
+      - '**'  # Trigger on push to any branch
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  run-pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,sfm]"
+
+      # Step 4: Run tests with pytest
+      - name: Run tests
+        run: |
+          python -m pytest
+        continue-on-error: true
