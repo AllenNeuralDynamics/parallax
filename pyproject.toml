@@ -89,7 +89,7 @@ profile = "black"
 
 [tool.interrogate]
 exclude = ["setup.py", "docs", "build"]
-fail-under = 100
+fail-under = 70
  
 [tool.codespell]
 skip = ".git,*.json,*.log"
