@@ -2,35 +2,36 @@ name: PyTest
 
 on:
   push:
-    branches:
-      - '**'  # Trigger on push to any branch
+    branches: ['**']  # Trigger on push to any branch
   pull_request:
-    branches:
-      - '**'
+    branches: ['**']
 
 jobs:
   run-pytest:
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen   # run Qt headless
+      MPLBACKEND: Agg              # just in case matplotlib appears
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Step 2: Set up Python
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.8'
 
-      # Step 3: Install dependencies
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev,sfm]"
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
-      # Step 4: Run tests with pytest
-      - name: Run tests
+      - name: Install package + test deps
         run: |
-          python -m pytest
+          pip install -e ".[test]"
+          # optional: linters too
+          pip install -e ".[linters]"
+
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=parallax --cov-report=term-missing
         continue-on-error: true
