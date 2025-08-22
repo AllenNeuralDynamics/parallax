@@ -8,8 +8,9 @@ import logging
 import time
 import numpy as np
 import requests
-from collections import deque
 from datetime import datetime
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
 
 from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog
@@ -20,61 +21,73 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class StageInfo(QObject):
+class StageInfo:
     """Retrieve and manage information about the stages."""
 
-    def __init__(self, url):
-        """Initialize StageInfo thread"""
-        super().__init__()
+    def __init__(self, url: str):
+        """Initialize StageInfo."""
         self.url = url
         self.nStages = 0
         self.stages_sn = []
 
-    def get_instances(self):
+    def get_instances(self) -> list:
         """Get the instances of the stages.
 
         Returns:
-            list: List of stage instances.
+            list: List of stage instance dicts.
         """
         stages = []
         try:
             response = requests.get(self.url, timeout=1)
             if response.status_code == 200:
                 data = response.json()
-                self.nStages = data["Probes"]
-                for i in range(self.nStages):
-                    stage = data["ProbeArray"][i]
+                self.nStages = data.get("Probes", 0)
+                for stage in data.get("ProbeArray", []):
                     self.stages_sn.append(stage["SerialNumber"])
                     stages.append(stage)
         except Exception as e:
             print("Stage HttpServer not enabled.")
-            logger.debug(f"Stage HttpServer not enabled.: {e}")
+            logger.debug(f"Stage HttpServer not enabled: {e}")
 
         return stages
 
 
-class Stage(QObject):
+@dataclass
+class Stage:
     """Represents an individual stage with its properties."""
+    sn: str
+    name: Optional[str] = None
+    stage_x: Optional[float] = None
+    stage_y: Optional[float] = None
+    stage_z: Optional[float] = None
+    stage_x_global: Optional[float] = None
+    stage_y_global: Optional[float] = None
+    stage_z_global: Optional[float] = None
+    stage_x_offset: float = 0.0
+    stage_y_offset: float = 0.0
+    stage_z_offset: float = 0.0
+    yaw: Optional[float] = None
+    pitch: Optional[float] = None
+    roll: Optional[float] = None
+    shank_cnt: int = 1
 
-    def __init__(self, stage_info=None):
-        """Initialize Stage thread"""
-        QObject.__init__(self)
-        if stage_info is not None:
-            self.sn = stage_info["SerialNumber"]
-            self.name = stage_info["Id"]
-            self.stage_x = stage_info["Stage_X"] * 1000
-            self.stage_y = stage_info["Stage_Y"] * 1000
-            self.stage_z = 15000 - stage_info["Stage_Z"] * 1000
-            self.stage_x_global = None
-            self.stage_y_global = None
-            self.stage_z_global = None
-            self.stage_x_offset = stage_info.get("Stage_XOffset", 0) * 1000
-            self.stage_y_offset = stage_info.get("Stage_YOffset", 0) * 1000
-            self.stage_z_offset = 15000 - (stage_info.get("Stage_ZOffset", 0) * 1000)
-            self.yaw = None
-            self.pitch = None
-            self.roll = None
-            self.shank_cnt = 1
+    @classmethod
+    def from_info(cls, info: Dict[str, Any]) -> "Stage":
+        """Create a Stage from a stage_info dictionary."""
+        return cls(
+            sn=info["SerialNumber"],
+            name=info["Id"],
+            stage_x=info["Stage_X"] * 1000,
+            stage_y=info["Stage_Y"] * 1000,
+            stage_z=15000 - info["Stage_Z"] * 1000,
+            stage_x_offset=info.get("Stage_XOffset", 0) * 1000,
+            stage_y_offset=info.get("Stage_YOffset", 0) * 1000,
+            stage_z_offset=15000 - (info.get("Stage_ZOffset", 0) * 1000),
+            yaw=None,
+            pitch=None,
+            roll=None,
+            shank_cnt=1
+        )
 
 
 class Worker(QObject):
@@ -226,13 +239,12 @@ class Worker(QObject):
 class StageListener(QObject):
     """Class for listening to stage updates."""
 
-    probeCalibRequest = pyqtSignal(QObject, dict)
+    probeCalibRequest = pyqtSignal(object, dict)
 
     def __init__(self, model, stage_ui, actionSaveInfo=None):
         """Initialize Stage Listener object"""
         super().__init__()
         self.model = model
-        self.coordsConverter = CoordsConverter(self.model)
         self.worker = Worker(self.model.stage_listener_url)
         self.thread = QThread()
         self.stage_ui = stage_ui
@@ -243,7 +255,6 @@ class StageListener(QObject):
         self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
         self.stage_global_data = None
         self.transM_dict = {}
-        self.scale_dict = {}
         self.snapshot_folder_path = None
         self.stages_info = {}
         self.probeCalibrationLabel =  None
@@ -255,7 +266,7 @@ class StageListener(QObject):
 
     def start(self):
         """Start the stage listener."""
-        if self.model.nStages != 0:
+        if len(self.model.stages) != 0:
             self.worker.moveToThread(self.thread)
             self.thread.start()
 
@@ -274,8 +285,9 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         sn = probe["SerialNumber"]
-        stage = self.model.stages.get(sn)  # Check if the stage is in the model's stages
-        if stage is None:
+        #stage = self.model.stages.get(sn)  # Check if the stage is in the model's stages
+        stage = self.model.stages.get(sn).get("obj", None)
+        if not stage:
             return
 
         # update into models
@@ -289,7 +301,7 @@ class StageListener(QObject):
         stage.stage_y_offset = probe.get("Stage_YOffset", 0) * 1000  # Convert to um
         stage.stage_z_offset = 15000 - (probe.get("Stage_ZOffset", 0) * 1000)  # Convert to um
         local_pts = np.array([local_x, local_y, local_z])
-        global_pts = self.coordsConverter.local_to_global(sn, local_pts)
+        global_pts = CoordsConverter.local_to_global(self.model, sn, local_pts)
         if global_pts is not None:
             stage.stage_x_global = global_pts[0]
             stage.stage_y_global = global_pts[1]
@@ -315,7 +327,7 @@ class StageListener(QObject):
 
         self.stages_info[stage.sn] = self._get_stage_info_json(stage)
 
-    def requestUpdateGlobalDataTransformM(self, sn, transM, scale):
+    def requestUpdateGlobalDataTransformM(self, sn, transM):
         """
         Stores or updates a transformation matrix for a specific stage identified by its serial number.
         This method updates an internal dictionary, `transM_dict`, mapping stage serial numbers to their
@@ -326,8 +338,7 @@ class StageListener(QObject):
             transM (np.ndarray): A 4x4 numpy array representing the transformation matrix for the specified stage.
         """
         self.transM_dict[sn] = transM
-        self.scale_dict[sn] = scale
-        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM} {scale}")
+        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM}")
 
     def requestClearGlobalDataTransformM(self, sn=None):
         """
@@ -339,12 +350,9 @@ class StageListener(QObject):
         """
         if sn is None:  # Not specified, clear all (Use case: reticle Dection is reset)
             self.transM_dict = {}
-            self.scale_dict = {}
         else:
             if self.transM_dict.get(sn) is not None:
                 self.transM_dict.pop(sn)
-            if self.scale_dict.get(sn) is not None:
-                self.scale_dict.pop(sn)
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 
@@ -388,7 +396,7 @@ class StageListener(QObject):
         }
 
         # Update model's stage global coordinates
-        moving_stage = self.model.stages.get(sn)
+        moving_stage = self.model.stages.get(sn).get("obj", None)
         if moving_stage is not None:
             moving_stage.stage_x_global = global_coords_x
             moving_stage.stage_y_global = global_coords_y

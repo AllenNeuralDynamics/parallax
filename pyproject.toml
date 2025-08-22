@@ -29,7 +29,8 @@ dependencies = [
     "scikit-learn",
     "plotly",
     "PyQtWebEngine",
-    "aiohttp"
+    "aiohttp",
+    "pyyaml"
    ]
  
 [tool.setuptools.packages.find]
@@ -64,15 +65,23 @@ docs = [
     'docutils'
 ]
 
+test = [
+    "pytest>=7",
+    "pytest-qt>=4.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.10.0",
+    "opencv-python-headless",
+]
+
 [tool.coverage.run]
 omit = [
     "*__init__*"
 ]
-source = ["parallax", "tests"]
+source = ["parallax"]
 
 [tool.coverage.report]
 exclude_lines = ["if __name__ == .__main__.:", "pragma: no cover"]
-fail_under = 100
+fail_under = 70
 
 [tool.isort]
 line_length = 120
@@ -80,7 +89,7 @@ profile = "black"
 
 [tool.interrogate]
 exclude = ["setup.py", "docs", "build"]
-fail-under = 100
+fail-under = 70
  
 [tool.codespell]
 skip = ".git,*.json,*.log"

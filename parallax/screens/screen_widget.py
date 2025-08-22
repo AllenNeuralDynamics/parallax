@@ -8,6 +8,8 @@ import logging
 import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, pyqtSignal
+import cv2
+import numpy as np
 
 from parallax.screens.no_filter import NoFilter
 from parallax.probe_detection.probe_detect_manager import ProbeDetectManager
@@ -51,17 +53,10 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target = pg.TargetItem()
         self.view_box.addItem(self.click_target)
         self.click_target.setVisible(False)
-
         self.click_target2 = pg.TargetItem()
         self.view_box.addItem(self.click_target2)
         self.click_target2.setVisible(False)
-
-        self.camera_actions = []
-        self.focochan_actions = []
-        self.filter_actions = []
-        self.detector_actions = []
-        self.reticle_coords = None
-        self.mtx, self.dist, self.rvecs, self.tvecs = None, None, None, None
+        self.focochan = None
 
         # probe
         self.probe_detect_last_timestamp = None
@@ -72,16 +67,15 @@ class ScreenWidget(pg.GraphicsView):
         # camera
         self.camera = camera
         self.camera_name = self.get_camera_name()
-        self.focochan = None
 
         # Dynamically set zoom limits based on image size
-        width, height = self.camera.width, self.camera.height
-        if height is not None and width:
+        self.width, self.height = self.camera.width, self.camera.height
+        if self.height is not None and self.width:
             self.view_box.setLimits(
-                xMin=-width, xMax=width * 2,  # Prevent panning outside image boundaries
-                yMin=-height, yMax=height * 2,
-                maxXRange=width * 10,
-                maxYRange=height * 10
+                xMin=-self.width, xMax=self.width * 2,  # Prevent panning outside image boundaries
+                yMin=-self.height, yMax=self.height * 2,
+                maxXRange=self.width * 10,
+                maxYRange=self.height * 10
             )
 
         # No filter
@@ -123,9 +117,32 @@ class ScreenWidget(pg.GraphicsView):
         """
         Refresh the image displayed in the screen widget. (Continuously)
         """
-        if self.camera:
+        if self.camera.running:
             data = self.camera.get_last_image_data()
+            if data is None:
+                logger.warning(f"{self.camera_name} - No data received from camera.")
+                return
             self._set_data(data)
+        else:
+            placeholder_data = self._generate_stopped_message_image()
+            self._set_data(placeholder_data)
+
+    def _generate_stopped_message_image(self):
+        img = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+
+        message = "Camera not running. Check the connection."
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 3
+        thickness = 5
+
+        # Get text size to center it
+        (text_width, text_height), _ = cv2.getTextSize(message, font, font_scale, thickness)
+        x = (self.width - text_width) // 2
+        y = (self.height + text_height) // 2
+
+        cv2.putText(img, message, (x, y), font, font_scale, (255, 0, 0), thickness)
+
+        return img
 
     def start_acquisition_camera(self):
         """
@@ -171,8 +188,6 @@ class ScreenWidget(pg.GraphicsView):
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
         self.reticleDetectorCNN.process(data)
-        #captured_time = self.camera.get_last_capture_time(millisecond=True)  # TODO Move to probeDetector
-        #self.probeDetector.process(data, captured_time)
         self.probeDetector.process(data, self.camera.last_capture_time)
 
     def is_camera(self):
@@ -375,9 +390,11 @@ class ScreenWidget(pg.GraphicsView):
 
     def found_reticle_coords(self, x_coords, y_coords, mtx, dist, rvecs, tvecs):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
+        print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {rvecs}\ntvecs: {tvecs}")
         coords = [x_coords, y_coords]
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)
+
 
     def found_probe_coords(self, stage_ts, img_ts, probe_sn, stage_info, tip_coords):
         """Store the found probe coordinates and related information."""
@@ -397,10 +414,6 @@ class ScreenWidget(pg.GraphicsView):
             self.probe_detect_last_sn,
             self.probe_detect_last_coords,
         )
-
-    def get_reticle_coords(self):
-        """Get the reticle coordinates."""
-        return self.reticle_coords
 
     def get_selected(self):
         """

@@ -256,12 +256,9 @@ class ReticleMetadata(QWidget):
         for name in self.groupboxes.keys():
             self.reticle_selector.addItem(f"Proj Global coords ({name})")
 
-    def default_reticle_selector(self, reticle_detection_status):
+    def default_reticle_selector(self):
         """
         Reset the reticle selector to its default state and clear all reticles.
-
-        Args:
-            reticle_detection_status (str): Status of reticle detection to determine which options to add.
         """
         # Iterate over the added sgroup boxes and remove each one from the layout
         for name, group_box in self.groupboxes.items():
@@ -278,7 +275,7 @@ class ReticleMetadata(QWidget):
         # Clear and reset the reticle_selector
         self.reticle_selector.clear()
         self.reticle_selector.addItem("Global coords")
-        if reticle_detection_status == "accepted":
+        if self.model.reticle_detection_status == "accepted":
             self.reticle_selector.addItem("Proj Global coords")
 
     def _update_to_file(self):

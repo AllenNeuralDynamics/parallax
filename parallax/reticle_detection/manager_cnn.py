@@ -89,19 +89,22 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             # Reproject axis points
             objpts_x_coords = get_axis_object_points('x', 10)
             objpts_y_coords = get_axis_object_points('y', 10)
-            self.x_coords = get_projected_points(objpts_x_coords, self.rvecs, self.tvecs, imtx, idist)
-            self.y_coords = get_projected_points(objpts_y_coords, self.rvecs, self.tvecs, imtx, idist)
+            self.x_coords = get_projected_points(objpts_x_coords, self.rvecs[0], self.tvecs[0], imtx, idist)
+            self.y_coords = get_projected_points(objpts_y_coords, self.rvecs[0], self.tvecs[0], imtx, idist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
-                np.array(self.x_coords, dtype=np.float32), imtx, idist, self.rvecs, self.tvecs,
+                np.array(self.x_coords, dtype=np.float32), imtx, idist, self.rvecs[0], self.tvecs[0],
                 center_index_x=len(self.x_coords) // 2, axis_length=10
             )
             if not self.running:
                 return DetectionResult.STOPPED
 
             # Emit detected coordinates
+            logger.debug("CNN")
+            logger.debug(f"rvecs: {self.rvecs}")
+            logger.debug(f"tvecs: {self.tvecs}")
             self.signals.found_coords.emit(
                 self.x_coords, self.y_coords, imtx, idist,
-                tuple(self.rvecs.flatten()), tuple(self.tvecs.flatten())
+                self.rvecs, self.tvecs
             )
             if not self.running:
                 return DetectionResult.STOPPED

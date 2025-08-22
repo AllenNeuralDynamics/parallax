@@ -38,7 +38,12 @@ class StereoCameraHandler:
         Returns:
             float or None: The reprojection error from the calibration, or None if calibration could not be performed.
         """
-        if len(self.model.coords_axis) < 2 and len(self.model.camera_intrinsic) < 2:
+        valid_cams = [
+            sn for sn, cam in self.model.cameras.items()
+            #if cam.get('coords_axis') is not None and cam.get('intrinsic', {}).get('mtx') is not None
+            if cam.get('coords_axis') is not None
+        ]
+        if len(valid_cams) < 2:
             return None
 
         cam_names, intrinsics, img_coords = self._get_cameras_lists()
@@ -79,7 +84,7 @@ class StereoCameraHandler:
                 err, instance, retval, R_AB, T_AB, E_AB, F_AB = self._get_results_calibrate_stereo(
                     camA, coordsA, itmxA, camB, coordsB, itmxB
                 )
-                print("\n\n----------------------------------------------------")
+                print("\n----------------------------------------------------")
                 print(f"camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
                 logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³ ===")
                 logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
@@ -151,31 +156,29 @@ class StereoCameraHandler:
         return min_err
 
     def _get_cameras_lists(self):
-        """
-        Retrieves a list of camera names, intrinsic parameters, and image coordinates
-        for each screen widget in the system.
-
-        Returns:
-            tuple: A tuple containing:
-                - cam_names (list): List of camera names.
-                - intrinsics (list): List of intrinsic camera parameters.
-                - img_coords (list): List of reticle coordinates detected on each camera.
-        """
         cam_names, intrinsics, img_coords = [], [], []
         visible_sns = set(self.model.get_visible_camera_sns())
 
-        # Get coords and intrinsic parameters from the screens
         for screen in self.screen_widgets:
-            camera_name = screen.get_camera_name()
-            if camera_name not in visible_sns:
-                continue  # Skip screens that are not currently visible
+            sn = screen.get_camera_name()
+            if sn not in visible_sns:
+                continue
 
-            coords = self.model.get_coords_axis(camera_name)
-            intrinsic = self.model.get_camera_intrinsic(camera_name)
-            if coords is not None:
-                cam_names.append(camera_name)
-                img_coords.append(coords)
-                intrinsics.append(intrinsic)
+            intrinsic = self.model.get_camera_intrinsic(sn)
+            coords = self.model.get_coords_axis(sn)
+
+            if intrinsic is None or coords is None:
+                logger.debug(f"Camera {sn} has no intrinsic or coordinates data.")
+                continue
+
+            intrinsics.append([
+                intrinsic.get("mtx"),
+                intrinsic.get("dist"),
+                intrinsic.get("rvec"),
+                intrinsic.get("tvec"),
+            ])
+            cam_names.append(sn)
+            img_coords.append(coords)
 
         return cam_names, intrinsics, img_coords
 

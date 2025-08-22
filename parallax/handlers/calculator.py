@@ -38,7 +38,6 @@ class Calculator(QWidget):
         super().__init__()
         self.model = model
         self.stage_controller = StageController(self.model)
-        self.coords_converter = CoordsConverter(self.model)
         self.reticle_selector = reticle_selector
         self.reticle = None
 
@@ -112,15 +111,17 @@ class Calculator(QWidget):
         Assigns calculation functions to the 'convert' buttons for each stage based on the calibration status.
         If the stage is calibrated, the corresponding button is enabled, and the conversion function is connected.
         """
-        for stage_sn, item in self.model.transforms.items():
-            transM, scale = item[0], item[1]
-            if transM is not None and scale is not None:  # Set calc function for calibrated stages
-                push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
-                if not push_button:
-                    logger.warning(f"Error: QPushButton for {stage_sn} not found")
-                    continue
-                self._enable(stage_sn)
-                push_button.clicked.connect(self._create_convert_function(stage_sn))
+
+        for stage_sn in self.model.stages.keys():
+            if self.model.is_calibrated(stage_sn):
+                transM = self.model.get_transform(stage_sn)
+                if transM is not None:
+                    push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
+                    if not push_button:
+                        logger.warning(f"Error: QPushButton for {stage_sn} not found")
+                        continue
+                    self._enable(stage_sn)
+                    push_button.clicked.connect(self._create_convert_function(stage_sn))
             else:   # Block calc functions for uncalibrated stages
                 self._disable(stage_sn)
 
@@ -131,7 +132,6 @@ class Calculator(QWidget):
         Args:
             stage_sn (str): The serial number of the stage.
             transM (ndarray): The transformation matrix for coordinate conversion.
-            scale (ndarray): The scale factors for the coordinates.
 
         Returns:
             function: A lambda function for performing coordinate conversion.
@@ -147,8 +147,6 @@ class Calculator(QWidget):
 
         Args:
             sn (str): The serial number of the stage.
-            transM (ndarray): The transformation matrix.
-            scale (ndarray): The scale factors applied to the coordinates.
         """
         # Enable the groupBox for the stage
         globalX = self.findChild(QLineEdit, f"globalX_{sn}").text()
@@ -164,11 +162,11 @@ class Calculator(QWidget):
         logger.debug(f"User Input (Local): {self.reticle}")
         trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
-            local_pts_ret = self.coords_converter.global_to_local(sn, global_pts, self.reticle)
+            local_pts_ret = CoordsConverter.global_to_local(self.model, sn, global_pts, self.reticle)
             if local_pts_ret is not None:
                 self._show_local_pts_result(sn, local_pts_ret)
         elif trans_type == "local_to_global":
-            global_pts_ret = self.coords_converter.local_to_global(sn, local_pts, self.reticle)
+            global_pts_ret = CoordsConverter.local_to_global(self.model, sn, local_pts, self.reticle)
             if global_pts_ret is not None:
                 self._show_global_pts_result(sn, global_pts_ret)
         else:
@@ -425,14 +423,14 @@ class Calculator(QWidget):
         # Z is inverted in the server
         local_pts_z15 = [float(x) * 1000, float(y) * 1000, float(15.0 - z) * 1000]  # Should be top of the stage
         local_pts_z0 = [float(x) * 1000, float(y) * 1000, 15.0 * 1000]  # Should be bottom
-        for sn, _ in self.model.transforms.items():
+
+        for sn in self.model.stages.keys():
             if sn != stage_sn:
                 continue
-
             try:
                 # Apply transformations to get global points for Z=15 and Z=0
-                global_pts_z15 = self.coords_converter.local_to_global(stage_sn, local_pts_z15)
-                global_pts_z0 = self.coords_converter.local_to_global(stage_sn, local_pts_z0)
+                global_pts_z15 = CoordsConverter.local_to_global(self.model, stage_sn, local_pts_z15)
+                global_pts_z0 = CoordsConverter.local_to_global(self.model, stage_sn, local_pts_z0)
 
                 if global_pts_z15 is None or global_pts_z0 is None:
                     return False  # Transformation failed, return False

@@ -110,10 +110,7 @@ class PySpinCamera(BaseCamera):
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
-
         self.last_image = None
-        self.last_image_filled = threading.Event()
-        self.last_image_cleared = threading.Event()
 
         self.video_output = None
         self.video_recording_on = threading.Event()
@@ -234,16 +231,6 @@ class PySpinCamera(BaseCamera):
             node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
 
         self.camera_info()
-
-        # acquisition on initialization
-        if VERSION == "V1":
-            # begin acquisition
-            # V1: Start continuous acquisition on initialization.
-            self.begin_continuous_acquisition()
-        elif VERSION == "V2":
-            # V2: Start continuous acquisition when 'Start' button is toggled and end acquisition when untoggled.
-            # On initialization, start onetime acquisition to get one frame.
-            pass
 
     def set_wb(self, channel, wb=1.2):
         """
@@ -427,19 +414,16 @@ class PySpinCamera(BaseCamera):
 
     def end_singleframe_acquisition(self):
         """End Acquisition"""
-        self.last_image_cleared.wait()
         self.capture_thread.join()
         self.camera.EndAcquisition()
         self.last_image = None
-        self.last_image_cleared.clear()
-        self.last_image_filled.clear()
 
     def begin_continuous_acquisition(self):
         """
         Begins the image acquisition process in continuous mode and starts the capture loop in a separate thread.
         """
         if self.running:
-            logger.debug("Error: camera is already running")
+            logger.debug(f"{self.name(sn_only=True)} Camera is already running - Skipping start.")
             return -1
 
         try:
@@ -465,7 +449,6 @@ class PySpinCamera(BaseCamera):
             self.capture_thread.start()
         except Exception as e:
             logger.error(f"An error occurred while starting the camera: {e}")
-            print(f"Error: An error occurred while starting the camera {e}")
 
     def capture_loop(self):
         """
@@ -473,7 +456,8 @@ class PySpinCamera(BaseCamera):
         """
         while self.running:
             self.capture()
-            # print(".", end="",flush=True)
+
+        logger.warning(f"{self.name(sn_only=True)} Capture loop ended.")
 
     def capture(self):
         """
@@ -505,22 +489,26 @@ class PySpinCamera(BaseCamera):
 
                 # Update the last captured image reference
                 self.last_image = image
-                self.last_image_filled.set()
 
         except PySpin.SpinnakerException as e:
             logger.error(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
-            print(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
+            # Check for specific error messages
+            # Spinnaker: Stream has been aborted. [-1012]
+            # Spinnaker: Camera has been removed from the list and is no longer valid. [-1002]
+            if "[-1012]" in str(e):
+                if self.running:
+                    self.running = False
+                    print(f"{self.name(sn_only=True)} Stream has been aborted. Stopping camera. \n {str(e)}")
 
-        # If video recording is active, record the image
         try:
             # Record the image if video recording is active
             if self.video_recording_on.is_set():
                 self.video_recording_idle.clear()
 
                 frame = self.get_last_image_data()
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-
-                self.video_output.write(frame)
+                if frame is not None:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                    self.video_output.write(frame)
                 self.video_recording_idle.set()
         except Exception as e:
             logger.error("An error occurred while recording the video: ", e)
@@ -579,7 +567,9 @@ class PySpinCamera(BaseCamera):
         - numpy.ndarray: Image data in array format.
         """
         # Wait until last_image is not None
-        self.last_image_filled.wait()
+        if self.last_image is None:
+            return None
+
         frame_image = self.last_image.GetNDArray()
         if self.pixelformat == "BayerRG8":
             frame_image = cv2.cvtColor(frame_image, cv2.COLOR_BayerRG2BGR)
@@ -595,11 +585,9 @@ class PySpinCamera(BaseCamera):
         - numpy.ndarray: Image data in array format.
         """
         # Wait until last_image is not None
-        self.last_image_filled.wait()
         frame_image = self.last_image.GetNDArray()
         if self.pixelformat == "BayerRG8":
             frame_image = cv2.cvtColor(frame_image, cv2.COLOR_BayerRG2BGR)
-        self.last_image_cleared.set()
         return frame_image
 
     def camera_info(self):
@@ -685,7 +673,6 @@ class PySpinCamera(BaseCamera):
             self.capture_thread.join()
             self.camera.EndAcquisition()
             self.last_image = None
-            self.last_image_filled.clear()
 
         if self.video_recording_on.is_set():
             self.stop_recording()
@@ -707,6 +694,7 @@ class MockCamera(BaseCamera):
         self.data = None  # For image input
         self.video_cap = None  # For video file input
         self._next_frame = 0
+        self.running = True
 
         self.device_color_type = "Color"
         self.width = 4000

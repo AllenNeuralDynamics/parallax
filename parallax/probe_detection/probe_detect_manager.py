@@ -70,7 +70,7 @@ class DrawWorker(QRunnable):
         """
         Draw reticle and debug coordinates on the frame.
         """
-        if self.reticle_coords:
+        if self.reticle_coords is not None:
             for coords in self.reticle_coords:
                 for i, (x, y) in enumerate(coords):
                     color = self.colormap_reticle[i][0].tolist()
@@ -402,7 +402,7 @@ class ProcessWorker(QRunnable):
                 self.signals.tip_stopped.emit(
                     self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org
                 )
-                print("Emit tip stopped signal with coords:", self.probeDetect.probe_tip_org)
+                logger.info(f"Emit tip stopped signal with coords: {self.probeDetect.probe_tip_org}")
 
 class ProbeDetectManager(QObject):
     """
@@ -543,7 +543,6 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number.
         """
-        #print("Starting detection for", sn)
         if self.processWorker is not None:
             self.processWorker.update_sn(sn)
             self.processWorker.start_detection()
@@ -554,7 +553,6 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number.
         """
-        #print("Stopping detection for", sn)
         if self.processWorker is not None:
             self.processWorker.stop_detection()
 
@@ -567,7 +565,6 @@ class ProbeDetectManager(QObject):
         """
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
-        #print("Enabling calibration for", sn)
         if self.processWorker is not None:
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
@@ -579,7 +576,6 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
-        #print("Disabling calibration for", sn)
         if self.processWorker is not None:
             self.processWorker.disable_calib()
         if self.worker is not None:
