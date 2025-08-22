@@ -1,139 +1,178 @@
+# tests/test_stage_ui.py
 import pytest
-from PyQt5.QtWidgets import QApplication, QComboBox, QLabel, QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QComboBox, QLabel, QLineEdit, QVBoxLayout
 from unittest.mock import Mock
+
 from parallax.stages.stage_ui import StageUI
 
-# ----------------------------
-# Test doubles
-# ----------------------------
 
-class MockModel:
-    """Mock model matching StageUI's expectations."""
+# ---------- Minimal stage/model stubs ----------
+
+class _StageObj:
+    def __init__(self, sn="SN001",
+                 lx=1.0, ly=2.0, lz=3.0,
+                 gx=100.0, gy=200.0, gz=300.0):
+        self.sn = sn
+        self.stage_x = lx
+        self.stage_y = ly
+        self.stage_z = lz
+        self.stage_x_global = gx
+        self.stage_y_global = gy
+        self.stage_z_global = gz
+
+
+class _ModelStub:
     def __init__(self):
-        # each entry must be a dict with the 'obj' key
-        stage1 = Mock(
-            sn="SN12345",
-            stage_x=100, stage_y=200, stage_z=300,
-            stage_x_global=110, stage_y_global=210, stage_z_global=310,
-        )
-        stage2 = Mock(
-            sn="SN54321",
-            stage_x=400, stage_y=500, stage_z=600,
-            stage_x_global=410, stage_y_global=510, stage_z_global=610,
-        )
-        self.stages = {
-            "stage1": {"obj": stage1},
-            "stage2": {"obj": stage2},
-        }
+        self.reticle_detection_status = "default"
+        self._stage_obj = _StageObj()
+        # StageUI.update_stage_selector() iterates keys of model.stages,
+        # and updateStageSN() expects dict with 'obj'
+        self.stages = {"stage1": {"obj": self._stage_obj}}
 
     def get_stage(self, stage_id):
-        """StageUI calls this in updateStageGlobalCoords."""
         entry = self.stages.get(stage_id)
         return entry["obj"] if entry else None
 
 
-class ControlPanelStub(QWidget):
+# ---------- Parent control panel stub ----------
+
+class _ParentWithModel(QWidget):
     """
-    Minimal control-panel-like object exposing:
-      - .model
-      - the UI widgets StageUI expects as attributes on 'ui' (but StageUI sets self.ui = control_panel)
+    Mimics the control panel object StageUI expects:
+    - .model
+    - .stage_selector (QComboBox with .currentIndexChanged)
+    - .reticle_selector (QComboBox)
+    - .stage_sn (QLabel-ish with setText)
+    - .local_coords_x/y/z (QLineEdit-ish with setText)
+    - .global_coords_x/y/z (QLineEdit-ish with setText)
     """
     def __init__(self, model):
         super().__init__()
         self.model = model
 
-        # real widgets so Qt signals/slots work
-        layout = QVBoxLayout(self)
-        self.stage_selector = QComboBox()
-        self.reticle_selector = QComboBox()
-        self.stage_sn = QLabel()
-        self.local_coords_x = QLabel()
-        self.local_coords_y = QLabel()
-        self.local_coords_z = QLabel()
-        self.global_coords_x = QLabel()
-        self.global_coords_y = QLabel()
-        self.global_coords_z = QLabel()
+        lay = QVBoxLayout(self)
 
-        # give reticle selector a sane default so setCurrentReticle() can succeed if needed
-        self.reticle_selector.addItem("Global coords")
+        self.stage_selector = QComboBox(self)
+        lay.addWidget(self.stage_selector)
 
-        for w in (
-            self.stage_selector, self.reticle_selector, self.stage_sn,
-            self.local_coords_x, self.local_coords_y, self.local_coords_z,
-            self.global_coords_x, self.global_coords_y, self.global_coords_z,
-        ):
-            layout.addWidget(w)
+        self.reticle_selector = QComboBox(self)
+        # include both “Proj” and normal variants
+        self.reticle_selector.addItems(["Global coords", "Proj Global coords", "Global coords (A)"])
+        self.reticle_selector.setCurrentIndex(0)
+        lay.addWidget(self.reticle_selector)
 
+        self.stage_sn = QLabel(self)
+        lay.addWidget(self.stage_sn)
 
-# ----------------------------
-# Fixtures
-# ----------------------------
+        # Local coords
+        self.local_coords_x = QLineEdit(self); lay.addWidget(self.local_coords_x)
+        self.local_coords_y = QLineEdit(self); lay.addWidget(self.local_coords_y)
+        self.local_coords_z = QLineEdit(self); lay.addWidget(self.local_coords_z)
 
-@pytest.fixture(scope="function")
-def qapp():
-    app = QApplication([])
-    yield app
-    app.quit()
+        # Global coords
+        self.global_coords_x = QLineEdit(self); lay.addWidget(self.global_coords_x)
+        self.global_coords_y = QLineEdit(self); lay.addWidget(self.global_coords_y)
+        self.global_coords_z = QLineEdit(self); lay.addWidget(self.global_coords_z)
 
 
-@pytest.fixture
-def control_panel(qapp, qtbot):
-    """Provide a control panel stub with a proper model and UI widgets."""
-    model = MockModel()
-    cp = ControlPanelStub(model)
-    qtbot.addWidget(cp)
-    return cp
+# ---------- Reticle metadata stub (optional) ----------
+
+class _ReticleMetaStub:
+    def __init__(self, dx=10.0, dy=0.0, dz=5.0):
+        self.dx, self.dy, self.dz = dx, dy, dz
+
+    def get_global_coords_with_offset(self, name, global_pts):
+        x, y, z = list(global_pts)
+        return x + self.dx, y + self.dy, z + self.dz
 
 
-@pytest.fixture
-def stage_ui(control_panel, qtbot):
-    """Construct StageUI with the proper control panel stub."""
-    # reticle_metadata not needed for these tests
-    ui = StageUI(control_panel, reticle_metadata=None)
+# ---------- Builders ----------
+
+def _build_stage_ui(qtbot, model=None, with_meta=False):
+    m = model or _ModelStub()
+    parent = _ParentWithModel(m)
+    qtbot.addWidget(parent)  # ensure lifetime managed by pytest-qt
+    meta = _ReticleMetaStub() if with_meta else None
+    ui = StageUI(parent, meta)
     qtbot.addWidget(ui)
-    return ui
+    return ui, parent, m
 
 
-# ----------------------------
-# Tests
-# ----------------------------
+# ---------- Tests ----------
 
-def test_initialization(stage_ui, qtbot):
-    # On init, StageUI populates the selector and selects index 0 ("stage1")
-    assert stage_ui.selected_stage.sn == "SN12345"
-    assert stage_ui.reticle == "Global coords"
-    assert stage_ui.previous_stage_id == stage_ui.get_current_stage_id()
-
-
-def test_update_stage_selector(control_panel, stage_ui):
-    stage_ui.update_stage_selector()
-    # Verify items and their texts
-    assert control_panel.stage_selector.count() == 2
-    assert control_panel.stage_selector.itemText(0) == "Probe stage1"
-    assert control_panel.stage_selector.itemText(1) == "Probe stage2"
-
-
-def test_update_stage_sn(control_panel, stage_ui):
-    control_panel.stage_selector.setCurrentIndex(0)
-    stage_ui.updateStageSN()
-    assert control_panel.stage_sn.text() == " SN12345"
-
-    control_panel.stage_selector.setCurrentIndex(1)
-    stage_ui.updateStageSN()
-    assert control_panel.stage_sn.text() == " SN54321"
+def test_initialization(qtbot):
+    ui, parent, model = _build_stage_ui(qtbot)
+    # Stage selector should have been populated with one item data "stage1"
+    assert parent.stage_selector.count() == 1
+    assert ui.get_current_stage_id() == "stage1"
+    # SN label updated
+    assert parent.stage_sn.text().strip() == model._stage_obj.sn
+    # Local coords populated
+    assert parent.local_coords_x.text() == str(model._stage_obj.stage_x)
+    assert parent.local_coords_y.text() == str(model._stage_obj.stage_y)
+    assert parent.local_coords_z.text() == str(model._stage_obj.stage_z)
+    # Global coords populated
+    assert parent.global_coords_x.text() == str(model._stage_obj.stage_x_global)
+    assert parent.global_coords_y.text() == str(model._stage_obj.stage_y_global)
+    assert parent.global_coords_z.text() == str(model._stage_obj.stage_z_global)
 
 
-def test_update_stage_local_coords(control_panel, stage_ui):
-    control_panel.stage_selector.setCurrentIndex(0)
-    stage_ui.updateStageLocalCoords()
-    assert control_panel.local_coords_x.text() == "100"
-    assert control_panel.local_coords_y.text() == "200"
-    assert control_panel.local_coords_z.text() == "300"
+def test_stage_switch_signal(qtbot):
+    ui, parent, model = _build_stage_ui(qtbot)
+    # add a second stage and repopulate selector
+    model.stages["stage2"] = {"obj": _StageObj(sn="SN002", gx=111, gy=222, gz=333)}
+    ui.initialize()  # refresh selector/items
+
+    # spy on the StageUI signal
+    got = []
+    ui.prev_curr_stages.connect(lambda prev, curr: got.append((prev, curr)))
+
+    # switch index -> should emit (prev='stage1', curr='stage2')
+    parent.stage_selector.setCurrentIndex(1)
+    # force sendInfoToStageWidget via signal connection
+    # (already connected in initialize via stage_selector_activate_actions)
+
+    # basic assertion
+    assert got and got[-1] == ("stage1", "stage2")
 
 
-def test_update_stage_global_coords(control_panel, stage_ui):
-    control_panel.stage_selector.setCurrentIndex(0)
-    stage_ui.updateStageGlobalCoords()
-    assert control_panel.global_coords_x.text() == "110"
-    assert control_panel.global_coords_y.text() == "210"
-    assert control_panel.global_coords_z.text() == "310"
+def test_refresh_updates_fields_on_stage_change(qtbot):
+    ui, parent, model = _build_stage_ui(qtbot)
+    model.stages["stage2"] = {"obj": _StageObj(sn="SN002", lx=9, ly=8, lz=7, gx=1, gy=2, gz=3)}
+    ui.initialize()
+
+    parent.stage_selector.setCurrentIndex(1)
+
+    assert parent.stage_sn.text().strip() == "SN002"
+    assert parent.local_coords_x.text() == "9"
+    assert parent.local_coords_y.text() == "8"
+    assert parent.local_coords_z.text() == "7"
+    assert parent.global_coords_x.text() == "1"
+    assert parent.global_coords_y.text() == "2"
+    assert parent.global_coords_z.text() == "3"
+
+
+def test_reticle_proj_sets_default_coords(qtbot):
+    ui, parent, model = _build_stage_ui(qtbot)
+    # choose “Proj Global coords”
+    idx = parent.reticle_selector.findText("Proj Global coords")
+    parent.reticle_selector.setCurrentIndex(idx)
+    # trigger handler
+    ui.updateCurrentReticle()
+
+    assert parent.global_coords_x.text() == "-"
+    assert parent.global_coords_y.text() == "-"
+    assert parent.global_coords_z.text() == "-"
+
+
+def test_reticle_with_offset_applies_metadata(qtbot):
+    ui, parent, model = _build_stage_ui(qtbot, with_meta=True)
+    # pick "Global coords (A)" so StageUI extracts 'A' and applies metadata
+    idx = parent.reticle_selector.findText("Global coords (A)")
+    parent.reticle_selector.setCurrentIndex(idx)
+    ui.updateCurrentReticle()
+
+    # base globals are (100, 200, 300); metadata adds (+10, +0, +5)
+    assert parent.global_coords_x.text() == "110.0"
+    assert parent.global_coords_y.text() == "200.0"
+    assert parent.global_coords_z.text() == "305.0"

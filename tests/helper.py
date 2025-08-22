@@ -7,16 +7,9 @@ from unittest.mock import MagicMock, Mock
 
 # ---- Qt imports kept local to tests ----
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QGroupBox, QPushButton,
+    QWidget, QVBoxLayout, QGroupBox, QPushButton,
     QLineEdit, QLabel, QComboBox
 )
-
-# ==== Optional app fixture (import if you want to reuse) ====
-@pytest.fixture(scope="function")
-def qapp():
-    app = QApplication([])
-    yield app
-    app.quit()
 
 
 # =========================
