@@ -1,29 +1,35 @@
 # tests/camera.py
+import numpy as np
+import cv2
 import pytest
-from parallax.cameras.camera import list_cameras, close_cameras
 
-def test_capture_image(mocker):
+from parallax.cameras.camera import MockCamera
+
+def test_mock_camera_default_frame_dimensions():
     """
-    Test the camera capture functionality.
-
-    This test ensures that each camera can successfully capture an image, and the captured image
-    data has the correct shape (3000x4000x3). The test also uses `mocker` to mock the `close_cameras` 
-    function for cleanup after the test.
-
-    Args:
-        mocker (pytest fixture): The mocker fixture provided by pytest-mock for mocking functions or objects.
+    MockCamera with default random data should return a frame of size 3000x4000.
+    Channel count may be 1 (random) or 3 (if data/video set), so we only assert HxW.
     """
-    cameras = list_cameras()
+    cam = MockCamera()
+    frame = cam.get_last_image_data()
+    assert frame is not None
+    assert frame.shape[0] == 3000  # height
+    assert frame.shape[1] == 4000  # width
 
-    for camera in cameras:
-        camera.capture()  # Simulate capture
-        data = camera.get_last_image_data()
-        assert data.shape == (3000, 4000, 3)
+def test_mock_camera_color_image_has_three_channels(tmp_path):
+    """
+    When an image is provided via set_data(), MockCamera should return an RGB image (3 channels).
+    """
+    # Create a blank 3000x4000 RGB image
+    rgb = np.zeros((3000, 4000, 3), dtype=np.uint8)
 
-    # Clean up
-    mocker.patch('parallax.cameras.camera.close_cameras')
-    close_cameras()
+    # OpenCV writes in BGR; that's fine—MockCamera reads then converts to RGB.
+    img_path = tmp_path / "dummy.png"
+    cv2.imwrite(str(img_path), rgb)  # zeros are same either way
 
-# Run the tests
-if __name__ == "__main__":
-    pytest.main()
+    cam = MockCamera()
+    cam.set_data(str(img_path))
+    frame = cam.get_last_image_data()
+
+    assert frame is not None
+    assert frame.shape == (3000, 4000, 3)

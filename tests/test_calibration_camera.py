@@ -1,5 +1,7 @@
 import pytest
 import numpy as np
+from unittest.mock import patch
+from parallax.cameras.calibration_camera import CalibrationCamera, OBJPOINTS, SIZE
 from unittest.mock import MagicMock, patch
 from parallax.cameras.calibration_camera import CalibrationStereo, OBJPOINTS
 
@@ -145,3 +147,71 @@ def test_triangulation(setup_calibration_stereo, imgpoints_data):
 
         # Verify that the triangulation result is similar to the expected object points.
         assert np.allclose(points_3d_hom[:, :3], expected_valid_points, atol=1e-2)
+
+def test_get_changed_data_format_happy():
+    cam = CalibrationCamera("C1")
+    xa = np.array([[1, 2], [3, 4]], dtype=np.float32)
+    ya = np.array([[5, 6], [7, 8], [9, 10]], dtype=np.float32)
+    out = cam._get_changed_data_format(xa, ya)
+    assert out.shape == (5, 2)
+    np.testing.assert_array_equal(out[:2], xa)
+    np.testing.assert_array_equal(out[2:], ya)
+
+@pytest.mark.parametrize(
+    "bad_x",
+    [np.array([1, 2], dtype=np.float32),  # 1D
+     np.array([[1, 2, 3]], dtype=np.float32)]  # wrong second dim
+)
+def test_get_changed_data_format_bad_x_raises(bad_x):
+    cam = CalibrationCamera("C1")
+    good_y = np.array([[0, 1]], dtype=np.float32)
+    with pytest.raises(ValueError, match="x_axis must have shape"):
+        cam._get_changed_data_format(bad_x, good_y)
+
+@pytest.mark.parametrize(
+    "bad_y",
+    [np.array([1, 2], dtype=np.float32),
+     np.array([[1, 2, 3]], dtype=np.float32)]
+)
+def test_get_changed_data_format_bad_y_raises(bad_y):
+    cam = CalibrationCamera("C1")
+    good_x = np.array([[0, 1]], dtype=np.float32)
+    with pytest.raises(ValueError, match="y_axis must have shape"):
+        cam._get_changed_data_format(good_x, bad_y)
+
+def test_process_reticle_points_shapes():
+    cam = CalibrationCamera("C1")
+    # 21 points each axis (to match OBJPOINTS count = 21 + 21)
+    x = np.stack([np.arange(21), np.full(21, 100)], axis=1).astype(np.float32)
+    y = np.stack([np.full(21, 200), np.arange(21)], axis=1).astype(np.float32)
+    imgpoints, objpoints = cam._process_reticle_points(x, y)
+    assert imgpoints.shape == (1, 42, 2)
+    assert objpoints.shape == (1, OBJPOINTS.shape[0], 3)
+    np.testing.assert_allclose(objpoints[0], OBJPOINTS)
+
+def test_calibrate_camera_calls_cv2_calibrateCamera(monkeypatch):
+    cam = CalibrationCamera("C1")
+    x = np.stack([np.arange(21), np.full(21, 100)], axis=1).astype(np.float32)
+    y = np.stack([np.full(21, 200), np.arange(21)], axis=1).astype(np.float32)
+
+    fake_ret = 0.123
+    fake_mtx = np.eye(3, dtype=np.float64)
+    fake_dist = np.zeros((1, 5), dtype=np.float64)
+    fake_rvecs = [np.zeros((3, 1), dtype=np.float64)]
+    fake_tvecs = [np.zeros((3, 1), dtype=np.float64)]
+
+    def _fake_calib(objpts, imgpts, size, imtx, idist, flags=None, criteria=None):
+        # sanity: args come through as expected
+        assert size == SIZE
+        assert len(objpts) == 1 and objpts[0].shape[0] == OBJPOINTS.shape[0]
+        assert len(imgpts) == 1 and imgpts[0].shape == (OBJPOINTS.shape[0], 2)
+        return fake_ret, fake_mtx, fake_dist, fake_rvecs, fake_tvecs
+
+    monkeypatch.setattr("cv2.calibrateCamera", _fake_calib)
+
+    ret, mtx, dist, rvecs, tvecs = cam.calibrate_camera(x, y)
+    assert ret == fake_ret
+    np.testing.assert_allclose(mtx, fake_mtx)
+    np.testing.assert_allclose(dist, fake_dist)
+    assert rvecs == fake_rvecs
+    assert tvecs == fake_tvecs

@@ -200,7 +200,6 @@ class CalibrationStereo(CalibrationCamera):
     def print_calibrate_stereo_results(self, camA_sn, camB_sn):
         """
         Prints the results of the stereo calibration process between two cameras.
-
         This function displays the calibration results, including the reprojection error,
         rotation matrix (R), translation vector (T), fundamental matrix (F), and essential
         matrix (E) for the stereo camera pair.

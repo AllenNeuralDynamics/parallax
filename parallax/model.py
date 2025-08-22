@@ -93,8 +93,6 @@ class Model(QObject):
         self.camera_extrinsic = {}
         self.best_camera_pair = None
         self.stereo_calib_instance = {}
-        self.calibration = None
-        self.calibrations = {}
 
         # Reticle metadata
         self.reticle_metadata = {}
@@ -114,22 +112,6 @@ class Model(QObject):
     def set_camera_visibility(self, sn, visible):
         if sn in self.cameras:
             self.cameras[sn]['visible'] = visible
-
-    def add_calibration(self, cal):
-        """Add a calibration.
-
-        Args:
-            cal: Calibration object to be added to the calibrations dictionary.
-        """
-        self.calibrations[cal.name] = cal
-
-    def set_calibration(self, calibration):
-        """Set the current calibration object.
-
-        Args:
-            calibration: Calibration object to set as the active calibration.
-        """
-        self.calibration = calibration
 
     def init_stages(self):
         """Initialize stages by clearing the current stages and calibration data."""
