@@ -26,6 +26,7 @@ debug_img_dir = debug_dir / "debug-images"
 
 # Ensure directories exist
 data_dir.mkdir(parents=True, exist_ok=True)
+stages_dir.mkdir(parents=True, exist_ok=True)
 debug_dir.mkdir(parents=True, exist_ok=True)
 debug_img_dir.mkdir(parents=True, exist_ok=True)
 
