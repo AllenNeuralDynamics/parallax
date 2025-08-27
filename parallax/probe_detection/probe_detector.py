@@ -5,10 +5,10 @@ checks to ensure accuracy.
 """
 
 import logging
-from collections import Counter
-
 import cv2
 import numpy as np
+from collections import Counter
+from parallax.utils.utils import UtilsCoords
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -18,14 +18,15 @@ logger.setLevel(logging.WARNING)
 class ProbeDetector:
     """Class for detecting the probe in an image."""
 
-    def __init__(self, sn, IMG_SIZE, angle_step=9):
+    def __init__(self, sn, IMG_SIZE, ORG_IMG_SIZE, angle_step=9):
         """Initialize Probe Detector object"""
         self.sn = sn
         self.IMG_SIZE = IMG_SIZE
+        self.IMG_SIZE_ORIGINAL = ORG_IMG_SIZE
         self.angle_step = angle_step
         self.angle = None
         self.probe_tip, self.probe_base = (0, 0), (0, 0)
-        self.probe_tip_org = None
+        self.probe_tip_org, self.probe_base_org = None, None
         self.probe_tip_direction = "S"
         self.gradients = []
         self.angle_step_bins, self.angle_step_bins_with_neighbor = [], []
@@ -422,8 +423,24 @@ class ProbeDetector:
                 self.probe_base[0] + offset_x,
                 self.probe_base[1] + offset_y,
             )
+            self._update_original_coords()
             logger.debug(f"{self.sn} first_detect_probe:: probe_tip: {self.probe_tip}, probe_base: {self.probe_base}, direction: {self.probe_tip_direction}")
         return ret
+
+
+    def _update_original_coords(self):
+        """Update the original coordinates of the probe tip and base."""
+        if self.probe_tip is None or self.probe_base is None:
+            return
+        
+        self.probe_tip_org = UtilsCoords.scale_coords_to_original(
+            self.probe_tip,
+            self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+        )
+        self.probe_base_org = UtilsCoords.scale_coords_to_original(
+            self.probe_base,
+            self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+        )
 
     def update_probe(
         self,
@@ -486,6 +503,8 @@ class ProbeDetector:
                 output_fname = os.path.basename(img_fname).replace('.', '_4_mask.')
                 cv2.imwrite('output/' + output_fname, mask)
                 """
+            # Update
+            self._update_original_coords()
         else:
             logger.debug("update_probe:: get_tip_hough_line_detection fail")
             return False

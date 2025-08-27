@@ -98,7 +98,6 @@ class CurrPrevCmpProcessor():
             bool: True if probe is detected and precise tip is found, False otherwise.
         """
         self.mask = mask
-        self.ProbeDetector.probe_tip_org = None
         self._preprocess_diff_images(curr_img, prev_img)  # Subtraction
         if not running_flag():
             return False
@@ -111,16 +110,11 @@ class CurrPrevCmpProcessor():
         if not running_flag():
             return False
         if ret:
+            # Update Tip
             logger.debug(f"{self.cam_name} CurrPrevCmpProcessor Update::detect")
             if get_fine_tip:
                 if not self._get_precise_tip(org_img):
                     return False
-            else:
-                self.ProbeDetector.probe_tip_org = UtilsCoords.scale_coords_to_original(
-                    self.ProbeDetector.probe_tip,
-                    self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-                )
-
         return ret
 
     def _update_crop(self):
@@ -159,26 +153,6 @@ class CurrPrevCmpProcessor():
             crop_size += 100
 
         return ret
-
-    def get_point_tip(self):
-        """Get the probe tip and base points."""
-        if self.ProbeDetector.probe_tip_org is not None:
-            return self.ProbeDetector.probe_tip_org
-        elif self.ProbeDetector.probe_tip is not None:
-            tip = UtilsCoords.scale_coords_to_original(
-                self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            return tip
-        else:
-            return None
-
-    def get_point_base(self):
-        """Get the probe tip and base points."""
-        if self.ProbeDetector.probe_base is not None:
-            base = UtilsCoords.scale_coords_to_original(
-                self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            return base
-        else:
-            return None
 
     def get_crop_region_boundary(self):
         """Get the boundary of the crop region."""
