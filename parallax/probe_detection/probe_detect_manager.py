@@ -237,7 +237,7 @@ class ProcessWorker(QRunnable):
         """
         if sn not in self.probes.keys():
             self.sn = sn
-            self.probeDetect = ProbeDetector(self.sn, self.IMG_SIZE, self.IMG_SIZE_ORIGINAL)
+            self.probeDetect = ProbeDetector(self.sn, self.name, self.IMG_SIZE, self.IMG_SIZE_ORIGINAL)
             self.currPrevCmpProcess = CurrPrevCmpProcessor(
                 self.name, self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )
@@ -292,7 +292,6 @@ class ProcessWorker(QRunnable):
         if self.probeDetect.angle is None:
             # self._set_reticle_zone()
             self._run_first_cmp()
-            print(f"{self.name} - First detection {self.probeDetect.angle}")
         else:
             self._run_tracking_cmp()
     

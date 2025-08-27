@@ -135,13 +135,13 @@ class CurrPrevCmpProcessor():
                 self.IMG_SIZE,
             )
             diff_img_crop = self.diff_img[self.top:self.bottom, self.left:self.right]
-            hough_minLineLength_adpative = (
-                40 + int(crop_size / self.crop_init) * 5
-            )
+            hough_minLineLength_adaptive = (40 + int(crop_size / self.crop_init) * 5)
+            self.ProbeDetector.update_parameters({
+                "hough_minLineLength_update": hough_minLineLength_adaptive
+            })
             ret = self.ProbeDetector.update_probe(
                 diff_img_crop,
                 self.mask,
-                hough_minLineLength=hough_minLineLength_adpative,
                 offset_x=self.left,
                 offset_y=self.top,
                 ts=ts
