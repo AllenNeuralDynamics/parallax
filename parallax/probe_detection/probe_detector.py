@@ -6,13 +6,15 @@ checks to ensure accuracy.
 
 import logging
 import cv2
+import os
 import numpy as np
 from collections import Counter
 from parallax.utils.utils import UtilsCoords
+from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ProbeDetector:
@@ -25,6 +27,7 @@ class ProbeDetector:
         self.IMG_SIZE_ORIGINAL = ORG_IMG_SIZE
         self.angle_step = angle_step
         self.angle = None
+        self.nShanks = 4  # TODO test
         self.probe_tip, self.probe_base = (0, 0), (0, 0)
         self.probe_tip_org, self.probe_base_org = None, None
         self.probe_tip_direction = "S"
@@ -65,9 +68,7 @@ class ProbeDetector:
         ]
         return neighboring_gradients
 
-    def _contour_preprocessing(
-        self, img, thresh=20, remove_noise=True, noise_threshold=1
-    ):
+    def _contour_preprocessing(self, img, thresh=20, remove_noise=True, noise_threshold=1):
         """Preprocess the image using contour detection.
 
         Args:
@@ -197,11 +198,11 @@ class ProbeDetector:
         if len(self.gradients) > 0:
             if self._is_distance_in_thres(highest_point, lowest_point):
                 logger.debug(
-                    f"Distance between tip and base is too close {highest_point} {lowest_point}"
+                    f"{self.sn} Distance between tip and base is too close {highest_point} {lowest_point}"
                 )
                 return False, highest_point, lowest_point
             found_ret = True
-            logger.debug(f"First line detection {self.gradients}")
+            logger.debug(f"{self.sn} First line detection {self.gradients}")
             self.angle = np.median(self.gradients)
             return found_ret, highest_point, lowest_point
         else:
@@ -253,7 +254,7 @@ class ProbeDetector:
         if line_segments is not None:
             if (len(line_segments)) >= 30:
                 logger.debug(
-                    "get_tip_hough_line_detection:: Too many line detected. Possibly Plane image"
+                    f"{self.sn} get_tip_hough_line_detection:: Too many line detected. Possibly Plane image"
                 )
                 return found_ret, highest_point, lowest_point
 
@@ -285,20 +286,19 @@ class ProbeDetector:
             if found_ret is False:
                 return found_ret, highest_point, lowest_point
         else:
-            logger.debug("get_tip_hough_line_detection:: Not found the line")
+            logger.debug(f"{self.sn} get_tip_hough_line_detection:: Not found the line")
             return found_ret, highest_point, lowest_point
 
         if found_ret:
             if self._is_distance_in_thres(highest_point, lowest_point):
                 logger.debug(
-                    f"Distance between tip and base is too close, {highest_point} {lowest_point}"
+                    f"{self.sn} Distance between tip and base is too close, {highest_point} {lowest_point}"
                 )
                 return False, highest_point, lowest_point
 
             gradient_counts = Counter(self.gradients)
             updated_gradient, _ = gradient_counts.most_common(1)[0]
-            logger.debug(
-                f"target angle: {self.angle}, updated_detected: {updated_gradient}, neighbor: {neighboring_gradients}"
+            logger.debug(f"{self.sn} target angle: {self.angle}, updated_detected: {updated_gradient}, neighbor: {neighboring_gradients}"
             )
             # logger.debug(gradient_counts)
             self.angle = updated_gradient
@@ -331,7 +331,7 @@ class ProbeDetector:
 
         dist_p1 = dist_transform[p1[1], p1[0]]  # [y, x]
         dist_p2 = dist_transform[p2[1], p2[0]]
-        logger.debug(f"dist_p1: {dist_p1}, dist_p2: {dist_p2}")
+        logger.debug(f"{self.sn} dist_p1: {dist_p1}, dist_p2: {dist_p2}")
         if dist_p1 > dist_p2:
             return p1, p2  # Return order: probe_tip, probe_base
         else:
@@ -381,6 +381,7 @@ class ProbeDetector:
         hough_minLineLength=130,
         offset_x=0,
         offset_y=0,
+        ts=None
     ):
         """Detect the probe in the image for the first time.
 
@@ -415,6 +416,7 @@ class ProbeDetector:
             self.probe_tip_direction = self._get_probe_direction(
                 self.probe_tip, self.probe_base
             )
+            
             self.probe_tip = (
                 self.probe_tip[0] + offset_x,
                 self.probe_tip[1] + offset_y,
@@ -425,6 +427,10 @@ class ProbeDetector:
             )
             self._update_original_coords()
             logger.debug(f"{self.sn} first_detect_probe:: probe_tip: {self.probe_tip}, probe_base: {self.probe_base}, direction: {self.probe_tip_direction}")
+            print(f"first_detect_probe:: probe_tip: {self.probe_tip}, probe_base: {self.probe_base}, direction: {self.probe_tip_direction}")
+            self._save_debug_img(img,
+                                 tip=(self.probe_tip[0] - offset_x, self.probe_tip[1] - offset_y),
+                                 base=(self.probe_base[0] - offset_x, self.probe_base[1] - offset_y), ts=ts)
         return ret
 
 
@@ -451,7 +457,7 @@ class ProbeDetector:
         maxLineGap=10,
         offset_x=0,
         offset_y=0,
-        img_fname=None,
+        ts=None
     ):
         """Update the probe detection in the image."""
         ret = False
@@ -459,7 +465,7 @@ class ProbeDetector:
             img, thresh=contour_thresh, remove_noise=False
         )
         if img is None:
-            logger.debug("update_probe:: contour_preprocessing fail")
+            logger.debug(f"{self.sn} update_probe:: contour_preprocessing fail")
             return False
 
         backup_angle = self.angle
@@ -477,7 +483,7 @@ class ProbeDetector:
             )
 
             logger.debug(
-                f"backup_angle: {backup_angle}, self.angle: {self.angle}"
+                f"{self.sn} backup_angle: {backup_angle}, self.angle: {self.angle}"
             )
             if self.angle == backup_angle:
                 self.probe_tip, self.probe_base = (
@@ -494,19 +500,22 @@ class ProbeDetector:
                 self.probe_tip_direction = self._get_probe_direction(
                     self.probe_tip, self.probe_base
                 )
-
-                """
-                print(self.probe_tip, self.probe_base, self.probe_tip_direction)
-                mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-                cv2.circle(mask, self.probe_tip, 3, (0, 0, 255), 5)  # RED circle
-                cv2.circle(mask, self.probe_base, 3, (0, 255, 0), 5)  # RED circle
-                output_fname = os.path.basename(img_fname).replace('.', '_4_mask.')
-                cv2.imwrite('output/' + output_fname, mask)
-                """
             # Update
             self._update_original_coords()
+            # Debug
+            self._save_debug_img(img,
+                                 tip=(self.probe_tip[0] - offset_x, self.probe_tip[1] - offset_y),
+                                 base=(self.probe_base[0] - offset_x, self.probe_base[1] - offset_y), ts=ts)
         else:
-            logger.debug("update_probe:: get_tip_hough_line_detection fail")
+            logger.debug(f"{self.sn} update_probe:: get_tip_hough_line_detection fail")
             return False
 
         return ret
+
+    def _save_debug_img(self, frame, tip=(0,0), base=(0,0), ts=None):
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+            cv2.circle(frame, tip, 3, (0, 0, 255), 5)  # RED circle
+            cv2.circle(frame, base, 3, (0, 255, 0), 5)  # GREEN circle
+            save_path = os.path.join(debug_img_dir, f"{self.sn}_{ts}.jpg")
+            cv2.imwrite(save_path, frame)

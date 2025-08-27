@@ -55,7 +55,7 @@ class CurrPrevCmpProcessor():
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = None, None, None, None
         self.top, self.bottom, self.left, self.right = None, None, None, None
 
-    def first_cmp(self, org_img, prev_img, mask, running_flag=lambda: True):
+    def first_cmp(self, org_img, prev_img, mask, running_flag=lambda: True, ts=None):
         """Perform first comparison.
 
         Args:
@@ -78,14 +78,14 @@ class CurrPrevCmpProcessor():
         if not running_flag():
             return False
 
-        ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
+        ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask, ts=ts)
         if ret:
             #ret_precise_tip = self._get_precise_tip(org_img)
             pass
 
         return ret
 
-    def update_cmp(self, curr_img, prev_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True):
+    def update_cmp(self, curr_img, prev_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True, ts=None):
         """Update the comparison.
 
         Args:
@@ -106,7 +106,7 @@ class CurrPrevCmpProcessor():
         if not ret or not running_flag():
             return False
 
-        ret = self._update_crop()
+        ret = self._update_crop(ts=ts)
         if not running_flag():
             return False
         if ret:
@@ -117,7 +117,7 @@ class CurrPrevCmpProcessor():
                     return False
         return ret
 
-    def _update_crop(self):
+    def _update_crop(self, ts=None):
         """Update the crop region.
 
         Returns:
@@ -143,7 +143,8 @@ class CurrPrevCmpProcessor():
                 self.mask,
                 hough_minLineLength=hough_minLineLength_adpative,
                 offset_x=self.left,
-                offset_y=self.top
+                offset_y=self.top,
+                ts=ts
             )
 
             if ret and UtilsCrops.is_point_on_crop_region(
@@ -217,14 +218,6 @@ class CurrPrevCmpProcessor():
     def get_fine_tip_boundary(self):
         """Get the fine tip boundary."""
         return self.top_fine, self.bottom_fine, self.left_fine, self.right_fine
-
-    def _detect_probe(self):
-        """Detect probe in difference image.
-
-        Returns:
-            bool: True if probe is detected, False otherwise.
-        """
-        return self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
 
     def _preprocess_diff_images(self, curr_img, prev_img):
         """Subtract current image from previous image to find differences.

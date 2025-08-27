@@ -71,7 +71,7 @@ class CurrBgCmpProcessor():
         """
         self.reticle_zone = reticle_zone
 
-    def first_cmp(self, org_img, mask, running_flag=lambda: True):
+    def first_cmp(self, org_img, mask, running_flag=lambda: True, ts=None):
         """Perform first comparison
 
         Args:
@@ -95,7 +95,7 @@ class CurrBgCmpProcessor():
         if not running_flag():
             return False
 
-        ret = self._detect_probe()
+        ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask, ts=ts)
         if not running_flag():
             return False
 
@@ -107,7 +107,7 @@ class CurrBgCmpProcessor():
 
         return ret
 
-    def update_cmp(self, curr_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True):
+    def update_cmp(self, curr_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True, ts=None):
         """Update the comparison.
 
         Args:
@@ -130,7 +130,7 @@ class CurrBgCmpProcessor():
         self._preprocess_diff_image(self.curr_img)
         if not running_flag():
             return False
-        ret = self._update_crop()
+        ret = self._update_crop(ts=ts)
         if not running_flag():
             return False
         if ret:
@@ -196,7 +196,7 @@ class CurrBgCmpProcessor():
         self.bg = cv2.bitwise_and(self.curr_img, cv2.bitwise_not(diff_img))
         self.bg = cv2.bitwise_not(self.bg, mask=self.mask)
 
-    def _update_crop(self):
+    def _update_crop(self, ts=None):
         """Update the crop region.
 
         Returns:
@@ -222,6 +222,7 @@ class CurrBgCmpProcessor():
                 maxLineGap=0,
                 offset_x=self.left,
                 offset_y=self.top,
+                ts=ts
             )
 
             # cv2.rectangle(diff_img_, (left, top), (right, bottom), (155, 155, 0), 5)  # Green rectangle
@@ -344,7 +345,3 @@ class CurrBgCmpProcessor():
     def _preprocess_diff_image(self, curr_img):
         """Preprocess difference image."""
         self.diff_img = cv2.bitwise_and(curr_img, self.bg, mask=self.mask)
-
-    def _detect_probe(self):
-        """Detect probe in difference image."""
-        return self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)

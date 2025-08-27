@@ -291,9 +291,10 @@ class ProcessWorker(QRunnable):
 
         if self.probeDetect.angle is None:
             # self._set_reticle_zone()
-            ret = self._run_first_cmp()
+            self._run_first_cmp()
+            print(f"{self.name} - First detection {self.probeDetect.angle}")
         else:
-            ret = self._run_tracking_cmp()
+            self._run_tracking_cmp()
     
     def _prepare_current_image(self):
         """Convert and blur the frame, generate mask."""
@@ -301,9 +302,13 @@ class ProcessWorker(QRunnable):
             self.gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         else:
             self.gray_img = self.frame
-        resized_img = cv2.resize(self.gray_img, self.IMG_SIZE)
-        self.curr_img = cv2.GaussianBlur(resized_img, (9, 9), 0)
-        self.mask = self.mask_detect.process(resized_img)
+
+        self.curr_img = cv2.resize(self.gray_img, self.IMG_SIZE)
+        if self.probeDetect.nShanks == 1:
+            self.curr_img = cv2.GaussianBlur(self.curr_img, (9, 9), 0)
+        else:
+            self.curr_img = cv2.GaussianBlur(self.curr_img, (3, 3), 0)
+        self.mask = self.mask_detect.process(self.curr_img)
 
     def _set_reticle_zone(self):
         """Set the reticle zone if it does not exist."""
@@ -314,12 +319,21 @@ class ProcessWorker(QRunnable):
 
     def _run_first_cmp(self) -> bool:
         """Run the first comparison to detect probe tip."""
-        ret = self.currPrevCmpProcess.first_cmp(self.curr_img, self.prev_img, self.mask, lambda: self.running)
+        ret = self.currPrevCmpProcess.first_cmp(self.curr_img,
+                                                    self.prev_img,
+                                                    self.mask,
+                                                    lambda: self.running,
+                                                    ts=self.stage_ts
+                                                )
         if not self.running:
             return False
 
         if not ret:
-            ret = self.currBgCmpProcess.first_cmp(self.curr_img, self.mask, lambda: self.running)
+            ret = self.currBgCmpProcess.first_cmp(self.curr_img,
+                                                    self.mask,
+                                                    lambda: self.running,
+                                                    ts=self.stage_ts
+                                                  )
         if ret:
             logger.debug(f"{self.name} - First comparison successful")
             self.signals.status.emit("update")
@@ -339,9 +353,18 @@ class ProcessWorker(QRunnable):
                 logger.debug(f"{self.name} - Stage ts: {self.stage_ts}, img ts: {self.img_ts}")
                 return False
 
-            ret = self.currPrevCmpProcess.update_cmp(self.curr_img, self.prev_img, self.mask, self.gray_img)
+            ret = self.currPrevCmpProcess.update_cmp(self.curr_img,
+                                                        self.prev_img,
+                                                        self.mask,
+                                                        self.gray_img,
+                                                        ts=self.stage_ts
+                                                     )
             if not ret:
-                ret = self.currBgCmpProcess.update_cmp(self.curr_img, self.mask, self.gray_img)
+                ret = self.currBgCmpProcess.update_cmp(self.curr_img,
+                                                        self.mask,
+                                                        self.gray_img,
+                                                        ts=self.stage_ts
+                                                       )
 
             self.stopped_first_frame = False
             if ret:
@@ -476,6 +499,7 @@ class ProbeDetectManager(QObject):
             print(f"{self.name} Previous thread not cleaned up")
             return
 
+        print(f"{self.name} Start probe detection")
         logger.debug(f"{self.name} - Starting thread")
         self._init_draw_thread()
         self.worker.start_running()
