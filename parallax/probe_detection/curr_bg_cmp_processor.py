@@ -26,6 +26,7 @@ from .probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.utils.utils import UtilsCoords, UtilsCrops
 from parallax.config.config_path import debug_img_dir
 
+
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -130,6 +131,9 @@ class CurrBgCmpProcessor():
         self._preprocess_diff_image(self.curr_img)
         if not running_flag():
             return False
+
+        #self._save_debug_img(ts=ts)  # tmp debug
+
         ret = self._update_crop(ts=ts)
         if not running_flag():
             return False
@@ -141,12 +145,6 @@ class CurrBgCmpProcessor():
                 return False
             #if ret_precise_tip_ret:
             self._update_bg(extended_offset=10)
-
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_bg.jpg")
-            cv2.imwrite(save_path, self.bg)
-            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_diff.jpg")
-            cv2.imwrite(save_path, self.diff_img)
 
         return ret
 
@@ -344,3 +342,8 @@ class CurrBgCmpProcessor():
     def _preprocess_diff_image(self, curr_img):
         """Preprocess difference image."""
         self.diff_img = cv2.bitwise_and(curr_img, self.bg, mask=self.mask)
+
+    def _save_debug_img(self, frame, ts=None):
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_{ts}.jpg")
+            cv2.imwrite(save_path, frame)

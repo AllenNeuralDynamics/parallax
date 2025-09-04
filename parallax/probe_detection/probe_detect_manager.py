@@ -6,9 +6,9 @@ and result communication, utilizing components like MaskGenerator and ProbeDetec
 
 import logging
 import time
-
 import cv2
 import numpy as np
+import os
 from PyQt5.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
 
 from parallax.probe_detection.curr_bg_cmp_processor import CurrBgCmpProcessor
@@ -16,10 +16,12 @@ from parallax.probe_detection.curr_prev_cmp_processor import CurrPrevCmpProcesso
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.probe_detector import ProbeDetector
 from parallax.reticle_detection.reticle_detection import ReticleDetection
+from parallax.config.config_path import debug_img_dir
+
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class DrawWorkerSignal(QObject):
@@ -364,6 +366,11 @@ class ProcessWorker(QRunnable):
                                                         self.gray_img,
                                                         ts=self.stage_ts
                                                        )
+
+            # save img for debug
+            if logger.getEffectiveLevel() == logging.DEBUG:
+                save_path = os.path.join(debug_img_dir, f"{self.name}_{self.stage_ts}.jpg")
+                cv2.imwrite(save_path, self.curr_img)
 
             self.stopped_first_frame = False
             if ret:

@@ -19,9 +19,11 @@ Usage:
 import logging
 import cv2
 import numpy as np
+import os
 
 from parallax.probe_detection.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.utils.utils import UtilsCoords, UtilsCrops
+from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -78,6 +80,7 @@ class CurrPrevCmpProcessor():
         if not running_flag():
             return False
 
+
         ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask, ts=ts)
         if ret:
             #ret_precise_tip = self._get_precise_tip(org_img)
@@ -105,6 +108,8 @@ class CurrPrevCmpProcessor():
         ret = self._apply_threshold()
         if not ret or not running_flag():
             return False
+
+        #self._save_debug_img(ts=ts)  # tmp debug
 
         ret = self._update_crop(ts=ts)
         if not running_flag():
@@ -251,3 +256,8 @@ class CurrPrevCmpProcessor():
         )
 
         return True
+
+    def _save_debug_img(self, ts=None):
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_{ts}.jpg")
+            cv2.imwrite(save_path, self.diff_img)
