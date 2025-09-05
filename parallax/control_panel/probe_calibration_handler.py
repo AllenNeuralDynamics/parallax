@@ -3,9 +3,10 @@ import logging
 import os
 import numpy as np
 from dataclasses import dataclass
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget, QAction
+from PyQt6.uic import loadUi
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
+from PyQt6.QtGui import QAction
 from parallax.config.config_path import ui_dir
 from typing import Optional
 
@@ -87,7 +88,9 @@ class ProbeCalibrationHandler(QWidget):
         self.probeCalibrationLabel = self.findChild(
             QLabel, "probeCalibrationLabel"
         )
-        self.probeCalibrationLabel.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.probeCalibrationLabel.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         self.viewTrajectory_btn = self.findChild(QPushButton, "viewTrajectory_btn")
         self.viewTrajectory_btn.clicked.connect(self.view_trajectory_button_handler)
         if self.actionTrajectory is not None:

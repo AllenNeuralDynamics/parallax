@@ -10,7 +10,7 @@ import datetime
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 from .coords_transformation import RotationTransformation
 from .bundle_adjustment import BALProblem, BALOptimizer
 from parallax.handlers.point_mesh import PointMesh

@@ -3,10 +3,10 @@ import os
 import logging
 import sys
 from pathlib import Path
-from PyQt5.QtWidgets import QWidget, QToolButton
-from PyQt5.QtCore import QPoint, QCoreApplication
-from PyQt5.QtGui import QFont
-from PyQt5.uic import loadUi
+from PyQt6.QtWidgets import QWidget, QToolButton
+from PyQt6.QtCore import QPoint, QCoreApplication
+from PyQt6.QtGui import QFont
+from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 logger = logging.getLogger(__name__)

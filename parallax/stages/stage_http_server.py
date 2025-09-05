@@ -6,7 +6,6 @@ import logging
 import json
 import asyncio
 import threading
-from PyQt5.QtCore import QObject
 from aiohttp import web
 
 from .stage_controller import StageController
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class StageHttpServer(QObject):
+class StageHttpServer():
     """Manages the Stage HTTP Server using aiohttp (Fully Async)"""
 
     def __init__(self, model, stages_info, port=8081):

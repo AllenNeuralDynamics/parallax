@@ -7,9 +7,9 @@ reticle adjustments, and issuing commands for stage movement.
 import os
 import logging
 import numpy as np
-from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, QMessageBox
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, QMessageBox
+from PyQt6.uic import loadUi
+from PyQt6.QtCore import Qt
 
 from parallax.utils.coords_converter import CoordsConverter
 from parallax.stages.stage_controller import StageController
@@ -43,8 +43,13 @@ class Calculator(QWidget):
 
         self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
         self.setWindowTitle("Calculator")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
-                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint   # include if you want it
+            | Qt.WindowType.WindowCloseButtonHint
+        )
 
         self.add_stage_groupbox()  # Add group boxes for each stage dynamically
         self.reticle_selector.currentIndexChanged.connect(self._setCurrentReticle)

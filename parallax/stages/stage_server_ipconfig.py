@@ -10,9 +10,9 @@ to apply the configuration dynamically.
 import os
 import json
 import logging
-from PyQt5.QtWidgets import QWidget
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QWidget
+from PyQt6.uic import loadUi
+from PyQt6.QtCore import Qt
 from parallax.config.config_path import ui_dir, stage_server_config_file
 
 logger = logging.getLogger(__name__)
@@ -37,8 +37,13 @@ class StageServerIPConfig(QWidget):
 
         self.ui = loadUi(os.path.join(ui_dir, "stage_server.ui"), self)
         self.setWindowTitle("Stage Server IP Configuration")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
-                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint   # include if you want it
+            | Qt.WindowType.WindowCloseButtonHint
+        )
 
         # Load saved IP and port from JSON file
         self._load_url_from_json()

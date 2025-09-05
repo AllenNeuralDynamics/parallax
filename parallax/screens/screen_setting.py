@@ -1,10 +1,10 @@
 """Screen settings widget for controlling microscope camera settings."""
 import os
 import logging
-from PyQt5.QtWidgets import QWidget, QToolButton, QPushButton, QFileDialog
-from PyQt5.QtCore import QPoint, QTimer, QCoreApplication
-from PyQt5.QtGui import QFont
-from PyQt5.uic import loadUi
+from PyQt6.QtWidgets import QWidget, QToolButton, QPushButton, QFileDialog
+from PyQt6.QtCore import QPoint, QTimer, QCoreApplication
+from PyQt6.QtGui import QFont
+from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
@@ -31,7 +31,7 @@ class ScreenSetting(QWidget):
         self.settings_refresh_timer = QTimer()  # Refreshing the settingMenu while it is toggled
         self.settings_refresh_timer.timeout.connect(self._update_setting_menu)
 
-        self._update_setting_menu()
+        #self._update_setting_menu()  #TBD
         self.settingButton.toggled.connect(
             lambda checked: self._show_settings_menu(checked)
         )
@@ -182,7 +182,7 @@ class ScreenSetting(QWidget):
         )
         self.settingMenu.wbAuto.clicked.connect(
             lambda: self.settingMenu.wbSliderRed.setValue(
-                self.screen.get_camera_setting(setting="wbRed") * 100
+                int(self.screen.get_camera_setting(setting="wbRed") * 100)
             )
         )
 
@@ -301,10 +301,12 @@ class ScreenSetting(QWidget):
                 self.settingMenu.wbSliderRed.setDisabled(False)
                 self.settingMenu.wbSliderBlue.setDisabled(False)
                 self.settingMenu.wbSliderRed.setValue(
-                    saved_settings.get("wbRed", 1.2)
+                    #saved_settings.get("wbRed", 1.2)
+                    saved_settings.get("wbRed", 1)
                 )
                 self.settingMenu.wbSliderBlue.setValue(
-                    saved_settings.get("wbBlue", 2.8)
+                    #saved_settings.get("wbBlue", 2.8)
+                    saved_settings.get("wbBlue", 3)
                 )
             elif self.screen.get_camera_color_type() == "Mono":
                 self.settingMenu.wbAuto.setDisabled(True)

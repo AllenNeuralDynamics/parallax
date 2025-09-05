@@ -1,6 +1,6 @@
 """
 Provides classes to manage stage data fetching, representation, and updates in microscopy
-applications, using PyQt5 for threading and signals, and requests for HTTP requests.
+applications, using PyQt6 for threading and signals, and requests for HTTP requests.
 """
 import os
 import json
@@ -12,8 +12,8 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
-from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QFileDialog
+from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
+from PyQt6.QtWidgets import QFileDialog
 from parallax.utils.coords_converter import CoordsConverter
 
 # Set logger name

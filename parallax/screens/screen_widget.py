@@ -6,8 +6,8 @@ for real-time processing and offers camera control functions.
 
 import logging
 import pyqtgraph as pg
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt6 import QtCore
+from PyQt6.QtCore import Qt, pyqtSignal
 import cv2
 import numpy as np
 
@@ -20,9 +20,9 @@ from parallax.screens.axis_filter import AxisFilter
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+# Set the logging level for PyQt6.uic.uiparser/properties to WARNING, to ignore DEBUG messages
+logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
 
 
 class ScreenWidget(pg.GraphicsView):
@@ -278,6 +278,7 @@ class ScreenWidget(pg.GraphicsView):
                 val = self.camera.get_wb("Red")
             elif setting == "wbBlue":
                 val = self.camera.get_wb("Blue")
+            print("setting:", setting, "val:", val)
         return val
 
     def get_camera_color_type(self):
@@ -425,13 +426,29 @@ class ScreenWidget(pg.GraphicsView):
         else:
             return None, None
 
-    def wheelEvent(self, e):
+    def wheelEvent_deprecate(self, e):
         """
         Handle the mouse wheel event.
         """
         forward = bool(e.angleDelta().y() > 0)
         control = bool(e.modifiers() & Qt.ControlModifier)
         shift = bool(e.modifiers() & Qt.ShiftModifier)
+        if control:
+            if self.focochan:
+                foco, chan = self.focochan
+                dist = 20 if shift else 100
+                foco.time_move(chan, forward, dist, wait=True)
+        else:
+            super().wheelEvent(e)
+
+    def wheelEvent(self, e):
+        """Handle the mouse wheel event."""
+        forward = e.angleDelta().y() > 0
+
+        mods = e.modifiers()
+        control = bool(mods & Qt.KeyboardModifier.ControlModifier)
+        shift   = bool(mods & Qt.KeyboardModifier.ShiftModifier)
+
         if control:
             if self.focochan:
                 foco, chan = self.focochan

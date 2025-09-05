@@ -19,7 +19,7 @@ import requests
 import json
 import numpy as np
 from typing import Optional
-from PyQt5.QtCore import QObject, QTimer
+from PyQt6.QtCore import QObject, QTimer
 from parallax.utils.coords_converter import CoordsConverter
 
 # Set logger name

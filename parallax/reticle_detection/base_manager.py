@@ -1,5 +1,5 @@
 """Base manager for reticle detection workers."""
-from PyQt5.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
 from parallax.config.config_path import debug_img_dir
 import time
 import numpy as np

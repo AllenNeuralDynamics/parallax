@@ -1,6 +1,6 @@
 import logging
 import os
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QGroupBox,
     QVBoxLayout,
     QWidget,
@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QDockWidget,
 )
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import Qt, QTimer, QEvent, QObject
+from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtCore import Qt, QTimer, QEvent, QObject
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.screens.screen_setting import ScreenSetting
@@ -115,18 +115,18 @@ class ScreenWidgetManager(QObject):
         layout.addWidget(screen)
 
         # Bottom row with buttons
-        screen_setting = ScreenSetting(parent=group_box, model=self.model, screen=screen)
+        #screen_setting = ScreenSetting(parent=group_box, model=self.model, screen=screen)  #TBD
         reticle_detector = ReticleDetectWidget(parent=group_box, model=self.model, screen=screen)
         button_row = QHBoxLayout()
-        button_row.setAlignment(Qt.AlignLeft)
-        button_row.addWidget(screen_setting.settingButton)
+        button_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        #button_row.addWidget(screen_setting.settingButton)
         button_row.addWidget(reticle_detector.detectButton)
         layout.addLayout(button_row)
 
         # Create QDockWidget
         dock = QDockWidget(name, self.main_window)
         dock.setWidget(group_box)
-        dock.setAllowedAreas(Qt.LeftDockWidgetArea)
+        dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
         dock.setObjectName(name)
         dock.setFloating(False)
         dock.setMinimumWidth(300)
@@ -143,7 +143,7 @@ class ScreenWidgetManager(QObject):
             self._toggle_streaming(visible, sn)
 
         dock.visibilityChanged.connect(sync_action_to_dock_visibility)
-        self.main_window.addDockWidget(Qt.LeftDockWidgetArea, dock)
+        self.main_window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock)
 
         self.screen_widgets.append(screen)
         self.dock_widgets.append((name, dock))

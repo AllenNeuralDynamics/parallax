@@ -18,9 +18,9 @@ import logging
 import json
 import numpy as np
 from scipy.spatial.transform import Rotation
-from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
+from PyQt6.uic import loadUi
+from PyQt6.QtCore import Qt
 from parallax.config.config_path import ui_dir, reticle_metadata_file
 
 logger = logging.getLogger(__name__)
@@ -57,8 +57,13 @@ class ReticleMetadata(QWidget):
         self.ui = loadUi(os.path.join(ui_dir, "reticle_metadata.ui"), self)
         self.default_size = self.size()
         self.setWindowTitle("Reticle Metadata")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
-                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
 
         self.groupboxes = {}  # Change from list to dictionary
         self.reticles = {}
