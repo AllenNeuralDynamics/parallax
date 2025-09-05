@@ -222,12 +222,12 @@ class ReticleDetecthandler(QWidget):
             self,
             "Reticle Detection",
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         # Check which button was clicked
-        if response == QMessageBox.Yes:
+        if response == QMessageBox.StandardButton.Yes:
             logger.debug("User clicked Yes.")
             return True
         else:

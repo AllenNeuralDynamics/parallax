@@ -307,7 +307,7 @@ class Calculator(QWidget):
 
             # Set the visible title of the QGroupBox to sn
             group_box.setTitle(f"{sn}")
-            group_box.setAlignment(Qt.AlignRight)  # title alignment to the right
+            group_box.setAlignment(Qt.AlignmentFlag.AlignRight)  # title alignment to the right
 
             # Append _{sn} to the QGroupBox object name
             group_box.setObjectName(f"groupBox_{sn}")
@@ -467,10 +467,10 @@ class Calculator(QWidget):
             self,
             "Move Stage Confirmation",
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        return response == QMessageBox.Yes
+        return response == QMessageBox.StandardButton.Yes
 
     def _connect_clear_buttons(self):
         """
