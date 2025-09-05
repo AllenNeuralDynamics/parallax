@@ -19,7 +19,7 @@ classifiers = [
 
 dependencies = [
     "pip",
-    "PyQt5>=5.15",
+    "PyQt6",
     "pyqtgraph",
     "opencv-python",
     "scipy",
@@ -28,7 +28,7 @@ dependencies = [
     "requests",
     "scikit-learn",
     "plotly",
-    "PyQtWebEngine",
+    "PyQt6-WebEngine==6.9.0",
     "aiohttp",
     "pyyaml"
    ]
@@ -46,7 +46,6 @@ readme = {file = "README.md"}
  
 [project.optional-dependencies]
 dev = ['parallax-app[linters]']
-camera = ["spinnaker-python"]
 
 linters = [
     'codespell',

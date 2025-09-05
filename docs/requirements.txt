@@ -5,7 +5,7 @@ furo
 docutils
 numpy
 opencv-python
-PyQt5
+PyQt6
 pyqtgraph
 pandas
 scipy
