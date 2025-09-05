@@ -3,7 +3,7 @@ import numpy as np
 import time
 from unittest.mock import Mock
 from parallax.screens.axis_filter import AxisFilter
-from PyQt5.QtCore import QCoreApplication, QEventLoop
+from PyQt6.QtCore import QCoreApplication, QEventLoop
 
 @pytest.fixture
 def reticle_coords():

@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import MagicMock, Mock
 
 # ---- Qt imports kept local to tests ----
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QPushButton,
     QLineEdit, QLabel, QComboBox
 )

@@ -1,6 +1,6 @@
 # tests/test_stage_ui.py
 import pytest
-from PyQt5.QtWidgets import QWidget, QComboBox, QLabel, QLineEdit, QVBoxLayout
+from PyQt6.QtWidgets import QWidget, QComboBox, QLabel, QLineEdit, QVBoxLayout
 from unittest.mock import Mock
 
 from parallax.stages.stage_ui import StageUI

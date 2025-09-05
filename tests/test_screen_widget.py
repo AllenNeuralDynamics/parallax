@@ -1,7 +1,7 @@
 # tests/test_stage_widget.py
 import pytest
 from unittest.mock import Mock
-from PyQt5.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget
 
 class DummySignal:
     def __init__(self): self._slots = []
