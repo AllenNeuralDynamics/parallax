@@ -4,7 +4,7 @@ including the main window, UI elements,
 camera and stage management, and recording functionality.
 
 Modules imported:
-- PyQt5 modules for building the graphical user interface.
+- PyQt6 modules for building the graphical user interface.
 - Other libraries and modules necessary for the application's functionality.
 
 Classes:
@@ -15,12 +15,12 @@ import logging
 import os
 import webbrowser
 
-from PyQt5.QtCore import QStandardPaths
-from PyQt5.QtGui import QFont, QFontDatabase
-# Import required PyQt5 modules and other libraries
-from PyQt5.QtWidgets import (QApplication, QFileDialog,
+from PyQt6.QtCore import QStandardPaths
+from PyQt6.QtGui import QFont, QFontDatabase
+# Import required PyQt6 modules and other libraries
+from PyQt6.QtWidgets import (QApplication, QFileDialog,
                              QMainWindow, QSplitter, QMessageBox)
-from PyQt5.uic import loadUi
+from PyQt6.uic import loadUi
 
 from parallax.handlers.recording_manager import RecordingManager
 from parallax.control_panel.control_panel import ControlPanel
@@ -33,9 +33,9 @@ from ui.resources import rc
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+# Set the logging level for PyQt6.uic.uiparser/properties
+logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
 
 
 # Main application window
@@ -103,7 +103,9 @@ class MainWindow(QMainWindow):
         self.actionStreaming.triggered.connect(self.start_button_handler)
 
         # Fetch the default documents directory path
-        self.dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
+        self.dir = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.DocumentsLocation
+        )
 
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
@@ -140,11 +142,11 @@ class MainWindow(QMainWindow):
             self,
             "Session Restore",
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,   # default
         )
 
-        if response == QMessageBox.Yes:
+        if response == QMessageBox.StandardButton.Yes:
             logger.debug("User clicked Yes.")
             return True
         else:

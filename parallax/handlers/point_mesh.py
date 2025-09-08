@@ -1,7 +1,7 @@
 """
 This module defines the `PointMesh` class, which provides a 3D visualization of point meshes
 for trajectory analysis. The widget integrates with Plotly to render 3D plots and allows users
-to interact with the displayed points via a PyQt5 interface.
+to interact with the displayed points via a PyQt6 interface.
 
 The class is designed to visualize different sets of points, including local, global, and
 bundle-adjusted (BA) coordinates, which are loaded from a CSV file. Users can toggle the
@@ -12,7 +12,7 @@ Key Features:
 - Parses a CSV file containing trajectory point data.
 - Converts local points to global coordinates using provided transformation matrices.
 - Supports both original and bundle-adjusted transformation matrices.
-- Visualizes point sets in a 3D Plotly plot embedded within a PyQt5 widget.
+- Visualizes point sets in a 3D Plotly plot embedded within a PyQt6 widget.
 - Allows users to toggle visibility of different point sets using buttons.
 - Responsive resizing and dynamic updating of the plot.
 
@@ -35,10 +35,10 @@ import os
 import logging
 import pandas as pd
 import plotly.graph_objs as go
-from PyQt5.QtWidgets import QWidget, QPushButton
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QWidget, QPushButton
+from PyQt6.uic import loadUi
+from PyQt6.QtCore import Qt
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from parallax.config.config_path import ui_dir
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -88,8 +88,13 @@ class PointMesh(QWidget):
         # Load the UI file and set window title
         self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
         self.setWindowTitle(f"{self.sn} - Trajectory 3D View ")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
-                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
 
         # Initialize the widget
         self._set_transM(transM)

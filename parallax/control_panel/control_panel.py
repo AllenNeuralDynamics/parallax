@@ -1,15 +1,16 @@
 """
-This module contains the StageWidget class, which is a PyQt5 QWidget subclass for controlling
+This module contains the StageWidget class, which is a PyQt6 QWidget subclass for controlling
 and calibrating stages in microscopy instruments. It interacts with the application's model
 to manage calibration data and provides UI functionalities for reticle and probe detection,
-and camera calibration. The class integrates with PyQt5 for the UI, handling UI loading,
+and camera calibration. The class integrates with PyQt6 for the UI, handling UI loading,
 initializing components, and linking user actions to calibration processes.
 """
 
 import logging
 import os
-from PyQt5.QtWidgets import QSizePolicy, QSpacerItem, QWidget, QAction
-from PyQt5.uic import loadUi
+from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
+from PyQt6.QtGui import QAction
+from PyQt6.uic import loadUi
 
 from parallax.stages.stage_listener import StageListener
 from parallax.stages.stage_ui import StageUI
@@ -85,9 +86,15 @@ class ControlPanel(QWidget):
         self.stage_status_ui.layout().addWidget(self.probe_calib_handler)  # Add it to the placeholder's layout
 
         # Create a vertical spacer with expanding policy
-        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        spacer = QSpacerItem(
+            20, 40,
+            QSizePolicy.Policy.Minimum,
+            QSizePolicy.Policy.Expanding
+        )
+
         # Add the spacer to the layout
-        self.stage_status_ui.addItem(spacer)
+        self.stage_status_ui.layout().addItem(spacer)
+        #self.stage_status_ui.addItem(spacer)
 
         # Screen Coords Mapper
         self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets,

@@ -17,7 +17,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2  
         with:
-          python-version: '3.8'
+          python-version: '3.10'
 
       - name: Extract version from the package
         id: get_version
@@ -78,7 +78,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.10'
           
       # Step 3: Install dependencies (including Sphinx)
       - name: Install Dependencies

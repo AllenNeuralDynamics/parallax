@@ -1,7 +1,7 @@
 import pytest
 import os
 import pandas as pd
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.model import Model  # Replace with the actual class that represents the model
 

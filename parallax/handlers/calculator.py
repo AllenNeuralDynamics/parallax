@@ -7,9 +7,9 @@ reticle adjustments, and issuing commands for stage movement.
 import os
 import logging
 import numpy as np
-from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, QMessageBox
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, QMessageBox
+from PyQt6.uic import loadUi
+from PyQt6.QtCore import Qt
 
 from parallax.utils.coords_converter import CoordsConverter
 from parallax.stages.stage_controller import StageController
@@ -43,8 +43,13 @@ class Calculator(QWidget):
 
         self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
         self.setWindowTitle("Calculator")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
-                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint   # include if you want it
+            | Qt.WindowType.WindowCloseButtonHint
+        )
 
         self.add_stage_groupbox()  # Add group boxes for each stage dynamically
         self.reticle_selector.currentIndexChanged.connect(self._setCurrentReticle)
@@ -302,7 +307,7 @@ class Calculator(QWidget):
 
             # Set the visible title of the QGroupBox to sn
             group_box.setTitle(f"{sn}")
-            group_box.setAlignment(Qt.AlignRight)  # title alignment to the right
+            group_box.setAlignment(Qt.AlignmentFlag.AlignRight)  # title alignment to the right
 
             # Append _{sn} to the QGroupBox object name
             group_box.setObjectName(f"groupBox_{sn}")
@@ -462,10 +467,10 @@ class Calculator(QWidget):
             self,
             "Move Stage Confirmation",
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        return response == QMessageBox.Yes
+        return response == QMessageBox.StandardButton.Yes
 
     def _connect_clear_buttons(self):
         """

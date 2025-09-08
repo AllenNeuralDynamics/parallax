@@ -1,9 +1,10 @@
 """ Reticle detection handler for the Parallax control panel."""
 import logging
 import os
-from PyQt5.QtCore import QTimer, pyqtSignal
-from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget, QAction
-from PyQt5.uic import loadUi
+from PyQt6.QtCore import QTimer, pyqtSignal
+from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
+from PyQt6.QtGui import QAction
+from PyQt6.uic import loadUi
 from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
 
@@ -221,12 +222,12 @@ class ReticleDetecthandler(QWidget):
             self,
             "Reticle Detection",
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         # Check which button was clicked
-        if response == QMessageBox.Yes:
+        if response == QMessageBox.StandardButton.Yes:
             logger.debug("User clicked Yes.")
             return True
         else:
