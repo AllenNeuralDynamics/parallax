@@ -8,15 +8,15 @@ setting up and performing acute *in vivo* electrophysiology experiments.
 **Documentation**: [parallax.readthedocs.io](https://parallax.readthedocs.io/en/latest/index.html).
 
 ### Prerequisites
-- **Python==3.8** (Recommended to install via 
+- **Python==3.10** (Recommended to install via
 [Anaconda](https://www.anaconda.com/products/individual) or 
 [Miniconda](https://docs.conda.io/en/latest/miniconda.html))
-  -  Python 3.8 is required for the Spinnaker library.
+  -  Python 3.10 is required for the Spinnaker library.
 - [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
 
 
 ### Installation
-1. Create a virtual environment with **Python 3.8** and activate it:
+1. Create a virtual environment with **Python 3.10** and activate it:
 - On Windows:
 ```bash
 conda create -n parallax python=3.10
@@ -34,7 +34,7 @@ pip install parallax-app --upgrade
 ```
 
 3. Install the camera interface (Spinnaker Python)
-Install from the **wheel file** that comes with the Spinnaker SDK. Replace **<WHEEL_PATH>** with the *full path* to your `.whl`:
+Install from the **wheel file** that comes with the Spinnaker SDK ver.4.2. Replace **<WHEEL_PATH>** with the *full path* to your `.whl`:
 
 ```bash
 pip install "<WHEEL_PATH>"
