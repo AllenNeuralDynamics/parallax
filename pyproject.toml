@@ -12,7 +12,7 @@ license =  {text = "MIT"}
 readme = "README.md"
 keywords = ["parallax"]
 dynamic = ["version"]
-requires-python = "~=3.8"
+requires-python = "~=3.10"
 classifiers = [
     "Programming Language :: Python :: 3"
 ]
@@ -28,7 +28,7 @@ dependencies = [
     "requests",
     "scikit-learn",
     "plotly",
-    "PyQt6-WebEngine==6.9.0",
+    "PyQt6-WebEngine",
     "aiohttp",
     "pyyaml"
    ]
