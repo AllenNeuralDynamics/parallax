@@ -31,7 +31,7 @@ class ScreenSetting(QWidget):
         self.settings_refresh_timer = QTimer()  # Refreshing the settingMenu while it is toggled
         self.settings_refresh_timer.timeout.connect(self._update_setting_menu)
 
-        #self._update_setting_menu()  #TBD
+        self._update_setting_menu()
         self.settingButton.toggled.connect(
             lambda checked: self._show_settings_menu(checked)
         )
@@ -130,7 +130,7 @@ class ScreenSetting(QWidget):
         )
         self.settingMenu.gainAuto.clicked.connect(
             lambda: self.settingMenu.gainSlider.setValue(
-                self.screen.get_camera_setting(setting="gain")
+                int(self.screen.get_camera_setting(setting="gain"))
             )
         )
 
@@ -160,7 +160,7 @@ class ScreenSetting(QWidget):
         )
         self.settingMenu.wbAuto.clicked.connect(
             lambda: self.settingMenu.wbSliderBlue.setValue(
-                self.screen.get_camera_setting(setting="wbBlue") * 100
+                int(self.screen.get_camera_setting(setting="wbBlue") * 100)
             )
         )
 
@@ -280,15 +280,15 @@ class ScreenSetting(QWidget):
         saved_settings = UserSettingsManager.load_settings_item(self.sn)
         if saved_settings:
             # If saved settings are found, update the sliders in the settings menu with the saved values
-            self.settingMenu.expSlider.setValue(saved_settings.get("exp", 15))
-            self.settingMenu.gainSlider.setValue(saved_settings.get("gain", 20))
+            self.settingMenu.expSlider.setValue(int(saved_settings.get("exp", 15)))
+            self.settingMenu.gainSlider.setValue(int(saved_settings.get("gain", 20)))
 
             # Gamma
             gammaAuto = saved_settings.get("gammaAuto", None)
             if gammaAuto is True:
                 self.settingMenu.gammaSlider.setEnabled(True)
                 self.settingMenu.gammaSlider.setValue(
-                    saved_settings.get("gamma", 100)
+                    int(saved_settings.get("gamma", 100))
                 )
             elif gammaAuto is False:
                 self.settingMenu.gammaSlider.setEnabled(False)
@@ -302,11 +302,11 @@ class ScreenSetting(QWidget):
                 self.settingMenu.wbSliderBlue.setDisabled(False)
                 self.settingMenu.wbSliderRed.setValue(
                     #saved_settings.get("wbRed", 1.2)
-                    saved_settings.get("wbRed", 1)
+                    saved_settings.get("wbRed", 120)
                 )
                 self.settingMenu.wbSliderBlue.setValue(
                     #saved_settings.get("wbBlue", 2.8)
-                    saved_settings.get("wbBlue", 3)
+                    saved_settings.get("wbBlue", 280)
                 )
             elif self.screen.get_camera_color_type() == "Mono":
                 self.settingMenu.wbAuto.setDisabled(True)

@@ -115,11 +115,11 @@ class ScreenWidgetManager(QObject):
         layout.addWidget(screen)
 
         # Bottom row with buttons
-        #screen_setting = ScreenSetting(parent=group_box, model=self.model, screen=screen)  #TBD
+        screen_setting = ScreenSetting(parent=group_box, model=self.model, screen=screen)
         reticle_detector = ReticleDetectWidget(parent=group_box, model=self.model, screen=screen)
         button_row = QHBoxLayout()
         button_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        #button_row.addWidget(screen_setting.settingButton)
+        button_row.addWidget(screen_setting.settingButton)
         button_row.addWidget(reticle_detector.detectButton)
         layout.addLayout(button_row)
 

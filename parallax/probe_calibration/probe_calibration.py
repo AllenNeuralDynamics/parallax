@@ -720,6 +720,7 @@ class ProbeCalibration(QObject):
             else:
                 return
 
+        """
         # Init PointMesh
         if not self.model.bundle_adjustment:
             self.point_mesh[sn] = PointMesh(self.model, self.file_name, sn,
@@ -728,6 +729,7 @@ class ProbeCalibration(QObject):
             self.point_mesh[sn] = PointMesh(self.model, self.file_name, sn,
                                                        self.old_transM,
                                                        self.transM_LR, calib_completed=True)
+        """
 
         # Emit the signal to indicate that calibration is complete
         self.calib_complete.emit()
@@ -743,6 +745,7 @@ class ProbeCalibration(QObject):
         Behavior:
             - If calibration is incomplete, it shows the trajectory for the current stage.
             - If calibration is complete, it displays the PointMesh instance for the 3D trajectory.
+        """
         """
         try:
             if not self.model.is_stage_calibrated(sn):
@@ -769,6 +772,9 @@ class ProbeCalibration(QObject):
                     print(f"[WARN] Restored session does not support trajectory map for {sn}.")
         except Exception as e:
             print(f"[WARN] view_3d_trajectory failed: {e}")
+        """
+        print("3D trajectory visualization is currently disabled.")
+        pass
 
     def run_bundle_adjustment(self, file_path):
         """
