@@ -9,7 +9,7 @@ import time
 import cv2
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
-from parallax.probe_detection.process_worker import ProcessWorker
+from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerTAM
 
 
 # Set logger name
@@ -199,6 +199,7 @@ class ProbeDetectManager(QObject):
         self.name = camera_name
         self.worker = None          # Worker for refersh screen
         self.processWorker = None   # Worker for processing frames
+        self.tamProcessWorker = None # Worker for TAM processing frames
         self.threadpool = QThreadPool()
 
     def _init_draw_thread(self):
@@ -212,11 +213,20 @@ class ProbeDetectManager(QObject):
         """Initialize the process worker thread."""
         # Get width and height from model
         camera_resolution = self.model.get_camera_resolution(self.name)
+
+        # OpenCV Process Worker
         self.processWorker = ProcessWorker(self.name, camera_resolution, test=self.model.test)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.tip_stopped.connect(self.found_probe)
         self.processWorker.signals.tip_moving.connect(self.found_probe_moving)
         self.processWorker.signals.status.connect(self.worker.update_status)
+
+        # TAM Process Worker
+        self.tamProcessWorker = ProcessWorkerTAM(self.name, camera_resolution, test=self.model.test)
+        self.tamProcessWorker.signals.finished.connect(self._onTamProcessThreadFinished)
+        self.tamProcessWorker.signals.tip_stopped.connect(self.found_probe)
+        self.tamProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
+        self.tamProcessWorker.signals.status.connect(self.worker.update_status)
 
     def start(self):
         """
@@ -240,16 +250,23 @@ class ProbeDetectManager(QObject):
         self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
 
+        self.tamProcessWorker.start_running()
+        self.threadpool.start(self.tamProcessWorker)
+
     def stop(self):
         """
         Stop the probe detection manager by halting the worker thread.
         """
         logger.debug(f"{self.name} - Stopping thread")
-        if self.worker is None and self.processWorker is None:  # State: Stopped
+        if self.worker is None and self.processWorker is None and self.tamProcessWorker is None:  # State: Stopped
             return
 
         if self.processWorker is not None:
             self.processWorker.stop_running()
+
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.stop_running()
+
         if self.worker is not None:
             self.worker.stop_running()
 
@@ -261,6 +278,10 @@ class ProbeDetectManager(QObject):
         """Handle thread finished signal."""
         self.processWorker = None
 
+    def _onTamProcessThreadFinished(self):
+        """Handle thread finished signal."""
+        self.tamProcessWorker = None
+
     def process(self, frame, timestamp):
         """
         Process the frame using the worker.
@@ -271,6 +292,10 @@ class ProbeDetectManager(QObject):
         """
         if self.processWorker is not None:
             self.processWorker.update_frame(frame, timestamp)
+
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.update_frame(frame, timestamp)
+
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
 

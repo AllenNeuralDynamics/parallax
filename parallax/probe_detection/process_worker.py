@@ -126,6 +126,17 @@ class baseProcessWorker(QRunnable):
         pass
 # -----------------------------
 
+class ProcessWorkerTAM(baseProcessWorker):
+    def __init__(self, name, resolution, test=False):
+        """
+        Initialize the Worker object with camera and model data.
+        Args:
+            name (str): Camera serial number.
+            model (object): The main model containing stage and camera data.
+        """
+        super().__init__(name, resolution, test)
+        print(f"{name} - TAM Process Worker initialized")
+
 class ProcessWorker(baseProcessWorker):
     """
     Worker class for performing probe detection in a separate thread. This class handles
@@ -143,6 +154,7 @@ class ProcessWorker(baseProcessWorker):
         self.mask_detect = MaskGenerator()
         self.currPrevCmpProcess = None
         self.currBgCmpProcess = None
+        print(f"{name} - OpenCV Process Worker initialized")
 
     def update_sn(self, sn):
         """Update the serial number and initialize probe detectors.

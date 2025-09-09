@@ -89,6 +89,9 @@ class Model(QObject):
         # probe detector
         self.probeDetectors = []
 
+        # probe detector altorithms # TODO
+        self.probe_detection_algorithm = {}
+
         # coords axis
         self.camera_extrinsic = {}
         self.best_camera_pair = None
@@ -99,6 +102,14 @@ class Model(QObject):
 
         # clicked pts
         self.clicked_pts = OrderedDict()
+
+    def set_probe_detect_algorithms(self, camera_sn, algorithms):
+        """Add probe detection algorithms to the model.
+
+        Args:
+            algorithms (dict): A dictionary of probe detection algorithms to add.
+        """
+        self.probe_detection_algorithm[camera_sn] = algorithms
 
     def get_camera(self, sn):
         return self.cameras.get(sn, {}).get('obj', None)
@@ -364,7 +375,7 @@ class Model(QObject):
         """Reset transformation matrix between local to global coordinates."""
         self.reticle_metadata = {}
 
-    def add_probe_detector(self, probeDetector):
+    def add_probe_detector(self, probeDetector):  # TODO
         """Add a probe detector.
 
         Args:

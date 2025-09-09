@@ -32,10 +32,14 @@ class ProbeDetectWidget(QWidget):
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
         )
-        #self.settingMenu.run_pushBtn.clicked.connect(self._run_detection)
+        self.settingMenu.run_pushBtn.clicked.connect(self._apply_detection_algorithm)
         #self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
         #self.screen.reticle_coords_detected.connect(self._reticle_detected)
         #self.screen.reticle_coords_detect_finished.connect(self._enable_run_button)
+        self._init_model_setting()
+
+    def _init_model_setting(self):
+        self.model.set_probe_detect_algorithms(self.screen.camera_name, 'opencv')
 
     def _is_tam_available(self):
         """Check if realtime_efficient_tam is available by verifying import and file presence."""
@@ -48,26 +52,18 @@ class ProbeDetectWidget(QWidget):
             logger.warning("[WARN] realtime_efficient_tam package is not installed.")
             return False
 
-    def _run_detection(self):
-        """Run the reticle detection based on the selected method."""
-        # Disable button and change appearance
-        self.settingMenu.run_pushBtn.setEnabled(False)
-        self.settingMenu.run_pushBtn.setText("Running...")
-
-        # Reset previous detection data
-        self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
-
+    def _apply_detection_algorithm(self):
+        """Apply the selected detection algorithm to the screen and model."""
         # Run open cv default detection
         if self.settingMenu.radioButton1.isChecked():
-            print(f"{self.screen.camera_name} - Running OpenCV detection")
-            if self.screen.get_camera_color_type() == "Color":
-                self.screen.run_reticle_detection()
+            print(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
+            self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'opencv')
 
         # SuperPoint + LightGlue detection
         elif self.settingMenu.radioButton2.isChecked():
-            print(f"{self.screen.camera_name} - Running SuperPoint + LightGlue")
-            if self.screen.get_camera_color_type() == "Color":
-                self.screen.run_cnn_reticle_detection()
+            print(f"{self.screen.camera_name} - 'Realtime Efficient TAM' tracking selected")
+            self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'tam')
+
 
     def _enable_run_button(self):
         """Enable the run button after detection is finished."""

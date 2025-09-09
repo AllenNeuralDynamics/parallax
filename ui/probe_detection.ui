@@ -36,33 +36,6 @@ font: 8pt;
    <property name="verticalSpacing">
     <number>1</number>
    </property>
-   <item row="1" column="0">
-    <widget class="QRadioButton" name="radioButton1">
-     <property name="text">
-      <string>OpenCV</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <widget class="QPushButton" name="run_pushBtn">
-     <property name="text">
-      <string>Run</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QRadioButton" name="radioButton2">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="text">
-      <string>RealtimeTAM</string>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="0">
     <widget class="QLabel" name="label">
      <property name="font">
@@ -80,10 +53,30 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="4" column="0">
-    <widget class="QPushButton" name="reset_pushBtn">
+   <item row="3" column="0">
+    <widget class="QPushButton" name="run_pushBtn">
      <property name="text">
-      <string>Reset</string>
+      <string>Apply</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QRadioButton" name="radioButton1">
+     <property name="text">
+      <string>OpenCV</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QRadioButton" name="radioButton2">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="text">
+      <string>RealtimeTAM</string>
      </property>
     </widget>
    </item>
