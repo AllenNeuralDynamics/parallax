@@ -449,7 +449,7 @@ class ProcessWorker(QRunnable):
         if self.probeDetect.angle:
             if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
                 self.signals.tip_stopped.emit(
-                    self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, None
+                    self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, (None, None)
                 )
                 logger.info(f"Emit tip stopped signal with coords: {self.probeDetect.probe_tip_org}")
 
@@ -563,7 +563,7 @@ class ProbeDetectManager(QObject):
         # Update into screen
         if self.worker is not None:
             self.worker.update_tip_coords(tip_coords, color=(255, 0, 0))
-        if self.model.test and base_coords is not None:
+        if self.model.test and base_coords is not (None, None):
             self.worker.update_base_coords(base_coords, color=(0, 255, 0))
 
         moving_stage = self.model.get_stage(sn)
