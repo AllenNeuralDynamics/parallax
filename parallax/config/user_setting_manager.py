@@ -1,5 +1,5 @@
 """
-Manages user settings for a PyQt5-based application.
+Manages user settings for a PyQt6-based application.
 
 Key Functionalities:
 - Persistent storage of user preferences in a JSON format.

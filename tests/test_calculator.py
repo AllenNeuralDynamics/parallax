@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from unittest.mock import MagicMock
-from PyQt5.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QPushButton, QLineEdit, QComboBox, QLabel
+from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QPushButton, QLineEdit, QComboBox, QLabel
 import parallax.handlers.calculator as calc_mod
 from parallax.handlers.calculator import Calculator
 

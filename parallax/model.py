@@ -8,7 +8,7 @@ their initialization, configuration, and transformations between local and globa
 """
 import numpy as np
 from collections import OrderedDict
-from PyQt5.QtCore import QObject
+from PyQt6.QtCore import QObject
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo

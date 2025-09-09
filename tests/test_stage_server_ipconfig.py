@@ -3,7 +3,7 @@ import os
 import json
 import pytest
 from unittest.mock import MagicMock
-from PyQt5.QtWidgets import QLineEdit
+from PyQt6.QtWidgets import QLineEdit
 from parallax.stages.stage_server_ipconfig import StageServerIPConfig
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data", "stage_server_ipconfig")

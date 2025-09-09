@@ -9,7 +9,7 @@ import time
 
 import cv2
 import numpy as np
-from PyQt5.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
 
 from parallax.probe_detection.curr_bg_cmp_processor import CurrBgCmpProcessor
 from parallax.probe_detection.curr_prev_cmp_processor import CurrPrevCmpProcessor

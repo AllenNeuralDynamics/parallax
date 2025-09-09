@@ -12,14 +12,14 @@ license =  {text = "MIT"}
 readme = "README.md"
 keywords = ["parallax"]
 dynamic = ["version"]
-requires-python = "~=3.8"
+requires-python = "~=3.10"
 classifiers = [
     "Programming Language :: Python :: 3"
 ]
 
 dependencies = [
     "pip",
-    "PyQt5>=5.15",
+    "PyQt6",
     "pyqtgraph",
     "opencv-python",
     "scipy",
@@ -28,7 +28,7 @@ dependencies = [
     "requests",
     "scikit-learn",
     "plotly",
-    "PyQtWebEngine",
+    "PyQt6-WebEngine",
     "aiohttp",
     "pyyaml"
    ]
@@ -46,7 +46,6 @@ readme = {file = "README.md"}
  
 [project.optional-dependencies]
 dev = ['parallax-app[linters]']
-camera = ["spinnaker-python"]
 
 linters = [
     'codespell',
