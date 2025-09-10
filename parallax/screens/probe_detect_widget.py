@@ -45,8 +45,8 @@ class ProbeDetectWidget(QWidget):
         """Check if realtime_efficient_tam is available by verifying import and file presence."""
         # Check if realtime_efficient_tam can be imported
         try:
-            import efficient_track_anything as tam
-            logger.debug(f"Realtime EfficientTrackAnything version: {tam.__version__}")
+            import efficient_track_anything
+            logger.debug(f"Realtime EfficientTrackAnything version: {efficient_track_anything.__version__}")
             return True
         except ImportError:
             logger.warning("[WARN] realtime_efficient_tam package is not installed.")

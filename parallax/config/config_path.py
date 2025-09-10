@@ -42,6 +42,9 @@ cnn_export_dir = debug_dir / "cnn_export_dir"
 cnn_img_dir.mkdir(parents=True, exist_ok=True)
 cnn_export_dir.mkdir(parents=True, exist_ok=True)
 
+# Realtime Efficient Track Anything model directory
+tam_model_dir = project_root / "external" / "EfficientTam"
+
 # Font
 fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")
 

@@ -350,6 +350,10 @@ class ProbeDetectManager(QObject):
             self.processWorker.update_sn(sn)
             self.processWorker.start_detection()
 
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.update_sn(sn)
+            self.tamProcessWorker.start_detection()
+
     def stop_detection(self, sn):  # Call from stage listener.
         """Stop the probe detection for a specific serial number.
 
@@ -358,6 +362,9 @@ class ProbeDetectManager(QObject):
         """
         if self.processWorker is not None:
             self.processWorker.stop_detection()
+
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.stop_detection()
 
     def enable_calibration(self, stage_ts, sn):  # Call from stage listener.
         """
@@ -372,6 +379,10 @@ class ProbeDetectManager(QObject):
         if self.processWorker is not None:
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.update_stage_timestamp(stage_ts)
+            self.tamProcessWorker.enable_calib()
+
 
     def disable_calibration(self, sn):  # Call from stage listener.
         """
@@ -382,6 +393,8 @@ class ProbeDetectManager(QObject):
         """
         if self.processWorker is not None:
             self.processWorker.disable_calib()
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.disable_calib()
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
@@ -400,6 +413,8 @@ class ProbeDetectManager(QObject):
 
         if self.processWorker is not None:
             self.processWorker.set_name(self.name)
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.set_name(self.name)
         logger.debug(f"{self.name} set camera name")
 
     def get_reticle_coords(self, name):
@@ -412,3 +427,5 @@ class ProbeDetectManager(QObject):
         """Get clicked position."""
         if self.processWorker is not None:
             self.processWorker.clicked_position(pt)
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.clicked_position(pt)

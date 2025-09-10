@@ -3,6 +3,7 @@ import logging
 import cv2
 import time
 import numpy as np
+from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QRunnable
 
 from parallax.probe_detection.curr_bg_cmp_processor import CurrBgCmpProcessor
@@ -10,12 +11,20 @@ from parallax.probe_detection.curr_prev_cmp_processor import CurrPrevCmpProcesso
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.probe_detector import ProbeDetector
 from parallax.reticle_detection.reticle_detection import ReticleDetection
-from parallax.config.config_path import debug_img_dir
-
+from parallax.config.config_path import debug_img_dir, tam_model_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+try:
+    #import efficient_track_anything  # noqa: F401
+    from efficient_track_anything.realtime_tam import build_predictor, start, track
+    print(f"Realtime EfficientTrackAnything imported")
+except ImportError:
+    logger.warning("[WARN] realtime_efficient_tam package is not installed.")
+    print("[WARN] realtime_efficient_tam package is not installed.")
 
 
 class ProcessWorkerSignal(QObject):
@@ -23,6 +32,7 @@ class ProcessWorkerSignal(QObject):
     finished = pyqtSignal()
     tip_stopped = pyqtSignal(float, float, str, tuple, tuple)
     tip_moving = pyqtSignal(float, str, tuple, tuple)
+    seg_mask = pyqtSignal(np.ndarray)
     status = pyqtSignal(str)
 
 class baseProcessWorker(QRunnable):
@@ -124,9 +134,37 @@ class baseProcessWorker(QRunnable):
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
         pass
+
+    def _prepare_current_image(self):
+        """Convert and blur the frame, generate mask."""
+        if self.frame.ndim > 2:
+            self.gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        else:
+            self.gray_img = self.frame
+
+        self.curr_img = cv2.resize(self.gray_img, self.IMG_SIZE)
+        self.curr_img = cv2.GaussianBlur(self.curr_img, (9, 9), 0)
+        """
+        if self.probeDetect.nShanks == 1:
+            self.curr_img = cv2.GaussianBlur(self.curr_img, (9, 9), 0)
+        else:
+            self.curr_img = cv2.GaussianBlur(self.curr_img, (3, 3), 0)
+        """
+
+    def enable_calib(self):
+        """Enable calibration mode."""
+        self.probe_stopped = True
+        self.stopped_first_frame = True
+
+    def disable_calib(self):
+        """Disable calibration mode."""
+        self.probe_stopped = False
+        self.stopped_first_frame = False
 # -----------------------------
 
 class ProcessWorkerTAM(baseProcessWorker):
+    CKPT_NAME = "efficienttam_ti_512x512.pt"
+
     def __init__(self, name, resolution, test=False):
         """
         Initialize the Worker object with camera and model data.
@@ -135,7 +173,71 @@ class ProcessWorkerTAM(baseProcessWorker):
             model (object): The main model containing stage and camera data.
         """
         super().__init__(name, resolution, test)
-        print(f"{name} - TAM Process Worker initialized")
+
+        self.predictor = None
+        self.cnt = 1
+        self.checkpoint_path = self._import_checkpoint()
+
+    def _import_checkpoint(self):
+        ckpt = Path(tam_model_dir) / self.CKPT_NAME
+        if not ckpt.is_file():
+            logger.error(f"Checkpoint not found at {ckpt}. Expected under tam_model_dir={tam_model_dir}")
+            return None
+        print(f"TAM checkpoint found at {ckpt}")
+        return ckpt
+
+    @pyqtSlot()
+    def process(self):
+        """
+        Main probe detection logic:
+        1. Prepares the current image.
+        2. Handles reticle zone setup.
+        3. Runs comparison via currPrevCmpProcess or currBgCmpProcess.
+        4. Emits signal when probe is found or moving.
+        """
+        # Process only when probe is stopped
+        if not self.probe_stopped:
+            return
+        
+        if self.checkpoint_path is None:
+            return
+
+        print(f"{self.name} process Tam", self.cnt)
+        self.cnt += 1
+
+        self._prepare_current_image()
+        if not self.running:
+            return
+
+        #if self.probeDetect.angle is None:
+        self.is_detection_on = False # pause detection while TAM handling the frame
+        if self.predictor is None:
+            try:
+                print(f"{self.name} TAM initializing..")
+                self.predictor = build_predictor(tam_checkpoint=str(self.checkpoint_path))
+                pt = np.array([[910, 740]], dtype=np.float32)
+
+                print(f"{self.name} TAM starting..")
+                start(self.predictor, self.curr_img, pt)
+            except Exception as e:
+                logger.error(f"Error occurred while starting TAM: {e}")
+
+        elif not self.predictor.initialized:
+            self.is_detection_on = True
+            print(f"{self.name} TAM not initialized yet..")
+            return # wait until initialized in start()
+        elif self.predictor.initialized:
+            print(f"{self.name} TAM initialized..")
+            try:
+                _, out_mask_logits = track(self.predictor, self.curr_img)
+                #mask = tam.utils.helper.masks_to_uint8_batch(out_mask_logits)
+                #self.signals.seg_mask.emit(mask[0])
+                #overlay = tam.utils.helper.overlay_mask_bgr(self.curr_img, mask[0], alpha=0.5)
+                print("TAM tracking..", out_mask_logits)
+            except Exception as e:
+                logger.error(f"Error occurred while tracking: {e}")
+
+        self.is_detection_on = True # resume detection
 
 class ProcessWorker(baseProcessWorker):
     """
@@ -197,7 +299,9 @@ class ProcessWorker(baseProcessWorker):
         3. Runs comparison via currPrevCmpProcess or currBgCmpProcess.
         4. Emits signal when probe is found or moving.
         """
+
         self._prepare_current_image()
+        self.mask = self.mask_detect.process(self.curr_img)
         if not self.running:
             return
 
@@ -210,20 +314,6 @@ class ProcessWorker(baseProcessWorker):
             self._run_first_cmp()
         else:
             self._run_tracking_cmp()
-    
-    def _prepare_current_image(self):
-        """Convert and blur the frame, generate mask."""
-        if self.frame.ndim > 2:
-            self.gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        else:
-            self.gray_img = self.frame
-
-        self.curr_img = cv2.resize(self.gray_img, self.IMG_SIZE)
-        if self.probeDetect.nShanks == 1:
-            self.curr_img = cv2.GaussianBlur(self.curr_img, (9, 9), 0)
-        else:
-            self.curr_img = cv2.GaussianBlur(self.curr_img, (3, 3), 0)
-        self.mask = self.mask_detect.process(self.curr_img)
 
     def _set_reticle_zone(self):
         """Set the reticle zone if it does not exist."""
@@ -307,16 +397,6 @@ class ProcessWorker(baseProcessWorker):
                 self.signals.tip_moving.emit(self.img_ts, self.sn, self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
                 return True
             return False
-
-    def enable_calib(self):
-        """Enable calibration mode."""
-        self.probe_stopped = True
-        self.stopped_first_frame = True
-
-    def disable_calib(self):
-        """Disable calibration mode."""
-        self.probe_stopped = False
-        self.stopped_first_frame = False
 
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
