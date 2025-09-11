@@ -12,6 +12,7 @@ from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.probe_detector import ProbeDetector
 from parallax.reticle_detection.reticle_detection import ReticleDetection
 from parallax.config.config_path import debug_img_dir, tam_model_dir
+from parallax.utils.utils import UtilsCoords
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ logger.setLevel(logging.DEBUG)
 try:
     #import efficient_track_anything  # noqa: F401
     from efficient_track_anything.realtime_tam import build_predictor, start, track
-    from efficient_track_anything.utils.helper import masks_to_uint8_batch, overlay_mask_bgr
+    from efficient_track_anything.utils.helper import masks_to_uint8_batch
     print(f"Realtime EfficientTrackAnything imported successfully.")
 except ImportError:
     logger.warning("[WARN] realtime_efficient_tam package is not installed.")
@@ -189,12 +190,16 @@ class ProcessWorkerTAM(baseProcessWorker):
         if self.checkpoint_path is None:
             return
 
+        if self.predictor is None:
+            return
+
         self.cnt += 1
 
         self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
         if not self.running:
             return
 
+        """
         self.stop_detection()  # pause detection while TAM handling the frame
         if self.predictor is None:
             try:
@@ -208,8 +213,9 @@ class ProcessWorkerTAM(baseProcessWorker):
                 return
             except Exception as e:
                 logger.error(f"Error occurred while starting TAM: {e}")
-
-        elif not self.predictor.initialized:
+        """
+        self.stop_detection()  # pause detection while TAM handling the frame
+        if not self.predictor.initialized:
             print(f"{self.name} TAM not initialized yet..")
             return # wait until initialized in start()
         elif self.predictor.initialized:
@@ -223,6 +229,28 @@ class ProcessWorkerTAM(baseProcessWorker):
             except Exception as e:
                 logger.error(f"Error occurred while tracking: {e}")
 
+    def clicked_position(self, pt):
+        """Handle clicked position for calibration."""
+        self.stop_detection()  # pause detection while TAM handling the frame
+        if self.predictor is None:
+            try:
+                print(f"{self.name} TAM initializing..")
+                self.predictor = build_predictor(tam_checkpoint=str(self.checkpoint_path))
+
+                print("original pt:", pt)
+                pt = UtilsCoords.scale_coords_to_resized_img(pt, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+                print("resized pt:", pt)
+                x, y = int(pt[0]), int(pt[1])
+                pt = np.array([[x, y]], dtype=np.float32)
+
+                print(f"{self.name} TAM starting..")
+                self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
+                start(self.predictor, self.curr_img, pt)
+                return
+            except Exception as e:
+                logger.error(f"Error occurred while starting TAM: {e}")
+
+# -----------------------------
 class ProcessWorker(baseProcessWorker):
     """
     Worker class for performing probe detection in a separate thread. This class handles
