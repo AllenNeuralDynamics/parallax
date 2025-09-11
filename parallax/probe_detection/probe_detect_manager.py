@@ -254,6 +254,7 @@ class ProbeDetectManager(QObject):
         self.worker = None          # Worker for refersh screen
         self.processWorker = None   # Worker for processing frames
         self.tamProcessWorker = None # Worker for TAM processing frames
+        self._prev_ts = None
         self.threadpool = QThreadPool()
 
     def _init_draw_thread(self):
@@ -345,15 +346,20 @@ class ProbeDetectManager(QObject):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-        if self.processWorker is not None:
-            self.processWorker.update_frame(frame, timestamp)
+        if self._prev_ts is None:
+            self._prev_ts = timestamp
 
-        if self.tamProcessWorker is not None:
-            self.tamProcessWorker.update_frame(frame, timestamp)
+        if self._prev_ts is not None and (timestamp - self._prev_ts) > 0.5: # TODO Adjust time gap
+            if self.processWorker is not None:
+                self.processWorker.update_frame(frame, timestamp)
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.update_frame(frame, timestamp)
+            self._prev_ts = timestamp
 
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
 
+        
     @pyqtSlot(float, float, str, tuple, tuple)
     def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):
         """
