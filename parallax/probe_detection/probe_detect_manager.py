@@ -48,6 +48,7 @@ class DrawWorker(QRunnable):
         self.tip_coords_color, self.base_coords_color = None, None
         self.h = None
         self.w = None
+        self.seg_mask = None
         self.status = "first_detect"
         self.register_colormap()
 
@@ -76,6 +77,13 @@ class DrawWorker(QRunnable):
                 color = self.colormap_reticle_debug[i][0].tolist()
                 cv2.circle(self.frame, (x, y), 3, color, -1)
 
+    def _draw_segmentation(self):
+        """
+        Overlay segmentation mask on the frame.
+        """
+        if self.seg_mask is not None:
+            self._overlay_mask_bgr(alpha=0.5)
+
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
         if self.reticle_coords is not None:
@@ -103,6 +111,7 @@ class DrawWorker(QRunnable):
                 self._draw_reticle()
                 self._draw_coords()
                 self._draw_detection_status()
+                self._draw_segmentation()
                 self.signals.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.001)
@@ -177,6 +186,26 @@ class DrawWorker(QRunnable):
         """Update the status of the worker."""
         self.status = status
 
+    def found_seg_mask(self, mask):
+        """Update the segmentation mask on the frame."""
+        self.seg_mask = self._resize_mask(mask)
+
+    def _resize_mask(self, mask_uint8: np.ndarray) -> np.ndarray:
+        if self.frame is not None:
+            return cv2.resize(mask_uint8, (self.frame.shape[1], self.frame.shape[0]), interpolation=cv2.INTER_LINEAR)
+        return mask_uint8
+
+    def _overlay_mask_bgr(self, alpha: float = 0.35, color=(0, 255, 0)) -> np.ndarray:
+        # ensure mask is (H,W) and contiguous
+        m = np.ascontiguousarray(self.seg_mask)
+        # create 3-channel color layer where mask > 0
+        color_layer = np.zeros_like(self.frame, dtype=np.uint8)
+        color_layer[m > 0] = color
+        # alpha blend only on mask area
+        self.frame = self.frame.astype(np.float32)
+        self.frame[m > 0] = (1 - alpha) * self.frame[m > 0] + alpha * color_layer[m > 0]
+        self.frame.astype(np.uint8)
+
 class ProbeDetectManager(QObject):
     """
     Manager class for probe detection. It handles frame processing, probe detection,
@@ -227,6 +256,7 @@ class ProbeDetectManager(QObject):
         self.tamProcessWorker.signals.tip_stopped.connect(self.found_probe)
         self.tamProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
         self.tamProcessWorker.signals.status.connect(self.worker.update_status)
+        self.tamProcessWorker.signals.seg_mask.connect(self.worker.found_seg_mask)
 
     def start(self):
         """

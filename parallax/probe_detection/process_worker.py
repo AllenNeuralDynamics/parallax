@@ -21,6 +21,7 @@ logger.setLevel(logging.DEBUG)
 try:
     #import efficient_track_anything  # noqa: F401
     from efficient_track_anything.realtime_tam import build_predictor, start, track
+    from efficient_track_anything.utils.helper import masks_to_uint8_batch, overlay_mask_bgr
     print(f"Realtime EfficientTrackAnything imported successfully.")
 except ImportError:
     logger.warning("[WARN] realtime_efficient_tam package is not installed.")
@@ -137,7 +138,6 @@ class baseProcessWorker(QRunnable):
         """Handle clicked position for calibration."""
         pass
 
-
     def enable_calib(self):
         """Enable calibration mode."""
         self.probe_stopped = True
@@ -216,8 +216,8 @@ class ProcessWorkerTAM(baseProcessWorker):
             try:
                 print(f"{self.name} process Tam", self.cnt)
                 _, out_mask_logits = track(self.predictor, self.curr_img)
-                #mask = tam.utils.helper.masks_to_uint8_batch(out_mask_logits)
-                #self.signals.seg_mask.emit(mask[0])
+                mask = masks_to_uint8_batch(out_mask_logits)
+                self.signals.seg_mask.emit(mask[0])
                 #overlay = tam.utils.helper.overlay_mask_bgr(self.curr_img, mask[0], alpha=0.5)
                 #print("TAM tracking..", out_mask_logits)
             except Exception as e:
