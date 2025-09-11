@@ -21,7 +21,7 @@ logger.setLevel(logging.DEBUG)
 try:
     #import efficient_track_anything  # noqa: F401
     from efficient_track_anything.realtime_tam import build_predictor, start, track
-    print(f"Realtime EfficientTrackAnything imported")
+    print(f"Realtime EfficientTrackAnything imported successfully.")
 except ImportError:
     logger.warning("[WARN] realtime_efficient_tam package is not installed.")
     print("[WARN] realtime_efficient_tam package is not installed.")
@@ -98,10 +98,12 @@ class baseProcessWorker(QRunnable):
     def start_detection(self):
         """Start the probe detection."""
         self.is_detection_on = True
+        print(f"{self.name} Detection started")
 
     def stop_detection(self):
         """Stop the probe detection."""
         self.is_detection_on = False
+        print(f"{self.name} Detection stopped")
 
     def enable_calib(self):
         """Enable calibration mode."""
@@ -135,21 +137,6 @@ class baseProcessWorker(QRunnable):
         """Handle clicked position for calibration."""
         pass
 
-    def _prepare_current_image(self):
-        """Convert and blur the frame, generate mask."""
-        if self.frame.ndim > 2:
-            self.gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        else:
-            self.gray_img = self.frame
-
-        self.curr_img = cv2.resize(self.gray_img, self.IMG_SIZE)
-        self.curr_img = cv2.GaussianBlur(self.curr_img, (9, 9), 0)
-        """
-        if self.probeDetect.nShanks == 1:
-            self.curr_img = cv2.GaussianBlur(self.curr_img, (9, 9), 0)
-        else:
-            self.curr_img = cv2.GaussianBlur(self.curr_img, (3, 3), 0)
-        """
 
     def enable_calib(self):
         """Enable calibration mode."""
@@ -183,7 +170,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         if not ckpt.is_file():
             logger.error(f"Checkpoint not found at {ckpt}. Expected under tam_model_dir={tam_model_dir}")
             return None
-        print(f"TAM checkpoint found at {ckpt}")
+        print(f"TAM checkpoint found")
         return ckpt
 
     @pyqtSlot()
@@ -198,46 +185,43 @@ class ProcessWorkerTAM(baseProcessWorker):
         # Process only when probe is stopped
         if not self.probe_stopped:
             return
-        
+
         if self.checkpoint_path is None:
             return
 
-        print(f"{self.name} process Tam", self.cnt)
         self.cnt += 1
 
-        self._prepare_current_image()
+        self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
         if not self.running:
             return
 
-        #if self.probeDetect.angle is None:
-        self.is_detection_on = False # pause detection while TAM handling the frame
+        self.stop_detection()  # pause detection while TAM handling the frame
         if self.predictor is None:
             try:
+                print(f"{self.name} process Tam", self.cnt)
                 print(f"{self.name} TAM initializing..")
                 self.predictor = build_predictor(tam_checkpoint=str(self.checkpoint_path))
                 pt = np.array([[910, 740]], dtype=np.float32)
 
                 print(f"{self.name} TAM starting..")
                 start(self.predictor, self.curr_img, pt)
+                return
             except Exception as e:
                 logger.error(f"Error occurred while starting TAM: {e}")
 
         elif not self.predictor.initialized:
-            self.is_detection_on = True
             print(f"{self.name} TAM not initialized yet..")
             return # wait until initialized in start()
         elif self.predictor.initialized:
-            print(f"{self.name} TAM initialized..")
             try:
+                print(f"{self.name} process Tam", self.cnt)
                 _, out_mask_logits = track(self.predictor, self.curr_img)
                 #mask = tam.utils.helper.masks_to_uint8_batch(out_mask_logits)
                 #self.signals.seg_mask.emit(mask[0])
                 #overlay = tam.utils.helper.overlay_mask_bgr(self.curr_img, mask[0], alpha=0.5)
-                print("TAM tracking..", out_mask_logits)
+                #print("TAM tracking..", out_mask_logits)
             except Exception as e:
                 logger.error(f"Error occurred while tracking: {e}")
-
-        self.is_detection_on = True # resume detection
 
 class ProcessWorker(baseProcessWorker):
     """
@@ -290,6 +274,21 @@ class ProcessWorker(baseProcessWorker):
             else:         
                 pass
 
+    def _prepare_current_image(self):
+        """Convert and blur the frame, generate mask."""
+        if self.frame.ndim > 2:
+            self.gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        else:
+            self.gray_img = self.frame
+
+        self.curr_img = cv2.resize(self.gray_img, self.IMG_SIZE)
+        if self.probeDetect.nShanks == 1:
+            self.curr_img = cv2.GaussianBlur(self.curr_img, (9, 9), 0)
+        else:
+            self.curr_img = cv2.GaussianBlur(self.curr_img, (3, 3), 0)
+
+        self.mask = self.mask_detect.process(self.curr_img)
+
     @pyqtSlot()
     def process(self):
         """
@@ -299,9 +298,7 @@ class ProcessWorker(baseProcessWorker):
         3. Runs comparison via currPrevCmpProcess or currBgCmpProcess.
         4. Emits signal when probe is found or moving.
         """
-
         self._prepare_current_image()
-        self.mask = self.mask_detect.process(self.curr_img)
         if not self.running:
             return
 
@@ -344,7 +341,7 @@ class ProcessWorker(baseProcessWorker):
             self.signals.status.emit("update")
             return True
         else:
-            logger.debug(f"{self.name} - First comparison failed")
+            #logger.debug(f"{self.name} - First comparison failed")
             return False
 
     def _run_tracking_cmp(self) -> bool:
