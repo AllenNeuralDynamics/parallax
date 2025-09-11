@@ -48,7 +48,7 @@ class DrawWorker(QRunnable):
         self.tip_coords_color, self.base_coords_color = None, None
         self.h = None
         self.w = None
-        self.seg_mask = None
+        self.seg_mask, self.mask_bool = None, None
         self.status = "first_detect"
         self.register_colormap()
 
@@ -82,7 +82,7 @@ class DrawWorker(QRunnable):
         Overlay segmentation mask on the frame.
         """
         if self.seg_mask is not None:
-            self._overlay_mask_bgr(alpha=0.5)
+            self._overlay_mask_bgr(alpha=0.3)
 
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
@@ -182,29 +182,54 @@ class DrawWorker(QRunnable):
         #if self.frame is not None and base_coords is not None:
         #    cv2.circle(self.frame, base_coords, 5, color, -1)
 
+    def update_seg_mask(self, mask):
+        self.seg_mask = mask
+
     def update_status(self, status):
         """Update the status of the worker."""
         self.status = status
 
     def found_seg_mask(self, mask):
-        """Update the segmentation mask on the frame."""
-        self.seg_mask = self._resize_mask(mask)
+        """Called when a new segmentation mask arrives."""
+        if self.frame is None or mask is None:
+            return
+        # prepare/caches used by the fast overlay
+        self.mask_bool = self._resize_and_binarize(mask, target_hw=self.frame.shape[:2])
+        self.seg_mask = self._prepare_color_layer(self.mask_bool)
 
-    def _resize_mask(self, mask_uint8: np.ndarray) -> np.ndarray:
-        if self.frame is not None:
-            return cv2.resize(mask_uint8, (self.frame.shape[1], self.frame.shape[0]), interpolation=cv2.INTER_LINEAR)
-        return mask_uint8
+    def _resize_and_binarize(self, m, target_hw):
+        H, W = target_hw
+        m = np.asarray(m)
+        # squeeze common shapes: (1,H,W) or (H,W,1)
+        if m.ndim == 3:
+            if m.shape[0] == 1:
+                m = m[0]
+            elif m.shape[-1] == 1:
+                m = m[..., 0]
+        # threshold to {0,1}
+        m = (m > 0).astype(np.uint8)
+        # resize to frame size (NEAREST for labels)
+        if m.shape[:2] != (H, W):
+            m = cv2.resize(m, (W, H), interpolation=cv2.INTER_NEAREST)
+        return np.ascontiguousarray(m.astype(bool))
 
-    def _overlay_mask_bgr(self, alpha: float = 0.35, color=(0, 255, 0)) -> np.ndarray:
-        # ensure mask is (H,W) and contiguous
-        m = np.ascontiguousarray(self.seg_mask)
-        # create 3-channel color layer where mask > 0
-        color_layer = np.zeros_like(self.frame, dtype=np.uint8)
-        color_layer[m > 0] = color
-        # alpha blend only on mask area
-        self.frame = self.frame.astype(np.float32)
-        self.frame[m > 0] = (1 - alpha) * self.frame[m > 0] + alpha * color_layer[m > 0]
-        self.frame.astype(np.uint8)
+    def _prepare_color_layer(self, mask_bool, color=(0, 255, 0)):
+        layer = np.zeros_like(self.frame, dtype=np.uint8)
+        if mask_bool.any():
+            layer[mask_bool] = color
+        return layer
+
+    def _overlay_mask_bgr(self, alpha: float = 0.35) -> None:
+        """Fast per-frame overlay using cached mask/color layer."""
+        if self.frame is None or self.seg_mask is None or self.mask_bool is None:
+            return
+        if not self.seg_mask.any():
+            return
+
+        m = self.mask_bool
+        f_m = self.frame[m].astype(np.float32, copy=False)
+        c_m = self.seg_mask[m].astype(np.float32, copy=False)
+        self.frame[m] = ((1.0 - alpha) * f_m + alpha * c_m).astype(np.uint8, copy=False)
 
 class ProbeDetectManager(QObject):
     """
@@ -406,6 +431,7 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
+            #self.worker.update_seg_mask(None)
         if self.processWorker is not None:
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
@@ -428,6 +454,7 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
+            #self.worker.update_seg_mask(None)
 
     def set_name(self, camera_name):
         """
