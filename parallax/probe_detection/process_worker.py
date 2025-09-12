@@ -107,14 +107,6 @@ class baseProcessWorker(QRunnable):
         self.is_detection_on = False
         print(f"{self.name} Detection stopped")
 
-    def enable_calib(self):
-        """Enable calibration mode."""
-        self.probe_stopped = True
-
-    def disable_calib(self):
-        """Disable calibration mode."""
-        self.probe_stopped = False
-
     def run(self):
         """Run the worker thread."""
         logger.debug(f"{self.name} - Process worker running ")
@@ -123,7 +115,7 @@ class baseProcessWorker(QRunnable):
                 if self.is_detection_on:
                     self.process()
                 self.new = False
-            time.sleep(0.001)
+            time.sleep(0.1)
         logger.debug(f"{self.name} - Process worker running done")
         self.signals.finished.emit()
 
@@ -165,6 +157,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         self.predictor = None
         self.cnt = 1
         self.checkpoint_path = self._import_checkpoint()
+        self._prev_pt = None
 
     def _import_checkpoint(self):
         ckpt = Path(tam_model_dir) / self.CKPT_NAME
@@ -186,69 +179,55 @@ class ProcessWorkerTAM(baseProcessWorker):
         # Process only when probe is stopped
         if not self.probe_stopped:
             return
-
         if self.checkpoint_path is None:
             return
-
         if self.predictor is None:
             return
 
-        self.cnt += 1
-
-        self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
+        self.stop_detection()
+        if not self.predictor.initialized:
+            return
         if not self.running:
             return
 
-        """
-        self.stop_detection()  # pause detection while TAM handling the frame
-        if self.predictor is None:
-            try:
-                print(f"{self.name} process Tam", self.cnt)
-                print(f"{self.name} TAM initializing..")
-                self.predictor = build_predictor(tam_checkpoint=str(self.checkpoint_path))
-                pt = np.array([[910, 740]], dtype=np.float32)
+        try:
+            self.cnt += 1
+            print(f"{self.name} process Tam", self.cnt)
+            self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
+            _, out_mask_logits = track(self.predictor, self.curr_img)
+            mask = masks_to_uint8_batch(out_mask_logits)
+            self.signals.seg_mask.emit(mask[0])
+        except Exception as e:
+            logger.error(f"Error occurred while tracking: {e}")
 
-                print(f"{self.name} TAM starting..")
-                start(self.predictor, self.curr_img, pt)
-                return
-            except Exception as e:
-                logger.error(f"Error occurred while starting TAM: {e}")
-        """
-        self.stop_detection()  # pause detection while TAM handling the frame
-        if not self.predictor.initialized:
-            print(f"{self.name} TAM not initialized yet..")
-            return # wait until initialized in start()
-        elif self.predictor.initialized:
-            try:
-                print(f"{self.name} process Tam", self.cnt)
-                _, out_mask_logits = track(self.predictor, self.curr_img)
-                mask = masks_to_uint8_batch(out_mask_logits)
-                self.signals.seg_mask.emit(mask[0])
-                #overlay = tam.utils.helper.overlay_mask_bgr(self.curr_img, mask[0], alpha=0.5)
-                #print("TAM tracking..", out_mask_logits)
-            except Exception as e:
-                logger.error(f"Error occurred while tracking: {e}")
+    def _get_pt(self, pt):
+        print("original pt:", pt)
+        pt = UtilsCoords.scale_coords_to_resized_img(pt, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        print("resized pt:", pt)
+        x, y = int(pt[0]), int(pt[1])
+        pt = np.array([[x, y]], dtype=np.float32)
+        return pt
 
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
+        pt = self._get_pt(pt)
         self.stop_detection()  # pause detection while TAM handling the frame
-        if self.predictor is None:
+        if self.predictor is None and self._prev_pt is None:
             try:
                 print(f"{self.name} TAM initializing..")
                 self.predictor = build_predictor(tam_checkpoint=str(self.checkpoint_path))
-
-                print("original pt:", pt)
-                pt = UtilsCoords.scale_coords_to_resized_img(pt, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-                print("resized pt:", pt)
-                x, y = int(pt[0]), int(pt[1])
-                pt = np.array([[x, y]], dtype=np.float32)
-
                 print(f"{self.name} TAM starting..")
                 self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
                 start(self.predictor, self.curr_img, pt)
-                return
+                _, out_mask_logits = track(self.predictor, self.curr_img)
+                mask = masks_to_uint8_batch(out_mask_logits)
+                self.signals.seg_mask.emit(mask[0])
+                self._prev_pt = pt
             except Exception as e:
+                self.predictor = None
                 logger.error(f"Error occurred while starting TAM: {e}")
+
+        #if self._prev_pt is not None and
 
 # -----------------------------
 class ProcessWorker(baseProcessWorker):
@@ -316,6 +295,7 @@ class ProcessWorker(baseProcessWorker):
             self.curr_img = cv2.GaussianBlur(self.curr_img, (3, 3), 0)
 
         self.mask = self.mask_detect.process(self.curr_img)
+
 
     @pyqtSlot()
     def process(self):
