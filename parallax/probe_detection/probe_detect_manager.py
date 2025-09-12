@@ -7,6 +7,7 @@ and result communication, utilizing components like MaskGenerator and ProbeDetec
 import logging
 import time
 import cv2
+import time
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
 from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerTAM
@@ -51,6 +52,7 @@ class DrawWorker(QRunnable):
         self.seg_mask, self.mask_bool = None, None
         self.status = "first_detect"
         self.register_colormap()
+        self.cnt = 0
 
     def update_frame(self, frame, timestamp):
         """Update the frame and timestamp.
@@ -58,6 +60,7 @@ class DrawWorker(QRunnable):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
+        self.cnt += 1
         self.frame = frame.copy()  # To seperate frame with ProcessWorker
         self.new = True
         self.timestamp = timestamp
@@ -106,6 +109,7 @@ class DrawWorker(QRunnable):
     def run(self):
         """Run the worker thread."""
         logger.debug(f"{self.name} - draw worker running ")
+        self.cnt = 0
         while self.running:
             if self.new:
                 self._draw_reticle()
@@ -113,6 +117,10 @@ class DrawWorker(QRunnable):
                 self._draw_detection_status()
                 self._draw_segmentation()
                 self.signals.frame_processed.emit(self.frame)
+                self.cnt -= 1
+                if self.cnt != 0:
+                    print(f"{self.name}. draw lagging")
+                    self.cnt = 0
                 self.new = False
             time.sleep(0.001)
         logger.debug(f"{self.name} - draw worker running done")
@@ -191,6 +199,7 @@ class DrawWorker(QRunnable):
 
     def found_seg_mask(self, mask):
         """Called when a new segmentation mask arrives."""
+        print(f"{self.name} **** got seg mask")
         if self.frame is None or mask is None:
             return
         # prepare/caches used by the fast overlay
@@ -226,10 +235,13 @@ class DrawWorker(QRunnable):
         if not self.seg_mask.any():
             return
 
-        m = self.mask_bool
-        f_m = self.frame[m].astype(np.float32, copy=False)
-        c_m = self.seg_mask[m].astype(np.float32, copy=False)
-        self.frame[m] = ((1.0 - alpha) * f_m + alpha * c_m).astype(np.uint8, copy=False)
+        try:
+            m = self.mask_bool
+            f_m = self.frame[m].astype(np.float32, copy=False)
+            c_m = self.seg_mask[m].astype(np.float32, copy=False)
+            self.frame[m] = ((1.0 - alpha) * f_m + alpha * c_m).astype(np.uint8, copy=False)
+        except Exception as e:
+            print(f"{self.name} **** Error in overlaying mask: {self.seg_mask}")
 
 class ProbeDetectManager(QObject):
     """
@@ -437,7 +449,7 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
-            #self.worker.update_seg_mask(None)
+            self.worker.update_seg_mask(None)
         if self.processWorker is not None:
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
@@ -453,6 +465,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
+        print(f"{self.name} **** Disable calibration" )
         if self.processWorker is not None:
             self.processWorker.disable_calib()
         if self.tamProcessWorker is not None:
@@ -460,7 +473,7 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
-            #self.worker.update_seg_mask(None)
+            self.worker.update_seg_mask(None)
 
     def set_name(self, camera_name):
         """
