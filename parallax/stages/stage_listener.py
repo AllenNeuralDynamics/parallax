@@ -100,6 +100,7 @@ class Worker(QObject):
     LOW_FREQ_INTERVAL = 500  # Interval for low frequency data fetching (in ms).
     HIGH_FREQ_INTERVAL = 100  # Interval for high frequency data fetching (in ms).
     IDLE_TIME = 0.5
+    MOVE_DETECT_THRESHOLD = 0.002  # Threshold to detect movement (in mm).
 
     def __init__(self, url):
         """Initialize worker thread"""
@@ -220,7 +221,7 @@ class Worker(QObject):
             # Check stage is move more than 10um in any axis
             last_pos = self.stages.get(stage_sn)
             if last_pos:
-                if any(abs(c - l) >= 0.001 for c, l in zip(curr_pos, last_pos)):
+                if any(abs(c - l) >= self.MOVE_DETECT_THRESHOLD for c, l in zip(curr_pos, last_pos)):
                     self.last_move_detected_time = time.time()
                     return True
         return False
