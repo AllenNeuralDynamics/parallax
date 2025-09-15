@@ -4,6 +4,7 @@ import cv2
 import time
 import numpy as np
 from pathlib import Path
+from abc import abstractmethod
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QRunnable
 
 from parallax.probe_detection.curr_bg_cmp_processor import CurrBgCmpProcessor
@@ -86,6 +87,7 @@ class baseProcessWorker(QRunnable):
         self.new = True
         self.img_ts = timestamp
     
+    @abstractmethod
     def process(self):
         """Process the frame. To be implemented in subclasses."""
         pass
@@ -128,6 +130,7 @@ class baseProcessWorker(QRunnable):
         """Update the stage timestamp."""
         self.stage_ts = stage_ts
 
+    @abstractmethod
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
         pass
