@@ -74,9 +74,9 @@ class DrawWorker(QRunnable):
                 for i, (x, y) in enumerate(coords):
                     color = self.colormap_reticle[i][0].tolist()
                     cv2.circle(self.frame, (x, y), 7, color, -1)
+
         if self.reticle_coords_debug is not None:
-            points = np.asarray(self.reticle_coords_debug).reshape(-1, 2)
-            for i, (x, y) in enumerate(points):
+            for i, (x, y) in enumerate(self.reticle_coords_debug):
                 color = self.colormap_reticle_debug[i][0].tolist()
                 cv2.circle(self.frame, (x, y), 3, color, -1)
 
@@ -198,7 +198,6 @@ class DrawWorker(QRunnable):
         self.mask_bool = None
         self.mask_idx = None
         self.seg_color_pixels = None
-        print(f"{self.name} cancel seg mask")
 
     def found_seg_mask(self, mask: np.ndarray) -> None:
         """Called when a new segmentation mask arrives."""
@@ -524,6 +523,16 @@ class ProbeDetectManager(QObject):
         """Get the reticle coordinates based on the model's data."""
         reticle_coords = self.model.get_coords_axis(name)
         reticle_coords_debug = self.model.get_coords_for_debug(name)
+
+        # Preprocess for faster drawing later
+        if reticle_coords is not None:
+            reticle_coords = [
+                [(int(x), int(y)) for (x, y) in coords]
+                for coords in reticle_coords
+            ]
+        if reticle_coords_debug is not None:
+            reticle_coords_debug = np.asarray(reticle_coords_debug, dtype=int).reshape(-1, 2)
+
         return reticle_coords, reticle_coords_debug
 
     def clicked_position(self, pt):
