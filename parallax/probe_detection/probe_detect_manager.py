@@ -151,17 +151,17 @@ class DrawWorker(QRunnable):
         - Red border if status is "first_detect"
         - Yellow border if status is "update"
         """
+        if self.status == "update":
+            return # Skip drawing border for "update" status
+
         if self.h is None or self.w is None:
             self.h, self.w = self.frame.shape[:2]
 
-        thickness = 30
-        if self.status == "first_detect":
-            color = (255, 0, 0)  # Red
-        elif self.status == "update":
-            color = (255, 255, 0)  # Yellow
-        else:
-            return  # Unknown status; do not draw
-        cv2.rectangle(self.frame, (0, 0), (self.w - 1, self.h - 1), color, thickness)
+        # Draw just top + bottom + left + right lines instead of a full thick rectangle
+        cv2.line(self.frame, (0, 0), (self.w - 1, 0), (255, 0, 0), 10)          # top
+        cv2.line(self.frame, (0, self.h - 1), (self.w - 1, self.h - 1), (255, 0, 0), 10)  # bottom
+        cv2.line(self.frame, (0, 0), (0, self.h - 1), (255, 0, 0), 10)          # left
+        cv2.line(self.frame, (self.w - 1, 0), (self.w - 1, self.h - 1), (255, 0, 0), 10)  # right
 
     def update_tip_coords(self, tip_coords, color=(0, 255, 0)):
         """Update the tip coordinates on the frame.
