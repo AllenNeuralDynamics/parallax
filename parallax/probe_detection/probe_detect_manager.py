@@ -192,6 +192,14 @@ class DrawWorker(QRunnable):
         """Update the status of the worker."""
         self.status = status
 
+    def cancel_seg_mask(self) -> None:
+        """Called when segmentation mask is to be cleared."""
+        self.update_is_seg_mask(False)
+        self.mask_bool = None
+        self.mask_idx = None
+        self.seg_color_pixels = None
+        print(f"{self.name} cancel seg mask")
+
     def found_seg_mask(self, mask: np.ndarray) -> None:
         """Called when a new segmentation mask arrives."""
         self.update_is_seg_mask(False)
@@ -228,6 +236,9 @@ class DrawWorker(QRunnable):
             logger.warning("No frame or mask to overlay")
             return
 
+        if self.is_seg_mask is False:
+            return
+
         try:
             r, c = self.mask_idx
             # Blend and WRITE BACK to the frame
@@ -235,7 +246,7 @@ class DrawWorker(QRunnable):
             self.frame[r, c] = blended
         except Exception as e:
             # Keep logs lightweight; avoid printing big arrays
-            logger.error(f"{self.name} overlay error: {e} (mask size={len(self.seg_color_pixels)})")
+            logger.error(f"{self.name} overlay error: {e})")
 
     def _resize_and_binarize(self, m, target_hw):
         H, W = target_hw
@@ -311,6 +322,7 @@ class ProbeDetectManager(QObject):
         self.tamProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
         self.tamProcessWorker.signals.status.connect(self.worker.update_status)
         self.tamProcessWorker.signals.seg_mask.connect(self.worker.found_seg_mask)
+        self.tamProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
 
     def start(self):
         """

@@ -36,6 +36,7 @@ class ProcessWorkerSignal(QObject):
     tip_moving = pyqtSignal(float, str, tuple, tuple)
     seg_mask = pyqtSignal(np.ndarray)
     status = pyqtSignal(str)
+    cancel_seg_mask = pyqtSignal()
 
 class baseProcessWorker(QRunnable):
     def __init__(self, name, resolution, test=False):
@@ -208,11 +209,33 @@ class ProcessWorkerTAM(baseProcessWorker):
         pt = np.array([[x, y]], dtype=np.float32)
         return pt
 
+    def _cancle_current_tam(self):
+        if self.predictor is not None:
+            self.predictor = None
+            self._prev_pt = None
+            print("Cancel current TAM.")
+        self.signals.cancel_seg_mask.emit()
+
+    def _is_close_prev_pt(self, pt, threshold=20):
+        if self._prev_pt is not None:
+            # ensure 2D (x, y)
+            curr = np.asarray(pt, dtype=float).ravel()[:2]
+            prev = np.asarray(self._prev_pt, dtype=float).ravel()[:2]
+
+            # fast “within 10 px” check (no sqrt)
+            if np.dot(curr - prev, curr - prev) < threshold**2:
+                return True
+        return False
+
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
         pt = self._get_pt(pt)
-        self.stop_detection()  # pause detection while TAM handling the frame
+        if self._is_close_prev_pt(pt):
+            self._cancle_current_tam()
+            return
+
         if self.predictor is None and self._prev_pt is None:
+            self.stop_detection()  # pause detection while TAM handling the frame
             try:
                 print(f"{self.name} TAM initializing..")
                 self.predictor = build_predictor(tam_checkpoint=str(self.checkpoint_path))
@@ -222,12 +245,12 @@ class ProcessWorkerTAM(baseProcessWorker):
                 _, out_mask_logits = track(self.predictor, self.curr_img)
                 mask = masks_to_uint8_batch(out_mask_logits)
                 self.signals.seg_mask.emit(mask[0])
-                self._prev_pt = pt
             except Exception as e:
                 self.predictor = None
                 logger.error(f"Error occurred while starting TAM: {e}")
+        elif self.predictor is not None:
+            self._prev_pt = pt
 
-        #if self._prev_pt is not None and
 
 # -----------------------------
 class ProcessWorker(baseProcessWorker):
