@@ -75,6 +75,11 @@ parallax/
 │               └── superglue_indoor.pth
 ```
 
+### Optional: Enable Realtime Efficient Tam for probe tracking
+```bash
+pip install git+https://github.com/AllenNeuralDynamics/RealtimeEfficientTAM@feat-setup
+```
+
 ### For developers:
 1. Clone the repository:
 ```bash
