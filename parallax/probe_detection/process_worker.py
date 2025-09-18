@@ -103,12 +103,10 @@ class baseProcessWorker(QRunnable):
     def start_detection(self):
         """Start the probe detection."""
         self.is_detection_on = True
-        print(f"{self.name} Detection started")
 
     def stop_detection(self):
         """Stop the probe detection."""
         self.is_detection_on = False
-        print(f"{self.name} Detection stopped")
 
     def run(self):
         """Run the worker thread."""
@@ -201,8 +199,17 @@ class ProcessWorkerTAM(baseProcessWorker):
             _, out_mask_logits = track(self.predictor, self.curr_img)
             mask = masks_to_uint8_batch(out_mask_logits)
             self.signals.seg_mask.emit(mask[0])
+            self._save_masked_img(self.curr_img, mask[0])
         except Exception as e:
             logger.error(f"Error occurred while tracking: {e}")
+
+    def _save_masked_img(self, img, mask):
+        """Save masked image for debugging."""
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_img_dir, f"{self.name}_tam_{self.img_ts}.jpg")
+            masked_img = cv2.bitwise_and(img, img, mask=mask)
+            cv2.imwrite(save_path, masked_img)
+            print("Saved TAM masked image for debug:", save_path)
 
     def _get_pt(self, pt):
         print("original pt:", pt)
@@ -219,7 +226,7 @@ class ProcessWorkerTAM(baseProcessWorker):
             print("Cancel current TAM.")
         self.signals.cancel_seg_mask.emit()
 
-    def _is_close_prev_pt(self, pt, threshold=20):
+    def _is_close_prev_pt(self, pt, threshold=30):
         if self._prev_pt is not None:
             # ensure 2D (x, y)
             curr = np.asarray(pt, dtype=float).ravel()[:2]
@@ -248,6 +255,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                 _, out_mask_logits = track(self.predictor, self.curr_img)
                 mask = masks_to_uint8_batch(out_mask_logits)
                 self.signals.seg_mask.emit(mask[0])
+                self._save_masked_img(self.curr_img, mask[0])
             except Exception as e:
                 self.predictor = None
                 logger.error(f"Error occurred while starting TAM: {e}")

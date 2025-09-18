@@ -187,6 +187,7 @@ class DrawWorker(QRunnable):
 
     def update_is_seg_mask(self, status: bool):
         self.is_seg_mask = status
+        print(f"{self.name} Segmentation mask status: {self.is_seg_mask}")
 
     def update_status(self, status):
         """Update the status of the worker."""
@@ -201,8 +202,6 @@ class DrawWorker(QRunnable):
 
     def found_seg_mask(self, mask: np.ndarray) -> None:
         """Called when a new segmentation mask arrives."""
-        self.update_is_seg_mask(False)
-
         if self.frame is None or mask is None:
             self.mask_bool = None
             self.mask_idx = None
@@ -492,6 +491,8 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
+        if self.tamProcessWorker is not None and self.worker is not None:
+            self.worker.cancel_seg_mask()
         if self.processWorker is not None:
             self.processWorker.disable_calib()
         if self.tamProcessWorker is not None:
@@ -500,6 +501,7 @@ class ProbeDetectManager(QObject):
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
             self.worker.update_is_seg_mask(False)
+
 
     def set_name(self, camera_name):
         """
