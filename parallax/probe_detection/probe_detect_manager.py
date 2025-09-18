@@ -52,6 +52,7 @@ class DrawWorker(QRunnable):
         self.w = None
         self.is_seg_mask = False
         self.mask_bool, self.mask_idx, self.seg_color_pixels = None, None, None
+        self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
         self.status = "first_detect"
         self.register_colormap()
 
@@ -199,8 +200,16 @@ class DrawWorker(QRunnable):
         self.mask_bool = None
         self.mask_idx = None
         self.seg_color_pixels = None
+        self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
 
-    def found_seg_mask(self, mask: np.ndarray) -> None:
+    def found_seg_mask(self, type: str, mask: np.ndarray) -> None:
+        if type == "global":
+            self.found_seg_mask_global(mask)
+
+        elif type == "local":
+            self.found_seg_mask_local(mask)
+
+    def found_seg_mask_global(self, mask: np.ndarray) -> None:
         """Called when a new segmentation mask arrives."""
         if self.frame is None or mask is None:
             self.mask_bool = None
@@ -228,23 +237,65 @@ class DrawWorker(QRunnable):
         # Update segmentation mask status
         self.update_is_seg_mask(True)
 
-    def _overlay_mask_bgr(self, a: float = 0.1) -> None:
-        """Very fast per-frame overlay using cached indices + per-pixel color."""
-        if self.frame is None or self.mask_idx is None or self.seg_color_pixels is None:
-            logger.warning("No frame or mask to overlay")
+    def found_seg_mask_local(self, mask: np.ndarray) -> None:
+        """Called when a new segmentation mask arrives."""
+        if self.frame is None or mask is None:
+            self.mask_bool_local = None
+            self.mask_idx_local = None
+            self.seg_color_pixels_local = None
             return
 
-        if self.is_seg_mask is False:
+        # 1) Resize -> boolean mask aligned with current frame
+        self.mask_bool_local = self._resize_and_binarize(mask, target_hw=self.frame.shape[:2])  # (H, W) bool
+
+        if not self.mask_bool_local.any():
+            # No mask: clear caches
+            self.mask_idx_local = None
+            self.seg_color_pixels_local = None
+            return
+
+        # 2) Cache row/col indices to avoid re-building them every frame
+        self.mask_idx_local = np.where(self.mask_bool_local)  # tuple (rows, cols)
+
+        # 3) Build a constant color array ONLY for masked pixels (N, 3), uint8
+        n = self.mask_idx_local[0].size
+        self.seg_color_pixels_local = np.empty((n, 3), dtype=np.uint8)
+        self.seg_color_pixels_local[:] = np.array((0, 255, 0), dtype=np.uint8)
+
+    def _overlay_mask(self, mask_idx, seg_color_pixel, a: float = 0.1) -> None:
+        r, c = mask_idx
+        if r is None or c is None:
+            logger.warning(f"{self.name} No mask indices to overlay")
             return
 
         try:
-            r, c = self.mask_idx
             # Blend and WRITE BACK to the frame
-            blended = cv2.addWeighted(self.frame[r, c], 1.0 - a, self.seg_color_pixels, a, 0.0)
+            blended = cv2.addWeighted(self.frame[r, c], 1.0 - a, seg_color_pixel, a, 0.0)
             self.frame[r, c] = blended
         except Exception as e:
             # Keep logs lightweight; avoid printing big arrays
             logger.error(f"{self.name} overlay error: {e})")
+        pass
+
+    def _overlay_mask_bgr(self, a: float = 0.1) -> None:
+        """Very fast per-frame overlay using cached indices + per-pixel color."""
+        if self.frame is None:
+            logger.warning("No frame to overlay")
+            return
+        if self.mask_idx is None or self.seg_color_pixels is None:
+            #logger.warning("No mask to overlay")
+            return
+        if self.is_seg_mask is False:
+            return
+        self._overlay_mask(self.mask_idx, self.seg_color_pixels, a)
+        self._overlay_mask_bgr_local(a=0.3)
+
+    def _overlay_mask_bgr_local(self, a: float = 0.3) -> None:
+        """Very fast per-frame overlay using cached indices + per-pixel color."""
+        # Overlay local mask in different color
+        if self.mask_idx_local is None or self.seg_color_pixels_local is None:
+            return
+        self._overlay_mask(self.mask_idx_local, self.seg_color_pixels_local, a)
 
     def _resize_and_binarize(self, m, target_hw):
         H, W = target_hw
