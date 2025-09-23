@@ -112,10 +112,10 @@ class DrawWorker(QRunnable):
         logger.debug(f"{self.name} - draw worker running ")
         while self.running:
             if self.new:
-                self._draw_segmentation()
                 self._draw_reticle()
                 self._draw_coords()
                 self._draw_detection_status()
+                self._draw_segmentation()
                 self.signals.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.001)
@@ -395,8 +395,21 @@ class ProbeDetectManager(QObject):
         self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
 
+        neg_pts_coords = self._get_negative_points()
+        self.tamProcessWorker.update_negative_points(neg_pts_coords)
         self.tamProcessWorker.start_running()
         self.threadpool.start(self.tamProcessWorker)
+
+    def _get_negative_points(self):
+        coords = self.model.get_coords_for_debug(self.name)
+        origin_px   = coords[40]
+        x_left_px   = coords[4]
+        x_right_px  = coords[76]
+        y_bottom_px = coords[36]
+        y_top_px    = coords[44]
+        #neg_pts_coords = np.array([origin_px, x_left_px, x_right_px, y_bottom_px, y_top_px])
+        neg_pts_coords = np.array([origin_px])
+        return neg_pts_coords
 
     def stop(self):
         """

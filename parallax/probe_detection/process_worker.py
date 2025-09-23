@@ -170,6 +170,25 @@ class ProcessWorkerTAM(baseProcessWorker):
         self.small_checkpoint_path = self._import_checkpoint(self.CKPT_NAME_SMALL)
         self.small_cfg_path = find_matching_cfg(self.small_checkpoint_path)
         self._prev_pt = None
+        self.pts = None
+        self.labels = None
+
+    def update_negative_points(self, neg_pts):
+        """Update negative points for TAM."""
+        print("Update negative points for TAM:", neg_pts)
+        pts_resized = []
+        labels = []
+
+        for pt in neg_pts:
+            pt_ = self._get_pt(pt)   # should return (x, y) or None
+            if pt_ is not None:
+                pts_resized.append(pt_)
+                labels.append(0)     # 0 for negative points
+
+        # Ensure consistent array shapes
+        self.pts = np.array(pts_resized, dtype=np.float32)
+        self.labels = np.array(labels, dtype=np.int32)
+        print("Negative points for TAM (resized):", self.pts)
 
     def _import_checkpoint(self, ckpt_name):
         ckpt = Path(tam_model_dir) / ckpt_name
@@ -230,23 +249,21 @@ class ProcessWorkerTAM(baseProcessWorker):
             print("Saved TAM masked image for debug:", save_path)
 
     def _get_pt(self, pt):
-        print("original pt:", pt)
         pt = UtilsCoords.scale_coords_to_resized_img(pt, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-        print("resized pt:", pt)
         x, y = int(pt[0]), int(pt[1])
-        pt = np.array([[x, y]], dtype=np.float32)
-        return pt
+        return [x, y]
 
     def _cancle_current_tam(self):
         if self.predictor_global is not None:
             self.predictor_global = None
             self._prev_pt = None
-            print("Cancel current TAM.")
+            print("*** Cancel current TAM. ***")
         if self.predictor_local is not None:
             self.predictor_local = None
         self.signals.cancel_seg_mask.emit()
 
-    def _is_close_prev_pt(self, pt, threshold=40):
+    def _is_close_prev_pt(self, pt, threshold=50):
+        print("pt:", pt, "prev_pt:", self._prev_pt)
         if self._prev_pt is not None:
             # ensure 2D (x, y)
             curr = np.asarray(pt, dtype=float).ravel()[:2]
@@ -273,10 +290,16 @@ class ProcessWorkerTAM(baseProcessWorker):
             # --- Convert points: global -> crop-relative -> resized (local) ---
             pt_crop = converter_pts_after_crop(pt_global, left=left, top=top)                 # to crop coords
             pt_local = converter_pts_after_resize(pt_crop, src_wh=(crop_w, crop_h), dst_wh=(w, h))  # to local coords
-            start(predictor_local, local_img, points=pt_local, get_single_connected_component=False)
+            predictor_local.predictor.load_first_frame(local_img)
+            _, out_mask_logits = start(predictor_local, local_img, points=pt_local)
             print("Start local tracking with point:", pt_local)
 
-        _, out_mask_logits = track(predictor_local, local_img)
+            # Test - Apply Hough line detection on the cropped image
+
+            self._detect_line_on_pt(local_img, (pt_local[0][0], pt_local[0][1]))
+
+        else:
+            _, out_mask_logits = track(predictor_local, local_img)
         mask_local = masks_to_uint8_batch(out_mask_logits)
 
         # mask_local[0] matches local_img size (w,h); lift it back to full-frame
@@ -291,6 +314,13 @@ class ProcessWorkerTAM(baseProcessWorker):
         if self._is_close_prev_pt(pt):
             self._cancle_current_tam()
             return
+
+        if self.pts is None:
+            self.pts = np.array([pt], dtype=np.float32)
+            self.labels = np.array([1], dtype=np.int32)  # 1 for positive point
+        else:
+            self.pts = np.append(self.pts, [pt], axis=0)
+            self.labels = np.append(self.labels, [1], axis=0)
 
         if self.predictor_global is None and self.predictor_local is None and self._prev_pt is None:
             if self.tiny_checkpoint_path is None or self.small_checkpoint_path is None:
@@ -313,8 +343,8 @@ class ProcessWorkerTAM(baseProcessWorker):
                 )
                 print(f"\n{self.name} TAM starting..")
                 self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
-                start(self.predictor_global, self.curr_img, pt)
-                _, out_mask_logits = track(self.predictor_global, self.curr_img)
+                self.predictor_global.predictor.load_first_frame(self.curr_img)
+                _, out_mask_logits = start(self.predictor_global, self.curr_img, points=self.pts, labels=self.labels)
                 mask_global = masks_to_uint8_batch(out_mask_logits)
                 self.signals.seg_mask.emit("global", mask_global[0])
                 self._save_masked_img(self.curr_img, mask_global[0], name="global")
@@ -341,6 +371,59 @@ class ProcessWorkerTAM(baseProcessWorker):
 
         elif self.predictor_global is not None and self.predictor_local is not None:
             self._prev_pt = pt
+
+
+    def _detect_line_on_pt(self, img, pt):
+        grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Apply adptive thresholding to get binary image
+
+        bin_adapt = cv2.adaptiveThreshold(grey, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 5)
+        edges = cv2.Canny(cv2.GaussianBlur(grey, (3, 3), 0), 50, 150)  # white edges (non-zero), black background
+        img = cv2.bitwise_or(edges, bin_adapt)
+
+        mLength = max(img.shape[0], img.shape[1]) // 2
+        linesP = cv2.HoughLinesP(img, 1, np.pi/180, threshold=80, minLineLength=mLength, maxLineGap=5)
+
+        tol = 5.0
+        hits = []
+
+        if linesP is not None:
+            for x1, y1, x2, y2 in linesP[:, 0]:
+                # If your helper returns (dist, proj), use: dist, _ = self._point_to_segment_dist(...)
+                dist = self._point_to_segment_dist(pt, (x1, y1), (x2, y2))
+                if isinstance(dist, (tuple, list)):        # handle (dist, proj)
+                    dist = dist[0]
+                if dist <= tol:
+                    hits.append((x1, y1, x2, y2, dist))
+
+        out = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)  # img must be single-channel here
+        if hits:
+            for x1, y1, x2, y2, dist in hits:
+                print(f"Line near point (d={dist:.2f}): ({x1},{y1})-({x2},{y2})")
+                cv2.line(out, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+            # draw the selected point last so it’s on top
+            cv2.circle(out, (int(pt[0]), int(pt[1])), 4, (0, 0, 255), -1)
+
+            cv2.imwrite(os.path.join(debug_img_dir, f"{self.name}_tam_hough_{self.img_ts}.jpg"), out)
+            print("Saved:", os.path.join(debug_img_dir, f"{self.name}_tam_hough_{self.img_ts}.jpg"))
+        else:
+            print("No line detected near the point.")
+
+
+    def _point_to_segment_dist(self, pt, a, b):
+        # pt, a, b are (x, y)
+        p = np.array(pt, dtype=float)
+        A = np.array(a, dtype=float)
+        B = np.array(b, dtype=float)
+        AB = B - A
+        if np.allclose(AB, 0):
+            return np.linalg.norm(p - A)
+        t = np.dot(p - A, AB) / np.dot(AB, AB)
+        t = np.clip(t, 0.0, 1.0)
+        proj = A + t * AB
+        return np.linalg.norm(p - proj)
+
 
 # -----------------------------
 class ProcessWorker(baseProcessWorker):
