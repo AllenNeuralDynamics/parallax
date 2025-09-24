@@ -9,6 +9,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QRunnable
 
 from parallax.probe_detection.curr_bg_cmp_processor import CurrBgCmpProcessor
 from parallax.probe_detection.curr_prev_cmp_processor import CurrPrevCmpProcessor
+from parallax.probe_detection.probe_img_processor import ProbeImageProcessor
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.probe_detector import ProbeDetector
 from parallax.reticle_detection.reticle_detection import ReticleDetection
@@ -23,12 +24,7 @@ logger.setLevel(logging.DEBUG)
 try:
     #import efficient_track_anything  # noqa: F401
     from efficient_track_anything.realtime_tam import build_predictor, start, track, start_with_mask
-    from efficient_track_anything.utils.helper import (masks_to_uint8_batch,
-                                                       find_matching_cfg,
-                                                       mask_to_bbox_xyxy,
-                                                       converter_pts_after_crop,
-                                                       converter_pts_after_resize,
-                                                       lift_local_mask_to_global)
+    from efficient_track_anything.utils.helper import masks_to_uint8_batch, find_matching_cfg
     print(f"Realtime EfficientTrackAnything imported successfully.")
 except ImportError:
     logger.warning("[WARN] realtime_efficient_tam package is not installed.")
@@ -257,7 +253,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         x, y = int(pt[0]), int(pt[1])
         return [x, y]
 
-    def _cancle_current_tam(self):
+    def _cancel_current_tam(self):
         if self.predictor_global is not None:
             self.predictor_global = None
             self._prev_pt = None
@@ -281,17 +277,17 @@ class ProcessWorkerTAM(baseProcessWorker):
     def _track_local(self, predictor_local, mask_global, img, points=None):
         # Local - Preprocessing
         # crop the global mask to get initial local mask
-        bbox = mask_to_bbox_xyxy(mask_global, img.shape, pad=20)  # (x1,y1,x2,y2)
+        bbox = ProbeImageProcessor.mask_to_bbox_xyxy(mask_global, img.shape, pad=20)  # (x1,y1,x2,y2)
         if not bbox:
             raise RuntimeError("No foreground detected in the first frame.")
-        img_local = self._crop_and_resize(bbox, img)
-        mask_local = self._crop_and_resize(bbox, mask_global)
+        img_local = ProbeImageProcessor._crop_and_resize(bbox, img)
+        mask_local = ProbeImageProcessor._crop_and_resize(bbox, mask_global)
 
         if points is not None:
             print("points:", points)
-            points_local = self._convert_pts_after_crop_resize(points, bbox)  # to crop coords
+            points_local = ProbeImageProcessor._convert_pts_after_crop_resize(points, bbox)  # to crop coords
             print("points_local:", points_local)
-            mask_line = self._detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
+            mask_line = ProbeImageProcessor._detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
             # Start Local
             predictor_local.predictor.load_first_frame(img_local)
             _, out_mask_logits = start_with_mask(predictor_local, mask=mask_line)
@@ -310,156 +306,16 @@ class ProcessWorkerTAM(baseProcessWorker):
         # Post processing Lift local mask to global
         # mask_local[0] matches local_img size (w,h); lift it back to full-frame
         H, W = img.shape[:2]
-        mask_local_global = lift_local_mask_to_global(mask_local[0], bbox, (H, W))
+        mask_local_global = ProbeImageProcessor.lift_local_mask_to_global(mask_local[0], bbox, (H, W))
 
         return mask_local_global
-
-    def _preprocess(self, img):
-        grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-        cv2.imwrite(os.path.join(debug_img_dir, f"1_input.jpg"), grey)
-        # Apply adptive thresholding to get binary image
-        bin_adapt = cv2.adaptiveThreshold(grey, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 5)
-        cv2.imwrite(os.path.join(debug_img_dir, f"2_bin_adapt.jpg"), bin_adapt)
-
-        edges = cv2.Canny(cv2.GaussianBlur(grey, (3, 3), 0), 50, 150)  # white edges (non-zero), black background
-        cv2.imwrite(os.path.join(debug_img_dir, f"3_edges.jpg"), edges)
-
-        img = cv2.bitwise_or(edges, bin_adapt)
-        cv2.imwrite(os.path.join(debug_img_dir, f"4_mask.jpg"), img)
-
-        return img
-
-    def _preprocess(self, img):
-        grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-        # 1) Boost local contrast a bit (helps adaptive threshold + edges)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-        g = clahe.apply(grey)
-        cv2.imwrite(os.path.join(debug_img_dir, f"1_clahe.jpg"), g)
-
-        # 2) Slight unsharp mask (accentuate thin structures)
-        g_blur = cv2.GaussianBlur(g, (0,0), 1.0)
-        g = cv2.addWeighted(g, 1.6, g_blur, -0.6, 0)
-        cv2.imwrite(os.path.join(debug_img_dir, f"2_unsharp.jpg"), g)
-
-        # 3) Adaptive threshold – bigger window so it “sees” the broad shading
-        #    (odd block size; try 81–131). Lines are darker ⇒ use BINARY_INV.
-        bin_adapt = cv2.adaptiveThreshold(
-            g, 255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,
-            101, 10
-        )
-        cv2.imwrite(os.path.join(debug_img_dir, f"3_bin_adapt.jpg"), bin_adapt)
-
-        # 4) Canny – much lower thresholds for this low-contrast image
-        edges = cv2.Canny(cv2.GaussianBlur(grey, (9,9), 2), 150, 250, apertureSize=5)
-        cv2.imwrite(os.path.join(debug_img_dir, f"4_edges.jpg"), edges)
-
-        # 5) Combine
-        mask = cv2.bitwise_or(edges, bin_adapt)
-        cv2.imwrite(os.path.join(debug_img_dir, f"5_combined.jpg"), mask)
-
-        # (optional) connect tiny gaps
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(
-            cv2.MORPH_RECT,(3,3)
-        ), iterations=1)
-        cv2.imwrite(os.path.join(debug_img_dir, f"6_morph_close.jpg"), mask)
-
-        return mask
-
-    def _detect_line_on_pt(self, img, pt, mask=None):
-        out = img.copy()
-        img = self._preprocess(img)
-
-        if mask is not None:
-            # make mask little bit larger using dilation
-            kernel = np.ones((5, 5), np.uint8)
-            mask = cv2.dilate(mask, kernel, iterations=1)
-            img = cv2.bitwise_and(img, mask)
-            cv2.imwrite(os.path.join(debug_img_dir, f"7_masked.jpg"), img)
-
-        # Use Hough Transform to detect lines
-        mLength = 200
-        linesP = cv2.HoughLinesP(img, 1, np.pi/180, threshold=80, minLineLength=mLength, maxLineGap=5)
-        tol = 5.0
-        hits = []
-        if linesP is not None:
-            for x1, y1, x2, y2 in linesP[:, 0]:
-                # If your helper returns (dist, proj), use: dist, _ = self._point_to_segment_dist(...)
-                dist = self._point_to_segment_dist(pt, (x1, y1), (x2, y2))
-                if isinstance(dist, (tuple, list)):        # handle (dist, proj)
-                    dist = dist[0]
-                if dist <= tol:
-                    hits.append((x1, y1, x2, y2, dist))
-        #out = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)  # img must be single-channel here
-        if hits:
-            for x1, y1, x2, y2, dist in hits:
-                print(f"Line near point (d={dist:.2f}): ({x1},{y1})-({x2},{y2})")
-                cv2.line(out, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            # draw the selected point last so it’s on top
-            #cv2.circle(out, (int(pt[0]), int(pt[1])), 4, (0, 0, 255), -1)
-            #save_imgs(out, out_dir=IMG_DIR, filename = "line_detected")
-        else:
-            print("No line detected near the point.")
-
-        # Use detected lines to create a mask
-        mask = np.zeros(img.shape, dtype=np.uint8)
-        if hits:
-            for x1, y1, x2, y2, dist in hits:
-                cv2.line(mask, (x1, y1), (x2, y2), 255, 5)  # white line on black background
-            #save_imgs(mask, out_dir=IMG_DIR, filename = "1_mask")
-        else:
-            print("No line mask created.")
-
-        return mask
-
-    def _point_to_segment_dist(self, pt, a, b):
-        # pt, a, b are (x, y)
-        p = np.array(pt, dtype=float)
-        A = np.array(a, dtype=float)
-        B = np.array(b, dtype=float)
-        AB = B - A
-        if np.allclose(AB, 0):
-            return np.linalg.norm(p - A)
-        t = np.dot(p - A, AB) / np.dot(AB, AB)
-        t = np.clip(t, 0.0, 1.0)
-        proj = A + t * AB
-        return np.linalg.norm(p - proj)
-
-    def _crop_and_resize(self, bbox, img, w=512, h=512):
-        left, top, right, bottom = bbox
-        crop = img[top:bottom, left:right]
-        resized_img = cv2.resize(crop, (w, h), interpolation=cv2.INTER_LINEAR)
-        return resized_img
-
-    def _convert_pts_after_crop_resize(self, pts, bbox, w=512, h=512):
-        left, top, right, bottom = bbox
-        crop_w = int(right - left)
-        crop_h = int(bottom - top)
-
-        pts_local = []
-        if pts is not None:
-            # Start tracking with a point prompt
-            # --- Convert points: global -> crop-relative -> resized (local) ---
-            for pt in pts:
-                pt_crop = converter_pts_after_crop_(pt, left=left, top=top)  # to crop coords
-                print(f"Crop coords: {pt_crop}")
-                pt_local = converter_pts_after_resize_(pt_crop, src_wh=(crop_w, crop_h), dst_wh=(w, h))  # to local coords
-                print("Local coords:", pt_local)
-                pts_local.append(pt_local)
-
-            # Convert back to same format as input
-            pts_local = np.array(pts_local, dtype=np.float32)
-
-        return pts_local[0]
 
 
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
         pt = self._get_pt(pt)
         if self._is_close_prev_pt(pt):
-            self._cancle_current_tam()
+            self._cancel_current_tam()
             return
 
         if self.pts is None:  # self.pts contains negative points already
@@ -721,55 +577,3 @@ class ProcessWorker(baseProcessWorker):
 
 
 
-def converter_pts_after_crop_(pts, left, top):
-    """
-    Convert full-image XY points to crop-relative XY by subtracting the crop origin.
-    pts: (N,2) or (2,) in global image coordinates
-    left, top: crop's top-left corner in the global image
-    """
-
-    pts_np = _to_np_xy(pts).copy()
-    original_shape = pts_np.shape
-
-    pts_np[:, 0] -= float(left)
-    pts_np[:, 1] -= float(top)
-
-    # Return in original format
-    if original_shape == (2,):  # Single point input
-        return pts_np.squeeze()  # Return as (2,) not (1,2)
-    else:
-        return pts_np
-
-def converter_pts_after_resize_(pts, src_wh, dst_wh):
-    """
-    Scale crop-relative XY points to the resized image coordinates.
-    src_wh: (src_w, src_h) of the crop BEFORE resize
-    dst_wh: (dst_w, dst_h) of the resized local image
-    """
-    # Convert to numpy array first, then get original shape
-    pts_np = _to_np_xy(pts).copy()
-    original_shape = pts_np.shape
-
-    src_w, src_h = float(src_wh[0]), float(src_wh[1])
-    dst_w, dst_h = float(dst_wh[0]), float(dst_wh[1])
-    sx = dst_w / src_w
-    sy = dst_h / src_h
-
-    pts_np[:, 0] *= sx
-    pts_np[:, 1] *= sy
-
-    # Return in original format
-    if original_shape == (2,):  # Single point input
-        return pts_np.squeeze()  # Return as (2,) not (1,2)
-    else:
-        return pts_np
-
-def _to_np_xy(pts):
-    """
-    Accepts: (N,2) array-like or a single (2,) pair.
-    Returns: (N,2) float32 numpy array.
-    """
-    arr = np.asarray(pts, dtype=np.float32)
-    if arr.ndim == 1:
-        arr = arr.reshape(1, 2)
-    return arr
