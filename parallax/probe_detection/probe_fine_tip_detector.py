@@ -1,45 +1,166 @@
 """
 Module for detecting the fine tip of a probe in an image.
-
-This module includes the `ProbeFineTipDetector` class, which provides several methods for detecting
-the fine tip of a probe based on image processing techniques. The class preprocesses the image,
-validates the input, detects the closest centroid for tip detection, and refines the detected tip
-by applying an offset to ensure accuracy.
-
-Logging is used to track the progress of tip detection, and debug images can be saved when logging
-is set to DEBUG level.
+Static version - no instantiation required.
 """
-
 import logging
 import os
 import cv2
 import numpy as np
 import time
+import json
 from parallax.config.config_path import debug_img_dir
+from parallax.config.config_path import img_processing_config_file
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class ProbeFineTipDetector:
     """Class for detecting the fine tip of the probe in an image."""
+    # Class-level configuration storage
+    _config = None
+    _config_file = img_processing_config_file
+
+    @classmethod
+    def _load_config(cls, config_path=None):
+        """Load configuration from JSON file."""
+        if config_path:
+            cls._config_file = config_path
+            cls._config = None  # Force reload if new path
+
+        if cls._config is None:  # Only load once
+            try:
+                with open(cls._config_file, 'r') as f:
+                    config = json.load(f)
+                cls._config = config.get("ProbeFineTipDetector", {})
+            except (FileNotFoundError, json.JSONDecodeError) as e:
+                logger.warning(f"Could not load config file {cls._config_file}: {e}")
+                cls._config = cls._get_default_config()
+
+        return cls._config
+
+    @classmethod
+    def _ensure_config_loaded(cls):
+        """Ensure configuration is loaded, load if not."""
+        if cls._config is None:
+            cls._load_config()
+        return cls._config
+
+    @classmethod
+    def _get_default_config(cls):
+        """Get default configuration if config file is not available."""
+        return {
+            "preprocessing": {
+                "gaussian_blur": {
+                    "kernel_size": [7, 7],
+                    "sigma": 0
+                },
+                "laplacian": {
+                    "ddepth": "CV_64F",
+                    "enable": True
+                },
+                "threshold": {
+                    "type": "OTSU",
+                    "threshold_value": 0,
+                    "max_value": 255
+                }
+            },
+            "validation": {
+                "boundary_check": {
+                    "enable": True,
+                    "max_contours": 2
+                }
+            },
+            "corner_detection": {
+                "harris": {
+                    "block_size": 7,
+                    "ksize": 5,
+                    "k": 0.1,
+                    "threshold_factor": 0.3
+                }
+            },
+            "tip_refinement": {
+                "l2_offset": 3,
+                "enable_offset": True
+            },
+            "debug": {
+                "save_images": True,
+                "circle_radius": 5,
+                "circle_color": [0, 255, 0],
+                "circle_thickness": -1
+            }
+        }
+
+    @classmethod
+    def set_config_file(cls, config_path):
+        """Set a different configuration file and reload."""
+        cls._config = None  # Force reload
+        cls._load_config(config_path)
+
+    @classmethod
+    def get_config(cls):
+        """Get current configuration."""
+        return cls._load_config()
+
+    @classmethod
+    def _get_cv2_constant(cls, constant_name):
+        """Convert string constant to cv2 constant."""
+        cv2_constants = {
+            "CV_64F": cv2.CV_64F,
+            "CV_32F": cv2.CV_32F,
+            "CV_8U": cv2.CV_8U,
+            "THRESH_BINARY": cv2.THRESH_BINARY,
+            "THRESH_OTSU": cv2.THRESH_OTSU
+        }
+        return cv2_constants.get(constant_name, constant_name)
 
     @classmethod
     def _preprocess_image(cls, img):
         """Preprocess the image for tip detection."""
-        img = cv2.GaussianBlur(img, (7, 7), 0)
-        sharpened_image = cv2.Laplacian(img, cv2.CV_64F)
-        sharpened_image = np.uint8(np.absolute(sharpened_image))
-        _, img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        config = cls._ensure_config_loaded()
+        preprocess_config = config.get("preprocessing", {})
+
+        # Gaussian blur
+        blur_config = preprocess_config.get("gaussian_blur", {})
+        kernel_size = tuple(blur_config.get("kernel_size", [7, 7]))
+        sigma = blur_config.get("sigma", 0)
+        img = cv2.GaussianBlur(img, kernel_size, sigma)
+
+        # Laplacian sharpening (if enabled)
+        laplacian_config = preprocess_config.get("laplacian", {})
+        if laplacian_config.get("enable", True):
+            ddepth = cls._get_cv2_constant(laplacian_config.get("ddepth", "CV_64F"))
+            sharpened_image = cv2.Laplacian(img, ddepth)
+            sharpened_image = np.uint8(np.absolute(sharpened_image))
+
+        # Thresholding
+        threshold_config = preprocess_config.get("threshold", {})
+        threshold_value = threshold_config.get("threshold_value", 0)
+        max_value = threshold_config.get("max_value", 255)
+        threshold_type = threshold_config.get("type", "OTSU")
+
+        if threshold_type == "OTSU":
+            _, img = cv2.threshold(img, threshold_value, max_value,
+                                 cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        else:
+            thresh_type = cls._get_cv2_constant(threshold_type)
+            _, img = cv2.threshold(img, threshold_value, max_value, thresh_type)
+
         return img
 
     @classmethod
     def _is_valid(cls, img):
-        """Check if the image is valid for tip detection.
+        """Check if the image is valid for tip detection."""
+        config = cls._ensure_config_loaded()
+        validation_config = config.get("validation", {})
+        boundary_config = validation_config.get("boundary_check", {})
 
-        Returns:
-            bool: True if the image is valid, False otherwise.
-        """
+        if not boundary_config.get("enable", True):
+            return True
+
+        max_contours = boundary_config.get("max_contours", 2)
+
         height, width = img.shape[:2]
         boundary_img = np.zeros_like(img)
         cv2.rectangle(boundary_img, (0, 0), (width - 1, height - 1), 255, 1)
@@ -47,7 +168,8 @@ class ProbeFineTipDetector:
         contours_boundary, _ = cv2.findContours(
             and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
-        if len(contours_boundary) >= 2:
+
+        if len(contours_boundary) >= max_contours:
             logger.debug(
                 f"get_probe_precise_tip fail. N of contours_boundary :{len(contours_boundary)}"
             )
@@ -57,34 +179,41 @@ class ProbeFineTipDetector:
         boundary_img[0, width - 1] = 255
         boundary_img[height - 1, 0] = 255
         boundary_img[height - 1, width - 1] = 255
-
         and_result = cv2.bitwise_and(and_result, boundary_img)
         contours_boundary, _ = cv2.findContours(
             and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
-        if len(contours_boundary) >= 2:
+
+        if len(contours_boundary) >= max_contours:
             logger.debug(
                 f"get_probe_precise_tip fail. No detection of tip :{len(contours_boundary)}"
             )
             return False
+
         return True
 
     @classmethod
     def _detect_closest_centroid(cls, img, tip, offset_x, offset_y, direction):
-        """Detect the closest centroid to the tip.
+        """Detect the closest centroid to the tip."""
+        config = cls._ensure_config_loaded()
+        corner_config = config.get("corner_detection", {})
+        harris_config = corner_config.get("harris", {})
 
-        Returns:
-            tuple: Coordinates of the closest centroid.
-        """
         cx, cy = tip[0], tip[1]
         closest_centroid = (cx, cy)
         min_distance = float("inf")
 
-        harris_corners = cv2.cornerHarris(img, blockSize=7, ksize=5, k=0.1)
-        threshold = 0.3 * harris_corners.max()
+        # Harris corner detection with configurable parameters
+        block_size = harris_config.get("block_size", 7)
+        ksize = harris_config.get("ksize", 5)
+        k = harris_config.get("k", 0.1)
+        threshold_factor = harris_config.get("threshold_factor", 0.3)
 
+        harris_corners = cv2.cornerHarris(img, blockSize=block_size, ksize=ksize, k=k)
+        threshold = threshold_factor * harris_corners.max()
         corner_marks = np.zeros_like(img)
         corner_marks[harris_corners > threshold] = 255
+
         contours, _ = cv2.findContours(
             corner_marks, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
         )
@@ -101,14 +230,7 @@ class ProbeFineTipDetector:
 
     @classmethod
     def _get_direction_tip(cls, contour, direction):
-        """Get the tip coordinates based on the direction.
-
-        Args:
-            contour (numpy.ndarray): Contour of the tip.
-
-        Returns:
-            tuple: Coordinates of the tip based on the direction.
-        """
+        """Get the tip coordinates based on the direction."""
         tip = (0, 0)
         if direction == "S":
             tip = max(contour, key=lambda point: point[0][1])[0]
@@ -126,22 +248,16 @@ class ProbeFineTipDetector:
             tip = max(contour, key=lambda point: point[0][1] + point[0][0])[0]
         elif direction == "SW":
             tip = max(contour, key=lambda point: point[0][1] - point[0][0])[0]
-
         return tip
 
     @classmethod
-    def add_L2_offset_to_tip(cls, tip, base, offset=2):
-        """
-        Add an offset to the tip coordinates by extending the distance from the base by the given offset.
+    def add_L2_offset_to_tip(cls, tip, base, offset=None):
+        """Add an offset to the tip coordinates by extending the distance from the base."""
+        if offset is None:
+            config = cls._ensure_config_loaded()
+            refinement_config = config.get("tip_refinement", {})
+            offset = refinement_config.get("l2_offset", 2)
 
-        Parameters:
-            tip (tuple): The current tip coordinates (x, y).
-            base (tuple): The base coordinates (x, y).
-            offset (float): The L2 distance (in pixels) to extend the tip away from the base.
-
-        Returns:
-            tuple: The new tip coordinates (x, y) after applying the offset.
-        """
         # Calculate the vector from the base to the tip
         vector = np.array(tip) - np.array(base)
 
@@ -149,7 +265,6 @@ class ProbeFineTipDetector:
         distance = np.linalg.norm(vector)
 
         if distance == 0:
-            # If the distance is zero, return the tip without any modification
             return tip
 
         # Calculate the unit vector in the direction from base to tip
@@ -162,27 +277,71 @@ class ProbeFineTipDetector:
         return tuple(new_tip)
 
     @classmethod
-    def get_precise_tip(cls, img, tip, base, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
+    def get_precise_tip(cls, img, tip=None, base=None, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
         """Get the precise tip coordinates from the image."""
-        if logger.getEffectiveLevel() == logging.DEBUG:
+        config = cls._ensure_config_loaded()
+        debug_config = config.get("debug", {})
+        refinement_config = config.get("tip_refinement", {})
+
+        if logger.getEffectiveLevel() == logging.DEBUG and debug_config.get("save_images", True):
             save_path = os.path.join(debug_img_dir, f"{cam_name}_tip_{time.time()}.jpg")
             cv2.imwrite(save_path, img)
-        
+
         img = cls._preprocess_image(img)
+
         if not cls._is_valid(img):
             logger.debug("Boundary check failed.")
             return False, tip
 
         precise_tip = cls._detect_closest_centroid(img, tip, offset_x, offset_y, direction)
-        if base is None:
+
+        if base is None or not refinement_config.get("enable_offset", True):
             precise_tip_extended = precise_tip
         else:
-            precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base, offset=3)
+            precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base)
 
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            x, y = precise_tip_extended[0]-offset_x, precise_tip_extended[1]-offset_y
-            cv2.circle(img, (x, y), 5, (0, 255, 0), -1)
+        if logger.getEffectiveLevel() == logging.DEBUG and debug_config.get("save_images", True):
+            x, y = precise_tip_extended[0] - offset_x, precise_tip_extended[1] - offset_y
+
+            # Use configurable debug circle parameters
+            radius = debug_config.get("circle_radius", 5)
+            color = tuple(debug_config.get("circle_color", [0, 255, 0]))
+            thickness = debug_config.get("circle_thickness", -1)
+
+            cv2.circle(img, (x, y), radius, color, thickness)
             save_path = os.path.join(debug_img_dir, f"{cam_name}_tip_{time.time()}.jpg")
             cv2.imwrite(save_path, img)
 
         return True, precise_tip_extended
+
+"""
+#Module-level configuration
+def load_global_config(config_path=img_processing_config_file):
+    global _GLOBAL_CONFIG
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        _GLOBAL_CONFIG = config.get("ProbeFineTipDetector", {})
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.warning(f"Could not load config file {config_path}: {e}")
+        _GLOBAL_CONFIG = ProbeFineTipDetector._get_default_config()
+
+# Initialize global config
+_GLOBAL_CONFIG = None
+load_global_config()
+"""
+
+# Example usage
+if __name__ == "__main__":
+    # Method 1: Direct class method calls (config loaded automatically)
+    # img = cv2.imread("probe_image.jpg")
+    # success, tip_coords = ProbeFineTipDetector.get_precise_tip(img, tip=(100, 100), base=(50, 50))
+
+    # Method 2: Set custom config file
+    # ProbeFineTipDetector.set_config_file("custom_config.json")
+    # success, tip_coords = ProbeFineTipDetector.get_precise_tip(img, tip=(100, 100), base=(50, 50))
+
+    # Method 3: Access configuration
+    # config = ProbeFineTipDetector.get_config()
+    # print(config)
+    pass
