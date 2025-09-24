@@ -280,14 +280,14 @@ class ProcessWorkerTAM(baseProcessWorker):
         bbox = ProbeImageProcessor.mask_to_bbox_xyxy(mask_global, img.shape, pad=20)  # (x1,y1,x2,y2)
         if not bbox:
             raise RuntimeError("No foreground detected in the first frame.")
-        img_local = ProbeImageProcessor._crop_and_resize(bbox, img)
-        mask_local = ProbeImageProcessor._crop_and_resize(bbox, mask_global)
+        img_local = ProbeImageProcessor.crop_and_resize(bbox, img)
+        mask_local = ProbeImageProcessor.crop_and_resize(bbox, mask_global)
 
         if points is not None:
             print("points:", points)
-            points_local = ProbeImageProcessor._convert_pts_after_crop_resize(points, bbox)  # to crop coords
+            points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
             print("points_local:", points_local)
-            mask_line = ProbeImageProcessor._detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
+            mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
             # Start Local
             predictor_local.predictor.load_first_frame(img_local)
             _, out_mask_logits = start_with_mask(predictor_local, mask=mask_line)

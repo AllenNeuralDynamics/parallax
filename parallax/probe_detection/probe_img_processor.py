@@ -244,7 +244,7 @@ class ProbeImageProcessor:
         return mask
 
     @classmethod
-    def _detect_line_on_pt(cls, img, pt, mask=None):
+    def detect_line_on_pt(cls, img, pt, mask=None):
         config = cls._ensure_config_loaded()
         line_config = config.get("line_detection", {})
         mask_config = config.get("mask_operations", {})
@@ -328,7 +328,7 @@ class ProbeImageProcessor:
         return np.linalg.norm(p - proj)
 
     @classmethod
-    def _crop_and_resize(cls, bbox, img, w=None, h=None):
+    def crop_and_resize(cls, bbox, img, w=None, h=None):
         config = cls._ensure_config_loaded()
         coord_config = config.get("coordinate_conversion", {})
         default_size = coord_config.get("default_size", {})
@@ -344,7 +344,7 @@ class ProbeImageProcessor:
         return resized_img
 
     @classmethod
-    def _convert_pts_after_crop_resize(cls, pts, bbox, w=None, h=None):
+    def convert_pts_after_crop_resize(cls, pts, bbox, w=None, h=None):
         config = cls._ensure_config_loaded()
         coord_config = config.get("coordinate_conversion", {})
         default_size = coord_config.get("default_size", {})
@@ -494,5 +494,30 @@ class ProbeImageProcessor:
     
 # Example usage
 if __name__ == "__main__":
+    """
+    # Local - Preprocessing
+    # crop the global mask to get initial local mask
+    mask_global = np.zeros((1080, 1920), dtype=np.uint8)  # Example global mask
+    mask_global[400:800, 800:1200] = 255  # Example foreground region
+    img = np.zeros((1080, 1920, 3), dtype=np.uint8)  # Example image
+    bbox = ProbeImageProcessor.mask_to_bbox_xyxy(mask_global, img.shape, pad=20)  # (x1,y1,x2,y2)
+    if not bbox:
+        raise RuntimeError("No foreground detected in the first frame.")
+    img_local = ProbeImageProcessor.crop_and_resize(bbox, img)
+    mask_local = ProbeImageProcessor.crop_and_resize(bbox, mask_global)
+
+    points = [(400, 900)]  # Example point in global coords
+
+    if points is not None:
+        print("points:", points)
+        points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
+        print("points_local:", points_local)
+        mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
+
+    # Post processing Lift local mask to global
+    # mask_local[0] matches local_img size (w,h); lift it back to full-frame
+    H, W = img.shape[:2]
+    mask_local_global = ProbeImageProcessor.lift_local_mask_to_global(mask_local, bbox, (H, W))
+    """
 
     pass
