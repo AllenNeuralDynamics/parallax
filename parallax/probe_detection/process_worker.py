@@ -243,7 +243,6 @@ class ProcessWorkerTAM(baseProcessWorker):
                 file_name = f"{self.name}_tam_{self.img_ts}.jpg"
 
             save_path = os.path.join(debug_img_dir, file_name)
-            print("img shape:", img.shape, "mask shape:", mask.shape)
             masked_img = cv2.bitwise_and(img, img, mask=mask)
             cv2.imwrite(save_path, masked_img)
             print("Saved TAM masked image for debug:", save_path)
@@ -294,13 +293,11 @@ class ProcessWorkerTAM(baseProcessWorker):
         else:
             print("*** track local ***")
             _, out_mask_logits = track(predictor_local, img_local)
-            print("out_mask_logits:", out_mask_logits)
             # save img_local
             cv2.imwrite(os.path.join(debug_img_dir, f"{self.name}_tam_{self.img_ts}_local_input.jpg"), img_local)
 
         mask_local = masks_to_uint8_batch(out_mask_logits)
         # save
-        print("mask_local", mask_local[0])
         self._save_masked_img(img_local, mask_local[0], name="local_crop")
 
         # Post processing Lift local mask to global
@@ -334,6 +331,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                 return
         
             self.stop_detection()  # pause detection while TAM handling the frame
+            # Global - Preprocessing
             try:
                 print(f"\n{self.name} TAM initializing..")
                 self.predictor_global = build_predictor(
@@ -357,6 +355,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                 logger.error(f"Error occurred while starting TAM (global): {e}")
                 return
 
+            # Local
             try:
                 # --- Track local ---
                 print("Start local TAM tracking with point:", pt)
@@ -574,6 +573,3 @@ class ProcessWorker(baseProcessWorker):
                     self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, (None, None)
                 )
                 logger.info(f"Emit tip stopped signal with coords: {self.probeDetect.probe_tip_org}")
-
-
-
