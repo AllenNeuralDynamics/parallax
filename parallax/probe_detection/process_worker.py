@@ -187,6 +187,14 @@ class ProcessWorkerTAM(baseProcessWorker):
         self.labels = np.array(labels, dtype=np.int32)
         print(f"Negative points: {neg_pts}, Resized: {self.pts}")
 
+    def _keep_negative_points(self):
+        if self.pts is None:
+            return
+        # if label is 0 (negative), keep the label and points
+        mask = self.labels == 0
+        self.pts = self.pts[mask]
+        self.labels = self.labels[mask]
+
     def _import_checkpoint(self, ckpt_name):
         ckpt = Path(tam_model_dir) / ckpt_name
         if not ckpt.is_file():
@@ -294,6 +302,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         if self.predictor_local is not None:
             self.predictor_local = None
         self.signals.cancel_seg_mask.emit()
+        self._keep_negative_points()
 
     def _is_close_prev_pt(self, pt, threshold=50):
         logger.debug(f"pt: {pt}, prev_pt: {self._prev_pt}")
@@ -346,6 +355,14 @@ class ProcessWorkerTAM(baseProcessWorker):
 
         return mask_local_global
 
+    def _add_pts(self, pt):
+        if self.pts is None:
+            self.pts = np.array([pt], dtype=np.float32)
+            self.labels = np.array([1], dtype=np.int32)  # 1 for positive point
+        else:
+            self.pts = np.append(self.pts, [pt], axis=0)
+            self.labels = np.append(self.labels, [1], axis=0)
+        logger.debug(f"Add point: {self.pts}, labels: {self.labels}")
 
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
@@ -353,13 +370,6 @@ class ProcessWorkerTAM(baseProcessWorker):
         if self._is_close_prev_pt(pt):
             self._cancel_current_tam()
             return
-
-        if self.pts is None:  # self.pts contains negative points already
-            self.pts = np.array([pt], dtype=np.float32)
-            self.labels = np.array([1], dtype=np.int32)  # 1 for positive point
-        else:
-            self.pts = np.append(self.pts, [pt], axis=0)
-            self.labels = np.append(self.labels, [1], axis=0)
 
         if self.predictor_global is None and self.predictor_local is None and self._prev_pt is None:
             if self.tiny_checkpoint_path is None or self.small_checkpoint_path is None:
@@ -370,6 +380,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                 return
         
             self.stop_detection()  # pause detection while TAM handling the frame
+            self._add_pts(pt)
             # Global - Preprocessing
             try:
                 print(f"\n{self.name} TAM initializing..")
@@ -390,8 +401,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                 self.signals.seg_mask.emit("global", mask_global[0])
                 self._save_masked_img(self.curr_img, mask_global[0], name="global")
             except Exception as e:
-                self.predictor_global = None
-                self.predictor_local = None
+                self._cancel_current_tam()
                 logger.error(f"Error occurred while starting TAM (global): {e}")
                 return
 
@@ -410,8 +420,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                 self._save_masked_img(self.curr_img, mask_local, name="local")
                 #print("Local TAM process done.\n")
             except Exception as e:
-                self.predictor_global = None
-                self.predictor_local = None
+                self._cancel_current_tam()
                 logger.error(f"Error occurred while starting TAM (local): {e}")
                 return
 
