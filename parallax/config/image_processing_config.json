@@ -87,12 +87,12 @@
         "rho": 1,
         "theta": "pi/180",
         "threshold": 80,
-        "min_line_length": 200,
+        "min_line_length": 150,
         "max_line_gap": 5
       },
       "point_tolerance": 5.0,
       "line_mask": {
-        "line_thickness": 5,
+        "line_thickness": 3,
         "color": 255
       }
     },
@@ -114,7 +114,7 @@
     "debug": {
       "save_intermediate_images": true,
       "line_color": [0, 255, 0],
-      "line_thickness": 2,
+      "line_thickness": 3,
       "point_color": [0, 0, 255],
       "point_radius": 4
     }

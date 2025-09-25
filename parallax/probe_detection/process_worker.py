@@ -173,7 +173,6 @@ class ProcessWorkerTAM(baseProcessWorker):
 
     def update_negative_points(self, neg_pts):
         """Update negative points for TAM."""
-        print("Update negative points for TAM:", neg_pts)
         pts_resized = []
         labels = []
 
@@ -186,14 +185,13 @@ class ProcessWorkerTAM(baseProcessWorker):
         # Ensure consistent array shapes
         self.pts = np.array(pts_resized, dtype=np.float32)
         self.labels = np.array(labels, dtype=np.int32)
-        print("Negative points for TAM (resized):", self.pts)
+        print(f"Negative points: {neg_pts}, Resized: {self.pts}")
 
     def _import_checkpoint(self, ckpt_name):
         ckpt = Path(tam_model_dir) / ckpt_name
         if not ckpt.is_file():
             logger.error(f"Checkpoint not found at {ckpt}. Expected under tam_model_dir={tam_model_dir}")
             return None
-        print(f"TAM checkpoint found")
         return ckpt
 
     @pyqtSlot()
@@ -244,7 +242,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         # Get base and tip points
         # Get highest point and lowest point from the mask_local
         print("--- Get probe points ---")
-        highest_pt, lowest_pt = ProbeImageProcessor.get_highest_lowest_point_from_mask(mask_local)
+        highest_pt, lowest_pt = ProbeImageProcessor.get_far_endpoints_from_mask(mask_local)
         if highest_pt is None or lowest_pt is None:
             print("No probe points found.")
             return
@@ -252,7 +250,9 @@ class ProcessWorkerTAM(baseProcessWorker):
         probe_tip, probe_base = ProbeImageProcessor.get_probe_point(mask, highest_pt, lowest_pt)
         probe_tip_org = UtilsCoords.scale_coords_to_original(probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
         probe_base_org = UtilsCoords.scale_coords_to_original(probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-        self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_org, probe_base_org)
+        # get fine tip
+        probe_tip_fine = ProbeImageProcessor.get_precise_tip(probe_tip_org, probe_base_org, self.frame)
+        self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_fine, probe_base_org)
 
     def _get_mask(self, img):
         """Convert and blur the frame, generate mask."""
@@ -280,7 +280,6 @@ class ProcessWorkerTAM(baseProcessWorker):
             save_path = os.path.join(debug_img_dir, file_name)
             masked_img = cv2.bitwise_and(img, img, mask=mask)
             cv2.imwrite(save_path, masked_img)
-            print("Saved TAM masked image for debug:", save_path)
 
     def _get_pt(self, pt):
         pt = UtilsCoords.scale_coords_to_resized_img(pt, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
@@ -297,7 +296,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         self.signals.cancel_seg_mask.emit()
 
     def _is_close_prev_pt(self, pt, threshold=50):
-        print("pt:", pt, "prev_pt:", self._prev_pt)
+        logger.debug(f"pt: {pt}, prev_pt: {self._prev_pt}")
         if self._prev_pt is not None:
             # ensure 2D (x, y)
             curr = np.asarray(pt, dtype=float).ravel()[:2]
@@ -318,9 +317,9 @@ class ProcessWorkerTAM(baseProcessWorker):
         mask_local = ProbeImageProcessor.crop_and_resize(bbox, mask_global)
 
         if points is not None:
-            print("points:", points)
+            #print("points:", points)
             points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
-            print("points_local:", points_local)
+            #print("points_local:", points_local)
             mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
             if mask_line is None:
                 return None
@@ -328,7 +327,7 @@ class ProcessWorkerTAM(baseProcessWorker):
             predictor_local.predictor.load_first_frame(img_local)
             _, out_mask_logits = start_with_mask(predictor_local, mask=mask_line)
         else:
-            print("*** track local ***")
+            #print("*** track local ***")
             if not predictor_local.initialized:
                 raise RuntimeError("Local TAM predictor is not initialized.")
                 return None
@@ -382,7 +381,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                     model_cfg=str(self.small_cfg_path),
                     tam_checkpoint=str(self.small_checkpoint_path)
                 )
-                print(f"\n{self.name} TAM starting..")
+                print(f"\n{self.name} TAM Global starting..")
                 self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
                 self.predictor_global.predictor.load_first_frame(self.curr_img)
                 _, out_mask_logits = start(self.predictor_global, points=self.pts, labels=self.labels)
@@ -398,17 +397,17 @@ class ProcessWorkerTAM(baseProcessWorker):
             # Local
             try:
                 # --- Track local ---
-                print("Start local TAM tracking with point:", pt)
+                print(f"\n{self.name} TAM Local tracking with point:", pt)
                 mask_local = self._track_local(self.predictor_local, mask_global[0], self.curr_img, points=[pt])
                 if mask_local is None:
                     self._cancel_current_tam()
                     print("line not found")
                     return
-                print("Local TAM tracking done.")
+                #print("Local TAM tracking done.")
                 self.signals.seg_mask.emit("local", mask_local)  # TODO
-                print("Emit local seg mask.")
+                #print("Emit local seg mask.")
                 self._save_masked_img(self.curr_img, mask_local, name="local")
-                print("Local TAM process done.\n")
+                #print("Local TAM process done.\n")
             except Exception as e:
                 self.predictor_global = None
                 self.predictor_local = None
@@ -450,7 +449,7 @@ class ProcessWorker(baseProcessWorker):
         self.mask_detect = MaskGenerator()
         self.currPrevCmpProcess = None
         self.currBgCmpProcess = None
-        print(f"{name} - OpenCV Process Worker initialized")
+        #print(f"{name} - OpenCV Process Worker initialized")
 
     def update_sn(self, sn):
         """Update the serial number and initialize probe detectors.

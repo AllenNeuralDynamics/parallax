@@ -118,6 +118,9 @@ class ProbeFineTipDetector:
     @classmethod
     def _preprocess_image(cls, img):
         """Preprocess the image for tip detection."""
+        # change to grey
+        if len(img.shape) == 3 and img.shape[2] == 3:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         config = cls._ensure_config_loaded()
         preprocess_config = config.get("preprocessing", {})
 

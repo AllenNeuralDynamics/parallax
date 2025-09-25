@@ -15,7 +15,7 @@ from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorker
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class DrawWorkerSignal(QObject):
@@ -188,7 +188,7 @@ class DrawWorker(QRunnable):
 
     def update_is_seg_mask(self, status: bool):
         self.is_seg_mask = status
-        print(f"{self.name} Segmentation mask status: {self.is_seg_mask}")
+        #print(f"{self.name} Segmentation mask status: {self.is_seg_mask}")
 
     def update_status(self, status):
         """Update the status of the worker."""
@@ -201,6 +201,9 @@ class DrawWorker(QRunnable):
         self.mask_idx = None
         self.seg_color_pixels = None
         self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
+
+        self.update_tip_coords(None, None)
+        self.update_base_coords(None, None)
 
     def found_seg_mask(self, type: str, mask: np.ndarray) -> None:
         if type == "global":
@@ -475,8 +478,8 @@ class ProbeDetectManager(QObject):
         # Update into screen
         if self.worker is not None:
             self.worker.update_tip_coords(tip_coords, color=(255, 0, 0))
-        if self.model.test and base_coords != (None, None):
-            self.worker.update_base_coords(base_coords, color=(0, 255, 0))
+            if self.model.test and base_coords != (None, None):
+                self.worker.update_base_coords(base_coords, color=(0, 255, 0))
 
         moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:

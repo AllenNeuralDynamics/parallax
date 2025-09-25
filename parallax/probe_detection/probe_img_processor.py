@@ -6,6 +6,8 @@ import time
 import json
 from parallax.config.config_path import debug_img_dir
 from parallax.config.config_path import img_processing_config_file
+from parallax.utils.utils import UtilsCoords, UtilsCrops
+from parallax.probe_detection.probe_fine_tip_detector import ProbeFineTipDetector
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -93,12 +95,12 @@ class ProbeImageProcessor:
                     "rho": 1,
                     "theta": "pi/180",
                     "threshold": 80,
-                    "min_line_length": 200,
+                    "min_line_length": 150,
                     "max_line_gap": 5
                 },
                 "point_tolerance": 5.0,
                 "line_mask": {
-                    "line_thickness": 5,
+                    "line_thickness": 3,
                     "color": 255
                 }
             },
@@ -120,7 +122,7 @@ class ProbeImageProcessor:
             "debug": {
                 "save_intermediate_images": True,
                 "line_color": [0, 255, 0],
-                "line_thickness": 2,
+                "line_thickness": 3,
                 "point_color": [0, 0, 255],
                 "point_radius": 4
             }
@@ -271,7 +273,7 @@ class ProbeImageProcessor:
         rho = hough_config.get("rho", 1)
         theta = cls._get_cv2_constant(hough_config.get("theta", "pi/180"))
         threshold = hough_config.get("threshold", 80)
-        min_line_length = hough_config.get("min_line_length", 200)
+        min_line_length = hough_config.get("min_line_length", 150)
         max_line_gap = hough_config.get("max_line_gap", 5)
         
         linesP = cv2.HoughLinesP(img, rho, theta, threshold=threshold, 
@@ -279,7 +281,14 @@ class ProbeImageProcessor:
         
         tol = line_config.get("point_tolerance", 5.0)
         hits = []
+        logger.debug(f"number of lines detected: {0 if linesP is None else len(linesP)}")
         
+
+        if out.ndim == 2 or out.shape[2] == 1:
+            debug_save = cv2.cvtColor(out, cv2.COLOR_GRAY2BGR)
+        else:
+            debug_save = out.copy()
+
         if linesP is not None:
             for x1, y1, x2, y2 in linesP[:, 0]:
                 dist = cls._point_to_segment_dist(pt, (x1, y1), (x2, y2))
@@ -288,28 +297,37 @@ class ProbeImageProcessor:
                 if dist <= tol:
                     hits.append((x1, y1, x2, y2, dist))
 
+                # Draw
+                if dist <= tol:
+                    cv2.line(debug_save, (x1, y1), (x2, y2), (0, 255, 0), 1) # hit
+                else:
+                    cv2.line(debug_save, (x1, y1), (x2, y2), (255, 0, 0), 1) # not hit
+        cv2.circle(debug_save, (int(pt[0]), int(pt[1])), 2, (0, 0, 255), -1)
+        cv2.imwrite(os.path.join(debug_img_dir, f"8_debug_hough_{int(time.time())}.jpg"), debug_save)
+
         # Draw detected lines
         if hits:
             line_color = tuple(debug_config.get("line_color", [0, 255, 0]))
-            line_thickness = debug_config.get("line_thickness", 2)
+            line_thickness = debug_config.get("line_thickness", 4)
             
             for x1, y1, x2, y2, dist in hits:
-                print(f"Line near point (d={dist:.2f}): ({x1},{y1})-({x2},{y2})")
                 cv2.line(out, (x1, y1), (x2, y2), line_color, line_thickness)
         else:
-            print("No line detected near the point.")
+            logger.debug("No line detected near the point.")
+            return None
 
         # Create mask from detected lines
         mask_result = np.zeros(img.shape, dtype=np.uint8)
         if hits:
             line_mask_config = line_config.get("line_mask", {})
-            line_thickness = line_mask_config.get("line_thickness", 5)
+            line_thickness = line_mask_config.get("line_thickness", 4)
             color = line_mask_config.get("color", 255)
             
             for x1, y1, x2, y2, dist in hits:
                 cv2.line(mask_result, (x1, y1), (x2, y2), color, line_thickness)
         else:
             print("No line mask created.")
+            return None
 
         return mask_result
 
@@ -362,9 +380,8 @@ class ProbeImageProcessor:
         if pts is not None:
             for pt in pts:
                 pt_crop = cls._converter_pts_after_crop(pt, left=left, top=top)
-                print(f"Crop coords: {pt_crop}")
                 pt_local = cls._converter_pts_after_resize(pt_crop, src_wh=(crop_w, crop_h), dst_wh=(w, h))
-                print("Local coords:", pt_local)
+                logger.debug(f"Crop coords: {pt_crop}, Local coords: {pt_local}")
                 pts_local.append(pt_local)
 
             pts_local = np.array(pts_local, dtype=np.float32)
@@ -492,6 +509,206 @@ class ProbeImageProcessor:
         out[top:bottom, left:right] = local_up
         return out
     
+    @classmethod
+    def get_highest_lowest_point_from_mask_(cls, mask):
+        mask_bin = (mask > 0).astype(np.uint8)
+
+        highest_pt = None
+        lowest_pt  = None
+
+        num, labels, stats, _ = cv2.connectedComponentsWithStats(mask_bin, connectivity=8)
+        if num > 1:
+            # Pick the largest foreground component (skip label 0 = background)
+            largest_label = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
+            comp = (labels == largest_label)
+
+            ys, xs = np.where(comp)
+            if ys.size > 0:
+                y_top = int(ys.min())
+                y_bot = int(ys.max())
+
+                # Median x at those rows is more stable than min/max
+                x_top = int(np.median(xs[ys == y_top]))
+                x_bot = int(np.median(xs[ys == y_bot]))
+
+                highest_pt = (x_top, y_top)   # smallest y (topmost)
+                lowest_pt  = (x_bot, y_bot)   # largest y (bottommost)
+
+        return highest_pt, lowest_pt
+
+    @classmethod
+    def get_far_endpoints_from_mask(cls, mask, elong_thresh: float = 2.0):
+        """
+        Return two endpoints (x,y) at the far ends of the largest line-like component.
+        Works for horizontal/vertical/diagonal, thick or slightly rough masks.
+
+        Args:
+            mask: uint8 or bool mask. Nonzeros are foreground.
+            elong_thresh: if the component isn't elongated enough (λ1/λ2 < threshold),
+                        fall back to convex-hull diameter.
+
+        Returns:
+            (p_min, p_max): tuples (x,y) for the two far endpoints, or (None, None) if not found.
+        """
+        mask_bin = (mask > 0).astype(np.uint8)
+
+        # Largest connected component
+        num, labels, stats, _ = cv2.connectedComponentsWithStats(mask_bin, connectivity=8)
+        if num <= 1:
+            return None, None
+
+        largest_label = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
+        ys, xs = np.where(labels == largest_label)
+        if xs.size == 0:
+            return None, None
+
+        pts = np.column_stack([xs, ys]).astype(np.float32)  # (N,2) as (x,y)
+
+        # Degenerate small blobs
+        if pts.shape[0] < 2:
+            p = tuple(pts[0].astype(int))
+            return p, p
+
+        # --- PCA principal axis ---
+        mean = pts.mean(axis=0)
+        centered = pts - mean
+        cov = np.cov(centered.T)
+        evals, evecs = np.linalg.eigh(cov)    # ascending
+        order = np.argsort(evals)[::-1]
+        evals = evals[order]
+        v = evecs[:, order[0]]                 # principal direction (unit after norm below)
+        v = v / (np.linalg.norm(v) + 1e-12)
+
+        # Elongation ratio λ1/λ2
+        elong = float(evals[0] / (evals[1] + 1e-12))
+
+        # Project points onto v, take extremes along axis
+        t = centered @ v  # scalar projection for each point
+        i_min, i_max = int(np.argmin(t)), int(np.argmax(t))
+        p_min = tuple(pts[i_min].astype(int))
+        p_max = tuple(pts[i_max].astype(int))
+
+        # If not elongated (e.g., blobby/curvy), use convex-hull diameter
+        if elong < float(elong_thresh):
+            hull = cv2.convexHull(pts)  # (M,1,2)
+            H = hull.reshape(-1, 2)     # (M,2)
+            # Brute-force diameter over hull vertices (M is usually small)
+            maxd = -1.0
+            q1 = q2 = None
+            for i in range(len(H)):
+                d = np.sum((H - H[i])**2, axis=1)
+                j = int(np.argmax(d))
+                if d[j] > maxd:
+                    maxd = float(d[j])
+                    q1, q2 = H[i], H[j]
+            if q1 is not None:
+                p_min, p_max = tuple(q1.astype(int)), tuple(q2.astype(int))
+
+        return p_min, p_max
+
+    @classmethod
+    def get_probe_point(cls, mask, p1, p2):
+        """Get the probe tip and base points.
+
+        Args:
+            mask (numpy.ndarray): Mask image.
+            p1 (tuple): First point coordinates.
+            p2 (tuple): Second point coordinates.
+            img_fname (str, optional): Image filename. Defaults to None.
+
+        Returns:
+            tuple: (probe_tip, probe_base)
+                - probe_tip (tuple): Coordinates of the probe tip.
+                - probe_base (tuple): Coordinates of the probe base.
+        """
+
+        if mask is None:
+            print("Mask is None, cannot determine probe points.")
+
+        mask = cv2.copyMakeBorder(
+            mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0]
+        )
+        dist_transform = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
+
+        dist_p1 = dist_transform[p1[1], p1[0]]  # [y, x]
+        dist_p2 = dist_transform[p2[1], p2[0]]
+
+        if dist_p1 > dist_p2:
+            return p1, p2  # Return order: probe_tip, probe_base
+        else:
+            return p2, p1
+
+    @classmethod
+    def get_precise_tip(cls, tip, base, org_img):
+        """Get precise probe tip on original size image
+
+        Args:
+            org_img (numpy.ndarray): Original image.
+
+        Returns:
+            bool: True if precise tip is found, False otherwise.
+        """
+        ret = False
+        IMG_SIZE_ORIGINAL = (org_img.shape[1], org_img.shape[0])  # (w,h)
+
+        top_fine, bottom_fine, left_fine, right_fine = UtilsCrops.calculate_crop_region(
+            tip,
+            tip,
+            crop_size=20,
+            IMG_SIZE=IMG_SIZE_ORIGINAL,
+        )
+        tip_image = org_img[top_fine:bottom_fine, left_fine:right_fine]
+        cv2.imwrite(os.path.join(debug_img_dir, f"9_tip_crop_{int(time.time())}.jpg"), tip_image)
+        ret, fine_tip = ProbeFineTipDetector.get_precise_tip(
+            tip_image,
+            tip,
+            base,
+            offset_x=left_fine,
+            offset_y=top_fine,
+            direction=ProbeImageProcessor._get_probe_direction(tip, base)
+        )
+        if ret:
+            logger.debug(f"* original tip: {tip}")
+            tip = fine_tip
+            logger.debug(f"* refined tip: {tip}")
+        return tip
+
+    @classmethod
+    def _get_probe_direction(cls, probe_tip, probe_base):
+        """Get the direction of the probe.
+
+        Args:
+            probe_tip (tuple): Coordinates of the probe tip.
+            probe_base (tuple): Coordinates of the probe base.
+
+        Returns:
+            str: Direction of the probe (N, NE, E, SE, S, SW, W, NW, Unknown).
+        """
+        dx = probe_tip[0] - probe_base[0]
+        dy = probe_tip[1] - probe_base[1]
+        if dy > 0:
+            if dx > 0:
+                return "SE"
+            elif dx < 0:
+                return "SW"
+            else:
+                return "S"
+        elif dy < 0:
+            if dx > 0:
+                return "NE"
+            elif dx < 0:
+                return "NW"
+            else:
+                return "N"
+        else:
+            if dx > 0:
+                return "E"
+            elif dx < 0:
+                return "W"
+            else:
+                return "Unknown"
+
+
 # Example usage
 if __name__ == "__main__":
     """
@@ -518,6 +735,8 @@ if __name__ == "__main__":
     # mask_local[0] matches local_img size (w,h); lift it back to full-frame
     H, W = img.shape[:2]
     mask_local_global = ProbeImageProcessor.lift_local_mask_to_global(mask_local, bbox, (H, W))
+
+    highest_pt, lowest_pt = ProbeImageProcessor.get_highest_lowest_point_from_mask(mask_local_global)
     """
 
     pass
