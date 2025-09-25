@@ -228,10 +228,10 @@ class ProcessWorkerTAM(baseProcessWorker):
             return
 
         try:
-            print("--- Track local ---")
+            #print("--- Track local ---")
             mask_local = self._track_local(self.predictor_local, mask_global[0], self.curr_img)
             if mask_local is None:
-                print("line not found")
+                logger.debug("line not found")
                 return
             self.signals.seg_mask.emit("local", mask_local)
             self._save_masked_img(self.curr_img, mask_local, name="local")
@@ -241,10 +241,10 @@ class ProcessWorkerTAM(baseProcessWorker):
 
         # Get base and tip points
         # Get highest point and lowest point from the mask_local
-        print("--- Get probe points ---")
+        #print("--- Get probe points ---")
         highest_pt, lowest_pt = ProbeImageProcessor.get_far_endpoints_from_mask(mask_local)
         if highest_pt is None or lowest_pt is None:
-            print("No probe points found.")
+            logger.debug("No probe points found.")
             return
         mask = self._get_mask(self.curr_img)
         probe_tip, probe_base = ProbeImageProcessor.get_probe_point(mask, highest_pt, lowest_pt)
@@ -384,6 +384,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                 print(f"\n{self.name} TAM Global starting..")
                 self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
                 self.predictor_global.predictor.load_first_frame(self.curr_img)
+                logger.debug(f"(Global Tracking) pt: {self.pts}, labels: {self.labels}")
                 _, out_mask_logits = start(self.predictor_global, points=self.pts, labels=self.labels)
                 mask_global = masks_to_uint8_batch(out_mask_logits)
                 self.signals.seg_mask.emit("global", mask_global[0])
@@ -397,11 +398,11 @@ class ProcessWorkerTAM(baseProcessWorker):
             # Local
             try:
                 # --- Track local ---
-                print(f"\n{self.name} TAM Local tracking with point:", pt)
+                logger.debug(f"\n{self.name} TAM Local tracking with point: {pt}")
                 mask_local = self._track_local(self.predictor_local, mask_global[0], self.curr_img, points=[pt])
                 if mask_local is None:
                     self._cancel_current_tam()
-                    print("line not found")
+                    logger.debug("line not found")
                     return
                 #print("Local TAM tracking done.")
                 self.signals.seg_mask.emit("local", mask_local)  # TODO
