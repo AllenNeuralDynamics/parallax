@@ -286,8 +286,7 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         sn = probe["SerialNumber"]
-        #stage = self.model.stages.get(sn)  # Check if the stage is in the model's stages
-        stage = self.model.stages.get(sn).get("obj", None)
+        stage = (self.model.stages.get(sn, {}) or {}).get("obj")
         if not stage:
             return
 
@@ -397,7 +396,7 @@ class StageListener(QObject):
         }
 
         # Update model's stage global coordinates
-        moving_stage = self.model.stages.get(sn).get("obj", None)
+        moving_stage = (self.model.stages.get(sn, {}) or {}).get("obj")
         if moving_stage is not None:
             moving_stage.stage_x_global = global_coords_x
             moving_stage.stage_y_global = global_coords_y
