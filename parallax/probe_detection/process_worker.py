@@ -168,6 +168,8 @@ class ProcessWorkerTAM(baseProcessWorker):
         self._prev_pt = None
         self.pts = None
         self.labels = None
+        self.mask = None
+        self.mask_detector = MaskGenerator()
 
     def update_negative_points(self, neg_pts):
         """Update negative points for TAM."""
@@ -225,14 +227,47 @@ class ProcessWorkerTAM(baseProcessWorker):
             self._save_masked_img(self.curr_img, mask_global[0], name="global")
         except Exception as e:
             logger.error(f"Error occurred while tracking global: {e}")
+            return
 
         try:
             print("--- Track local ---")
             mask_local = self._track_local(self.predictor_local, mask_global[0], self.curr_img)
+            if mask_local is None:
+                print("line not found")
+                return
             self.signals.seg_mask.emit("local", mask_local)
             self._save_masked_img(self.curr_img, mask_local, name="local")
         except Exception as e:
             logger.error(f"Error occurred while tracking local: {e}")
+            return
+
+        # Get base and tip points
+        # Get highest point and lowest point from the mask_local
+        print("--- Get probe points ---")
+        highest_pt, lowest_pt = ProbeImageProcessor.get_highest_lowest_point_from_mask(mask_local)
+        if highest_pt is None or lowest_pt is None:
+            print("No probe points found.")
+            return
+        mask = self._get_mask(self.curr_img)
+        probe_tip, probe_base = ProbeImageProcessor.get_probe_point(mask, highest_pt, lowest_pt)
+        probe_tip_org = UtilsCoords.scale_coords_to_original(probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        probe_base_org = UtilsCoords.scale_coords_to_original(probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+        self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_org, probe_base_org)
+
+    def _get_mask(self, img):
+        """Convert and blur the frame, generate mask."""
+        if img.ndim > 2:
+            img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        else:
+            img = img
+
+        if img.shape != self.IMG_SIZE:
+            img = cv2.resize(img, self.IMG_SIZE)
+
+        curr_img = cv2.GaussianBlur(img, (9, 9), 0)
+        mask = self.mask_detector.process(curr_img)
+
+        return mask
 
     def _save_masked_img(self, img, mask, name=None):
         """Save masked image for debugging."""
@@ -287,11 +322,16 @@ class ProcessWorkerTAM(baseProcessWorker):
             points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
             print("points_local:", points_local)
             mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
+            if mask_line is None:
+                return None
             # Start Local
             predictor_local.predictor.load_first_frame(img_local)
             _, out_mask_logits = start_with_mask(predictor_local, mask=mask_line)
         else:
             print("*** track local ***")
+            if not predictor_local.initialized:
+                raise RuntimeError("Local TAM predictor is not initialized.")
+                return None
             _, out_mask_logits = track(predictor_local, img_local)
             # save img_local
             cv2.imwrite(os.path.join(debug_img_dir, f"{self.name}_tam_{self.img_ts}_local_input.jpg"), img_local)
@@ -360,6 +400,10 @@ class ProcessWorkerTAM(baseProcessWorker):
                 # --- Track local ---
                 print("Start local TAM tracking with point:", pt)
                 mask_local = self._track_local(self.predictor_local, mask_global[0], self.curr_img, points=[pt])
+                if mask_local is None:
+                    self._cancel_current_tam()
+                    print("line not found")
+                    return
                 print("Local TAM tracking done.")
                 self.signals.seg_mask.emit("local", mask_local)  # TODO
                 print("Emit local seg mask.")

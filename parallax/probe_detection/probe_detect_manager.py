@@ -392,7 +392,7 @@ class ProbeDetectManager(QObject):
         self.threadpool.start(self.worker)
 
         self._init_process_thread()
-        self.processWorker.start_running()
+        #self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
 
         neg_pts_coords = self._get_negative_points()

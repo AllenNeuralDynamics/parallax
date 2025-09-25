@@ -31,13 +31,7 @@ class MaskGenerator:
         self.original_size = (None, None)
         self.is_reticle_exist = None
         self.initial_detect = initial_detect
-
-        # Load configuration
-        self.config = self._load_config(config_path=img_processing_config_file)
-
-        # Override initial_detect if specified in config
-        if self.config and 'initialization' in self.config:
-            self.initial_detect = self.config['initialization'].get('initial_detect', initial_detect)
+        self.config = None
 
     def _load_config(self, config_path=None, config_dict=None):
         """Load configuration from file or dictionary.
@@ -281,6 +275,14 @@ class MaskGenerator:
         Returns:
             numpy.ndarray: Generated mask image.
         """
+        # Load config
+        if self.config is None:
+            # Load configuration # TODO TAkes too long time. delay
+            self.config = self._load_config(config_path=img_processing_config_file)
+            # Override initial_detect if specified in config
+            if self.config and 'initialization' in self.config:
+                self.initial_detect = self.config['initialization'].get('initial_detect', self.initial_detect)
+
         if img is None:
             logger.debug("Input image of ReticleFrameDetection is None.")
             return None
