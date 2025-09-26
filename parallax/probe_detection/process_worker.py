@@ -250,17 +250,21 @@ class ProcessWorkerTAM(baseProcessWorker):
         # Get base and tip points
         # Get highest point and lowest point from the mask_local
         #print("--- Get probe points ---")
-        highest_pt, lowest_pt = ProbeImageProcessor.get_far_endpoints_from_mask(mask_local)
-        if highest_pt is None or lowest_pt is None:
-            logger.debug("No probe points found.")
+        try:
+            highest_pt, lowest_pt = ProbeImageProcessor.get_far_endpoints_from_mask(mask_local)
+            if highest_pt is None or lowest_pt is None:
+                logger.debug("No probe points found.")
+                return
+            mask = self._get_mask(self.curr_img)    
+            probe_tip, probe_base = ProbeImageProcessor.get_probe_point(mask, highest_pt, lowest_pt)
+            probe_tip_org = UtilsCoords.scale_coords_to_original(probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            probe_base_org = UtilsCoords.scale_coords_to_original(probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+            # get fine tip
+            probe_tip_fine = ProbeImageProcessor.get_precise_tip(probe_tip_org, probe_base_org, self.frame)
+            self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_fine, probe_base_org)
+        except Exception as e:
+            logger.error(f"Error occurred while getting probe points: {e}")
             return
-        mask = self._get_mask(self.curr_img)
-        probe_tip, probe_base = ProbeImageProcessor.get_probe_point(mask, highest_pt, lowest_pt)
-        probe_tip_org = UtilsCoords.scale_coords_to_original(probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-        probe_base_org = UtilsCoords.scale_coords_to_original(probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-        # get fine tip
-        probe_tip_fine = ProbeImageProcessor.get_precise_tip(probe_tip_org, probe_base_org, self.frame)
-        self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_fine, probe_base_org)
 
     def _get_mask(self, img):
         """Convert and blur the frame, generate mask."""

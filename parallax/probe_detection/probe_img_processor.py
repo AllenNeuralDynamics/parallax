@@ -164,7 +164,7 @@ class ProbeImageProcessor:
         # if input image is color, convert to grayscale
         if img.ndim == 3 and img.shape[2] == 3:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
+
         grey = img.copy()
 
         # 1) CLAHE - Boost local contrast
@@ -678,7 +678,7 @@ class ProbeImageProcessor:
             IMG_SIZE=IMG_SIZE_ORIGINAL,
         )
         tip_image = org_img[top_fine:bottom_fine, left_fine:right_fine]
-        cv2.imwrite(os.path.join(debug_img_dir, f"9_tip_crop_{int(time.time())}.jpg"), tip_image)
+        #cv2.imwrite(os.path.join(debug_img_dir, f"9_tip_crop_{int(time.time())}.jpg"), tip_image)
         ret, fine_tip = ProbeFineTipDetector.get_precise_tip(
             tip_image,
             tip,

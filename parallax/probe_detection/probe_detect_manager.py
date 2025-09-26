@@ -371,8 +371,8 @@ class ProbeDetectManager(QObject):
         self.tamProcessWorker = ProcessWorkerTAM(self.name, camera_resolution, test=self.model.test)
         self.tamProcessWorker.signals.finished.connect(self._onTamProcessThreadFinished)
         self.tamProcessWorker.signals.tip_stopped.connect(self.found_probe)
-        self.tamProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
-        self.tamProcessWorker.signals.status.connect(self.worker.update_status)
+        #self.tamProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
+        #self.tamProcessWorker.signals.status.connect(self.worker.update_status)
         self.tamProcessWorker.signals.seg_mask.connect(self.worker.found_seg_mask)
         self.tamProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
 
@@ -402,6 +402,25 @@ class ProbeDetectManager(QObject):
         self.tamProcessWorker.update_negative_points(neg_pts_coords)
         self.tamProcessWorker.start_running()
         self.threadpool.start(self.tamProcessWorker)
+
+    def set_algorithm(self, algorithms):
+        """Set the probe detection algorithm."""
+        # TODO
+        """
+        if algorithms == 'opencv':
+            if self.processWorker is not None:
+                self.processWorker.start_running()
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.stop_running()
+        elif algorithms == 'tam':
+            if self.processWorker is not None:
+                self.processWorker.stop_running()
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.start_running()
+        else:
+            print("Unknown algorithm:", algorithms)
+        """
+        pass
 
     def _get_negative_points(self):
         coords = self.model.get_coords_for_debug(self.name)

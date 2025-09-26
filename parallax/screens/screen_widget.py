@@ -465,6 +465,10 @@ class ScreenWidget(pg.GraphicsView):
         if "MockCamera" in self.camera.name():
             self.camera.set_data(filepath)
 
+    def set_probe_detect_algorithms(self, algorithms):
+        """Set the probe detection algorithm."""
+        self.probeDetector.set_algorithm(algorithms)
+
 
 class ClickableImage(pg.ImageItem):
     """This class captures mouse click events on images."""
