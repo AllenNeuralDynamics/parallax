@@ -710,6 +710,7 @@ class MockCamera(BaseCamera):
         Returns:
             numpy.ndarray: The last image data as a numpy array.
         """
+        self.last_capture_time = time.time()
         # Video
         if self.video_cap is not None:
             ret, frame = self.video_cap.read()
