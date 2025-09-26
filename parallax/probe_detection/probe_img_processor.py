@@ -156,12 +156,16 @@ class ProbeImageProcessor:
         return cv2_constants.get(constant_name, constant_name)
 
     @classmethod
-    def _preprocess(cls, img):
+    def _preprocess(cls, img: np.ndarray) -> np.ndarray:
         config = cls._ensure_config_loaded()
         preprocess_config = config.get("preprocessing", {})
         debug_config = config.get("debug", {})
+
+        # if input image is color, convert to grayscale
+        if img.ndim == 3 and img.shape[2] == 3:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         
-        grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        grey = img.copy()
 
         # 1) CLAHE - Boost local contrast
         clahe_config = preprocess_config.get("clahe", {})
@@ -169,9 +173,9 @@ class ProbeImageProcessor:
             clip_limit = clahe_config.get("clip_limit", 2.0)
             tile_grid_size = tuple(clahe_config.get("tile_grid_size", [8, 8]))
             clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
-            g = clahe.apply(grey)
+            g = clahe.apply(img)
         else:
-            g = grey
+            g = img
         
         if debug_config.get("save_intermediate_images", True):
             cv2.imwrite(os.path.join(debug_img_dir, "1_clahe.jpg"), g)
@@ -205,6 +209,7 @@ class ProbeImageProcessor:
         if debug_config.get("save_intermediate_images", True):
             cv2.imwrite(os.path.join(debug_img_dir, "3_bin_adapt.jpg"), bin_adapt)
 
+
         # 4) Canny edge detection
         canny_config = preprocess_config.get("canny", {})
         if canny_config.get("enable", True):
@@ -219,6 +224,7 @@ class ProbeImageProcessor:
             edges = cv2.Canny(blurred_for_canny, low_thresh, high_thresh, apertureSize=aperture_size)
         else:
             edges = np.zeros_like(g)
+
         
         if debug_config.get("save_intermediate_images", True):
             cv2.imwrite(os.path.join(debug_img_dir, "4_edges.jpg"), edges)
@@ -246,27 +252,41 @@ class ProbeImageProcessor:
         return mask
 
     @classmethod
-    def detect_line_on_pt(cls, img, pt, mask=None):
-        config = cls._ensure_config_loaded()
-        line_config = config.get("line_detection", {})
-        mask_config = config.get("mask_operations", {})
-        debug_config = config.get("debug", {})
-        
-        out = img.copy()
-        img = cls._preprocess(img)
-
+    def _apply_mask(cls, img, mask):
         if mask is not None:
-            # Dilate mask
+            # Get config
+            config = cls._ensure_config_loaded()
+            mask_config = config.get("mask_operations", {})
+            debug_config = config.get("debug", {})
+
+            # Apply dilation
             dilation_config = mask_config.get("dilation", {})
             kernel_size = tuple(dilation_config.get("kernel_size", [5, 5]))
             iterations = dilation_config.get("iterations", 1)
             
+            # Apply mask
             kernel = np.ones(kernel_size, np.uint8)
             mask = cv2.dilate(mask, kernel, iterations=iterations)
             img = cv2.bitwise_and(img, mask)
             
             if debug_config.get("save_intermediate_images", True):
                 cv2.imwrite(os.path.join(debug_img_dir, "7_masked.jpg"), img)
+
+        return img
+
+    @classmethod
+    def detect_line_on_pt(cls, img, pt, mask=None):
+        config = cls._ensure_config_loaded()
+        line_config = config.get("line_detection", {})
+        debug_config = config.get("debug", {})
+        
+        out = img.copy()
+        # if image is color, convert to grayscale
+        if img.ndim == 3 and img.shape[2] == 3:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        img = cls._preprocess(img)
+        img = cls._apply_mask(img, mask)
 
         # Hough Transform line detection
         hough_config = line_config.get("hough", {})

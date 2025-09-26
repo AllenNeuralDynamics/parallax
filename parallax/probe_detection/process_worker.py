@@ -338,7 +338,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         else:
             #print("*** track local ***")
             if not predictor_local.initialized:
-                raise RuntimeError("Local TAM predictor is not initialized.")
+                logger.debug(f"{self.name} Local TAM predictor is not initialized.")
                 return None
             _, out_mask_logits = track(predictor_local, img_local)
             # save img_local
