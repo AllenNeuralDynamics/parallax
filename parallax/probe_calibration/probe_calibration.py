@@ -567,17 +567,6 @@ class ProbeCalibration(QObject):
         # Add the transformation matrix columns to the DataFrame
         self._save_df_to_csv(df, file_name)
 
-    def reshape_array(self):
-        """
-        Reshapes arrays of local and global points for processing.
-
-        Returns:
-            tuple: Reshaped local and global points arrays.
-        """
-        local_points = np.array(self.local_points)
-        global_points = np.array(self.global_points)
-        return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
-
     def _print_formatted_transM(self):
         """
         Prints the transformation matrix in a formatted way, including the rotation matrix,
