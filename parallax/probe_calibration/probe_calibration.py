@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal
-from .coords_transformation import RotationTransformation
+#from .coords_transformation import RotationTransformation
+from .transforms import fit_params
 from .bundle_adjustment import BALProblem, BALOptimizer
 from parallax.handlers.point_mesh import PointMesh
 from parallax.config.config_path import stages_dir
@@ -53,7 +54,6 @@ class ProbeCalibration(QObject):
             stage_listener (QObject): The stage listener object for receiving stage-related events.
         """
         super().__init__()
-        self.transformer = RotationTransformation()
         self.model = model
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
@@ -245,7 +245,7 @@ class ProbeCalibration(QObject):
         if len(local_points) <= 3 or len(global_points) <= 3:
             logger.warning("Not enough points for calibration.")
             return None
-        self.origin, self.R, self.avg_err = self.transformer.fit_params(local_points, global_points)
+        self.origin, self.R, self.avg_err = fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
@@ -261,7 +261,7 @@ class ProbeCalibration(QObject):
             logger.warning("Not enough points for calibration.")
             return None
 
-        self.origin, self.R, self.avg_err = self.transformer.fit_params(local_points, global_points)
+        self.origin, self.R, self.avg_err = fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
