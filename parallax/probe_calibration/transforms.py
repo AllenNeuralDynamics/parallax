@@ -62,8 +62,9 @@ def _func(x, measured_pts, global_pts, reflect_z=False):
     for i in range(len(global_pts)):
         global_pt = global_pts[i, :].T
         measured_pt = measured_pts[i, :].T
-        global_pt_exp = R @ measured_pt + origin
-        error_values[i * 3: (i + 1) * 3] = global_pt - global_pt_exp
+        #global_pt_exp = R @ measured_pt + origin
+        measured_pt_exp = R @ global_pt + origin
+        error_values[i * 3: (i + 1) * 3] = measured_pt - measured_pt_exp
     return error_values
 
 def avg_error(x, measured_pts, global_pts, reflect_z=False):
@@ -89,6 +90,7 @@ def avg_error(x, measured_pts, global_pts, reflect_z=False):
 
 def fit_params(measured_pts, global_pts):
     """
+    local = R @ global + t, where local shape and global shape are Nx3.
     Fits the transformation parameters (angles, translation) to minimize the error
     between measured points and global points using least squares optimization.
     Args:

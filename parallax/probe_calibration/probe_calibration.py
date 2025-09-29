@@ -28,7 +28,7 @@ class ProbeCalibration(QObject):
     by transforming local stage coordinates to global reticle coordinates.
 
     Signals:
-        calib_complete (str, object, np.ndarray): Signal emitted when the full calibration is complete.
+        calib_complete: Signal emitted when the full calibration is complete.
         transM_info (str, object, float, object): Signal emitted with transformation matrix information.
     """
     calib_complete = pyqtSignal()
@@ -182,7 +182,7 @@ class ProbeCalibration(QObject):
 
         return local_points, global_points
 
-    def _get_l2_distance(self, local_points, global_points):
+    def _get_l2_distance_deprecated(self, local_points, global_points):
         """
         Compute the L2 distance between the expected global points and the actual global points.
 
@@ -193,11 +193,33 @@ class ProbeCalibration(QObject):
         Returns:
             numpy.ndarray: The L2 distance between the points.
         """
-        R, t= self.R, self.origin
+        R, t = self.R, self.origin
         global_coords_exp = R @ local_points.T + t.reshape(-1, 1)
         global_coords_exp = global_coords_exp.T
 
         l2_distance = np.linalg.norm(global_points - global_coords_exp, axis=1)
+        mean_l2_distance = np.mean(l2_distance)
+        std_l2_distance = np.std(l2_distance)
+        logger.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
+
+        return l2_distance
+
+    def _get_l2_distance(self, local_points, global_points):
+        """
+        Compute the L2 distance between the expected local points and the actual local points.
+
+        Args:
+            local_points (numpy.ndarray): The local points.
+            global_points (numpy.ndarray): The global points.
+
+        Returns:
+            numpy.ndarray: The L2 distance between the points.
+        """
+        R, t = self.R, self.origin
+        local_coords_exp = R @ global_points.T + t.reshape(-1, 1)
+        local_coords_exp = local_coords_exp.T
+
+        l2_distance = np.linalg.norm(local_points - local_coords_exp, axis=1)
         mean_l2_distance = np.mean(l2_distance)
         std_l2_distance = np.std(l2_distance)
         logger.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
@@ -261,6 +283,7 @@ class ProbeCalibration(QObject):
             logger.warning("Not enough points for calibration.")
             return None
 
+        # local = R @ global + t, where local shape and global shape are Nx3.
         self.origin, self.R, self.avg_err = fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
@@ -425,7 +448,7 @@ class ProbeCalibration(QObject):
 
         return False
 
-    def _apply_transformation(self):
+    def _apply_transformation_deprecated(self):
         """
         Applies the calculated transformation matrix to convert a local point to global coordinates.
 
@@ -437,7 +460,21 @@ class ProbeCalibration(QObject):
         global_point = np.dot(self.transM_LR, local_point)
         return global_point[:3]
 
-    def _update_l2_error_current_point(self):
+    def _apply_transformation(self):
+        """
+        Applies the calculated transformation matrix to convert a local point to global coordinates.
+        local = R @ global + t, where local shape and global shape are Nx3.
+        To get local from global: global = R.T @ (local - t)
+
+        Returns:
+            np.array: The transformed global point.
+        """
+        local_point = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z]).T
+        t = self.origin.T
+        global_point = self.R.T @ (local_point - t)
+        return global_point
+
+    def _update_l2_error_current_point_deprecated(self):
         """
         Computes the L2 error between the transformed local point and the global point.
         """
@@ -453,6 +490,24 @@ class ProbeCalibration(QObject):
             ]
         )
         self.LR_err_L2_current = np.linalg.norm(transformed_point - global_point)
+        return
+
+    def _update_l2_error_current_point(self):
+        """
+        Computes the L2 error between the transformed local point and the global point.
+        """
+        if self.transM_LR is None:
+            return None
+
+        transformed_point_global = self._apply_transformation()
+        global_point = np.array(
+            [
+                self.stage.stage_x_global,
+                self.stage.stage_y_global,
+                self.stage.stage_z_global,
+            ]
+        )
+        self.LR_err_L2_current = np.linalg.norm(transformed_point_global - global_point)
         return
 
     def _is_enough_points(self, df):

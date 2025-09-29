@@ -20,11 +20,14 @@ class CoordsConverter:
     def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
         Converts local coordinates to global coordinates using the transformation matrix.
+        local = R @ global + t
+        global = R.T @ (local - t)
+        transM = [R t; 0 1]
         Args:
             sn (str): The serial number of the stage.
-            local_pts (ndarray): The local coordinates (µm) to convert.
+            local_pts (ndarray): The local coordinates (µm) to convert. (1x3)
             reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
-        Returns:
+        Retu rns:
             ndarray: The global coordinates (µm).
         """
         if model.is_calibrated(sn):
@@ -36,29 +39,29 @@ class CoordsConverter:
             logger.debug(f"TransM not found for {sn}")
             return None
 
-        # Apply transM, convert to homogeneous coordinates, and transform
-        global_pts = np.dot(transM, np.append(local_pts, 1))
-
-        logger.debug(f"local_to_global: {local_pts} -> {global_pts[:3]}")
-        logger.debug(f"R: {transM[:3, :3]}\nT: {transM[:3, 3]}")
-
-        if reticle is not None:
+        #if reticle is not None:
             # Apply the reticle offset and rotation adjustment
-            global_pts = CoordsConverter._apply_reticle_adjustments(model, global_pts[:3], reticle)
+            #global_pts = CoordsConverter._apply_reticle_adjustments(model, global_pts[:3], reticle)
 
-        return np.round(global_pts[:3], 1)
+        R_T = transM[:3, :3].T  # R.T
+        t = transM[:3, 3]    # t
+        global_pts = R_T @ (local_pts.T - t)
+        logger.debug(f"global_to_local {global_pts} -> {local_pts}")
+
+        return np.round(global_pts, 1)
 
     @staticmethod
     def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
         Applies the inverse transformation to convert global coordinates to local coordinates.
-
+        local = R @ global + t
+        transM = [R t; 0 1]
         Args:
-            sn (str): The serial number of the stage.
-            global_pts (ndarray): The global coordinates (µm) to convert.
+            sn (str): The serial number of the stage. 
+            global_pts (ndarray): The global coordinates (µm) to convert. (1x3)
             reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
         Returns:
-            ndarray: The transformed local coordinates (µm).
+            ndarray: The transformed local coordinates (µm). (1x3)
         """
         if model.is_calibrated(sn):
             transM = model.get_transform(sn)
@@ -70,16 +73,11 @@ class CoordsConverter:
             logger.warning(f"Transformation matrix not found for {sn}")
             return None
 
-        if reticle and reticle != "Global coords":
-            global_pts = CoordsConverter._apply_reticle_adjustments_inverse(model, global_pts, reticle)
+        #if reticle and reticle != "Global coords":
+            #global_pts = CoordsConverter._apply_reticle_adjustments_inverse(model, global_pts, reticle)
 
-        # Transpose the 3x3 rotation part
-        R_T = transM[:3, :3].T
-        local_pts = np.dot(R_T, global_pts - transM[:3, 3])
-        logger.debug(f"global_to_local {global_pts} -> {local_pts}")
-        logger.debug(f"R.T: {R_T}\nT: {transM[:3, 3]}")
-
-        return np.round(local_pts, 1)
+        local_pts = np.dot(transM, np.append(global_pts, 1))
+        return np.round(local_pts[:3], 1)
 
     @staticmethod
     def _apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
