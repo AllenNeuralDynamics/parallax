@@ -72,6 +72,7 @@ class ReticleMetadata(QWidget):
         self.ui.add_btn.clicked.connect(self._add_groupbox)
         self.ui.update_btn.clicked.connect(self._update_reticle_info)
 
+        # Update reticle selector
         self.model.add_reticle_metadata_instance(self)
 
     def load_metadata_from_file(self):
@@ -87,7 +88,7 @@ class ReticleMetadata(QWidget):
             Exception: If there is an error reading the metadata file, logs the error.
         """
         if not os.path.exists(reticle_metadata_file):
-            logger.info("No existing metadata file found. Starting fresh.")
+            logger.debug("No existing metadata file found. Starting fresh.")
             return
 
         try:
@@ -98,7 +99,8 @@ class ReticleMetadata(QWidget):
                 for group_box in self.groupboxes.values():
                     self._update_reticles(group_box)
                 self._update_to_reticle_selector()
-
+            else:
+                logger.debug("Metadata json file is empty. Starting fresh.")
         except Exception as e:
             logger.error(f"Error reading metadata file: {e}")
 
@@ -111,6 +113,7 @@ class ReticleMetadata(QWidget):
                 return  # Do not add a new groupbox if it already exists
 
             self._populate_groupbox(name, reticle_info)
+            logger.debug(f"Created groupbox for reticle: {name}")
 
     def _add_groupbox(self):
         """This method creates new groupboxes with an alphabet name."""
