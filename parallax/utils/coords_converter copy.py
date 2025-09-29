@@ -20,16 +20,11 @@ class CoordsConverter:
     def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
         Converts local coordinates to global coordinates using the transformation matrix.
-        local = R @ global + t, where local, global and t are {3x1} vectors.
-        To get global from local:
-        global = R.T @ (local - t) for {3x1} vectors. Or, global = (local - t) @ R for {1x3} vectors.
-        transM = [R t; 0 1]
-
         Args:
             sn (str): The serial number of the stage.
-            local_pts (ndarray): The local coordinates (µm) to convert. (1x3)
+            local_pts (ndarray): The local coordinates (µm) to convert.
             reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
-        Retu rns:
+        Returns:
             ndarray: The global coordinates (µm).
         """
         if model.is_calibrated(sn):
@@ -41,29 +36,29 @@ class CoordsConverter:
             logger.debug(f"TransM not found for {sn}")
             return None
 
-        R = transM[:3, :3]
-        t = transM[:3, 3].T    # {1x3} vector
-        global_pts = (local_pts - t) @ R #{1x3} vector
-        logger.debug(f"global_to_local {global_pts} -> {local_pts}")
+        # Apply transM, convert to homogeneous coordinates, and transform
+        global_pts = np.dot(transM, np.append(local_pts, 1))
 
-        # Apply the reticle offset and rotation adjustment
+        logger.debug(f"local_to_global: {local_pts} -> {global_pts[:3]}")
+        logger.debug(f"R: {transM[:3, :3]}\nT: {transM[:3, 3]}")
+
         if reticle is not None:
-            global_pts = CoordsConverter._apply_reticle_adjustments(model, global_pts, reticle)
+            # Apply the reticle offset and rotation adjustment
+            global_pts = CoordsConverter._apply_reticle_adjustments(model, global_pts[:3], reticle)
 
-        return np.round(global_pts, 1)
+        return np.round(global_pts[:3], 1)
 
     @staticmethod
     def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
         """
         Applies the inverse transformation to convert global coordinates to local coordinates.
-        local = R @ global + t, global, local and t are {3x1} vectors.
-        transM = [R t; 0 1]
+
         Args:
-            sn (str): The serial number of the stage. 
-            global_pts (ndarray): The global coordinates (µm) to convert. (1x3)
+            sn (str): The serial number of the stage.
+            global_pts (ndarray): The global coordinates (µm) to convert.
             reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
         Returns:
-            ndarray: The transformed local coordinates (µm). (1x3)
+            ndarray: The transformed local coordinates (µm).
         """
         if model.is_calibrated(sn):
             transM = model.get_transform(sn)
@@ -78,23 +73,22 @@ class CoordsConverter:
         if reticle and reticle != "Global coords":
             global_pts = CoordsConverter._apply_reticle_adjustments_inverse(model, global_pts, reticle)
 
-        # local = R @ global + t
-        local_pts = np.dot(transM, np.append(global_pts, 1)) #np.dot(A, b) and A @ b are equivalent for NumPy arrays
-        return np.round(local_pts[:3], 1)
+        # Transpose the 3x3 rotation part
+        R_T = transM[:3, :3].T
+        local_pts = np.dot(R_T, global_pts - transM[:3, 3])
+        logger.debug(f"global_to_local {global_pts} -> {local_pts}")
+        logger.debug(f"R.T: {R_T}\nT: {transM[:3, 3]}")
+
+        return np.round(local_pts, 1)
 
     @staticmethod
     def _apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
         """
         Applies the inverse of the selected reticle's adjustments (rotation and offsets)
         to the given global coordinates.
-        bregma = Rm @ global + tm, where bregma and global are {3x1} vectors.
-        Or, bregma = (global) @ Rm.T + tm, where bregma and global are {1x3} vectors.
-
-        global = Rm.T @ (bregma - tm), where bregma and global are {3x1} vectors.
-        Or, global = (bregma - tm) @ Rm, where bregma and global are {1x3} vectors.
 
         Args:
-            global_pts (ndarray): The global coordinates to adjust. {1x3} vector
+            global_pts (ndarray): The global coordinates to adjust.
             reticle (str): The name of the reticle to apply adjustments for.
         Returns:
             np.ndarray: The adjusted global coordinates.
@@ -119,8 +113,11 @@ class CoordsConverter:
             reticle_metadata.get("offset_z", 0)
         ])
 
-        # global = (bregma - tm) @ Rm, where bregma and global are {1x3} vectors.
-        global_point = (reticle_global_pts - reticle_offset) @ reticle_rotmat
+        # Subtract the reticle offset
+        global_point = reticle_global_pts - reticle_offset
+
+        # Undo the rotation
+        global_point = np.dot(global_point, reticle_rotmat)
 
         return np.array(global_point)
 
@@ -128,10 +125,8 @@ class CoordsConverter:
     def _apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np.ndarray:
         """
         Applies the selected reticle's adjustments (rotation and offsets) to the given global coordinates.
-        bregma = Rm @ global + tm, where bregma and global are {3x1} vectors.
-        Or, bregma = (global) @ Rm.T + tm, where gregma and global are {1x3} vectors.
         Args:
-            global_pts (ndarray): The global coordinates to adjust. {1x3} vector
+            global_pts (ndarray): The global coordinates to adjust.
             reticle (str): The name of the reticle to apply adjustments for.
         Returns:
             tuple: The adjusted global coordinates (x, y, z).

@@ -283,7 +283,7 @@ class ProbeCalibration(QObject):
             logger.warning("Not enough points for calibration.")
             return None
 
-        # local = R @ global + t, where local shape and global shape are Nx3.
+        # local = R @ global + t, where local shape and global shape are 3xN.
         self.origin, self.R, self.avg_err = fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
@@ -448,49 +448,20 @@ class ProbeCalibration(QObject):
 
         return False
 
-    def _apply_transformation_deprecated(self):
+    def _apply_transformation(self):
         """
         Applies the calculated transformation matrix to convert a local point to global coordinates.
-
+        local = R @ global + t, where local shape and global shape are {3x1}.
+        To get local from global:
+        global = R.T @ (local - t), local, t, and global are {3x1} vectors.
+        global = (local - t) @ R, local, t, and global are {1x3} vectors.
         Returns:
             np.array: The transformed global point.
         """
         local_point = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z])
-        local_point = np.append(local_point, 1)
-        global_point = np.dot(self.transM_LR, local_point)
-        return global_point[:3]
-
-    def _apply_transformation(self):
-        """
-        Applies the calculated transformation matrix to convert a local point to global coordinates.
-        local = R @ global + t, where local shape and global shape are Nx3.
-        To get local from global: global = R.T @ (local - t)
-
-        Returns:
-            np.array: The transformed global point.
-        """
-        local_point = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z]).T
-        t = self.origin.T
-        global_point = self.R.T @ (local_point - t)
+        t = self.origin
+        global_point = (local_point - t) @ self.R
         return global_point
-
-    def _update_l2_error_current_point_deprecated(self):
-        """
-        Computes the L2 error between the transformed local point and the global point.
-        """
-        if self.transM_LR is None:
-            return None
-
-        transformed_point = self._apply_transformation()
-        global_point = np.array(
-            [
-                self.stage.stage_x_global,
-                self.stage.stage_y_global,
-                self.stage.stage_z_global,
-            ]
-        )
-        self.LR_err_L2_current = np.linalg.norm(transformed_point - global_point)
-        return
 
     def _update_l2_error_current_point(self):
         """
