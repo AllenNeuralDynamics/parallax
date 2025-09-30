@@ -155,4 +155,71 @@ class CoordsConverter:
             global_pts = global_pts @ reticle_rotmat.T
         global_pts = global_pts + reticle_offset
 
-        return np.round(global_pts, 1)
+        return np.round(global_pts, 1)    
+
+    @staticmethod
+    def _get_reticle_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) -> np.ndarray:
+        """
+        Unknown: Rb and tb. Known: R, t, Rm, tm.
+
+        local = Rb @ bregma + tb, where local, bregma, and tb are {3x1} vectors.
+        local = Rb @ (Rm @ global + tm) + tb, where local, global, and tm, tb are {3x1} vectors.
+        local = R @ global + t, where local, global, and t are {3x1} vectors.
+
+        R @ global +t = Rb @ Rm @ global + Rb @ tm + tb
+        R = Rb @ Rm
+        t = Rb @ tm + tb
+
+        Rb = R @ Rm.T
+        tb = t - Rb @ tm
+        tb = t - R @ Rm.T @ tm
+
+        Return shape is {4x4} transformation matrix. [R t : 0 1]
+        To use it: np.dot(transM, global_pts.append(1))[:3] = local_pts
+        """
+        reticle_metadata = model.get_reticle_metadata(reticle)
+        if not reticle_metadata:  # Prevent applying adjustments with missing metadata
+            logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
+            return None
+
+        Rm = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
+        tm = np.array([
+            reticle_metadata.get("offset_x", 0),
+            reticle_metadata.get("offset_y", 0),
+            reticle_metadata.get("offset_z", 0)
+        ])
+
+        # TransM is from global to local
+        R = transM[:3, :3]
+        t = transM[:3, 3].T    # {1x3} vector
+
+        Rb = R @ Rm.T
+        tb = t - np.dot(Rb, tm)  # np.dot(A, b) and A @ b are equivalent for NumPy arrays
+
+        reticle_transM = np.eye(4)
+        reticle_transM[:3, :3] = Rb
+        reticle_transM[:3, 3] = tb
+
+        transMb = np.hstack([Rb, tb.reshape(-1, 1)])
+        transMb = np.vstack([transMb, [0, 0, 0, 1]])
+        return transMb
+
+    @staticmethod
+    def get_reticle_transM(model, sn: str) -> np.ndarray:
+        if not model.is_calibrated(sn):
+            return
+        
+        bregma_to_local_transMs = {}
+        transM = model.get_transform(sn)
+        print("transM:", transM)
+        reticles = model.reticle_metadata.keys()
+        print("reticles:", reticles)
+        for reticle in reticles:
+            transMb = CoordsConverter._get_reticle_transM_bregma_to_local(model, transM, reticle)
+            print(f"transMb: {transMb}")
+            if transMb is not None:
+                bregma_to_local_transMs[f"{reticle}_transMb"] = transMb
+
+        return bregma_to_local_transMs
+
+

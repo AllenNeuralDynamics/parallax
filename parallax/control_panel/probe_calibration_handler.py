@@ -13,6 +13,7 @@ from typing import Optional
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
+from parallax.utils.coords_converter import CoordsConverter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -501,7 +502,7 @@ class ProbeCalibrationHandler(QWidget):
 
         self.probe_detection_status = "accepted"
         # Update into model
-        self.update_stage_info_to_model(self.selected_stage_id)
+        self.update_stage_info_to_model(self.selected_stage_id)  # TODO update bregma transM
         self.model.set_calibration_status(self.selected_stage_id, True)
 
         self.probe_calibration_btn.setStyleSheet(
@@ -607,6 +608,7 @@ class ProbeCalibrationHandler(QWidget):
 
     def update_probe_calib_status(self, moving_stage_id, transM, L2_err, dist_travel):
         """
+        Handler for the signal emitted when the probe calibration. (transM_info)
         Updates the probe calibration status based on the moving stage ID and the provided calibration data.
         If the selected stage matches the moving stage, the calibration data is displayed on the UI.
         """
@@ -785,6 +787,11 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.status_x = self.calib_status_x
         stage_info.status_y = self.calib_status_y
         stage_info.status_z = self.calib_status_z
+
+        # TODO Update transM from bregma if available
+        transMbs = CoordsConverter.get_reticle_transM(self.model, stage_id)
+        print(f"{stage_id} - transMbs:", transMbs)
+
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):

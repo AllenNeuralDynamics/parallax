@@ -307,11 +307,18 @@ class StageListener(QObject):
             stage.stage_y_global = global_pts[1]
             stage.stage_z_global = global_pts[2]
 
+        # If stage is calibrated, update the transformation matrix
+        is_calib = (self.model.stages.get(sn, {}) or {}).get("is_calib")
+        calib_info = (self.model.stages.get(sn, {}) or {}).get("calib_info")
+        #print(f"is_calib: {is_calib}, calib_info: {calib_info}")
+
         # Stage is currently selected one, update into UI
         if sn == self.stage_ui.get_selected_stage_sn():
             self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
             if global_pts is not None:                      # If stage is calibrated,
                 self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
+
+        #print(f"stage: {stage}")
 
         # Update stage info
         self._update_stages_info(stage)
