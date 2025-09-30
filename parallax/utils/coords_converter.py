@@ -211,12 +211,9 @@ class CoordsConverter:
         
         bregma_to_local_transMs = {}
         transM = model.get_transform(sn)
-        print("transM:", transM)
         reticles = model.reticle_metadata.keys()
-        print("reticles:", reticles)
         for reticle in reticles:
             transMb = CoordsConverter._get_reticle_transM_bregma_to_local(model, transM, reticle)
-            print(f"transMb: {transMb}")
             if transMb is not None:
                 bregma_to_local_transMs[f"{reticle}_transMb"] = transMb
 

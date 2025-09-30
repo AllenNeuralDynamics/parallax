@@ -31,6 +31,7 @@ class StageCalibrationInfo:
     status_x: Optional[str] = None
     status_y: Optional[str] = None
     status_z: Optional[str] = None
+    transM_bregma: Optional[np.ndarray] = None
 
     # Movement tracking
     min_x: float = float("inf")
@@ -501,6 +502,10 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         self.probe_detection_status = "accepted"
+
+        # Update reticle selector
+        self.reticle_metadata.load_metadata_from_file()
+
         # Update into model
         self.update_stage_info_to_model(self.selected_stage_id)  # TODO update bregma transM
         self.model.set_calibration_status(self.selected_stage_id, True)
@@ -536,9 +541,6 @@ class ProbeCalibrationHandler(QWidget):
 
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
-
-        # Update reticle selector
-        self.reticle_metadata.load_metadata_from_file()
 
 
     def update_probe_calib_status_transM(self, transformation_matrix):
@@ -791,7 +793,7 @@ class ProbeCalibrationHandler(QWidget):
         # TODO Update transM from bregma if available
         transMbs = CoordsConverter.get_reticle_transM(self.model, stage_id)
         print(f"{stage_id} - transMbs:", transMbs)
-
+        stage_info.transM_bregma = transMbs
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):
