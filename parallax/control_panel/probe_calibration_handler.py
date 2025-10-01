@@ -31,7 +31,7 @@ class StageCalibrationInfo:
     status_x: Optional[str] = None
     status_y: Optional[str] = None
     status_z: Optional[str] = None
-    transM_bregma: Optional[np.ndarray] = None
+    transM_bregma: Optional[dict] = None
 
     # Movement tracking
     min_x: float = float("inf")
@@ -790,9 +790,8 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.status_y = self.calib_status_y
         stage_info.status_z = self.calib_status_z
 
-        # TODO Update transM from bregma if available
+        # Update transM from bregma if available
         transMbs = CoordsConverter.get_reticle_transM(self.model, stage_id)
-        print(f"{stage_id} - transMbs:", transMbs)
         stage_info.transM_bregma = transMbs
 
     def update_stage_info(self, info):

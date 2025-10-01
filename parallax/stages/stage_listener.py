@@ -304,20 +304,32 @@ class StageListener(QObject):
         stage.stage_y_offset = probe.get("Stage_YOffset", 0) * 1000  # Convert to um
         stage.stage_z_offset = 15000 - (probe.get("Stage_ZOffset", 0) * 1000)  # Convert to um
         local_pts = np.array([local_x, local_y, local_z])
+        if is_calib:
+            global_pts = CoordsConverter.local_to_global(self.model, sn, local_pts)
+            print("\nglobal_pts:", global_pts)
+            if global_pts is not None:
+                stage.stage_x_global = global_pts[0]
+                stage.stage_y_global = global_pts[1]
+                stage.stage_z_global = global_pts[2]
 
-        global_pts = CoordsConverter.local_to_global(self.model, sn, local_pts)
-        if global_pts is not None:
-            stage.stage_x_global = global_pts[0]
-            stage.stage_y_global = global_pts[1]
-            stage.stage_z_global = global_pts[2]
+        if is_calib:
+            bregma_pts = {}
+            for reticle in self.model.reticle_metadata.keys():
+                bregma_pt = CoordsConverter.local_to_global(self.model, sn, local_pts, reticle=reticle)
+                #bregma_pt_ = CoordsConverter.local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
+                #print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
+                if bregma_pt is not None:
+                    # make JSON-safe now
+                    bregma_pts[reticle] = np.asarray(bregma_pt, dtype=float).reshape(3,).tolist()
 
-        # TODO update bregma coordinates
+            stage.stage_bregma = bregma_pts
 
+        # Update stage UI
         # Stage is currently selected one, update into UI
         if sn == self.stage_ui.get_selected_stage_sn():
             self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
-            if global_pts is not None:                      # If stage is calibrated,
-                self.stage_ui.updateStageGlobalCoords()     # update global coords into UI  # TODO move into converter
+            if is_calib:
+                self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
 
         # Update stage info
         self._update_stages_info(stage, is_calib, calib_info)
@@ -445,6 +457,7 @@ class StageListener(QObject):
         sx, sy, sz = stage.stage_x, stage.stage_y, stage.stage_z
         gx, gy, gz = stage.stage_x_global, stage.stage_y_global, stage.stage_z_global
         ox, oy, oz = stage.stage_x_offset, stage.stage_y_offset, stage.stage_z_offset
+        stage_bregma = stage.stage_bregma
 
         def _val_mm(v):
             """Convert value to mm."""
@@ -459,6 +472,7 @@ class StageListener(QObject):
             "global_X": _val_mm(gx),
             "global_Y": _val_mm(gy),
             "global_Z": _val_mm(gz),
+            "bregma": stage_bregma,
             "relative_X": _val_mm(sx - ox),
             "relative_Y": _val_mm(sy - oy),
             "relative_Z": _val_mm(sz - oz),
@@ -471,26 +485,16 @@ class StageListener(QObject):
     def _get_calib_info_json(self, calib_info):
         def _to_list(x): return None if x is None else np.asarray(x).tolist()
 
-        tmb = None
-        if calib_info.transM_bregma is not None:
-            if isinstance(calib_info.transM_bregma, dict):
-                # [{"name":"A_transMb","matrix":[[...]]}, {"name":"B_transMb","matrix":[[...]]}]
-                tmb = [{"name": k, "matrix": _to_list(v)}
-                    for k, v in calib_info.transM_bregma.items()]
-            else:
-                # single matrix
-                tmb = [{"name": "transMb", "matrix": _to_list(calib_info.transM_bregma)}]
-
         return {
             "detection_status": calib_info.detection_status,
-            "transformation_matrix": _to_list(calib_info.transM),
+            "transM_global_to_local": _to_list(calib_info.transM),
             "L2_error": calib_info.L2_err,
             "distance_travelled": _to_list(calib_info.dist_travel),
             "status_x": calib_info.status_x,
             "status_y": calib_info.status_y,
             "status_z": calib_info.status_z,
-            # When multiple, looks like: [{"name":"A_transMb","matrix":[[...]]}, ...]
-            "transformation_matrix_bregma": tmb,
+            # When multiple, looks like: {"A":[[..],..,[..]],"B":[[..],..,[..]]}
+            "transM_bregma_to_local": calib_info.transM_bregma,
         }
 
     def _snapshot_stage(self):
