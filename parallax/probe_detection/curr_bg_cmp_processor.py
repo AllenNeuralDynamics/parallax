@@ -26,6 +26,7 @@ from .probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.utils.utils import UtilsCoords, UtilsCrops
 from parallax.config.config_path import debug_img_dir
 
+
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -71,7 +72,7 @@ class CurrBgCmpProcessor():
         """
         self.reticle_zone = reticle_zone
 
-    def first_cmp(self, org_img, mask, running_flag=lambda: True):
+    def first_cmp(self, org_img, mask, running_flag=lambda: True, ts=None):
         """Perform first comparison
 
         Args:
@@ -95,7 +96,7 @@ class CurrBgCmpProcessor():
         if not running_flag():
             return False
 
-        ret = self._detect_probe()
+        ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask, ts=ts)
         if not running_flag():
             return False
 
@@ -107,7 +108,7 @@ class CurrBgCmpProcessor():
 
         return ret
 
-    def update_cmp(self, curr_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True):
+    def update_cmp(self, curr_img, mask, org_img, get_fine_tip=True, running_flag=lambda: True, ts=None):
         """Update the comparison.
 
         Args:
@@ -130,28 +131,20 @@ class CurrBgCmpProcessor():
         self._preprocess_diff_image(self.curr_img)
         if not running_flag():
             return False
-        ret = self._update_crop()
+
+        #self._save_debug_img(ts=ts)  # tmp debug
+
+        ret = self._update_crop(ts=ts)
         if not running_flag():
             return False
         if ret:
             if get_fine_tip:
                 if not self._get_precise_tip(org_img):
                     return False
-            else:
-                self.ProbeDetector.probe_tip_org = UtilsCoords.scale_coords_to_original(
-                    self.ProbeDetector.probe_tip,
-                    self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-                )
             if not running_flag():
                 return False
             #if ret_precise_tip_ret:
             self._update_bg(extended_offset=10)
-
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_bg.jpg")
-            cv2.imwrite(save_path, self.bg)
-            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_currBgCmp_diff.jpg")
-            cv2.imwrite(save_path, self.diff_img)
 
         return ret
 
@@ -201,7 +194,7 @@ class CurrBgCmpProcessor():
         self.bg = cv2.bitwise_and(self.curr_img, cv2.bitwise_not(diff_img))
         self.bg = cv2.bitwise_not(self.bg, mask=self.mask)
 
-    def _update_crop(self):
+    def _update_crop(self, ts=None):
         """Update the crop region.
 
         Returns:
@@ -217,16 +210,16 @@ class CurrBgCmpProcessor():
                 self.IMG_SIZE,
             )
             self.diff_img_crop = self.diff_img[self.top:self.bottom, self.left:self.right]
-            hough_minLineLength_adpative = (
-                60 + int(crop_size / self.crop_init) * 5
-            )
+            hough_minLineLength_adaptive = (60 + int(crop_size / self.crop_init) * 5)
+            self.ProbeDetector.update_parameters({
+                "hough_minLineLength_update": hough_minLineLength_adaptive
+            })
             ret = self.ProbeDetector.update_probe(
                 self.diff_img_crop,
                 self.mask,
-                hough_minLineLength=hough_minLineLength_adpative,
-                maxLineGap=0,
                 offset_x=self.left,
                 offset_y=self.top,
+                ts=ts
             )
 
             # cv2.rectangle(diff_img_, (left, top), (right, bottom), (155, 155, 0), 5)  # Green rectangle
@@ -251,25 +244,6 @@ class CurrBgCmpProcessor():
             crop_size += 100
 
         return ret
-
-    def get_point_tip(self):
-        """Get the probe tip and base points."""
-        if self.ProbeDetector.probe_tip_org is not None:
-            return self.ProbeDetector.probe_tip_org
-        elif self.ProbeDetector.probe_tip is not None:
-            tip = UtilsCoords.scale_coords_to_original(
-                self.ProbeDetector.probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            return tip
-        else:
-            return None
-
-    def get_point_base(self):
-        """Get the probe tip and base points."""
-        if self.ProbeDetector.probe_base is not None:
-            return UtilsCoords.scale_coords_to_original(
-                self.ProbeDetector.probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-        else:
-            return None
 
     def get_crop_region_boundary(self):
         """Get the boundary of the crop region."""
@@ -369,6 +343,7 @@ class CurrBgCmpProcessor():
         """Preprocess difference image."""
         self.diff_img = cv2.bitwise_and(curr_img, self.bg, mask=self.mask)
 
-    def _detect_probe(self):
-        """Detect probe in difference image."""
-        return self.ProbeDetector.first_detect_probe(self.diff_img, self.mask)
+    def _save_debug_img(self, frame, ts=None):
+        if logger.getEffectiveLevel() == logging.DEBUG:
+            save_path = os.path.join(debug_img_dir, f"{self.cam_name}_{ts}.jpg")
+            cv2.imwrite(save_path, frame)

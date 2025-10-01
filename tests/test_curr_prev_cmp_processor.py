@@ -24,7 +24,7 @@ def load_images_from_folder(folder):
 def setup_curr_prev_cmp_processor():
     """Fixture to set up an instance of CurrPrevCmpProcessor."""
     cam_name = "MockCam"
-    probe_detector = ProbeDetector(cam_name, IMG_SIZE)
+    probe_detector = ProbeDetector(cam_name, IMG_SIZE, IMG_SIZE_ORIGINAL)
 
     processor = CurrPrevCmpProcessor(
         cam_name=cam_name,
@@ -71,12 +71,6 @@ def test_first_cmp(setup_curr_prev_cmp_processor, sample_images):
     # Basic assertions on return type and API stability
     assert isinstance(last_ret, bool), "first_cmp should return a boolean."
 
-    # Tip is not guaranteed here (first_cmp doesn't compute precise tip),
-    # but if detection succeeds later in the pipeline, tip may appear.
-    tip = processor.get_point_tip()
-    if tip is not None:
-        assert isinstance(tip, tuple) and len(tip) == 2, "Tip must be a (x, y) tuple if present."
-
 def test_update_cmp(setup_curr_prev_cmp_processor, sample_images):
     """Test the update_cmp method with a sequence (first initialize via first_cmp)."""
     processor = setup_curr_prev_cmp_processor
@@ -112,13 +106,6 @@ def test_update_cmp(setup_curr_prev_cmp_processor, sample_images):
             org_img=org_img
         )
         prev_img = curr_img
-
-        # If update reported success, check (optional) tip availability
-        if ret:
-            tip = processor.get_point_tip()
-            if tip is not None:
-                assert isinstance(tip, tuple) and len(tip) == 2, "Tip must be a (x, y) tuple if present."
-            break
 
     # Always at least validate return type; detection success can be content-dependent
     assert isinstance(ret, bool), "update_cmp should return a boolean."

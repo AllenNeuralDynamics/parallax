@@ -17,6 +17,7 @@ from PyQt6.QtCore import Qt, QTimer, QEvent, QObject
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.screens.screen_setting import ScreenSetting
 from parallax.screens.reticle_detect_widget import ReticleDetectWidget
+from parallax.screens.probe_detect_widget import ProbeDetectWidget
 from parallax.config.config_path import ui_dir
 
 
@@ -117,10 +118,12 @@ class ScreenWidgetManager(QObject):
         # Bottom row with buttons
         screen_setting = ScreenSetting(parent=group_box, model=self.model, screen=screen)
         reticle_detector = ReticleDetectWidget(parent=group_box, model=self.model, screen=screen)
+        probe_detector = ProbeDetectWidget(parent=group_box, model=self.model, screen=screen)
         button_row = QHBoxLayout()
         button_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_row.addWidget(screen_setting.settingButton)
         button_row.addWidget(reticle_detector.detectButton)
+        button_row.addWidget(probe_detector.detectButton)
         layout.addLayout(button_row)
 
         # Create QDockWidget

@@ -35,12 +35,16 @@ session_file = data_dir / "session.yaml"
 settings_file = data_dir / "settings.json"
 stage_server_config_file = data_dir / "stage_server_config.json"
 reticle_metadata_file = data_dir / "reticle_metadata.json"
+img_processing_config_file = project_root / "parallax" / "config" / "image_processing_config.json"
 
 # CNN-specific directories and string paths for subprocess/argparse
 cnn_img_dir = debug_dir / "cnn_img_dir"
 cnn_export_dir = debug_dir / "cnn_export_dir"
 cnn_img_dir.mkdir(parents=True, exist_ok=True)
 cnn_export_dir.mkdir(parents=True, exist_ok=True)
+
+# Realtime Efficient Track Anything model directory
+tam_model_dir = project_root / "external" / "EfficientTam"
 
 # Font
 fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")

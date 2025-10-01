@@ -25,7 +25,7 @@ def probe_detector():
     """
     Fixture for creating a ProbeDetector instance.
     """
-    return ProbeDetector(SN, IMG_SIZE)
+    return ProbeDetector(SN, IMG_SIZE, IMG_SIZE_ORIGINAL)
 
 @pytest.fixture
 def test_images():

@@ -7,6 +7,9 @@ import logging
 
 import cv2
 import numpy as np
+import json
+from parallax.config.config_path import img_processing_config_file
+
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -20,39 +23,104 @@ class MaskGenerator:
         """Initialize the MaskGenerator object.
 
         Args:
+            config_path (str, optional): Path to the JSON configuration file.
+            config_dict (dict, optional): Configuration dictionary.
             initial_detect (bool, optional): Whether to perform initial detection with different settings.
         """
         self.img = None
         self.original_size = (None, None)
         self.is_reticle_exist = None
         self.initial_detect = initial_detect
+        self.config = None
+
+    def _load_config(self, config_path=None, config_dict=None):
+        """Load configuration from file or dictionary.
+
+        Args:
+            config_path (str, optional): Path to the JSON configuration file.
+            config_dict (dict, optional): Configuration dictionary.
+
+        Returns:
+            dict: MaskGenerator configuration section.
+        """
+        if config_path:
+            try:
+                with open(config_path, 'r') as f:
+                    full_config = json.load(f)
+                    return full_config.get('MaskGenerator', {})
+            except (FileNotFoundError, json.JSONDecodeError) as e:
+                logger.warning(f"Could not load config file {config_path}: {e}")
+                return {}
+
+        return {}
+
+    def _get_config_value(self, key_path, default_value):
+        """Get configuration value using dot notation key path.
+
+        Args:
+            key_path (str): Dot-separated path to the configuration value.
+            default_value: Default value if key is not found.
+
+        Returns:
+            Configuration value or default value.
+        """
+        keys = key_path.split('.')
+        value = self.config
+
+        for key in keys:
+            if isinstance(value, dict) and key in value:
+                value = value[key]
+            else:
+                return default_value
+
+        return value
 
     def _resize_and_blur(self):
         """Resize and blur the image."""
         if len(self.img.shape) > 2:
             self.img = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
+
         if self.initial_detect:
-            self.img = cv2.resize(self.img, (120, 90))
+            # Get initial resize dimensions
+            width = self._get_config_value('image_processing.resize_initial.width', 120)
+            height = self._get_config_value('image_processing.resize_initial.height', 90)
+            self.img = cv2.resize(self.img, (width, height))
         else:
-            self.img = cv2.resize(self.img, (400, 300))
-            self.img = cv2.GaussianBlur(self.img, (9, 9), 0)
+            # Get normal resize dimensions
+            width = self._get_config_value('image_processing.resize_normal.width', 400)
+            height = self._get_config_value('image_processing.resize_normal.height', 300)
+            self.img = cv2.resize(self.img, (width, height))
+
+            # Apply Gaussian blur
+            kernel_size = tuple(self._get_config_value('image_processing.gaussian_blur.kernel_size', [9, 9]))
+            sigma = self._get_config_value('image_processing.gaussian_blur.sigma', 0)
+            self.img = cv2.GaussianBlur(self.img, kernel_size, sigma)
 
     def _apply_threshold(self):
         """Apply binary threshold to the image."""
+        threshold_value = self._get_config_value('threshold.threshold_value', 0)
+        max_value = self._get_config_value('threshold.max_value', 255)
+
         _, self.img = cv2.threshold(
-            self.img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+            self.img, threshold_value, max_value, cv2.THRESH_BINARY + cv2.THRESH_OTSU
         )
 
-    def _homomorphic_filter(self, gamma_high=1.5, gamma_low=0.5, c=1, d0=30):
+    def _homomorphic_filter(self, gamma_high=None, gamma_low=None, c=None, d0=None):
         """
         Apply a homomorphic filter to the image to enhance contrast and remove shadows.
 
         Args:
-            gamma_high (float, optional): The high gamma value for contrast adjustment. Default is 1.5.
-            gamma_low (float, optional): The low gamma value for contrast adjustment. Default is 0.5.
-            c (int, optional): Constant to adjust the filter strength. Default is 1.
-            d0 (int, optional): Cutoff frequency for the high-pass filter. Default is 30.
+            gamma_high (float, optional): The high gamma value for contrast adjustment.
+            gamma_low (float, optional): The low gamma value for contrast adjustment.
+            c (int, optional): Constant to adjust the filter strength.
+            d0 (int, optional): Cutoff frequency for the high-pass filter.
         """
+        # Get parameters from config or use defaults
+        gamma_high = gamma_high or self._get_config_value('homomorphic_filter.gamma_high', 1.5)
+        gamma_low = gamma_low or self._get_config_value('homomorphic_filter.gamma_low', 0.5)
+        c = c or self._get_config_value('homomorphic_filter.c', 1)
+        d0 = d0 or self._get_config_value('homomorphic_filter.d0', 30)
+
         # Apply the log transform
         img_log = np.log1p(np.array(self.img, dtype="float"))
 
@@ -73,8 +141,13 @@ class MaskGenerator:
         img_hp = np.fft.ifft2(img_hp)
         img_hp = np.exp(np.real(img_hp)) - 1
 
+        # Get normalization parameters from config
+        alpha = self._get_config_value('normalization.alpha', 0)
+        beta = self._get_config_value('normalization.beta', 255)
+
         # Normalize the image
-        img_hp = cv2.normalize(img_hp, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+        img_hp = cv2.normalize(img_hp, None, alpha=alpha, beta=beta,
+                              norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
 
         # Apply gamma correction
         img_gamma = img_hp.copy()
@@ -97,14 +170,27 @@ class MaskGenerator:
     def _apply_morphological_operations(self):
         """Apply morphological operations to the image."""
         if self.initial_detect:
-            kernels = [cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2)),
-                       cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))]
+            # Get initial detect kernel parameters
+            close_kernel_size = tuple(self._get_config_value(
+                'morphological_operations.initial_detect.close_kernel.size', [2, 2]))
+            erode_kernel_size = tuple(self._get_config_value(
+                'morphological_operations.initial_detect.erode_kernel.size', [3, 3]))
+            erode_iterations = self._get_config_value(
+                'morphological_operations.initial_detect.erode_iterations', 1)
         else:
-            kernels = [cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8)),
-                       cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))]
+            # Get normal detect kernel parameters
+            close_kernel_size = tuple(self._get_config_value(
+                'morphological_operations.normal_detect.close_kernel.size', [8, 8]))
+            erode_kernel_size = tuple(self._get_config_value(
+                'morphological_operations.normal_detect.erode_kernel.size', [10, 10]))
+            erode_iterations = self._get_config_value(
+                'morphological_operations.normal_detect.erode_iterations', 1)
+
+        kernels = [cv2.getStructuringElement(cv2.MORPH_ELLIPSE, close_kernel_size),
+                   cv2.getStructuringElement(cv2.MORPH_ELLIPSE, erode_kernel_size)]
 
         self.img = cv2.morphologyEx(self.img, cv2.MORPH_CLOSE, kernels[0])
-        self.img = cv2.erode(self.img, kernels[1], iterations=1)
+        self.img = cv2.erode(self.img, kernels[1], iterations=erode_iterations)
 
         # Invert image to prepare for dilate and final operations
         self.img = cv2.bitwise_not(self.img)
@@ -116,17 +202,17 @@ class MaskGenerator:
         contours, _ = cv2.findContours(
             self.img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
+
+        if self.initial_detect:
+            min_area = self._get_config_value('contour_filtering.initial_detect.min_contour_area', 25)
+        else:
+            min_area = self._get_config_value('contour_filtering.normal_detect.min_contour_area', 2500)
+
         for contour in contours:
-            if self.initial_detect:
-                if cv2.contourArea(contour) < 5 * 5:
-                    self.img = cv2.drawContours(
-                        self.img, [contour], -1, (0, 0, 0), -1
-                    )
-            else:
-                if cv2.contourArea(contour) < 50 * 50:
-                    self.img = cv2.drawContours(
-                        self.img, [contour], -1, (0, 0, 0), -1
-                    )
+            if cv2.contourArea(contour) < min_area:
+                self.img = cv2.drawContours(
+                    self.img, [contour], -1, (0, 0, 0), -1
+                )
 
     def _finalize_image(self):
         """Resize the image back to its original size and adjust the scale."""
@@ -140,7 +226,7 @@ class MaskGenerator:
             bool: True if the image contains a reticle frame, False otherwise.
         """
         img_array = np.array(self.img)
-        boundary_depth = 5
+        boundary_depth = self._get_config_value('reticle_detection.boundary_depth', 5)
 
         # Extract boundary regions
         top_boundary = img_array[:boundary_depth, :]
@@ -151,10 +237,10 @@ class MaskGenerator:
         # Calculate the total number of pixels in the boundary regions
         total_boundary_pixels = 2 * (top_boundary.size + left_boundary.size)
 
-        # Black pixels are 0 in grayscale
-        white_pixel = 255
+        # Get white pixel value from config
+        white_pixel = self._get_config_value('reticle_detection.white_pixel_value', 255)
 
-        # Calculate black pixels in each boundary using boolean indexing
+        # Calculate white pixels in each boundary using boolean indexing
         white_count = (
             np.sum(top_boundary == white_pixel) +
             np.sum(bottom_boundary == white_pixel) +
@@ -162,7 +248,7 @@ class MaskGenerator:
             np.sum(right_boundary == white_pixel)
         )
 
-        # Determine if the percentage of black pixels is above the threshold
+        # Determine if the percentage of white pixels is above the threshold
         if (white_count / total_boundary_pixels) >= threshold:
             self.is_reticle_exist = False
         else:
@@ -189,6 +275,14 @@ class MaskGenerator:
         Returns:
             numpy.ndarray: Generated mask image.
         """
+        # Load config
+        if self.config is None:
+            # Load configuration # TODO TAkes too long time. delay
+            self.config = self._load_config(config_path=img_processing_config_file)
+            # Override initial_detect if specified in config
+            if self.config and 'initialization' in self.config:
+                self.initial_detect = self.config['initialization'].get('initial_detect', self.initial_detect)
+
         if img is None:
             logger.debug("Input image of ReticleFrameDetection is None.")
             return None
@@ -200,19 +294,41 @@ class MaskGenerator:
         self.img = img
         self.original_size = img.shape[1], img.shape[0]
         self._resize_and_blur()  # Resize to smaller image and blur
+
         if self.initial_detect:
             self._homomorphic_filter()  # Remove shadow
 
         self._apply_threshold()  # Global Thresholding
-        self._reticle_exist_check(threshold=0.9)
+
+        # Get threshold values from config
+        initial_threshold = self._get_config_value('reticle_detection.thresholds.initial_check', 0.9)
+        final_threshold = self._get_config_value('reticle_detection.thresholds.final_check', 0.5)
+
+        self._reticle_exist_check(threshold=initial_threshold)
         if self.is_reticle_exist is False:
             return None
 
         self._keep_largest_contour()
         self._apply_morphological_operations()
-        self._reticle_exist_check(threshold=0.5)
+        self._reticle_exist_check(threshold=final_threshold)
         if self.is_reticle_exist is False:
             return None
         self._finalize_image()  # Resize back to original size
 
         return self.img
+    
+
+# Example
+if __name__ == "__main__":
+    """
+    mask_generator = MaskGenerator()
+    img = cv2.imread("test_image.jpg", cv2.IMREAD_GRAYSCALE)
+    mask = mask_generator.process(img)
+    if mask is not None:
+        cv2.imshow("Generated Mask", mask)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    else:
+        print("No reticle detected in the image.")
+    """
+    pass

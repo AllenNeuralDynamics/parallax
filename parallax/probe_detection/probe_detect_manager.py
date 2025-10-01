@@ -6,16 +6,12 @@ and result communication, utilizing components like MaskGenerator and ProbeDetec
 
 import logging
 import time
-
 import cv2
+import time
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
+from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerTAM
 
-from parallax.probe_detection.curr_bg_cmp_processor import CurrBgCmpProcessor
-from parallax.probe_detection.curr_prev_cmp_processor import CurrPrevCmpProcessor
-from parallax.reticle_detection.mask_generator import MaskGenerator
-from parallax.probe_detection.probe_detector import ProbeDetector
-from parallax.reticle_detection.reticle_detection import ReticleDetection
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -34,6 +30,7 @@ class DrawWorker(QRunnable):
     image processing, probe detection, and reticle detection, and communicates results
     through PyQt signals.
     """
+    OVERLAY_COLOR_BGR = (0, 255, 255)
     def __init__(self, name, reticle_coords=None, reticle_coords_debug=None):
         """
         Initialize the Worker object with camera and model data.
@@ -49,10 +46,13 @@ class DrawWorker(QRunnable):
         self.running = False
         self.new = False
         self.frame = None
-        self.tip_coords = None
-        self.tip_coords_color = (0, 255, 0)
+        self.tip_coords, self.base_coords = None, None
+        self.tip_coords_color, self.base_coords_color = None, None
         self.h = None
         self.w = None
+        self.is_seg_mask = False
+        self.mask_bool, self.mask_idx, self.seg_color_pixels = None, None, None
+        self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
         self.status = "first_detect"
         self.register_colormap()
 
@@ -75,11 +75,18 @@ class DrawWorker(QRunnable):
                 for i, (x, y) in enumerate(coords):
                     color = self.colormap_reticle[i][0].tolist()
                     cv2.circle(self.frame, (x, y), 7, color, -1)
+
         if self.reticle_coords_debug is not None:
-            points = np.asarray(self.reticle_coords_debug).reshape(-1, 2)
-            for i, (x, y) in enumerate(points):
+            for i, (x, y) in enumerate(self.reticle_coords_debug):
                 color = self.colormap_reticle_debug[i][0].tolist()
                 cv2.circle(self.frame, (x, y), 3, color, -1)
+
+    def _draw_segmentation(self):
+        """
+        Overlay segmentation mask on the frame.
+        """
+        if self.is_seg_mask:
+            self._overlay_mask_bgr()
 
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
@@ -106,8 +113,9 @@ class DrawWorker(QRunnable):
         while self.running:
             if self.new:
                 self._draw_reticle()
-                self._draw_tip()
+                self._draw_coords()
                 self._draw_detection_status()
+                self._draw_segmentation()
                 self.signals.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.001)
@@ -128,12 +136,15 @@ class DrawWorker(QRunnable):
         self.reticle_coords = coords
         self.reticle_coords_debug = coords_debug
 
-    def _draw_tip(self):
+    def _draw_coords(self):
         """
         Draw the probe tip on the frame.
         """
         if self.tip_coords is not None and self.frame is not None:
             cv2.circle(self.frame, self.tip_coords, 5, self.tip_coords_color, -1)
+
+        if self.base_coords is not None and self.frame is not None:
+            cv2.circle(self.frame, self.base_coords, 5, self.base_coords_color, -1)
 
     def _draw_detection_status(self):
         """
@@ -141,17 +152,17 @@ class DrawWorker(QRunnable):
         - Red border if status is "first_detect"
         - Yellow border if status is "update"
         """
+        if self.status == "update":
+            return # Skip drawing border for "update" status
+
         if self.h is None or self.w is None:
             self.h, self.w = self.frame.shape[:2]
 
-        thickness = 30
-        if self.status == "first_detect":
-            color = (255, 0, 0)  # Red
-        elif self.status == "update":
-            color = (255, 255, 0)  # Yellow
-        else:
-            return  # Unknown status; do not draw
-        cv2.rectangle(self.frame, (0, 0), (self.w - 1, self.h - 1), color, thickness)
+        # Draw just top + bottom + left + right lines instead of a full thick rectangle
+        cv2.line(self.frame, (0, 0), (self.w - 1, 0), (255, 0, 0), 10)          # top
+        cv2.line(self.frame, (0, self.h - 1), (self.w - 1, self.h - 1), (255, 0, 0), 10)  # bottom
+        cv2.line(self.frame, (0, 0), (0, self.h - 1), (255, 0, 0), 10)          # left
+        cv2.line(self.frame, (self.w - 1, 0), (self.w - 1, self.h - 1), (255, 0, 0), 10)  # right
 
     def update_tip_coords(self, tip_coords, color=(0, 255, 0)):
         """Update the tip coordinates on the frame.
@@ -161,248 +172,155 @@ class DrawWorker(QRunnable):
         """
         self.tip_coords = tip_coords
         self.tip_coords_color = color
-        if self.frame is not None and tip_coords is not None:
-            cv2.circle(self.frame, tip_coords, 5, color, -1)
+        #if self.frame is not None and tip_coords is not None:
+        #    cv2.circle(self.frame, tip_coords, 5, color, -1)
+
+    def update_base_coords(self, base_coords, color=(255, 0, 0)):
+        """Update the base coordinates on the frame.
+        Args:
+            pixel_coords (tuple): Pixel coordinates of the detected probe base.
+            color (tuple): Color for drawing the base, default is red.
+        """
+        self.base_coords = base_coords
+        self.base_coords_color = color
+        #if self.frame is not None and base_coords is not None:
+        #    cv2.circle(self.frame, base_coords, 5, color, -1)
+
+    def update_is_seg_mask(self, status: bool):
+        self.is_seg_mask = status
+        #print(f"{self.name} Segmentation mask status: {self.is_seg_mask}")
 
     def update_status(self, status):
         """Update the status of the worker."""
         self.status = status
 
-class ProcessWorkerSignal(QObject):
-    """Signals for the ProcessWorker."""
-    finished = pyqtSignal()
-    tip_stopped = pyqtSignal(float, float, str, tuple)
-    tip_moving = pyqtSignal(float, str, tuple)
-    status = pyqtSignal(str)
+    def cancel_seg_mask(self) -> None:
+        """Called when segmentation mask is to be cleared."""
+        self.update_is_seg_mask(False)
+        self.mask_bool = None
+        self.mask_idx = None
+        self.seg_color_pixels = None
+        self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
 
+        self.update_tip_coords(None, None)
+        self.update_base_coords(None, None)
 
-class ProcessWorker(QRunnable):
-    """
-    Worker class for performing probe detection in a separate thread. This class handles
-    image processing, probe detection, and reticle detection, and communicates results
-    through PyQt signals.
-    """
-    def __init__(self, name, resolution):
-        """
-        Initialize the Worker object with camera and model data.
-        Args:
-            name (str): Camera serial number.
-            model (object): The main model containing stage and camera data.
-        """
-        super().__init__()
-        self.signals = (ProcessWorkerSignal())
-        self.name = name  # Camera serial number
-        self.running = False
-        self.frame = None
+    def found_seg_mask(self, type: str, mask: np.ndarray) -> None:
+        if type == "global":
+            self.found_seg_mask_global(mask)
 
-        self.name = name  # Camera serial number
-        self.is_detection_on = False
-        self.new = False
-        self.stage_ts = None
-        self.img_ts = None
+        elif type == "local":
+            self.found_seg_mask_local(mask)
 
-        self.prev_img = None
-        self.reticle_zone = None
-        self.is_probe_updated = True
-        self.probes = {}
-        self.sn = None
-        self.IMG_SIZE = (1000, 750)
-        self.IMG_SIZE_ORIGINAL = resolution
-        self.probe_stopped = True
-        self.stopped_first_frame = True
-        self.mask_detect = MaskGenerator()
-
-        self.probeDetect = None
-        self.currPrevCmpProcess = None
-        self.currBgCmpProcess = None
-
-    def update_sn(self, sn):
-        """Update the serial number and initialize probe detectors.
-        Args:
-            sn (str): Serial number.
-        """
-        if sn not in self.probes.keys():
-            self.sn = sn
-            self.probeDetect = ProbeDetector(self.sn, self.IMG_SIZE)
-            self.currPrevCmpProcess = CurrPrevCmpProcessor(
-                self.name, self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-            )
-            self.currBgCmpProcess = CurrBgCmpProcessor(
-                self.name, self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-            )
-            self.probes[self.sn] = {
-                "probeDetector": self.probeDetect,
-                "currPrevCmpProcess": self.currPrevCmpProcess,
-                "currBgCmpProcess": self.currBgCmpProcess,
-            }
-        else:
-            if sn != self.sn:
-                self.sn = sn
-                self.probeDetect = self.probes[self.sn]["probeDetector"]
-                self.currPrevCmpProcess = self.probes[self.sn][
-                    "currPrevCmpProcess"
-                ]
-                self.currBgCmpProcess = self.probes[self.sn][
-                    "currBgCmpProcess"
-                ]
-            else:         
-                pass
-
-    def update_frame(self, frame, timestamp):
-        """Update the frame and timestamp.
-        Args:
-            frame (numpy.ndarray): Input frame.
-            timestamp (str): Timestamp of the frame.
-        """
-        self.frame = frame
-        self.new = True
-        self.img_ts = timestamp
-
-    @pyqtSlot()
-    def process(self):
-        """
-        Main probe detection logic:
-        1. Prepares the current image.
-        2. Handles reticle zone setup.
-        3. Runs comparison via currPrevCmpProcess or currBgCmpProcess.
-        4. Emits signal when probe is found or moving.
-        """
-        self._prepare_current_image()
-        if not self.running:
+    def found_seg_mask_global(self, mask: np.ndarray) -> None:
+        """Called when a new segmentation mask arrives."""
+        if self.frame is None or mask is None:
+            self.mask_bool = None
+            self.mask_idx = None
+            self.seg_color_pixels = None
             return
 
-        if self.prev_img is None:
-            self.prev_img = self.curr_img
-            return  # First frame, nothing to compare
+        # 1) Resize -> boolean mask aligned with current frame
+        self.mask_bool = self._resize_and_binarize(mask, target_hw=self.frame.shape[:2])  # (H, W) bool
 
-        if self.probeDetect.angle is None:
-            #self._set_reticle_zone()
-            self._run_first_cmp()
-        else:
-            self._run_tracking_cmp()
-
-    def _prepare_current_image(self):
-        """Convert and blur the frame, generate mask."""
-        if self.frame.ndim > 2:
-            self.gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        else:
-            self.gray_img = self.frame
-        resized_img = cv2.resize(self.gray_img, self.IMG_SIZE)
-        self.curr_img = cv2.GaussianBlur(resized_img, (9, 9), 0)
-        self.mask = self.mask_detect.process(resized_img)
-
-    def _set_reticle_zone(self):
-        """Set the reticle zone if it does not exist."""
-        if self.mask_detect.is_reticle_exist:
-            reticle = ReticleDetection(self.IMG_SIZE, self.mask_detect, self.name)
-            self.reticle_zone = reticle.get_reticle_zone(self.frame)
-            self.currBgCmpProcess.update_reticle_zone(self.reticle_zone)
-
-    def _run_first_cmp(self):
-        """Run the first comparison to detect probe tip."""
-        ret = self.currPrevCmpProcess.first_cmp(self.curr_img, self.prev_img, self.mask, lambda: self.running)
-        if not self.running:
+        if not self.mask_bool.any():
+            # No mask: clear caches
+            self.mask_idx = None
+            self.seg_color_pixels = None
             return
 
-        if not ret:
-            ret = self.currBgCmpProcess.first_cmp(self.curr_img, self.mask, lambda: self.running)
-        if ret:
-            logger.debug(f"{self.name} - First comparison successful")
-            self.signals.status.emit("update")
-        else:
-            logger.debug(f"{self.name} - First comparison failed")
+        # 2) Cache row/col indices to avoid re-building them every frame
+        self.mask_idx = np.where(self.mask_bool)  # tuple (rows, cols)
+
+        # 3) Build a constant color array ONLY for masked pixels (N, 3), uint8
+        n = self.mask_idx[0].size
+        self.seg_color_pixels = np.empty((n, 3), dtype=np.uint8)
+        self.seg_color_pixels[:] = np.array(self.OVERLAY_COLOR_BGR, dtype=np.uint8)
+
+        # Update segmentation mask status
+        self.update_is_seg_mask(True)
+
+    def found_seg_mask_local(self, mask: np.ndarray) -> None:
+        """Called when a new segmentation mask arrives."""
+        if self.frame is None or mask is None:
+            self.mask_bool_local = None
+            self.mask_idx_local = None
+            self.seg_color_pixels_local = None
             return
 
-    def _run_tracking_cmp(self):
-        """Run comparison to detect probe tip and emit signals."""
-        if self.probe_stopped:
-            if not self.stopped_first_frame:
-                return
+        # 1) Resize -> boolean mask aligned with current frame
+        self.mask_bool_local = self._resize_and_binarize(mask, target_hw=self.frame.shape[:2])  # (H, W) bool
 
-            # First frame after stage stopped
-            if self.stage_ts - self.img_ts > 0:
-                logger.debug(f"{self.name} - Stage ts: {self.stage_ts}, img ts: {self.img_ts}")
-                return
-
-            ret = self.currPrevCmpProcess.update_cmp(self.curr_img, self.prev_img, self.mask, self.gray_img)
-            if not ret:
-                ret = self.currBgCmpProcess.update_cmp(self.curr_img, self.mask, self.gray_img)
-
-            if ret:
-                self.signals.tip_stopped.emit(
-                    self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org
-                )
-                self.prev_img = self.curr_img
-            self.stopped_first_frame = False
-
-        else:  # stage is moving
-            ret = self.currBgCmpProcess.update_cmp(
-                                    self.curr_img,
-                                    self.mask,
-                                    self.gray_img,
-                                    get_fine_tip=False
-                                )
-
-            if ret:
-                self.signals.tip_moving.emit(self.img_ts, self.sn, self.probeDetect.probe_tip_org)
-
-    def stop_running(self):
-        """Stop the worker from running."""
-        self.running = False
-
-    def start_running(self):
-        """Start the worker running."""
-        self.running = True
-
-    def start_detection(self):
-        """Start the probe detection."""
-        self.is_detection_on = True
-
-    def stop_detection(self):
-        """Stop the probe detection."""
-        self.is_detection_on = False
-
-    def enable_calib(self):
-        """Enable calibration mode."""
-        self.probe_stopped = True
-        self.stopped_first_frame = True
-
-    def disable_calib(self):
-        """Disable calibration mode."""
-        self.probe_stopped = False
-        self.stopped_first_frame = False
-
-    def run(self):
-        """Run the worker thread."""
-        logger.debug(f"{self.name} - Process worker running ")
-        while self.running:
-            if self.new:
-                if self.is_detection_on:
-                    self.process()
-                self.new = False
-            time.sleep(0.001)
-        logger.debug(f"{self.name} - Process worker running done")
-        self.signals.finished.emit()
-
-    def set_name(self, name):
-        """Set name as camera serial number."""
-        self.name = name
-
-    def update_stage_timestamp(self, stage_ts):
-        """Update the stage timestamp."""
-        self.stage_ts = stage_ts
-
-    def clicked_position(self, pt):
-        """Handle clicked position for calibration."""
-        if self.probeDetect is None:
+        if not self.mask_bool_local.any():
+            # No mask: clear caches
+            self.mask_idx_local = None
+            self.seg_color_pixels_local = None
             return
-    
-        if self.probeDetect.angle:
-            if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
-                self.signals.tip_stopped.emit(
-                    self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org
-                )
-                logger.info(f"Emit tip stopped signal with coords: {self.probeDetect.probe_tip_org}")
+
+        # 2) Cache row/col indices to avoid re-building them every frame
+        self.mask_idx_local = np.where(self.mask_bool_local)  # tuple (rows, cols)
+
+        # 3) Build a constant color array ONLY for masked pixels (N, 3), uint8
+        n = self.mask_idx_local[0].size
+        self.seg_color_pixels_local = np.empty((n, 3), dtype=np.uint8)
+        self.seg_color_pixels_local[:] = np.array((0, 255, 0), dtype=np.uint8)
+
+    def _overlay_mask(self, mask_idx, seg_color_pixel, a: float = 0.1) -> None:
+        r, c = mask_idx
+        if r is None or c is None:
+            logger.warning(f"{self.name} No mask indices to overlay")
+            return
+
+        try:
+            # Blend and WRITE BACK to the frame
+            blended = cv2.addWeighted(self.frame[r, c], 1.0 - a, seg_color_pixel, a, 0.0)
+            self.frame[r, c] = blended
+        except Exception as e:
+            # Keep logs lightweight; avoid printing big arrays
+            logger.error(f"{self.name} overlay error: {e})")
+        pass
+
+    def _overlay_mask_bgr(self, a: float = 0.1) -> None:
+        """Very fast per-frame overlay using cached indices + per-pixel color."""
+        if self.frame is None:
+            logger.warning("No frame to overlay")
+            return
+        if self.mask_idx is None or self.seg_color_pixels is None:
+            #logger.warning("No mask to overlay")
+            return
+        if self.is_seg_mask is False:
+            return
+        self._overlay_mask(self.mask_idx, self.seg_color_pixels, a)
+        self._overlay_mask_bgr_local(a=0.3)
+
+    def _overlay_mask_bgr_local(self, a: float = 0.3) -> None:
+        """Very fast per-frame overlay using cached indices + per-pixel color."""
+        # Overlay local mask in different color
+        if self.mask_idx_local is None or self.seg_color_pixels_local is None:
+            return
+        self._overlay_mask(self.mask_idx_local, self.seg_color_pixels_local, a)
+
+    def _resize_and_binarize(self, m, target_hw):
+        H, W = target_hw
+        m = np.asarray(m)
+        # squeeze common shapes: (1,H,W) or (H,W,1)
+        if m.ndim == 3:
+            if m.shape[0] == 1:
+                m = m[0]
+            elif m.shape[-1] == 1:
+                m = m[..., 0]
+        # threshold to {0,1}
+        m = (m > 0).astype(np.uint8)
+        # resize to frame size (NEAREST for labels)
+        if m.shape[:2] != (H, W):
+            m = cv2.resize(m, (W, H), interpolation=cv2.INTER_NEAREST)
+        return np.ascontiguousarray(m.astype(bool))
+
+    def _prepare_color_layer(self, mask_bool, color=(0, 255, 0)):
+        layer = np.zeros_like(self.frame, dtype=np.uint8)
+        if mask_bool.any():
+            layer[mask_bool] = color
+        return layer
 
 class ProbeDetectManager(QObject):
     """
@@ -426,6 +344,8 @@ class ProbeDetectManager(QObject):
         self.name = camera_name
         self.worker = None          # Worker for refersh screen
         self.processWorker = None   # Worker for processing frames
+        self.tamProcessWorker = None # Worker for TAM processing frames
+        self._prev_ts = None
         self.threadpool = QThreadPool()
 
     def _init_draw_thread(self):
@@ -439,11 +359,22 @@ class ProbeDetectManager(QObject):
         """Initialize the process worker thread."""
         # Get width and height from model
         camera_resolution = self.model.get_camera_resolution(self.name)
-        self.processWorker = ProcessWorker(self.name, camera_resolution)
+
+        # OpenCV Process Worker
+        self.processWorker = ProcessWorker(self.name, camera_resolution, test=self.model.test)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
-        self.processWorker.signals.tip_stopped.connect(self.found_tip_coords)
-        self.processWorker.signals.tip_moving.connect(self.found_tip_coords_moving)
+        self.processWorker.signals.tip_stopped.connect(self.found_probe)
+        self.processWorker.signals.tip_moving.connect(self.found_probe_moving)
         self.processWorker.signals.status.connect(self.worker.update_status)
+
+        # TAM Process Worker
+        self.tamProcessWorker = ProcessWorkerTAM(self.name, camera_resolution, test=self.model.test)
+        self.tamProcessWorker.signals.finished.connect(self._onTamProcessThreadFinished)
+        self.tamProcessWorker.signals.tip_stopped.connect(self.found_probe)
+        #self.tamProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
+        #self.tamProcessWorker.signals.status.connect(self.worker.update_status)
+        self.tamProcessWorker.signals.seg_mask.connect(self.worker.found_seg_mask)
+        self.tamProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
 
     def start(self):
         """
@@ -457,25 +388,65 @@ class ProbeDetectManager(QObject):
             print(f"{self.name} Previous thread not cleaned up")
             return
 
+        print(f"{self.name} Start probe detection")
         logger.debug(f"{self.name} - Starting thread")
         self._init_draw_thread()
         self.worker.start_running()
         self.threadpool.start(self.worker)
 
         self._init_process_thread()
-        self.processWorker.start_running()
+        #self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
+
+        neg_pts_coords = self._get_negative_points()
+        self.tamProcessWorker.update_negative_points(neg_pts_coords)
+        self.tamProcessWorker.start_running()
+        self.threadpool.start(self.tamProcessWorker)
+
+    def set_algorithm(self, algorithms):
+        """Set the probe detection algorithm."""
+        # TODO
+        """
+        if algorithms == 'opencv':
+            if self.processWorker is not None:
+                self.processWorker.start_running()
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.stop_running()
+        elif algorithms == 'tam':
+            if self.processWorker is not None:
+                self.processWorker.stop_running()
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.start_running()
+        else:
+            print("Unknown algorithm:", algorithms)
+        """
+        pass
+
+    def _get_negative_points(self):
+        coords = self.model.get_coords_for_debug(self.name)
+        origin_px   = coords[40]
+        x_left_px   = coords[4]
+        x_right_px  = coords[76]
+        y_bottom_px = coords[36]
+        y_top_px    = coords[44]
+        #neg_pts_coords = np.array([origin_px, x_left_px, x_right_px, y_bottom_px, y_top_px])
+        neg_pts_coords = np.array([origin_px])
+        return neg_pts_coords
 
     def stop(self):
         """
         Stop the probe detection manager by halting the worker thread.
         """
         logger.debug(f"{self.name} - Stopping thread")
-        if self.worker is None and self.processWorker is None:  # State: Stopped
+        if self.worker is None and self.processWorker is None and self.tamProcessWorker is None:  # State: Stopped
             return
 
         if self.processWorker is not None:
             self.processWorker.stop_running()
+
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.stop_running()
+
         if self.worker is not None:
             self.worker.stop_running()
 
@@ -487,6 +458,10 @@ class ProbeDetectManager(QObject):
         """Handle thread finished signal."""
         self.processWorker = None
 
+    def _onTamProcessThreadFinished(self):
+        """Handle thread finished signal."""
+        self.tamProcessWorker = None
+
     def process(self, frame, timestamp):
         """
         Process the frame using the worker.
@@ -495,24 +470,35 @@ class ProbeDetectManager(QObject):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-        if self.processWorker is not None:
-            self.processWorker.update_frame(frame, timestamp)
+        if self._prev_ts is None:
+            self._prev_ts = timestamp
+
+        if self._prev_ts is not None and (timestamp - self._prev_ts) > 0.5: # TODO Adjust time gap
+            if self.processWorker is not None:
+                self.processWorker.update_frame(frame, timestamp)
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.update_frame(frame, timestamp)
+            self._prev_ts = timestamp
+
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
 
-    @pyqtSlot(float, float, str, tuple)
-    def found_tip_coords(self, stage_ts, img_ts, sn, pixel_coords):
+        
+    @pyqtSlot(float, float, str, tuple, tuple)
+    def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):
         """
         Emit the found coordinates signal after detection.
 
         Args:
             timestamp (str): Timestamp of the frame.
             sn (str): Serial number of the device.
-            pixel_coords (tuple): Pixel coordinates of the detected probe tip.
+            tip_coords (tuple): Pixel coordinates of the detected probe tip.
         """
         # Update into screen
         if self.worker is not None:
-            self.worker.update_tip_coords(pixel_coords, color=(255, 0, 0))
+            self.worker.update_tip_coords(tip_coords, color=(255, 0, 0))
+            if self.model.test and base_coords != (None, None):
+                self.worker.update_base_coords(base_coords, color=(0, 255, 0))
 
         moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:
@@ -521,21 +507,23 @@ class ProbeDetectManager(QObject):
                 "stage_y": moving_stage.stage_y,
                 "stage_z": moving_stage.stage_z,
             }
-        self.found_coords.emit(stage_ts, img_ts, sn, stage_info, pixel_coords)
-        logger.debug(f"{self.name} Emit - s({stage_ts}) i({img_ts}) -{pixel_coords}")
+        self.found_coords.emit(stage_ts, img_ts, sn, stage_info, tip_coords)
+        logger.debug(f"{self.name} Emit - s({stage_ts}) i({img_ts}) -{tip_coords}")
 
-    def found_tip_coords_moving(self, img_ts, sn, pixel_coords):
+    def found_probe_moving(self, img_ts, sn, tip_coords, base_coords):
         """
         Emit the found coordinates signal after detection.
 
         Args:
             timestamp (str): Timestamp of the frame.
             sn (str): Serial number of the device.
-            pixel_coords (tuple): Pixel coordinates of the detected probe tip.
+            tip_coords (tuple): Pixel coordinates of the detected probe tip.
         """
         # Update into screen
         if self.worker is not None:
-            self.worker.update_tip_coords(pixel_coords, color=(255, 255, 0))
+            self.worker.update_tip_coords(tip_coords, color=(255, 255, 0))
+        if self.model.test:
+            self.worker.update_base_coords(base_coords, color=(0, 255, 0))
 
     def start_detection(self, sn):  # Call from stage listener.
         """Start the probe detection for a specific serial number.
@@ -547,6 +535,10 @@ class ProbeDetectManager(QObject):
             self.processWorker.update_sn(sn)
             self.processWorker.start_detection()
 
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.update_sn(sn)
+            self.tamProcessWorker.start_detection()
+
     def stop_detection(self, sn):  # Call from stage listener.
         """Stop the probe detection for a specific serial number.
 
@@ -555,6 +547,9 @@ class ProbeDetectManager(QObject):
         """
         if self.processWorker is not None:
             self.processWorker.stop_detection()
+
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.stop_detection()
 
     def enable_calibration(self, stage_ts, sn):  # Call from stage listener.
         """
@@ -565,9 +560,15 @@ class ProbeDetectManager(QObject):
         """
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
+            self.worker.update_base_coords(None, None)
+            self.worker.update_is_seg_mask(False)
         if self.processWorker is not None:
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.update_stage_timestamp(stage_ts)
+            self.tamProcessWorker.enable_calib()
+
 
     def disable_calibration(self, sn):  # Call from stage listener.
         """
@@ -576,10 +577,17 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
+        if self.tamProcessWorker is not None and self.worker is not None:
+            self.worker.cancel_seg_mask()
         if self.processWorker is not None:
             self.processWorker.disable_calib()
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.disable_calib()
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
+            self.worker.update_base_coords(None, None)
+            self.worker.update_is_seg_mask(False)
+
 
     def set_name(self, camera_name):
         """
@@ -595,15 +603,29 @@ class ProbeDetectManager(QObject):
 
         if self.processWorker is not None:
             self.processWorker.set_name(self.name)
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.set_name(self.name)
         logger.debug(f"{self.name} set camera name")
 
     def get_reticle_coords(self, name):
         """Get the reticle coordinates based on the model's data."""
         reticle_coords = self.model.get_coords_axis(name)
         reticle_coords_debug = self.model.get_coords_for_debug(name)
+
+        # Preprocess for faster drawing later
+        if reticle_coords is not None:
+            reticle_coords = [
+                [(int(x), int(y)) for (x, y) in coords]
+                for coords in reticle_coords
+            ]
+        if reticle_coords_debug is not None:
+            reticle_coords_debug = np.asarray(reticle_coords_debug, dtype=int).reshape(-1, 2)
+
         return reticle_coords, reticle_coords_debug
 
     def clicked_position(self, pt):
         """Get clicked position."""
         if self.processWorker is not None:
             self.processWorker.clicked_position(pt)
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.clicked_position(pt)

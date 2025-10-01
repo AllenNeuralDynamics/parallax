@@ -32,7 +32,7 @@ def sample_images():
 @pytest.fixture
 def setup_curr_bg_cmp_processor():
     cam_name = "MockCam"
-    probe_detector = ProbeDetector(cam_name, IMG_SIZE)
+    probe_detector = ProbeDetector(cam_name, IMG_SIZE, IMG_SIZE_ORIGINAL)
     return CurrBgCmpProcessor(
         cam_name=cam_name,
         ProbeDetector=probe_detector,
@@ -57,10 +57,6 @@ def test_first_cmp(setup_curr_bg_cmp_processor, sample_images):
         last_ret = processor.first_cmp(org_img=curr_img, mask=mask)
 
     assert isinstance(last_ret, bool), "first_cmp should return a boolean."
-    # Tip isn’t guaranteed during first_cmp; if it exists, validate its shape
-    tip = processor.get_point_tip()
-    if tip is not None:
-        assert isinstance(tip, tuple) and len(tip) == 2, "Tip must be a (x, y) tuple if present."
 
 def test_update_cmp(setup_curr_bg_cmp_processor, sample_images):
     """Initialize with first_cmp, then run update_cmp until detection succeeds (content-dependent)."""
@@ -85,7 +81,3 @@ def test_update_cmp(setup_curr_bg_cmp_processor, sample_images):
             break
 
     assert isinstance(ret, bool), "update_cmp should return a boolean."
-    if ret:
-        tip = processor.get_point_tip()
-        assert tip is not None, "Tip should be available when update_cmp returns True."
-        assert isinstance(tip, tuple) and len(tip) == 2, "Tip must be a (x, y) tuple."

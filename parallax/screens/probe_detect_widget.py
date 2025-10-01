@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class ReticleDetectWidget(QWidget):
+class ProbeDetectWidget(QWidget):
     """Settings menu widget to control a microscope screen."""
 
     def __init__(self, parent, model, screen):
@@ -26,62 +26,45 @@ class ReticleDetectWidget(QWidget):
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
-        if self._is_superpoint_available():
+        if self._is_tam_available():
             self.settingMenu.radioButton2.setEnabled(True)
 
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
         )
-        self.settingMenu.run_pushBtn.clicked.connect(self._run_detection)
-        self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
-        self.screen.reticle_coords_detected.connect(self._reticle_detected)
-        self.screen.reticle_coords_detect_finished.connect(self._enable_run_button)
+        self.settingMenu.run_pushBtn.clicked.connect(self._apply_detection_algorithm)
+        #self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
+        #self.screen.reticle_coords_detected.connect(self._reticle_detected)
+        #self.screen.reticle_coords_detect_finished.connect(self._enable_run_button)
+        self._init_model_setting()
 
-    def _is_superpoint_available(self):
-        """Check if SFM and SuperPoint + LightGlue are available by verifying import and file presence."""
-        # Check if sfm can be imported
+    def _init_model_setting(self):
+        self.model.set_probe_detect_algorithms(self.screen.camera_name, 'opencv')
+
+    def _is_tam_available(self):
+        """Check if realtime_efficient_tam is available by verifying import and file presence."""
+        # Check if realtime_efficient_tam can be imported
         try:
-            import sfm  # noqa: F401
-        except ImportError:
-            logger.warning("[WARN] SFM package is not installed.")
-            return False
-
-        # Configure external path and add to sys.path if needed
-        external_path = Path(__file__).resolve().parent.parent.parent / "external"
-        os.environ["PARALLAX_EXTERNAL_PATH"] = str(external_path)
-
-        if str(external_path) not in sys.path:
-            sys.path.append(str(external_path))
-
-        # Check if SuperPoint model file exists
-        superpoint_file = external_path / "SuperGluePretrainedNetwork" / "models" / "superpoint.py"
-        if superpoint_file.exists():
-            logger.debug("[INFO] SuperPoint + LightGlue is available (sfm import + folder check passed)")
+            import efficient_track_anything
+            print(f"version: {efficient_track_anything.__version__}")
+            logger.debug(f"Realtime EfficientTrackAnything version: {efficient_track_anything.__version__}")
             return True
-        else:
-            logger.warning("[WARN] SuperPoint + LightGlue not available (superpoint.py missing)")
+        except ImportError:
+            logger.warning("[WARN] realtime_efficient_tam package is not installed.")
             return False
 
-    def _run_detection(self):
-        """Run the reticle detection based on the selected method."""
-        # Disable button and change appearance
-        self.settingMenu.run_pushBtn.setEnabled(False)
-        self.settingMenu.run_pushBtn.setText("Running...")
-
-        # Reset previous detection data
-        self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
-
+    def _apply_detection_algorithm(self):
+        """Apply the selected detection algorithm to the screen and model."""
         # Run open cv default detection
         if self.settingMenu.radioButton1.isChecked():
-            print(f"{self.screen.camera_name} - Running OpenCV detection")
-            if self.screen.get_camera_color_type() == "Color":
-                self.screen.run_reticle_detection()
+            print(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
+            self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'opencv')
 
         # SuperPoint + LightGlue detection
         elif self.settingMenu.radioButton2.isChecked():
-            print(f"{self.screen.camera_name} - Running SuperPoint + LightGlue")
-            if self.screen.get_camera_color_type() == "Color":
-                self.screen.run_cnn_reticle_detection()
+            print(f"{self.screen.camera_name} - 'Realtime Efficient TAM' tracking selected")
+            self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'tam')
+
 
     def _enable_run_button(self):
         """Enable the run button after detection is finished."""
@@ -103,13 +86,13 @@ class ReticleDetectWidget(QWidget):
     def _get_setting_button(self):
         """Create and return the settings button for reticle detection."""
         btn = QToolButton(self.parent)
-        btn.setObjectName("Detect")
+        btn.setObjectName("ProbeDetect")
         font_grpbox = QFont()  # TODO move to config file
         font_grpbox.setPointSize(8)
         btn.setFont(font_grpbox)
         btn.setCheckable(True)
         btn.setText(
-            QCoreApplication.translate("MainWindow", "RETICLE DETECT \u25ba", None)
+            QCoreApplication.translate("MainWindow", "PROBE DETECT \u25ba", None)
         )
         return btn
 
@@ -117,7 +100,7 @@ class ReticleDetectWidget(QWidget):
         """Create and return the settings menu for reticle detection."""
         # Initialize the settings menu UI from the .ui file
         detectMenu = QWidget(self.parent)
-        ui = os.path.join(ui_dir, "reticle_detection.ui")
+        ui = os.path.join(ui_dir, "probe_detection.ui")
         loadUi(ui, detectMenu)
         detectMenu.setObjectName("DetectMenu")
         detectMenu.hide()  # Hide the menu by default
