@@ -507,7 +507,7 @@ class ProbeCalibrationHandler(QWidget):
         self.reticle_metadata.load_metadata_from_file()
 
         # Update into model
-        self.update_stage_info_to_model(self.selected_stage_id)  # TODO update bregma transM
+        self.update_stage_info_to_model(self.selected_stage_id)
         self.model.set_calibration_status(self.selected_stage_id, True)
 
         self.probe_calibration_btn.setStyleSheet(
