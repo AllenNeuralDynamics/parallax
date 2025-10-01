@@ -129,7 +129,7 @@ class CoordsConverter:
         """
         Applies the selected reticle's adjustments (rotation and offsets) to the given global coordinates.
         bregma = Rm @ global + tm, where bregma and global are {3x1} vectors.
-        Or, bregma = (global) @ Rm.T + tm, where gregma and global are {1x3} vectors.
+        Or, bregma = (global) @ Rm.T + tm, where bregma and global are {1x3} vectors.
         Args:
             global_pts (ndarray): The global coordinates to adjust. {1x3} vector
             reticle (str): The name of the reticle to apply adjustments for.
