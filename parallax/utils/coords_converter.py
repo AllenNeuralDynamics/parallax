@@ -29,7 +29,7 @@ class CoordsConverter:
             sn (str): The serial number of the stage.
             local_pts (ndarray): The local coordinates (µm) to convert. (1x3)
             reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
-        Retu rns:
+        Returns:
             ndarray: The global coordinates (µm).
         """
         if model.is_calibrated(sn):
