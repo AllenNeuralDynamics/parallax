@@ -306,7 +306,6 @@ class StageListener(QObject):
         local_pts = np.array([local_x, local_y, local_z])
         if is_calib:
             global_pts = CoordsConverter.local_to_global(self.model, sn, local_pts)
-            print("\nglobal_pts:", global_pts)
             if global_pts is not None:
                 stage.stage_x_global = global_pts[0]
                 stage.stage_y_global = global_pts[1]
@@ -463,6 +462,23 @@ class StageListener(QObject):
             """Convert value to mm."""
             return round(v * 0.001, 4) if v is not None else None
 
+        def _vec_mm(v):
+            """3-vector (np/list) in µm -> [mm, mm, mm] (rounded)."""
+            if v is None:
+                return None
+            arr = np.asarray(v, dtype=float).reshape(-1)
+            if arr.size < 3:
+                return None
+            return [round(arr[0] * 0.001, 4),
+                    round(arr[1] * 0.001, 4),
+                    round(arr[2] * 0.001, 4)]
+
+        def _bregma_mm(b):
+            """Dict of reticle -> 3-vector in µm -> mm dict."""
+            if not b:
+                return None
+            return {str(k): _vec_mm(v) for k, v in b.items() if v is not None}
+
         return {
             "sn": stage.sn,
             "name": stage.name,
@@ -472,10 +488,10 @@ class StageListener(QObject):
             "global_X": _val_mm(gx),
             "global_Y": _val_mm(gy),
             "global_Z": _val_mm(gz),
-            "bregma": stage_bregma,
-            "relative_X": _val_mm(sx - ox),
-            "relative_Y": _val_mm(sy - oy),
-            "relative_Z": _val_mm(sz - oz),
+            "bregma": _bregma_mm(stage_bregma),
+            "relative_X": _val_mm(sx - ox) if sx is not None and ox is not None else None,
+            "relative_Y": _val_mm(sy - oy) if sy is not None and oy is not None else None,
+            "relative_Z": _val_mm(sz - oz) if sz is not None and oz is not None else None,
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
