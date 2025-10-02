@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import QFileDialog
-from parallax.utils.coords_converter import CoordsConverter
+from parallax.utils.coords_converter import local_to_global
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -305,7 +305,7 @@ class StageListener(QObject):
         stage.stage_z_offset = 15000 - (probe.get("Stage_ZOffset", 0) * 1000)  # Convert to um
         local_pts = np.array([local_x, local_y, local_z])
         if is_calib:
-            global_pts = CoordsConverter.local_to_global(self.model, sn, local_pts)
+            global_pts = local_to_global(self.model, sn, local_pts)
             if global_pts is not None:
                 stage.stage_x_global = global_pts[0]
                 stage.stage_y_global = global_pts[1]
@@ -314,7 +314,7 @@ class StageListener(QObject):
         if is_calib:
             bregma_pts = {}
             for reticle in self.model.reticle_metadata.keys():
-                bregma_pt = CoordsConverter.local_to_global(self.model, sn, local_pts, reticle=reticle)
+                bregma_pt = local_to_global(self.model, sn, local_pts, reticle=reticle)
                 #bregma_pt_ = CoordsConverter.local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
                 #print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
                 if bregma_pt is not None:

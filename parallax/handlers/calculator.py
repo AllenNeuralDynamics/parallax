@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, 
 from PyQt6.uic import loadUi
 from PyQt6.QtCore import Qt
 
-from parallax.utils.coords_converter import CoordsConverter
+from parallax.utils.coords_converter import local_to_global, global_to_local
 from parallax.stages.stage_controller import StageController
 from parallax.config.config_path import ui_dir
 
@@ -167,11 +167,11 @@ class Calculator(QWidget):
         logger.debug(f"User Input (Local): {self.reticle}")
         trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
-            local_pts_ret = CoordsConverter.global_to_local(self.model, sn, global_pts, self.reticle)
+            local_pts_ret = global_to_local(self.model, sn, global_pts, self.reticle)
             if local_pts_ret is not None:
                 self._show_local_pts_result(sn, local_pts_ret)
         elif trans_type == "local_to_global":
-            global_pts_ret = CoordsConverter.local_to_global(self.model, sn, local_pts, self.reticle)
+            global_pts_ret = local_to_global(self.model, sn, local_pts, self.reticle)
             if global_pts_ret is not None:
                 self._show_global_pts_result(sn, global_pts_ret)
         else:
@@ -434,8 +434,8 @@ class Calculator(QWidget):
                 continue
             try:
                 # Apply transformations to get global points for Z=15 and Z=0
-                global_pts_z15 = CoordsConverter.local_to_global(self.model, stage_sn, local_pts_z15)
-                global_pts_z0 = CoordsConverter.local_to_global(self.model, stage_sn, local_pts_z0)
+                global_pts_z15 = local_to_global(self.model, stage_sn, local_pts_z15)
+                global_pts_z0 = local_to_global(self.model, stage_sn, local_pts_z0)
 
                 if global_pts_z15 is None or global_pts_z0 is None:
                     return False  # Transformation failed, return False

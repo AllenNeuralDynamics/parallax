@@ -13,7 +13,7 @@ from typing import Optional
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
-from parallax.utils.coords_converter import CoordsConverter
+from parallax.utils.coords_converter import get_reticle_transM, get_probe_angle
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -791,8 +791,12 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.status_z = self.calib_status_z
 
         # Update transM from bregma if available
-        transMbs = CoordsConverter.get_reticle_transM(self.model, stage_id)
+        transMbs = get_reticle_transM(self.model, stage_id)
         stage_info.transM_bregma = transMbs
+
+        # Get 3D angle
+        get_probe_angle(self.transM, nShank=1)
+        
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):
