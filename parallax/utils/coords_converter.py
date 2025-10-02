@@ -32,14 +32,33 @@ def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
     if transM is None:
         logger.debug(f"TransM not found for {sn}")
         return None
-    R = transM[:3, :3]
-    t = transM[:3, 3].T    # {1x3} vector
-    global_pts = (local_pts - t) @ R #{1x3} vector
+
+    global_pts = apply_inverse_rigid_transform(transM, local_pts)
+
     logger.debug(f"global_to_local {global_pts} -> {local_pts}")
     # Apply the reticle offset and rotation adjustment
     if reticle is not None:
         global_pts = apply_reticle_adjustments(model, global_pts, reticle)
     return np.round(global_pts, 1)
+
+def apply_inverse_rigid_transform(transM: np.ndarray, local_pts: np.ndarray) -> np.ndarray:
+    """Applies the inverse of a rigid body transformation matrix to local points.
+    local = R @ global + t, where local, global and t are {3x1} vectors.
+    To get global from local:
+    global = R.T @ (local - t) for {3x1} vectors.
+    Or, global = (local - t) @ R for {1x3} vectors.
+    transM = [R t; 0 1]
+    Args:
+        transM (ndarray): The 4x4 transformation matrix.
+        local_pts (ndarray): The local coordinates to transform. {1x3} vector
+    Returns:
+        ndarray: The transformed global coordinates. {1x3} vector
+    """
+    assert transM.shape == (4, 4), "transM must be 4x4"
+    R = transM[:3, :3]
+    t = transM[:3, 3].T    # {1x3} vector
+    global_pts = (local_pts - t) @ R #{1x3} vector
+    return global_pts
 
 def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
@@ -63,9 +82,23 @@ def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[st
         return None
     if reticle and reticle != "Global coords":
         global_pts = apply_reticle_adjustments_inverse(model, global_pts, reticle)
-    # local = R @ global + t
-    local_pts = np.dot(transM, np.append(global_pts, 1)) #np.dot(A, b) and A @ b are equivalent for NumPy arrays
+    local_pts = apply_rigid_transform(transM, global_pts)
     return np.round(local_pts[:3], 1)
+
+def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
+    """Applies a rigid body transformation matrix to global points.
+    local = R @ global + t, where local, global and t are {3x1} vectors.
+    transM = [R t; 0 1]
+    Args:
+        transM (ndarray): The 4x4 transformation matrix.
+        global_pts (ndarray): The global coordinates to transform. {1x3} vector
+    Returns:
+        ndarray: The transformed local coordinates. {1x3} vector
+    """
+    # local = R @ global + t
+    assert transM.shape == (4, 4), "transM must be 4x4"
+    local_pts = np.dot(transM, np.append(global_pts, 1)) #np.dot(A, b) and A @ b are equivalent for NumPy arrays
+    return local_pts
 
 def apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
     """
@@ -134,9 +167,11 @@ def get_reticle_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) 
     local = Rb @ bregma + tb, where local, bregma, and tb are {3x1} vectors.
     local = Rb @ (Rm @ global + tm) + tb, where local, global, and tm, tb are {3x1} vectors.
     local = R @ global + t, where local, global, and t are {3x1} vectors.
-    R @ global +t = Rb @ Rm @ global + Rb @ tm + tb
+
+    R @ global + t = Rb @ Rm @ global + Rb @ tm + tb
     R = Rb @ Rm
     t = Rb @ tm + tb
+
     Rb = R @ Rm.T
     tb = t - Rb @ tm
     tb = t - R @ Rm.T @ tm
@@ -178,7 +213,7 @@ def get_reticle_transM(model, sn: str) -> np.ndarray:
     return bregma_to_local_transMs
 
 def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
-    """Convert local (row 1x3) to bregma using transMb where local = Rb@bregma + tb."""
+    """Convert local (row 1x3) to bregma using transMb where local = Rb @ bregma + tb."""
     calib_info = (model.stages.get(sn, {}) or {}).get("calib_info")
     if calib_info is None:
         logger.warning(f"Stage {sn} is not calibrated.")
@@ -197,13 +232,23 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
             return None
     else:
         transMb = transMbs
+
     transMb = np.asarray(transMb, dtype=float)
     if transMb.shape != (4,4):
         logger.warning(f"transMb must be 4x4, got {transMb.shape}.")
         return None
+    
+    bregma_pts = apply_inverse_rigid_transform(transMb, local_pts)
     Rb = transMb[:3, :3]
     tb = transMb[:3, 3].T    # {1x3} vector
-    bregma_pts = (local_pts - tb) @ Rb.T #{1x3} vector
+
+    # bregma to local
+    # local = Rb @ bregma + tb, where local, bregma, and tb are {3x1} vectors.
+
+    # local to bregma
+    # bregma = Rb.T @ (local - tb) for {3x1} vectors. Or, bregma = (local - tb) @ Rb for {1x3} vectors.
+
+    bregma_pts = (local_pts - tb) @ Rb #{1x3} vector
     return np.round(bregma_pts, 1)
 
 def get_probe_angle(transM, nShank=1) -> Optional[tuple[float, float, float]]:

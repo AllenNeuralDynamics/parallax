@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import QFileDialog
-from parallax.utils.coords_converter import local_to_global
+from parallax.utils.coords_converter import local_to_global, apply_reticle_adjustments, local_to_bregma
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -314,9 +314,9 @@ class StageListener(QObject):
         if is_calib:
             bregma_pts = {}
             for reticle in self.model.reticle_metadata.keys():
-                bregma_pt = local_to_global(self.model, sn, local_pts, reticle=reticle)
-                #bregma_pt_ = CoordsConverter.local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
-                #print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
+                bregma_pt = apply_reticle_adjustments(self.model, global_pts, reticle=reticle)
+                bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
+                print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
                 if bregma_pt is not None:
                     # make JSON-safe now
                     bregma_pts[reticle] = np.asarray(bregma_pt, dtype=float).reshape(3,).tolist()
