@@ -67,6 +67,8 @@ class Stage:
     stage_x_offset: float = 0.0
     stage_y_offset: float = 0.0
     stage_z_offset: float = 0.0
+    arc_angle_global: Optional[tuple] = None
+    arc_angle_bregma: Optional[dict] = None
     yaw: Optional[float] = None
     pitch: Optional[float] = None
     roll: Optional[float] = None
