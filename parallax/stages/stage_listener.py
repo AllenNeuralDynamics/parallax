@@ -315,8 +315,8 @@ class StageListener(QObject):
             bregma_pts = {}
             for reticle in self.model.reticle_metadata.keys():
                 bregma_pt = apply_reticle_adjustments(self.model, global_pts, reticle=reticle)
-                bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
-                print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
+                #bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
+                #print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
                 if bregma_pt is not None:
                     # make JSON-safe now
                     bregma_pts[reticle] = np.asarray(bregma_pt, dtype=float).reshape(3,).tolist()

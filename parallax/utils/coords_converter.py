@@ -1,7 +1,19 @@
 """
-This module provides a class for converting between local and global coordinates
-using transformation matrices.
+This module provides helpers for converting between local, global, and bregma
+coordinates using rigid transformation matrices.
+
+Conventions
+-----------
+- Canonical (column-vector) definition used to DEFINE R and t:
+      local_col = R @ global_col + t         # R: (3,3), t: (3,)
+
+- Row-vector form IMPLEMENTED in this module (all inputs/outputs are row 1x3):
+      local_row = global_row @ R.T + t
+
+- Inverse (row-vector):
+      global_row = (local_row - t) @ R
 """
+
 import logging
 import numpy as np
 from typing import Optional
@@ -13,207 +25,328 @@ logger.setLevel(logging.WARNING)
 
 def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
-    Converts local coordinates to global coordinates using the transformation matrix.
-    local = R @ global + t, where local, global and t are {3x1} vectors.
-    To get global from local:
-    global = R.T @ (local - t) for {3x1} vectors. Or, global = (local - t) @ R for {1x3} vectors.
-    transM = [R t; 0 1]
-    Args:
-        sn (str): The serial number of the stage.
-        local_pts (ndarray): The local coordinates (µm) to convert. (1x3)
-        reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
-    Returns:
-        ndarray: The global coordinates (µm).
+    Convert local (1x3 row) -> global (1x3 row) using the stage's transform.
+
+    Canonical (column) definition for reference:
+        local = R @ global + t
+
+    Row-vector form we compute:
+        global = (local - t) @ R
+
+    Here, the stage supplies T = [[R, t], [0, 1]] that maps GLOBAL→LOCAL.
+    We invert that mapping for a single row vector via the row-form above.
+
+    Parameters
+    ----------
+    model : object
+        Provides `is_calibrated(sn)` and `get_transform(sn)` returning a 4x4 T.
+    sn : str
+        Stage serial number.
+    local_pts : np.ndarray
+        Local coordinates (µm). Expected shape (3,) or (1,3). Interpreted as row-vector.
+    reticle : str, optional
+        If provided, apply per-reticle rotation/offset to the computed GLOBAL coords.
+
+    Returns
+    -------
+    np.ndarray or None
+        Rounded GLOBAL coordinates (1x3). None if the stage/transform is unavailable.
     """
     if model.is_calibrated(sn):
-        transM = model.get_transform(sn)
+        T = model.get_transform(sn)  # T = [[R, t],[0,1]] for GLOBAL→LOCAL
     else:
         return None
-    if transM is None:
+    if T is None:
         logger.debug(f"TransM not found for {sn}")
         return None
 
-    global_pts = apply_inverse_rigid_transform(transM, local_pts)
+    global_pts = apply_inverse_rigid_transform(T, local_pts)  # (local - t) @ R
 
     logger.debug(f"global_to_local {global_pts} -> {local_pts}")
-    # Apply the reticle offset and rotation adjustment
+    # Optional: reticle adjustment maps GLOBAL ↔ BREGMA for a named reticle
     if reticle is not None:
         global_pts = apply_reticle_adjustments(model, global_pts, reticle)
     return np.round(global_pts, 1)
 
+
 def apply_inverse_rigid_transform(transM: np.ndarray, local_pts: np.ndarray) -> np.ndarray:
-    """Applies the inverse of a rigid body transformation matrix to local points.
-    local = R @ global + t, where local, global and t are {3x1} vectors.
-    To get global from local:
-    global = R.T @ (local - t) for {3x1} vectors.
-    Or, global = (local - t) @ R for {1x3} vectors.
-    transM = [R t; 0 1]
-    Args:
-        transM (ndarray): The 4x4 transformation matrix.
-        local_pts (ndarray): The local coordinates to transform. {1x3} vector
-    Returns:
-        ndarray: The transformed global coordinates. {1x3} vector
+    """
+    Apply the inverse of a rigid transform to get GLOBAL from LOCAL (row-vector form).
+
+        Canonical (column) : global = R.T @ (local - t)
+        Row-vector form    : global = (local - t) @ R
+
+    Where transM = [[R, t],
+                    [0, 1]] maps GLOBAL→LOCAL in the canonical column form.
+
+    Parameters
+    ----------
+    transM : np.ndarray
+        4x4 homogeneous transform (GLOBAL→LOCAL).
+    local_pts : np.ndarray
+        Local point as row-vector (3,) or (1,3).
+
+    Returns
+    -------
+    np.ndarray
+        GLOBAL point as (1,3) row-vector (same math, row form).
     """
     assert transM.shape == (4, 4), "transM must be 4x4"
     R = transM[:3, :3]
-    t = transM[:3, 3].T    # {1x3} vector
-    global_pts = (local_pts - t) @ R #{1x3} vector
-    return global_pts
+    t_row = transM[:3, 3].T    # shape (3,)
+    global_row = (local_pts - t_row) @ R  # row-vector inverse
+    return global_row
+
 
 def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
-    Applies the inverse transformation to convert global coordinates to local coordinates.
-    local = R @ global + t, global, local and t are {3x1} vectors.
-    transM = [R t; 0 1]
-    Args:
-        sn (str): The serial number of the stage. 
-        global_pts (ndarray): The global coordinates (µm) to convert. (1x3)
-        reticle (str, optional): The name of the reticle to apply adjustments for. Defaults to None.
-    Returns:
-        ndarray: The transformed local coordinates (µm). (1x3)
+    Convert global (1x3 row) -> local (1x3 row) using the stage's transform.
+
+    Canonical (column) mapping carried by the stage:
+        local = R @ global + t
+
+    Row-vector implementation:
+        local = global @ R.T + t
+
+    If a reticle is specified (and not "Global coords"), first undo its
+    rotation/offset on the incoming GLOBAL point, then apply the stage mapping.
+
+    Parameters
+    ----------
+    model : object
+        Provides `is_calibrated(sn)` and `get_transform(sn)` returning a 4x4 T.
+    sn : str
+        Stage serial number.
+    global_pts : np.ndarray
+        Global coordinates (µm). Expected shape (3,) or (1,3). Interpreted as row-vector.
+    reticle : str, optional
+        If provided (and not "Global coords"), apply the inverse of the reticle's
+        rotation/offset to the incoming GLOBAL coords before mapping to LOCAL.
+
+    Returns
+    -------
+    np.ndarray or None
+        Rounded LOCAL coordinates (1x3). None if the stage/transform is unavailable.
     """
     if model.is_calibrated(sn):
-        transM = model.get_transform(sn)
+        T = model.get_transform(sn)  # T = [[R, t],[0,1]] for GLOBAL→LOCAL
     else:
         logger.warning(f"Stage {sn} is not calibrated. Cannot convert global to local coordinates.")
         return None
-    if transM is None:
+    if T is None:
         logger.warning(f"Transformation matrix not found for {sn}")
         return None
     if reticle and reticle != "Global coords":
         global_pts = apply_reticle_adjustments_inverse(model, global_pts, reticle)
-    local_pts = apply_rigid_transform(transM, global_pts)
-    return np.round(local_pts[:3], 1)
+    local_row4 = apply_rigid_transform(T, global_pts)  # returns homogeneous 4-vector; see its docstring
+    return np.round(local_row4[:3], 1)
+
 
 def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
-    """Applies a rigid body transformation matrix to global points.
-    local = R @ global + t, where local, global and t are {3x1} vectors.
-    transM = [R t; 0 1]
-    Args:
-        transM (ndarray): The 4x4 transformation matrix.
-        global_pts (ndarray): The global coordinates to transform. {1x3} vector
-    Returns:
-        ndarray: The transformed local coordinates. {1x3} vector
     """
-    # local = R @ global + t
+    Apply a rigid transform to map GLOBAL → LOCAL.
+
+        Canonical (column) : local = R @ global + t
+        Row-vector form    : local = global @ R.T + t
+
+    This function uses homogeneous multiplication directly:
+        [local, 1] = transM @ [global, 1]
+
+    Parameters
+    ----------
+    transM : np.ndarray
+        4x4 homogeneous transform [[R, t],[0,1]] mapping GLOBAL→LOCAL.
+    global_pts : np.ndarray
+        GLOBAL point as row-vector (3,) or (1,3).
+
+    Returns
+    -------
+    np.ndarray
+        Homogeneous local vector length-4: [local_x, local_y, local_z, 1].
+        (Caller typically slices [:3] to get (1x3) LOCAL.)
+    """
     assert transM.shape == (4, 4), "transM must be 4x4"
-    local_pts = np.dot(transM, np.append(global_pts, 1)) #np.dot(A, b) and A @ b are equivalent for NumPy arrays
-    return local_pts
+    # np.dot(A, b) and A @ b are equivalent for NumPy arrays.
+    local_h = np.dot(transM, np.append(global_pts, 1))
+    return local_h
+
 
 def apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
     """
-    Applies the inverse of the selected reticle's adjustments (rotation and offsets)
-    to the given global coordinates.
-    bregma = Rm @ global + tm, where bregma and global are {3x1} vectors.
-    Or, bregma = (global) @ Rm.T + tm, where bregma and global are {1x3} vectors.
-    global = Rm.T @ (bregma - tm), where bregma and global are {3x1} vectors.
-    Or, global = (bregma - tm) @ Rm, where bregma and global are {1x3} vectors.
-    Args:
-        global_pts (ndarray): The global coordinates to adjust. {1x3} vector
-        reticle (str): The name of the reticle to apply adjustments for.
-    Returns:
-        np.ndarray: The adjusted global coordinates.
+    Apply the INVERSE of a reticle's rotation/offset to a GLOBAL point.
+
+    Reticle mapping (canonical column definitions):
+        bregma = Rm @ global + tm
+
+    Row-vector equivalents:
+        bregma = global @ Rm.T + tm
+        global = (bregma - tm) @ Rm
+
+    Here we invert the reticle mapping on a GLOBAL point that was tagged
+    as 'reticle-global', i.e., we compute:
+        global = (bregma - tm) @ Rm
+    where 'bregma' is represented by the input reticle_global_pts.
+
+    Parameters
+    ----------
+    model : object
+        Provides `get_reticle_metadata(reticle)` with 'rotmat' and offsets.
+    reticle_global_pts : np.ndarray
+        GLOBAL coordinates (1x3) but already offset/rotated by reticle metadata.
+    reticle : str
+        Reticle name.
+
+    Returns
+    -------
+    np.ndarray
+        GLOBAL coordinates (1x3) with the reticle's rotation/offset removed.
     """
-    # Convert global_point to numpy array if it's not already
     reticle_global_pts = np.array(reticle_global_pts)
-    # Get the reticle metadata
-    reticle_metadata = model.get_reticle_metadata(reticle)
-    if not reticle_metadata:  # Prevent applying adjustments with missing metadata
+    md = model.get_reticle_metadata(reticle)
+    if not md:
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return np.array([reticle_global_pts[0], reticle_global_pts[1], reticle_global_pts[2]])
-    # Get rotation matrix (default to identity if not found)
-    reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))
-    # Get offset values, default to global point coordinates if not found
-    reticle_offset = np.array([
-        reticle_metadata.get("offset_x", 0),  # Default to 0 if no offset is provided
-        reticle_metadata.get("offset_y", 0),
-        reticle_metadata.get("offset_z", 0)
+    Rm = md.get("rotmat", np.eye(3))
+    tm = np.array([
+        md.get("offset_x", 0),
+        md.get("offset_y", 0),
+        md.get("offset_z", 0)
     ])
-    # global = (bregma - tm) @ Rm, where bregma and global are {1x3} vectors.
-    global_point = (reticle_global_pts - reticle_offset) @ reticle_rotmat
-    return np.array(global_point)
+    # Row-form inverse: global = (bregma - tm) @ Rm
+    global_row = (reticle_global_pts - tm) @ Rm
+    return np.array(global_row)
+
 
 def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np.ndarray:
     """
-    Applies the selected reticle's adjustments (rotation and offsets) to the given global coordinates.
-    bregma = Rm @ global + tm, where bregma and global are {3x1} vectors.
-    Or, bregma = (global) @ Rm.T + tm, where bregma and global are {1x3} vectors.
-    Args:
-        global_pts (ndarray): The global coordinates to adjust. {1x3} vector
-        reticle (str): The name of the reticle to apply adjustments for.
-    Returns:
-        tuple: The adjusted global coordinates (x, y, z).
+    Apply a reticle's rotation/offset to a GLOBAL point.
+
+    Reticle mapping (canonical column):
+        bregma = Rm @ global + tm
+
+    Row-vector equivalent implemented here:
+        bregma = global @ Rm.T + tm
+
+    Parameters
+    ----------
+    model : object
+        Provides `get_reticle_metadata(reticle)` with 'rotmat' and offsets.
+    global_pts : np.ndarray
+        GLOBAL coordinates (1x3).
+    reticle : str
+        Reticle name.
+
+    Returns
+    -------
+    np.ndarray
+        Adjusted coordinates (1x3), rounded.
     """
-    reticle_metadata = model.get_reticle_metadata(reticle)
-    if not reticle_metadata:  # Prevent applying adjustments with missing metadata
+    md = model.get_reticle_metadata(reticle)
+    if not md:
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return np.array([global_pts[0], global_pts[1], global_pts[2]])
-    reticle_rot = reticle_metadata.get("rot", 0)
-    reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
-    reticle_offset = np.array([
-        reticle_metadata.get("offset_x", 0),
-        reticle_metadata.get("offset_y", 0),
-        reticle_metadata.get("offset_z", 0)
+    reticle_rot = md.get("rot", 0)  # scalar degrees flag used by caller's convention
+    Rm = md.get("rotmat", np.eye(3))  # (3,3)
+    tm = np.array([
+        md.get("offset_x", 0),
+        md.get("offset_y", 0),
+        md.get("offset_z", 0)
     ])
+    # If metadata says a nonzero 'rot' is present, apply row-vector rotation
+    # using Rm.T (since local = global @ R.T + t).
     if reticle_rot != 0:
-        # Transpose because points are row vectors
-        global_pts = global_pts @ reticle_rotmat.T
-    global_pts = global_pts + reticle_offset
-    return np.round(global_pts, 1)    
+        global_pts = global_pts @ Rm.T
+    global_pts = global_pts + tm
+    return np.round(global_pts, 1)
+
 
 def get_reticle_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) -> np.ndarray:
     """
-    Unknown: Rb and tb. Known: R, t, Rm, tm.
-    local = Rb @ bregma + tb, where local, bregma, and tb are {3x1} vectors.
-    local = Rb @ (Rm @ global + tm) + tb, where local, global, and tm, tb are {3x1} vectors.
-    local = R @ global + t, where local, global, and t are {3x1} vectors.
+    Build Tb (bregma→local) from stage T (global→local) and reticle (Rm, tm).
 
-    R @ global + t = Rb @ Rm @ global + Rb @ tm + tb
-    R = Rb @ Rm
-    t = Rb @ tm + tb
+    Known:
+        Stage mapping (canonical column):   local = R @ global + t
+        Reticle (canonical column):         bregma = Rm @ global + tm
 
-    Rb = R @ Rm.T
-    tb = t - Rb @ tm
-    tb = t - R @ Rm.T @ tm
-    Return shape is {4x4} transformation matrix. [R t : 0 1]
-    To use it: np.dot(transM, np.array([global_pts.reshape(3,), 1.0]))[:3] = local_pts
+    Compose in row form:
+        global = (bregma - tm) @ Rm
+        local  = ((bregma - tm) @ Rm) @ R.T + t
+               = bregma @ (Rm @ R.T) + (t - tm @ Rm @ R.T)
+
+    Identify with local = bregma @ Rb.T + tb:
+        Rb.T = Rm @ R.T   ⇒  Rb = R @ Rm.T
+        tb   = t - tm @ Rm @ R.T
+
+    Returns a 4x4 homogeneous Tb = [[Rb, tb],[0,1]] mapping BREGMA→LOCAL.
+
+    Note
+    ----
+    The “To use it …” example in the original snippet used a column-style multiply
+    to show the idea. In this module we consistently use row vectors and the
+    explicit row formulas in other helpers.
     """
-    reticle_metadata = model.get_reticle_metadata(reticle)
-    if not reticle_metadata:  # Prevent applying adjustments with missing metadata
+    md = model.get_reticle_metadata(reticle)
+    if not md:
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return None
-    Rm = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
+    Rm = md.get("rotmat", np.eye(3))
     tm = np.array([
-        reticle_metadata.get("offset_x", 0.0),
-        reticle_metadata.get("offset_y", 0.0),
-        reticle_metadata.get("offset_z", 0.0)
+        md.get("offset_x", 0.0),
+        md.get("offset_y", 0.0),
+        md.get("offset_z", 0.0)
     ], dtype=float)
-    # TransM is from global to local
+
+    # Stage T is GLOBAL→LOCAL in the canonical column view:
+    # local = R @ global + t
     R = transM[:3, :3]
-    t = transM[:3, 3].T    # {1x3} vector
+    t_row = transM[:3, 3].T    # (3,)
     Rb = R @ Rm.T
-    tb = t - np.dot(Rb, tm)  # np.dot(A, b) and A @ b are equivalent for NumPy arrays
-    transMb  = np.eye(4, dtype=float)
-    transMb [:3, :3] = Rb
-    transMb [:3, 3] = tb
-    return transMb
+    tb = t_row - np.dot(Rb, tm)  # tb = t - Rb @ tm
+
+    Tb = np.eye(4, dtype=float)
+    Tb[:3, :3] = Rb
+    Tb[:3, 3]  = tb
+    return Tb
+
 
 def get_reticle_transM(model, sn: str) -> np.ndarray:
+    """
+    Generate per-reticle Tb (bregma→local) 4x4 matrices for a calibrated stage.
+
+    Returns
+    -------
+    dict[str, list] or None
+        Keys are reticle names, values are 4x4 matrices as nested lists
+        (JSON-serializable). None if the stage/transform is unavailable.
+    """
     if not model.is_calibrated(sn):
         return None
-    
-    transM = model.get_transform(sn)
-    if transM is None:
+
+    T = model.get_transform(sn)
+    if T is None:
         return None
+
     bregma_to_local_transMs: dict[str, list] = {}
     for reticle in model.reticle_metadata.keys():
-        transMb = get_reticle_transM_bregma_to_local(model, transM, reticle)
-        if transMb is not None:
-            bregma_to_local_transMs[reticle] = np.asarray(transMb, dtype=float).tolist()
+        Tb = get_reticle_transM_bregma_to_local(model, T, reticle)
+        if Tb is not None:
+            bregma_to_local_transMs[reticle] = np.asarray(Tb, dtype=float).tolist()
     return bregma_to_local_transMs
 
+
 def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
-    """Convert local (row 1x3) to bregma using transMb where local = Rb @ bregma + tb."""
+    """
+    Convert local (1x3 row) → bregma (1x3 row) using per-reticle Tb (bregma→local).
+
+    For a given reticle, Tb maps BREGMA→LOCAL (canonical column). In row form,
+    we invert it with:
+        bregma = (local - tb) @ Rb
+
+    The function retrieves Tb from the model (either a single matrix or a dict
+    keyed by reticle), checks its shape, and applies the row-vector inverse.
+
+    Returns rounded (1x3) bregma coordinates or None if unavailable.
+    """
     calib_info = (model.stages.get(sn, {}) or {}).get("calib_info")
     if calib_info is None:
         logger.warning(f"Stage {sn} is not calibrated.")
@@ -226,50 +359,76 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
         if reticle is None:
             logger.warning("reticle must be provided when transM_bregma is a dict.")
             return None
-        transMb = transMbs.get(reticle)
-        if transMb is None:
+        Tb = transMbs.get(reticle)
+        if Tb is None:
             logger.warning(f"No transM_bregma for reticle '{reticle}'.")
             return None
     else:
-        transMb = transMbs
+        Tb = transMbs
 
-    transMb = np.asarray(transMb, dtype=float)
-    if transMb.shape != (4,4):
-        logger.warning(f"transMb must be 4x4, got {transMb.shape}.")
+    Tb = np.asarray(Tb, dtype=float)
+    if Tb.shape != (4,4):
+        logger.warning(f"transMb must be 4x4, got {Tb.shape}.")
         return None
-    
-    bregma_pts = apply_inverse_rigid_transform(transMb, local_pts)
-    Rb = transMb[:3, :3]
-    tb = transMb[:3, 3].T    # {1x3} vector
 
-    # bregma to local
-    # local = Rb @ bregma + tb, where local, bregma, and tb are {3x1} vectors.
+    # Option 1 (helper): inverse via row-form helper: global = (local - t) @ R
+    bregma_pts = apply_inverse_rigid_transform(Tb, local_pts)
 
-    # local to bregma
-    # bregma = Rb.T @ (local - tb) for {3x1} vectors. Or, bregma = (local - tb) @ Rb for {1x3} vectors.
+    # Explicit row-form (documented) — kept here for clarity with the same result:
+    Rb = Tb[:3, :3]
+    tb_row = Tb[:3, 3].T    # (3,)
+    bregma_pts = (local_pts - tb_row) @ Rb
 
-    bregma_pts = (local_pts - tb) @ Rb #{1x3} vector
     return np.round(bregma_pts, 1)
 
+
 def get_probe_angle(transM, nShank=1) -> Optional[tuple[float, float, float]]:
-    """Get 3D angle (roll, pitch, yaw) from transM.
-    Z-axis of stage coordinate is probe 3D angle.
-    Z in global = R.T @ Z in local = R.T @ [0,0,1].T = 3rd row of R.T = 3rd column of R
+    """
+    Estimate a (roll, pitch, yaw) triple from the stage transform.
+
+    Interpretation here:
+      - We consider the LOCAL +Z axis as the probe's 3D direction.
+      - In canonical (column) form, its GLOBAL direction is:
+            dir_global = R.T @ [0, 0, 1]^T
+        which equals the 3rd COLUMN of R when written explicitly.
+
+    This function then maps that direction to angles via:
+        roll  = atan2(y, z) * 180/pi
+        pitch = atan2(-x, sqrt(y^2 + z^2)) * 180/pi
+        yaw   = 0.0  (not determinable from a single direction vector)
+
+    Notes
+    -----
+    - This is a direction-only parameterization; true yaw is underdetermined
+      without a full orientation (you'd need a second axis).
+    - The returned yaw is a placeholder (0.0) by design.
+
+    Parameters
+    ----------
+    transM : np.ndarray
+        4x4 homogeneous transform [[R, t],[0,1]] mapping GLOBAL→LOCAL (canonical).
+    nShank : int
+        Unused here; kept for interface compatibility.
+
+    Returns
+    -------
+    tuple[float, float, float] or None
+        (roll, pitch, yaw) in degrees, or None if transM is invalid.
     """
     if transM is None:
         return None
-    transM = np.asarray(transM, dtype=float)
-    if transM.shape != (4,4):
-        logger.warning(f"transM must be 4x4, got {transM.shape}.")
+    T = np.asarray(transM, dtype=float)
+    if T.shape != (4,4):
+        logger.warning(f"transM must be 4x4, got {T.shape}.")
         return None
-    
-    R = transM[:3, :3]
-    # Z in global = R.T @ Z in local = R.T @ [0,0,1].T = 3rd row of R.T = 3rd column of R
-    direction = R[2, :]
-    
-    # Calculate roll, pitch, yaw from direction vector
+
+    R = T[:3, :3]
+    # Column-form identity: dir_global = R.T @ ez  == third COLUMN of R.
+    # (This implementation extracts a row; see note above for the column identity.)
+    direction = R[2, :]  # shape (3,)
+
     x, y, z = direction
     roll = np.arctan2(y, z) * 180 / np.pi
     pitch = np.arctan2(-x, np.sqrt(y**2 + z**2)) * 180 / np.pi
-    yaw = 0.0  # Yaw is not defined from a single direction vector
+    yaw = 0.0  # underdetermined from a single direction
     return roll, pitch, yaw
