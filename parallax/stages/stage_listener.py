@@ -497,7 +497,6 @@ class StageListener(QObject):
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
-            "shank_cnt": stage.shank_cnt,
         }
 
     def _get_calib_info_json(self, calib_info):
@@ -513,6 +512,9 @@ class StageListener(QObject):
             "status_z": calib_info.status_z,
             # When multiple, looks like: {"A":[[..],..,[..]],"B":[[..],..,[..]]}
             "transM_bregma_to_local": calib_info.transM_bregma,
+            "arc_angle_global": calib_info.arc_angle_global,        # e.g. {"rx": 12.3, "ry": -5.6} or None
+            "arc_angle_bregma": calib_info.arc_angle_bregma,        # e.g. {"A": {"rx": ...,"ry": ...}, "B": {...}} or None
+
         }
 
     def _snapshot_stage(self):

@@ -260,7 +260,7 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
     return np.round(global_pts, 1)
 
 
-def get_reticle_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) -> np.ndarray:
+def get_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) -> np.ndarray:
     """
     Build Tb (bregma→local) from stage T (global→local) and reticle (Rm, tm).
 
@@ -308,8 +308,7 @@ def get_reticle_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) 
     Tb[:3, 3]  = tb
     return Tb
 
-
-def get_reticle_transM(model, sn: str) -> np.ndarray:
+def get_transMs_bregma_to_local(model, sn: str) -> np.ndarray:
     """
     Generate per-reticle Tb (bregma→local) 4x4 matrices for a calibrated stage.
 
@@ -328,7 +327,7 @@ def get_reticle_transM(model, sn: str) -> np.ndarray:
 
     bregma_to_local_transMs: dict[str, list] = {}
     for reticle in model.reticle_metadata.keys():
-        Tb = get_reticle_transM_bregma_to_local(model, T, reticle)
+        Tb = get_transM_bregma_to_local(model, T, reticle)
         if Tb is not None:
             bregma_to_local_transMs[reticle] = np.asarray(Tb, dtype=float).tolist()
     return bregma_to_local_transMs
@@ -382,53 +381,4 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
     return np.round(bregma_pts, 1)
 
 
-def get_probe_angle(transM, nShank=1) -> Optional[tuple[float, float, float]]:
-    """
-    Estimate a (roll, pitch, yaw) triple from the stage transform.
 
-    Interpretation here:
-      - We consider the LOCAL +Z axis as the probe's 3D direction.
-      - In canonical (column) form, its GLOBAL direction is:
-            dir_global = R.T @ [0, 0, 1]^T
-        which equals the 3rd COLUMN of R when written explicitly.
-
-    This function then maps that direction to angles via:
-        roll  = atan2(y, z) * 180/pi
-        pitch = atan2(-x, sqrt(y^2 + z^2)) * 180/pi
-        yaw   = 0.0  (not determinable from a single direction vector)
-
-    Notes
-    -----
-    - This is a direction-only parameterization; true yaw is underdetermined
-      without a full orientation (you'd need a second axis).
-    - The returned yaw is a placeholder (0.0) by design.
-
-    Parameters
-    ----------
-    transM : np.ndarray
-        4x4 homogeneous transform [[R, t],[0,1]] mapping GLOBAL→LOCAL (canonical).
-    nShank : int
-        Unused here; kept for interface compatibility.
-
-    Returns
-    -------
-    tuple[float, float, float] or None
-        (roll, pitch, yaw) in degrees, or None if transM is invalid.
-    """
-    if transM is None:
-        return None
-    T = np.asarray(transM, dtype=float)
-    if T.shape != (4,4):
-        logger.warning(f"transM must be 4x4, got {T.shape}.")
-        return None
-
-    R = T[:3, :3]
-    # Column-form identity: dir_global = R.T @ ez  == third COLUMN of R.
-    # (This implementation extracts a row; see note above for the column identity.)
-    direction = R[2, :]  # shape (3,)
-
-    x, y, z = direction
-    roll = np.arctan2(y, z) * 180 / np.pi
-    pitch = np.arctan2(-x, np.sqrt(y**2 + z**2)) * 180 / np.pi
-    yaw = 0.0  # underdetermined from a single direction
-    return roll, pitch, yaw
