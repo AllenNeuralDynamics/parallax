@@ -40,7 +40,6 @@ def find_probe_angle(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]
     z_axis = _find_probe_insertion_vector(transM)
     return _vector_to_arc_angles(z_axis)
 
-
 def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.ndarray]:
     """Return the probe direction as a 3-vector (GLOBAL/BREGMA frame), or None."""
     if transM is None:

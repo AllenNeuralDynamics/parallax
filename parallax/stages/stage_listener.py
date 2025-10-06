@@ -67,8 +67,6 @@ class Stage:
     stage_x_offset: float = 0.0
     stage_y_offset: float = 0.0
     stage_z_offset: float = 0.0
-    arc_angle_global: Optional[tuple] = None
-    arc_angle_bregma: Optional[dict] = None
     yaw: Optional[float] = None
     pitch: Optional[float] = None
     roll: Optional[float] = None
@@ -336,16 +334,29 @@ class StageListener(QObject):
         self._update_stages_info(stage, is_calib, calib_info)
 
     def _update_stages_info(self, stage, is_calib, calib_info):
-        """Update stage info."""
+        """Update stage info without clobbering existing fields and with sane conditions."""
         if stage is None or not getattr(stage, "sn", None):
             return
 
-        info = self._get_stage_info_json(stage) or {}
-        info["is_calibrated"] = bool(is_calib)
-        if is_calib and calib_info is not None:
-            info["calib_info"] = self._get_calib_info_json(calib_info)
+        # Start from existing info; merge in fresh stage fields instead of overwriting.
+        info = self.stages_info.get(stage.sn, {}).copy()
+        base = self._get_stage_info_json(stage) or {}
+        info.update(base)
 
-        self.stages_info[stage.sn] = info  # store in one place
+        prev_is_calib = info.get("is_calibrated")
+        status_changed = (prev_is_calib is None) or (bool(is_calib) != prev_is_calib)
+
+        if status_changed:
+            # Always keep this boolean up to date
+            info["is_calibrated"] = bool(is_calib)
+            if is_calib and calib_info is not None:
+                info["calib_info"] = self._get_calib_info_json(calib_info)
+                print("Updated calib_info")
+            else:
+                info["calib_info"] = None
+                print("Cleared calib_info")
+
+        self.stages_info[stage.sn] = info
 
     def requestUpdateGlobalDataTransformM(self, sn, transM):
         """
@@ -514,7 +525,6 @@ class StageListener(QObject):
             "transM_bregma_to_local": calib_info.transM_bregma,
             "arc_angle_global": calib_info.arc_angle_global,        # e.g. {"rx": 12.3, "ry": -5.6} or None
             "arc_angle_bregma": calib_info.arc_angle_bregma,        # e.g. {"A": {"rx": ...,"ry": ...}, "B": {...}} or None
-
         }
 
     def _snapshot_stage(self):

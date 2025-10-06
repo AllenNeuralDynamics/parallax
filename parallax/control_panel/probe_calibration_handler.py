@@ -27,12 +27,14 @@ class StageCalibrationInfo:
     """
     detection_status: str = "default"  # options: default, process, accepted
     transM: Optional[np.ndarray] = None
+    transM_bregma: Optional[dict] = None
+    arc_angle_global: Optional[tuple] = None
+    arc_angle_bregma: Optional[dict] = None
     L2_err: Optional[float] = None
     dist_travel: Optional[np.ndarray] = None
     status_x: Optional[str] = None
     status_y: Optional[str] = None
     status_z: Optional[str] = None
-    transM_bregma: Optional[dict] = None
 
     # Movement tracking
     min_x: float = float("inf")
@@ -798,7 +800,6 @@ class ProbeCalibrationHandler(QWidget):
         # Get 3D angle
         stage_info.arc_angle_global = find_probe_angle(self.transM)
         stage_info.arc_angle_bregma = find_probe_angles_dict(transMbs)
-        print("stage_info:", stage_info)
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):
