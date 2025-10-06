@@ -351,10 +351,10 @@ class StageListener(QObject):
             info["is_calibrated"] = bool(is_calib)
             if is_calib and calib_info is not None:
                 info["calib_info"] = self._get_calib_info_json(calib_info)
-                print("Updated calib_info")
+                logger.debug(f"Stage {stage.sn} calibrated: {info['calib_info']}")
             else:
                 info["calib_info"] = None
-                print("Cleared calib_info")
+                logger.debug(f"Stage {stage.sn} uncalibrated")
 
         self.stages_info[stage.sn] = info
 
@@ -513,18 +513,26 @@ class StageListener(QObject):
     def _get_calib_info_json(self, calib_info):
         def _to_list(x): return None if x is None else np.asarray(x).tolist()
 
+        def _to_mm(M):
+            if M is None: return None
+            A = np.asarray(M, float).copy()
+            A[:3, 3] /= 1000.0  # µm -> mm  # TODO replace to mm in entire Parallax model
+            return A.tolist()
+
+        transM_mm = _to_mm(calib_info.transM)
+        bregma_mm = {k: _to_mm(v) for k, v in (calib_info.transM_bregma or {}).items()} or None
+
         return {
             "detection_status": calib_info.detection_status,
-            "transM_global_to_local": _to_list(calib_info.transM),
+            "transM_global_to_local": transM_mm,
             "L2_error": calib_info.L2_err,
             "distance_travelled": _to_list(calib_info.dist_travel),
             "status_x": calib_info.status_x,
             "status_y": calib_info.status_y,
             "status_z": calib_info.status_z,
-            # When multiple, looks like: {"A":[[..],..,[..]],"B":[[..],..,[..]]}
-            "transM_bregma_to_local": calib_info.transM_bregma,
-            "arc_angle_global": calib_info.arc_angle_global,        # e.g. {"rx": 12.3, "ry": -5.6} or None
-            "arc_angle_bregma": calib_info.arc_angle_bregma,        # e.g. {"A": {"rx": ...,"ry": ...}, "B": {...}} or None
+            "transM_bregma_to_local": bregma_mm,
+            "arc_angle_global": calib_info.arc_angle_global,
+            "arc_angle_bregma": calib_info.arc_angle_bregma,
         }
 
     def _snapshot_stage(self):
