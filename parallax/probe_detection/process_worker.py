@@ -18,7 +18,7 @@ from parallax.utils.utils import UtilsCoords
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 try:
@@ -346,7 +346,8 @@ class ProcessWorkerTAM(baseProcessWorker):
                 return None
             _, out_mask_logits = track(predictor_local, img_local)
             # save img_local
-            cv2.imwrite(os.path.join(debug_img_dir, f"{self.name}_tam_{self.img_ts}_local_input.jpg"), img_local)
+            if logger.getEffectiveLevel() == logging.DEBUG:
+                cv2.imwrite(os.path.join(debug_img_dir, f"{self.name}_tam_{self.img_ts}_local_input.jpg"), img_local)
 
         mask_local = masks_to_uint8_batch(out_mask_logits)
         # save

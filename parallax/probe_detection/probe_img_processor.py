@@ -177,8 +177,10 @@ class ProbeImageProcessor:
         else:
             g = img
         
-        if debug_config.get("save_intermediate_images", True):
-            cv2.imwrite(os.path.join(debug_img_dir, "1_clahe.jpg"), g)
+        # Save debug image when logger level is DEBUG
+        if logger.isEnabledFor(logging.DEBUG):
+            if debug_config.get("save_intermediate_images", True):
+                cv2.imwrite(os.path.join(debug_img_dir, "1_clahe.jpg"), g)
 
         # 2) Unsharp mask - Accentuate thin structures
         unsharp_config = preprocess_config.get("unsharp_mask", {})
@@ -193,8 +195,9 @@ class ProbeImageProcessor:
             g_blur = cv2.GaussianBlur(g, kernel_size, sigma)
             g = cv2.addWeighted(g, weight_orig, g_blur, weight_blur, gamma)
         
-        if debug_config.get("save_intermediate_images", True):
-            cv2.imwrite(os.path.join(debug_img_dir, "2_unsharp.jpg"), g)
+        if logger.isEnabledFor(logging.DEBUG):
+            if debug_config.get("save_intermediate_images", True):
+                cv2.imwrite(os.path.join(debug_img_dir, "2_unsharp.jpg"), g)
 
         # 3) Adaptive threshold
         adapt_config = preprocess_config.get("adaptive_threshold", {})
@@ -206,8 +209,9 @@ class ProbeImageProcessor:
         
         bin_adapt = cv2.adaptiveThreshold(g, max_value, adaptive_method, threshold_type, block_size, c)
         
-        if debug_config.get("save_intermediate_images", True):
-            cv2.imwrite(os.path.join(debug_img_dir, "3_bin_adapt.jpg"), bin_adapt)
+        if logger.isEnabledFor(logging.DEBUG):
+            if debug_config.get("save_intermediate_images", True):
+                cv2.imwrite(os.path.join(debug_img_dir, "3_bin_adapt.jpg"), bin_adapt)
 
 
         # 4) Canny edge detection
@@ -225,15 +229,16 @@ class ProbeImageProcessor:
         else:
             edges = np.zeros_like(g)
 
-        
-        if debug_config.get("save_intermediate_images", True):
-            cv2.imwrite(os.path.join(debug_img_dir, "4_edges.jpg"), edges)
+        if logger.isEnabledFor(logging.DEBUG):
+            if debug_config.get("save_intermediate_images", True):
+                cv2.imwrite(os.path.join(debug_img_dir, "4_edges.jpg"), edges)
 
         # 5) Combine
         mask = cv2.bitwise_or(edges, bin_adapt)
-        
-        if debug_config.get("save_intermediate_images", True):
-            cv2.imwrite(os.path.join(debug_img_dir, "5_combined.jpg"), mask)
+
+        if logger.isEnabledFor(logging.DEBUG):
+            if debug_config.get("save_intermediate_images", True):
+                cv2.imwrite(os.path.join(debug_img_dir, "5_combined.jpg"), mask)
 
         # 6) Morphological operations
         morph_config = preprocess_config.get("morphology", {})
@@ -246,8 +251,9 @@ class ProbeImageProcessor:
             kernel = cv2.getStructuringElement(kernel_type, kernel_size)
             mask = cv2.morphologyEx(mask, operation, kernel, iterations=iterations)
         
-        if debug_config.get("save_intermediate_images", True):
-            cv2.imwrite(os.path.join(debug_img_dir, "6_morph_close.jpg"), mask)
+        if logger.isEnabledFor(logging.DEBUG):
+            if debug_config.get("save_intermediate_images", True):
+                cv2.imwrite(os.path.join(debug_img_dir, "6_morph_close.jpg"), mask)
 
         return mask
 
@@ -269,8 +275,9 @@ class ProbeImageProcessor:
             mask = cv2.dilate(mask, kernel, iterations=iterations)
             img = cv2.bitwise_and(img, mask)
             
-            if debug_config.get("save_intermediate_images", True):
-                cv2.imwrite(os.path.join(debug_img_dir, "7_masked.jpg"), img)
+            if logger.isEnabledFor(logging.DEBUG):
+                if debug_config.get("save_intermediate_images", True):
+                    cv2.imwrite(os.path.join(debug_img_dir, "7_masked.jpg"), img)
 
         return img
 
@@ -323,7 +330,8 @@ class ProbeImageProcessor:
                 else:
                     cv2.line(debug_save, (x1, y1), (x2, y2), (255, 0, 0), 1) # not hit
         cv2.circle(debug_save, (int(pt[0]), int(pt[1])), 2, (0, 0, 255), -1)
-        cv2.imwrite(os.path.join(debug_img_dir, f"8_debug_hough_{int(time.time())}.jpg"), debug_save)
+        if logger.isEnabledFor(logging.DEBUG):
+            cv2.imwrite(os.path.join(debug_img_dir, f"8_debug_hough_{int(time.time())}.jpg"), debug_save)
 
         # Draw detected lines
         if hits:
