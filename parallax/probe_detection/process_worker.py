@@ -18,7 +18,7 @@ from parallax.utils.utils import UtilsCoords
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 try:
@@ -54,6 +54,7 @@ class baseProcessWorker(QRunnable):
         self.test = test
         self.running = False
         self.frame = None
+        self.last_detected_frame, self.last_detected_ts = None, None
 
         self.is_detection_on = False
         self.new = False
@@ -84,9 +85,10 @@ class baseProcessWorker(QRunnable):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-        self.frame = frame
-        self.new = True
-        self.img_ts = timestamp
+        if self.new == False:
+            self.new = True
+            self.frame = frame
+            self.img_ts = timestamp
     
     @abstractmethod
     def process(self):
@@ -160,7 +162,6 @@ class ProcessWorkerTAM(baseProcessWorker):
 
         self.predictor_global = None
         self.predictor_local = None
-        self.cnt = 1
         self.tiny_checkpoint_path = self._import_checkpoint(self.CKPT_NAME_TINY)
         self.tiny_cfg_path = find_matching_cfg(self.tiny_checkpoint_path)
         self.small_checkpoint_path = self._import_checkpoint(self.CKPT_NAME_SMALL)
@@ -224,8 +225,6 @@ class ProcessWorkerTAM(baseProcessWorker):
             return
 
         try:
-            self.cnt += 1
-            print(f"{self.name} process Tam", self.cnt)
             self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
             _, out_mask_logits = track(self.predictor_global, self.curr_img)
             mask_global = masks_to_uint8_batch(out_mask_logits)
@@ -249,7 +248,6 @@ class ProcessWorkerTAM(baseProcessWorker):
 
         # Get base and tip points
         # Get highest point and lowest point from the mask_local
-        #print("--- Get probe points ---")
         try:
             highest_pt, lowest_pt = ProbeImageProcessor.get_far_endpoints_from_mask(mask_local)
             if highest_pt is None or lowest_pt is None:
@@ -261,6 +259,8 @@ class ProcessWorkerTAM(baseProcessWorker):
             probe_base_org = UtilsCoords.scale_coords_to_original(probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             # get fine tip
             probe_tip_fine = ProbeImageProcessor.get_precise_tip(probe_tip_org, probe_base_org, self.frame)
+            self.last_detected_frame = self.frame.copy()
+            self.last_detected_ts = self.img_ts
             self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_fine, probe_base_org)
         except Exception as e:
             logger.error(f"Error occurred while getting probe points: {e}")
@@ -600,6 +600,8 @@ class ProcessWorker(baseProcessWorker):
 
             self.stopped_first_frame = False
             if ret:
+                self.last_detected_frame = self.frame.copy()
+                self.last_detected_ts = self.img_ts
                 self.signals.tip_stopped.emit(
                     self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org
                 )
@@ -627,6 +629,8 @@ class ProcessWorker(baseProcessWorker):
     
         if self.probeDetect.angle:
             if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
+                self.last_detected_frame = self.frame.copy()
+                self.last_detected_ts = self.img_ts
                 self.signals.tip_stopped.emit(
                     self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, (None, None)
                 )

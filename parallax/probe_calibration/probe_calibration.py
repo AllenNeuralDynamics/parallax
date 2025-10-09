@@ -44,6 +44,17 @@ class ProbeCalibration(QObject):
         [0.001, 0.001, 0.001, 5.0],
         [0.0,   0.0,   0.0,   0.0],
     ])
+    # Test
+    THRESHOLD_MIN_MAX = 15
+    THRESHOLD_MIN_MAX_Z = 1
+    THRESHOLD_AVG_ERROR = 50000
+    THRESHOLD_N_PTS = 3
+    THRESHOLD_MATRIX = np.array([
+        [0.1, 0.1, 0.1, 5000.0],
+        [0.1, 0.1, 0.1, 5000.0],
+        [0.1, 0.1, 0.1, 5000.0],
+        [0.0,   0.0,   0.0,   0.0],
+    ])
 
     def __init__(self, model, stage_listener):
         """

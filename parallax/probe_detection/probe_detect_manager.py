@@ -13,6 +13,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
 from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerTAM
 
 
+
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -197,9 +198,8 @@ class DrawWorker(QRunnable):
     def cancel_seg_mask(self) -> None:
         """Called when segmentation mask is to be cleared."""
         self.update_is_seg_mask(False)
-        self.mask_bool = None
-        self.mask_idx = None
-        self.seg_color_pixels = None
+        #self.mask_bool = None
+        self.mask_idx, self.seg_color_pixels = None, None
         self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
 
         self.update_tip_coords(None, None)
@@ -215,7 +215,7 @@ class DrawWorker(QRunnable):
     def found_seg_mask_global(self, mask: np.ndarray) -> None:
         """Called when a new segmentation mask arrives."""
         if self.frame is None or mask is None:
-            self.mask_bool = None
+            #self.mask_bool = None
             self.mask_idx = None
             self.seg_color_pixels = None
             return
@@ -347,6 +347,7 @@ class ProbeDetectManager(QObject):
         self.tamProcessWorker = None # Worker for TAM processing frames
         self._prev_ts = None
         self.threadpool = QThreadPool()
+        self.last_detected_frame = None
 
     def _init_draw_thread(self):
         """Initialize the draw worker thread."""
@@ -402,6 +403,17 @@ class ProbeDetectManager(QObject):
         self.tamProcessWorker.update_negative_points(neg_pts_coords)
         self.tamProcessWorker.start_running()
         self.threadpool.start(self.tamProcessWorker)
+
+    def get_mask(self):
+        """Save the current image and global mask."""
+        return self.worker.mask_bool
+
+    def get_frame(self):
+        if self.tamProcessWorker is not None:
+            return self.tamProcessWorker.last_detected_frame
+        elif self.processWorker is not None:
+            return self.processWorker.last_detected_frame
+        return
 
     def set_algorithm(self, algorithms):
         """Set the probe detection algorithm."""
@@ -473,7 +485,7 @@ class ProbeDetectManager(QObject):
         if self._prev_ts is None:
             self._prev_ts = timestamp
 
-        if self._prev_ts is not None and (timestamp - self._prev_ts) > 0.5: # TODO Adjust time gap
+        if (timestamp - self._prev_ts) > 0.5: # TODO Adjust time gap
             if self.processWorker is not None:
                 self.processWorker.update_frame(frame, timestamp)
             if self.tamProcessWorker is not None:
@@ -482,7 +494,6 @@ class ProbeDetectManager(QObject):
 
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
-
         
     @pyqtSlot(float, float, str, tuple, tuple)
     def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):

@@ -9,12 +9,14 @@ from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
 from PyQt6.QtGui import QAction
 from parallax.config.config_path import ui_dir
 from typing import Optional
+import cv2
 
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import find_probe_angle, find_probe_angles_dict
+from parallax.config.config_path import debug_img_dir
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -555,6 +557,22 @@ class ProbeCalibrationHandler(QWidget):
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
         self.probe_detection_status = "accepted"
+
+        # Prepare images to get spin info
+        if self.filter == "probe_detection":
+            for screen in self.screen_widgets:
+                camera_name = screen.get_camera_name()
+                if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
+                    mask = screen.get_mask_from_probe_detector()
+                    frame = screen.get_frame_from_probe_detector()
+
+                    if mask is None or frame is None:
+                        logger.warning(f"Mask or frame is None for {camera_name}")
+                        continue
+                    # Save mask and frame
+                    cv2.imwrite(f"{debug_img_dir}/{camera_name}_frame.png", frame)
+                    cv2.imwrite(f"{debug_img_dir}/{camera_name}_global_mask.png", (mask*255).astype(np.uint8))
+                    print(f"Saved debug images to {debug_img_dir}")
 
         # Get angle information
         self.arc_angle_global = find_probe_angle(self.transM)  # TODO update into session file
