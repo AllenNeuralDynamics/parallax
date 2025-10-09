@@ -495,6 +495,15 @@ class ProbeCalibrationHandler(QWidget):
         message = "Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
+    def update_stage_info_reticle_metadata(self):
+        # Update related to reticle metadata
+        self.reticle_metadata.load_metadata_from_file()  # self.model.reticle_metadata updated
+        self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata)
+        self.arc_angle_global = find_probe_angle(self.transM)  # TODO update into session file
+        self.arc_angle_bregma = find_probe_angles_dict(self.transMbs)
+        self.spin_global = None  # TODO update from session file
+        self.spin_bregma = self.find_probe_spin_bregma()
+
     def update_stage_info_to_model(self, stage_id) -> None:
         """
         Update the stored StageCalibrationInfo for a stage with the current object's values.
@@ -512,14 +521,6 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.status_y = self.calib_status_y
         stage_info.status_z = self.calib_status_z
 
-        # Update related to reticle metadata
-        self.reticle_metadata.load_metadata_from_file()  # self.model.reticle_metadata updated
-        self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata)
-        self.arc_angle_global = find_probe_angle(self.transM)
-        self.arc_angle_bregma = find_probe_angles_dict(self.transMbs)
-        self.spin_global = self.find_probe_spin_global()
-        self.spin_bregma = self.find_probe_spin_bregma()
-
         # Get 3D angle
         stage_info.transM_bregma = self.transMbs
         stage_info.arc_angle_global = self.arc_angle_global
@@ -531,7 +532,7 @@ class ProbeCalibrationHandler(QWidget):
 
     def find_probe_spin_global(self):
         # Requires: global mask, original image
-        # pts: global pts (tip, base), cameras info
+        # pts: global pts (tip, base), cameras info,
 
         # return degrees
         return
@@ -555,7 +556,12 @@ class ProbeCalibrationHandler(QWidget):
             return
         self.probe_detection_status = "accepted"
 
-        #self.update_probe_calib_info()
+        # Get angle information
+        self.arc_angle_global = find_probe_angle(self.transM)  # TODO update into session file
+        self.spin_global = self.find_probe_spin_global()  # TODO update into session file
+
+        # Update reticle metatdata related info
+        self.update_stage_info_reticle_metadata()
 
         # Update into model
         self.update_stage_info_to_model(self.selected_stage_id)
@@ -588,6 +594,7 @@ class ProbeCalibrationHandler(QWidget):
                         screen.probe_coords_detected.disconnect(self.probe_detect_on_two_screens)
                     else:
                         screen.probe_coords_detected.disconnect(self.probe_detect_on_screens)
+                    # TODO add function to save global_mask and original image for spin calculation
                     screen.run_no_filter()
 
             self.filter = "no_filter"
@@ -852,6 +859,7 @@ class ProbeCalibrationHandler(QWidget):
         # Save the previous stage's calibration info
         #info = self.get_stage_info(prev_stage_id)
         #self.model.add_stage_calib_info(prev_stage_id, info)
+        self.update_stage_info_reticle_metadata()
         self.update_stage_info_to_model(prev_stage_id)
         #logger.debug(f"Saved stage {prev_stage_id} info: {info}")
 
