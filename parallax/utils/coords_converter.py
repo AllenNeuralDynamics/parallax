@@ -259,8 +259,7 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
     global_pts = global_pts + tm
     return np.round(global_pts, 1)
 
-
-def get_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) -> np.ndarray:
+def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
     """
     Build Tb (bregma→local) from stage T (global→local) and reticle (Rm, tm).
 
@@ -285,9 +284,8 @@ def get_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) -> np.nd
     to show the idea. In this module we consistently use row vectors and the
     explicit row formulas in other helpers.
     """
-    md = model.get_reticle_metadata(reticle)
     if not md:
-        logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
+        logger.warning(f"Warning: No metadata found for reticle. Returning original points.")
         return None
     Rm = md.get("rotmat", np.eye(3))
     tm = np.array([
@@ -308,7 +306,7 @@ def get_transM_bregma_to_local(model, transM: np.ndarray, reticle: str) -> np.nd
     Tb[:3, 3]  = tb
     return Tb
 
-def get_transMs_bregma_to_local(model, sn: str) -> np.ndarray:
+def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
     """
     Generate per-reticle Tb (bregma→local) 4x4 matrices for a calibrated stage.
 
@@ -318,20 +316,17 @@ def get_transMs_bregma_to_local(model, sn: str) -> np.ndarray:
         Keys are reticle names, values are 4x4 matrices as nested lists
         (JSON-serializable). None if the stage/transform is unavailable.
     """
-    if not model.is_calibrated(sn):
+    if transM is None or transM.shape != (4,4):
         return None
-
-    T = model.get_transform(sn)
-    if T is None:
+    if reticle_metadatas is None or len(reticle_metadatas) == 0:
         return None
 
     bregma_to_local_transMs: dict[str, list] = {}
-    for reticle in model.reticle_metadata.keys():
-        Tb = get_transM_bregma_to_local(model, T, reticle)
+    for reticle_name, md in reticle_metadatas.items():
+        Tb = get_transM_bregma_to_local(md, transM)
         if Tb is not None:
-            bregma_to_local_transMs[reticle] = np.asarray(Tb, dtype=float).tolist()
+            bregma_to_local_transMs[reticle_name] = np.asarray(Tb, dtype=float).tolist()
     return bregma_to_local_transMs
-
 
 def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """

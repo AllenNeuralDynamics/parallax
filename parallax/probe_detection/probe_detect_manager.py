@@ -588,7 +588,6 @@ class ProbeDetectManager(QObject):
             self.worker.update_base_coords(None, None)
             self.worker.update_is_seg_mask(False)
 
-
     def set_name(self, camera_name):
         """
         Set the camera name for the worker.

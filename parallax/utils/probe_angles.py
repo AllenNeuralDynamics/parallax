@@ -16,7 +16,7 @@ def find_probe_angles_dict(transM_dict: dict[str, np.ndarray]) -> Optional[dict[
     dict[str, dict[str, float]] | None
         {"reticleA": {"rx": <deg>, "ry": <deg>}, ...} or None if empty input.
     """
-    if not transM_dict:
+    if transM_dict is None:
         return None
 
     angles_dict: dict[str, dict[str, float]] = {}
@@ -37,6 +37,8 @@ def find_probe_angle(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]
     dict[str, float] | None
         {"rx": <deg>, "ry": <deg>} or None if transM is None/invalid.
     """
+    if transM is None:
+        return None
     z_axis = _find_probe_insertion_vector(transM)
     return _vector_to_arc_angles(z_axis)
 

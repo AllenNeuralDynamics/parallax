@@ -347,6 +347,7 @@ class StageListener(QObject):
         status_changed = (prev_is_calib is None) or (bool(is_calib) != prev_is_calib)
 
         if status_changed:
+            print(f"State changed from {prev_is_calib} to {is_calib} for stage {stage.sn}")
             # Always keep this boolean up to date
             info["is_calibrated"] = bool(is_calib)
             if is_calib and calib_info is not None:

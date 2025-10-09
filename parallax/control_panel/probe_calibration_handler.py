@@ -17,7 +17,7 @@ from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import find_probe_angle, find_probe_angles_dict
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 @dataclass
@@ -30,6 +30,8 @@ class StageCalibrationInfo:
     transM_bregma: Optional[dict] = None
     arc_angle_global: Optional[tuple] = None
     arc_angle_bregma: Optional[dict] = None
+    spin_global: Optional[float] = None
+    spin_bregma: Optional[dict] = None
     L2_err: Optional[float] = None
     dist_travel: Optional[np.ndarray] = None
     status_x: Optional[str] = None
@@ -81,6 +83,9 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travel = None, None, None
         self.moving_stage_id = None
+        self.transMbs = None
+        self.arc_angle_global, self.arc_angle_bregma = None, None
+        self.spin_global, self.spin_bregma = None, None
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
         self.setMinimumSize(0, 420)
@@ -490,6 +495,51 @@ class ProbeCalibrationHandler(QWidget):
         message = "Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
+    def update_stage_info_to_model(self, stage_id) -> None:
+        """
+        Update the stored StageCalibrationInfo for a stage with the current object's values.
+        """
+        stage_info = self.model.get_stage_calib_info(stage_id)
+        if stage_info is None:
+            logger.warning(f"No calibration info found for stage {stage_id}.")
+            return
+
+        stage_info.detection_status = self.probe_detection_status
+        stage_info.transM = self.transM
+        stage_info.L2_err = self.L2_err
+        stage_info.dist_travel = self.dist_travel
+        stage_info.status_x = self.calib_status_x
+        stage_info.status_y = self.calib_status_y
+        stage_info.status_z = self.calib_status_z
+
+        # Update related to reticle metadata
+        self.reticle_metadata.load_metadata_from_file()  # self.model.reticle_metadata updated
+        self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata)
+        self.arc_angle_global = find_probe_angle(self.transM)
+        self.arc_angle_bregma = find_probe_angles_dict(self.transMbs)
+        self.spin_global = self.find_probe_spin_global()
+        self.spin_bregma = self.find_probe_spin_bregma()
+
+        # Get 3D angle
+        stage_info.transM_bregma = self.transMbs
+        stage_info.arc_angle_global = self.arc_angle_global
+        stage_info.arc_angle_bregma = self.arc_angle_bregma
+
+        # Get Spin
+        stage_info.spin_global = self.spin_global
+        stage_info.spin_bregma = self.spin_bregma
+
+    def find_probe_spin_global(self):
+        # Requires: global mask, original image
+        # pts: global pts (tip, base), cameras info
+
+        # return degrees
+        return
+
+    def find_probe_spin_bregma(self):
+        # return dictionary of degrees
+        return
+
     def probe_detect_accepted_status(self, switch_probe=False):
         """
         Finalizes the probe detection process, accepting the detected probe position and updating the UI accordingly.
@@ -503,11 +553,9 @@ class ProbeCalibrationHandler(QWidget):
             return
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
-
         self.probe_detection_status = "accepted"
 
-        # Update reticle selector
-        self.reticle_metadata.load_metadata_from_file()
+        #self.update_probe_calib_info()
 
         # Update into model
         self.update_stage_info_to_model(self.selected_stage_id)
@@ -544,7 +592,6 @@ class ProbeCalibrationHandler(QWidget):
 
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
-
 
     def update_probe_calib_status_transM(self, transformation_matrix):
         """
@@ -775,31 +822,6 @@ class ProbeCalibrationHandler(QWidget):
             "color: white;"
             "background-color: black;"
         )
-
-    def update_stage_info_to_model(self, stage_id) -> None:
-        """
-        Update the stored StageCalibrationInfo for a stage with the current object's values.
-        """
-        stage_info = self.model.get_stage_calib_info(stage_id)
-        if stage_info is None:
-            logger.warning(f"No calibration info found for stage {stage_id}.")
-            return
-
-        stage_info.detection_status = self.probe_detection_status
-        stage_info.transM = self.transM
-        stage_info.L2_err = self.L2_err
-        stage_info.dist_travel = self.dist_travel
-        stage_info.status_x = self.calib_status_x
-        stage_info.status_y = self.calib_status_y
-        stage_info.status_z = self.calib_status_z
-
-        # Update transM from bregma if available
-        transMbs = get_transMs_bregma_to_local(self.model, stage_id)
-        stage_info.transM_bregma = transMbs
-
-        # Get 3D angle
-        stage_info.arc_angle_global = find_probe_angle(self.transM)
-        stage_info.arc_angle_bregma = find_probe_angles_dict(transMbs)
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):
