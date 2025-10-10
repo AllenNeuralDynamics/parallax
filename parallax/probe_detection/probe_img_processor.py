@@ -282,6 +282,165 @@ class ProbeImageProcessor:
         return img
 
     @classmethod
+    def detect_line(cls, img, mask=None):
+        config = cls._ensure_config_loaded()
+        line_config = config.get("line_detection", {})
+        hough_config = line_config.get("hough", {})
+
+        # grayscale if needed
+        if img.ndim == 3 and img.shape[2] == 3:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        img = cls._preprocess(img)
+        img = cls._apply_mask(img, mask)
+
+        linesP = cv2.HoughLinesP(
+            img,
+            rho=hough_config.get("rho", 1),
+            theta=cls._get_cv2_constant(hough_config.get("theta", np.pi/180)),
+            threshold=hough_config.get("threshold", 80),
+            minLineLength=hough_config.get("minLineLength", 150),
+            maxLineGap=hough_config.get("maxLineGap", 5),
+        )
+        return linesP
+
+    @classmethod
+    def detect_parallel_lines(
+        cls, linesP, tip, base,
+        max_angle_deg=10,       # parallel tolerance
+        debug=False
+    ):
+        """
+        Returns lines like HoughLinesP: ndarray of shape (N,1,4) int32 (x1,y1,x2,y2),
+        or None if nothing kept.
+        """
+        import numpy as np
+
+        def _unit(v):
+            v = np.asarray(v, float).ravel()[:2]
+            n = np.linalg.norm(v)
+            return v / (n + 1e-12)
+
+        if linesP is None or len(linesP) == 0:
+            return None
+
+        tip  = np.asarray(tip,  float).ravel()[:2]
+        base = np.asarray(base, float).ravel()[:2]
+
+        u = _unit(tip - base)               # along-line unit
+        cos_min = np.cos(np.deg2rad(max_angle_deg))
+
+        kept = []
+        for x1, y1, x2, y2 in linesP[:, 0]:
+            p1 = np.array([float(x1), float(y1)])
+            p2 = np.array([float(x2), float(y2)])
+            seg = p2 - p1
+            L = np.linalg.norm(seg)
+            if L < 1e-3:
+                continue
+
+            seg_u = seg / L
+            if seg_u[0] < 0:   # unify direction
+                seg_u = -seg_u
+
+            # 1) parallel check
+            if abs(seg_u.dot(u)) < cos_min:
+                if debug: print("  skip non-parallel:", (x1, y1, x2, y2))
+                continue
+
+            kept.append([int(x1), int(y1), int(x2), int(y2)])
+
+        if not kept:
+            if debug: print("No matches; auto-loosening filters…")
+            # one relaxed retry
+            return cls.detect_parallel_offset_lines(
+                linesP, tip, base,
+                max_angle_deg=min(15, max_angle_deg + 5),
+                debug=debug
+            )
+
+        kept = np.asarray(kept, dtype=np.int32).reshape(-1, 1, 4)
+        return kept
+
+    @classmethod
+    def detect_parallel_offset_lines(
+        cls, linesP, tip, base,
+        min_offset_px=30,       # keep lines >= this distance from ref line
+        max_angle_deg=10,       # parallel tolerance
+        exclude_ref_eps=3,      # treat as same line if closer than this
+        debug=False
+    ):
+        """
+        Returns lines like HoughLinesP: ndarray of shape (N,1,4) int32 (x1,y1,x2,y2),
+        or None if nothing kept.
+        """
+        import numpy as np
+
+        def _unit(v):
+            v = np.asarray(v, float).ravel()[:2]
+            n = np.linalg.norm(v)
+            return v / (n + 1e-12)
+
+        def _perp(u):  # left-perp
+            return np.array([-u[1], u[0]], float)
+
+        def _seg_dist_to_line(p1, p2, tip, n):
+            # average of endpoint distances to the infinite ref line through 'tip' with normal n
+            d1 = abs(n.dot(p1 - tip))
+            d2 = abs(n.dot(p2 - tip))
+            return 0.5 * (d1 + d2)
+
+        if linesP is None or len(linesP) == 0:
+            return None
+
+        tip  = np.asarray(tip,  float).ravel()[:2]
+        base = np.asarray(base, float).ravel()[:2]
+
+        u = _unit(tip - base)               # along-line unit
+        n = _perp(u)                        # unit normal
+        cos_min = np.cos(np.deg2rad(max_angle_deg))
+
+        kept = []
+        for x1, y1, x2, y2 in linesP[:, 0]:
+            p1 = np.array([float(x1), float(y1)])
+            p2 = np.array([float(x2), float(y2)])
+            seg = p2 - p1
+            L = np.linalg.norm(seg)
+            if L < 1e-3:
+                continue
+
+            seg_u = seg / L
+            if seg_u[0] < 0:   # unify direction
+                seg_u = -seg_u
+
+            # 1) parallel check
+            if abs(seg_u.dot(u)) < cos_min:
+                if debug: print("  skip non-parallel:", (x1, y1, x2, y2))
+                continue
+
+            # 2) far enough from reference line?
+            dist = _seg_dist_to_line(p1, p2, tip, n)
+            if dist < max(min_offset_px, exclude_ref_eps):
+                if debug: print(f"  skip too-close segment: {(x1,y1,x2,y2)} (dist {dist:.1f}px)")
+                continue
+
+            kept.append([int(x1), int(y1), int(x2), int(y2)])
+
+        if not kept:
+            if debug: print("No matches; auto-loosening filters…")
+            # one relaxed retry
+            return cls.detect_parallel_offset_lines(
+                linesP, tip, base,
+                min_offset_px=max(20, min_offset_px * 0.75),
+                max_angle_deg=min(15, max_angle_deg + 5),
+                exclude_ref_eps=exclude_ref_eps,
+                debug=debug
+            )
+
+        kept = np.asarray(kept, dtype=np.int32).reshape(-1, 1, 4)
+        return kept
+
+    @classmethod
     def detect_line_on_pt(cls, img, pt, mask=None):
         config = cls._ensure_config_loaded()
         line_config = config.get("line_detection", {})
@@ -633,6 +792,54 @@ class ProbeImageProcessor:
                 p_min, p_max = tuple(q1.astype(int)), tuple(q2.astype(int))
 
         return p_min, p_max
+
+    @classmethod
+    def extract_shank_endpoints_from_line_mask(
+        cls,
+        line_mask,
+        k=4,                          # return up to k shanks (largest-area first)
+        min_abs_len_px=100,           # absolute minimum length
+        elong_thresh=2.0,             # PCA elongation threshold
+        draw_on=None, save_to=None    # optional visualization
+    ):
+        mask_bin = (line_mask > 0).astype(np.uint8)
+        num, labels, stats, _ = cv2.connectedComponentsWithStats(mask_bin, connectivity=8)
+        if num <= 1:
+            return None
+
+        # components sorted by area desc (skip background=0)
+        order = 1 + np.argsort(stats[1:, cv2.CC_STAT_AREA])[::-1]
+
+        lines = []
+        for lab in order:
+            comp_mask = (labels == lab).astype(np.uint8)
+            p1, p2 = cls.get_far_endpoints_from_mask(comp_mask, elong_thresh=elong_thresh)
+            if p1 is None or p2 is None:
+                continue
+
+            L = float(np.linalg.norm(np.asarray(p2, float) - np.asarray(p1, float)))
+            if L < min_abs_len_px:
+                continue
+
+            lines.append([int(p1[0]), int(p1[1]), int(p2[0]), int(p2[1])])
+            if len(lines) >= k:
+                break
+
+        if not lines:
+            return None
+
+        linesP = np.asarray(lines, dtype=np.int32).reshape(-1, 1, 4)
+
+        # optional viz
+        if draw_on is not None and save_to is not None:
+            vis = draw_on.copy()
+            for x1, y1, x2, y2 in linesP[:, 0]:
+                cv2.line(vis, (x1, y1), (x2, y2), (0, 255, 255), 3)
+                cv2.circle(vis, (x1, y1), 6, (0, 0, 255), -1)
+                cv2.circle(vis, (x2, y2), 6, (0, 255, 0), -1)
+            cv2.imwrite(str(save_to), vis)
+
+        return linesP
 
     @classmethod
     def get_probe_point(cls, mask, p1, p2):
