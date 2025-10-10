@@ -7,6 +7,7 @@ from PyQt6.uic import loadUi
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
 from PyQt6.QtGui import QAction
+from PyQt5.QtCore import pyqtSlot
 from parallax.config.config_path import ui_dir
 from typing import Optional
 import cv2
@@ -17,6 +18,7 @@ from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import find_probe_angle, find_probe_angles_dict
 from parallax.config.config_path import debug_img_dir
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -204,42 +206,43 @@ class ProbeCalibrationHandler(QWidget):
 
             return calibrationStereo, camA_best, camB_best
 
-    def probe_detect_on_two_screens(self, cam_name, stage_stopped_ts, timestamp, sn, stage, pixel_coords):
-        """Detect probe coordinates on all screens."""
-        cam_name_cmp, stage_stopped_ts_cmp, timestamp_cmp, sn_cmp = cam_name, stage_stopped_ts, timestamp, sn  # Coords tip detected screen
-        tip_coordsA, tip_coordsB = None, None
-
-        if cam_name_cmp is None or timestamp_cmp is None or sn_cmp is None:
-            return
-
+    @pyqtSlot(str)
+    def probe_detect_on_two_screens(self, detected_cam):
         if self.calibrationStereo is None:
             print("Calibration has not done")
             return
-        if cam_name_cmp not in [self.camA_best, self.camB_best]:
-            print("Detect probe on the screen which is not calibrated")
+        if detected_cam != self.camA_best and detected_cam != self.camB_best:
             return
 
         for screen in self.screen_widgets:
-            cam_name = screen.get_camera_name()
-            if cam_name == cam_name_cmp:
+            if screen.get_camera_name() == detected_cam:
+                stage_ts, img_ts, sn, stage, tip, base = screen.get_last_detect_probe_info()
+                break
+
+        for screen in self.screen_widgets:
+            cam = screen.get_camera_name()
+            if cam == detected_cam:
+                continue
+            if cam != self.camA_best and cam != self.camB_best:
                 continue
 
-            if cam_name in [self.camA_best, self.camB_best]:
-                stage_stopped_ts, img_ts, sn, tip_coord = screen.get_last_detect_probe_info()
+            stage_ts_, img_ts_, sn_, stage_, tip_, base_ = screen.get_last_detect_probe_info()
 
-                if (sn is None) or (tip_coord is None) or (img_ts is None) or (stage_stopped_ts is None):
-                    return
-                if sn != sn_cmp:
-                    return
-                if stage_stopped_ts != stage_stopped_ts_cmp: #  Removve legacy codes. TODO emit after probe stopped. 
-                    return
+            if (sn_ is None) or (tip_ is None) or (img_ts_ is None) or (stage_ts_ is None):
+                return
+            if sn != sn_:
+                return
+            if stage_ts != stage_ts_:
+                return
 
-                if cam_name == self.camA_best:
-                    tip_coordsA = tip_coord
-                    tip_coordsB = pixel_coords
-                elif cam_name == self.camB_best:
-                    tip_coordsA = pixel_coords
-                    tip_coordsB = tip_coord
+            if cam == self.camA_best:
+                tip_coordsA = tip_
+                tip_coordsB = tip
+                break
+            elif cam == self.camB_best:
+                tip_coordsA = tip
+                tip_coordsB = tip_
+                break
 
         # All screens have the same timestamp. Proceed with triangulation
         global_coords = self.calibrationStereo.get_global_coords(
@@ -250,53 +253,57 @@ class ProbeCalibrationHandler(QWidget):
             sn,
             stage,
             global_coords,
-            stage_stopped_ts,
-            timestamp_cmp,
+            stage_ts,
+            img_ts,
             self.camA_best,
             tip_coordsA,
             self.camB_best,
             tip_coordsB,
         )
-        logger.debug(f"=====\n s: {stage_stopped_ts}\n i: {img_ts}\n ({stage['stage_x']}, {stage['stage_y']}, {stage['stage_z']}) {global_coords}")
+        logger.debug(f"=====\n s: {stage_ts}\n i: {img_ts}\n ({stage['stage_x']}, {stage['stage_y']}, {stage['stage_z']}) {global_coords}")
 
-    def probe_detect_on_screens(self, camA, stage_ts, timestampA, snA, stage_info, tip_coordsA):
+    @pyqtSlot(str)
+    def probe_detect_on_screens(self, detected_cam):
         """Detect probe coordinates on all screens."""
-        tip_coordsB = None
+        for screen in self.screen_widgets:
+            if screen.get_camera_name() == detected_cam:
+                stage_ts, img_ts, sn, stage, tip, base = screen.get_last_detect_probe_info()
+                break
 
-        if (camA is None) or (timestampA is None) or (snA is None) or (tip_coordsA is None):
+        if (img_ts is None) or (sn is None) or (tip is None):
             return
 
         for screen in self.screen_widgets:
-            camB = screen.get_camera_name()
-            if camA == camB:
+            cam = screen.get_camera_name()
+            if cam == detected_cam:
                 continue
 
-            timestampB, snB, tip_coordsB = screen.get_last_detect_probe_info()
-            if (snB is None) or (tip_coordsB is None) or (timestampB is None):
+            stage_ts_, img_ts_, sn_, stage_, tip_, base_ = screen.get_last_detect_probe_info()
+            if (sn_ is None) or (tip_ is None) or (img_ts_ is None) or (stage_ts_ is None):
                 continue
-            if snA != snB:
+            if sn != sn_:
                 continue
-            if timestampA[:-2] != timestampB[:-2]:
-                continue
+            if stage_ts != stage_ts_:
+                return
 
             # Proceed with triangulation on the two screens
-            calibrationStereoInstance = self.get_calibration_instance(camA, camB)
+            calibrationStereoInstance = self.get_calibration_instance(detected_cam, cam)
             if calibrationStereoInstance is None:
-                logger.debug(f"Camera calibration has not done {camA}, {camB}")
+                logger.debug(f"Camera calibration has not done {detected_cam}, {cam}")
                 continue
 
             global_coords = calibrationStereoInstance.get_global_coords(
-                camA, tip_coordsA, camB, tip_coordsB
+                detected_cam, tip, cam, tip_
             )
 
             self.stageListener.handleGlobalDataChange(  # Request probe calibration
-                snA,
+                sn,
                 global_coords,
-                timestampA,
-                camA,
-                tip_coordsA,
-                camB,
-                tip_coordsB,
+                img_ts,
+                detected_cam,
+                tip,
+                cam,
+                tip_,
             )
 
     def get_calibration_instance(self, camA, camB):
@@ -558,6 +565,7 @@ class ProbeCalibrationHandler(QWidget):
             return
         self.probe_detection_status = "accepted"
 
+        # TODO: If spin is not found for 4 shanks, do not comp the probe calibration.
         # Prepare images to get spin info
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:

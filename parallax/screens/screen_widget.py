@@ -33,7 +33,8 @@ class ScreenWidget(pg.GraphicsView):
     reticle_coords_detected = pyqtSignal()
     reticle_coords_detect_finished = pyqtSignal()
     # camera name, timestamp, sn, stage_info, pixel_coords
-    probe_coords_detected = pyqtSignal(str, float, float, str, dict, tuple)
+    # probe_coords_detected = pyqtSignal(str, float, float, str, dict, tuple, tuple)
+    probe_coords_detected = pyqtSignal(str)
 
     def __init__(self, camera, model=None, parent=None):
         """Init screen widget object"""
@@ -61,8 +62,10 @@ class ScreenWidget(pg.GraphicsView):
         # probe
         self.probe_detect_last_timestamp = None
         self.probe_detect_last_sn = None
-        self.probe_detect_last_coords = None
+        self.probe_detect_tip_coords = None
+        self.probe_detect_base_coords = None
         self.probe_last_stopped_timestamp = None
+        self.stage_info = None
 
         # camera
         self.camera = camera
@@ -410,15 +413,17 @@ class ScreenWidget(pg.GraphicsView):
         self.model.add_camera_intrinsic(self.camera_name, mtx, dist, rvecs, tvecs)
 
 
-    def found_probe_coords(self, stage_ts, img_ts, probe_sn, stage_info, tip_coords):
+    def found_probe_coords(self, stage_ts, img_ts, probe_sn, stage_info, tip_coords, base_coords):
         """Store the found probe coordinates and related information."""
         self.probe_last_stopped_timestamp = stage_ts
         self.probe_detect_last_timestamp = img_ts
         self.probe_detect_last_sn = probe_sn
         self.stage_info = stage_info
-        self.probe_detect_last_coords = tip_coords
+        self.probe_detect_tip_coords = tip_coords
+        self.probe_detect_base_coords = base_coords
 
-        self.probe_coords_detected.emit(self.camera_name, stage_ts, img_ts, probe_sn, stage_info, tip_coords)
+        #self.probe_coords_detected.emit(self.camera_name, stage_ts, img_ts, probe_sn, stage_info, tip_coords)
+        self.probe_coords_detected.emit(self.camera_name)
 
     def get_last_detect_probe_info(self):
         """Get the last detected probe information."""
@@ -426,7 +431,9 @@ class ScreenWidget(pg.GraphicsView):
             self.probe_last_stopped_timestamp,
             self.probe_detect_last_timestamp,
             self.probe_detect_last_sn,
-            self.probe_detect_last_coords,
+            self.stage_info,
+            self.probe_detect_tip_coords,
+            self.probe_detect_base_coords,
         )
 
     def get_selected(self):

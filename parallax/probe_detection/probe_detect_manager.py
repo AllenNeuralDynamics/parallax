@@ -329,7 +329,7 @@ class ProbeDetectManager(QObject):
     """
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(float, float, str, dict, tuple)
+    found_coords = pyqtSignal(float, float, str, dict, tuple, tuple)
 
     def __init__(self, model, camera_name):
         """
@@ -518,7 +518,7 @@ class ProbeDetectManager(QObject):
                 "stage_y": moving_stage.stage_y,
                 "stage_z": moving_stage.stage_z,
             }
-        self.found_coords.emit(stage_ts, img_ts, sn, stage_info, tip_coords)
+        self.found_coords.emit(stage_ts, img_ts, sn, stage_info, tip_coords, base_coords)
         logger.debug(f"{self.name} Emit - s({stage_ts}) i({img_ts}) -{tip_coords}")
 
     def found_probe_moving(self, img_ts, sn, tip_coords, base_coords):
