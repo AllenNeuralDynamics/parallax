@@ -215,7 +215,7 @@ class DrawWorker(QRunnable):
     def found_seg_mask_global(self, mask: np.ndarray) -> None:
         """Called when a new segmentation mask arrives."""
         if self.frame is None or mask is None:
-            #self.mask_bool = None
+            self.mask_bool = None
             self.mask_idx = None
             self.seg_color_pixels = None
             return
@@ -410,8 +410,10 @@ class ProbeDetectManager(QObject):
 
     def get_frame(self):
         if self.tamProcessWorker is not None:
+            self.tamProcessWorker.cache_last_detected_frame()
             return self.tamProcessWorker.last_detected_frame
         elif self.processWorker is not None:
+            self.processWorker.cache_last_detected_frame()
             return self.processWorker.last_detected_frame
         return
 

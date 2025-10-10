@@ -7,12 +7,13 @@ from PyQt6.uic import loadUi
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
 from PyQt6.QtGui import QAction
-from PyQt5.QtCore import pyqtSlot
+from PyQt6.QtCore import pyqtSlot
 from parallax.config.config_path import ui_dir
 from typing import Optional
 import cv2
 
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
+from parallax.probe_detection.probe_spin_detector import SpinDetectionInputs
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
@@ -90,6 +91,8 @@ class ProbeCalibrationHandler(QWidget):
         self.transMbs = None
         self.arc_angle_global, self.arc_angle_bregma = None, None
         self.spin_global, self.spin_bregma = None, None
+        self.spinDetectionInputs = SpinDetectionInputs()
+        self.update_spin_inputs = False
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
         self.setMinimumSize(0, 420)
@@ -207,62 +210,54 @@ class ProbeCalibrationHandler(QWidget):
             return calibrationStereo, camA_best, camB_best
 
     @pyqtSlot(str)
-    def probe_detect_on_two_screens(self, detected_cam):
+    def probe_detect_on_two_screens(self, detected_cam=None):
         if self.calibrationStereo is None:
             print("Calibration has not done")
             return
-        if detected_cam != self.camA_best and detected_cam != self.camB_best:
-            return
-
-        for screen in self.screen_widgets:
-            if screen.get_camera_name() == detected_cam:
-                stage_ts, img_ts, sn, stage, tip, base = screen.get_last_detect_probe_info()
-                break
 
         for screen in self.screen_widgets:
             cam = screen.get_camera_name()
-            if cam == detected_cam:
-                continue
-            if cam != self.camA_best and cam != self.camB_best:
-                continue
-
-            stage_ts_, img_ts_, sn_, stage_, tip_, base_ = screen.get_last_detect_probe_info()
-
-            if (sn_ is None) or (tip_ is None) or (img_ts_ is None) or (stage_ts_ is None):
-                return
-            if sn != sn_:
-                return
-            if stage_ts != stage_ts_:
-                return
-
             if cam == self.camA_best:
-                tip_coordsA = tip_
-                tip_coordsB = tip
-                break
-            elif cam == self.camB_best:
-                tip_coordsA = tip
-                tip_coordsB = tip_
-                break
+                stage_ts_A, img_ts_A, sn_A, stage_A, tip_A, base_A = screen.get_last_detect_probe_info()
+            if cam == self.camB_best:
+                stage_ts_B, img_ts_B, sn_B, stage_B, tip_B, base_B = screen.get_last_detect_probe_info()
+
+        if (sn_A is None) or (tip_A is None) or (img_ts_A is None) or (stage_ts_A is None) or \
+            (sn_B is None) or (tip_B is None) or (img_ts_B is None) or (stage_ts_B is None):
+            return
+        if sn_A != sn_B:
+            return
+        if stage_ts_A != stage_ts_B:
+            return
 
         # All screens have the same timestamp. Proceed with triangulation
         global_coords = self.calibrationStereo.get_global_coords(
-            self.camA_best, tip_coordsA, self.camB_best, tip_coordsB
+            self.camA_best, tip_A, self.camB_best, tip_B
         )
 
         self.stageListener.handleGlobalDataChange(
-            sn,
-            stage,
+            sn_A,
+            stage_A,
             global_coords,
-            stage_ts,
-            img_ts,
+            stage_ts_A,
+            img_ts_A,
             self.camA_best,
-            tip_coordsA,
+            tip_A,
             self.camB_best,
-            tip_coordsB,
+            tip_B,
         )
-        logger.debug(f"=====\n s: {stage_ts}\n i: {img_ts}\n ({stage['stage_x']}, {stage['stage_y']}, {stage['stage_z']}) {global_coords}")
+        logger.debug(f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A['stage_x']}, {stage_A['stage_y']}, {stage_A['stage_z']}) {global_coords}")
 
-    @pyqtSlot(str)
+        if self.update_spin_inputs:
+            self.spinDetectionInputs.camA_best = self.camA_best
+            self.spinDetectionInputs.camB_best = self.camB_best
+            self.spinDetectionInputs.tipA_px = tip_A
+            self.spinDetectionInputs.tipB_px = tip_B
+            self.spinDetectionInputs.baseA_px = base_A
+            self.spinDetectionInputs.baseB_px = base_B
+            self.spinDetectionInputs.calibrationStereo = self.calibrationStereo
+
+    @pyqtSlot()
     def probe_detect_on_screens(self, detected_cam):
         """Detect probe coordinates on all screens."""
         for screen in self.screen_widgets:
@@ -550,6 +545,35 @@ class ProbeCalibrationHandler(QWidget):
         # return dictionary of degrees
         return
 
+    def is_spin_data_ready(self):
+        # TODO: If spin is not found for 4 shanks, do not comp the probe calibration.
+        # Prepare images to get spin info
+        # probe_detect_on_two_screens
+        # -> stageListener.handleGlobalDataChange
+        # -> probeCalibration.update
+        # -> probeCalibration.calib_complete
+        # Todo if spin is not sucessful, do not stop calibration
+        # if calib_complete is called, request tor getting spin.
+        print("*** Getting spin info... ****")
+        self.update_spin_inputs = True
+        if self.filter != "probe_detection":
+            return False
+
+        for screen in self.screen_widgets:
+            camera_name = screen.get_camera_name()
+            if camera_name != self.camA_best and camera_name != self.camB_best:
+                continue
+
+            self.spinDetectionInputs.transM = self.transM
+            if camera_name == self.camA_best:
+                self.spinDetectionInputs.maskA = screen.get_mask_from_probe_detector()
+                self.spinDetectionInputs.imgA = screen.get_frame_from_probe_detector()
+            if camera_name == self.camB_best:
+                self.spinDetectionInputs.maskB = screen.get_mask_from_probe_detector()
+                self.spinDetectionInputs.imgB = screen.get_frame_from_probe_detector()
+
+        return self.spinDetectionInputs.ready_for_calc()
+
     def probe_detect_accepted_status(self, switch_probe=False):
         """
         Finalizes the probe detection process, accepting the detected probe position and updating the UI accordingly.
@@ -563,24 +587,15 @@ class ProbeCalibrationHandler(QWidget):
             return
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
+
+        # TODO get spin info only for 4 shanks probe
+        if not self.is_spin_data_ready():
+            print("Failed to get spin info. Trying triangulation one more time.")
+            return
+
+        spin = self.spinDetectionInputs.get_spin()
+
         self.probe_detection_status = "accepted"
-
-        # TODO: If spin is not found for 4 shanks, do not comp the probe calibration.
-        # Prepare images to get spin info
-        if self.filter == "probe_detection":
-            for screen in self.screen_widgets:
-                camera_name = screen.get_camera_name()
-                if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
-                    mask = screen.get_mask_from_probe_detector()
-                    frame = screen.get_frame_from_probe_detector()
-
-                    if mask is None or frame is None:
-                        logger.warning(f"Mask or frame is None for {camera_name}")
-                        continue
-                    # Save mask and frame
-                    cv2.imwrite(f"{debug_img_dir}/{camera_name}_frame.png", frame)
-                    cv2.imwrite(f"{debug_img_dir}/{camera_name}_global_mask.png", (mask*255).astype(np.uint8))
-                    print(f"Saved debug images to {debug_img_dir}")
 
         # Get angle information
         self.arc_angle_global = find_probe_angle(self.transM)  # TODO update into session file

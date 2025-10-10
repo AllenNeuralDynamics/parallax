@@ -54,6 +54,7 @@ class baseProcessWorker(QRunnable):
         self.test = test
         self.running = False
         self.frame = None
+        self.copy_last_detected_frame = False
         self.last_detected_frame, self.last_detected_ts = None, None
 
         self.is_detection_on = False
@@ -71,6 +72,9 @@ class baseProcessWorker(QRunnable):
         self.probe_stopped = True
         self.stopped_first_frame = True
         self.probeDetect = None
+
+    def cache_last_detected_frame(self):
+        self.copy_last_detected_frame = True
 
     def update_sn(self, sn):
         """Update the serial number and initialize probe detectors.
@@ -259,9 +263,11 @@ class ProcessWorkerTAM(baseProcessWorker):
             probe_base_org = UtilsCoords.scale_coords_to_original(probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             # get fine tip
             probe_tip_fine = ProbeImageProcessor.get_precise_tip(probe_tip_org, probe_base_org, self.frame)
-            self.last_detected_frame = self.frame.copy()
-            self.last_detected_ts = self.img_ts
             self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_fine, probe_base_org)
+            if self.copy_last_detected_frame:
+                self.last_detected_frame = self.frame.copy()
+                self.last_detected_ts = self.img_ts
+                print("Cache last detected frame.")
         except Exception as e:
             logger.error(f"Error occurred while getting probe points: {e}")
             return
@@ -600,11 +606,12 @@ class ProcessWorker(baseProcessWorker):
 
             self.stopped_first_frame = False
             if ret:
-                self.last_detected_frame = self.frame.copy()
-                self.last_detected_ts = self.img_ts
                 self.signals.tip_stopped.emit(
                     self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org
                 )
+                if self.copy_last_detected_frame:
+                    self.last_detected_frame = self.frame.copy()
+                    self.last_detected_ts = self.img_ts
                 self.prev_img = self.curr_img
                 return True
             return False
@@ -629,9 +636,10 @@ class ProcessWorker(baseProcessWorker):
     
         if self.probeDetect.angle:
             if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
-                self.last_detected_frame = self.frame.copy()
-                self.last_detected_ts = self.img_ts
                 self.signals.tip_stopped.emit(
                     self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, (None, None)
                 )
+                if self.copy_last_detected_frame:
+                    self.last_detected_frame = self.frame.copy()
+                    self.last_detected_ts = self.img_ts
                 logger.info(f"Emit tip stopped signal with coords: {self.probeDetect.probe_tip_org}")

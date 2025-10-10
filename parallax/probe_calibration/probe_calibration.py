@@ -10,7 +10,7 @@ import datetime
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 #from .coords_transformation import RotationTransformation
 from .transforms import fit_params
 from .bundle_adjustment import BALProblem, BALOptimizer
@@ -640,6 +640,7 @@ class ProbeCalibration(QObject):
         print(f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]")
         print("==> Average L2 between stage and global: ", self.avg_err)
 
+    #@pyqtSlot(object, dict)
     def update(self, stage, debug_info=None):
         """
         Main method to update calibration with a new stage position and check if calibration is complete.
