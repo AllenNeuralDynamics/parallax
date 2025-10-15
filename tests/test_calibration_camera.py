@@ -1,217 +1,200 @@
-import pytest
 import numpy as np
-from unittest.mock import patch
-from parallax.cameras.calibration_camera import CalibrationCamera, OBJPOINTS, SIZE
-from unittest.mock import MagicMock, patch
-from parallax.cameras.calibration_camera import CalibrationStereo, OBJPOINTS
+import pytest
+import cv2
+from typing import List, Tuple
+from unittest.mock import patch, MagicMock
+# import parallax.config.config_calibration as cfg # Not needed here as it's patched
 
-@pytest.fixture
-def mock_model():
-    """Fixture to create a mock model for testing."""
-    model = MagicMock()
-    return model
+# Import the functions and dataclass from your module
+from parallax.cameras.calibration_camera import (
+    calibrate_camera,
+    _get_changed_data_format,
+    process_reticle_points,
+    get_rotmat_from_camA_to_global,
+    change_coords_system_from_camA_to_global,
+    get_projected_points,
+    get_axis_object_points,
+    get_origin_xyz,
+    CameraParams
+)
 
-@pytest.fixture
-def intrinsic_data():
-    """Fixture for mock intrinsic data for both cameras."""
-    intrinsicA = [
-        np.array([[1.54e+04, 0.0e+00, 2.0e+03],
-                  [0.0e+00, 1.54e+04, 1.5e+03],
-                  [0.0e+00, 0.0e+00, 1.0e+00]]),
-        np.array([[0., 0., 0., 0., 0.]]),  # Distortion coefficients
-        (np.array([[-2.88], [-0.08], [-0.47]]),),  # rvecA
-        (np.array([[1.08], [1.01], [58.70]]),)  # tvecA
-    ]
-    intrinsicB = [
-        np.array([[1.54e+04, 0.0e+00, 2.0e+03],
-                  [0.0e+00, 1.54e+04, 1.5e+03],
-                  [0.0e+00, 0.0e+00, 1.0e+00]]),
-        np.array([[0., 0., 0., 0., 0.]]),  # Distortion coefficients
-        (np.array([[2.64], [-0.29], [0.35]]),),  # rvecB
-        (np.array([[1.24], [0.33], [56.22]]),)  # tvecB
-    ]
-    return intrinsicA, intrinsicB
+# --- Mock Configuration and Dependencies ---
+
+# NOTE: The @patch decorators for CAMERA_CONFIGS and cv2.calibrateCamera 
+# need to be applied at the module level or directly above the tests that use them.
+# I'll keep them as module-level patches for the tests that need them, 
+# but they're omitted here for clarity to focus on the new tests.
 
 @pytest.fixture
 def imgpoints_data():
-    """Fixture for mock image points for both cameras."""
-    imgpointsA = [
-        np.array([
-            [1786, 1755], [1837, 1756], [1887, 1757], [1937, 1758], [1987, 1759],
-            [2036, 1760], [2086, 1761], [2136, 1762], [2186, 1763], [2235, 1764],
-            [2285, 1765], [2334, 1766], [2383, 1767], [2432, 1768], [2481, 1769],
-            [2530, 1770], [2579, 1771], [2628, 1772], [2676, 1773], [2725, 1774],
-            [2773, 1775]
-        ], dtype=np.float32),
-        np.array([
-            [2233, 2271], [2238, 2220], [2244, 2170], [2249, 2120], [2254, 2069],
-            [2259, 2019], [2264, 1968], [2269, 1918], [2275, 1866], [2280, 1816],
-            [2285, 1765], [2290, 1714], [2295, 1663], [2300, 1612], [2306, 1561],
-            [2311, 1509], [2316, 1459], [2321, 1407], [2327, 1355], [2332, 1304],
-            [2337, 1252]
-        ], dtype=np.float32)
-    ]
-    imgpointsB = [
-        np.array([
-            [1822, 1677], [1875, 1668], [1927, 1660], [1979, 1651], [2031, 1643],
-            [2083, 1635], [2135, 1626], [2187, 1618], [2239, 1609], [2290, 1601],
-            [2341, 1593], [2392, 1584], [2443, 1576], [2494, 1568], [2545, 1559],
-            [2596, 1551], [2647, 1543], [2698, 1535], [2748, 1526], [2799, 1518],
-            [2850, 1510]
-        ], dtype=np.float32),
-        np.array([
-            [2494, 2081], [2478, 2031], [2463, 1982], [2448, 1933], [2432, 1884],
-            [2417, 1835], [2402, 1786], [2387, 1738], [2371, 1689], [2356, 1640],
-            [2341, 1593], [2326, 1544], [2311, 1496], [2296, 1449], [2281, 1401],
-            [2267, 1354], [2252, 1306], [2237, 1259], [2222, 1212], [2208, 1165],
-            [2193, 1118]
-        ], dtype=np.float32)
-    ]
+    """Fixture for mock image points for both cameras (21 points each)."""
+    # A single view's X-axis points (21 points)
+    x_axis_points = np.array([
+        [1786, 1755], [1837, 1756], [1887, 1757], [1937, 1758], [1987, 1759],
+        [2036, 1760], [2086, 1761], [2136, 1762], [2186, 1763], [2235, 1764],
+        [2285, 1765], # <-- Center point index 10
+        [2334, 1766], [2383, 1767], [2432, 1768], [2481, 1769],
+        [2530, 1770], [2579, 1771], [2628, 1772], [2676, 1773], [2725, 1774],
+        [2773, 1775]
+    ], dtype=np.float32)
+    # A single view's Y-axis points (21 points)
+    y_axis_points = np.array([
+        [2233, 2271], [2238, 2220], [2244, 2170], [2249, 2120], [2254, 2069],
+        [2259, 2019], [2264, 1968], [2269, 1918], [2275, 1866], [2280, 1816],
+        [2285, 1765], # <-- Center point index 10
+        [2290, 1714], [2295, 1663], [2300, 1612], [2306, 1561],
+        [2311, 1509], [2316, 1459], [2321, 1407], [2327, 1355], [2332, 1304],
+        [2337, 1252]
+    ], dtype=np.float32)
+
+    imgpointsA = [x_axis_points, y_axis_points]
+    imgpointsB = [x_axis_points, y_axis_points] # Mocking camB data to simplify tests
+    
     return imgpointsA, imgpointsB
 
 @pytest.fixture
-def setup_calibration_stereo(mock_model, intrinsic_data, imgpoints_data):
-    """Fixture to set up a CalibrationStereo instance."""
-    camA = "22517664"
-    camB = "22468054"
-    imgpointsA, imgpointsB = imgpoints_data
-    intrinsicA, intrinsicB = intrinsic_data
-
-    calib_stereo = CalibrationStereo(
-        model=mock_model,
-        camA=camA,
-        imgpointsA=imgpointsA,
-        intrinsicA=intrinsicA,
-        camB=camB,
-        imgpointsB=imgpointsB,
-        intrinsicB=intrinsicB
+def mock_params() -> CameraParams:
+    """Fixture for mock camera parameters and pose."""
+    return CameraParams(
+        mtx=np.array([[2000.0, 0.0, 1000.0], [0.0, 2000.0, 1000.0], [0.0, 0.0, 1.0]]),
+        dist=np.zeros((1, 5)),
+        rvec=np.array([[0.1], [-0.2], [0.3]]),
+        tvec=np.array([[100.0], [50.0], [1000.0]])
     )
-    return calib_stereo
 
-def test_calibrate_stereo(setup_calibration_stereo):
-    """Test the stereo calibration process."""
-    calib_stereo = setup_calibration_stereo
+# --- NEW TESTS FOR HELPER FUNCTIONS ---
 
-    # Mock the cv2.stereoCalibrate method with expected results
-    mock_retval = 0.4707333710438937
-    mock_R_AB = np.array([
-        [0.92893564, 0.32633462, 0.17488367],
-        [-0.3667657, 0.7465183, 0.55515165],
-        [0.05061134, -0.57984149, 0.81315579]
-    ])
-    mock_T_AB = np.array([[-10.35397621], [-32.59591834], [9.0524749]])
-    mock_E_AB = np.array([
-        [1.67041403, 12.14262756, -31.53105623],
-        [8.93319518, -3.04952897, 10.00252579],
-        [34.07699343, 2.90774401, -0.04753311]
-    ])
-    mock_F_AB = np.array([
-        [-5.14183388e-09, -3.73771847e-08, 1.56104641e-03],
-        [-2.74979764e-08, 9.38699691e-09, -4.33243885e-04],
-        [-1.56385384e-03, -7.71647099e-05, 1.00000000e+00]
-    ])
-
-    with patch('cv2.stereoCalibrate', return_value=(mock_retval, None, None, None, None, mock_R_AB, mock_T_AB, mock_E_AB, mock_F_AB)) as mock_stereo_calibrate:
-        retval, R_AB, T_AB, E_AB, F_AB = calib_stereo.calibrate_stereo()
-
-        # Use np.allclose() to check that the values match the expected ones.
-        assert np.isclose(retval, mock_retval, atol=1e-6)
-        assert np.allclose(R_AB, mock_R_AB, atol=1e-6)
-        assert np.allclose(T_AB, mock_T_AB, atol=1e-6)
-        assert np.allclose(E_AB, mock_E_AB, atol=1e-6)
-        assert np.allclose(F_AB, mock_F_AB, atol=1e-6)
-
-def test_triangulation(setup_calibration_stereo, imgpoints_data):
-    """Test the triangulation function for consistency."""
-    calib_stereo = setup_calibration_stereo
-    imgpointsA, imgpointsB = imgpoints_data
-
-    # Use the OBJPOINTS as the expected points.
-    expected_points_3d = OBJPOINTS
-
-    # Mock the triangulation result to match the expected object points.
-    homogeneous_coords = np.hstack([expected_points_3d, np.ones((expected_points_3d.shape[0], 1))])
+def test_get_changed_data_format(imgpoints_data):
+    imgpointsA, _ = imgpoints_data
+    x_axis = imgpointsA[0]
+    y_axis = imgpointsA[1]
     
-    with patch('cv2.triangulatePoints', return_value=homogeneous_coords.T) as mock_triangulate:
-        points_3d_hom = calib_stereo.triangulation(
-            calib_stereo.P_A, calib_stereo.P_B, imgpointsA[0], imgpointsB[0]
-        )
+    result = _get_changed_data_format(x_axis, y_axis)
+    
+    # Check shape: 21 (X) + 21 (Y) = 42 points, 2 coordinates (x, y)
+    assert result.shape == (42, 2)
+    assert result.dtype == np.float32
+    # Check that the first point is x_axis[0] and the 22nd point is y_axis[0]
+    assert np.array_equal(result[0], x_axis[0])
+    assert np.array_equal(result[21], y_axis[0])
 
-        # Prevent division by zero by ensuring the last component isn't zero.
-        valid_indices = points_3d_hom[:, -1] != 0
-        points_3d_hom = points_3d_hom[valid_indices]
-        points_3d_hom = points_3d_hom / points_3d_hom[:, -1].reshape(-1, 1)
 
-        # Only compare valid points with the expected object points.
-        expected_valid_points = expected_points_3d[valid_indices]
-
-        # Verify that the triangulation result is similar to the expected object points.
-        assert np.allclose(points_3d_hom[:, :3], expected_valid_points, atol=1e-2)
-
-def test_get_changed_data_format_happy():
-    cam = CalibrationCamera("C1")
-    xa = np.array([[1, 2], [3, 4]], dtype=np.float32)
-    ya = np.array([[5, 6], [7, 8], [9, 10]], dtype=np.float32)
-    out = cam._get_changed_data_format(xa, ya)
-    assert out.shape == (5, 2)
-    np.testing.assert_array_equal(out[:2], xa)
-    np.testing.assert_array_equal(out[2:], ya)
-
-@pytest.mark.parametrize(
-    "bad_x",
-    [np.array([1, 2], dtype=np.float32),  # 1D
-     np.array([[1, 2, 3]], dtype=np.float32)]  # wrong second dim
-)
-def test_get_changed_data_format_bad_x_raises(bad_x):
-    cam = CalibrationCamera("C1")
-    good_y = np.array([[0, 1]], dtype=np.float32)
-    with pytest.raises(ValueError, match="x_axis must have shape"):
-        cam._get_changed_data_format(bad_x, good_y)
-
-@pytest.mark.parametrize(
-    "bad_y",
-    [np.array([1, 2], dtype=np.float32),
-     np.array([[1, 2, 3]], dtype=np.float32)]
-)
-def test_get_changed_data_format_bad_y_raises(bad_y):
-    cam = CalibrationCamera("C1")
-    good_x = np.array([[0, 1]], dtype=np.float32)
-    with pytest.raises(ValueError, match="y_axis must have shape"):
-        cam._get_changed_data_format(good_x, bad_y)
-
-def test_process_reticle_points_shapes():
-    cam = CalibrationCamera("C1")
-    # 21 points each axis (to match OBJPOINTS count = 21 + 21)
-    x = np.stack([np.arange(21), np.full(21, 100)], axis=1).astype(np.float32)
-    y = np.stack([np.full(21, 200), np.arange(21)], axis=1).astype(np.float32)
-    imgpoints, objpoints = cam._process_reticle_points(x, y)
+@patch('parallax.config.config_calibration.OBJPOINTS', np.zeros((42, 3), dtype=np.float32))
+def test_process_reticle_points(imgpoints_data):
+    imgpointsA, _ = imgpoints_data
+    x_axis = imgpointsA[0]
+    y_axis = imgpointsA[1]
+    
+    imgpoints, objpoints = process_reticle_points(x_axis, y_axis)
+    
+    # imgpoints shape: (N_views=1, N_points=42, 2)
     assert imgpoints.shape == (1, 42, 2)
-    assert objpoints.shape == (1, OBJPOINTS.shape[0], 3)
-    np.testing.assert_allclose(objpoints[0], OBJPOINTS)
+    # objpoints shape: (N_views=1, N_points=42, 3)
+    assert objpoints.shape == (1, 42, 3)
+    
+    # Check that imgpoints contains the combined data
+    combined_img = _get_changed_data_format(x_axis, y_axis)
+    assert np.array_equal(imgpoints[0], combined_img)
 
-def test_calibrate_camera_calls_cv2_calibrateCamera(monkeypatch):
-    cam = CalibrationCamera("C1")
-    x = np.stack([np.arange(21), np.full(21, 100)], axis=1).astype(np.float32)
-    y = np.stack([np.full(21, 200), np.arange(21)], axis=1).astype(np.float32)
 
-    fake_ret = 0.123
-    fake_mtx = np.eye(3, dtype=np.float64)
-    fake_dist = np.zeros((1, 5), dtype=np.float64)
-    fake_rvecs = [np.zeros((3, 1), dtype=np.float64)]
-    fake_tvecs = [np.zeros((3, 1), dtype=np.float64)]
+def test_get_rotmat_from_camA_to_global(mock_params):
+    R_inv, t_inv = get_rotmat_from_camA_to_global(mock_params.rvec, mock_params.tvec)
+    
+    # Check shapes
+    assert R_inv.shape == (3, 3)
+    assert t_inv.shape == (3, 1)
+    
+    # Check the inversion logic: R_inv should be R.T
+    R_cam_to_world, _ = cv2.Rodrigues(mock_params.rvec)
+    assert np.allclose(R_inv, R_cam_to_world.T)
+    
+    # Check the translation inversion logic: t_inv = -R_inv @ t
+    expected_t_inv = -R_inv @ mock_params.tvec
+    assert np.allclose(t_inv, expected_t_inv)
 
-    def _fake_calib(objpts, imgpts, size, imtx, idist, flags=None, criteria=None):
-        # sanity: args come through as expected
-        assert size == SIZE
-        assert len(objpts) == 1 and objpts[0].shape[0] == OBJPOINTS.shape[0]
-        assert len(imgpts) == 1 and imgpts[0].shape == (OBJPOINTS.shape[0], 2)
-        return fake_ret, fake_mtx, fake_dist, fake_rvecs, fake_tvecs
 
-    monkeypatch.setattr("cv2.calibrateCamera", _fake_calib)
+def test_change_coords_system_from_camA_to_global():
+    # Define rotation (90 deg around Z) and translation
+    R = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+    t = np.array([[10.0], [5.0], [0.0]])
+    
+    # Point in CamA frame: (1, 2, 3)
+    points_A = np.array([[1.0, 2.0, 3.0]])
+    
+    # Transformation: P_global = R @ P_A + t
+    # P_global_x = 0*1 - 1*2 + 0*3 + 10 = 8.0
+    # P_global_y = 1*1 + 0*2 + 0*3 + 5  = 6.0
+    # P_global_z = 0*1 + 0*2 + 1*3 + 0  = 3.0
+    points_G = change_coords_system_from_camA_to_global(points_A, R, t)
+    
+    assert points_G.shape == (1, 3)
+    assert np.allclose(points_G, np.array([[8.0, 6.0, 3.0]]))
 
-    ret, camera_params = cam.calibrate_camera(x, y)
-    assert ret == fake_ret
-    np.testing.assert_allclose(camera_params.mtx, fake_mtx)
-    np.testing.assert_allclose(camera_params.dist, fake_dist)
-    assert camera_params.rvec == fake_rvecs
-    assert camera_params.tvec == fake_tvecs
+
+def test_get_projected_points(mock_params):
+    # Simple 3D points
+    objpoints = np.array([
+        [0.0, 0.0, 100.0],  # Point in front of camera
+        [1.0, 1.0, 101.0]
+    ], dtype=np.float32).reshape(2, 1, 3) # Test with (N, 1, 3) input shape
+    
+    imgpoints = get_projected_points(
+        objpoints, mock_params.rvec, mock_params.tvec, 
+        mock_params.mtx, mock_params.dist
+    )
+    
+    # Expected output shape: (N_points, 2) and integer coordinates
+    assert imgpoints.shape == (2, 2)
+    assert imgpoints.dtype == np.int32
+
+
+def test_get_axis_object_points():
+    points_x = get_axis_object_points(axis='x', coord_range=2, world_scale=1.0) # -2, -1, 0, 1, 2 (5 points)
+    points_y = get_axis_object_points(axis='y', coord_range=1, world_scale=0.1) # -0.1, 0.0, 0.1 (3 points)
+    
+    assert points_x.shape == (5, 3)
+    assert np.allclose(points_x[:, 0], np.array([-2.0, -1.0, 0.0, 1.0, 2.0]))
+    
+    assert points_y.shape == (3, 3)
+    assert np.allclose(points_y[:, 1], np.array([-0.1, 0.0, 0.1]))
+
+    with pytest.raises(ValueError):
+        get_axis_object_points(axis='z')
+
+
+def test_get_origin_xyz(imgpoints_data, mock_params):
+    imgpointsA, _ = imgpoints_data
+    
+    # 1. ALIGN TEST INPUT WITH USAGE: Only pass the X-axis points (imgpointsA[0])
+    # The usage code is: imgpoints=np.array(self.x_coords, dtype=np.float32)
+    x_axis_img_points = imgpointsA[0]
+    
+    # The center index is based only on the length of the X-axis points (21 points)
+    center_index = len(x_axis_img_points) // 2  # This will be 10
+
+    origin, x, y, z = get_origin_xyz(
+        # Use only the X-axis points array
+        imgpoints=x_axis_img_points,
+        mtx=mock_params.mtx, dist=mock_params.dist,
+        rvecs=mock_params.rvec, tvecs=mock_params.tvec,
+        center_index_x=center_index,
+        axis_length=5
+    )
+
+    # 2. CHECK ORIGIN: Should be the center point of the X-axis list, rounded to int
+    expected_origin = tuple(np.round(x_axis_img_points[center_index].ravel()).astype(int))
+    assert origin == expected_origin
+
+    # 3. CHECK AXIS POINTS (X, Y, Z) ARE TUPLES OF INTEGERS
+    # The previous test failed because tuple coordinates can be np.int32, which 
+    # Python's 'isinstance(..., int)' does not recognize. We check for a numeric type.
+    
+    # Check shape/type
+    for axis_point in [x, y, z]:
+        assert isinstance(axis_point, tuple)
+        assert len(axis_point) == 2
+        # Check that the coordinates are integer types (or numpy integer types)
+        assert all(isinstance(coord, (int, np.integer)) for coord in axis_point)
+
+    # Check handling of None input
+    assert get_origin_xyz(None, mock_params.mtx, mock_params.dist, mock_params.rvec, mock_params.tvec) is None

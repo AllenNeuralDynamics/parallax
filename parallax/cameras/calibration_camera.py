@@ -12,7 +12,7 @@ import logging
 import cv2
 import numpy as np
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional, Union
 import numpy as np
 import cv2
 import scipy.spatial.transform as Rscipy
@@ -31,7 +31,7 @@ logger.setLevel(logging.WARNING)
 # Example usage:
 success, camera_params = calibrate_camera(
     x_axis=x_coords,
-    y_axis=y_coords, device_model_name="Blackfly S BFS-U3-120S4C"
+    y_axis=y_coords,
     device_model_name="Blackfly S BFS-U3-120S4C"
 )
 """
@@ -43,8 +43,8 @@ class CameraParams:
     tvec: Optional[np.ndarray] = None         # (3,1) float64
     
 def calibrate_camera(
-    x_axis: List[Tuple[float, float]],
-    y_axis: List[Tuple[float, float]],
+    x_axis: Union[np.ndarray, List[Tuple[int, int]]], # accepts list or np.ndarray (N,2)
+    y_axis: Union[np.ndarray, List[Tuple[int, int]]],
     camera_model_name: str = "MockCamera",
 ) -> Tuple[float, CameraParams]:
     """
@@ -72,6 +72,8 @@ def calibrate_camera(
     pixel_size = params["PIXEL_SIZE_MM"]
 
     # 2. Prepare correspondences (single view)
+    print(f"x_axis: {x_axis}")
+    print(f"y_axis: {y_axis}")
     imgpoints, objpoints = process_reticle_points(x_axis, y_axis)
 
     # 3. Calibrate camera

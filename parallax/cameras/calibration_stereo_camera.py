@@ -96,7 +96,7 @@ def calibrate_stereo(
         P_B=P_B
     )
     # Get err
-    err = test_performance(stereoCalibResult, camA, imgpointsA, paramsA, camB, imgpointsB, paramsB)
+    err = _evaluate_performance(stereoCalibResult, camA, imgpointsA, paramsA, camB, imgpointsB, paramsB)
 
     return err, stereoCalibResult
 
@@ -233,7 +233,7 @@ def get_global_coords(
     return points_3d_G
 
 # Updated function signature to accept the full list of image points
-def test_performance(
+def _evaluate_performance(
     StereoCalib: StereoCalibrationResult,
     camA: str,
     imgpointsA: List[np.ndarray],
@@ -268,33 +268,36 @@ def test_performance(
         print(
             f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³"
         )
-        test_x_y_z_performance(points_3d_G, print_results=print_results)
+        _evaluate_x_y_z_performance(points_3d_G, print_results=print_results)
         logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
     return average_L2_distance
 
-def test_x_y_z_performance(points_3d_G, objpoints=cfg.OBJPOINTS, print_results=True):
-    """
-    Evaluates the performance of the stereo calibration by comparing the
-    predicted 3D points with the original object points.
-    Args:
-        points_3d_G (numpy.ndarray): The predicted 3D points in global coordinates.
-    Prints:
-        The L2 norm (Euclidean distance) for the x, y, and z dimensions in micrometers (µm³).
-    """
-    # Calculate the differences for each dimension
-    differences_x = points_3d_G[:, 0] - objpoints[0, :, 0]
-    differences_y = points_3d_G[:, 1] - objpoints[0, :, 1]
-    differences_z = points_3d_G[:, 2] - objpoints[0, :, 2]
+def _evaluate_x_y_z_performance(points_3d_G, objpoints=cfg.OBJPOINTS, print_results=True):
+    """Evaluates the performance..."""
+    
+    # FIX: Standardize objpoints format to (N, 3)
+    if objpoints.ndim == 3 and objpoints.shape[0] == 1:
+        objpoints_flat = objpoints[0]
+    else:
+        objpoints_flat = objpoints
+
+    # FIX: Use the flattened array and correct 2D indexing
+    differences_x = points_3d_G[:, 0] - objpoints_flat[:, 0]
+    differences_y = points_3d_G[:, 1] - objpoints_flat[:, 1]
+    differences_z = points_3d_G[:, 2] - objpoints_flat[:, 2]
+    
     # Calculate the mean squared differences for each dimension
     mean_squared_diff_x = np.mean(np.square(differences_x))
     mean_squared_diff_y = np.mean(np.square(differences_y))
     mean_squared_diff_z = np.mean(np.square(differences_z))
+    
     # Calculate the L2 norm (Euclidean distance) for each dimension
     l2_x = np.sqrt(mean_squared_diff_x)
     l2_y = np.sqrt(mean_squared_diff_y)
     l2_z = np.sqrt(mean_squared_diff_z)
+    
     if print_results:
         print(
-            f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z:{np.round(l2_z*1000, 2)}µm³"
+            f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z: {np.round(l2_z*1000, 2)}µm³"
         )
