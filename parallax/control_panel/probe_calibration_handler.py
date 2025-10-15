@@ -1,4 +1,5 @@
 """Probe Calibration Handler"""
+from typing import Tuple
 import logging
 import os
 import numpy as np
@@ -196,16 +197,19 @@ class ProbeCalibrationHandler(QWidget):
         if not self.probe_calibration_btn.isEnabled():
             self.probe_calibration_btn.setEnabled(True)
 
-    def _get_stereo_calibration_result(self, camA, camB):
+    def _get_stereo_calibration_result(self, camA: str, camB: str):
         """
-        Retrieves the stereo calibration instance and given pair of cameras.
+        Retrieves the stereo calibration result for the given camera pair.
         """
         if not self.model.stereo_calib:
-            raise ValueError("No stereo calibration instance found.")
-        else:
-            #sorted_key = list(self.model.stereo_calib.keys())[-1]
-            sorted_key = tuple(sorted((camA, camB)))
-            return self.model.get_stereo_calib(sorted_key)
+            raise ValueError("No stereo calibration data found.")
+
+        # Check for the key in both possible orders (A, B) and (B, A)
+        keys = [(camA, camB), (camB, camA)]
+        for key in keys:
+            if key in self.model.stereo_calib:
+                return self.model.stereo_calib[key]
+        raise KeyError(f"Calibration data not found for pair: {camA}-{camB}.")
 
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
@@ -474,6 +478,7 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_y.show()
         self.calib_z.show()
 
+        self.camA_best, self.camB_best = self._get_latest_stereo_pair_names()
         self.calibrationStereo = self._get_stereo_calibration_result(self.camA_best, self.camB_best)
         self.camA_params = self.model.get_camera_intrinsic(self.camA_best)
         self.camB_params = self.model.get_camera_intrinsic(self.camB_best)
@@ -496,6 +501,21 @@ class ProbeCalibrationHandler(QWidget):
         # message
         message = "Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
+
+    def _get_latest_stereo_pair_names(self) -> Tuple[str, str]:
+        """
+        Retrieves the camera names (serial numbers) for the most recently calibrated
+        stereo pair from the model.
+
+        Returns:
+            Tuple[str, str]: A tuple containing (camA_name, camB_name).
+        """
+        # Assuming self.model.stereo_calib is a dictionary where keys are tuples of (camA, camB) names
+        if not self.model.stereo_calib:
+            # Handle case where no calibration exists (return empty strings or raise error)
+            return "", ""
+        # Retrieve the last key (the last calibrated pair)
+        return list(self.model.stereo_calib.keys())[-1]
 
     def update_stage_info_reticle_metadata(self):
         # Update related to reticle metadata
