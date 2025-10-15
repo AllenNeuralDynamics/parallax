@@ -5,13 +5,13 @@ from dataclasses import dataclass
 from typing import List, Tuple
 import numpy as np
 import cv2
+import parallax.config.config_calibration as cfg
 from parallax.cameras.calibration_camera import (
-                                                    CameraParams,
-                                                    SIZE, OBJPOINTS,
-                                                    process_reticle_points,
-                                                    get_rotmat_from_camA_to_global,
-                                                    change_coords_system_from_camA_to_global
-                                                )
+    CameraParams,
+    process_reticle_points,
+    get_rotmat_from_camA_to_global,
+    change_coords_system_from_camA_to_global
+)
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -30,54 +30,76 @@ class StereoCalibrationResult:
     P_A: np.ndarray                # (3,4) = K_A [I|0]
     P_B: np.ndarray                # (3,4) = K_B [R|T]
 
+# ----------------------------------------------------------------------
+# Stereo Calibration Function 
+# ----------------------------------------------------------------------
 def calibrate_stereo(
-        camA: str, 
-        imgpointsA: List[np.ndarray],          # list of (N,1,2) float32
-        paramsA: CameraParams,  #('mtx':..., 'dist':..., 'rvec':..., 'tvec':...)
-        camB: str,
-        imgpointsB: List[np.ndarray],          # list of (N,1,2) float32
-        paramsB: CameraParams,          # {'mtx':..., 'dist':..., 'rvec':..., 'tvec':...}
-        objpoints: List[np.ndarray] = OBJPOINTS,           # list of (N,1,3) float32
-        image_size: Tuple[int, int] = SIZE,           # (width, height)
-        criteria: Tuple[int, int, float] = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 1e-3),
-        flags: int = cv2.CALIB_FIX_INTRINSIC,
+    camA: str, 
+    imgpointsA: List[np.ndarray],           # list of [x_axis_points, y_axis_points] 
+    paramsA: CameraParams,                  # Intrinsic parameters for Cam A
+    camB: str,
+    imgpointsB: List[np.ndarray],           # list of [x_axis_points, y_axis_points] 
+    paramsB: CameraParams,                  # Intrinsic parameters for Cam B
+    criteria: Tuple[int, int, float] = cfg.CRIT_STEREO, # Use CRIT from config
+    flags: int = cv2.CALIB_FIX_INTRINSIC,
 ) -> StereoCalibrationResult:
-    imgpointsA, objpoints = process_reticle_points(imgpointsA[0], imgpointsA[1])
-    imgpointsB, _ = process_reticle_points(imgpointsB[0], imgpointsB[1])
-    
+    """
+    Performs stereo camera calibration between two cameras using their detected reticle coordinates
+    and intrinsic parameters.
+    Args:
+        camA (str): Camera A name.
+        imgpointsA (list): List of image points from camera A.
+        paramsA (CameraParams): Intrinsic parameters for camera A.
+        camB (str): Camera B name.
+        imgpointsB (list): List of image points from camera B.
+        paramsB (CameraParams): Intrinsic parameters for camera B.
+        criteria (tuple): Termination criteria for the optimization algorithm.
+        flags (int): Calibration flags to control the calibration process.
+    Returns:
+        StereoCalibrationResult: The result of the stereo calibration process.
+    """
+    imgpointsA_calib_format, _ = process_reticle_points(imgpointsA[0], imgpointsA[1])
+    imgpointsB_calib_format, _ = process_reticle_points(imgpointsB[0], imgpointsB[1])
+    objpoints_list = [cfg.OBJPOINTS.astype(np.float32)]
+
+    # Perform stereo calibration
+    imageSize=(int(paramsA.mtx[0, 2] * 2), int(paramsA.mtx[1, 2] * 2))  # Use retrieved size
     retval, _, _, _, _, R_AB, T_AB, E_AB, F_AB = cv2.stereoCalibrate(
-        objectPoints=objpoints,
-        imagePoints1=imgpointsA,
-        imagePoints2=imgpointsB,
+        objectPoints=objpoints_list, # Should be list of N sets of object points
+        imagePoints1=imgpointsA_calib_format,
+        imagePoints2=imgpointsB_calib_format,
         cameraMatrix1=paramsA.mtx,
         distCoeffs1=paramsA.dist,
         cameraMatrix2=paramsB.mtx,
         distCoeffs2=paramsB.dist,
-        imageSize=image_size,
+        imageSize=imageSize,
         criteria=criteria,
         flags=flags,
     )
-
-    # Projection matrices
-    P_A = paramsA.mtx @ np.hstack([np.eye(3), np.zeros((3, 1))])
-    P_B = paramsB.mtx @ np.hstack([R_AB, T_AB.reshape(3, 1)])
-
-    stereoCalibResult = StereoCalibrationResult(
+    
+    # Placeholder for P_A and P_B calculation
+    R_A = np.eye(3)
+    T_A = np.zeros((3, 1))
+    
+    P_A = paramsA.mtx @ np.hstack((R_A, T_A))
+    P_B = paramsB.mtx @ np.hstack((R_AB, T_AB.reshape(3, 1)))
+    
+    stereoCalibResult =  StereoCalibrationResult(
         camA=camA,
         camB=camB,
-        retval=float(retval),
+        retval=retval,
         R_AB=R_AB,
-        T_AB=T_AB.reshape(3,),
+        T_AB=T_AB.flatten(), # Flatten T_AB to match the (3,) requirement
         E_AB=E_AB,
         F_AB=F_AB,
         P_A=P_A,
-        P_B=P_B,
+        P_B=P_B
     )
-
     # Get err
-    err = test_performance(stereoCalibResult, camA, imgpointsA, paramsA, camB, imgpointsB, paramsB, objpoints=objpoints)
+    err = test_performance(stereoCalibResult, camA, imgpointsA, paramsA, camB, imgpointsB, paramsB)
 
     return err, stereoCalibResult
+
 
 # Example usage:
 """
@@ -204,34 +226,40 @@ def get_global_coords(
     """
     camA, coordA, paramsA, camB, coordB, paramsB = _matching_camera_order(StereoCalib, camA, coordA, paramsA, camB, coordB, paramsB)
     coordA = np.array(coordA).astype(np.float32)
-    coordB = np.array(coordB).astype(np.float32)
+    coosrdB = np.array(coordB).astype(np.float32)
     points_3d_AB = _triangulation(StereoCalib.P_B, StereoCalib.P_A, coordB, coordA)
     R, t = get_rotmat_from_camA_to_global(paramsA.rvec, paramsA.tvec)
     points_3d_G = change_coords_system_from_camA_to_global(points_3d_AB, R, t)
     return points_3d_G
 
+# Updated function signature to accept the full list of image points
 def test_performance(
-        StereoCalib: StereoCalibrationResult,
-        camA: str,
-        coordA: Tuple[float, float],
-        paramsA: CameraParams,
-        camB: str,
-        coordB: Tuple[float, float],
-        paramsB: CameraParams,
-        objpoints: List[np.ndarray] = OBJPOINTS,
-        print_results: bool = False
-    ) -> np.ndarray:
-    """Test stereo calibration.
-    Args:
-        camA (str): Camera A name.
-        coordA (tuple): Coordinates from camera A.
-        camB (str): Camera B name.
-        coordB (tuple): Coordinates from camera B.
-    Returns:
-        numpy.ndarray: Predicted 3D points in global coordinate system.
-    """
-    points_3d_G = get_global_coords(StereoCalib, camA, coordA, paramsA, camB, coordB, paramsB)
-    differences = points_3d_G - objpoints[0]
+    StereoCalib: StereoCalibrationResult,
+    camA: str,
+    imgpointsA: List[np.ndarray], 
+    paramsA: CameraParams,
+    camB: str,
+    imgpointsB: List[np.ndarray], 
+    paramsB: CameraParams,
+    objpoints: np.ndarray = cfg.OBJPOINTS.astype(np.float32), # (1, N, 3) float32
+    print_results: bool = False
+) -> np.ndarray:
+    
+    imgpointsA_flat, _ = process_reticle_points(imgpointsA[0], imgpointsA[1])
+    imgpointsB_flat, _ = process_reticle_points(imgpointsB[0], imgpointsB[1])
+
+    pointsA_for_triangulation = imgpointsA_flat[0].reshape(-1, 2) # Should be (42, 2)
+    pointsB_for_triangulation = imgpointsB_flat[0].reshape(-1, 2) # Should be (42, 2)
+    
+    # (42, 3) float32
+    points_3d_G = get_global_coords(
+        StereoCalib, 
+        camA, pointsA_for_triangulation, paramsA, 
+        camB, pointsB_for_triangulation, paramsB
+    )
+    
+    # 3. Perform element-wise subtraction
+    differences = points_3d_G - objpoints
     squared_distances = np.sum(np.square(differences), axis=1)
     euclidean_distances = np.sqrt(squared_distances)
     average_L2_distance = np.mean(euclidean_distances)
@@ -245,7 +273,7 @@ def test_performance(
 
     return average_L2_distance
 
-def test_x_y_z_performance(points_3d_G, objpoints=OBJPOINTS, print_results=True):
+def test_x_y_z_performance(points_3d_G, objpoints=cfg.OBJPOINTS, print_results=True):
     """
     Evaluates the performance of the stereo calibration by comparing the
     predicted 3D points with the original object points.

@@ -162,7 +162,7 @@ class ScreenCoordsMapper():
         Returns:
             np.ndarray or None: The calculated global coordinates or None if unavailable.
         """
-        if self.model.stereo_calib_instance is None:
+        if self.model.stereo_calib is None:
             logger.debug("Stereo instance is None")
             return None
 
@@ -216,7 +216,7 @@ class ScreenCoordsMapper():
         Returns:
             np.ndarray or None: The calculated global coordinates or None if unavailable.
         """
-        if self.model.stereo_calib_instance is None:
+        if self.model.stereo_calib is None:
             logger.debug("Stereo instance is None")
             return None
 

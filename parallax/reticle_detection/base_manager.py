@@ -262,9 +262,10 @@ class BaseReticleManager(QObject):
     found_coords = pyqtSignal(np.ndarray, np.ndarray, object) # x_coords, y_coords, CameraParams
     finished = pyqtSignal()
 
-    def __init__(self, name, WorkerClass, ProcessWorkerClass):
+    def __init__(self, model, name, WorkerClass, ProcessWorkerClass):
         """Initialize the reticle manager with worker classes and a name."""
         super().__init__()
+        self.model = model
         self.name = name
         self.WorkerClass = WorkerClass
         self.worker = None
@@ -280,7 +281,7 @@ class BaseReticleManager(QObject):
 
     def _init_process_thread(self):
         """Initialize the process worker thread."""
-        self.processWorker = self.processWorkerClass(self.name)
+        self.processWorker = self.processWorkerClass(self.model, self.name)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.found_coords.connect(self.found_coords)
         self.processWorker.signals.state.connect(self._state)

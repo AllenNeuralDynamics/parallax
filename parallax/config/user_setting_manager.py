@@ -282,7 +282,7 @@ class CameraConfigManager(BaseConfigManager):
             cam_cfg = cam_configs[sn]
 
             # Basic fields
-            for key in ["visible", "coords_axis", "coords_debug", "pos_x"]:
+            for key in ["visible", "coords_axis", "coords_debug", "pos_x", 'device_model']:
                 if key not in cam_cfg or cam_cfg[key] is None:
                     continue
                 if key == "pos_x":
@@ -310,9 +310,6 @@ class CameraConfigManager(BaseConfigManager):
                 rvec = _vec3(intr.get("rvec"))  #cv2.calibrateCamera return format
                 tvec = _vec3(intr.get("tvec"))
 
-                print("From YAML:")
-                print(f"mtx: {mtx}, dist: {dist}, rvecs: {rvec}, tvecs: {tvec}")
-
                 camera_params = CameraParams(
                     mtx=mtx,
                     dist=dist,
@@ -337,7 +334,7 @@ class CameraConfigManager(BaseConfigManager):
         cam_cfg = {}
 
         # Basic fields
-        for key in ["visible", "coords_debug"]:
+        for key in ["visible", "coords_debug", 'device_model']:
             if key in camera:
                 cam_cfg[key] = camera[key]
 

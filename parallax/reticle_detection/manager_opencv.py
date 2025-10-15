@@ -19,9 +19,10 @@ class ReticleDetectManager(BaseReticleManager):
     """Manager for reticle detection using OpenCV."""
     class ProcessWorker(BaseProcessWorker):
         """Worker for processing frames with OpenCV-based reticle detection."""
-        def __init__(self, name, test_mode=False):
+        def __init__(self, model, name, test_mode=False):
             """Initializes the OpenCV-based reticle detection worker."""
             super().__init__(name)
+            self.model = model
             self.test_mode = test_mode
             self.mask_detect = MaskGenerator(initial_detect=True)
             self.reticleDetector = ReticleDetection(
@@ -48,7 +49,11 @@ class ReticleDetectManager(BaseReticleManager):
                 return DetectionResult.FAILED
 
             # Step 3: Camera calibration
-            success, params = calibrate_camera(self.x_coords, self.y_coords)
+            success, params = calibrate_camera(
+                self.x_coords,
+                self.y_coords,
+                camera_model_name=self.model.get_camera_device_model(self.name)
+            )
             if not self.running:
                 return DetectionResult.STOPPED
             if not success:
@@ -86,7 +91,7 @@ class ReticleDetectManager(BaseReticleManager):
             super().__init__(name)
             self.test_mode = test_mode
 
-    def __init__(self, camera_name,  test_mode=False):
+    def __init__(self, model, camera_name,  test_mode=False):
         """Initializes the reticle detection manager with OpenCV."""
-        super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
+        super().__init__(model, camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode

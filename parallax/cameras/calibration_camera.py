@@ -16,66 +16,24 @@ from typing import Any, Dict, List, Tuple, Optional
 import numpy as np
 import cv2
 import scipy.spatial.transform as Rscipy
-
+import parallax.config.config_calibration as cfg
 
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-################ RETICLE COORDS FOR CALIBRATION ##############
-# Objectpoints
-WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
-X_COORDS_HALF = 10
-Y_COORDS_HALF = 10
-X_COORDS = X_COORDS_HALF * 2 + 1
-Y_COORDS = Y_COORDS_HALF * 2 + 1
-OBJPOINTS = np.zeros((X_COORDS + Y_COORDS, 3), np.float32)
-OBJPOINTS[:X_COORDS, 0] = np.arange(-X_COORDS_HALF, X_COORDS_HALF + 1)
-OBJPOINTS[X_COORDS:, 1] = np.arange(-Y_COORDS_HALF, Y_COORDS_HALF + 1)
-OBJPOINTS = OBJPOINTS * WORLD_SCALE
-OBJPOINTS = np.around(OBJPOINTS, decimals=2)
-CENTER_INDEX_X = X_COORDS_HALF
-CENTER_INDEX_Y = X_COORDS + Y_COORDS_HALF
-
-############## CAMERA PARAMETERS ##############
-# Calibration
-CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-11)
-imtx = np.array([[1.54e+04, 0.0e+00, 2e+03],
-                [0.0e+00, 1.54e+04, 1.5e+03],
-                [0.0e+00, 0.0e+00, 1.0e+00]],
-                dtype=np.float32)
-idist = np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32)
-# Intrinsic flag
-flags1 = (
-    cv2.CALIB_USE_INTRINSIC_GUESS
-    | cv2.CALIB_FIX_FOCAL_LENGTH
-    | cv2.CALIB_FIX_PRINCIPAL_POINT
-    | cv2.CALIB_FIX_ASPECT_RATIO
-    | cv2.CALIB_FIX_K1
-    | cv2.CALIB_FIX_K2
-    | cv2.CALIB_FIX_K3
-    | cv2.CALIB_FIX_TANGENT_DIST
-)
-SIZE = (4000, 3000)
-PIXEL_SIZE_MM = 0.00185  # 1.85 um per pixel
-
 
 ############## Calibration Functions ##############
 
 ###### Stereo Calibration ######
 """
-@dataclass
-class CameraParams:
-    mtx: np.ndarray
-    dist: np.array
-    rvec: np.ndarray
-    tvec: np.ndarray
-"""
-"""
 # Example usage:
-success, camera_params = calibrate_camera(x_axis=x_coords, y_axis=y_coords)
-
+success, camera_params = calibrate_camera(
+    x_axis=x_coords,
+    y_axis=y_coords, device_model_name="Blackfly S BFS-U3-120S4C"
+    device_model_name="Blackfly S BFS-U3-120S4C"
+)
 """
 @dataclass
 class CameraParams:
@@ -85,16 +43,38 @@ class CameraParams:
     tvec: Optional[np.ndarray] = None         # (3,1) float64
     
 def calibrate_camera(
-    x_axis, y_axis,
-    image_size: Tuple[int, int] = SIZE,  # (width, height)
-    imtx_init: Optional[np.ndarray] = imtx,
-    idist_init: Optional[np.ndarray] = idist,
-    flags: int = flags1,
-    criteria = CRIT,
+    x_axis: List[Tuple[float, float]],
+    y_axis: List[Tuple[float, float]],
+    camera_model_name: str = "MockCamera",
 ) -> Tuple[float, CameraParams]:
-    # Prepare correspondences (single view)
+    """
+    Performs intrinsic camera calibration using reticle points.
 
+    Args:
+        x_axis: Image points for the X-axis reticle lines.
+        y_axis: Image points for the Y-axis reticle lines.
+        camera_model_name: Identifier to retrieve specific camera parameters.
+
+    Returns:
+        A tuple of (reprojection_error, CameraParams).
+    """
+    # 1. Retrieve camera-specific parameters
+    try:
+        params = cfg.CAMERA_CONFIGS[camera_model_name]
+    except KeyError:
+        raise ValueError(f"Unknown camera model: {camera_model_name}. "
+                         f"Please add its configuration to config_calibration.py.")
+
+    image_size = params["SIZE"]
+    imtx_init = params["imtx_INIT"]
+    idist_init = params["idist_INIT"]
+    flags = params["FLAGS"]
+    pixel_size = params["PIXEL_SIZE_MM"]
+
+    # 2. Prepare correspondences (single view)
     imgpoints, objpoints = process_reticle_points(x_axis, y_axis)
+
+    # 3. Calibrate camera
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
         objpoints,
         imgpoints,
@@ -102,7 +82,7 @@ def calibrate_camera(
         imtx_init,
         idist_init,
         flags=flags,
-        criteria=criteria,
+        criteria=cfg.CRIT,
     )
     format_mtxt = (
         "\n".join(
@@ -114,7 +94,7 @@ def calibrate_camera(
     logger.debug(f"A reproj error: {ret}")
     logger.debug(f"Intrinsic: {format_mtxt}\n")
     logger.debug(f"Distortion: {format_dist}\n")
-    logger.debug(f"Focal length: {mtx[0][0]*PIXEL_SIZE_MM}")
+    logger.debug(f"Focal length: {mtx[0][0]*pixel_size}")
     distancesA = [np.linalg.norm(vec) for vec in tvecs]
     logger.debug(
         f"Distance from camera to world center: {np.mean(distancesA)}"
@@ -123,6 +103,7 @@ def calibrate_camera(
     print("From calibrate_camera:")
     print(f"mtx: {mtx}, dist: {dist}, rvecs: {rvecs[0]}, tvecs: {tvecs[0]}")
     return ret, CameraParams(mtx, dist, rvecs[0], tvecs[0])
+
 
 def _get_changed_data_format(x_axis, y_axis):
     """
@@ -155,7 +136,7 @@ def process_reticle_points(x_axis, y_axis):
     imgpoints = []
     coords_lines_foramtted = _get_changed_data_format(x_axis, y_axis)
     imgpoints.append(coords_lines_foramtted)
-    objpoints.append(OBJPOINTS)
+    objpoints.append(cfg.OBJPOINTS)
     objpoints = np.array(objpoints)
     imgpoints = np.array(imgpoints)
     return imgpoints, objpoints

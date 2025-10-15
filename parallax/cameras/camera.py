@@ -695,6 +695,7 @@ class MockCamera(BaseCamera):
         self.video_cap = None  # For video file input
         self._next_frame = 0
         self.running = True
+        self.device_model = "MockCamera"
 
         self.device_color_type = "Color"
         self.width = 4000

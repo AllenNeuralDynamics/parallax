@@ -11,8 +11,10 @@ from parallax.config.config_path import cnn_img_dir, cnn_export_dir
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker, DetectionResult
 from parallax.cameras.calibration_camera import (
-    imtx, idist, get_axis_object_points, get_projected_points, get_origin_xyz, get_rvec_and_tvec
+    get_axis_object_points, get_projected_points, get_origin_xyz, get_rvec_and_tvec
 )
+import parallax.config.config_calibration as cfg
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -29,9 +31,10 @@ class ReticleDetectManagerCNN(BaseReticleManager):
     """Manager for reticle detection using SuperPoint + Light Glue."""
     class ProcessWorker(BaseProcessWorker):
         """Worker for processing frames with CNN-based reticle detection."""
-        def __init__(self, name, test_mode=False):
+        def __init__(self, model, name, test_mode=False):
             """Initializes the CNN-based reticle detection worker."""
             super().__init__(name)
+            self.model = model
             self.test_mode = test_mode
             self.rvecs = None
             self.tvecs = None
@@ -91,6 +94,13 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             objpts_x_coords = get_axis_object_points('x', 10)
             objpts_y_coords = get_axis_object_points('y', 10)
 
+            device=self.model.get_camera_device_model(self.name)
+            cam_cfg = cfg.CAMERA_CONFIGS.get(device)
+            imtx = cam_cfg["imtx_INIT"] if cam_cfg else None
+            idist = cam_cfg["idist_INIT"] if cam_cfg else None
+            if imtx is None or idist is None:
+                logger.warning(f"No camera config found for device model: {device}. Using default parameters.")
+                return DetectionResult.FAILED
             self.x_coords = get_projected_points(objpts_x_coords, self.rvecs[0], self.tvecs[0], imtx, idist)
             self.y_coords = get_projected_points(objpts_y_coords, self.rvecs[0], self.tvecs[0], imtx, idist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
@@ -192,7 +202,8 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             super().__init__(name)
             self.test_mode = test_mode
 
-    def __init__(self, camera_name,  test_mode=False):
+    def __init__(self, model, camera_name,  test_mode=False):
         """Initializes the reticle detection manager with CNN-based methods."""
-        super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
+        super().__init__(model, camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode
+

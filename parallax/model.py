@@ -44,6 +44,7 @@ class Model(QObject):
         self.cameras[sn] = {
             'obj': cam,
             'visible': True,
+            'device_model': cam.device_model,
             'coords_axis': None,
             'coords_debug': None,
             'pos_x': None,
@@ -139,14 +140,14 @@ class Model(QObject):
         for _ in range(self.nMockCameras):
             cam = MockCamera()
             sn = cam.name(sn_only=True)
-            self.cameras[sn] = {'obj': cam, 'visible': True}
+            self.cameras[sn] = {'obj': cam, 'visible': True, 'device_model': cam.device_model}
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
         cams = list_cameras(version=self.version)
         for cam in cams:
             sn = cam.name(sn_only=True)
-            self.cameras[sn] = {'obj': cam, 'visible': True}
+            self.cameras[sn] = {'obj': cam, 'visible': True, 'device_model': cam.device_model}
 
         self.nPySpinCameras = sum(isinstance(cam['obj'], PySpinCamera) for cam in self.cameras.values())
         self.nMockCameras = sum(isinstance(cam['obj'], MockCamera) for cam in self.cameras.values())
@@ -459,6 +460,17 @@ class Model(QObject):
             list: The axis coordinates for the given camera.
         """
         return self.cameras[sn].get('coords_axis')
+
+    def get_camera_device_model(self, sn):
+        """Get device model for a specific camera.
+
+        Args:
+            sn (str): The name of the camera.
+
+        Returns:
+            list: The axis coordinates for the given camera.
+        """
+        return self.cameras[sn].get('device_model', 'MockCamera')
 
     def reset_coords_axis(self):
         """Reset axis coordinates for all cameras."""

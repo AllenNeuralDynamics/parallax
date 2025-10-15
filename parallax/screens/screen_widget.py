@@ -91,7 +91,7 @@ class ScreenWidget(pg.GraphicsView):
         self.axisFilter.found_coords.connect(self.found_reticle_coords)
 
         # Reticle Detection
-        self.reticleDetector = ReticleDetectManager(self.camera_name, test_mode=self.model.test)
+        self.reticleDetector = ReticleDetectManager(self.model, self.camera_name, test_mode=self.model.test)
         self.reticleDetector.frame_processed.connect(
             self.set_image_from_data
         )
@@ -100,7 +100,7 @@ class ScreenWidget(pg.GraphicsView):
         self.reticleDetector.finished.connect(self.reticle_coords_detect_finished)
 
         # Reticle Detection using CNN (Superpoint + Lightglue)
-        self.reticleDetectorCNN = ReticleDetectManagerCNN(self.camera_name, test_mode=self.model.test)
+        self.reticleDetectorCNN = ReticleDetectManagerCNN(self.model, self.camera_name, test_mode=self.model.test)
         self.reticleDetectorCNN.frame_processed.connect(
             self.set_image_from_data
         )
