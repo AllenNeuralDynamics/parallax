@@ -11,13 +11,19 @@ Classes:
 import logging
 import cv2
 import numpy as np
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple, Optional
+import numpy as np
+import cv2
 import scipy.spatial.transform as Rscipy
+
 
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+################ RETICLE COORDS FOR CALIBRATION ##############
 # Objectpoints
 WORLD_SCALE = 0.2  # 200 um per tick mark --> Translation matrix will be in mm
 X_COORDS_HALF = 10
@@ -32,17 +38,16 @@ OBJPOINTS = np.around(OBJPOINTS, decimals=2)
 CENTER_INDEX_X = X_COORDS_HALF
 CENTER_INDEX_Y = X_COORDS + Y_COORDS_HALF
 
+############## CAMERA PARAMETERS ##############
 # Calibration
 CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-11)
-
 imtx = np.array([[1.54e+04, 0.0e+00, 2e+03],
                 [0.0e+00, 1.54e+04, 1.5e+03],
                 [0.0e+00, 0.0e+00, 1.0e+00]],
                 dtype=np.float32)
 idist = np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32)
-
 # Intrinsic flag
-myflags1 = (
+flags1 = (
     cv2.CALIB_USE_INTRINSIC_GUESS
     | cv2.CALIB_FIX_FOCAL_LENGTH
     | cv2.CALIB_FIX_PRINCIPAL_POINT
@@ -52,475 +57,152 @@ myflags1 = (
     | cv2.CALIB_FIX_K3
     | cv2.CALIB_FIX_TANGENT_DIST
 )
-
-myflags2 = (
-    cv2.CALIB_FIX_PRINCIPAL_POINT
-    | cv2.CALIB_USE_INTRINSIC_GUESS
-    | cv2.CALIB_FIX_ASPECT_RATIO
-    | cv2.CALIB_FIX_FOCAL_LENGTH
-)
-
 SIZE = (4000, 3000)
+PIXEL_SIZE_MM = 0.00185  # 1.85 um per pixel
 
 
-class CalibrationCamera:
-    """Class for intrinsic calibration."""
+############## Calibration Functions ##############
 
-    def __init__(self, camera_name):
-        """
-        Initialize the CalibrationCamera object.
+###### Stereo Calibration ######
+"""
+@dataclass
+class CameraParams:
+    mtx: np.ndarray
+    dist: np.array
+    rvec: np.ndarray
+    tvec: np.ndarray
+"""
+"""
+# Example usage:
+success, camera_params = calibrate_camera(x_axis=x_coords, y_axis=y_coords)
 
-        Args:
-            camera_name (str): The name or serial number of the camera.
-        """
-        self.name = camera_name
-        self.n_interest_pixels = X_COORDS_HALF
-        self.imgpoints = None
-        self.objpoints = None
+"""
+@dataclass
+class CameraParams:
+    mtx: Optional[np.ndarray] = None          # (3,3) float64
+    dist: Optional[np.ndarray] = None         # (N,) or (1,N) float64
+    rvec: Optional[np.ndarray] = None         # (3,1) float64
+    tvec: Optional[np.ndarray] = None         # (3,1) float64
+    
+def calibrate_camera(
+    x_axis, y_axis,
+    image_size: Tuple[int, int] = SIZE,  # (width, height)
+    imtx_init: Optional[np.ndarray] = imtx,
+    idist_init: Optional[np.ndarray] = idist,
+    flags: int = flags1,
+    criteria = CRIT,
+) -> Tuple[float, CameraParams]:
+    # Prepare correspondences (single view)
 
-    def _get_changed_data_format(self, x_axis, y_axis):
-        """
-        Combine and format x and y axis coordinates into a single array.
-
-        Args:
-            x_axis (list or np.ndarray): X-axis coordinates (N, 2).
-            y_axis (list or np.ndarray): Y-axis coordinates (M, 2).
-
-        Returns:
-            np.ndarray: Combined coordinates with shape (N + M, 2), dtype float32.
-        """
-        x_axis = np.asarray(x_axis, dtype=np.float32)
-        y_axis = np.asarray(y_axis, dtype=np.float32)
-
-        if x_axis.ndim != 2 or x_axis.shape[1] != 2:
-            raise ValueError("x_axis must have shape (N, 2)")
-        if y_axis.ndim != 2 or y_axis.shape[1] != 2:
-            raise ValueError("y_axis must have shape (M, 2)")
-
-        coords_lines = np.vstack([x_axis, y_axis])
-        return coords_lines
-
-    def _process_reticle_points(self, x_axis, y_axis):
-        """
-        Process reticle points for calibration.
-
-        Args:
-            x_axis (list): X-axis coordinates.
-            y_axis (list): Y-axis coordinates.
-
-        Returns:
-            tuple: Image points and object points.
-        """
-        self.objpoints = []
-        self.imgpoints = []
-
-        coords_lines_foramtted = self._get_changed_data_format(x_axis, y_axis)
-        self.imgpoints.append(coords_lines_foramtted)
-        self.objpoints.append(OBJPOINTS)
-
-        self.objpoints = np.array(self.objpoints)
-        self.imgpoints = np.array(self.imgpoints)
-        return self.imgpoints, self.objpoints
-
-    def calibrate_camera(self, x_axis, y_axis):
-        """
-        Calibrate camera Intrinsic.
-
-        Args:
-            x_axis (list): X-axis coordinates.
-            y_axis (list): Y-axis coordinates.
-
-        Returns:
-            tuple: Calibration results (ret, mtx, dist).
-        """
-        self._process_reticle_points(x_axis, y_axis)
-        ret, self.mtx, self.dist, self.rvecs, self.tvecs = cv2.calibrateCamera(
-            self.objpoints,
-            self.imgpoints,
-            SIZE,
-            imtx,
-            idist,
-            flags=myflags1,
-            criteria=CRIT,
+    imgpoints, objpoints = process_reticle_points(x_axis, y_axis)
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
+        objpoints,
+        imgpoints,
+        image_size,
+        imtx_init,
+        idist_init,
+        flags=flags,
+        criteria=criteria,
+    )
+    format_mtxt = (
+        "\n".join(
+            [" ".join([f"{val:.2f}" for val in row]) for row in mtx]
         )
+        + "\n"
+    )
+    format_dist = " ".join([f"{val:.2f}" for val in dist[0]]) + "\n"
+    logger.debug(f"A reproj error: {ret}")
+    logger.debug(f"Intrinsic: {format_mtxt}\n")
+    logger.debug(f"Distortion: {format_dist}\n")
+    logger.debug(f"Focal length: {mtx[0][0]*PIXEL_SIZE_MM}")
+    distancesA = [np.linalg.norm(vec) for vec in tvecs]
+    logger.debug(
+        f"Distance from camera to world center: {np.mean(distancesA)}"
+    )
 
-        format_mtxt = (
-            "\n".join(
-                [" ".join([f"{val:.2f}" for val in row]) for row in self.mtx]
-            )
-            + "\n"
-        )
-        format_dist = " ".join([f"{val:.2f}" for val in self.dist[0]]) + "\n"
-        logger.debug(f"A reproj error: {ret}")
-        logger.debug(f"Intrinsic: {format_mtxt}\n")
-        logger.debug(f"Distortion: {format_dist}\n")
-        logger.debug(f"Focal length: {self.mtx[0][0]*1.85/1000}")
-        distancesA = [np.linalg.norm(vec) for vec in self.tvecs]
-        logger.debug(
-            f"Distance from camera to world center: {np.mean(distancesA)}"
-        )
-        return ret, self.mtx, self.dist, self.rvecs, self.tvecs
+    print("From calibrate_camera:")
+    print(f"mtx: {mtx}, dist: {dist}, rvecs: {rvecs[0]}, tvecs: {tvecs[0]}")
+    return ret, CameraParams(mtx, dist, rvecs[0], tvecs[0])
 
-
-class CalibrationStereo(CalibrationCamera):
+def _get_changed_data_format(x_axis, y_axis):
     """
-    Class for stereo camera calibration.
+    Combine and format x and y axis coordinates into a single array.
+    Args:
+        x_axis (list or np.ndarray): X-axis coordinates (N, 2).
+        y_axis (list or np.ndarray): Y-axis coordinates (M, 2).
+    Returns:
+        np.ndarray: Combined coordinates with shape (N + M, 2), dtype float32.
     """
+    x_axis = np.asarray(x_axis, dtype=np.float32)
+    y_axis = np.asarray(y_axis, dtype=np.float32)
+    if x_axis.ndim != 2 or x_axis.shape[1] != 2:
+        raise ValueError("x_axis must have shape (N, 2)")
+    if y_axis.ndim != 2 or y_axis.shape[1] != 2:
+        raise ValueError("y_axis must have shape (M, 2)")
+    coords_lines = np.vstack([x_axis, y_axis])
+    return coords_lines
 
-    def __init__(
-            self, model, camA, imgpointsA, intrinsicA, camB, imgpointsB, intrinsicB):
-        """
-        Initialize the CalibrationStereo object.
+def process_reticle_points(x_axis, y_axis):
+    """
+    Process reticle points for calibration.
+    Args:
+        x_axis (list): X-axis coordinates.
+        y_axis (list): Y-axis coordinates.
+    Returns:
+        tuple: Image points and object points.
+    """
+    objpoints = []
+    imgpoints = []
+    coords_lines_foramtted = _get_changed_data_format(x_axis, y_axis)
+    imgpoints.append(coords_lines_foramtted)
+    objpoints.append(OBJPOINTS)
+    objpoints = np.array(objpoints)
+    imgpoints = np.array(imgpoints)
+    return imgpoints, objpoints
 
-        Args:
-            model (object): The model containing stage and transformation data.
-            camA (str): Camera A identifier.
-            imgpointsA (list): Image points for camera A.
-            intrinsicA (tuple): Intrinsic parameters for camera A.
-            camB (str): Camera B identifier.
-            imgpointsB (list): Image points for camera B.
-            intrinsicB (tuple): Intrinsic parameters for camera B.
-        """
-        self.model = model
-        self.n_interest_pixels = X_COORDS_HALF
-        self.camA = camA
-        self.camB = camB
-        self.imgpointsA, self.objpoints = self._process_reticle_points(
-            imgpointsA[0], imgpointsA[1])
-        self.imgpointsB, self.objpoints = self._process_reticle_points(
-            imgpointsB[0], imgpointsB[1])
-        self.mtxA, self.distA, self.rvecA, self.tvecA = intrinsicA[0], intrinsicA[1], intrinsicA[2][0], intrinsicA[3][0]
-        self.mtxB, self.distB, self.rvecB, self.tvecB = intrinsicB[0], intrinsicB[1], intrinsicB[2][0], intrinsicB[3][0]
-        self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
-        self.flags = cv2.CALIB_FIX_INTRINSIC
-        self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB = None, None, None, None, None
-        self.P_A, self.P_B = None, None
-        self.rmatA, self.rmatB = None, None
 
-    def print_calibrate_stereo_results(self, camA_sn, camB_sn):
-        """
-        Prints the results of the stereo calibration process between two cameras.
-        This function displays the calibration results, including the reprojection error,
-        rotation matrix (R), translation vector (T), fundamental matrix (F), and essential
-        matrix (E) for the stereo camera pair.
+def get_rotmat_from_camA_to_global(rvecA, tvecA):
+    """Get rotation matrix and translation vector
+    from camera A to global coordinate system.
+    Args:
+        rvecA (numpy.ndarray): Rotation vector of camera A.
+        tvecA (numpy.ndarray): Translation vector of camera A.
+    Returns:
+        tuple: Rotation matrix and translation vector.
+    """
+    rmat, _ = cv2.Rodrigues(rvecA)  # Convert rotation vectors to rotation matrices
+    rmat_inv = rmat.T  # Transpose of rotation matrix is its inverse
+    tvecs_inv = -rmat_inv @ tvecA
+    return rmat_inv, tvecs_inv
 
-        Args:
-            camA_sn (str): Serial number of Camera A.
-            camB_sn (str): Serial number of Camera B.
+def change_coords_system_from_camA_to_global(points_3d_AB, R, t):
+    # Transform the points
+    points_3d_G = np.dot(R, points_3d_AB.T).T + t.T
+    return points_3d_G
 
-        Returns:
-            None
-        """
-        if self.retval is None or self.R_AB is None or self.T_AB is None:
-            return
-        print("== Stereo Calibration ==")
-        print(f"Pair: {camA_sn}-{camB_sn}")
-        print(self.retval)
-        print(f"R: \n{self.R_AB}")
-        print(f"T: \n{self.T_AB}")
-        print(np.linalg.norm(self.T_AB))
-
-        if self.F_AB is None or self.E_AB is None:
-            return
-        formatted_F = (
-            "F_AB:\n"
-            + "\n".join(
-                [" ".join([f"{val:.5f}" for val in row]) for row in self.F_AB]
-            ))
-        formatted_E = (
-            "E_AB:\n"
-            + "\n".join(
-                [" ".join([f"{val:.5f}" for val in row]) for row in self.E_AB]
-            ) + "\n")
-        print(formatted_F)
-        print(formatted_E)
-
-    def calibrate_stereo(self):
-        """Calibrate stereo cameras.
-
-        Returns:
-            tuple: Stereo calibration results (retval, R_AB, T_AB, E_AB, F_AB).
-        """
-        self.retval, _, _, _, _, self.R_AB, self.T_AB, self.E_AB, self.F_AB = (
-            cv2.stereoCalibrate(
-                self.objpoints,
-                self.imgpointsA,
-                self.imgpointsB,
-                self.mtxA,
-                self.distA,
-                self.mtxB,
-                self.distB,
-                SIZE,
-                criteria=self.criteria,
-                flags=self.flags,
-            )
-        )
-        self.P_A = self.mtxA @ np.hstack((np.eye(3), np.zeros((3, 1))))
-        self.P_B = self.mtxB @ np.hstack((self.R_AB, self.T_AB.reshape(-1, 1)))
-
-        return self.retval, self.R_AB, self.T_AB, self.E_AB, self.F_AB
-
-    def _matching_camera_order(self, camA, coordA, camB, coordB):
-        """Match camera order based on initialization order.
-
-        Args:
-            camA (str): Camera A name.
-            coordA (tuple): Coordinates from camera A.
-            camB (str): Camera B name.
-            coordB (tuple): Coordinates from camera B.
-
-        Returns:
-            tuple: Matched camera order and coordinates.
-        """
-        if self.camA == camA:
-            return camA, coordA, camB, coordB
-
-        if self.camA == camB:
-            return camB, coordB, camA, coordA
-
-    def triangulation(self, P_1, P_2, imgpoints_1, imgpoints_2):
-        """Triangulate 3D points from stereo image points.
-
-        Args:
-            P_1 (numpy.ndarray): Projection matrix of camera 1.
-            P_2 (numpy.ndarray): Projection matrix of camera 2.
-            imgpoints_1 (numpy.ndarray): Image points from camera 1.
-            imgpoints_2 (numpy.ndarray): Image points from camera 2.
-
-        Returns:
-            numpy.ndarray: Triangulated 3D points.
-        """
-        points_4d_hom = cv2.triangulatePoints(
-            P_1, P_2, imgpoints_1.T, imgpoints_2.T
-        )
-        points_3d_hom = points_4d_hom / points_4d_hom[3]
-        points_3d_hom = points_3d_hom.T
-        return points_3d_hom[:, :3]
-
-    def change_coords_system_from_camA_to_global(self, camA, camB, points_3d_AB, print_results=False):
-        """Change coordinate system from camera A to global
-        using iterative method.
-
-        Args:
-            points_3d_AB (numpy.ndarray):
-            3D points in camera A coordinate system.
-
-        Returns:
-            numpy.ndarray: 3D points in global coordinate system.
-        """
-        logger.debug(f"=== {camA}, World to Camera transformation ====")
-        logger.debug(f"rvecs: {self.rvecA}")
-        logger.debug(f"tvecs: {self.tvecA}")
-
-        if print_results:
-            print(f"=== {camA}, World to Camera transformation ====")
-            print(f"rvecs: {self.rvecA}")
-            print(f"tvecs: {self.tvecA}")
-
-        logger.debug(f"=== {camB}, World to Camera transformation ====")
-        logger.debug(f"rvecs: {self.rvecB}")
-        logger.debug(f"tvecs: {self.tvecB}")
-
-        if print_results:
-            print(f"=== {camB}, World to Camera transformation ====")
-            print(f"rvecs: {self.rvecB}")
-            print(f"tvecs: {self.tvecB}")
-
-        # Convert rotation vectors to rotation matrices
-        rmat, _ = cv2.Rodrigues(self.rvecA)
-        # Invert the rotation and translation
-        self.rmat_inv = rmat.T  # Transpose of rotation matrix is its inverse
-        self.tvecs_inv = -self.rmat_inv @ self.tvecA
-        # Transform the points
-        points_3d_G = np.dot(self.rmat_inv, points_3d_AB.T).T + self.tvecs_inv.T
-        return points_3d_G
-
-    def change_coords_system_from_camA_to_global_savedRT(self, points_3d_AB):
-        """Change coordinate system from camera A to global
-        using saved rotation and translation.
-
-        Args:
-            points_3d_AB (numpy.ndarray):
-            3D points in camera A coordinate system.
-
-        Returns:
-            numpy.ndarray: 3D points in global coordinate system.
-        """
-        points_3d_G = np.dot(self.rmat_inv, points_3d_AB.T).T + self.tvecs_inv.T
-        return points_3d_G
-
-    def get_global_coords(self, camA, coordA, camB, coordB):
-        """Get global coordinates from stereo image coordinates.
-
-        Args:
-            camA (str): Camera A name.
-            coordA (tuple): Coordinates from camera A.
-            camB (str): Camera B name.
-            coordB (tuple): Coordinates from camera B.
-
-        Returns:
-            numpy.ndarray: 3D points in global coordinate system.
-        """
-        camA, coordA, camB, coordB = self._matching_camera_order(
-            camA, coordA, camB, coordB
-        )
-        coordA = np.array(coordA).astype(np.float32)
-        coordB = np.array(coordB).astype(np.float32)
-        points_3d_AB = self.triangulation(self.P_B, self.P_A, coordB, coordA)
-        points_3d_G = self.change_coords_system_from_camA_to_global_savedRT(
-            points_3d_AB
-        )
-
-        logger.debug(
-            f"points_3d_G: {points_3d_G}, coordA: {coordA}, coordB: {coordB}"
-        )
-        return points_3d_G
-
-    def test_x_y_z_performance(self, points_3d_G):
-        """
-        Evaluates the performance of the stereo calibration by comparing the
-        predicted 3D points with the original object points.
-
-        Args:
-            points_3d_G (numpy.ndarray): The predicted 3D points in global coordinates.
-
-        Prints:
-            The L2 norm (Euclidean distance) for the x, y, and z dimensions in micrometers (µm³).
-        """
-        # Calculate the differences for each dimension
-        differences_x = points_3d_G[:, 0] - self.objpoints[0, :, 0]
-        differences_y = points_3d_G[:, 1] - self.objpoints[0, :, 1]
-        differences_z = points_3d_G[:, 2] - self.objpoints[0, :, 2]
-
-        # Calculate the mean squared differences for each dimension
-        mean_squared_diff_x = np.mean(np.square(differences_x))
-        mean_squared_diff_y = np.mean(np.square(differences_y))
-        mean_squared_diff_z = np.mean(np.square(differences_z))
-
-        # Calculate the L2 norm (Euclidean distance) for each dimension
-        l2_x = np.sqrt(mean_squared_diff_x)
-        l2_y = np.sqrt(mean_squared_diff_y)
-        l2_z = np.sqrt(mean_squared_diff_z)
-
-        print(
-            f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z:{np.round(l2_z*1000, 2)}µm³"
-        )
-
-    def test_performance(self, camA, coordA, camB, coordB, print_results=False):
-        """Test stereo calibration.
-
-        Args:
-            camA (str): Camera A name.
-            coordA (tuple): Coordinates from camera A.
-            camB (str): Camera B name.
-            coordB (tuple): Coordinates from camera B.
-
-        Returns:
-            numpy.ndarray: Predicted 3D points in global coordinate system.
-        """
-        camA, coordA, camB, coordB = self._matching_camera_order(
-            camA, coordA, camB, coordB
-        )
-        logger.debug(f"camA: {camA}, coordA: {coordA}")
-        logger.debug(f"camB: {camB}, coordB: {coordB}")
-        points_3d_AB = self.triangulation(
-            self.P_B, self.P_A, self.imgpointsB, self.imgpointsA
-        )
-        np.set_printoptions(suppress=True, precision=8)
-
-        points_3d_G = self.change_coords_system_from_camA_to_global(
-            camA, camB, points_3d_AB, print_results=print_results
-        )
-
-        differences = points_3d_G - self.objpoints[0]
-        squared_distances = np.sum(np.square(differences), axis=1)
-        euclidean_distances = np.sqrt(squared_distances)
-        average_L2_distance = np.mean(euclidean_distances)
-        if print_results:
-            print(
-                f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³"
-            )
-            self.test_x_y_z_performance(points_3d_G)
-            logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
-
-            self.test_pixel_error()
-
-        self.register_debug_points(camA, camB)
-        return average_L2_distance
-
-    def test_pixel_error(self):
-        """Test pixel reprojection error."""
-        mean_error = 0
-        for i in range(len(self.objpoints)):
-            imgpointsA_converted = np.array(
-                self.imgpointsA[i], dtype=np.float32
-            ).reshape(-1, 2)
-
-            imgpoints2, _ = cv2.projectPoints(
-                self.objpoints[i], self.rvecA, self.tvecA, self.mtxA, self.distA
-            )
-
-            imgpoints2_reshaped = imgpoints2.reshape(-1, 2)
-            differences = imgpointsA_converted - imgpoints2_reshaped
-            squared_distances = np.sum(np.square(differences), axis=1)
-            distances = np.sqrt(squared_distances)
-            average_L2_distance = np.mean(distances)
-            mean_error += average_L2_distance
-            logger.debug("A pixel diff")
-            logger.debug(imgpointsA_converted - imgpoints2_reshaped)
-        total_err = mean_error / len(self.objpoints)
-        print(f"(Reprojection error) Pixel L2 diff A: {total_err} pixels")
-
-        mean_error = 0
-        for i in range(len(self.objpoints)):
-            imgpointsB_converted = np.array(
-                self.imgpointsB[i], dtype=np.float32
-            ).reshape(-1, 2)
-
-            imgpoints2, _ = cv2.projectPoints(
-                self.objpoints[i], self.rvecB, self.tvecB, self.mtxB, self.distB
-            )
-
-            imgpoints2_reshaped = imgpoints2.reshape(-1, 2)
-            differences = imgpointsB_converted - imgpoints2_reshaped
-            distances = np.sqrt(np.sum(np.square(differences), axis=1))
-            average_L2_distance = np.mean(distances)
-            mean_error += average_L2_distance
-            logger.debug("B pixel diff")
-            logger.debug(imgpointsB_converted - imgpoints2_reshaped)
-
-        total_err = mean_error / len(self.objpoints)
-        print(f"(Reprojection error) Pixel L2 diff B: {total_err} pixels")
-
-    def register_debug_points(self, camA, camB):
-        """
-        Registers pixel coordinates of custom object points for debugging purposes.
-
-        Args:
-            camA (str): The serial number or identifier of camera A.
-            camB (str): The serial number or identifier of camera B.
-
-        This method:
-        1. Defines a custom grid of object points (without scaling).
-        2. Projects these 3D object points into 2D pixel coordinates for both camera A and camera B.
-        3. Registers the computed pixel coordinates to the model for debugging.
-        """
-        # Define the custom object points directly without scaling
-        x = np.arange(-4, 5)  # from -4 to 4
-        y = np.arange(-4, 5)  # from -4 to 4
-        xv, yv = np.meshgrid(x, y, indexing='ij')
-        objpoint = np.column_stack([xv.flatten(), yv.flatten(), np.zeros(xv.size)])
-
-        # Convert the list of object points to a NumPy array
-        objpoints = np.array([objpoint], dtype=np.float32)
-
-        # Call the get_pixel_coordinates method using the object points
-        pixel_coordsA = get_projected_points(objpoints, self.rvecA, self.tvecA, self.mtxA, self.distA)
-        pixel_coordsB = get_projected_points(objpoints, self.rvecB, self.tvecB, self.mtxB, self.distB)
-
-        # Register the pixel coordinates for the debug points
-        self.model.add_coords_for_debug(camA, pixel_coordsA)
-        self.model.add_coords_for_debug(camB, pixel_coordsB)
+def get_debug_points(rvec, tvec, mtx, dist):  # TODO
+    """
+    Registers pixel coordinates of custom object points for debugging purposes.
+    Args:
+        camA (str): The serial number or identifier of camera A.
+        camB (str): The serial number or identifier of camera B.
+    This method:
+    1. Defines a custom grid of object points (without scaling).
+    2. Projects these 3D object points into 2D pixel coordinates for both camera A and camera B.
+    3. Registers the computed pixel coordinates to the model for debugging.
+    """
+    # Define the custom object points directly without scaling
+    x = np.arange(-4, 5)  # from -4 to 4
+    y = np.arange(-4, 5)  # from -4 to 4
+    xv, yv = np.meshgrid(x, y, indexing='ij')
+    objpoint = np.column_stack([xv.flatten(), yv.flatten(), np.zeros(xv.size)])
+    # Convert the list of object points to a NumPy array
+    objpoints = np.array([objpoint], dtype=np.float32)
+    # Call the get_pixel_coordinates method using the object points
+    pixel_coords = get_projected_points(objpoints, rvec, tvec, mtx, dist)
+    # Register the pixel coordinates for the debug points
+    #self.model.add_coords_for_debug(camA, pixel_coordsA)
+    return pixel_coords
 
 
 # Utils

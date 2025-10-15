@@ -209,9 +209,9 @@ def test_calibrate_camera_calls_cv2_calibrateCamera(monkeypatch):
 
     monkeypatch.setattr("cv2.calibrateCamera", _fake_calib)
 
-    ret, mtx, dist, rvecs, tvecs = cam.calibrate_camera(x, y)
+    ret, camera_params = cam.calibrate_camera(x, y)
     assert ret == fake_ret
-    np.testing.assert_allclose(mtx, fake_mtx)
-    np.testing.assert_allclose(dist, fake_dist)
-    assert rvecs == fake_rvecs
-    assert tvecs == fake_tvecs
+    np.testing.assert_allclose(camera_params.mtx, fake_mtx)
+    np.testing.assert_allclose(camera_params.dist, fake_dist)
+    assert camera_params.rvec == fake_rvecs
+    assert camera_params.tvec == fake_tvecs

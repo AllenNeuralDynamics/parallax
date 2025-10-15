@@ -12,6 +12,7 @@ from PyQt6.QtCore import QObject
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
+from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
 from typing import Optional
 
@@ -375,7 +376,7 @@ class Model(QObject):
         """Reset transformation matrix between local to global coordinates."""
         self.reticle_metadata = {}
 
-    def add_probe_detector(self, probeDetector):  # TODO
+    def add_probe_detector(self, probeDetector):
         """Add a probe detector.
 
         Args:
@@ -483,7 +484,7 @@ class Model(QObject):
         """
         return self.cameras[sn].get('coords_debug')
 
-    def add_camera_intrinsic(self, sn, mtx, dist, rvec, tvec):
+    def add_camera_intrinsic_deprecate(self, sn, mtx, dist, rvec, tvec):  # TODO emit all signals using CameraCalibrationResult
         """Add intrinsic camera parameters for a specific camera.
 
         Args:
@@ -492,14 +493,37 @@ class Model(QObject):
             dist (numpy.ndarray): The distortion coefficients.
             rvec (numpy.ndarray): The rotation vector.
             tvec (numpy.ndarray): The translation vector.
-        """
+        }"""
         self.cameras[sn]['intrinsic'] = {
             'mtx': mtx,
             'dist': dist,
             'rvec': rvec,
             'tvec': tvec
         }
+        """
+        self.cameras[sn]['intrinsic'] = CameraCalibrationResult(
+            mtx=mtx,
+            dist=dist,
+            rvec=rvec,
+            tvec=tvec
+        )
+        """
+        self.save_camera_config(sn)
 
+    def add_camera_intrinsic(self, sn, camera_params: CameraParams):
+        """Add intrinsic camera parameters for a specific camera.
+
+        Args:
+            sn (str): The name of the camera.
+            camera_params (CameraParams): The camera parameters to add.
+
+        class CameraParams:
+            mtx: Optional[np.ndarray] = None          # (3,3) float64
+            dist: Optional[np.ndarray] = None         # (N,) or (1,N) float64
+            rvec: Optional[np.ndarray] = None         # (3,1) float64
+            tvec: Optional[np.ndarray] = None         # (3,1) float64
+        """
+        self.cameras[sn]['intrinsic'] = camera_params
         self.save_camera_config(sn)
 
     def save_camera_config(self, sn):
