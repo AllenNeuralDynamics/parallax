@@ -18,7 +18,6 @@ import yaml
 import numpy as np
 
 from parallax.config.config_path import settings_file, session_file
-from parallax.stages.stage_listener import Stage
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from dataclasses import is_dataclass, asdict

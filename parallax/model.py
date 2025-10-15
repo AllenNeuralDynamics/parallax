@@ -484,32 +484,6 @@ class Model(QObject):
         """
         return self.cameras[sn].get('coords_debug')
 
-    def add_camera_intrinsic_deprecate(self, sn, mtx, dist, rvec, tvec):  # TODO emit all signals using CameraCalibrationResult
-        """Add intrinsic camera parameters for a specific camera.
-
-        Args:
-            sn (str): The name of the camera.
-            mtx (numpy.ndarray): The camera matrix.
-            dist (numpy.ndarray): The distortion coefficients.
-            rvec (numpy.ndarray): The rotation vector.
-            tvec (numpy.ndarray): The translation vector.
-        }"""
-        self.cameras[sn]['intrinsic'] = {
-            'mtx': mtx,
-            'dist': dist,
-            'rvec': rvec,
-            'tvec': tvec
-        }
-        """
-        self.cameras[sn]['intrinsic'] = CameraCalibrationResult(
-            mtx=mtx,
-            dist=dist,
-            rvec=rvec,
-            tvec=tvec
-        )
-        """
-        self.save_camera_config(sn)
-
     def add_camera_intrinsic(self, sn, camera_params: CameraParams):
         """Add intrinsic camera parameters for a specific camera.
 

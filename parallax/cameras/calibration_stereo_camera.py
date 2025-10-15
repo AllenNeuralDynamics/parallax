@@ -2,10 +2,9 @@ import logging
 import cv2
 import numpy as np
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple, Optional
+from typing import List, Tuple
 import numpy as np
 import cv2
-import scipy.spatial.transform as Rscipy
 from parallax.cameras.calibration_camera import (
                                                     CameraParams,
                                                     SIZE, OBJPOINTS,
