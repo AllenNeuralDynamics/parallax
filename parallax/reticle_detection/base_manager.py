@@ -22,7 +22,6 @@ class DrawWorkerSignal(QObject):
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
 
-
 class BaseDrawWorker(QRunnable):
     """Base worker for drawing reticle detection results on frames."""
     def __init__(self, name):

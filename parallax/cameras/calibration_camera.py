@@ -277,7 +277,6 @@ def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
 
     return QW, QX, QY, QZ, TX, TY, TZ
 
-
 def get_rvec_and_tvec(quat, tvecs):
     """
     Convert quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ)
@@ -298,5 +297,4 @@ def get_rvec_and_tvec(quat, tvecs):
 
     rvecs = rvecs.reshape(3, 1).astype(np.float64)
     tvecs = np.array(tvecs, dtype=np.float64).reshape(3, 1)
-    rvecs, tvecs = (rvecs,), (tvecs,)
     return rvecs, tvecs

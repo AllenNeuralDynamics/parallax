@@ -187,8 +187,6 @@ class StereoCameraHandler:
             tuple: A tuple containing the results of the stereo calibration process.
         """
 
-        self.model.get_camera_device_model(camA)
-        self.model.get_camera_device_model(camB)
         err, stereoResult = calibrate_stereo(
             camA = camA,
             imgpointsA = coordsA,

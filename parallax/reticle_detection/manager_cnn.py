@@ -101,10 +101,10 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             if imtx is None or idist is None:
                 logger.warning(f"No camera config found for device model: {device}. Using default parameters.")
                 return DetectionResult.FAILED
-            self.x_coords = get_projected_points(objpts_x_coords, self.rvecs[0], self.tvecs[0], imtx, idist)
-            self.y_coords = get_projected_points(objpts_y_coords, self.rvecs[0], self.tvecs[0], imtx, idist)
+            self.x_coords = get_projected_points(objpts_x_coords, self.rvecs, self.tvecs, imtx, idist)
+            self.y_coords = get_projected_points(objpts_y_coords, self.rvecs, self.tvecs, imtx, idist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
-                np.array(self.x_coords, dtype=np.float32), imtx, idist, self.rvecs[0], self.tvecs[0],
+                np.array(self.x_coords, dtype=np.float32), imtx, idist, self.rvecs, self.tvecs,
                 center_index_x=len(self.x_coords) // 2, axis_length=10
             )
             if not self.running:

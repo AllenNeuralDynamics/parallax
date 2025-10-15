@@ -76,14 +76,14 @@ def calibrate_stereo(
         criteria=criteria,
         flags=flags,
     )
-    
+
     # Placeholder for P_A and P_B calculation
     R_A = np.eye(3)
     T_A = np.zeros((3, 1))
-    
+
     P_A = paramsA.mtx @ np.hstack((R_A, T_A))
     P_B = paramsB.mtx @ np.hstack((R_AB, T_AB.reshape(3, 1)))
-    
+
     stereoCalibResult =  StereoCalibrationResult(
         camA=camA,
         camB=camB,
@@ -236,10 +236,10 @@ def get_global_coords(
 def test_performance(
     StereoCalib: StereoCalibrationResult,
     camA: str,
-    imgpointsA: List[np.ndarray], 
+    imgpointsA: List[np.ndarray],
     paramsA: CameraParams,
     camB: str,
-    imgpointsB: List[np.ndarray], 
+    imgpointsB: List[np.ndarray],
     paramsB: CameraParams,
     objpoints: np.ndarray = cfg.OBJPOINTS.astype(np.float32), # (1, N, 3) float32
     print_results: bool = False
@@ -250,11 +250,11 @@ def test_performance(
 
     pointsA_for_triangulation = imgpointsA_flat[0].reshape(-1, 2) # Should be (42, 2)
     pointsB_for_triangulation = imgpointsB_flat[0].reshape(-1, 2) # Should be (42, 2)
-    
+
     # (42, 3) float32
     points_3d_G = get_global_coords(
-        StereoCalib, 
-        camA, pointsA_for_triangulation, paramsA, 
+        StereoCalib,
+        camA, pointsA_for_triangulation, paramsA,
         camB, pointsB_for_triangulation, paramsB
     )
     
