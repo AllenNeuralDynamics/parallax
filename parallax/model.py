@@ -9,6 +9,7 @@ their initialization, configuration, and transformations between local and globa
 import numpy as np
 from collections import OrderedDict
 from PyQt6.QtCore import QObject
+from parallax.cameras.calibration_stereo_camera import StereoCalibrationResult
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
@@ -96,7 +97,7 @@ class Model(QObject):
         # coords axis
         self.camera_extrinsic = {}
         self.best_camera_pair = None
-        self.stereo_calib_instance = {}
+        self.stereo_calib = {}
 
         # Reticle metadata
         self.reticle_metadata = {}
@@ -515,29 +516,29 @@ class Model(QObject):
         """
         return self.cameras[sn].get('intrinsic', None)
 
-    def add_stereo_calib_instance(self, sorted_key, instance):
-        """Add stereo calibration instance.
+    def add_stereo_calib(self, sorted_key: tuple, stereo_calib_result: StereoCalibrationResult):
+        """Add stereo calibration result.
 
         Args:
             sorted_key (str): The sorted key that identifies the stereo calibration pair.
             instance (object): The stereo calibration instance to add.
         """
-        self.stereo_calib_instance[sorted_key] = instance
+        self.stereo_calib[sorted_key] = stereo_calib_result
 
-    def get_stereo_calib_instance(self, sorted_key):
-        """Get stereo calibration instance.
+    def get_stereo_calib(self, sorted_key: tuple) -> Optional[StereoCalibrationResult]:
+        """Get stereo calibration result.
 
         Args:
-            sorted_key (str): The key identifying the stereo calibration instance.
+            sorted_key (str): The key identifying the stereo calibration result.
 
         Returns:
-            object: The stereo calibration instance.
+            object: The stereo calibration result.
         """
-        return self.stereo_calib_instance.get(sorted_key)
+        return self.stereo_calib.get(sorted_key)
 
-    def reset_stereo_calib_instance(self):
-        """Reset all stereo calibration instances."""
-        self.stereo_calib_instance = {}
+    def reset_stereo_calib(self):
+        """Reset all stereo calibration results."""
+        self.stereo_calib = {}
 
     def add_camera_extrinsic(self, name1, name2, retVal, R, T, E, F):
         """Add extrinsic camera parameters for a camera pair.

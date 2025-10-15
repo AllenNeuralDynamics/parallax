@@ -54,8 +54,8 @@ class StereoCameraHandler:
 
         if not self.model.bundle_adjustment:
             return self._calibrate_stereo(cam_names, intrinsics, img_coords)
-        #else:
-        #    return self._calibrate_all_cameras(cam_names, intrinsics, img_coords)
+        else:
+            return self._calibrate_all_cameras(cam_names, intrinsics, img_coords)
 
     def _calibrate_stereo(self, cam_names, intrinsics, img_coords):
         """
@@ -100,7 +100,7 @@ class StereoCameraHandler:
 
         # Update the model with the calibration results
         sorted_key = tuple(sorted((self.camA_best, self.camB_best)))
-        self.model.add_stereo_calib_instance(sorted_key, self.calibrationStereo)
+        self.model.add_stereo_calib(sorted_key, self.calibrationStereo)
         self.model.add_camera_extrinsic(
             self.camA_best, self.camB_best, min_err, R_AB_best, T_AB_best, E_AB_best, F_AB_best
         )
@@ -119,8 +119,6 @@ class StereoCameraHandler:
             float: The minimum reprojection error across all camera pairs.
         """
         min_err = math.inf
-        # Stereo Camera Calibration
-        calibrationStereo = None
 
         # Perform calibration between pairs of cameras
         print(cam_names)
@@ -131,22 +129,21 @@ class StereoCameraHandler:
                 if camA == camB:
                     continue    # Skip if the cameras are the same
                 coordsA, coordsB = img_coords[i], img_coords[j]
-                itmxA, itmxB = intrinsics[i], intrinsics[j]
+                paramsA, paramsB = intrinsics[i], intrinsics[j]
 
-                err, calibrationStereo, retval, R_AB, T_AB, E_AB, F_AB = self._get_results_calibrate_stereo(
-                    camA, coordsA, itmxA, camB, coordsB, itmxB
+                err, stereoCalib = self._get_results_calibrate_stereo(
+                    camA, coordsA, paramsA, camB, coordsB, paramsB
                 )
                 print("\n--------------------------------------------------------")
                 print(f"camsera pair: {camA}-{camB}")
                 logger.debug(f"=== camera pair: {camA}-{camB} ===")
-                logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
+                logger.debug(f"R: \n{stereoCalib.R_AB}\nT: \n{stereoCalib.T_AB}")
 
                 # Store the instance with a sorted tuple key
                 sorted_key = tuple(sorted((camA, camB)))
-                self.model.add_stereo_calib_instance(sorted_key, calibrationStereo)
+                self.model.add_stereo_calib(sorted_key, stereoCalib)
 
                 # calibrationStereo.print_calibrate_stereo_results(camA, camB)
-                err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB, print_results=True)
                 if err < min_err:
                     min_err = err
 

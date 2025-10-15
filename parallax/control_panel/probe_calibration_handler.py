@@ -199,12 +199,12 @@ class ProbeCalibrationHandler(QWidget):
         """
         Retrieves the stereo calibration instance and given pair of cameras.
         """
-        if not self.model.stereo_calib_instance:
+        if not self.model.stereo_calib:
             raise ValueError("No stereo calibration instance found.")
         else:
             # Get the last inserted key (Python 3.7+ keeps insertion order in dicts)
-            sorted_key = list(self.model.stereo_calib_instance.keys())[-1]
-            calibrationStereo = self.model.get_stereo_calib_instance(sorted_key)
+            sorted_key = list(self.model.stereo_calib.keys())[-1]
+            calibrationStereo = self.model.get_stereo_calib(sorted_key)
             camA_best, camB_best = sorted_key
 
             return calibrationStereo, camA_best, camB_best
@@ -301,19 +301,19 @@ class ProbeCalibrationHandler(QWidget):
                 tip_,
             )
 
-    def get_calibration_instance(self, camA, camB):
+    def get_calibration_result(self, camA, camB):
         """
-        Retrieves the stereo calibration instance for a given pair of cameras.
+        Retrieves the stereo calibration result for a given pair of cameras.
 
         Args:
             camA (str): The first camera in the pair.
             camB (str): The second camera in the pair.
 
         Returns:
-            object: The stereo calibration instance for the given camera pair, or None if not found.
+            object: The stereo calibration result for the given camera pair, or None if not found.
         """
         sorted_key = tuple(sorted((camA, camB)))
-        return self.model.get_stereo_calib_instance(sorted_key)
+        return self.model.get_stereo_calib(sorted_key)
 
     def probe_overwrite_popup_window(self):
         """
