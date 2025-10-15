@@ -192,16 +192,22 @@ class ScreenCoordsMapper():
             tip_coordsA = cameras_detected_pts[camA_best]
             tip_coordsB = pos
 
-        # Calculate global coordinates using stereo instance
-        stereo_instance = self._get_calibration_instance(camA_best, camB_best)
-        if stereo_instance is None:
-            logger.debug(f"Stereo calibration instance not found for cameras: {camA_best}, {camB_best}")
-            return None
-
         # Calculate global coordinates using stereo calibration
-        global_coords = stereo_instance.get_global_coords(
-            camA_best, tip_coordsA, camB_best, tip_coordsB
-        )
+        stereo_result = self._get_stereo_calibration_result(camA_best, camB_best)
+        if stereo_result is None:
+            logger.debug(f"Stereo calibration result not found for cameras: {camA_best}, {camB_best}")
+            return None
+        camA_params = self.model.get_camera_intrinsic(camA_best)
+        camB_params = self.model.get_camera_intrinsic(camB_best)
+
+        # output format: (1,3), e.g [[1.0, 1.0, 10.0]]
+        global_coords = get_global_coords(stereo_result,
+                                camA_best,
+                                tip_coordsA,
+                                camA_params,
+                                camB_best,
+                                tip_coordsB,
+                                camB_params)
 
         return global_coords[0]
 
@@ -242,19 +248,27 @@ class ScreenCoordsMapper():
             return None
 
         # Calculate global coordinates using stereo instance
-        stereo_result = self._get_calibration_result(camA, camB)
+        stereo_result = self._get_stereo_calibration_result(camA, camB)
         if stereo_result is None:
             logger.debug(f"Stereo calibration result not found for cameras: {camA}, {camB}")
             return None
 
-        # Calculate global coordinates using the stereo instance
-        global_coords = stereo_instance.get_global_coords(  # TODO
-            camA, tip_coordsA, camB, tip_coordsB
-        )
+        # Calculate global coordinates using the stereo
+        camA_params = self.model.get_camera_intrinsic(camA)
+        camB_params = self.model.get_camera_intrinsic(camB)
+        global_coords = get_global_coords(stereo_result,
+                                camA,
+                                tip_coordsA,
+                                camA_params,
+                                camB,
+                                tip_coordsB,
+                                camB_params)
+        
+        print("screen_coords_mapper: global_coords", global_coords)
 
         return global_coords[0]
 
-    def _get_calibration_result(self, camA, camB):
+    def _get_stereo_calibration_result(self, camA, camB):
         """
         Retrieve the stereo calibration result for a given pair of cameras.
 
@@ -265,5 +279,8 @@ class ScreenCoordsMapper():
         Returns:
             object: The stereo calibration instance for the given camera pair.
         """
-        sorted_key = tuple(sorted((camA, camB)))
-        return self.model.get_stereo_calib(sorted_key)
+        if not self.model.stereo_calib:
+            raise ValueError("No stereo calibration instance found.")
+        else:
+            sorted_key = tuple(sorted((camA, camB)))
+            return self.model.get_stereo_calib(sorted_key)

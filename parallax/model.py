@@ -517,14 +517,14 @@ class Model(QObject):
         """Save camera configuration to a YAML file."""
         CameraConfigManager.save_to_yaml(self, sn)
 
-    def get_camera_intrinsic(self, sn):
+    def get_camera_intrinsic(self, sn) -> Optional[CameraParams]:
         """Get intrinsic camera parameters for a specific camera.
 
         Args:
             camera_name (str): The name of the camera.
 
         Returns:
-            list: The intrinsic parameters [mtx, dist, rvec, tvec] for the camera.
+            CameraParams: The intrinsic parameters [mtx, dist, rvec, tvec] for the camera.
         """
         return self.cameras[sn].get('intrinsic', None)
 
@@ -535,6 +535,7 @@ class Model(QObject):
             sorted_key (str): The sorted key that identifies the stereo calibration pair.
             instance (object): The stereo calibration instance to add.
         """
+        # sorted_key = tuple(sorted((camA, camB)))
         self.stereo_calib[sorted_key] = stereo_calib_result
 
     def get_stereo_calib(self, sorted_key: tuple) -> Optional[StereoCalibrationResult]:

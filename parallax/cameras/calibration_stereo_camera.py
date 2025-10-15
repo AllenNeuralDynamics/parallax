@@ -226,7 +226,7 @@ def get_global_coords(
     """
     camA, coordA, paramsA, camB, coordB, paramsB = _matching_camera_order(StereoCalib, camA, coordA, paramsA, camB, coordB, paramsB)
     coordA = np.array(coordA).astype(np.float32)
-    coosrdB = np.array(coordB).astype(np.float32)
+    coordB = np.array(coordB).astype(np.float32)
     points_3d_AB = _triangulation(StereoCalib.P_B, StereoCalib.P_A, coordB, coordA)
     R, t = get_rotmat_from_camA_to_global(paramsA.rvec, paramsA.tvec)
     points_3d_G = change_coords_system_from_camA_to_global(points_3d_AB, R, t)

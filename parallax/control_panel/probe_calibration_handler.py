@@ -16,6 +16,7 @@ from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.probe_detection.probe_spin_detector import SpinDetectionInputs
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
+from parallax.cameras.calibration_stereo_camera import get_global_coords
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import find_probe_angle, find_probe_angles_dict
 from parallax.config.config_path import debug_img_dir
@@ -80,8 +81,8 @@ class ProbeCalibrationHandler(QWidget):
         self.stageUI = None
         self.stageListener = None
         self.calibrationStereo = None
-        self.camA_best = None
-        self.camB_best = None
+        self.camA_best, self.camB_best = None, None
+        self.camA_params, self.camB_params = None, None
 
         # Probe Widget for the currently selected stage
         self.probe_detection_status = "default"    # options: default, process, accepted
@@ -195,19 +196,16 @@ class ProbeCalibrationHandler(QWidget):
         if not self.probe_calibration_btn.isEnabled():
             self.probe_calibration_btn.setEnabled(True)
 
-    def _get_calibration_result(self):
+    def _get_stereo_calibration_result(self, camA, camB):
         """
         Retrieves the stereo calibration instance and given pair of cameras.
         """
         if not self.model.stereo_calib:
             raise ValueError("No stereo calibration instance found.")
         else:
-            # Get the last inserted key (Python 3.7+ keeps insertion order in dicts)
-            sorted_key = list(self.model.stereo_calib.keys())[-1]
-            calibrationStereo = self.model.get_stereo_calib(sorted_key)
-            camA_best, camB_best = sorted_key
-
-            return calibrationStereo, camA_best, camB_best
+            #sorted_key = list(self.model.stereo_calib.keys())[-1]
+            sorted_key = tuple(sorted((camA, camB)))
+            return self.model.get_stereo_calib(sorted_key)
 
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
@@ -231,9 +229,15 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # All screens have the same timestamp. Proceed with triangulation
-        global_coords = self.calibrationStereo.get_global_coords(
-            self.camA_best, tip_A, self.camB_best, tip_B
-        )
+        global_coords = get_global_coords(self.calibrationStereo,
+                                        self.camA_best,
+                                        tip_A,
+                                        self.camA_params,
+                                        self.camB_best,
+                                        tip_B,
+                                        self.camB_params)
+        
+        print("probe_calibration_handler: global_coords", global_coords)
 
         self.stageListener.handleGlobalDataChange(
             sn_A,
@@ -282,14 +286,20 @@ class ProbeCalibrationHandler(QWidget):
                 return
 
             # Proceed with triangulation on the two screens
-            calibrationStereoInstance = self.get_calibration_instance(detected_cam, cam)
-            if calibrationStereoInstance is None:
+            calib_stereo = self._get_stereo_calibration_result(cam, detected_cam)
+            if calib_stereo is None:
                 logger.debug(f"Camera calibration has not done {detected_cam}, {cam}")
                 continue
 
-            global_coords = calibrationStereoInstance.get_global_coords(
-                detected_cam, tip, cam, tip_
-            )
+            cam_params = self.model.get_camera_intrinsic(cam)
+            detected_cam_params = self.model.get_camera_intrinsic(detected_cam)
+            global_coords = get_global_coords(calib_stereo,
+                                detected_cam,
+                                tip,
+                                detected_cam_params,
+                                cam,
+                                tip_,
+                                cam_params)
 
             self.stageListener.handleGlobalDataChange(  # Request probe calibration
                 sn,
@@ -300,20 +310,6 @@ class ProbeCalibrationHandler(QWidget):
                 cam,
                 tip_,
             )
-
-    def get_calibration_result(self, camA, camB):
-        """
-        Retrieves the stereo calibration result for a given pair of cameras.
-
-        Args:
-            camA (str): The first camera in the pair.
-            camB (str): The second camera in the pair.
-
-        Returns:
-            object: The stereo calibration result for the given camera pair, or None if not found.
-        """
-        sorted_key = tuple(sorted((camA, camB)))
-        return self.model.get_stereo_calib(sorted_key)
 
     def probe_overwrite_popup_window(self):
         """
@@ -478,7 +474,9 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_y.show()
         self.calib_z.show()
 
-        self.calibrationStereo, self.camA_best, self.camB_best = self._get_calibration_result()
+        self.calibrationStereo = self._get_stereo_calibration_result(self.camA_best, self.camB_best)
+        self.camA_params = self.model.get_camera_intrinsic(self.camA_best)
+        self.camB_params = self.model.get_camera_intrinsic(self.camB_best)
 
         # Connect with only reticle detected screens
         for screen in self.screen_widgets:
