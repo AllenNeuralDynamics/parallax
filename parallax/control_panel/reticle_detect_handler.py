@@ -246,7 +246,6 @@ class ReticleDetecthandler(QWidget):
             None
         """
 
-
         if self._is_positive_x_axis_detected():
             if self.get_pos_x_from_user_timer.isActive():
                 self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected

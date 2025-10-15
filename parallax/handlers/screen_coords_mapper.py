@@ -15,6 +15,7 @@ The ScreenCoordsMapper class includes functionality to:
 
 import logging
 import numpy as np
+from parallax.cameras.calibration_stereo_camera import get_global_coords
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

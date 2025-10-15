@@ -19,6 +19,7 @@ import numpy as np
 
 from parallax.config.config_path import settings_file, session_file
 from parallax.stages.stage_listener import Stage
+from parallax.cameras.calibration_camera import CameraParams
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from dataclasses import is_dataclass, asdict
 
@@ -295,17 +296,32 @@ class CameraConfigManager(BaseConfigManager):
             # Intrinsic
             intr = cam_cfg.get("intrinsic", {})
             if intr:
-                camera.setdefault("intrinsic", {})
-                if "mtx" in intr:
-                    camera["intrinsic"]["mtx"] = np.array(intr["mtx"], dtype=np.float64)
-                if "dist" in intr:
-                    camera["intrinsic"]["dist"] = np.array(intr["dist"], dtype=np.float64)
-                if "rvec" in intr:
-                    rvec = np.array(intr["rvec"], dtype=np.float64).reshape(3, 1)
-                    camera["intrinsic"]["rvec"] = (rvec,)
-                if "tvec" in intr:
-                    tvec = np.array(intr["tvec"], dtype=np.float64).reshape(3, 1)
-                    camera["intrinsic"]["tvec"] = (tvec,)
+                mtx  = np.asarray(intr.get("mtx"),  dtype=np.float64) if intr.get("mtx")  is not None else None
+                dist = np.asarray(intr.get("dist"), dtype=np.float64) if intr.get("dist") is not None else None
+
+                # Accept rvec/tvec in any of: [3], [3,1], (3,), (1,3)
+                def _vec3(v):
+                    if v is None:
+                        return None
+                    a = np.asarray(v, dtype=np.float64).reshape(-1)
+                    if a.size != 3:
+                        raise ValueError(f"rvec/tvec must have 3 elements, got {a.shape}")
+                    return a.reshape(3, 1)  # OpenCV-friendly (3,1)
+
+                rvec = _vec3(intr.get("rvec"))  #cv2.calibrateCamera return format
+                tvec = _vec3(intr.get("tvec"))
+
+                print("From YAML:")
+                print(f"mtx: {mtx}, dist: {dist}, rvecs: {rvec}, tvecs: {tvec}")
+
+                camera_params = CameraParams(
+                    mtx=mtx,
+                    dist=dist,
+                    rvec=rvec,
+                    tvec=tvec,
+                )
+                # Store as the object (not nested dicts/tuples)
+                camera["intrinsic"] = camera_params
 
     @classmethod
     def save_to_yaml(cls, model, sn: str) -> None:
@@ -338,18 +354,18 @@ class CameraConfigManager(BaseConfigManager):
                 cam_cfg["coords_axis"].append(path_converted)
 
         # Intrinsic
-        intrinsic = camera.get("intrinsic", {})
-        if intrinsic:
-            intr_dict = {}
-            if intrinsic.get("mtx") is not None:
-                intr_dict["mtx"] = intrinsic["mtx"].tolist()
-            if intrinsic.get("dist") is not None:
-                intr_dict["dist"] = intrinsic["dist"].tolist()
-            if intrinsic.get("rvec") is not None:
-                intr_dict["rvec"] = intrinsic["rvec"][0].flatten().tolist()
-            if intrinsic.get("tvec") is not None:
-                intr_dict["tvec"] = intrinsic["tvec"][0].flatten().tolist()
-            cam_cfg["intrinsic"] = intr_dict
+        params = camera.get("intrinsic", {})
+        if params:
+            params_dict = {}
+            if params.mtx is not None:
+                params_dict["mtx"] = params.mtx.tolist()
+            if params.dist is not None:
+                params_dict["dist"] = params.dist.tolist()
+            if params.rvec is not None:
+                params_dict["rvec"] = params.rvec.flatten().tolist()
+            if params.tvec is not None:
+                params_dict["tvec"] = params.tvec.flatten().tolist()
+            cam_cfg["intrinsic"] = params_dict
 
         data["model"]["cameras"][sn] = cam_cfg
         cls._save_yaml(data)

@@ -190,7 +190,7 @@ class BaseDrawWorker(QRunnable):
 class ProcessWorkerSignal(QObject):
     """Signals for the ProcessWorker."""
     finished = pyqtSignal()
-    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, object) # x_coords, y_coords, CameraParams
     state = pyqtSignal(str)  # "Found", "Failed", "Stopped", "InProcess"
 
 
@@ -259,7 +259,7 @@ class BaseReticleManager(QObject):
     """Base manager for reticle detection workers."""
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, object) # x_coords, y_coords, CameraParams
     finished = pyqtSignal()
 
     def __init__(self, name, WorkerClass, ProcessWorkerClass):

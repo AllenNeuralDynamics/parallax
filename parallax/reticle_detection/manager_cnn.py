@@ -8,6 +8,7 @@ import sys
 import time
 from pathlib import Path
 from parallax.config.config_path import cnn_img_dir, cnn_export_dir
+from parallax.cameras.calibration_camera import CameraParams
 from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker, DetectionResult
 from parallax.cameras.calibration_camera import (
     imtx, idist, get_axis_object_points, get_projected_points, get_origin_xyz, get_rvec_and_tvec
@@ -89,6 +90,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             # Reproject axis points
             objpts_x_coords = get_axis_object_points('x', 10)
             objpts_y_coords = get_axis_object_points('y', 10)
+
             self.x_coords = get_projected_points(objpts_x_coords, self.rvecs[0], self.tvecs[0], imtx, idist)
             self.y_coords = get_projected_points(objpts_y_coords, self.rvecs[0], self.tvecs[0], imtx, idist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
@@ -102,10 +104,13 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             logger.debug("CNN")
             logger.debug(f"rvecs: {self.rvecs}")
             logger.debug(f"tvecs: {self.tvecs}")
-            self.signals.found_coords.emit(
-                self.x_coords, self.y_coords, imtx, idist,
-                self.rvecs, self.tvecs
-            )
+            camera_params = CameraParams(
+                    mtx=imtx,
+                    dist=idist,
+                    rvec=self.rvecs,
+                    tvec=self.tvecs
+                )
+            self.signals.found_coords.emit(self.x_coords, self.y_coords, camera_params)
             if not self.running:
                 return DetectionResult.STOPPED
 

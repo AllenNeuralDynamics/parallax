@@ -2,7 +2,8 @@
 import math
 import logging
 import numpy as np
-from parallax.cameras.calibration_camera import CalibrationStereo
+#from parallax.cameras.calibration_camera import CalibrationStereo
+from parallax.cameras.calibration_stereo_camera import calibrate_stereo
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -53,8 +54,8 @@ class StereoCameraHandler:
 
         if not self.model.bundle_adjustment:
             return self._calibrate_stereo(cam_names, intrinsics, img_coords)
-        else:
-            return self._calibrate_all_cameras(cam_names, intrinsics, img_coords)
+        #else:
+        #    return self._calibrate_all_cameras(cam_names, intrinsics, img_coords)
 
     def _calibrate_stereo(self, cam_names, intrinsics, img_coords):
         """
@@ -79,20 +80,20 @@ class StereoCameraHandler:
             for j in range(i + 1, len(cam_names)):
                 camA, camB = cam_names[i], cam_names[j]
                 coordsA, coordsB = img_coords[i], img_coords[j]
-                itmxA, itmxB = intrinsics[i], intrinsics[j]
+                paramsA, paramsB = intrinsics[i], intrinsics[j] # dictionary
 
-                err, instance, retval, R_AB, T_AB, E_AB, F_AB = self._get_results_calibrate_stereo(
-                    camA, coordsA, itmxA, camB, coordsB, itmxB
+                err, stereoCalib = self._get_results_calibrate_stereo(
+                    camA, coordsA, paramsA, camB, coordsB, paramsB
                 )
                 print("\n----------------------------------------------------")
                 print(f"camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
                 logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³ ===")
-                logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
+                #logger.debug(f"R: \n{R_AB}\nT: \n{T_AB}")
 
                 if err < min_err:
-                    self.calibrationStereo = instance
+                    self.calibrationStereo = stereoCalib
                     min_err = err
-                    R_AB_best, T_AB_best, E_AB_best, F_AB_best = R_AB, T_AB, E_AB, F_AB
+                    R_AB_best, T_AB_best, E_AB_best, F_AB_best = stereoCalib.R_AB, stereoCalib.T_AB, stereoCalib.E_AB, stereoCalib.F_AB
                     self.camA_best, self.camB_best = camA, camB
                     coordsA_best, coordsB_best = coordsA, coordsB
                     # itmxA_best, itmxB_best = itmxA, itmxB
@@ -102,10 +103,6 @@ class StereoCameraHandler:
         self.model.add_stereo_calib_instance(sorted_key, self.calibrationStereo)
         self.model.add_camera_extrinsic(
             self.camA_best, self.camB_best, min_err, R_AB_best, T_AB_best, E_AB_best, F_AB_best
-        )
-
-        err = self.calibrationStereo.test_performance(
-            self.camA_best, coordsA_best, self.camB_best, coordsB_best, print_results=True
         )
         return err
 
@@ -171,25 +168,34 @@ class StereoCameraHandler:
                 logger.debug(f"Camera {sn} has no intrinsic or coordinates data.")
                 continue
 
+            """
             intrinsics.append([
                 intrinsic.get("mtx"),
                 intrinsic.get("dist"),
                 intrinsic.get("rvec"),
                 intrinsic.get("tvec"),
             ])
+            """
+            intrinsics.append(intrinsic)
             cam_names.append(sn)
             img_coords.append(coords)
 
         return cam_names, intrinsics, img_coords
 
-    def _get_results_calibrate_stereo(self, camA, coordsA, itmxA, camB, coordsB, itmxB):
+    def _get_results_calibrate_stereo(self, camA, coordsA, paramsA, camB, coordsB, paramsB):
         """
         Returns the results of the stereo calibration process.
 
         Returns:
             tuple: A tuple containing the results of the stereo calibration process.
         """
-        calibrationStereo = CalibrationStereo(self.model, camA, coordsA, itmxA, camB, coordsB, itmxB)
-        retval, R_AB, T_AB, E_AB, F_AB = calibrationStereo.calibrate_stereo()
-        err = calibrationStereo.test_performance(camA, coordsA, camB, coordsB)
-        return err, calibrationStereo, retval, R_AB, T_AB, E_AB, F_AB
+        err, stereoResult = calibrate_stereo(
+            camA = camA,
+            imgpointsA = coordsA,
+            paramsA = paramsA,
+            camB = camB,
+            imgpointsB = coordsB,
+            paramsB = paramsB,
+        )
+
+        return err, stereoResult

@@ -438,6 +438,8 @@ class ProbeDetectManager(QObject):
 
     def _get_negative_points(self):
         coords = self.model.get_coords_for_debug(self.name)
+        if coords is None:
+            return None
         origin_px   = coords[40]
         x_left_px   = coords[4]
         x_right_px  = coords[76]

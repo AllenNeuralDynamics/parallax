@@ -6,7 +6,13 @@ from typing import Any, Dict, List, Tuple, Optional
 import numpy as np
 import cv2
 import scipy.spatial.transform as Rscipy
-from parallax.cameras.calibration_camera import SIZE, OBJPOINTS, process_reticle_points, get_rotmat_from_camA_to_global, change_coords_system_from_camA_to_global
+from parallax.cameras.calibration_camera import (
+                                                    CameraParams,
+                                                    SIZE, OBJPOINTS,
+                                                    process_reticle_points,
+                                                    get_rotmat_from_camA_to_global,
+                                                    change_coords_system_from_camA_to_global
+                                                )
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -28,10 +34,10 @@ class StereoCalibrationResult:
 def calibrate_stereo(
         camA: str, 
         imgpointsA: List[np.ndarray],          # list of (N,1,2) float32
-        itmxA: Dict[str, Any],          # {'mtx':..., 'dist':..., 'rvec':..., 'tvec':...}
+        paramsA: CameraParams,  #('mtx':..., 'dist':..., 'rvec':..., 'tvec':...)
         camB: str,
         imgpointsB: List[np.ndarray],          # list of (N,1,2) float32
-        itmxB: Dict[str, Any],          # {'mtx':..., 'dist':..., 'rvec':..., 'tvec':...}
+        paramsB: CameraParams,          # {'mtx':..., 'dist':..., 'rvec':..., 'tvec':...}
         objpoints: List[np.ndarray] = OBJPOINTS,           # list of (N,1,3) float32
         image_size: Tuple[int, int] = SIZE,           # (width, height)
         criteria: Tuple[int, int, float] = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 1e-3),
@@ -39,28 +45,23 @@ def calibrate_stereo(
 ) -> StereoCalibrationResult:
     imgpointsA, objpoints = process_reticle_points(imgpointsA[0], imgpointsA[1])
     imgpointsB, _ = process_reticle_points(imgpointsB[0], imgpointsB[1])
-
-    mtxA = itmxA.get("mtx", None)
-    distA = itmxA.get("dist", None)
-    mtxB = itmxB.get("mtx", None)
-    distB = itmxB.get("dist", None)
     
     retval, _, _, _, _, R_AB, T_AB, E_AB, F_AB = cv2.stereoCalibrate(
         objectPoints=objpoints,
         imagePoints1=imgpointsA,
         imagePoints2=imgpointsB,
-        cameraMatrix1=mtxA,
-        distCoeffs1=distA,
-        cameraMatrix2=mtxB,
-        distCoeffs2=distB,
+        cameraMatrix1=paramsA.mtx,
+        distCoeffs1=paramsA.dist,
+        cameraMatrix2=paramsB.mtx,
+        distCoeffs2=paramsB.dist,
         imageSize=image_size,
         criteria=criteria,
         flags=flags,
     )
 
     # Projection matrices
-    P_A = mtxA @ np.hstack([np.eye(3), np.zeros((3, 1))])
-    P_B = mtxB @ np.hstack([R_AB, T_AB.reshape(3, 1)])
+    P_A = paramsA.mtx @ np.hstack([np.eye(3), np.zeros((3, 1))])
+    P_B = paramsB.mtx @ np.hstack([R_AB, T_AB.reshape(3, 1)])
 
     stereoCalibResult = StereoCalibrationResult(
         camA=camA,
@@ -75,43 +76,31 @@ def calibrate_stereo(
     )
 
     # Get err
-    rvec = itmxA.get("rvec", None)
-    tvec = itmxA.get("tvec", None)
-    err = test_performance(stereoCalibResult, camA, imgpointsA, camB, imgpointsB, rvec[0], tvec[0], objpoints=objpoints)
+    err = test_performance(stereoCalibResult, camA, imgpointsA, paramsA, camB, imgpointsB, paramsB, objpoints=objpoints)
 
     return err, stereoCalibResult
 
 # Example usage:
 """
 (Stereo)
-#_, mtxA, distA, rvecsA, tvecsA = calibrate_camera(x_axis=x_coords, y_axis=y_coords) # TODO
-#_, mtxB, distB, rvecsB, tvecsB = calibrate_camera(x_axis=x_coords, y_axis=y_coords)
+#_, paramsA = calibrate_camera(x_axis=x_coords, y_axis=y_coords)
+#_, paramsB = calibrate_camera(x_axis=x_coords, y_axis=y_coords)
 
-cameraCalib = CameraCalibrationResult(
-    mtx: np.ndarray
-    dist: np.array
-    rvec: np.ndarray
-    tvec: np.ndarray
-
-
-stereoResult = calibrate_stereo(
-    camA="CameraA",
-    camB="CameraB",
-    objpoints=objpoints,
-    imgpointsA=imgpointsA,
-    mtxA=mtxA,
-    distA=distA,
-    imgpointsB=imgpointsB,
-    mtxB=mtxB,
-    distB=distB
+err, stereoResult = calibrate_stereo(
+    camA = camA,
+    imgpointsA = coordsA,
+    paramsA = paramsA,
+    camB = camB,
+    imgpointsB = coordsB,
+    paramsB = paramsB,
 )
 
 points_3d_AB = triangulation(stereoResult.P_B, stereoResult.P_A, imgpointsB, imgpointsA)
-R, t = get_rotmat_from_camA_to_global(rvecA, tvecA)  
+R, t = get_rotmat_from_camA_to_global(paramsA.rvec, paramsA.tvec)
 points_3d_G = change_coords_system_from_camA_to_global(points_3d_AB, R, t)
 
 or 
-points_3d_G = get_global_coords(stereoResult, "camA", imgpointsA, "camB", imgpointsB, rvecA, tvecA)
+points_3d_G = get_global_coords(stereoResult, "camA", imgpointsA, paramsA, "camB", imgpointsB, paramsB)
 """
 
 ############# Helpers #############
@@ -158,7 +147,13 @@ def print_calibrate_stereo_results(stereoResult: StereoCalibrationResult):
     print(formatted_F)
     print(formatted_E)
 
-def _matching_camera_order(StereoCalib: StereoCalibrationResult, camA: str, coordA: Tuple, camB: str, coordB: Tuple):
+def _matching_camera_order(StereoCalib: StereoCalibrationResult,
+                           camA: str,
+                           coordA: Tuple,
+                           paramsA: CameraParams,
+                           camB: str,
+                           coordB: Tuple,
+                           paramsB: CameraParams):
     """Match camera order based on initialization order.
     Args:
         camA (str): Camera A name.
@@ -169,9 +164,9 @@ def _matching_camera_order(StereoCalib: StereoCalibrationResult, camA: str, coor
         tuple: Matched camera order and coordinates.
     """
     if StereoCalib.camA == camA:
-        return camA, coordA, camB, coordB
+        return camA, coordA, paramsA, camB, coordB, paramsB
     if StereoCalib.camA == camB:
-        return camB, coordB, camA, coordA
+        return camB, coordB, paramsB, camA, coordA, paramsA
     
 def _triangulation(P_1, P_2, imgpoints_1, imgpoints_2):
     """Triangulate 3D points from stereo image points.
@@ -194,10 +189,10 @@ def get_global_coords(
         StereoCalib: StereoCalibrationResult,
         camA: str,
         coordA: Tuple[float, float],
+        paramsA: CameraParams,
         camB: str,
         coordB: Tuple[float, float],
-        rvecA: np.ndarray,
-        tvecA: np.ndarray
+        paramsB: CameraParams
     ) -> np.ndarray:
     """Get global coordinates from stereo image coordinates.
     Args:`
@@ -208,13 +203,11 @@ def get_global_coords(
     Returns:
         numpy.ndarray: 3D points in global coordinate system.
     """
-    camA, coordA, camB, coordB = _matching_camera_order(StereoCalib, camA, coordA, camB, coordB)
+    camA, coordA, paramsA, camB, coordB, paramsB = _matching_camera_order(StereoCalib, camA, coordA, paramsA, camB, coordB, paramsB)
     coordA = np.array(coordA).astype(np.float32)
     coordB = np.array(coordB).astype(np.float32)
     points_3d_AB = _triangulation(StereoCalib.P_B, StereoCalib.P_A, coordB, coordA)
-    print("rvecA:", rvecA)
-    print("tvecA:", tvecA)
-    R, t = get_rotmat_from_camA_to_global(rvecA, tvecA)  
+    R, t = get_rotmat_from_camA_to_global(paramsA.rvec, paramsA.tvec)
     points_3d_G = change_coords_system_from_camA_to_global(points_3d_AB, R, t)
     return points_3d_G
 
@@ -222,10 +215,10 @@ def test_performance(
         StereoCalib: StereoCalibrationResult,
         camA: str,
         coordA: Tuple[float, float],
+        paramsA: CameraParams,
         camB: str,
         coordB: Tuple[float, float],
-        rvecA: np.ndarray,
-        tvecA: np.ndarray,
+        paramsB: CameraParams,
         objpoints: List[np.ndarray] = OBJPOINTS,
         print_results: bool = False
     ) -> np.ndarray:
@@ -238,7 +231,7 @@ def test_performance(
     Returns:
         numpy.ndarray: Predicted 3D points in global coordinate system.
     """
-    points_3d_G = get_global_coords(StereoCalib, camA, coordA, camB, coordB, rvecA, tvecA)
+    points_3d_G = get_global_coords(StereoCalib, camA, coordA, paramsA, camB, coordB, paramsB)
     differences = points_3d_G - objpoints[0]
     squared_distances = np.sum(np.square(differences), axis=1)
     euclidean_distances = np.sqrt(squared_distances)

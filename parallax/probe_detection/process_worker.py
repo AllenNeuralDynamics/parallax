@@ -178,6 +178,8 @@ class ProcessWorkerTAM(baseProcessWorker):
 
     def update_negative_points(self, neg_pts):
         """Update negative points for TAM."""
+        if neg_pts is None:
+            return
         pts_resized = []
         labels = []
 
