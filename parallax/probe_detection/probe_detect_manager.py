@@ -406,7 +406,7 @@ class ProbeDetectManager(QObject):
 
     def get_mask(self):
         """Save the current image and global mask."""
-        return self.worker.mask_bool
+        return self.worker.mask_bool.astype(np.uint8) * 255
 
     def get_frame(self):
         if self.tamProcessWorker is not None:

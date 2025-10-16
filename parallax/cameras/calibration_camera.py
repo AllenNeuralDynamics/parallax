@@ -300,3 +300,58 @@ def get_rvec_and_tvec(quat, tvecs):
     rvecs = rvecs.reshape(3, 1).astype(np.float64)
     tvecs = np.array(tvecs, dtype=np.float64).reshape(3, 1)
     return rvecs, tvecs
+
+
+def _P_from_params(params: CameraParams) -> Optional[np.ndarray]:
+    K    = np.asarray(params.mtx,  dtype=np.float64)
+    rvec = np.asarray(params.rvec, dtype=np.float64).reshape(3,1)
+    tvec = np.asarray(params.tvec, dtype=np.float64).reshape(3,1)
+    R, _ = cv2.Rodrigues(rvec)
+    Rt   = np.hstack([R, tvec])           # 3x4
+    return K @ Rt                         # 3x4
+
+# Input format ptsA: [(x1, y1), (x2, y2), ...]
+def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, paramsB: CameraParams) -> np.ndarray:
+    # Size Check
+    if len(ptsA) != len(ptsB):
+        raise ValueError(f"Number of points must match: {len(ptsA)} != {len(ptsB)}")
+    # 1. Check for valid intrinsic/pose data
+    if paramsA.mtx is None or paramsB.mtx is None:
+        raise ValueError("Camera matrix (K) is missing for one or both cameras.")
+    if paramsA.rvec is None or paramsA.tvec is None or paramsB.rvec is None or paramsB.tvec is None:
+        raise ValueError("Rotation (rvec) and Translation (tvec) vectors must be defined for both cameras.")
+
+    P1 = _P_from_params(paramsA)
+    P2 = _P_from_params(paramsB)
+
+    # 2. Undistortion
+    ptsA_in = np.asarray(ptsA, dtype=np.float64)
+    ptsB_in = np.asarray(ptsB, dtype=np.float64)
+
+    # cv2.undistortPoints expects N x 1 x 2 input
+    ptsA_undistorted = cv2.undistortPoints(
+        ptsA_in.reshape(-1, 1, 2), paramsA.mtx, paramsA.dist, P=paramsA.mtx
+    ).reshape(-1, 2)
+
+    ptsB_undistorted = cv2.undistortPoints(
+        ptsB_in.reshape(-1, 1, 2), paramsB.mtx, paramsB.dist, P=paramsB.mtx
+    ).reshape(-1, 2)
+
+    # Convert to 2xN format for cv2.triangulatePoints
+    ptsA_final = ptsA_undistorted.T  # 2xN
+    ptsB_final = ptsB_undistorted.T  # 2xN
+
+    Xhs = cv2.triangulatePoints(P1, P2, ptsA_final, ptsB_final)  # 4xN
+
+    # Check for valid triangulation results (often Xh[3] being zero or near zero)
+    if np.any(np.abs(Xhs[3, :]) < 1e-12):
+        print("Warning: Division by zero or very small w-coordinate encountered in triangulation.")
+        # Handle by replacing near-zero w with a small epsilon
+        w = Xhs[3, :]
+        w[np.abs(w) < 1e-12] = 1e-12
+    else:
+        w = Xhs[3, :]
+
+    # Normalize homogeneous coordinates
+    Xs = Xhs[:3, :] / w  # 3xN
+    return Xs.T  # Nx3

@@ -14,7 +14,7 @@ from typing import Optional
 import cv2
 
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
-from parallax.probe_detection.probe_spin_detector import SpinDetectionInputs
+from parallax.probe_detection.probe_spin_detector import SpinCalculationResult, SpinDetectionInputs, SpinProcessor
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_stereo_camera import get_global_coords
@@ -37,8 +37,6 @@ class StageCalibrationInfo:
     transM_bregma: Optional[dict] = None
     arc_angle_global: Optional[tuple] = None
     arc_angle_bregma: Optional[dict] = None
-    spin_global: Optional[float] = None
-    spin_bregma: Optional[dict] = None
     L2_err: Optional[float] = None
     dist_travel: Optional[np.ndarray] = None
     status_x: Optional[str] = None
@@ -92,7 +90,6 @@ class ProbeCalibrationHandler(QWidget):
         self.moving_stage_id = None
         self.transMbs = None
         self.arc_angle_global, self.arc_angle_bregma = None, None
-        self.spin_global, self.spin_bregma = None, None
         self.spinDetectionInputs = SpinDetectionInputs()
         self.update_spin_inputs = False
 
@@ -257,13 +254,15 @@ class ProbeCalibrationHandler(QWidget):
         logger.debug(f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A['stage_x']}, {stage_A['stage_y']}, {stage_A['stage_z']}) {global_coords}")
 
         if self.update_spin_inputs:
-            self.spinDetectionInputs.camA_best = self.camA_best
-            self.spinDetectionInputs.camB_best = self.camB_best
+            self.spinDetectionInputs.camA = self.camA_best
+            self.spinDetectionInputs.camB = self.camB_best
             self.spinDetectionInputs.tipA_px = tip_A
             self.spinDetectionInputs.tipB_px = tip_B
             self.spinDetectionInputs.baseA_px = base_A
             self.spinDetectionInputs.baseB_px = base_B
             self.spinDetectionInputs.calibrationStereo = self.calibrationStereo
+            self.spinDetectionInputs.camA_params = self.camA_params
+            self.spinDetectionInputs.camB_params = self.camB_params
 
     @pyqtSlot()
     def probe_detect_on_screens(self, detected_cam):
@@ -521,10 +520,8 @@ class ProbeCalibrationHandler(QWidget):
         # Update related to reticle metadata
         self.reticle_metadata.load_metadata_from_file()  # self.model.reticle_metadata updated
         self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata)
-        self.arc_angle_global = find_probe_angle(self.transM)  # TODO update into session file
         self.arc_angle_bregma = find_probe_angles_dict(self.transMbs)
-        self.spin_global = None  # TODO update from session file
-        self.spin_bregma = self.find_probe_spin_bregma()
+        #self.spin_bregma = self.find_probe_spin_bregma()
 
     def update_stage_info_to_model(self, stage_id) -> None:
         """
@@ -547,17 +544,6 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.transM_bregma = self.transMbs
         stage_info.arc_angle_global = self.arc_angle_global
         stage_info.arc_angle_bregma = self.arc_angle_bregma
-
-        # Get Spin
-        stage_info.spin_global = self.spin_global
-        stage_info.spin_bregma = self.spin_bregma
-
-    def find_probe_spin_global(self):
-        # Requires: global mask, original image
-        # pts: global pts (tip, base), cameras info,
-
-        # return degrees
-        return
 
     def find_probe_spin_bregma(self):
         # return dictionary of degrees
@@ -611,13 +597,17 @@ class ProbeCalibrationHandler(QWidget):
             print("Failed to get spin info. Trying triangulation one more time.")
             return
 
-        spin = self.spinDetectionInputs.get_spin()
+        spin_processor = SpinProcessor(self.spinDetectionInputs)
+        result: SpinCalculationResult = spin_processor.run_detection_pipeline()
+        if not result.is_valid:
+            print("Spin detection failed sanity checks or calculation. Trying triangulation one more time.")
+            return
 
         self.probe_detection_status = "accepted"
 
         # Get angle information
         self.arc_angle_global = find_probe_angle(self.transM)  # TODO update into session file
-        self.spin_global = self.find_probe_spin_global()  # TODO update into session file
+        self.arc_angle_global["spin"] = result.spin_angle_deg  # TODO update into session file
 
         # Update reticle metatdata related info
         self.update_stage_info_reticle_metadata()

@@ -26,6 +26,11 @@ CENTER_INDEX_Y = X_COORDS + Y_COORDS_HALF
 CRIT = (cv2.TERM_CRITERIA_EPS, 0, 1e-11)
 CRIT_STEREO = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 1e-3)
 
+# 4 shanks
+MIN_SHANK_DIST_MM = 0.20
+MAX_SHANK_DIST_MM = 0.30
+Z_SPAN_MAX_MM = 0.10  # max Z variation in local coords
+
 
 # ----------------------------------------------------
 # --- CAMERA-SPECIFIC CONFIGURATION DICTIONARY ---
