@@ -26,7 +26,7 @@ class ReticleDetecthandler(QWidget):
         self.screen_widgets = screen_widgets
         self.filter = filter  # TODO move filter to screen widget
         self.actionTriangulate = actionTriangulate
-        self.camera_handler = StereoCameraHandler(model, self.screen_widgets)
+        self.camera_handler = StereoCameraHandler(model)
 
         # UI
         loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self)

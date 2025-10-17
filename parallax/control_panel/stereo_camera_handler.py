@@ -11,10 +11,9 @@ logger.setLevel(logging.WARNING)
 # parallax/stage_widget/stereo_calibrator.py
 class StereoCameraHandler:
     """Handles stereo camera calibration by performing calibration between pairs of cameras"""
-    def __init__(self, model, screen_widgets):
+    def __init__(self, model):
         """Initializes the StereoCameraHandler with a model and screen widgets."""
         self.model = model
-        self.screen_widgets = screen_widgets
         self.camA_best = None
         self.camB_best = None
 
@@ -140,8 +139,7 @@ class StereoCameraHandler:
         cam_names, intrinsics, img_coords = [], [], []
         visible_sns = set(self.model.get_visible_camera_sns())
 
-        for screen in self.screen_widgets:
-            sn = screen.get_camera_name()
+        for sn in self.model.cameras.keys():
             if sn not in visible_sns:
                 continue
 
