@@ -11,8 +11,9 @@ from parallax.config.config_path import cnn_img_dir, cnn_export_dir
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker, DetectionResult
 from parallax.cameras.calibration_camera import (
-    get_axis_object_points, get_projected_points, get_origin_xyz, get_rvec_and_tvec
+    get_axis_object_points, get_projected_points, get_origin_xyz
 )
+from parallax.utils.coords_converter import get_rvec_and_tvec
 import parallax.config.config_calibration as cfg
 
 logger = logging.getLogger(__name__)

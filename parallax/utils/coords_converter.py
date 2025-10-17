@@ -17,6 +17,8 @@ Conventions
 import logging
 import numpy as np
 from typing import Optional
+from scipy.spatial.transform import Rotation as Rscipy
+import cv2
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -375,5 +377,41 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
 
     return np.round(bregma_pts, 1)
 
+def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
+    """
+    Print the quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ)
+    derived from a rotation vector and translation vector.
+    Args:
+        rvecs (np.ndarray): Rotation vector (3x1 or 1x3).
+        tvecs (np.ndarray): Translation vector (3x1 or 1x3).
+        name (str): Optional name to include in the output.
+    """
+    R, _ = cv2.Rodrigues(rvecs)
+    quat = Rscipy.from_matrix(R).as_quat()  # [QX, QY, QZ, QW]
+    QX, QY, QZ, QW = quat
+    TX, TY, TZ = tvecs.flatten()
+    print(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
 
+    return QW, QX, QY, QZ, TX, TY, TZ
 
+def get_rvec_and_tvec(quat, tvecs):
+    """
+    Convert quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ)
+    to rotation vector (rvecs) and translation vector (tvecs).
+
+    Args:
+        quat (tuple): Quaternion as (QW, QX, QY, QZ).
+        tvecs (np.ndarray): Translation vector (3x1 or 1x3).
+
+    Returns:
+        rvecs (np.ndarray): Rotation vector (3x1).
+        tvecs (np.ndarray): Translation vector (3x1).
+    """
+    QX, QY, QZ, QW = quat  # scipy expects [QX, QY, QZ, QW] order
+    rotation = Rscipy.Rotation.from_quat([QX, QY, QZ, QW])
+    R_mat = rotation.as_matrix()
+    rvecs, _ = cv2.Rodrigues(R_mat)
+
+    rvecs = rvecs.reshape(3, 1).astype(np.float64)
+    tvecs = np.array(tvecs, dtype=np.float64).reshape(3, 1)
+    return rvecs, tvecs
