@@ -17,11 +17,9 @@ from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.probe_detection.probe_spin_detector import SpinCalculationResult, SpinDetectionInputs, SpinProcessor
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
-from parallax.cameras.calibration_stereo_camera import get_global_coords
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import find_probe_angle, find_probe_angles_dict
-from parallax.config.config_path import debug_img_dir
 
 
 logger = logging.getLogger(__name__)
@@ -80,7 +78,6 @@ class ProbeCalibrationHandler(QWidget):
         self.selected_stage_id = None
         self.stageUI = None
         self.stageListener = None
-        self.calibrationStereo = None
         self.camA_best, self.camB_best = None, None
         self.camA_params, self.camB_params = None, None
 
@@ -195,20 +192,6 @@ class ProbeCalibrationHandler(QWidget):
         if not self.probe_calibration_btn.isEnabled():
             self.probe_calibration_btn.setEnabled(True)
 
-    def _get_stereo_calibration_result(self, camA: str, camB: str):
-        """
-        Retrieves the stereo calibration result for the given camera pair.
-        """
-        if not self.model.stereo_calib:
-            raise ValueError("No stereo calibration data found.")
-
-        # Check for the key in both possible orders (A, B) and (B, A)
-        keys = [(camA, camB), (camB, camA)]
-        for key in keys:
-            if key in self.model.stereo_calib:
-                return self.model.stereo_calib[key]
-        raise KeyError(f"Calibration data not found for pair: {camA}-{camB}.")
-
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
         for screen in self.screen_widgets:
@@ -227,7 +210,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
-        print("probe_calibration_handler: global_coords_", global_coords)
+        print("global_coords", global_coords[0])
 
         self.stageListener.handleGlobalDataChange(
             sn_A,
@@ -453,8 +436,7 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_y.show()
         self.calib_z.show()
 
-        self.camA_best, self.camB_best = self._get_latest_stereo_pair_names()
-        self.calibrationStereo = self._get_stereo_calibration_result(self.camA_best, self.camB_best)
+        self._update_best_stereo_pair()
         self.camA_params = self.model.get_camera_intrinsic(self.camA_best)
         self.camB_params = self.model.get_camera_intrinsic(self.camB_best)
 
@@ -477,20 +459,15 @@ class ProbeCalibrationHandler(QWidget):
         message = "Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
 
-    def _get_latest_stereo_pair_names(self) -> Tuple[str, str]:
-        """
-        Retrieves the camera names (serial numbers) for the most recently calibrated
-        stereo pair from the model.
-
-        Returns:
-            Tuple[str, str]: A tuple containing (camA_name, camB_name).
-        """
-        # Assuming self.model.stereo_calib is a dictionary where keys are tuples of (camA, camB) names
-        if not self.model.stereo_calib:
-            # Handle case where no calibration exists (return empty strings or raise error)
-            return "", ""
-        # Retrieve the last key (the last calibrated pair)
-        return list(self.model.stereo_calib.keys())[-1]
+    def _update_best_stereo_pair(self):
+        candidats = self.model.get_camera_triangulation_candidate()
+        if not candidats:
+            logger.debug("No valid stereo pair found")
+            return
+        if len(candidats) < 2:
+            logger.debug("Less than two triangulation candidates found")
+            return
+        self.camA_best, self.camB_best = candidats[:2]
 
     def update_stage_info_reticle_metadata(self):
         # Update related to reticle metadata

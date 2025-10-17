@@ -65,7 +65,6 @@ class ProbeDetectWidget(QWidget):
             print(f"{self.screen.camera_name} - 'Realtime Efficient TAM' tracking selected")
             self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'tam')
 
-
     def _enable_run_button(self):
         """Enable the run button after detection is finished."""
         # Enable button
@@ -74,8 +73,6 @@ class ProbeDetectWidget(QWidget):
 
     def _reset_detection(self):
         """Reset the reticle detection settings."""
-        self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
-        self.model.save_camera_config(self.screen.camera_name)
         self.screen.run_no_filter()
 
     def _reticle_detected(self):

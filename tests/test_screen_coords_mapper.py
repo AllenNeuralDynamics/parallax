@@ -32,8 +32,6 @@ class MockModel:
     def get_reticle_metadata(self, reticle_name):
         return self.reticle_metadata.get(reticle_name, {})
 
-    def get_stereo_calib(self, key):
-        return MockStereoInstance()
 
     def get_cameras_detected_pts(self):
         return self.detected_pts

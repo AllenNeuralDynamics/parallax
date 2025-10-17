@@ -242,7 +242,7 @@ def _evaluate_performance(
     objpoints: np.ndarray = cfg.OBJPOINTS.astype(np.float32), # (1, N, 3) float32
     print_results: bool = False
 ) -> np.ndarray:
-    
+
     imgpointsA_flat, _ = process_reticle_points(imgpointsA[0], imgpointsA[1])
     imgpointsB_flat, _ = process_reticle_points(imgpointsB[0], imgpointsB[1])
 

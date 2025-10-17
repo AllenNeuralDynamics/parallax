@@ -29,7 +29,6 @@ def mock_model():
     m.add_stage_calib_info = Mock()
     m.get_stage_calib_info = Mock(return_value=None)
     m.reset_stage_calib_info = Mock()
-    m.reset_stereo_calib = Mock()
     m.reset_camera_extrinsic = Mock()
     m.get_coords_axis = Mock(return_value=None)
     m.get_camera_intrinsic = Mock(return_value=(None, None, None, None))

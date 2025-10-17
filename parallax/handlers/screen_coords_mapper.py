@@ -66,9 +66,8 @@ class ScreenCoordsMapper():
 
         # Get global coordinates based on the model's calibration mode
         if not self.model.bundle_adjustment:
-            global_coords = self._get_global_coords_stereo(camera_name, pos)
-        else:
-            global_coords = self._get_global_coords_BA(camera_name, pos)
+            global_coords = self._get_global_coords(camera_name, pos)
+
         if global_coords is None:
             return
 
@@ -151,61 +150,7 @@ class ScreenCoordsMapper():
         if pos is not None and camera_name is not None:
             self.model.add_pts(camera_name, pos)
 
-    def _get_global_coords_stereo(self, camera_name, pos):
-        """
-        Calculate global coordinates using stereo calibration based on the clicked position.
-
-        Args:
-            camera_name (str): The camera that captured the clicked position.
-            pos (tuple): The clicked position (x, y) on the screen.
-
-        Returns:
-            np.ndarray or None: The calculated global coordinates or None if unavailable.
-        """
-        if self.model.stereo_calib is None:
-            logger.debug("Stereo instance is None")
-            return None
-
-        if self.model.best_camera_pair is None:
-            logger.debug("Best camera pair is None")
-            return None
-
-        # Retrieve the best camera pair for stereo calibration
-        camA_best, camB_best = self.model.best_camera_pair
-        if camera_name not in [camA_best, camB_best]:
-            logger.debug("Clicked camera is not in the best pair")
-            return None
-
-        # Get detected points from cameras
-        cameras_detected_pts = self.model.get_cameras_detected_pts()
-
-        # Ensure both cameras in the best pair have detected points
-        if camA_best not in cameras_detected_pts or camB_best not in cameras_detected_pts:
-            logger.debug("One or both cameras in the best pair do not have detected points")
-            return None
-
-        # Assign points based on which camera is clicked
-        if camera_name == camA_best:
-            tip_coordsA = pos
-            tip_coordsB = cameras_detected_pts[camB_best]
-        elif camera_name == camB_best:
-            tip_coordsA = cameras_detected_pts[camA_best]
-            tip_coordsB = pos
-
-        # Calculate global coordinates using stereo calibration
-        stereo_result = self._get_stereo_calibration_result(camA_best, camB_best)
-        if stereo_result is None:
-            logger.debug(f"Stereo calibration result not found for cameras: {camA_best}, {camB_best}")
-            return None
-        camA_params = self.model.get_camera_intrinsic(camA_best)
-        camB_params = self.model.get_camera_intrinsic(camB_best)
-
-        # output format (N, 3)
-        global_coords = triangulate(ptsA=tip_coordsA, ptsB=tip_coordsB, paramsA=camA_params, paramsB=camB_params)
-
-        return global_coords[0]
-
-    def _get_global_coords_BA(self, camera_name, pos):
+    def _get_global_coords(self, camera_name, pos):
         """
         Calculate global coordinates using bundle adjustment (BA) based on the clicked position.
 
@@ -216,11 +161,7 @@ class ScreenCoordsMapper():
         Returns:
             np.ndarray or None: The calculated global coordinates or None if unavailable.
         """
-        if self.model.stereo_calib is None:
-            logger.debug("Stereo instance is None")
-            return None
-
-        # Get detected points from cameras
+        # Get detected points from cameras. This is no more than 2. Return most recent if >2.
         cameras_detected_pts = self.model.get_cameras_detected_pts()
         if len(cameras_detected_pts) < 2:
             logger.debug("Not enough detected points to calculate global coordinates")
@@ -244,25 +185,10 @@ class ScreenCoordsMapper():
         # Calculate global coordinates using the stereo
         camA_params = self.model.get_camera_intrinsic(camA)
         camB_params = self.model.get_camera_intrinsic(camB)
+        if camA_params is None or camB_params is None:
+            logger.debug("Camera intrinsic parameters are not available")
+            return None
 
         global_coords = triangulate(ptsA=tip_coordsA, ptsB=tip_coordsB, paramsA=camA_params, paramsB=camB_params)
-        print("screen_coords_mapper: global_coords_", global_coords)
 
         return global_coords[0]
-
-    def _get_stereo_calibration_result(self, camA, camB):
-        """
-        Retrieve the stereo calibration result for a given pair of cameras.
-
-        Args:
-            camA (str): The first camera in the pair.
-            camB (str): The second camera in the pair.
-
-        Returns:
-            object: The stereo calibration instance for the given camera pair.
-        """
-        if not self.model.stereo_calib:
-            raise ValueError("No stereo calibration instance found.")
-        else:
-            sorted_key = tuple(sorted((camA, camB)))
-            return self.model.get_stereo_calib(sorted_key)

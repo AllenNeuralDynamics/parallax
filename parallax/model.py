@@ -9,7 +9,6 @@ their initialization, configuration, and transformations between local and globa
 import numpy as np
 from collections import OrderedDict
 from PyQt6.QtCore import QObject
-from parallax.cameras.calibration_stereo_camera import StereoCalibrationResult
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.stages.stage_listener import Stage, StageInfo
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
@@ -45,6 +44,7 @@ class Model(QObject):
             'obj': cam,
             'visible': True,
             'device_model': cam.device_model,
+            'is_triangulation_candidate' : False
             'coords_axis': None,
             'coords_debug': None,
             'pos_x': None,
@@ -95,15 +95,10 @@ class Model(QObject):
         # probe detector altorithms # TODO
         self.probe_detection_algorithm = {}
 
-        # coords axis
-        self.camera_extrinsic = {}
-        self.best_camera_pair = None
-        self.stereo_calib = {}
-
         # Reticle metadata
         self.reticle_metadata = {}
 
-        # clicked pts
+        # clicked pts # max len = 2
         self.clicked_pts = OrderedDict()
 
     def set_probe_detect_algorithms(self, camera_sn, algorithms):
@@ -140,20 +135,34 @@ class Model(QObject):
         for _ in range(self.nMockCameras):
             cam = MockCamera()
             sn = cam.name(sn_only=True)
-            self.cameras[sn] = {'obj': cam, 'visible': True, 'device_model': cam.device_model}
+            self.cameras[sn] = {
+                'obj': cam,
+                'visible': True,
+                'device_model': cam.device_model,
+                'is_triangulation_candidate': False
+            }
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
         cams = list_cameras(version=self.version)
         for cam in cams:
             sn = cam.name(sn_only=True)
-            self.cameras[sn] = {'obj': cam, 'visible': True, 'device_model': cam.device_model}
+            self.cameras[sn] = {
+                'obj': cam,
+                'visible': True,
+                'device_model': cam.device_model,
+                'is_triangulation_candidate' : False,
+            }
 
         self.nPySpinCameras = sum(isinstance(cam['obj'], PySpinCamera) for cam in self.cameras.values())
         self.nMockCameras = sum(isinstance(cam['obj'], MockCamera) for cam in self.cameras.values())
 
     def load_camera_config(self):
         CameraConfigManager.load_from_yaml(self)
+
+    def save_camera_config(self, sn):
+        """Save camera configuration to a YAML file."""
+        CameraConfigManager.save_to_yaml(self, sn)
 
     def load_session_config(self):
         SessionConfigManager.load_from_yaml(self)
@@ -163,6 +172,36 @@ class Model(QObject):
 
     def clear_session_config(self):
         SessionConfigManager.clear_yaml()
+
+    def save_stage_config(self, stage_sn):
+        StageConfigManager.save_to_yaml(self, stage_sn)
+
+    def load_stage_config(self):
+        StageConfigManager.load_from_yaml(self)
+
+    def set_camera_triangulation_status(self, camera_sn, status: bool):
+        """
+        Set the calibration status for a specific stage.
+        """
+        if camera_sn is None:
+            raise ValueError("camera_sn cannot be None")
+        if camera_sn in self.cameras:
+            self.cameras[camera_sn]["is_triangulation_candidate"] = status
+        self.save_camera_config(camera_sn)
+
+    def get_camera_triangulation_candidate(self) -> list[str]:
+        """
+        Get a list of cameras that are marked as triangulation candidates.
+        """
+        return [sn for sn, cam in self.cameras.items() if cam.get("is_triangulation_candidate", False)]
+
+    def reset_all_triangulation_partners(self):
+        """
+        Resets the 'is_stereo_partner' status to False for all known cameras.
+        """
+        for camera_sn in self.cameras:
+            self.cameras[camera_sn]["is_stereo_partner"] = False
+            self.save_camera_config(camera_sn)
 
     def get_camera_resolution(self, camera_sn):
         camera = self.cameras.get(camera_sn, {}).get('obj', None)
@@ -226,11 +265,11 @@ class Model(QObject):
             for sn, stage in self.stages.items():
                 stage["is_calib"] = False
                 stage["calib_info"] = StageCalibrationInfo()
-                StageConfigManager.save_to_yaml(self, sn)
+                self.save_stage_config(sn)
         else:
             self.stages[sn]["is_calib"] = False
             self.stages[sn]["calib_info"] = StageCalibrationInfo()
-            StageConfigManager.save_to_yaml(self, sn)
+            self.save_stage_config(sn)
 
     def add_pts(self, camera_name, pts):
         """Add detected points for a camera.
@@ -328,12 +367,6 @@ class Model(QObject):
             return self.stages[stage_sn]["is_calib"]
         return False
 
-    def save_stage_config(self, stage_sn):
-        StageConfigManager.save_to_yaml(self, stage_sn)
-
-    def load_stage_config(self):
-        StageConfigManager.load_from_yaml(self)
-
     def is_calibrated(self, stage_sn):
         """Check if a specific stage is calibrated.
 
@@ -392,10 +425,6 @@ class Model(QObject):
         Args:
             sn (str, optional): Serial number of the camera. If provided, only that camera's data will be removed.
         """
-        if sn is None:
-            self.camera_extrinsic = {}
-        else:
-            self.camera_extrinsic.pop(sn, None)
 
         if sn is None:
             # Reset all cameras
@@ -404,14 +433,15 @@ class Model(QObject):
                 cam['coords_debug'] = None
                 cam['pos_x'] = None
                 cam['intrinsic'] = None
-            self.camera_extrinsic = {}
-            self.best_camera_pair = None
+            self.reset_all_triangulation_partners()
+
         else:
             if sn in self.cameras:
                 self.cameras[sn]['coords_axis'] = None
                 self.cameras[sn]['coords_debug'] = None
                 self.cameras[sn]['pos_x'] = None
                 self.cameras[sn]['intrinsic'] = None
+                self.set_camera_triangulation_status(sn, False)
 
     def add_pos_x(self, sn, pt):
         """Add position for the x-axis for a specific camera.
@@ -513,10 +543,6 @@ class Model(QObject):
         self.cameras[sn]['intrinsic'] = camera_params
         self.save_camera_config(sn)
 
-    def save_camera_config(self, sn):
-        """Save camera configuration to a YAML file."""
-        CameraConfigManager.save_to_yaml(self, sn)
-
     def get_camera_intrinsic(self, sn) -> Optional[CameraParams]:  # TODO change name to get_camera_params
         """Get intrinsic camera parameters for a specific camera.
 
@@ -527,63 +553,6 @@ class Model(QObject):
             CameraParams: The intrinsic parameters [mtx, dist, rvec, tvec] for the camera.
         """
         return self.cameras[sn].get('intrinsic', None)
-
-    def add_stereo_calib(self, sorted_key: tuple, stereo_calib_result: StereoCalibrationResult):
-        """Add stereo calibration result.
-
-        Args:
-            sorted_key (str): The sorted key that identifies the stereo calibration pair.
-            instance (object): The stereo calibration instance to add.
-        """
-        # sorted_key = tuple(sorted((camA, camB)))
-        self.stereo_calib[sorted_key] = stereo_calib_result
-
-    def get_stereo_calib(self, sorted_key: tuple) -> Optional[StereoCalibrationResult]:
-        """Get stereo calibration result.
-
-        Args:
-            sorted_key (str): The key identifying the stereo calibration result.
-
-        Returns:
-            object: The stereo calibration result.
-        """
-        return self.stereo_calib.get(sorted_key)
-
-    def reset_stereo_calib(self):
-        """Reset all stereo calibration results."""
-        self.stereo_calib = {}
-
-    def add_camera_extrinsic(self, name1, name2, retVal, R, T, E, F):
-        """Add extrinsic camera parameters for a camera pair.
-
-        Args:
-            name1 (str): Name of the first camera.
-            name2 (str): Name of the second camera.
-            retVal (float): Return value of the stereo calibration.
-            R (numpy.ndarray): The rotation matrix between the two cameras.
-            T (numpy.ndarray): The translation vector between the two cameras.
-            E (numpy.ndarray): The essential matrix.
-            F (numpy.ndarray): The fundamental matrix.
-        """
-        self.best_camera_pair = [name1, name2]
-        self.camera_extrinsic[name1 + "-" + name2] = [retVal, R, T, E, F]
-
-    def get_camera_extrinsic(self, name1, name2):
-        """Get extrinsic camera parameters for a specific camera pair.
-
-        Args:
-            name1 (str): Name of the first camera.
-            name2 (str): Name of the second camera.
-
-        Returns:
-            list: The extrinsic parameters [retVal, R, T, E, F] for the camera pair.
-        """
-        return self.camera_extrinsic.get(name1 + "-" + name2)
-
-    def reset_camera_extrinsic(self):
-        """Reset all extrinsic camera parameters and clear the best camera pair."""
-        self.best_camera_pair = None
-        self.camera_extrinsic = {}
 
     def clean(self):
         """Clean up and close all camera connections."""

@@ -376,3 +376,64 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
     # Normalize homogeneous coordinates
     Xs = Xhs[:3, :] / w  # 3xN
     return Xs.T  # Nx3
+
+# Updated function signature to accept the full list of image points
+def _evaluate_performance(
+    imgpointsA: List[np.ndarray],
+    paramsA: CameraParams,
+    imgpointsB: List[np.ndarray],
+    paramsB: CameraParams,
+    objpoints: np.ndarray = cfg.OBJPOINTS.astype(np.float32), # (1, N, 3) float32
+    print_results: bool = False
+) -> np.ndarray:
+    
+    imgpointsA_flat, _ = process_reticle_points(imgpointsA[0], imgpointsA[1])
+    imgpointsB_flat, _ = process_reticle_points(imgpointsB[0], imgpointsB[1])
+
+    pointsA_for_triangulation = imgpointsA_flat[0].reshape(-1, 2) # Should be (42, 2)
+    pointsB_for_triangulation = imgpointsB_flat[0].reshape(-1, 2) # Should be (42, 2)
+
+    # 2. Triangulate points
+    points_3d_G = triangulate(ptsA=pointsA_for_triangulation, ptsB=pointsB_for_triangulation,
+                paramsA=paramsA, paramsB=paramsB)
+    differences = points_3d_G - objpoints
+    squared_distances = np.sum(np.square(differences), axis=1)
+    euclidean_distances = np.sqrt(squared_distances)
+    average_L2_distance = np.mean(euclidean_distances)
+
+    if print_results:
+        print(
+            f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³"
+        )
+        logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
+
+    return average_L2_distance
+
+def _evaluate_x_y_z_performance(points_3d_G, objpoints=cfg.OBJPOINTS, print_results=True):
+    """Evaluates the performance..."""
+    
+    # FIX: Standardize objpoints format to (N, 3)
+    if objpoints.ndim == 3 and objpoints.shape[0] == 1:
+        objpoints_flat = objpoints[0]
+    else:
+        objpoints_flat = objpoints
+
+    # FIX: Use the flattened array and correct 2D indexing
+    differences_x = points_3d_G[:, 0] - objpoints_flat[:, 0]
+    differences_y = points_3d_G[:, 1] - objpoints_flat[:, 1]
+    differences_z = points_3d_G[:, 2] - objpoints_flat[:, 2]
+    
+    # Calculate the mean squared differences for each dimension
+    mean_squared_diff_x = np.mean(np.square(differences_x))
+    mean_squared_diff_y = np.mean(np.square(differences_y))
+    mean_squared_diff_z = np.mean(np.square(differences_z))
+    
+    # Calculate the L2 norm (Euclidean distance) for each dimension
+    l2_x = np.sqrt(mean_squared_diff_x)
+    l2_y = np.sqrt(mean_squared_diff_y)
+    l2_z = np.sqrt(mean_squared_diff_z)
+    
+    if print_results:
+        print(
+            f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z: {np.round(l2_z*1000, 2)}µm³"
+        )

@@ -121,8 +121,7 @@ class ReticleDetecthandler(QWidget):
         self.triangulate_btn.setChecked(False)
 
         self.model.reset_stage_calib_info()
-        self.model.reset_stereo_calib()
-        self.model.reset_camera_extrinsic()
+        self.model.reset_all_triangulation_partners()
 
         # Enable triangulate_btn button
         if not self.triangulate_btn.isEnabled():
