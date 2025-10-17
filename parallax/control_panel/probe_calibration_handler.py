@@ -18,6 +18,7 @@ from parallax.probe_detection.probe_spin_detector import SpinCalculationResult, 
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_stereo_camera import get_global_coords
+from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import find_probe_angle, find_probe_angles_dict
 from parallax.config.config_path import debug_img_dir
@@ -210,10 +211,6 @@ class ProbeCalibrationHandler(QWidget):
 
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
-        if self.calibrationStereo is None:
-            print("Calibration has not done")
-            return
-
         for screen in self.screen_widgets:
             cam = screen.get_camera_name()
             if cam == self.camA_best:
@@ -229,16 +226,8 @@ class ProbeCalibrationHandler(QWidget):
         if stage_ts_A != stage_ts_B:
             return
 
-        # All screens have the same timestamp. Proceed with triangulation
-        global_coords = get_global_coords(self.calibrationStereo,
-                                        self.camA_best,
-                                        tip_A,
-                                        self.camA_params,
-                                        self.camB_best,
-                                        tip_B,
-                                        self.camB_params)
-        
-        print("probe_calibration_handler: global_coords", global_coords)
+        global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
+        print("probe_calibration_handler: global_coords_", global_coords)
 
         self.stageListener.handleGlobalDataChange(
             sn_A,
@@ -260,7 +249,6 @@ class ProbeCalibrationHandler(QWidget):
             self.spinDetectionInputs.tipB_px = tip_B
             self.spinDetectionInputs.baseA_px = base_A
             self.spinDetectionInputs.baseB_px = base_B
-            self.spinDetectionInputs.calibrationStereo = self.calibrationStereo
             self.spinDetectionInputs.camA_params = self.camA_params
             self.spinDetectionInputs.camB_params = self.camB_params
 
@@ -288,21 +276,9 @@ class ProbeCalibrationHandler(QWidget):
             if stage_ts != stage_ts_:
                 return
 
-            # Proceed with triangulation on the two screens
-            calib_stereo = self._get_stereo_calibration_result(cam, detected_cam)
-            if calib_stereo is None:
-                logger.debug(f"Camera calibration has not done {detected_cam}, {cam}")
-                continue
-
             cam_params = self.model.get_camera_intrinsic(cam)
             detected_cam_params = self.model.get_camera_intrinsic(detected_cam)
-            global_coords = get_global_coords(calib_stereo,
-                                detected_cam,
-                                tip,
-                                detected_cam_params,
-                                cam,
-                                tip_,
-                                cam_params)
+            global_coords = triangulate(ptsA=tip, ptsB=tip_, paramsA=detected_cam_params, paramsB=cam_params)
 
             self.stageListener.handleGlobalDataChange(  # Request probe calibration
                 sn,

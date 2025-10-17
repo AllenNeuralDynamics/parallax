@@ -72,8 +72,6 @@ def calibrate_camera(
     pixel_size = params["PIXEL_SIZE_MM"]
 
     # 2. Prepare correspondences (single view)
-    print(f"x_axis: {x_axis}")
-    print(f"y_axis: {y_axis}")
     imgpoints, objpoints = process_reticle_points(x_axis, y_axis)
 
     # 3. Calibrate camera
@@ -310,8 +308,31 @@ def _P_from_params(params: CameraParams) -> Optional[np.ndarray]:
     Rt   = np.hstack([R, tvec])           # 3x4
     return K @ Rt                         # 3x4
 
-# Input format ptsA: [(x1, y1), (x2, y2), ...]
 def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, paramsB: CameraParams) -> np.ndarray:
+    """
+    Performs 3D point reconstruction (triangulation) from a set of matched 2D 
+    image points observed by two cameras.
+
+    This function first applies undistortion and then uses the cameras' 
+    absolute pose (P matrices) to calculate the corresponding 3D world coordinates.
+
+    Args:
+        ptsA (np.ndarray): Matched 2D pixel coordinates from Camera A.
+                           Expected shape: (N, 2), dtype: float.
+        ptsB (np.ndarray): Matched 2D pixel coordinates from Camera B.
+                           Expected shape: (N, 2), dtype: float.
+        paramsA (CameraParams): Intrinsic and extrinsic parameters for Camera A.
+        paramsB (CameraParams): Intrinsic and extrinsic parameters for Camera B.
+
+    Returns:
+        np.ndarray: The triangulated 3D points in the world coordinate system 
+                    defined by the CameraParams' rvec/tvec.
+                    Expected shape: (N, 3), where 3 = (X, Y, Z), dtype: float.
+
+    Raises:
+        ValueError: If the number of input points do not match (len(ptsA) != len(ptsB)).
+        ValueError: If essential CameraParams (mtx, rvec, tvec) are missing.
+    """
     # Size Check
     if len(ptsA) != len(ptsB):
         raise ValueError(f"Number of points must match: {len(ptsA)} != {len(ptsB)}")

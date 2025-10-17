@@ -11,7 +11,6 @@ import cv2
 from parallax.probe_detection.probe_img_processor import ProbeImageProcessor
 from parallax.config.config_path import debug_img_dir
 from parallax.config.config_calibration import MIN_SHANK_DIST_MM, MAX_SHANK_DIST_MM, Z_SPAN_MAX_MM
-from parallax.cameras.calibration_stereo_camera import StereoCalibrationResult, get_global_coords
 from parallax.cameras.calibration_camera import CameraParams, triangulate
 
 logger = logging.getLogger(__name__)
@@ -37,7 +36,6 @@ class SpinDetectionInputs:
     baseA_px: Optional[Tuple[float, float]] = None
     baseB_px: Optional[Tuple[float, float]] = None
     transM: Optional[np.ndarray] = None            # 4x4
-    calibrationStereo: Optional[StereoCalibrationResult] = None
     camA_params: Optional[CameraParams] = None
     camB_params: Optional[CameraParams] = None
     global_tip: Optional[np.ndarray] = None        # (3,)
@@ -49,7 +47,7 @@ class SpinDetectionInputs:
             self.maskA is not None, self.maskB is not None,
             self.imgA  is not None, self.imgB  is not None,
             self.tipA_px is not None, self.tipB_px is not None,
-            self.transM is not None, self.calibrationStereo is not None,
+            self.transM is not None,
             self.camA_params is not None, self.camB_params is not None,
         ])
 
@@ -128,7 +126,10 @@ class SpinProcessor:
             return SpinCalculationResult(0.0, 0.0, False)
 
         # 3. Triangulate to get 3D coordinates
-        global_pts = triangulate(nearest_pts_cam1, nearest_pts_cam2, self.inputs.camA_params, self.inputs.camB_params)
+        global_pts = triangulate(ptsA=nearest_pts_cam1,
+                                 ptsB=nearest_pts_cam2,
+                                 paramsA=self.inputs.camA_params,
+                                 paramsB=self.inputs.camB_params)
         self.shank_endpoints_3D = global_pts
         print("3D Global points:\n", np.round(global_pts, 4))
 
@@ -142,20 +143,6 @@ class SpinProcessor:
         print(f"Spin: {angle_deg:.2f}° (0° = +Y), RMS⊥ error: {err:.4f}")
         print("vector (XY):", np.round(dir_xy, 4).tolist())
         return SpinCalculationResult(angle_deg, np.deg2rad(angle_deg), True)
-
-    def _triangulate_shanks(self, pointsA, pointsB) -> np.ndarray:
-        # Loop through the 4 matched points and call get_global_coords for each.
-        global_points = []
-        for tipA, tipB in zip(pointsA, pointsB):
-            g_coord = get_global_coords(
-                StereoCalib=self.inputs.calibrationStereo,
-                camA=self.inputs.camA, coordA=tipA, paramsA=self.inputs.camA_params,
-                camB=self.inputs.camB, coordB=tipB, paramsB=self.inputs.camB_params
-            )
-            global_points.append(g_coord.flatten())
-
-        # Output: A single (N, 3) NumPy array of global points
-        return np.array(global_points)
 
     def _run_sanity_checks(self, global_points: np.ndarray) -> bool:
         ok1 = self._check_consecutive_spacings(global_points, unit="mm", scale=1.0)

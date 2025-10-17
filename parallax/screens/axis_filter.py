@@ -149,7 +149,6 @@ class AxisFilter(QObject):
             if ret:
                 # Add debug coords to the model
                 debug_points = get_debug_points(params.rvec, params.tvec, params.mtx, params.dist)
-                print("debug_points:", debug_points)
                 self.model.add_coords_for_debug(self.name, debug_points)
                 self.found_coords.emit(
                         self.reticle_coords[0], self.reticle_coords[1], params

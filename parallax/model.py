@@ -517,7 +517,7 @@ class Model(QObject):
         """Save camera configuration to a YAML file."""
         CameraConfigManager.save_to_yaml(self, sn)
 
-    def get_camera_intrinsic(self, sn) -> Optional[CameraParams]:
+    def get_camera_intrinsic(self, sn) -> Optional[CameraParams]:  # TODO change name to get_camera_params
         """Get intrinsic camera parameters for a specific camera.
 
         Args:

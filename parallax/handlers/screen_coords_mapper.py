@@ -15,7 +15,7 @@ The ScreenCoordsMapper class includes functionality to:
 
 import logging
 import numpy as np
-from parallax.cameras.calibration_stereo_camera import get_global_coords
+from parallax.cameras.calibration_camera import triangulate
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -200,14 +200,8 @@ class ScreenCoordsMapper():
         camA_params = self.model.get_camera_intrinsic(camA_best)
         camB_params = self.model.get_camera_intrinsic(camB_best)
 
-        # output format: (1,3), e.g [[1.0, 1.0, 10.0]]
-        global_coords = get_global_coords(stereo_result,
-                                camA_best,
-                                tip_coordsA,
-                                camA_params,
-                                camB_best,
-                                tip_coordsB,
-                                camB_params)
+        # output format (N, 3)
+        global_coords = triangulate(ptsA=tip_coordsA, ptsB=tip_coordsB, paramsA=camA_params, paramsB=camB_params)
 
         return global_coords[0]
 
@@ -247,24 +241,12 @@ class ScreenCoordsMapper():
             logger.debug("Insufficient camera data to compute global coordinates")
             return None
 
-        # Calculate global coordinates using stereo instance
-        stereo_result = self._get_stereo_calibration_result(camA, camB)
-        if stereo_result is None:
-            logger.debug(f"Stereo calibration result not found for cameras: {camA}, {camB}")
-            return None
-
         # Calculate global coordinates using the stereo
         camA_params = self.model.get_camera_intrinsic(camA)
         camB_params = self.model.get_camera_intrinsic(camB)
-        global_coords = get_global_coords(stereo_result,
-                                camA,
-                                tip_coordsA,
-                                camA_params,
-                                camB,
-                                tip_coordsB,
-                                camB_params)
-        
-        print("screen_coords_mapper: global_coords", global_coords)
+
+        global_coords = triangulate(ptsA=tip_coordsA, ptsB=tip_coordsB, paramsA=camA_params, paramsB=camB_params)
+        print("screen_coords_mapper: global_coords_", global_coords)
 
         return global_coords[0]
 

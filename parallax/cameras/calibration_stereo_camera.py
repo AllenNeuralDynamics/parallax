@@ -10,7 +10,8 @@ from parallax.cameras.calibration_camera import (
     CameraParams,
     process_reticle_points,
     get_rotmat_from_camA_to_global,
-    change_coords_system_from_camA_to_global
+    change_coords_system_from_camA_to_global,
+    triangulate
 )
 
 # Set logger name
@@ -96,7 +97,7 @@ def calibrate_stereo(
         P_B=P_B
     )
     # Get err
-    err = _evaluate_performance(stereoCalibResult, camA, imgpointsA, paramsA, camB, imgpointsB, paramsB)
+    err = _evaluate_performance(imgpointsA, paramsA, imgpointsB, paramsB)
 
     return err, stereoCalibResult
 
@@ -234,11 +235,8 @@ def get_global_coords(
 
 # Updated function signature to accept the full list of image points
 def _evaluate_performance(
-    StereoCalib: StereoCalibrationResult,
-    camA: str,
     imgpointsA: List[np.ndarray],
     paramsA: CameraParams,
-    camB: str,
     imgpointsB: List[np.ndarray],
     paramsB: CameraParams,
     objpoints: np.ndarray = cfg.OBJPOINTS.astype(np.float32), # (1, N, 3) float32
@@ -251,14 +249,9 @@ def _evaluate_performance(
     pointsA_for_triangulation = imgpointsA_flat[0].reshape(-1, 2) # Should be (42, 2)
     pointsB_for_triangulation = imgpointsB_flat[0].reshape(-1, 2) # Should be (42, 2)
 
-    # (42, 3) float32
-    points_3d_G = get_global_coords(
-        StereoCalib,
-        camA, pointsA_for_triangulation, paramsA,
-        camB, pointsB_for_triangulation, paramsB
-    )
-    
-    # 3. Perform element-wise subtraction
+    # 2. Triangulate points
+    points_3d_G = triangulate(ptsA=pointsA_for_triangulation, ptsB=pointsB_for_triangulation,
+                paramsA=paramsA, paramsB=paramsB)
     differences = points_3d_G - objpoints
     squared_distances = np.sum(np.square(differences), axis=1)
     euclidean_distances = np.sqrt(squared_distances)
