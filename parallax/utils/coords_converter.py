@@ -17,7 +17,7 @@ Conventions
 import logging
 import numpy as np
 from typing import Optional
-from scipy.spatial.transform import Rotation as Rscipy
+import scipy.spatial.transform as Rscipy
 import cv2
 
 # Set logger name

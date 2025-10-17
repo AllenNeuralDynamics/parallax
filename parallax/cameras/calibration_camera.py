@@ -100,8 +100,6 @@ def calibrate_camera(
         f"Distance from camera to world center: {np.mean(distancesA)}"
     )
 
-    print("From calibrate_camera:")
-    print(f"mtx: {mtx}, dist: {dist}, rvecs: {rvecs[0]}, tvecs: {tvecs[0]}")
     return ret, CameraParams(mtx, dist, rvecs[0], tvecs[0])
 
 
@@ -260,46 +258,6 @@ def get_origin_xyz(imgpoints, mtx, dist, rvecs, tvecs, center_index_x=0, axis_le
     return origin, x, y, z
 
 
-def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
-    """
-    Print the quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ)
-    derived from a rotation vector and translation vector.
-    Args:
-        rvecs (np.ndarray): Rotation vector (3x1 or 1x3).
-        tvecs (np.ndarray): Translation vector (3x1 or 1x3).
-        name (str): Optional name to include in the output.
-    """
-    R, _ = cv2.Rodrigues(rvecs)
-    quat = Rscipy.from_matrix(R).as_quat()  # [QX, QY, QZ, QW]
-    QX, QY, QZ, QW = quat
-    TX, TY, TZ = tvecs.flatten()
-    print(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
-
-    return QW, QX, QY, QZ, TX, TY, TZ
-
-def get_rvec_and_tvec(quat, tvecs):
-    """
-    Convert quaternion (QW, QX, QY, QZ) and translation vector (TX, TY, TZ)
-    to rotation vector (rvecs) and translation vector (tvecs).
-
-    Args:
-        quat (tuple): Quaternion as (QW, QX, QY, QZ).
-        tvecs (np.ndarray): Translation vector (3x1 or 1x3).
-
-    Returns:
-        rvecs (np.ndarray): Rotation vector (3x1).
-        tvecs (np.ndarray): Translation vector (3x1).
-    """
-    QX, QY, QZ, QW = quat  # scipy expects [QX, QY, QZ, QW] order
-    rotation = Rscipy.Rotation.from_quat([QX, QY, QZ, QW])
-    R_mat = rotation.as_matrix()
-    rvecs, _ = cv2.Rodrigues(R_mat)
-
-    rvecs = rvecs.reshape(3, 1).astype(np.float64)
-    tvecs = np.array(tvecs, dtype=np.float64).reshape(3, 1)
-    return rvecs, tvecs
-
-
 def _P_from_params(params: CameraParams) -> Optional[np.ndarray]:
     K    = np.asarray(params.mtx,  dtype=np.float64)
     rvec = np.asarray(params.rvec, dtype=np.float64).reshape(3,1)
@@ -378,15 +336,15 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
     return Xs.T  # Nx3
 
 # Updated function signature to accept the full list of image points
-def _evaluate_performance(
+def evaluate_performance(
     imgpointsA: List[np.ndarray],
     paramsA: CameraParams,
     imgpointsB: List[np.ndarray],
     paramsB: CameraParams,
     objpoints: np.ndarray = cfg.OBJPOINTS.astype(np.float32), # (1, N, 3) float32
     print_results: bool = False
-) -> np.ndarray:
-    
+) -> float:
+
     imgpointsA_flat, _ = process_reticle_points(imgpointsA[0], imgpointsA[1])
     imgpointsB_flat, _ = process_reticle_points(imgpointsB[0], imgpointsB[1])
 
@@ -405,11 +363,12 @@ def _evaluate_performance(
         print(
             f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³"
         )
+        _evaluate_x_y_z_performance(points_3d_G, print_results=print_results)
         logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
     return average_L2_distance
 
-def _evaluate_x_y_z_performance(points_3d_G, objpoints=cfg.OBJPOINTS, print_results=True):
+def _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=True):
     """Evaluates the performance..."""
     
     # FIX: Standardize objpoints format to (N, 3)

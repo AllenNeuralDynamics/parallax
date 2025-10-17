@@ -2,8 +2,7 @@
 import math
 import logging
 import numpy as np
-#from parallax.cameras.calibration_camera import CalibrationStereo
-from parallax.cameras.calibration_stereo_camera import calibrate_stereo
+from parallax.cameras.calibration_camera import evaluate_performance
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -79,13 +78,14 @@ class StereoCameraHandler:
                 coordsA, coordsB = img_coords[i], img_coords[j]
                 paramsA, paramsB = intrinsics[i], intrinsics[j] # dictionary
 
-                err, _ = self._get_results_calibrate_stereo(
-                    camA, coordsA, paramsA, camB, coordsB, paramsB
+                err = evaluate_performance(
+                    imgpointsA=coordsA,
+                    paramsA=paramsA,
+                    imgpointsB=coordsB,
+                    paramsB=paramsB,
                 )
                 print("\n----------------------------------------------------")
-                print(f"camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
-                logger.debug(f"\n=== camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³ ===")
-
+                print(f"  camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
                 if err < min_err:
                     min_err = err
                     self.camA_best, self.camB_best = camA, camB
@@ -120,13 +120,14 @@ class StereoCameraHandler:
                 coordsA, coordsB = img_coords[i], img_coords[j]
                 paramsA, paramsB = intrinsics[i], intrinsics[j]
 
-                err, stereoCalib = self._get_results_calibrate_stereo(
-                    camA, coordsA, paramsA, camB, coordsB, paramsB
+                err = evaluate_performance(
+                    imgpointsA=coordsA,
+                    paramsA=paramsA,
+                    imgpointsB=coordsB,
+                    paramsB=paramsB,
                 )
                 print("\n--------------------------------------------------------")
-                print(f"camsera pair: {camA}-{camB}")
-                logger.debug(f"=== camera pair: {camA}-{camB} ===")
-                logger.debug(f"R: \n{stereoCalib.R_AB}\nT: \n{stereoCalib.T_AB}")
+                print(f"  camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
 
                 # calibrationStereo.print_calibrate_stereo_results(camA, camB)
                 if err < min_err:
@@ -156,22 +157,3 @@ class StereoCameraHandler:
             img_coords.append(coords)
 
         return cam_names, intrinsics, img_coords
-
-    def _get_results_calibrate_stereo(self, camA, coordsA, paramsA, camB, coordsB, paramsB):
-        """
-        Returns the results of the stereo calibration process.
-
-        Returns:
-            tuple: A tuple containing the results of the stereo calibration process.
-        """
-
-        err, stereoResult = calibrate_stereo(
-            camA = camA,
-            imgpointsA = coordsA,
-            paramsA = paramsA,
-            camB = camB,
-            imgpointsB = coordsB,
-            paramsB = paramsB,
-        )
-
-        return err, stereoResult
