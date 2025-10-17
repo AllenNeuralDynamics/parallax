@@ -360,7 +360,7 @@ class Model(QObject):
         Returns:
             dict: Metadata information for the reticle.
         """
-        return self.reticle_metadata.get(reticle_name)
+        return self.reticle_metadata.get(reticle_name, None)
 
     def remove_reticle_metadata(self, reticle_name):
         """Remove reticle metadata.

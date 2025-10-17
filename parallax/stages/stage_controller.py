@@ -20,7 +20,7 @@ import json
 import numpy as np
 from typing import Optional
 from PyQt6.QtCore import QObject, QTimer
-from parallax.utils.coords_converter import CoordsConverter
+from parallax.utils.coords_converter import global_to_local
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -235,7 +235,7 @@ class StageController(QObject):
             if command.get("world", None) == "global":
                 # coords_converter unit is um, so convert mm to µm
                 global_pts_um = np.array([x*1000, y*1000, z*1000], dtype=float)
-                local_pts_um = CoordsConverter.global_to_local(self.model, stage_sn, global_pts_um)
+                local_pts_um = global_to_local(self.model, stage_sn, global_pts_um)
                 if local_pts_um is None:
                     logger.warning(f"Failed to convert global coordinates to local for stage {stage_sn}.")
                     return

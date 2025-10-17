@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal
-from .coords_transformation import RotationTransformation
+#from .coords_transformation import RotationTransformation
+from .transforms import fit_params
 from .bundle_adjustment import BALProblem, BALOptimizer
 from parallax.handlers.point_mesh import PointMesh
 from parallax.config.config_path import stages_dir
@@ -27,7 +28,7 @@ class ProbeCalibration(QObject):
     by transforming local stage coordinates to global reticle coordinates.
 
     Signals:
-        calib_complete (str, object, np.ndarray): Signal emitted when the full calibration is complete.
+        calib_complete: Signal emitted when the full calibration is complete.
         transM_info (str, object, float, object): Signal emitted with transformation matrix information.
     """
     calib_complete = pyqtSignal()
@@ -53,7 +54,6 @@ class ProbeCalibration(QObject):
             stage_listener (QObject): The stage listener object for receiving stage-related events.
         """
         super().__init__()
-        self.transformer = RotationTransformation()
         self.model = model
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
@@ -182,7 +182,7 @@ class ProbeCalibration(QObject):
 
         return local_points, global_points
 
-    def _get_l2_distance(self, local_points, global_points):
+    def _get_l2_distance_deprecated(self, local_points, global_points):
         """
         Compute the L2 distance between the expected global points and the actual global points.
 
@@ -193,11 +193,33 @@ class ProbeCalibration(QObject):
         Returns:
             numpy.ndarray: The L2 distance between the points.
         """
-        R, t= self.R, self.origin
+        R, t = self.R, self.origin
         global_coords_exp = R @ local_points.T + t.reshape(-1, 1)
         global_coords_exp = global_coords_exp.T
 
         l2_distance = np.linalg.norm(global_points - global_coords_exp, axis=1)
+        mean_l2_distance = np.mean(l2_distance)
+        std_l2_distance = np.std(l2_distance)
+        logger.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
+
+        return l2_distance
+
+    def _get_l2_distance(self, local_points, global_points):
+        """
+        Compute the L2 distance between the expected local points and the actual local points.
+
+        Args:
+            local_points (numpy.ndarray): The local points.
+            global_points (numpy.ndarray): The global points.
+
+        Returns:
+            numpy.ndarray: The L2 distance between the points.
+        """
+        R, t = self.R, self.origin
+        local_coords_exp = R @ global_points.T + t.reshape(-1, 1)
+        local_coords_exp = local_coords_exp.T
+
+        l2_distance = np.linalg.norm(local_points - local_coords_exp, axis=1)
         mean_l2_distance = np.mean(l2_distance)
         std_l2_distance = np.std(l2_distance)
         logger.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
@@ -245,7 +267,7 @@ class ProbeCalibration(QObject):
         if len(local_points) <= 3 or len(global_points) <= 3:
             logger.warning("Not enough points for calibration.")
             return None
-        self.origin, self.R, self.avg_err = self.transformer.fit_params(local_points, global_points)
+        self.origin, self.R, self.avg_err = fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
@@ -261,7 +283,8 @@ class ProbeCalibration(QObject):
             logger.warning("Not enough points for calibration.")
             return None
 
-        self.origin, self.R, self.avg_err = self.transformer.fit_params(local_points, global_points)
+        # local = R @ global + t, where local shape and global shape are 3xN.
+        self.origin, self.R, self.avg_err = fit_params(local_points, global_points)
         transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
         transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
 
@@ -428,14 +451,17 @@ class ProbeCalibration(QObject):
     def _apply_transformation(self):
         """
         Applies the calculated transformation matrix to convert a local point to global coordinates.
-
+        local = R @ global + t, where local shape and global shape are {3x1}.
+        To get local from global:
+        global = R.T @ (local - t), local, t, and global are {3x1} vectors.
+        global = (local - t) @ R, local, t, and global are {1x3} vectors.
         Returns:
             np.array: The transformed global point.
         """
         local_point = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z])
-        local_point = np.append(local_point, 1)
-        global_point = np.dot(self.transM_LR, local_point)
-        return global_point[:3]
+        t = self.origin
+        global_point = (local_point - t) @ self.R
+        return global_point
 
     def _update_l2_error_current_point(self):
         """
@@ -444,7 +470,7 @@ class ProbeCalibration(QObject):
         if self.transM_LR is None:
             return None
 
-        transformed_point = self._apply_transformation()
+        transformed_point_global = self._apply_transformation()
         global_point = np.array(
             [
                 self.stage.stage_x_global,
@@ -452,7 +478,7 @@ class ProbeCalibration(QObject):
                 self.stage.stage_z_global,
             ]
         )
-        self.LR_err_L2_current = np.linalg.norm(transformed_point - global_point)
+        self.LR_err_L2_current = np.linalg.norm(transformed_point_global - global_point)
         return
 
     def _is_enough_points(self, df):
@@ -566,17 +592,6 @@ class ProbeCalibration(QObject):
         df = pd.DataFrame(data)
         # Add the transformation matrix columns to the DataFrame
         self._save_df_to_csv(df, file_name)
-
-    def reshape_array(self):
-        """
-        Reshapes arrays of local and global points for processing.
-
-        Returns:
-            tuple: Reshaped local and global points arrays.
-        """
-        local_points = np.array(self.local_points)
-        global_points = np.array(self.global_points)
-        return local_points.reshape(-1, 1, 3), global_points.reshape(-1, 1, 3)
 
     def _print_formatted_transM(self):
         """

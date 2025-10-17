@@ -13,6 +13,8 @@ from typing import Optional
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
+from parallax.utils.coords_converter import get_transMs_bregma_to_local
+from parallax.utils.probe_angles import find_probe_angle, find_probe_angles_dict
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -25,6 +27,9 @@ class StageCalibrationInfo:
     """
     detection_status: str = "default"  # options: default, process, accepted
     transM: Optional[np.ndarray] = None
+    transM_bregma: Optional[dict] = None
+    arc_angle_global: Optional[tuple] = None
+    arc_angle_bregma: Optional[dict] = None
     L2_err: Optional[float] = None
     dist_travel: Optional[np.ndarray] = None
     status_x: Optional[str] = None
@@ -500,6 +505,10 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         self.probe_detection_status = "accepted"
+
+        # Update reticle selector
+        self.reticle_metadata.load_metadata_from_file()
+
         # Update into model
         self.update_stage_info_to_model(self.selected_stage_id)
         self.model.set_calibration_status(self.selected_stage_id, True)
@@ -535,9 +544,6 @@ class ProbeCalibrationHandler(QWidget):
 
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
-
-        # Update reticle selector
-        self.reticle_metadata.load_metadata_from_file()
 
 
     def update_probe_calib_status_transM(self, transformation_matrix):
@@ -607,6 +613,7 @@ class ProbeCalibrationHandler(QWidget):
 
     def update_probe_calib_status(self, moving_stage_id, transM, L2_err, dist_travel):
         """
+        Handler for the signal emitted when the probe calibration. (transM_info)
         Updates the probe calibration status based on the moving stage ID and the provided calibration data.
         If the selected stage matches the moving stage, the calibration data is displayed on the UI.
         """
@@ -785,6 +792,14 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.status_x = self.calib_status_x
         stage_info.status_y = self.calib_status_y
         stage_info.status_z = self.calib_status_z
+
+        # Update transM from bregma if available
+        transMbs = get_transMs_bregma_to_local(self.model, stage_id)
+        stage_info.transM_bregma = transMbs
+
+        # Get 3D angle
+        stage_info.arc_angle_global = find_probe_angle(self.transM)
+        stage_info.arc_angle_bregma = find_probe_angles_dict(transMbs)
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):

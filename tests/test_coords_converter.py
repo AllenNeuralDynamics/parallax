@@ -2,7 +2,12 @@
 import numpy as np
 import pytest
 
-from parallax.utils.coords_converter import CoordsConverter
+from parallax.utils.coords_converter import (
+    local_to_global,
+    global_to_local,
+    apply_reticle_adjustments,
+    apply_reticle_adjustments_inverse
+)
 
 
 class StubModel:
@@ -46,7 +51,7 @@ def test_local_to_global_identity_rounding():
     T = make_T()
     model = StubModel(calibrated=True, transM=T)
     local = np.array([1.234, -5.678, 9.876])
-    out = CoordsConverter.local_to_global(model, "SN", local, reticle=None)
+    out = local_to_global(model, "SN", local, reticle=None)
     # Should match input rounded to 1 decimal
     np.testing.assert_allclose(out, np.round(local, 1))
 
@@ -71,18 +76,18 @@ def test_local_to_global_with_reticle_rotation_and_offset():
     base_global = local + np.array([10.0, 20.0, 30.0])
     # Apply reticle: row-vector convention uses @ Rz.T; 90° CCW maps (x,y)->(x',y')=(x*0 + y*1, -x*1 + y*0) = (0, -x)
     # For base_global (110,20,30) -> (20, -110, 30); then add offsets (1,2,3) => (21, -108, 33)
-    out = CoordsConverter.local_to_global(model, "SN", local, reticle="R1")
+    out = local_to_global(model, "SN", local, reticle="R1")
     np.testing.assert_allclose(out, np.array([-19.0, 112.0, 33.0]))
 
 
 def test_local_to_global_not_calibrated_returns_none():
     model = StubModel(calibrated=False, transM=make_T())
-    assert CoordsConverter.local_to_global(model, "SN", np.array([0, 0, 0])) is None
+    assert local_to_global(model, "SN", np.array([0, 0, 0])) is None
 
 
 def test_local_to_global_missing_transform_returns_none():
     model = StubModel(calibrated=True, transM=None)
-    assert CoordsConverter.local_to_global(model, "SN", np.array([0, 0, 0])) is None
+    assert local_to_global(model, "SN", np.array([0, 0, 0])) is None
 
 
 def test_global_to_local_inverse_no_reticle():
@@ -94,7 +99,7 @@ def test_global_to_local_inverse_no_reticle():
     # Pick a local point, map forward manually, then invert via API
     local = np.array([10.0, 4.0, -3.0])
     global_fwd = Rz @ local + t
-    back = CoordsConverter.global_to_local(model, "SN", global_fwd, reticle="Global coords")
+    back = global_to_local(model, "SN", global_fwd, reticle="Global coords")
     np.testing.assert_allclose(back, np.round(local, 1))
 
 
@@ -121,24 +126,24 @@ def test_global_to_local_with_inverse_reticle():
     rotated = pre @ Rz.T
     adjusted = rotated + np.array([10.0, 0.0, -5.0])
 
-    out = CoordsConverter.global_to_local(model, "SN", adjusted, reticle="R1")
+    out = global_to_local(model, "SN", adjusted, reticle="R1")
     np.testing.assert_allclose(out, np.round(pre, 1))
 
 
 def test_global_to_local_not_calibrated_returns_none():
     model = StubModel(calibrated=False, transM=make_T())
-    assert CoordsConverter.global_to_local(model, "SN", np.array([0, 0, 0])) is None
+    assert global_to_local(model, "SN", np.array([0, 0, 0])) is None
 
 
 def test_apply_reticle_adjustments_missing_metadata_returns_original():
     model = StubModel(calibrated=True, transM=make_T(), reticle_meta={})
     original = np.array([7.0, -8.0, 9.0])
-    out = CoordsConverter._apply_reticle_adjustments(model, original, "Unknown")
+    out = apply_reticle_adjustments(model, original, "Unknown")
     np.testing.assert_allclose(out, np.round(original, 1))
 
 
 def test_apply_reticle_adjustments_inverse_missing_metadata_returns_original():
     model = StubModel(calibrated=True, transM=make_T(), reticle_meta={})
     original = np.array([1.0, 2.0, 3.0])
-    out = CoordsConverter._apply_reticle_adjustments_inverse(model, original, "Unknown")
+    out = apply_reticle_adjustments_inverse(model, original, "Unknown")
     np.testing.assert_allclose(out, original)

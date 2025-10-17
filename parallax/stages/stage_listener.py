@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import QFileDialog
-from parallax.utils.coords_converter import CoordsConverter
+from parallax.utils.coords_converter import local_to_global, apply_reticle_adjustments, local_to_bregma
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -63,6 +63,7 @@ class Stage:
     stage_x_global: Optional[float] = None
     stage_y_global: Optional[float] = None
     stage_z_global: Optional[float] = None
+    stage_bregma: Optional[dict] = None
     stage_x_offset: float = 0.0
     stage_y_offset: float = 0.0
     stage_z_offset: float = 0.0
@@ -287,6 +288,8 @@ class StageListener(QObject):
         """
         sn = probe["SerialNumber"]
         stage = (self.model.stages.get(sn, {}) or {}).get("obj")
+        is_calib = (self.model.stages.get(sn, {}) or {}).get("is_calib")
+        calib_info = (self.model.stages.get(sn, {}) or {}).get("calib_info")
         if not stage:
             return
 
@@ -301,31 +304,59 @@ class StageListener(QObject):
         stage.stage_y_offset = probe.get("Stage_YOffset", 0) * 1000  # Convert to um
         stage.stage_z_offset = 15000 - (probe.get("Stage_ZOffset", 0) * 1000)  # Convert to um
         local_pts = np.array([local_x, local_y, local_z])
-        global_pts = CoordsConverter.local_to_global(self.model, sn, local_pts)
-        if global_pts is not None:
-            stage.stage_x_global = global_pts[0]
-            stage.stage_y_global = global_pts[1]
-            stage.stage_z_global = global_pts[2]
+        if is_calib:
+            global_pts = local_to_global(self.model, sn, local_pts)
+            if global_pts is not None:
+                stage.stage_x_global = global_pts[0]
+                stage.stage_y_global = global_pts[1]
+                stage.stage_z_global = global_pts[2]
 
+        if is_calib:
+            bregma_pts = {}
+            for reticle in self.model.reticle_metadata.keys():
+                bregma_pt = apply_reticle_adjustments(self.model, global_pts, reticle=reticle)
+                #bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
+                #print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
+                if bregma_pt is not None:
+                    # make JSON-safe now
+                    bregma_pts[reticle] = np.asarray(bregma_pt, dtype=float).reshape(3,).tolist()
+
+            stage.stage_bregma = bregma_pts
+
+        # Update stage UI
         # Stage is currently selected one, update into UI
         if sn == self.stage_ui.get_selected_stage_sn():
             self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
-            if global_pts is not None:                      # If stage is calibrated,
+            if is_calib:
                 self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
 
         # Update stage info
-        self._update_stages_info(stage)
+        self._update_stages_info(stage, is_calib, calib_info)
 
-    def _update_stages_info(self, stage):
-        """Update stage info.
-
-        Args:
-            stage (Stage): Stage object.
-        """
-        if stage is None:
+    def _update_stages_info(self, stage, is_calib, calib_info):
+        """Update stage info without clobbering existing fields and with sane conditions."""
+        if stage is None or not getattr(stage, "sn", None):
             return
 
-        self.stages_info[stage.sn] = self._get_stage_info_json(stage)
+        # Start from existing info; merge in fresh stage fields instead of overwriting.
+        info = self.stages_info.get(stage.sn, {}).copy()
+        base = self._get_stage_info_json(stage) or {}
+        info.update(base)
+
+        prev_is_calib = info.get("is_calibrated")
+        status_changed = (prev_is_calib is None) or (bool(is_calib) != prev_is_calib)
+
+        if status_changed:
+            # Always keep this boolean up to date
+            info["is_calibrated"] = bool(is_calib)
+            if is_calib and calib_info is not None:
+                info["calib_info"] = self._get_calib_info_json(calib_info)
+                logger.debug(f"Stage {stage.sn} calibrated: {info['calib_info']}")
+            else:
+                info["calib_info"] = None
+                logger.debug(f"Stage {stage.sn} uncalibrated")
+
+        self.stages_info[stage.sn] = info
 
     def requestUpdateGlobalDataTransformM(self, sn, transM):
         """
@@ -438,10 +469,28 @@ class StageListener(QObject):
         sx, sy, sz = stage.stage_x, stage.stage_y, stage.stage_z
         gx, gy, gz = stage.stage_x_global, stage.stage_y_global, stage.stage_z_global
         ox, oy, oz = stage.stage_x_offset, stage.stage_y_offset, stage.stage_z_offset
+        stage_bregma = stage.stage_bregma
 
         def _val_mm(v):
             """Convert value to mm."""
             return round(v * 0.001, 4) if v is not None else None
+
+        def _vec_mm(v):
+            """3-vector (np/list) in µm -> [mm, mm, mm] (rounded)."""
+            if v is None:
+                return None
+            arr = np.asarray(v, dtype=float).reshape(-1)
+            if arr.size < 3:
+                return None
+            return [round(arr[0] * 0.001, 4),
+                    round(arr[1] * 0.001, 4),
+                    round(arr[2] * 0.001, 4)]
+
+        def _bregma_mm(b):
+            """Dict of reticle -> 3-vector in µm -> mm dict."""
+            if not b:
+                return None
+            return {str(k): _vec_mm(v) for k, v in b.items() if v is not None}
 
         return {
             "sn": stage.sn,
@@ -452,13 +501,38 @@ class StageListener(QObject):
             "global_X": _val_mm(gx),
             "global_Y": _val_mm(gy),
             "global_Z": _val_mm(gz),
-            "relative_X": _val_mm(sx - ox),
-            "relative_Y": _val_mm(sy - oy),
-            "relative_Z": _val_mm(sz - oz),
+            "bregma": _bregma_mm(stage_bregma),
+            "relative_X": _val_mm(sx - ox) if sx is not None and ox is not None else None,
+            "relative_Y": _val_mm(sy - oy) if sy is not None and oy is not None else None,
+            "relative_Z": _val_mm(sz - oz) if sz is not None and oz is not None else None,
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
-            "shank_cnt": stage.shank_cnt,
+        }
+
+    def _get_calib_info_json(self, calib_info):
+        def _to_list(x): return None if x is None else np.asarray(x).tolist()
+
+        def _to_mm(M):
+            if M is None: return None
+            A = np.asarray(M, float).copy()
+            A[:3, 3] /= 1000.0  # µm -> mm  # TODO replace to mm in entire Parallax model
+            return A.tolist()
+
+        transM_mm = _to_mm(calib_info.transM)
+        bregma_mm = {k: _to_mm(v) for k, v in (calib_info.transM_bregma or {}).items()} or None
+
+        return {
+            "detection_status": calib_info.detection_status,
+            "transM_global_to_local": transM_mm,
+            "L2_error": calib_info.L2_err,
+            "distance_travelled": _to_list(calib_info.dist_travel),
+            "status_x": calib_info.status_x,
+            "status_y": calib_info.status_y,
+            "status_z": calib_info.status_z,
+            "transM_bregma_to_local": bregma_mm,
+            "arc_angle_global": calib_info.arc_angle_global,
+            "arc_angle_bregma": calib_info.arc_angle_bregma,
         }
 
     def _snapshot_stage(self):
