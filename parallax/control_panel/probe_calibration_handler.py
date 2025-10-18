@@ -259,8 +259,8 @@ class ProbeCalibrationHandler(QWidget):
             if stage_ts != stage_ts_:
                 return
 
-            cam_params = self.model.get_camera_intrinsic(cam)
-            detected_cam_params = self.model.get_camera_intrinsic(detected_cam)
+            cam_params = self.model.get_camera_params(cam)
+            detected_cam_params = self.model.get_camera_params(detected_cam)
             global_coords = triangulate(ptsA=tip, ptsB=tip_, paramsA=detected_cam_params, paramsB=cam_params)
 
             self.stageListener.handleGlobalDataChange(  # Request probe calibration
@@ -437,8 +437,8 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_z.show()
 
         self._update_best_stereo_pair()
-        self.camA_params = self.model.get_camera_intrinsic(self.camA_best)
-        self.camB_params = self.model.get_camera_intrinsic(self.camB_best)
+        self.camA_params = self.model.get_camera_params(self.camA_best)
+        self.camB_params = self.model.get_camera_params(self.camB_best)
 
         # Connect with only reticle detected screens
         for screen in self.screen_widgets:

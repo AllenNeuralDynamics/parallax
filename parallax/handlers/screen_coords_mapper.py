@@ -183,8 +183,8 @@ class ScreenCoordsMapper():
             return None
 
         # Calculate global coordinates using the stereo
-        camA_params = self.model.get_camera_intrinsic(camA)
-        camB_params = self.model.get_camera_intrinsic(camB)
+        camA_params = self.model.get_camera_params(camA)
+        camB_params = self.model.get_camera_params(camB)
         if camA_params is None or camB_params is None:
             logger.debug("Camera intrinsic parameters are not available")
             return None

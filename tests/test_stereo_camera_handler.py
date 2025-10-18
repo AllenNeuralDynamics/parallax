@@ -49,7 +49,7 @@ def model_two_cams():
         "B": {"coords_axis": True},
     }
     m.get_visible_camera_sns.return_value = ["A", "B"]
-    m.get_camera_intrinsic.side_effect = lambda sn: make_intrinsic()
+    m.get_camera_params.side_effect = lambda sn: make_intrinsic()
     m.get_coords_axis.side_effect = lambda sn: make_coords()
     return m
 
@@ -102,17 +102,17 @@ def test_returns_none_if_less_than_two_valid_cams(monkeypatch):
     # Only one valid cam (coords_axis truthy)
     model.cameras = {"A": {"coords_axis": True}, "B": {"coords_axis": None}}
     model.get_visible_camera_sns.return_value = ["A", "B"]
-    model.get_camera_intrinsic.return_value = None
+    model.get_camera_params.return_value = None
     model.get_coords_axis.return_value = None
     model.bundle_adjustment = False
 
-    handler = StereoCameraHandler(model, [DummyScreen("A"), DummyScreen("B")])
+    handler = StereoCameraHandler(model)
     # No need to patch CalibrationStereo; should exit early
     assert handler._calibrate_cameras() is None
 
 
-def test_start_calibrate_formats_message(monkeypatch, model_two_cams, screen_widgets_two):
-    handler = StereoCameraHandler(model_two_cams, screen_widgets_two)
+def test_start_calibrate_formats_message(monkeypatch, model_two_cams):
+    handler = StereoCameraHandler(model_two_cams)
     # Avoid heavy path: stub the private method to return a float
     monkeypatch.setattr(handler, "_calibrate_cameras", lambda: 0.0123)
 
@@ -122,12 +122,12 @@ def test_start_calibrate_formats_message(monkeypatch, model_two_cams, screen_wid
     assert "12.3 µm³" in msg
 
 
-def test_get_cameras_lists_filters_by_visible_and_presence(model_two_cams, screen_widgets_two):
+def test_get_cameras_lists_filters_by_visible_and_presence(model_two_cams):
     """
     Smoke test for _get_cameras_lists: ensures names, intrinsics and coords
     are returned for visible cameras only.
     """
-    handler = StereoCameraHandler(model_two_cams, screen_widgets_two)
+    handler = StereoCameraHandler(model_two_cams)
     names, intrinsics, coords = handler._get_cameras_lists()
 
     assert names == ["A", "B"]

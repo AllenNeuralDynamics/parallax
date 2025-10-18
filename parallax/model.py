@@ -48,7 +48,7 @@ class Model(QObject):
             'coords_axis': None,
             'coords_debug': None,
             'pos_x': None,
-            'intrinsic': {
+            'params': {
                 'mtx': None,
                 'dist': None,
                 'rvec': None,
@@ -432,7 +432,7 @@ class Model(QObject):
                 cam['coords_axis'] = None
                 cam['coords_debug'] = None
                 cam['pos_x'] = None
-                cam['intrinsic'] = None
+                cam['params'] = None
             self.reset_all_triangulation_partners()
 
         else:
@@ -440,7 +440,7 @@ class Model(QObject):
                 self.cameras[sn]['coords_axis'] = None
                 self.cameras[sn]['coords_debug'] = None
                 self.cameras[sn]['pos_x'] = None
-                self.cameras[sn]['intrinsic'] = None
+                self.cameras[sn]['params'] = None
                 self.set_camera_triangulation_status(sn, False)
 
     def add_pos_x(self, sn, pt):
@@ -527,8 +527,8 @@ class Model(QObject):
         """
         return self.cameras[sn].get('coords_debug')
 
-    def add_camera_intrinsic(self, sn, camera_params: CameraParams):
-        """Add intrinsic camera parameters for a specific camera.
+    def add_camera_params(self, sn, camera_params: CameraParams):
+        """Add camera parameters for a specific camera.
 
         Args:
             sn (str): The name of the camera.
@@ -540,10 +540,10 @@ class Model(QObject):
             rvec: Optional[np.ndarray] = None         # (3,1) float64
             tvec: Optional[np.ndarray] = None         # (3,1) float64
         """
-        self.cameras[sn]['intrinsic'] = camera_params
+        self.cameras[sn]['params'] = camera_params
         self.save_camera_config(sn)
 
-    def get_camera_intrinsic(self, sn) -> Optional[CameraParams]:  # TODO change name to get_camera_params
+    def get_camera_params(self, sn) -> Optional[CameraParams]:  # TODO change name to get_camera_params
         """Get intrinsic camera parameters for a specific camera.
 
         Args:
@@ -552,7 +552,7 @@ class Model(QObject):
         Returns:
             CameraParams: The intrinsic parameters [mtx, dist, rvec, tvec] for the camera.
         """
-        return self.cameras[sn].get('intrinsic', None)
+        return self.cameras[sn].get('params', None)
 
     def clean(self):
         """Clean up and close all camera connections."""

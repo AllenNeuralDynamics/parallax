@@ -161,7 +161,7 @@ class ReticleDetecthandler(QWidget):
         # Check at least two screens are detected.
         valid_intrinsics = [
             sn for sn in self.model.get_visible_camera_sns()
-            if self.model.get_camera_intrinsic(sn)
+            if self.model.get_camera_params(sn)
         ]
 
         if len(valid_intrinsics) < 2:

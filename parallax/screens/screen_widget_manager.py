@@ -72,10 +72,19 @@ class ScreenWidgetManager(QObject):
     def _refresh_screens(self):
         """Refresh only visible screens."""
         for screen in self.screen_widgets:
-            sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get('visible', False):
-                screen.refresh()
+            sn = None  # Initialize sn before the try block
+            try:
+                sn = screen.camera.name(sn_only=True)
+            except AttributeError as e:
+                logger.debug("Could not retrieve camera name from screen: %s", str(e))
+                continue
+            except Exception as e:
+                logger.error("Unexpected error retrieving SN: %s", str(e))
+                continue
 
+            if sn and self.model.cameras.get(sn, {}).get('visible', False):
+                screen.refresh() # This is the slow part
+                
     def _toggle_streaming(self, on: bool, sn: str):
         """Start or stop streaming for a specific camera based on visibility toggle."""
         camera_data = self.model.cameras.get(sn, None)

@@ -410,7 +410,7 @@ class ScreenWidget(pg.GraphicsView):
         print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {camera_matrix.rvec}\ntvecs: {camera_matrix.tvec}")
         coords = [x_coords, y_coords]
         self.model.add_coords_axis(self.camera_name, coords)
-        self.model.add_camera_intrinsic(self.camera_name, camera_matrix)
+        self.model.add_camera_params(self.camera_name, camera_matrix)
 
 
     def found_probe_coords(self, stage_ts, img_ts, probe_sn, stage_info, tip_coords, base_coords):

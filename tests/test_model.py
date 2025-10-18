@@ -189,8 +189,8 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
     rvec = np.array([[0.1], [0.2], [0.3]])
     tvec = np.array([[1.0], [2.0], [3.0]])
 
-    model.add_camera_intrinsic(sn, mtx, dist, rvec, tvec)
-    stored = model.get_camera_intrinsic(sn)
+    model.add_camera_params(sn, mtx, dist, rvec, tvec)
+    stored = model.get_camera_params(sn)
 
     assert stored is not None
     assert np.allclose(stored["mtx"], mtx)
