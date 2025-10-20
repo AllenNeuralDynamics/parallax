@@ -87,7 +87,7 @@ class ProbeCalibrationHandler(QWidget):
         self.transM, self.L2_err, self.dist_travel = None, None, None
         self.moving_stage_id = None
         self.transMbs = None
-        self.arc_angle_global, self.arc_angle_bregma = None, None
+        self.arc_angle_global, self.arc_angle_bregma = None, {}
         self.spinDetectionInputs = SpinDetectionInputs()
         self.update_spin_inputs = False
 
@@ -469,16 +469,27 @@ class ProbeCalibrationHandler(QWidget):
             return
         self.camA_best, self.camB_best = candidats[:2]
 
-    def apply_reticle_metadata_to_stage(self):
+    def _apply_reticle_metadata_to_stage(self):
+        if self.transM is None:
+            self.transMbs = None
+            self.arc_angle_global = None
+            self.arc_angle_bregma = {}
+            return
+
         # Update related to reticle metadata
         self.reticle_metadata.load_metadata_from_file()  # self.model.reticle_metadata updated
         self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata)
+        if self.transMbs is None or self.arc_angle_global is None:
+            return
+
+        # Update arc angles in bregma frame
         for reticle_name, transMb in self.transMbs.items():
             self.arc_angle_bregma[reticle_name] = get_rx_ry(transMb)  # {"rx":..., "ry":...} | None
-            self.arc_angle_bregma[reticle_name]['spin'] = get_spin_bregma(
-                spin_global=self.arc_angle_global["spin"],
-                reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0)
-            )
+            if self.arc_angle_global.get("spin", None) is not None:
+                self.arc_angle_bregma[reticle_name]['spin'] = get_spin_bregma(
+                    spin_global=self.arc_angle_global["spin"],
+                    reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0)
+                )
 
     def update_stage_info_to_model(self, stage_id) -> None:
         """
@@ -550,26 +561,24 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # TODO get spin info only for 4 shanks probe
+        # TODO update from model if the session is loaded with calibrated probe
         if not self.is_spin_data_ready():
             print("Failed to get spin info. Trying triangulation one more time.")
             return
-
         spin_processor = SpinProcessor(self.spinDetectionInputs)
         result: SpinCalculationResult = spin_processor.run_detection_pipeline()
         if not result.is_valid:
             print("Spin detection failed sanity checks or calculation. Trying triangulation one more time.")
             return
-
-        self.probe_detection_status = "accepted"
-
         # Get probe angle information of global 
-        self.arc_angle_global = get_rx_ry(self.transM)  # TODO update into session file
-        self.arc_angle_global["spin"] = result.spin_angle_deg  # TODO update into session file
+        self.arc_angle_global = get_rx_ry(self.transM)
+        self.arc_angle_global["spin"] = result.spin_angle_deg
 
         # Update reticle metatdata related info
-        self.apply_reticle_metadata_to_stage()
+        self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
 
         # Update into model
+        self.probe_detection_status = "accepted"
         self.update_stage_info_to_model(self.selected_stage_id)
         self.model.set_calibration_status(self.selected_stage_id, True)
 
@@ -865,7 +874,7 @@ class ProbeCalibrationHandler(QWidget):
         # Save the previous stage's calibration info
         #info = self.get_stage_info(prev_stage_id)
         #self.model.add_stage_calib_info(prev_stage_id, info)
-        self.apply_reticle_metadata_to_stage()
+        self._apply_reticle_metadata_to_stage()
         self.update_stage_info_to_model(prev_stage_id)
         #logger.debug(f"Saved stage {prev_stage_id} info: {info}")
 

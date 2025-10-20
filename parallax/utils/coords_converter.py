@@ -319,8 +319,10 @@ def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
         (JSON-serializable). None if the stage/transform is unavailable.
     """
     if transM is None or transM.shape != (4,4):
+        print("Invalid transformation matrix.")
         return None
     if reticle_metadatas is None or len(reticle_metadatas) == 0:
+        print("No reticle metadata available.")
         return None
 
     bregma_to_local_transMs: dict[str, list] = {}
@@ -328,6 +330,7 @@ def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
         Tb = get_transM_bregma_to_local(md, transM)
         if Tb is not None:
             bregma_to_local_transMs[reticle_name] = np.asarray(Tb, dtype=float).tolist()
+            print("Computed Tb for reticle:", reticle_name)
     return bregma_to_local_transMs
 
 def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:

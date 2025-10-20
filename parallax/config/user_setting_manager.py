@@ -293,7 +293,7 @@ class CameraConfigManager(BaseConfigManager):
                     camera[key] = cam_cfg[key]
 
             # Intrinsic
-            intr = cam_cfg.get("intrinsic", {})
+            intr = cam_cfg.get("params", {})
             if intr:
                 mtx  = np.asarray(intr.get("mtx"),  dtype=np.float64) if intr.get("mtx")  is not None else None
                 dist = np.asarray(intr.get("dist"), dtype=np.float64) if intr.get("dist") is not None else None
@@ -317,7 +317,7 @@ class CameraConfigManager(BaseConfigManager):
                     tvec=tvec,
                 )
                 # Store as the object (not nested dicts/tuples)
-                camera["intrinsic"] = camera_params
+                camera["params"] = camera_params
 
     @classmethod
     def save_to_yaml(cls, model, sn: str) -> None:
@@ -350,7 +350,7 @@ class CameraConfigManager(BaseConfigManager):
                 cam_cfg["coords_axis"].append(path_converted)
 
         # Intrinsic
-        params = camera.get("intrinsic", {})
+        params = camera.get("params", {})
         if params:
             params_dict = {}
             if params.mtx is not None:
@@ -361,7 +361,7 @@ class CameraConfigManager(BaseConfigManager):
                 params_dict["rvec"] = params.rvec.flatten().tolist()
             if params.tvec is not None:
                 params_dict["tvec"] = params.tvec.flatten().tolist()
-            cam_cfg["intrinsic"] = params_dict
+            cam_cfg["params"] = params_dict
 
         data["model"]["cameras"][sn] = cam_cfg
         cls._save_yaml(data)
