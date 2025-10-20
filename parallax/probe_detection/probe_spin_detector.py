@@ -12,6 +12,7 @@ from parallax.probe_detection.probe_img_processor import ProbeImageProcessor
 from parallax.config.config_path import debug_img_dir
 from parallax.config.config_calibration import MIN_SHANK_DIST_MM, MAX_SHANK_DIST_MM, Z_SPAN_MAX_MM
 from parallax.cameras.calibration_camera import CameraParams, triangulate
+from parallax.utils.probe_angles import spin_angle_from_vec
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -139,15 +140,52 @@ class SpinProcessor:
             return SpinCalculationResult(0.0, 0.0, False)
 
         # 5. Get spin angle
-        angle_deg, dir_xy, pts_xy, err = self._spin_angle_from_shanks_pca(global_pts)
-        print(f"Spin: {angle_deg:.2f}° (0° = +Y), RMS⊥ error: {err:.4f}")
-        print("vector (XY):", np.round(dir_xy, 4).tolist())
+        vec, pts_xy, rms_perp = self._pca_global_pts_to_vec(global_pts)  # for debug
+        angle_deg = spin_angle_from_vec(vec)
+        print(f"Spin: {angle_deg:.2f}° (0° = +Y), RMS⊥ error: {rms_perp:.4f}")
+        print("vector (XY):", np.round(vec, 4).tolist())
         return SpinCalculationResult(angle_deg, np.deg2rad(angle_deg), True)
 
     def _run_sanity_checks(self, global_points: np.ndarray) -> bool:
         ok1 = self._check_consecutive_spacings(global_points, unit="mm", scale=1.0)
         ok2, z_vals, z_span = self._check_same_local_z_RT(global_points, self.inputs.transM, tol_mm=Z_SPAN_MAX_MM)
         return ok1 and ok2
+
+    def _pca_global_pts_to_vec(self, global_pts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
+        """
+        PCA-based spin:
+        - Project to XY
+        - Principal axis v minimizes sum of squared perpendicular distances
+        - Orient v to point from shank1 (pts[0]) to shank4 (pts[-1])
+        - Spin angle = atan2(vx, vy)  (0° => +Y)
+
+        Returns:
+        v (unit 2D), pts_xy (N,2), rms_perp (fit error in px/mm units of coords)
+        """
+        P = np.asarray(global_pts, float).reshape(-1, 3).copy()
+        P[:, 2] = 0.0
+        pts_xy = P[:, :2]
+        if len(pts_xy) < 2:
+            raise ValueError("Need at least two shank points.")
+
+        # PCA / total least squares line fit
+        C = pts_xy.mean(axis=0)
+        X = pts_xy - C
+        cov = np.cov(X.T)
+        _, eigvecs = np.linalg.eigh(cov)       # ascending
+        v = eigvecs[:, 1]                      # principal dir (largest eigenvalue)
+        v = v / (np.linalg.norm(v) + 1e-12)
+
+        # Choose sign so it points from shank1 -> shank4
+        end_vec = pts_xy[-1] - pts_xy[0]
+        if np.dot(v, end_vec) < 0:
+            v = -v
+
+        # RMS perpendicular (reprojection) error: distances to line through C with dir v
+        n = np.array([-v[1], v[0]])            # unit normal
+        rms_perp = float(np.sqrt(np.mean((X @ n)**2)))
+
+        return v, pts_xy, rms_perp
 
     def _spin_angle_from_shanks_pca(self, global_pts):
         """
@@ -182,9 +220,7 @@ class SpinProcessor:
         # Spin angle: 0° if along +Y, positive toward +X
         angle_deg = float(np.degrees(np.arctan2(v[0], v[1])))
 
-        # RMS perpendicular (reprojection) error: distances to line through C with dir v
-        n = np.array([-v[1], v[0]])            # unit normal
-        rms_perp = float(np.sqrt(np.mean((X @ n)**2)))
+
 
         return angle_deg, v, pts_xy, rms_perp
 

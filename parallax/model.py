@@ -92,13 +92,13 @@ class Model(QObject):
         # probe detector
         self.probeDetectors = []
 
-        # probe detector altorithms # TODO
+        # probe detector algorithms # TODO
         self.probe_detection_algorithm = {}
 
         # Reticle metadata
         self.reticle_metadata = {}
 
-        # clicked pts # max len = 2
+        # clicked pts, max len = 2 for triangulation
         self.clicked_pts = OrderedDict()
 
     def set_probe_detect_algorithms(self, camera_sn, algorithms):
@@ -161,7 +161,6 @@ class Model(QObject):
         CameraConfigManager.load_from_yaml(self)
 
     def save_camera_config(self, sn):
-        """Save camera configuration to a YAML file."""
         CameraConfigManager.save_to_yaml(self, sn)
 
     def load_session_config(self):
@@ -543,7 +542,7 @@ class Model(QObject):
         self.cameras[sn]['params'] = camera_params
         self.save_camera_config(sn)
 
-    def get_camera_params(self, sn) -> Optional[CameraParams]:  # TODO change name to get_camera_params
+    def get_camera_params(self, sn) -> Optional[CameraParams]:
         """Get intrinsic camera parameters for a specific camera.
 
         Args:

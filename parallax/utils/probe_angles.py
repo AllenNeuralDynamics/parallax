@@ -7,27 +7,26 @@ import math
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-def find_probe_angles_dict(transM_dict: dict[str, np.ndarray]) -> Optional[dict[str, dict[str, float]]]:
+def get_spin_bregma(spin_global: float, reticle_rot: float) -> Optional[float]:
     """
-    Compute arc angles per reticle.
+    Computes the effective spin angle relative to a reticle's initial orientation (Yaw offset).
 
-    Returns
-    -------
-    dict[str, dict[str, float]] | None
-        {"reticleA": {"rx": <deg>, "ry": <deg>}, ...} or None if empty input.
+    Args:
+        spin_global (float): The observed spin angle in the global coordinate system (in degrees).
+        reticle_rot (float): The reticle's rotation offset (in degrees).
+
+    Returns:
+        Optional[float]: The relative spin angle in degrees, or None if inputs are invalid.
     """
-    if transM_dict is None:
+    if spin_global is None or reticle_rot is None:
+        logger.warning("Warning: spin_global or reticle_rot is None. Returning None.")
         return None
 
-    angles_dict: dict[str, dict[str, float]] = {}
-    for reticle, transM in transM_dict.items():
-        angles = find_probe_angle(transM)  # -> {"rx":..., "ry":...} | None
-        if angles is not None:
-            angles_dict[reticle] = angles
-    return angles_dict or None
+    relative_spin = spin_global - reticle_rot
+    relative_spin_normalized = (relative_spin + 180) % 360 - 180  # Normalize to [-180, 180]
+    return relative_spin_normalized
 
-
-def find_probe_angle(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
+def get_rx_ry(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
     """
     transM: 4x4 transformation matrix from global or bregma to coordinates.
     Depending on the context, the result is expressed in that coordinate system.
@@ -41,6 +40,14 @@ def find_probe_angle(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]
         return None
     z_axis = _find_probe_insertion_vector(transM)
     return _vector_to_arc_angles(z_axis)
+
+def spin_angle_from_vec(v: np.ndarray) -> float:
+    """
+    Spin angle: positive for CCW, 0° if along +Y
+    """
+    angle_deg = float(np.degrees(np.arctan2(v[0], v[1])))
+    angle_deg = (angle_deg + 180) % 360 - 180  # Normalize to [-180, 180]
+    return angle_deg
 
 def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.ndarray]:
     """Return the probe direction as a 3-vector (GLOBAL/BREGMA frame), or None."""

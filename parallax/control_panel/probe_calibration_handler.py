@@ -19,7 +19,7 @@ from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
-from parallax.utils.probe_angles import find_probe_angle, find_probe_angles_dict
+from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
 
 
 logger = logging.getLogger(__name__)
@@ -469,12 +469,16 @@ class ProbeCalibrationHandler(QWidget):
             return
         self.camA_best, self.camB_best = candidats[:2]
 
-    def update_stage_info_reticle_metadata(self):
+    def apply_reticle_metadata_to_stage(self):
         # Update related to reticle metadata
         self.reticle_metadata.load_metadata_from_file()  # self.model.reticle_metadata updated
         self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata)
-        self.arc_angle_bregma = find_probe_angles_dict(self.transMbs)
-        #self.spin_bregma = self.find_probe_spin_bregma()
+        for reticle_name, transMb in self.transMbs.items():
+            self.arc_angle_bregma[reticle_name] = get_rx_ry(transMb)  # {"rx":..., "ry":...} | None
+            self.arc_angle_bregma[reticle_name]['spin'] = get_spin_bregma(
+                spin_global=self.arc_angle_global["spin"],
+                reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0)
+            )
 
     def update_stage_info_to_model(self, stage_id) -> None:
         """
@@ -558,12 +562,12 @@ class ProbeCalibrationHandler(QWidget):
 
         self.probe_detection_status = "accepted"
 
-        # Get angle information
-        self.arc_angle_global = find_probe_angle(self.transM)  # TODO update into session file
+        # Get probe angle information of global 
+        self.arc_angle_global = get_rx_ry(self.transM)  # TODO update into session file
         self.arc_angle_global["spin"] = result.spin_angle_deg  # TODO update into session file
 
         # Update reticle metatdata related info
-        self.update_stage_info_reticle_metadata()
+        self.apply_reticle_metadata_to_stage()
 
         # Update into model
         self.update_stage_info_to_model(self.selected_stage_id)
@@ -861,7 +865,7 @@ class ProbeCalibrationHandler(QWidget):
         # Save the previous stage's calibration info
         #info = self.get_stage_info(prev_stage_id)
         #self.model.add_stage_calib_info(prev_stage_id, info)
-        self.update_stage_info_reticle_metadata()
+        self.apply_reticle_metadata_to_stage()
         self.update_stage_info_to_model(prev_stage_id)
         #logger.debug(f"Saved stage {prev_stage_id} info: {info}")
 
