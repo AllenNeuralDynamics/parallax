@@ -74,14 +74,18 @@ class Model(QObject):
         stages[sn] = {
             'obj' : Stage(stage_info=instance),
             'is_calib': False,
-            'calib_info': {
-                'detection_status': "default",  # options: default, process, accepted
-                'transM': None,
-                'L2_err': None,
-                'dist_travel': None,
-                'status_x': None,
-                'status_y': None,
-                'status_z': None
+            'calib_info': StageCalibrationInfo(
+                    detection_status: str = "default"  # options: default, process, accepted
+                    transM: Optional[np.ndarray] = None
+                    transM_bregma: Optional[dict] = None
+                    arc_angle_global: Optional[tuple] = None
+                    arc_angle_bregma: Optional[dict] = None
+                    L2_err: Optional[float] = None
+                    dist_travel: Optional[np.ndarray] = None
+                    status_x: Optional[str] = None
+                    status_y: Optional[str] = None
+                    status_z: Optional[str] = None
+                )
             }
         }
         """
@@ -351,6 +355,39 @@ class Model(QObject):
             return None
         calib = stage.get("calib_info")
         return calib.dist_travel if calib else None
+    
+    def get_transM_bregma(self, stage_sn):
+        """
+        Get the transformation matrix from bregma for a specific stage.
+        Returns None if missing.
+        """
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            return None
+        calib = stage.get("calib_info")
+        return calib.transM_bregma if calib else None
+    
+    def get_arc_angle_global(self, stage_sn):
+        """
+        Get the arc angles in global coordinates for a specific stage.
+        Returns None if missing.
+        """
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            return None
+        calib = stage.get("calib_info")
+        return calib.arc_angle_global if calib else None
+    
+    def get_arc_angle_bregma(self, stage_sn):
+        """
+        Get the arc angles in bregma coordinates for a specific stage.
+        Returns None if missing.
+        """
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            return None
+        calib = stage.get("calib_info")
+        return calib.arc_angle_bregma if calib else None
 
     def set_calibration_status(self, stage_sn, status: bool):
         """

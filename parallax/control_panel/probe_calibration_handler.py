@@ -87,7 +87,7 @@ class ProbeCalibrationHandler(QWidget):
         self.transM, self.L2_err, self.dist_travel = None, None, None
         self.moving_stage_id = None
         self.transMbs = None
-        self.arc_angle_global, self.arc_angle_bregma = None, {}
+        self.arc_angle_global, self.arc_angle_bregma = None, None
         self.spinDetectionInputs = SpinDetectionInputs()
         self.update_spin_inputs = False
 
@@ -170,12 +170,15 @@ class ProbeCalibrationHandler(QWidget):
         """
         # Get status of selected stage on ui and apply the appropriate style 
         if self.model.is_calibrated(self.selected_stage_id):
-            self.update_probe_calib_status(
+            self.update_probe_calib_status(  # self.transM, self.L2_err, self.dist_travel
                 self.selected_stage_id,
                 self.model.get_transform(self.selected_stage_id),
                 self.model.get_L2_err(self.selected_stage_id),
                 self.model.get_L2_travel(self.selected_stage_id)
             )
+            self.transMbs = self.model.get_transM_bregma(self.selected_stage_id)
+            self.arc_angle_global = self.model.get_arc_angle_global(self.selected_stage_id)
+            self.arc_angle_bregma = self.model.get_arc_angle_bregma(self.selected_stage_id)
             self.probe_detect_accepted_status(switch_probe=True)
 
     def reticle_detection_status_change(self):
@@ -473,7 +476,7 @@ class ProbeCalibrationHandler(QWidget):
         if self.transM is None:
             self.transMbs = None
             self.arc_angle_global = None
-            self.arc_angle_bregma = {}
+            self.arc_angle_bregma = None
             return
 
         # Update related to reticle metadata
@@ -483,6 +486,8 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Update arc angles in bregma frame
+        if self.arc_angle_bregma is None:
+            self.arc_angle_bregma = {}
         for reticle_name, transMb in self.transMbs.items():
             self.arc_angle_bregma[reticle_name] = get_rx_ry(transMb)  # {"rx":..., "ry":...} | None
             if self.arc_angle_global.get("spin", None) is not None:
@@ -561,18 +566,18 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # TODO get spin info only for 4 shanks probe
-        # TODO update from model if the session is loaded with calibrated probe
-        if not self.is_spin_data_ready():
-            print("Failed to get spin info. Trying triangulation one more time.")
-            return
-        spin_processor = SpinProcessor(self.spinDetectionInputs)
-        result: SpinCalculationResult = spin_processor.run_detection_pipeline()
-        if not result.is_valid:
-            print("Spin detection failed sanity checks or calculation. Trying triangulation one more time.")
-            return
-        # Get probe angle information of global 
-        self.arc_angle_global = get_rx_ry(self.transM)
-        self.arc_angle_global["spin"] = result.spin_angle_deg
+        if self.arc_angle_global is None:
+            if not self.is_spin_data_ready():
+                print("Failed to get spin info. Trying triangulation one more time.")
+                return
+            spin_processor = SpinProcessor(self.spinDetectionInputs)
+            result: SpinCalculationResult = spin_processor.run_detection_pipeline()
+            if not result.is_valid:
+                print("Spin detection failed sanity checks or calculation. Trying triangulation one more time.")
+                return
+            # Get probe angle information of global
+            self.arc_angle_global = get_rx_ry(self.transM)
+            self.arc_angle_global["spin"] = result.spin_angle_deg
 
         # Update reticle metatdata related info
         self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
@@ -907,7 +912,7 @@ class ProbeCalibrationHandler(QWidget):
             else:
                 self.probeCalibrationLabel.setText("")
         elif probe_detection_status == "accepted":
-            self.probe_detect_accepted_status(switch_probe=True)
+            self.apply_probe_calibration_status()
             if self.transM is not None:
                 self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travel)
 
