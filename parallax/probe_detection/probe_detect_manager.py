@@ -348,6 +348,7 @@ class ProbeDetectManager(QObject):
         self._prev_ts = None
         self.threadpool = QThreadPool()
         self.last_detected_frame = None
+        self.detect_algorithm = 'opencv'  # Default algorithm
 
     def _init_draw_thread(self):
         """Initialize the draw worker thread."""
@@ -395,8 +396,8 @@ class ProbeDetectManager(QObject):
         self.worker.start_running()
         self.threadpool.start(self.worker)
 
-        self._init_process_thread()
-        #self.processWorker.start_running()
+        self._init_process_thread() # Init processWorker and tamProcessWorker
+        self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
 
         neg_pts_coords = self._get_negative_points()
@@ -419,22 +420,7 @@ class ProbeDetectManager(QObject):
 
     def set_algorithm(self, algorithms):
         """Set the probe detection algorithm."""
-        # TODO
-        """
-        if algorithms == 'opencv':
-            if self.processWorker is not None:
-                self.processWorker.start_running()
-            if self.tamProcessWorker is not None:
-                self.tamProcessWorker.stop_running()
-        elif algorithms == 'tam':
-            if self.processWorker is not None:
-                self.processWorker.stop_running()
-            if self.tamProcessWorker is not None:
-                self.tamProcessWorker.start_running()
-        else:
-            print("Unknown algorithm:", algorithms)
-        """
-        pass
+        self.detect_algorithm = algorithms
 
     def _get_negative_points(self):
         coords = self.model.get_coords_for_debug(self.name)
@@ -546,13 +532,17 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number.
         """
-        if self.processWorker is not None:
-            self.processWorker.update_sn(sn)
-            self.processWorker.start_detection()
+        if self.detect_algorithm == 'opencv':
+            if self.processWorker is not None:
+                self.processWorker.update_sn(sn)
+                self.processWorker.start_detection()
+                print("Started OpenCV detection - ", self.name)
 
-        if self.tamProcessWorker is not None:
-            self.tamProcessWorker.update_sn(sn)
-            self.tamProcessWorker.start_detection()
+        elif self.detect_algorithm == 'tam':
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.update_sn(sn)
+                self.tamProcessWorker.start_detection()
+                print("Started TAM detection - ", self.name)
 
     def stop_detection(self, sn):  # Call from stage listener.
         """Stop the probe detection for a specific serial number.

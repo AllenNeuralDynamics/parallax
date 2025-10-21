@@ -18,7 +18,7 @@ from parallax.utils.utils import UtilsCoords
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 try:
@@ -39,6 +39,7 @@ class ProcessWorkerSignal(QObject):
     seg_mask = pyqtSignal(str, np.ndarray)
     status = pyqtSignal(str)
     cancel_seg_mask = pyqtSignal()
+
 
 class baseProcessWorker(QRunnable):
     def __init__(self, name, resolution, test=False):
