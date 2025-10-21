@@ -317,7 +317,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         self.signals.cancel_seg_mask.emit()
         self._keep_negative_points()
 
-    def _is_close_prev_pt(self, pt, threshold=50):
+    def _is_close_prev_pt(self, pt, threshold=10):
         logger.debug(f"pt: {pt}, prev_pt: {self._prev_pt}")
         if self._prev_pt is not None:
             # ensure 2D (x, y)
@@ -325,7 +325,9 @@ class ProcessWorkerTAM(baseProcessWorker):
             prev = np.asarray(self._prev_pt, dtype=float).ravel()[:2]
 
             # fast “within 10 px” check (no sqrt)
-            if np.dot(curr - prev, curr - prev) < threshold**2:
+            diff = np.dot(curr - prev, curr - prev)
+            if diff < threshold**2:
+                logger.debug(f"Clicked point is close to previous point ({diff}). Cancel TAM.")
                 return True
         return False
 
@@ -437,6 +439,7 @@ class ProcessWorkerTAM(baseProcessWorker):
                 self._cancel_current_tam()
                 logger.error(f"Error occurred while starting TAM (local): {e}")
                 return
+            self._prev_pt = pt
 
         elif self.predictor_global is not None and self.predictor_local is not None:
             self._prev_pt = pt
