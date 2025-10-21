@@ -1,12 +1,37 @@
 import pytest
 import numpy as np
 import time
-from unittest.mock import Mock
+from unittest.mock import MagicMock, patch
 from parallax.screens.axis_filter import AxisFilter
 from PyQt6.QtCore import QCoreApplication, QEventLoop
 
+# --- Fixtures and Mocks ---
+
+# Define the string key that the mock model will return
+MOCK_DEVICE_MODEL = "Blackfly S BFS-U3-120S4C"
+MOCK_CAMERA_SN = "SN_A"
+
+# Define the mock configuration that calibrate_camera expects under that key
+MOCK_CAMERA_CONFIGS = {
+    MOCK_DEVICE_MODEL: {
+        "SIZE": (4000, 3000),
+        "imtx_INIT": np.eye(3),
+        "idist_INIT": np.zeros((1, 5)),
+        "FLAGS": 0,
+        "PIXEL_SIZE_MM": 0.00345
+    }
+}
+
+# 1. FIXTURE: Mock the configuration used by calibrate_camera
+@pytest.fixture(autouse=True)
+def mock_calibration_config():
+    """Patches the configuration dictionary to include the mock device model."""
+    # Patch cfg.CAMERA_CONFIGS to include our test key
+    with patch('parallax.cameras.calibration_camera.cfg.CAMERA_CONFIGS', MOCK_CAMERA_CONFIGS):
+        yield
+
 @pytest.fixture
-def reticle_coords():
+def mock_reticle_coords():
     """Mock reticle coordinates for testing."""
     return [
         np.array([[1819, 1680], [1872, 1672], [1925, 1663], [1976, 1655], [2029, 1646],
@@ -22,11 +47,51 @@ def reticle_coords():
     ]
 
 @pytest.fixture
-def mock_model(reticle_coords):
-    """Mock the model to return predefined reticle coordinates and other properties."""
-    model = Mock()
-    model.get_coords_axis.return_value = reticle_coords
-    model.get_pos_x.return_value = (200, 200)  # Simulate a previously stored pos_x
+def mock_model(mock_reticle_coords):
+    """
+    Sets up a Model mock with the 'cameras' dictionary populated to match
+    the required structure, making method calls consistent.
+    """
+    model = MagicMock()
+
+    # --- 1. Define the Camera Parameters (params) Mock ---
+    # This structure is needed for self.model.get_camera_intrinsic()
+    mock_params = {
+        'mtx': np.eye(3),
+        'dist': np.zeros((1, 5)),
+        'rvec': np.zeros((3, 1)),
+        'tvec': np.zeros((3, 1))
+    }
+
+    # --- 2. Define the Camera Data Structure ---
+    mock_camera_data = {
+        'obj': MagicMock(),
+        'visible': True,
+        'device_model': MOCK_DEVICE_MODEL,
+        'is_triangulation_candidate': False,
+        'probe_detect_algorithm': 'opencv',
+        'coords_axis': mock_reticle_coords,
+        'coords_debug': None,
+        'pos_x': None,
+        'params': mock_params # The actual dictionary of parameters
+    }
+
+    # --- 3. Populate the Model's Internal State ---
+    model.cameras = {
+        MOCK_CAMERA_SN: mock_camera_data
+    }
+
+    # --- 4. Mock the Accessor Methods (to retrieve data from the structure) ---
+    model.get_camera_device_model.return_value = MOCK_DEVICE_MODEL
+    model.get_coords_axis.return_value = mock_reticle_coords
+    model.get_pos_x.return_value = None
+    model.get_camera_intrinsic.return_value = mock_params # Returns the 'params' dict
+
+    # Mock methods called by the AxisFilter worker
+    model.add_pos_x = MagicMock()
+    model.add_coords_for_debug = MagicMock()
+    model.reset_pos_x = MagicMock()
+
     return model
 
 @pytest.fixture
@@ -36,8 +101,10 @@ def test_frame():
 
 @pytest.fixture
 def axis_filter(mock_model):
-    """Initialize the AxisFilter with the mocked model."""
-    return AxisFilter(mock_model, "TestCamera123")
+    """Instantiates the AxisFilter object, using MOCK_DEVICE_MODEL for the first case."""
+    filter_instance = AxisFilter(mock_model, MOCK_DEVICE_MODEL)
+    filter_instance.init_thread()
+    return filter_instance
 
 @pytest.fixture(scope='module', autouse=True)
 def qt_application():

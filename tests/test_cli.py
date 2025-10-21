@@ -1,16 +1,28 @@
 import sys
+from unittest.mock import MagicMock
+
+
+
+MODULE_TO_MOCK = 'efficient_track_anything.realtime_tam'
+TORCH_MODULE = 'torch'
+
+# 1. Mock the 'torch' library itself
+sys.modules[TORCH_MODULE] = MagicMock()
+# 2. Mock the specific module that imports torch
+sys.modules[MODULE_TO_MOCK] = MagicMock()
+# Ensure any nested modules used by the local code are also safe
+sys.modules[MODULE_TO_MOCK].build_predictor = MagicMock()
+sys.modules[MODULE_TO_MOCK].start = MagicMock()
+sys.modules[MODULE_TO_MOCK].track = MagicMock()
+
 import pytest
-
-# Import the functions under test from your __main__.py
-from parallax.__main__ import parse_args, print_arg_info
-
+from parallax.__main__ import parse_args, print_arg_info # This line is now safe!
+from unittest.mock import MagicMock # Re-import MagicMock if needed later
 
 def run_parse(monkeypatch, argv_tail):
     """Run parse_args() with a controlled argv (no -m / module bits)."""
     monkeypatch.setattr(sys, "argv", ["parallax", *argv_tail])
     return parse_args()
-
-
 
 def test_defaults(monkeypatch, capsys):
     args = run_parse(monkeypatch, [])
