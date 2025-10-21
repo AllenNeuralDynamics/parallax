@@ -44,7 +44,8 @@ class Model(QObject):
             'obj': cam,
             'visible': True,
             'device_model': cam.device_model,
-            'is_triangulation_candidate' : False
+            'is_triangulation_candidate' : False,
+            'probe_detect_algorithm': 'opencv', # optaion 'opencv', 'tam'
             'coords_axis': None,
             'coords_debug': None,
             'pos_x': None,
@@ -96,9 +97,6 @@ class Model(QObject):
         # probe detector
         self.probeDetectors = []
 
-        # probe detector algorithms # TODO
-        self.probe_detection_algorithm = {}
-
         # Reticle metadata
         self.reticle_metadata = {}
 
@@ -109,9 +107,23 @@ class Model(QObject):
         """Add probe detection algorithms to the model.
 
         Args:
-            algorithms (dict): A dictionary of probe detection algorithms to add.
+            camera_sn (str): The serial number of the camera.
+            algorithms (str): The detection algorithm to set ('opencv' or 'tam').
         """
-        self.probe_detection_algorithm[camera_sn] = algorithms
+        if camera_sn in self.cameras:
+            self.cameras[camera_sn]['probe_detect_algorithm'] = algorithms
+            # save to yaml
+            self.save_camera_config(camera_sn)
+
+    def get_probe_detect_algorithms(self, camera_sn):
+        """Get probe detection algorithms for a specific camera.
+
+        Args:
+            camera_sn (str): The serial number of the camera.
+        Returns:
+            str: The detection algorithm used by the camera ('opencv' or 'tam').
+        """
+        return self.cameras.get(camera_sn, {}).get('probe_detect_algorithm', 'opencv')
 
     def get_camera(self, sn):
         return self.cameras.get(sn, {}).get('obj', None)
@@ -143,7 +155,8 @@ class Model(QObject):
                 'obj': cam,
                 'visible': True,
                 'device_model': cam.device_model,
-                'is_triangulation_candidate': False
+                'is_triangulation_candidate': False,
+                'probe_detect_algorithm': 'opencv',
             }
 
     def scan_for_cameras(self):
@@ -156,6 +169,7 @@ class Model(QObject):
                 'visible': True,
                 'device_model': cam.device_model,
                 'is_triangulation_candidate' : False,
+                'probe_detect_algorithm': 'opencv',
             }
 
         self.nPySpinCameras = sum(isinstance(cam['obj'], PySpinCamera) for cam in self.cameras.values())
@@ -200,10 +214,10 @@ class Model(QObject):
 
     def reset_all_triangulation_partners(self):
         """
-        Resets the 'is_stereo_partner' status to False for all known cameras.
+        Resets the 'is_triangulation_candidate' status to False for all known cameras.
         """
         for camera_sn in self.cameras:
-            self.cameras[camera_sn]["is_stereo_partner"] = False
+            self.cameras[camera_sn]["is_triangulation_candidate"] = False
             self.save_camera_config(camera_sn)
 
     def get_camera_resolution(self, camera_sn):
@@ -355,7 +369,7 @@ class Model(QObject):
             return None
         calib = stage.get("calib_info")
         return calib.dist_travel if calib else None
-    
+
     def get_transM_bregma(self, stage_sn):
         """
         Get the transformation matrix from bregma for a specific stage.
@@ -366,7 +380,7 @@ class Model(QObject):
             return None
         calib = stage.get("calib_info")
         return calib.transM_bregma if calib else None
-    
+
     def get_arc_angle_global(self, stage_sn):
         """
         Get the arc angles in global coordinates for a specific stage.
@@ -377,7 +391,7 @@ class Model(QObject):
             return None
         calib = stage.get("calib_info")
         return calib.arc_angle_global if calib else None
-    
+
     def get_arc_angle_bregma(self, stage_sn):
         """
         Get the arc angles in bregma coordinates for a specific stage.

@@ -55,15 +55,21 @@ class ProbeDetectWidget(QWidget):
 
     def _apply_detection_algorithm(self):
         """Apply the selected detection algorithm to the screen and model."""
+        # Update into model
+        algorithm = 'tam' if self.settingMenu.radioButton2.isChecked() else 'opencv'
+        self.model.set_probe_detect_algorithms(
+            self.screen.camera_name,
+            algorithm
+        )
         # Run open cv default detection
         if self.settingMenu.radioButton1.isChecked():
             print(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
-            self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'opencv')
+            self.screen.set_probe_detect_algorithms('opencv')
 
         # SuperPoint + LightGlue detection
         elif self.settingMenu.radioButton2.isChecked():
             print(f"{self.screen.camera_name} - 'Realtime Efficient TAM' tracking selected")
-            self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'tam')
+            self.screen.set_probe_detect_algorithms('tam')
 
     def _enable_run_button(self):
         """Enable the run button after detection is finished."""

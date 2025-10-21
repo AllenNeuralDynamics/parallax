@@ -551,6 +551,35 @@ class ProbeCalibrationHandler(QWidget):
 
         return self.spinDetectionInputs.ready_for_calc()
 
+    def _update_probe_angle(self):
+        """Update probe angle information after getting spin data."""
+        if self.arc_angle_global is not None:
+            # restored the arc_angle_global from session
+            return
+
+        # Try to get spin info for 4 shank probe
+        self.camA_best, self.camB_best = self._update_best_stereo_pair()
+        alg_A = self.model.get_probe_detect_algorithms(self.camA_best)
+        alg_B = self.model.get_probe_detect_algorithms(self.camB_best)
+        # Both algorithm are 'tam' -> 4 shank probe
+        IS_FOUR_SHANK = (alg_A == 'tam' and alg_B == 'tam')
+
+        if IS_FOUR_SHANK:
+            if not self.is_spin_data_ready():
+                print("Failed to get spin info. Trying triangulation one more time.")
+                return
+            spin_processor = SpinProcessor(self.spinDetectionInputs)
+            result: SpinCalculationResult = spin_processor.run_detection_pipeline()
+            if not result.is_valid:
+                print("Spin detection failed sanity checks or calculation. Trying triangulation one more time.")
+                return
+            # Get probe angle information of global
+            self.arc_angle_global = get_rx_ry(self.transM)
+            self.arc_angle_global["spin"] = result.spin_angle_deg
+        else:
+            # Single shank probe
+            self.arc_angle_global = get_rx_ry(self.transM)
+
     def probe_detect_accepted_status(self, switch_probe=False):
         """
         Finalizes the probe detection process, accepting the detected probe position and updating the UI accordingly.
@@ -565,19 +594,8 @@ class ProbeCalibrationHandler(QWidget):
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
 
-        # TODO get spin info only for 4 shanks probe
-        if self.arc_angle_global is None:
-            if not self.is_spin_data_ready():
-                print("Failed to get spin info. Trying triangulation one more time.")
-                return
-            spin_processor = SpinProcessor(self.spinDetectionInputs)
-            result: SpinCalculationResult = spin_processor.run_detection_pipeline()
-            if not result.is_valid:
-                print("Spin detection failed sanity checks or calculation. Trying triangulation one more time.")
-                return
-            # Get probe angle information of global
-            self.arc_angle_global = get_rx_ry(self.transM)
-            self.arc_angle_global["spin"] = result.spin_angle_deg
+        # Update probe angle rx, ry, spin (for 4 shank probe)
+        self._update_probe_angle()
 
         # Update reticle metatdata related info
         self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
