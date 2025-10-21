@@ -90,6 +90,7 @@ class StereoCameraHandler:
                     camA_best, camB_best = camA, camB
 
         # Update the model with the calibration results
+        self.model.reset_all_triangulation_partners()
         self.model.set_camera_triangulation_status(camA_best, True)
         self.model.set_camera_triangulation_status(camB_best, True)
         return err

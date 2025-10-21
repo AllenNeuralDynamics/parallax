@@ -314,8 +314,6 @@ class ProbeImageProcessor:
         Returns lines like HoughLinesP: ndarray of shape (N,1,4) int32 (x1,y1,x2,y2),
         or None if nothing kept.
         """
-        import numpy as np
-
         def _unit(v):
             v = np.asarray(v, float).ravel()[:2]
             n = np.linalg.norm(v)

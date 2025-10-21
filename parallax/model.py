@@ -158,6 +158,7 @@ class Model(QObject):
                 'is_triangulation_candidate': False,
                 'probe_detect_algorithm': 'opencv',
             }
+        print(" Cameras:", list(self.cameras.keys()))
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
@@ -174,6 +175,7 @@ class Model(QObject):
 
         self.nPySpinCameras = sum(isinstance(cam['obj'], PySpinCamera) for cam in self.cameras.values())
         self.nMockCameras = sum(isinstance(cam['obj'], MockCamera) for cam in self.cameras.values())
+        print(" Cameras:", list(self.cameras.keys()))
 
     def load_camera_config(self):
         CameraConfigManager.load_from_yaml(self)
@@ -204,7 +206,7 @@ class Model(QObject):
             raise ValueError("camera_sn cannot be None")
         if camera_sn in self.cameras:
             self.cameras[camera_sn]["is_triangulation_candidate"] = status
-        self.save_camera_config(camera_sn)
+            self.save_camera_config(camera_sn)
 
     def get_camera_triangulation_candidate(self) -> list[str]:
         """
@@ -248,6 +250,7 @@ class Model(QObject):
             stage = Stage.from_info(info=instance)
             calib_info = StageCalibrationInfo()
             self.add_stage(stage, calib_info)
+        print("  Stages:", list(self.stages.keys()))
 
     def add_stage(self, stage, calib_info):
         """Add a stage to the model.

@@ -440,6 +440,9 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_z.show()
 
         self._update_best_stereo_pair()
+        if self.camA_best is None or self.camB_best is None:
+            logger.debug("No valid stereo pair found for probe detection.")
+            return
         self.camA_params = self.model.get_camera_params(self.camA_best)
         self.camB_params = self.model.get_camera_params(self.camB_best)
 
@@ -470,7 +473,10 @@ class ProbeCalibrationHandler(QWidget):
         if len(candidats) < 2:
             logger.debug("Less than two triangulation candidates found")
             return
-        self.camA_best, self.camB_best = candidats[:2]
+        try:
+            self.camA_best, self.camB_best = candidats[:2]
+        except Exception as e:
+            logger.error(f"Error updating best stereo pair: {e}")
 
     def _apply_reticle_metadata_to_stage(self):
         if self.transM is None:
@@ -551,34 +557,57 @@ class ProbeCalibrationHandler(QWidget):
 
         return self.spinDetectionInputs.ready_for_calc()
 
-    def _update_probe_angle(self):
-        """Update probe angle information after getting spin data."""
+    def _update_probe_angle(self) -> bool:
+        """
+        Updates probe angle information. Returns True if successfully calculated or
+        skipped (Single Shank). Returns False if the process should be retried
+        (data not yet ready or PCA failed).
+        """
+
+        # 1. Early exit if angle is restored from session
         if self.arc_angle_global is not None:
-            # restored the arc_angle_global from session
-            return
+            return True
 
         # Try to get spin info for 4 shank probe
-        self.camA_best, self.camB_best = self._update_best_stereo_pair()
+        self._update_best_stereo_pair()
+        if self.camA_best is None or self.camB_best is None:
+            logger.warning("No valid stereo pair found for probe angle calculation.")
+            return True
         alg_A = self.model.get_probe_detect_algorithms(self.camA_best)
         alg_B = self.model.get_probe_detect_algorithms(self.camB_best)
-        # Both algorithm are 'tam' -> 4 shank probe
-        IS_FOUR_SHANK = (alg_A == 'tam' and alg_B == 'tam')
+        IS_FOUR_SHANK = (alg_A == 'tam' and alg_B == 'tam') # Both algorithm are 'tam' -> 4 shank probe
 
+        # Retry for 4-Shank Failures, but Skip and Proceed for Single-Shank Mode
         if IS_FOUR_SHANK:
+
+            # Check 1: Data readiness
             if not self.is_spin_data_ready():
                 print("Failed to get spin info. Trying triangulation one more time.")
-                return
+                return False
+
+            # Check 2: Spin calculation
             spin_processor = SpinProcessor(self.spinDetectionInputs)
             result: SpinCalculationResult = spin_processor.run_detection_pipeline()
+
+            # Detected 1 shank only - cannot compute spin angle, but proceed
+            if result.mode == "FAILED_1_SHANK":
+                print("Spin detection found only 1 shank. Skipping spin angle calculation.")
+                self.arc_angle_global = get_rx_ry(self.transM)
+                self.arc_angle_global["spin"] = None
+                return True
+            # Failed to detect spin angle
             if not result.is_valid:
-                print("Spin detection failed sanity checks or calculation. Trying triangulation one more time.")
-                return
+                print("Spin detection failed. Trying triangulation one more time.")
+                return False
+
             # Get probe angle information of global
             self.arc_angle_global = get_rx_ry(self.transM)
             self.arc_angle_global["spin"] = result.spin_angle_deg
         else:
             # Single shank probe
             self.arc_angle_global = get_rx_ry(self.transM)
+            self.arc_angle_global["spin"] = None
+            return True
 
     def probe_detect_accepted_status(self, switch_probe=False):
         """
@@ -595,7 +624,10 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Update probe angle rx, ry, spin (for 4 shank probe)
-        self._update_probe_angle()
+        is_valid = self._update_probe_angle()
+        if not is_valid:
+            # Retry for 4-Shank Failures, but Skip and Proceed for Single-Shank Mode
+            return
 
         # Update reticle metatdata related info
         self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated

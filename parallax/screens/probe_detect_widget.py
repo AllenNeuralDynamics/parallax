@@ -36,10 +36,6 @@ class ProbeDetectWidget(QWidget):
         #self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
         #self.screen.reticle_coords_detected.connect(self._reticle_detected)
         #self.screen.reticle_coords_detect_finished.connect(self._enable_run_button)
-        self._init_model_setting()
-
-    def _init_model_setting(self):
-        self.model.set_probe_detect_algorithms(self.screen.camera_name, 'opencv')
 
     def _is_tam_available(self):
         """Check if realtime_efficient_tam is available by verifying import and file presence."""

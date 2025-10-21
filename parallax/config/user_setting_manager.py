@@ -282,14 +282,15 @@ class CameraConfigManager(BaseConfigManager):
             cam_cfg = cam_configs[sn]
 
             # Basic fields
-            for key in ["visible",
-                        "coords_axis",
-                        "coords_debug",
-                        "pos_x",
-                        'device_model',
-                        'is_triangulation_candidate',
-                        'probe_detect_algorithm'
-                        ]:
+            for key in [
+                    "visible",
+                    "coords_axis",
+                    "coords_debug",
+                    "pos_x",
+                    'device_model',
+                    'is_triangulation_candidate',
+                    'probe_detect_algorithm'
+                ]:
                 if key not in cam_cfg or cam_cfg[key] is None:
                     continue
                 if key == "pos_x":

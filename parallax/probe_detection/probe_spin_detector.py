@@ -23,6 +23,7 @@ class SpinCalculationResult:
     spin_angle_deg: float
     spin_angle_rad: float
     is_valid: bool
+    mode: str = "4_SHANK" # Options include: "4_SHANK", "FAILED_INPUTS", "FAILED_SANITY_CHECK", "FAILED_1_SHANK", etc.
 
 @dataclass(slots=True)
 class SpinDetectionInputs:
@@ -60,7 +61,7 @@ class SpinProcessor:
     def run_detection_pipeline(self) -> SpinCalculationResult:
         if not self.inputs.ready_for_calc():
             print("Inputs not ready for calculation.")
-            return SpinCalculationResult(0.0, 0.0, False)
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_INPUTS")
 
         # Save img and mask
         if logger.isEnabledFor(logging.DEBUG):
@@ -88,8 +89,9 @@ class SpinProcessor:
                             )
         if parallel_lines_mask1 is None or parallel_lines_mask2 is None:
             print("Error: Failed to detect parallel lines (shanks) in one or both cameras.")
-            return SpinCalculationResult(0.0, 0.0, False)
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_PREPROCESSING")
 
+        # ---- CAM1 ----
         cam1_tip_base_dist = np.linalg.norm(np.asarray(self.inputs.tipA_px) - np.asarray(self.inputs.baseA_px))
         endpoints1 = ProbeImageProcessor.extract_shank_endpoints_from_line_mask(
                 line_mask=parallel_lines_mask1,
@@ -100,8 +102,7 @@ class SpinProcessor:
                 save_to=Path(debug_img_dir) / "A_frame_shank_endpoints.png"
             )
         print("CAM1:", endpoints1)
-
-        # ---- CAM2 (new) ----
+        # ---- CAM2 ----
         cam2_tip_base_dist = np.linalg.norm(np.asarray(self.inputs.tipB_px) - np.asarray(self.inputs.baseB_px))
         endpoints2 = ProbeImageProcessor.extract_shank_endpoints_from_line_mask(
             line_mask=parallel_lines_mask2,
@@ -112,10 +113,16 @@ class SpinProcessor:
             save_to=Path(debug_img_dir) / "B_frame_shank_endpoints.png"
         )
         print("CAM2:", endpoints2)
-        if endpoints1 is None or endpoints2 is None or len(endpoints1) < 4 or len(endpoints2) < 4:
-            print("Error: Failed to extract a sufficient number of shank endpoints (need >=4).")
-            return SpinCalculationResult(0.0, 0.0, False)
 
+        if endpoints1 is None or endpoints2 is None:
+            print("Error: Failed to extract a sufficient number of shank endpoints (need >=4).")
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_PREPROCESSING")
+        if  len(endpoints1) == 1 and len(endpoints2) == 1:
+            print("Error: Only one shank detected in one or both cameras.")
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_1_SHANK")
+        if len(endpoints1) < 4 or len(endpoints2) < 4:
+            print("Error: Less than 4 shanks detected in one or both cameras.")
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_LESS_THAN_4_SHANKS")
 
        # 2. find the matching points (1st~4th shank)
         nearest_pts_cam1 = self._closest_endpoints_to_tip(endpoints1, self.inputs.tipA_px, k=4)
@@ -124,7 +131,7 @@ class SpinProcessor:
         print("Matched CAM2 points:", nearest_pts_cam2)
         if len(nearest_pts_cam1) != 4 or len(nearest_pts_cam2) != 4:
             print("Error: Failed to find 4 matched endpoint pairs.")
-            return SpinCalculationResult(0.0, 0.0, False)
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_MATCHING_ENDPOINTS")
 
         # 3. Triangulate to get 3D coordinates
         global_pts = triangulate(ptsA=nearest_pts_cam1,
@@ -137,14 +144,14 @@ class SpinProcessor:
         # 4. Sanity Check
         is_sane = self._run_sanity_checks(global_pts)
         if not is_sane:
-            return SpinCalculationResult(0.0, 0.0, False)
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_SANITY_CHECKS")
 
         # 5. Get spin angle
         vec, pts_xy, rms_perp = self._pca_global_pts_to_vec(global_pts)  # for debug
         angle_deg = spin_angle_from_vec(vec)
         print(f"Spin: {angle_deg:.2f}° (0° = +Y), RMS⊥ error: {rms_perp:.4f}")
         print("vector (XY):", np.round(vec, 4).tolist())
-        return SpinCalculationResult(angle_deg, np.deg2rad(angle_deg), True)
+        return SpinCalculationResult(angle_deg, np.deg2rad(angle_deg), True, "4_SHANK")
 
     def _run_sanity_checks(self, global_points: np.ndarray) -> bool:
         ok1 = self._check_consecutive_spacings(global_points, unit="mm", scale=1.0)
