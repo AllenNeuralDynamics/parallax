@@ -59,6 +59,7 @@ class SpinProcessor:
         self.shank_endpoints_3D = None # Store intermediate state (step 3)
 
     def run_detection_pipeline(self) -> SpinCalculationResult:
+        print("\n--- Running Probe Spin Detection Pipeline ---")
         if not self.inputs.ready_for_calc():
             print("Inputs not ready for calculation.")
             return SpinCalculationResult(0.0, 0.0, False, "FAILED_INPUTS")
@@ -147,7 +148,7 @@ class SpinProcessor:
             return SpinCalculationResult(0.0, 0.0, False, "FAILED_SANITY_CHECKS")
 
         # 5. Get spin angle
-        vec, pts_xy, rms_perp = self._pca_global_pts_to_vec(global_pts)  # for debug
+        vec, pts_xy, rms_perp = self._pca_global_pts_to_vec(global_pts)
         angle_deg = spin_angle_from_vec(vec)
         print(f"Spin: {angle_deg:.2f}° (0° = +Y), RMS⊥ error: {rms_perp:.4f}")
         print("vector (XY):", np.round(vec, 4).tolist())
@@ -193,43 +194,6 @@ class SpinProcessor:
         rms_perp = float(np.sqrt(np.mean((X @ n)**2)))
 
         return v, pts_xy, rms_perp
-
-    def _spin_angle_from_shanks_pca(self, global_pts):
-        """
-        PCA-based spin:
-        - Project to XY
-        - Principal axis v minimizes sum of squared perpendicular distances
-        - Orient v to point from shank1 (pts[0]) to shank4 (pts[-1])
-        - Spin angle = atan2(vx, vy)  (0° => +Y)
-
-        Returns:
-        angle_deg, v (unit 2D), pts_xy (N,2), rms_perp (fit error in px/mm units of coords)
-        """
-        P = np.asarray(global_pts, float).reshape(-1, 3).copy()
-        P[:, 2] = 0.0
-        pts_xy = P[:, :2]
-        if len(pts_xy) < 2:
-            raise ValueError("Need at least two shank points.")
-
-        # PCA / total least squares line fit
-        C = pts_xy.mean(axis=0)
-        X = pts_xy - C
-        cov = np.cov(X.T)
-        _, eigvecs = np.linalg.eigh(cov)       # ascending
-        v = eigvecs[:, 1]                      # principal dir (largest eigenvalue)
-        v = v / (np.linalg.norm(v) + 1e-12)
-
-        # Choose sign so it points from shank1 -> shank4
-        end_vec = pts_xy[-1] - pts_xy[0]
-        if np.dot(v, end_vec) < 0:
-            v = -v
-
-        # Spin angle: 0° if along +Y, positive toward +X
-        angle_deg = float(np.degrees(np.arctan2(v[0], v[1])))
-
-
-
-        return angle_deg, v, pts_xy, rms_perp
 
     def _check_same_local_z_RT(self, global_pts, transM, tol_mm=0.1):
         R = np.asarray(transM[:3, :3], float)
