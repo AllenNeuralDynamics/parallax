@@ -112,8 +112,6 @@ class Model(QObject):
         """
         if camera_sn in self.cameras:
             self.cameras[camera_sn]['probe_detect_algorithm'] = algorithms
-            # save to yaml
-            self.save_camera_config(camera_sn)
 
     def get_probe_detect_algorithms(self, camera_sn):
         """Get probe detection algorithms for a specific camera.
