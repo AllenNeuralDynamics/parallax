@@ -13,7 +13,6 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
 from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerTAM
 
 
-
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -421,6 +420,7 @@ class ProbeDetectManager(QObject):
     def set_algorithm(self, algorithms):
         """Set the probe detection algorithm."""
         self.detect_algorithm = algorithms
+        print("Set detection algorithm - ", self.name, self.detect_algorithm)
 
     def _get_negative_points(self):
         coords = self.model.get_coords_for_debug(self.name)
@@ -629,7 +629,9 @@ class ProbeDetectManager(QObject):
 
     def clicked_position(self, pt):
         """Get clicked position."""
-        if self.processWorker is not None:
-            self.processWorker.clicked_position(pt)
-        if self.tamProcessWorker is not None:
-            self.tamProcessWorker.clicked_position(pt)
+        if self.detect_algorithm == 'opencv':
+            if self.processWorker is not None:
+                self.processWorker.clicked_position(pt)
+        if self.detect_algorithm == 'tam':
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.clicked_position(pt)
