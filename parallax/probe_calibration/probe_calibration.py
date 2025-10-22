@@ -19,7 +19,7 @@ from parallax.config.config_path import stages_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ProbeCalibration(QObject):
@@ -44,6 +44,17 @@ class ProbeCalibration(QObject):
         [0.001, 0.001, 0.001, 5.0],
         [0.0,   0.0,   0.0,   0.0],
     ])
+    """ Test thresholds for calibration criteria
+    THRESHOLD_MIN_MAX = 150
+    THRESHOLD_MIN_MAX_Z = 20
+    THRESHOLD_AVG_ERROR = 500
+    THRESHOLD_MATRIX = np.array([
+        [0.1, 0.1, 0.1, 50.0],
+        [0.1, 0.1, 0.1, 50.0],
+        [0.1, 0.1, 0.1, 50.0],
+        [0.0,   0.0,   0.0,   0.0],
+    ])
+    """
 
     def __init__(self, model, stage_listener):
         """

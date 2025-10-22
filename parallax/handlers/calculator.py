@@ -167,10 +167,14 @@ class Calculator(QWidget):
         logger.debug(f"User Input (Local): {self.reticle}")
         trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
+            if global_pts is not None:
+                global_pts = np.asarray(global_pts, dtype=float)
             local_pts_ret = global_to_local(self.model, sn, global_pts, self.reticle)
             if local_pts_ret is not None:
                 self._show_local_pts_result(sn, local_pts_ret)
         elif trans_type == "local_to_global":
+            if local_pts is not None:
+                local_pts = np.asarray(local_pts, dtype=float)
             global_pts_ret = local_to_global(self.model, sn, local_pts, self.reticle)
             if global_pts_ret is not None:
                 self._show_global_pts_result(sn, global_pts_ret)

@@ -30,7 +30,8 @@ dependencies = [
     "plotly",
     "PyQt6-WebEngine",
     "aiohttp",
-    "pyyaml"
+    "pyyaml",
+    "SimpleITK"
    ]
  
 [tool.setuptools.packages.find]

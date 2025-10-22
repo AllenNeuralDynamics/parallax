@@ -19,6 +19,7 @@ import numpy as np
 from typing import Optional
 import scipy.spatial.transform as Rscipy
 import cv2
+import parallax.utils.rotations as rotations
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -55,14 +56,15 @@ def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
         Rounded GLOBAL coordinates (1x3). None if the stage/transform is unavailable.
     """
     if model.is_calibrated(sn):
-        T = model.get_transform(sn)  # T = [[R, t],[0,1]] for GLOBAL→LOCAL
+        T = model.get_transform(sn)  # T = [[R,t],[0,1]] for GLOBAL→LOCAL
     else:
         return None
     if T is None:
         logger.debug(f"TransM not found for {sn}")
         return None
 
-    global_pts = apply_inverse_rigid_transform(T, local_pts)  # (local - t) @ R
+    global_pts = apply_inverse_rigid_transform(T, local_pts)
+    print("global_pts:", global_pts)
 
     logger.debug(f"global_to_local {global_pts} -> {local_pts}")
     # Optional: reticle adjustment maps GLOBAL ↔ BREGMA for a named reticle
@@ -70,35 +72,11 @@ def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
         global_pts = apply_reticle_adjustments(model, global_pts, reticle)
     return np.round(global_pts, 1)
 
-
 def apply_inverse_rigid_transform(transM: np.ndarray, local_pts: np.ndarray) -> np.ndarray:
-    """
-    Apply the inverse of a rigid transform to get GLOBAL from LOCAL (row-vector form).
-
-        Canonical (column) : global = R.T @ (local - t)
-        Row-vector form    : global = (local - t) @ R
-
-    Where transM = [[R, t],
-                    [0, 1]] maps GLOBAL→LOCAL in the canonical column form.
-
-    Parameters
-    ----------
-    transM : np.ndarray
-        4x4 homogeneous transform (GLOBAL→LOCAL).
-    local_pts : np.ndarray
-        Local point as row-vector (3,) or (1,3).
-
-    Returns
-    -------
-    np.ndarray
-        GLOBAL point as (1,3) row-vector (same math, row form).
-    """
     assert transM.shape == (4, 4), "transM must be 4x4"
     R = transM[:3, :3]
-    t_row = transM[:3, 3].T    # shape (3,)
-    global_row = (local_pts - t_row) @ R  # row-vector inverse
-    return global_row
-
+    t = transM[:3, 3]    # t should be column vector
+    return rotations.apply_inverse_affine(pts=local_pts, affine_R=R, translation=t)
 
 def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
@@ -140,38 +118,14 @@ def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[st
         return None
     if reticle and reticle != "Global coords":
         global_pts = apply_reticle_adjustments_inverse(model, global_pts, reticle)
-    local_row4 = apply_rigid_transform(T, global_pts)  # returns homogeneous 4-vector; see its docstring
-    return np.round(local_row4[:3], 1)
-
+    local_row = apply_rigid_transform(T, global_pts)
+    print("local_row:", local_row)
+    return np.round(local_row, 1)
 
 def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
-    """
-    Apply a rigid transform to map GLOBAL → LOCAL.
-
-        Canonical (column) : local = R @ global + t
-        Row-vector form    : local = global @ R.T + t
-
-    This function uses homogeneous multiplication directly:
-        [local, 1] = transM @ [global, 1]
-
-    Parameters
-    ----------
-    transM : np.ndarray
-        4x4 homogeneous transform [[R, t],[0,1]] mapping GLOBAL→LOCAL.
-    global_pts : np.ndarray
-        GLOBAL point as row-vector (3,) or (1,3).
-
-    Returns
-    -------
-    np.ndarray
-        Homogeneous local vector length-4: [local_x, local_y, local_z, 1].
-        (Caller typically slices [:3] to get (1x3) LOCAL.)
-    """
-    assert transM.shape == (4, 4), "transM must be 4x4"
-    # np.dot(A, b) and A @ b are equivalent for NumPy arrays.
-    local_h = np.dot(transM, np.append(global_pts, 1))
-    return local_h
-
+    R = transM[:3, :3]
+    t = transM[:3, 3]
+    return rotations.apply_affine(pts=global_pts, affine_R=R, translation=t)
 
 def apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
     """

@@ -18,7 +18,7 @@ from parallax.utils.utils import UtilsCoords
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 try:
