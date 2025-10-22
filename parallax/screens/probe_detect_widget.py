@@ -16,6 +16,10 @@ logger.setLevel(logging.WARNING)
 class ProbeDetectWidget(QWidget):
     """Settings menu widget to control a microscope screen."""
 
+    # CLASS VARIABLE to store the cached result of TAM availability check
+    _TAM_AVAILABLE: bool | None = None
+    _TAM_VERSION: str | None = None
+
     def __init__(self, parent, model, screen):
         """Initialize the ReticleDetectWidget with a parent, model, and screen."""
         super().__init__()
@@ -26,27 +30,39 @@ class ProbeDetectWidget(QWidget):
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
-        if self._is_tam_available():
+        if self._is_tam_available_cached():
             self.settingMenu.radioButton2.setEnabled(True)
 
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
         )
         self.settingMenu.run_pushBtn.clicked.connect(self._apply_detection_algorithm)
-        #self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
-        #self.screen.reticle_coords_detected.connect(self._reticle_detected)
-        #self.screen.reticle_coords_detect_finished.connect(self._enable_run_button)
 
-    def _is_tam_available(self):
-        """Check if realtime_efficient_tam is available by verifying import and file presence."""
-        # Check if realtime_efficient_tam can be imported
+    @classmethod
+    def _is_tam_available_cached(cls) -> bool:
+        """
+        Checks if realtime_efficient_tam is available and caches the result
+        at the class level to avoid repeated imports.
+        """
+        # If the check has already run, return the cached result immediately
+        if cls._TAM_AVAILABLE is not None:
+            return cls._TAM_AVAILABLE
+
+        # Check availability for the first time
         try:
             import efficient_track_anything
-            print(f"version: {efficient_track_anything.__version__}")
-            logger.debug(f"Realtime EfficientTrackAnything version: {efficient_track_anything.__version__}")
+            # Store version info
+            cls._TAM_VERSION = getattr(efficient_track_anything, '__version__', 'unknown')
+            logger.debug(f"Realtime EfficientTrackAnything version: {cls._TAM_VERSION}")
+
+            # Cache the successful result
+            cls._TAM_AVAILABLE = True
             return True
+
         except ImportError:
             logger.warning("[WARN] realtime_efficient_tam package is not installed.")
+            # Cache the failed result
+            cls._TAM_AVAILABLE = False
             return False
 
     def _apply_detection_algorithm(self):
@@ -66,21 +82,6 @@ class ProbeDetectWidget(QWidget):
         elif self.settingMenu.radioButton2.isChecked():
             print(f"{self.screen.camera_name} - 'Realtime Efficient TAM' tracking selected")
             self.screen.set_probe_detect_algorithms('tam')
-
-    def _enable_run_button(self):
-        """Enable the run button after detection is finished."""
-        # Enable button
-        self.settingMenu.run_pushBtn.setEnabled(True)
-        self.settingMenu.run_pushBtn.setText("Run")
-
-    def _reset_detection(self):
-        """Reset the reticle detection settings."""
-        self.screen.run_no_filter()
-
-    def _reticle_detected(self):
-        """Handle the event when reticle coordinates are detected."""
-        # Enable button
-        self.settingMenu.run_pushBtn.setText("Detected")
 
     def _get_setting_button(self):
         """Create and return the settings button for reticle detection."""
