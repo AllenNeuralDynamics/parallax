@@ -289,7 +289,6 @@ class CameraConfigManager(BaseConfigManager):
                     "pos_x",
                     'device_model',
                     'is_triangulation_candidate',
-                    'probe_detect_algorithm'
                 ]:
                 if key not in cam_cfg or cam_cfg[key] is None:
                     continue
@@ -342,8 +341,8 @@ class CameraConfigManager(BaseConfigManager):
         cam_cfg = {}
 
         # Basic fields
-        for key in ["visible", "coords_debug", 'device_model', 'is_triangulation_candidate', 'probe_detect_algorithm']:
-            if key in camera:
+        for key in ["visible", "coords_debug", 'device_model', 'is_triangulation_candidate']:
+             if key in camera:
                 cam_cfg[key] = camera[key]
 
         # pos_x
