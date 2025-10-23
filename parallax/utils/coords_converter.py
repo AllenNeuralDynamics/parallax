@@ -127,7 +127,7 @@ def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndar
     t = transM[:3, 3]
     return rotations.apply_affine(pts=global_pts, affine_R=R, translation=t)
 
-def apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, reticle: str) -> np.ndarray:
+def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: str) -> np.ndarray:
     """
     Apply the INVERSE of a reticle's rotation/offset to a GLOBAL point.
 
@@ -157,19 +157,25 @@ def apply_reticle_adjustments_inverse(model, reticle_global_pts: np.ndarray, ret
     np.ndarray
         GLOBAL coordinates (1x3) with the reticle's rotation/offset removed.
     """
-    reticle_global_pts = np.array(reticle_global_pts)
+    bregma_pts = np.array(bregma_pts)
     md = model.get_reticle_metadata(reticle)
     if not md:
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
-        return np.array([reticle_global_pts[0], reticle_global_pts[1], reticle_global_pts[2]])
+        return np.array([bregma_pts[0], bregma_pts[1], bregma_pts[2]])
     Rm = md.get("rotmat", np.eye(3))
     tm = np.array([
-        md.get("offset_x", 0),
-        md.get("offset_y", 0),
-        md.get("offset_z", 0)
-    ])
+        md.get("offset_x", 0.0),
+        md.get("offset_y", 0.0),
+        md.get("offset_z", 0.0)
+    ], dtype=float)
     # Row-form inverse: global = (bregma - tm) @ Rm
-    global_row = (reticle_global_pts - tm) @ Rm
+    global_row = (bregma_pts - tm) @ Rm
+    global_row_ = rotations.apply_inverse_affine(  # TODO: Use this library function
+        pts=bregma_pts, 
+        affine_R=Rm, 
+        translation=tm
+    )
+    print(f"global_row: {global_row} global_row_:{global_row_}")
     return np.array(global_row)
 
 
@@ -202,18 +208,31 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return np.array([global_pts[0], global_pts[1], global_pts[2]])
     reticle_rot = md.get("rot", 0)  # scalar degrees flag used by caller's convention
-    Rm = md.get("rotmat", np.eye(3))  # (3,3)
+    Rm = md.get("rotmat", np.eye(3))
     tm = np.array([
-        md.get("offset_x", 0),
-        md.get("offset_y", 0),
-        md.get("offset_z", 0)
-    ])
+        md.get("offset_x", 0.0),
+        md.get("offset_y", 0.0),
+        md.get("offset_z", 0.0)
+    ], dtype=float)
+
     # If metadata says a nonzero 'rot' is present, apply row-vector rotation
     # using Rm.T (since local = global @ R.T + t).
     if reticle_rot != 0:
-        global_pts = global_pts @ Rm.T
-    global_pts = global_pts + tm
-    return np.round(global_pts, 1)
+        bregma_pts = global_pts @ Rm.T
+    bregma_pts = bregma_pts + tm
+
+    try: # TODO apply this
+        bregma_pts_ = rotations.apply_affine(
+            pts=global_pts,
+            affine_R=Rm,
+            translation=tm
+        )
+    except Exception as e:
+        logger.error(f"Error applying affine reticle transformation: {e}")
+        return None
+    print(f"bregma_pts: {bregma_pts} bregma_pts_:{bregma_pts_}")
+
+    return np.round(bregma_pts, 1)
 
 def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
     """
