@@ -17,13 +17,7 @@ setting up and performing acute *in vivo* electrophysiology experiments.
 
 ### Installation
 1. Create a virtual environment with **Python 3.10** and activate it:
-- On Windows:
-```bash
-conda create -n parallax python=3.10
-conda activate parallax
-```
-
-2. To install Parallax into a fresh environment, run:
+2. Install Parallax:
 ```bash
 pip install parallax-app
 ```
@@ -33,17 +27,12 @@ To upgrade to the latest version, run:
 pip install parallax-app --upgrade
 ```
 
-3. Install the camera interface (Spinnaker Python)
-Install from the **wheel file** that comes with the Spinnaker SDK ver.4.2. Replace **<WHEEL_PATH>** with the *full path* to your `.whl`:
-
+3. Install the camera interface [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
 ```bash
+# Install from the **wheel file** that comes with the Spinnaker SDK ver.4.2.
+# Replace **<WHEEL_PATH>** with the *full path* to your `.whl`:
 pip install "<WHEEL_PATH>"
 ```
-
-#### Additional Setup for Linux and macOS
-* Download the Spinnaker SDK package for your system [here](https://flir.app.boxcn.net/v/SpinnakerSDK)
-* Follow the installation instructions in the README
-* Install the Python bindings found alongside the SDK package
 
 ### Running Parallax
 ```bash
@@ -58,12 +47,17 @@ The SuperGluePretrainedNetwork is not included in this repository and is distrib
 Please review their [license](https://github.com/magicleap/SuperGluePretrainedNetwork) before use.
 
 Manual Setup Instructions
-Clone the repository into the external/ folder in your Parallax project root:
+1. Clone the repository if it hasn't been done already.
+```bash
+git clone https://github.com/AllenNeuralDynamics/parallax.git
+```
+
+2. Clone the repository into the external/ folder in your Parallax project root:
 ```bash
 pip install git+https://github.com/AllenNeuralDynamics/sfm.git@main
 git clone https://github.com/magicleap/SuperGluePretrainedNetwork.git external/SuperGluePretrainedNetwork
 ```
-Verify your folder structure looks like this:
+3. Verify your folder structure looks like this:
 ```bash
 parallax/
 ├── external/
@@ -75,9 +69,28 @@ parallax/
 │               └── superglue_indoor.pth
 ```
 
-### Optional: Enable Realtime Efficient Tam for probe tracking
+### Optional: Enable Realtime Efficient Tam for probe tracking (must insatalled for 4 shanks tracking)
+1. Clone the repository if it hasn't been done already.
+```bash
+git clone https://github.com/AllenNeuralDynamics/parallax.git
+```
+2. Install [RealtimeEfficientTam](tttps://github.com/AllenNeuralDynamics/RealtimeEfficientTAM)
 ```bash
 pip install git+https://github.com/AllenNeuralDynamics/RealtimeEfficientTAM@feat-setup
+```
+3. Download pretrained model
+```bash
+./external/EfficientTam/download_checkpoints.sh
+```
+4. Verify your folder structure looks like this:
+```bash
+parallax/
+├── external/
+│   └── EfficientTam/
+│       ├── download_checkpoints.sh
+│       ├── efficienttam_ti_512x512.pt
+│       ├── efficienttam_s_512x512.pt
+│       ├── ...
 ```
 
 ### For developers:
