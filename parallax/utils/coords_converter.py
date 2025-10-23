@@ -25,6 +25,16 @@ import parallax.utils.rotations as rotations
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
+    R = transM[:3, :3]
+    t = transM[:3, 3]
+    return rotations.apply_affine(pts=global_pts, affine_R=R, translation=t)
+
+def apply_inverse_rigid_transform(transM: np.ndarray, local_pts: np.ndarray) -> np.ndarray:
+    assert transM.shape == (4, 4), "transM must be 4x4"
+    R = transM[:3, :3]
+    t = transM[:3, 3]    # t should be column vector
+    return rotations.apply_inverse_affine(pts=local_pts, affine_R=R, translation=t)
 
 def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
@@ -72,12 +82,6 @@ def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
         global_pts = apply_reticle_adjustments(model, global_pts, reticle)
     return np.round(global_pts, 1)
 
-def apply_inverse_rigid_transform(transM: np.ndarray, local_pts: np.ndarray) -> np.ndarray:
-    assert transM.shape == (4, 4), "transM must be 4x4"
-    R = transM[:3, :3]
-    t = transM[:3, 3]    # t should be column vector
-    return rotations.apply_inverse_affine(pts=local_pts, affine_R=R, translation=t)
-
 def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
     Convert global (1x3 row) -> local (1x3 row) using the stage's transform.
@@ -122,11 +126,6 @@ def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[st
     print("local_row:", local_row)
     return np.round(local_row, 1)
 
-def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
-    R = transM[:3, :3]
-    t = transM[:3, 3]
-    return rotations.apply_affine(pts=global_pts, affine_R=R, translation=t)
-
 def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: str) -> np.ndarray:
     """
     Apply the INVERSE of a reticle's rotation/offset to a GLOBAL point.
@@ -169,13 +168,13 @@ def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: st
         md.get("offset_z", 0.0)
     ], dtype=float)
     # Row-form inverse: global = (bregma - tm) @ Rm
-    global_row = (bregma_pts - tm) @ Rm
-    global_row_ = rotations.apply_inverse_affine(  # TODO: Use this library function
+    global_row_ = (bregma_pts - tm) @ Rm
+    global_row = rotations.apply_inverse_affine(  # TODO: Use this library function
         pts=bregma_pts, 
         affine_R=Rm, 
         translation=tm
     )
-    print(f"global_row: {global_row} global_row_:{global_row_}")
+    print(f"global_row: {global_row} global_row_deprecate:{global_row_}")
     return np.array(global_row)
 
 
@@ -219,10 +218,10 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
     # using Rm.T (since local = global @ R.T + t).
     if reticle_rot != 0:
         bregma_pts = global_pts @ Rm.T
-    bregma_pts = bregma_pts + tm
+    bregma_pts_ = bregma_pts + tm
 
-    try: # TODO apply this
-        bregma_pts_ = rotations.apply_affine(
+    try:
+        bregma_pts = rotations.apply_affine(
             pts=global_pts,
             affine_R=Rm,
             translation=tm
@@ -230,7 +229,7 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
     except Exception as e:
         logger.error(f"Error applying affine reticle transformation: {e}")
         return None
-    print(f"bregma_pts: {bregma_pts} bregma_pts_:{bregma_pts_}")
+    print(f"bregma_pts: {bregma_pts} bregma_pts_deprecate:{bregma_pts_}")
 
     return np.round(bregma_pts, 1)
 
@@ -249,7 +248,7 @@ def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
 
     Identify with local = bregma @ Rb.T + tb:
         Rb.T = Rm @ R.T   ⇒  Rb = R @ Rm.T
-        tb   = t - tm @ Rm @ R.T
+        tb   = t - tm @ Rm @ R.T = t - Rb @ tm
 
     Returns a 4x4 homogeneous Tb = [[Rb, tb],[0,1]] mapping BREGMA→LOCAL.
 
@@ -269,6 +268,16 @@ def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
         md.get("offset_z", 0.0)
     ], dtype=float)
 
+    R = transM[:3, :3]  # TODO
+    t = transM[:3, 3]    # (3,)
+    Rb = R @ Rm.T
+    tb = t - (Rb @ tm)
+    Tb = rotations.make_homogeneous_transform(
+        R=Rb,
+        translation=tb
+    )
+
+    """
     # Stage T is GLOBAL→LOCAL in the canonical column view:
     # local = R @ global + t
     R = transM[:3, :3]
@@ -280,6 +289,10 @@ def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
     Tb[:3, :3] = Rb
     Tb[:3, 3]  = tb
     return Tb
+    """
+
+    return Tb
+
 
 def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
     """
@@ -349,7 +362,9 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
     # Explicit row-form (documented) — kept here for clarity with the same result:
     Rb = Tb[:3, :3]
     tb_row = Tb[:3, 3].T    # (3,)
-    bregma_pts = (local_pts - tb_row) @ Rb
+    bregma_pts_ = (local_pts - tb_row) @ Rb
+    print("bregma_pts:", bregma_pts)
+    print("bregma_pts (deprecate):", bregma_pts_)
 
     return np.round(bregma_pts, 1)
 
