@@ -30,6 +30,11 @@
 background-color: rgb(58, 58, 58);
 color: #FFFFFF;
 font: 8pt;
+}
+QRadioButton::indicator:checked {
+border-radius: 8px;
+background-color: #E54D50;
+border: 3px solid #FFAD00;
 }</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
