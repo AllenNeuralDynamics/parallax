@@ -19,6 +19,8 @@ wheels/
 lib/
 dist/
 external/
+# exception
+!external/EfficientTam/download_checkpoints.sh 
 
 # Sphinx documentation
 docs/_build/
