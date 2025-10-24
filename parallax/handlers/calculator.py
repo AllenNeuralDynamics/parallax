@@ -430,8 +430,8 @@ class Calculator(QWidget):
             bool: True if the Z position is safe, False otherwise.
         """
         # Z is inverted in the server
-        local_pts_z15 = np.array([x * 1000, y * 1000, 15.0 - z * 1000], dtype=float)  # Should be top of the stage
-        local_pts_z0 = np.array([x * 1000, y * 1000, 15.0 * 1000], dtype=float)  # Should be bottom
+        local_pts_z15 = np.array([x*1000, y*1000, 15.0-z*1000], dtype=float)  # Should be top of the stage
+        local_pts_z0 = np.array([x*1000, y*1000, 15.0*1000], dtype=float)  # Should be bottom
 
         for sn in self.model.stages.keys():
             if sn != stage_sn:

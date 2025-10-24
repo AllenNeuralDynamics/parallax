@@ -16,6 +16,7 @@ The ScreenCoordsMapper class includes functionality to:
 import logging
 import numpy as np
 from parallax.cameras.calibration_camera import triangulate
+from parallax.utils.coords_converter import apply_reticle_adjustments
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -108,7 +109,7 @@ class ScreenCoordsMapper():
         if self.model.reticle_detection_status == "accepted":
             self.add_global_coords_to_dropdown()
 
-    def _apply_reticle_adjustments(self, global_pts):  # TODO use the library
+    def _apply_reticle_adjustments(self, global_pts):
         """
         Apply the reticle-specific metadata adjustments to the given global coordinates.
         Adjustments include rotation and offset corrections based on reticle metadata.
@@ -119,25 +120,14 @@ class ScreenCoordsMapper():
         Returns:
             tuple: The adjusted global coordinates (x, y, z) rounded to one decimal place.
         """
-        reticle_metadata = self.model.get_reticle_metadata(self.reticle)
-        reticle_rot = reticle_metadata.get("rot", 0)
-        reticle_rotmat = reticle_metadata.get("rotmat", np.eye(3))  # Default to identity matrix if not found
-        reticle_offset = np.array([
-            reticle_metadata.get("offset_x", global_pts[0]),
-            reticle_metadata.get("offset_y", global_pts[1]),
-            reticle_metadata.get("offset_z", global_pts[2])
-        ])
-
-        # Apply rotation if necessary
-        if reticle_rot != 0:
-            global_pts = global_pts @ reticle_rotmat.T  # Transpose because points are row vectors
-        global_pts = global_pts + reticle_offset
+        global_pts = np.array(global_pts, dtype=float)
+        bregma_pts = apply_reticle_adjustments(self.model, global_pts, self.reticle)
 
         # Round the adjusted coordinates to 1 decimal place
-        global_x = np.round(global_pts[0], 1)
-        global_y = np.round(global_pts[1], 1)
-        global_z = np.round(global_pts[2], 1)
-        return global_x, global_y, global_z
+        x = np.round(bregma_pts[0], 1)
+        y = np.round(bregma_pts[1], 1)
+        z = np.round(bregma_pts[2], 1)
+        return x, y, z
 
     def _register_pt(self, camera_name, pos):
         """
