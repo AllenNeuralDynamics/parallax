@@ -236,6 +236,8 @@ class ProcessWorkerTAM(baseProcessWorker):
             self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
             _, out_mask_logits = track(self.predictor_global, self.curr_img)
             mask_global = masks_to_uint8_batch(out_mask_logits)
+            if not self.probe_stopped:  # early exit if probe started moving
+                return
             self.signals.seg_mask.emit("global", mask_global[0])
             self._save_masked_img(self.curr_img, mask_global[0], name="global")
         except Exception as e:
@@ -248,6 +250,8 @@ class ProcessWorkerTAM(baseProcessWorker):
             if mask_local is None:
                 logger.debug("line not found")
                 return
+            if not self.probe_stopped: # early exit if probe started moving
+                return
             self.signals.seg_mask.emit("local", mask_local)
             self._save_masked_img(self.curr_img, mask_local, name="local")
         except Exception as e:
@@ -257,16 +261,19 @@ class ProcessWorkerTAM(baseProcessWorker):
         # Get base and tip points
         # Get highest point and lowest point from the mask_local
         try:
+            # TODO get highest and lowest from global mask?
             highest_pt, lowest_pt = ProbeImageProcessor.get_far_endpoints_from_mask(mask_local)
             if highest_pt is None or lowest_pt is None:
                 logger.debug("No probe points found.")
                 return
-            mask = self._get_mask(self.curr_img)    
+            mask = self._get_mask(self.curr_img)
             probe_tip, probe_base = ProbeImageProcessor.get_probe_point(mask, highest_pt, lowest_pt)
             probe_tip_org = UtilsCoords.scale_coords_to_original(probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             probe_base_org = UtilsCoords.scale_coords_to_original(probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
             # get fine tip
             probe_tip_fine = ProbeImageProcessor.get_precise_tip(probe_tip_org, probe_base_org, self.frame)
+            if not self.probe_stopped: # early exit if probe started moving
+                return
             self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_fine, probe_base_org)
             if self.copy_last_detected_frame:
                 self.last_detected_frame = self.frame.copy()

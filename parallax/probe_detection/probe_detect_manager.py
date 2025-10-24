@@ -196,10 +196,11 @@ class DrawWorker(QRunnable):
 
     def cancel_seg_mask(self) -> None:
         """Called when segmentation mask is to be cleared."""
-        self.update_is_seg_mask(False)
+        #self.update_is_seg_mask(False)
         #self.mask_bool = None
         self.mask_idx, self.seg_color_pixels = None, None
         self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
+        self.update_is_seg_mask(False)
 
         self.update_tip_coords(None, None)
         self.update_base_coords(None, None)
@@ -421,6 +422,11 @@ class ProbeDetectManager(QObject):
         """Set the probe detection algorithm."""
         self.detect_algorithm = algorithms
         print("Set detection algorithm - ", self.name, self.detect_algorithm)
+        # Clear current tip/base coords and mask
+        if self.worker is not None:
+            self.worker.update_tip_coords(None, None)
+            self.worker.update_base_coords(None, None)
+            self.worker.update_is_seg_mask(False)
 
     def _get_negative_points(self):
         coords = self.model.get_coords_for_debug(self.name)
@@ -533,28 +539,20 @@ class ProbeDetectManager(QObject):
             sn (str): Serial number.
         """
         if self.detect_algorithm == 'opencv':
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.stop_detection()
             if self.processWorker is not None:
                 self.processWorker.update_sn(sn)
                 self.processWorker.start_detection()
-                print("Started OpenCV detection - ", self.name)
+                print(f"{self.name} Started OpenCV detection")
 
         elif self.detect_algorithm == 'tam':
+            if self.processWorker is not None:
+                self.processWorker.stop_detection()
             if self.tamProcessWorker is not None:
                 self.tamProcessWorker.update_sn(sn)
                 self.tamProcessWorker.start_detection()
-                print("Started TAM detection - ", self.name)
-
-    def stop_detection(self, sn):  # Call from stage listener.
-        """Stop the probe detection for a specific serial number.
-
-        Args:
-            sn (str): Serial number.
-        """
-        if self.processWorker is not None:
-            self.processWorker.stop_detection()
-
-        if self.tamProcessWorker is not None:
-            self.tamProcessWorker.stop_detection()
+                print(f"{self.name} Started TAM detection")
 
     def enable_calibration(self, stage_ts, sn):  # Call from stage listener.
         """
@@ -567,27 +565,28 @@ class ProbeDetectManager(QObject):
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
             self.worker.update_is_seg_mask(False)
-        if self.processWorker is not None:
+        if self.processWorker is not None and self.detect_algorithm == 'opencv':
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
-        if self.tamProcessWorker is not None:
+        if self.tamProcessWorker is not None and self.detect_algorithm == 'tam':
             self.tamProcessWorker.update_stage_timestamp(stage_ts)
             self.tamProcessWorker.enable_calib()
 
 
     def disable_calibration(self, sn):  # Call from stage listener.
-        """
+        """Disable calibration mode for the worker. (stage is moving)
         Disable calibration mode for the worker. (stage is moving)
 
         Args:
             sn (str): Serial number of the device.
         """
         if self.tamProcessWorker is not None and self.worker is not None:
-            self.worker.cancel_seg_mask()
+            self.worker.cancel_seg_mask() # clear the mask in drawing worker
         if self.processWorker is not None:
             self.processWorker.disable_calib()
         if self.tamProcessWorker is not None:
             self.tamProcessWorker.disable_calib()
+
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
