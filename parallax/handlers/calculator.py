@@ -383,7 +383,7 @@ class Calculator(QWidget):
             # Move request is in mm, so divide by 1000
             x = float(self.findChild(QLineEdit, f"localX_{stage_sn}").text()) / 1000
             y = float(self.findChild(QLineEdit, f"localY_{stage_sn}").text()) / 1000
-            z = 15.0  # Z is inverted in the server.
+            z = 0  # Z is inverted in the server.
         except ValueError as e:
             logger.warning(f"Invalid input for stage {stage_sn}: {e}")
             return  # Optionally handle the error gracefully (e.g., show a message to the user)
@@ -416,7 +416,7 @@ class Calculator(QWidget):
         self.stage_controller.request(command)
         print(f"Moving stage {stage_sn} to ({np.round(x*1000)}, {np.round(y*1000)}, 0)")
 
-    def _is_z_safe_pos(self, stage_sn, x, y, z):
+    def _is_z_safe_pos(self, stage_sn, x, y, z=0):
         """
         Check if the Z=15 position is safe for the stage. (z=15 is the top of the stage)
 
@@ -430,22 +430,22 @@ class Calculator(QWidget):
             bool: True if the Z position is safe, False otherwise.
         """
         # Z is inverted in the server
-        local_pts_z15 = np.array([x*1000, y*1000, 15.0-z*1000], dtype=float)  # Should be top of the stage
-        local_pts_z0 = np.array([x*1000, y*1000, 15.0*1000], dtype=float)  # Should be bottom
+        local_pts_top = np.array([x*1000, y*1000, z*1000], dtype=float)  # Should be top of the stage
+        local_pts_bottom = np.array([x*1000, y*1000, 15.0*1000], dtype=float)  # Should be bottom
 
         for sn in self.model.stages.keys():
             if sn != stage_sn:
                 continue
             try:
                 # Apply transformations to get global points for Z=15 and Z=0
-                global_pts_z15 = local_to_global(self.model, stage_sn, local_pts_z15)
-                global_pts_z0 = local_to_global(self.model, stage_sn, local_pts_z0)
+                global_pts_top = local_to_global(self.model, stage_sn, local_pts_top)
+                local_pts_bottom = local_to_global(self.model, stage_sn, local_pts_bottom)
 
-                if global_pts_z15 is None or global_pts_z0 is None:
+                if global_pts_top is None or local_pts_bottom is None:
                     return False  # Transformation failed, return False
 
-                # Ensure that Z=15 is higher than Z=0 and Z=15 is positive
-                if global_pts_z15[2] > global_pts_z0[2] and global_pts_z15[2] > 0:
+                # Ensure that top is higher than bottom and top is positive
+                if global_pts_top[2] > local_pts_bottom[2] and global_pts_top[2] > 0:
                     return True
 
             except Exception as e:
