@@ -74,9 +74,7 @@ def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
         return None
 
     global_pts = apply_inverse_rigid_transform(T, local_pts)
-    print("global_pts:", global_pts)
-
-    logger.debug(f"global_to_local {global_pts} -> {local_pts}")
+    # logger.debug(f"global_to_local {global_pts} -> {local_pts}")
     # Optional: reticle adjustment maps GLOBAL ↔ BREGMA for a named reticle
     if reticle is not None:
         global_pts = apply_reticle_adjustments(model, global_pts, reticle)
@@ -167,14 +165,12 @@ def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: st
         md.get("offset_y", 0.0),
         md.get("offset_z", 0.0)
     ], dtype=float)
-    # Row-form inverse: global = (bregma - tm) @ Rm
-    global_row_ = (bregma_pts - tm) @ Rm
+
     global_row = rotations.apply_inverse_affine(  # TODO: Use this library function
         pts=bregma_pts, 
         affine_R=Rm, 
         translation=tm
     )
-    print(f"global_row: {global_row} global_row_deprecate:{global_row_}")
     return np.array(global_row)
 
 
@@ -214,13 +210,8 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
         md.get("offset_z", 0.0)
     ], dtype=float)
 
-    # If metadata says a nonzero 'rot' is present, apply row-vector rotation
-    # using Rm.T (since local = global @ R.T + t).
-    if reticle_rot != 0:
-        bregma_pts = global_pts @ Rm.T
-    bregma_pts_ = bregma_pts + tm
-
     try:
+        # bregma = R @ global + t (column form)
         bregma_pts = rotations.apply_affine(
             pts=global_pts,
             affine_R=Rm,
@@ -229,7 +220,6 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
     except Exception as e:
         logger.error(f"Error applying affine reticle transformation: {e}")
         return None
-    print(f"bregma_pts: {bregma_pts} bregma_pts_deprecate:{bregma_pts_}")
 
     return np.round(bregma_pts, 1)
 
