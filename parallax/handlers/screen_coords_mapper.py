@@ -108,7 +108,7 @@ class ScreenCoordsMapper():
         if self.model.reticle_detection_status == "accepted":
             self.add_global_coords_to_dropdown()
 
-    def _apply_reticle_adjustments(self, global_pts):
+    def _apply_reticle_adjustments(self, global_pts):  # TODO use the library
         """
         Apply the reticle-specific metadata adjustments to the given global coordinates.
         Adjustments include rotation and offset corrections based on reticle metadata.

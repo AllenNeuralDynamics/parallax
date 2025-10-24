@@ -81,10 +81,6 @@ class _ReticleMetaStub:
     def __init__(self, dx=10.0, dy=0.0, dz=5.0):
         self.dx, self.dy, self.dz = dx, dy, dz
 
-    def get_global_coords_with_offset(self, name, global_pts):
-        x, y, z = list(global_pts)
-        return x + self.dx, y + self.dy, z + self.dz
-
 
 # ---------- Builders ----------
 
@@ -92,8 +88,7 @@ def _build_stage_ui(qtbot, model=None, with_meta=False):
     m = model or _ModelStub()
     parent = _ParentWithModel(m)
     qtbot.addWidget(parent)  # ensure lifetime managed by pytest-qt
-    meta = _ReticleMetaStub() if with_meta else None
-    ui = StageUI(parent, meta)
+    ui = StageUI(parent)
     qtbot.addWidget(ui)
     return ui, parent, m
 

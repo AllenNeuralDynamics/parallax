@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple, Optional, Union
 import numpy as np
 import cv2
-import scipy.spatial.transform as Rscipy
 import parallax.config.config_calibration as cfg
 
 

@@ -266,23 +266,7 @@ def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
         R=Rb,
         translation=tb
     )
-
-    """
-    # Stage T is GLOBAL→LOCAL in the canonical column view:
-    # local = R @ global + t
-    R = transM[:3, :3]
-    t_row = transM[:3, 3].T    # (3,)
-    Rb = R @ Rm.T
-    tb = t_row - np.dot(Rb, tm)  # tb = t - Rb @ tm
-
-    Tb = np.eye(4, dtype=float)
-    Tb[:3, :3] = Rb
-    Tb[:3, 3]  = tb
     return Tb
-    """
-
-    return Tb
-
 
 def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
     """
@@ -348,13 +332,6 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
 
     # Option 1 (helper): inverse via row-form helper: global = (local - t) @ R
     bregma_pts = apply_inverse_rigid_transform(Tb, local_pts)
-
-    # Explicit row-form (documented) — kept here for clarity with the same result:
-    Rb = Tb[:3, :3]
-    tb_row = Tb[:3, 3].T    # (3,)
-    bregma_pts_ = (local_pts - tb_row) @ Rb
-    print("bregma_pts:", bregma_pts)
-    print("bregma_pts (deprecate):", bregma_pts_)
 
     return np.round(bregma_pts, 1)
 

@@ -3,23 +3,27 @@ Defines StageUI, a PyQt6 QWidget for showing and updating stage information in t
 including serial numbers and coordinates. It interacts with the model to reflect
 real-time data changes.
 """
-
+import logging
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import pyqtSignal
 import numpy as np
+from parallax.utils.coords_converter import apply_reticle_adjustments
+
+# Set logger name
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 class StageUI(QWidget):
     """User interface for stage control and display."""
     prev_curr_stages = pyqtSignal(str, str)
 
-    def __init__(self, control_panel, reticle_metadata):
+    def __init__(self, control_panel):
         """Initialize StageUI object"""
         QWidget.__init__(self)
         self.selected_stage = None
         self.model = control_panel.model
         self.ui = control_panel
-        self.reticle_metadata = reticle_metadata
         self.reticle = "Global coords"
         self.previous_stage_id = None
 
@@ -178,11 +182,14 @@ class StageUI(QWidget):
                 y = self.selected_stage.stage_y_global
                 z = self.selected_stage.stage_z_global
                 if x is not None and y is not None and z is not None:
+                    global_pts = np.array([x, y, z], dtype=float)
                     # If reticle is with offset, get the global coordinates with offset
                     if self.reticle != "Global coords":
-                        if self.reticle_metadata is not None:
-                            global_pts = np.array([x, y, z])
-                            x, y, z = self.reticle_metadata.get_global_coords_with_offset(self.reticle, global_pts)
+                        try:
+                            bregma_pts = apply_reticle_adjustments(self.model, global_pts, self.reticle)
+                            x, y, z = bregma_pts
+                        except Exception as e:
+                            logger.error(f"Error applying reticle adjustments: {e}")
 
                     # Update into UI, unit is µm
                     if x is not None and y is not None and z is not None:

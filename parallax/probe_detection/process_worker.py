@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
+# Import double times!
 try:
     #import efficient_track_anything  # noqa: F401
     from efficient_track_anything.realtime_tam import build_predictor, start, track, start_with_mask
