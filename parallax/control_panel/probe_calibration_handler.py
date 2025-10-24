@@ -496,9 +496,9 @@ class ProbeCalibrationHandler(QWidget):
             self.arc_angle_bregma = {}
         for reticle_name, transMb in self.transMbs.items():
             self.arc_angle_bregma[reticle_name] = get_rx_ry(transMb)  # {"rx":..., "ry":...} | None
-            if self.arc_angle_global.get("spin", None) is not None:
-                self.arc_angle_bregma[reticle_name]['spin'] = get_spin_bregma(
-                    spin_global=self.arc_angle_global["spin"],
+            if self.arc_angle_global.get("rz", None) is not None:
+                self.arc_angle_bregma[reticle_name]['rz'] = get_spin_bregma(
+                    spin_global=self.arc_angle_global["rz"],
                     reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0)
                 )
 
@@ -593,7 +593,7 @@ class ProbeCalibrationHandler(QWidget):
             if result.mode == "FAILED_1_SHANK":
                 print("Spin detection found only 1 shank. Skipping spin angle calculation.")
                 self.arc_angle_global = get_rx_ry(self.transM)
-                self.arc_angle_global["spin"] = None
+                self.arc_angle_global["rz"] = None
                 return True
             # Failed to detect spin angle
             if not result.is_valid:
@@ -602,11 +602,11 @@ class ProbeCalibrationHandler(QWidget):
 
             # Get probe angle information of 4 shanks
             self.arc_angle_global = get_rx_ry(self.transM)
-            self.arc_angle_global["spin"] = result.spin_angle_deg
+            self.arc_angle_global["rz"] = result.spin_angle_deg
         else:
             # Single shank probe
             self.arc_angle_global = get_rx_ry(self.transM)
-            self.arc_angle_global["spin"] = None
+            self.arc_angle_global["rz"] = None
 
         return True
 
