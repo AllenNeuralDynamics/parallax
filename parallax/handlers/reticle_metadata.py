@@ -17,11 +17,11 @@ import os
 import logging
 import json
 import numpy as np
-from scipy.spatial.transform import Rotation
 from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
 from PyQt6.uic import loadUi
 from PyQt6.QtCore import Qt
 from parallax.config.config_path import ui_dir, reticle_metadata_file
+from parallax.utils.rotations import define_euler_rotation
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -393,8 +393,7 @@ class ReticleMetadata(QWidget):
         rotmat = np.eye(3)
         if offset_rot != 0:
             rotmat = (
-                Rotation.from_euler("z", offset_rot, degrees=True)
-                .as_matrix()
+                define_euler_rotation(0, 0, offset_rot, degrees=True) # CCW
                 .squeeze()
             )
 
