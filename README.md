@@ -76,12 +76,14 @@ git clone https://github.com/AllenNeuralDynamics/parallax.git
 ```
 2. Install [RealtimeEfficientTam](tttps://github.com/AllenNeuralDynamics/RealtimeEfficientTAM)
 ```bash
-pip install git+https://github.com/AllenNeuralDynamics/RealtimeEfficientTAM@feat-setup
+pip install git+https://github.com/AllenNeuralDynamics/RealtimeEfficientTAM@main
 ```
 3. Download pretrained model
 ```bash
 ./external/EfficientTam/download_checkpoints.sh
 ```
+EfficientTAM checkpoints are available at [the Hugging Face Space](https://huggingface.co/yunyangx/efficient-track-anything/tree/main).
+
 4. Verify your folder structure looks like this:
 ```bash
 parallax/
