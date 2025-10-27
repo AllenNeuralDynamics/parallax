@@ -233,13 +233,15 @@ class ProcessWorkerTAM(baseProcessWorker):
             return
 
         try:
-            self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
-            _, out_mask_logits = track(self.predictor_global, self.curr_img)
-            mask_global = masks_to_uint8_batch(out_mask_logits)
+            #print("--- Track global ---")
+            mask_global = self._track_global()
             if not self.probe_stopped:  # early exit if probe started moving
                 return
+            if mask_global is None:
+                logger.debug("global line not found")
+                return
             self.signals.seg_mask.emit("global", mask_global[0])
-            self._save_masked_img(self.curr_img, mask_global[0], name="global")
+            self._save_masked_img(self.curr_img, mask_global[0], name=f"{self.name}_global")
         except Exception as e:
             logger.error(f"Error occurred while tracking global: {e}")
             return
@@ -253,7 +255,7 @@ class ProcessWorkerTAM(baseProcessWorker):
             if not self.probe_stopped: # early exit if probe started moving
                 return
             self.signals.seg_mask.emit("local", mask_local)
-            self._save_masked_img(self.curr_img, mask_local, name="local")
+            self._save_masked_img(self.curr_img, mask_local, name=f"{self.name}_local")
         except Exception as e:
             logger.error(f"Error occurred while tracking local: {e}")
             return
@@ -339,12 +341,18 @@ class ProcessWorkerTAM(baseProcessWorker):
                 return True
         return False
 
+    def _track_global(self):
+        self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
+        _, out_mask_logits = track(self.predictor_global, self.curr_img)
+        mask_global = masks_to_uint8_batch(out_mask_logits)
+        return mask_global[0]
+
     def _track_local(self, predictor_local, mask_global, img, points=None):
         # Local - Preprocessing
         # crop the global mask to get initial local mask
         bbox = ProbeImageProcessor.mask_to_bbox_xyxy(mask_global, img.shape, pad=20)  # (x1,y1,x2,y2)
         if not bbox:
-            raise RuntimeError("No foreground detected in the first frame.")
+            raise RuntimeError("No foreground detected in the global mask.")
         img_local = ProbeImageProcessor.crop_and_resize(bbox, img)
         mask_local = ProbeImageProcessor.crop_and_resize(bbox, mask_global)
 
@@ -388,6 +396,30 @@ class ProcessWorkerTAM(baseProcessWorker):
             self.labels = np.append(self.labels, [1], axis=0)
         logger.debug(f"Add point: {self.pts}, labels: {self.labels}")
 
+    def _build_predictors(self):
+        self.predictor_global = build_predictor(
+            model_cfg=str(self.small_cfg_path),
+            tam_checkpoint=str(self.small_checkpoint_path)
+        )
+        self.predictor_local = build_predictor(
+            model_cfg=str(self.small_cfg_path),
+            tam_checkpoint=str(self.small_checkpoint_path)
+        )
+
+    def _start_tracking(self) -> np.ndarray:
+        """
+        Start tracking with the global predictor.
+        Returns:
+            np.ndarray: The mask obtained from tracking.
+        """
+        logger.debug(f"\n{self.name} TAM Global starting..")
+        self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
+        self.predictor_global.predictor.load_first_frame(self.curr_img)
+        logger.debug(f"(Global Tracking) pt: {self.pts}, labels: {self.labels}")
+        _, out_mask_logits = start(self.predictor_global, points=self.pts, labels=self.labels)
+        mask_global = masks_to_uint8_batch(out_mask_logits)
+        return mask_global[0]
+
     def clicked_position(self, pt):
         """Handle clicked position for calibration."""
         pt = self._get_pt(pt)
@@ -408,22 +440,19 @@ class ProcessWorkerTAM(baseProcessWorker):
             # Global - Preprocessing
             try:
                 print(f"\n{self.name} TAM initializing..")
-                self.predictor_global = build_predictor(
-                    model_cfg=str(self.small_cfg_path),
-                    tam_checkpoint=str(self.small_checkpoint_path)
-                )
-                self.predictor_local = build_predictor(
-                    model_cfg=str(self.small_cfg_path),
-                    tam_checkpoint=str(self.small_checkpoint_path)
-                )
-                print(f"\n{self.name} TAM Global starting..")
-                self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
-                self.predictor_global.predictor.load_first_frame(self.curr_img)
-                logger.debug(f"(Global Tracking) pt: {self.pts}, labels: {self.labels}")
-                _, out_mask_logits = start(self.predictor_global, points=self.pts, labels=self.labels)
-                mask_global = masks_to_uint8_batch(out_mask_logits)
-                self.signals.seg_mask.emit("global", mask_global[0])
-                self._save_masked_img(self.curr_img, mask_global[0], name="global")
+                self._build_predictors()
+            except Exception as e:
+                self._cancel_current_tam()
+                logger.error(f"Error occurred while building predictor: {e}")
+
+            try:
+                mask_global = self._start_tracking()
+                if mask_global is None:
+                    self._cancel_current_tam()
+                    logger.debug("global mask - line not found")
+                    return
+                self.signals.seg_mask.emit("global", mask_global)
+                self._save_masked_img(self.curr_img, mask_global, name="global")
             except Exception as e:
                 self._cancel_current_tam()
                 logger.error(f"Error occurred while starting TAM (global): {e}")
@@ -433,20 +462,19 @@ class ProcessWorkerTAM(baseProcessWorker):
             try:
                 # --- Track local ---
                 logger.debug(f"\n{self.name} TAM Local tracking with point: {pt}")
-                mask_local = self._track_local(self.predictor_local, mask_global[0], self.curr_img, points=[pt])
-                if mask_local is None:
-                    self._cancel_current_tam()
-                    logger.debug("line not found")
-                    return
-                #print("Local TAM tracking done.")
-                self.signals.seg_mask.emit("local", mask_local)  # TODO
-                #print("Emit local seg mask.")
-                self._save_masked_img(self.curr_img, mask_local, name="local")
-                #print("Local TAM process done.\n")
+                mask_local = self._track_local(self.predictor_local, mask_global, self.curr_img, points=[pt])
             except Exception as e:
                 self._cancel_current_tam()
                 logger.error(f"Error occurred while starting TAM (local): {e}")
                 return
+
+            if mask_local is None:
+                self._cancel_current_tam()
+                logger.debug("local_mask - line not found")
+                return
+
+            self.signals.seg_mask.emit("local", mask_local)
+            self._save_masked_img(self.curr_img, mask_local, name="local")
             self._prev_pt = pt
 
         elif self.predictor_global is not None and self.predictor_local is not None:

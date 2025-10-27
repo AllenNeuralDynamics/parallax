@@ -12,7 +12,8 @@ import pandas as pd
 from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 #from .coords_transformation import RotationTransformation
-from .transforms import fit_params
+#from .transforms import fit_params
+from parallax.utils.transforms import fit_params
 from .bundle_adjustment import BALProblem, BALOptimizer
 from parallax.handlers.point_mesh import PointMesh
 from parallax.config.config_path import stages_dir
