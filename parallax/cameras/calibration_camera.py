@@ -158,30 +158,42 @@ def change_coords_system_from_camA_to_global(points_3d_AB, R, t):
     points_3d_G = np.dot(R, points_3d_AB.T).T + t.T
     return points_3d_G
 
-def get_debug_points(rvec, tvec, mtx, dist):  # TODO
+def get_debug_points(rvec, tvec, mtx, dist):
     """
     Registers pixel coordinates of custom object points for debugging purposes.
+
     Args:
-        camA (str): The serial number or identifier of camera A.
-        camB (str): The serial number or identifier of camera B.
+        rvec (np.array): Rotation vector (3x1) for the camera pose.
+        tvec (np.array): Translation vector (3x1) for the camera pose.
+        mtx (np.array): Camera intrinsic matrix (3x3).
+        dist (np.array): Distortion coefficients.
+
     This method:
-    1. Defines a custom grid of object points (without scaling).
-    2. Projects these 3D object points into 2D pixel coordinates for both camera A and camera B.
-    3. Registers the computed pixel coordinates to the model for debugging.
+    1. Defines a custom grid of object points (9x9, z=0).
+    2. Defines additional custom object points (e.g., axes tips).
+    3. Concatenates them into a single set of 3D object points.
+    4. Projects these 3D object points into 2D pixel coordinates.
     """
-    # Define the custom object points directly without scaling
     x = np.arange(-4, 5)  # from -4 to 4
     y = np.arange(-4, 5)  # from -4 to 4
     xv, yv = np.meshgrid(x, y, indexing='ij')
-    objpoint = np.column_stack([xv.flatten(), yv.flatten(), np.zeros(xv.size)])
-    # Convert the list of object points to a NumPy array
-    objpoints = np.array([objpoint], dtype=np.float32)
-    # Call the get_pixel_coordinates method using the object points
-    pixel_coords = get_projected_points(objpoints, rvec, tvec, mtx, dist)
-    # Register the pixel coordinates for the debug points
-    #self.model.add_coords_for_debug(camA, pixel_coordsA)
-    return pixel_coords
+    grid_points = np.column_stack([xv.flatten(), yv.flatten(), np.zeros(xv.size)])
 
+    # Define the additional specific debug points
+    custom_points = np.array([
+        [4.0, 0.0, 0.0],
+        [-8.0, 0.0, 0.0],
+        [0.0, 8.0, 0.0],
+        [0.0, -6.0, 0.0],
+        [0.0, 0.0, 0.0]  # Origin
+    ], dtype=np.float32)
+
+    objpoints_3d = np.vstack((grid_points, custom_points))
+    # Ensure the combined array is float32
+    objpoints_3d = objpoints_3d.astype(np.float32)
+    pixel_coords = get_projected_points(objpoints_3d, rvec, tvec, mtx, dist)
+
+    return pixel_coords
 
 # Utils
 def get_projected_points(objpoints, rvec, tvec, mtx, dist):

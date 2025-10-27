@@ -114,7 +114,7 @@ class DrawWorker(QRunnable):
             if self.new:
                 self._draw_reticle()
                 self._draw_coords()
-                self._draw_detection_status()
+                #self._draw_detection_status()
                 self._draw_segmentation()
                 self.signals.frame_processed.emit(self.frame)
                 self.new = False
@@ -432,13 +432,15 @@ class ProbeDetectManager(QObject):
         coords = self.model.get_coords_for_debug(self.name)
         if coords is None:
             return None
-        origin_px   = coords[40]
-        x_left_px   = coords[4]
-        x_right_px  = coords[76]
-        y_bottom_px = coords[36]
-        y_top_px    = coords[44]
-        #neg_pts_coords = np.array([origin_px, x_left_px, x_right_px, y_bottom_px, y_top_px])
-        neg_pts_coords = np.array([origin_px])
+        N = 5
+        neg_pts_coords = coords[-N:]
+        # if points are exceeing image size, clip to boundary (camera_resolution)
+        camera_resolution = self.model.get_camera_resolution(self.name)
+        w, h = camera_resolution
+        print(f"{self.name} {w} x {h}")
+        neg_pts_coords[:, 0] = np.clip(neg_pts_coords[:, 0], 0, w - 1)  # clip x
+        neg_pts_coords[:, 1] = np.clip(neg_pts_coords[:, 1], 0, h - 1)  # clip y
+        logger.debug(f"{self.name} Negative points coords: {neg_pts_coords}")
         return neg_pts_coords
 
     def stop(self):

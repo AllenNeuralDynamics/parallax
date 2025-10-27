@@ -194,7 +194,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         # Ensure consistent array shapes
         self.pts = np.array(pts_resized, dtype=np.float32)
         self.labels = np.array(labels, dtype=np.int32)
-        print(f"Negative points: {neg_pts}, Resized: {self.pts}")
+        logger.debug(f"Negative points: {neg_pts}, Resized: {self.pts}")
 
     def _keep_negative_points(self):
         if self.pts is None:
