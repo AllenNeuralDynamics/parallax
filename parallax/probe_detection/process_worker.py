@@ -240,15 +240,15 @@ class ProcessWorkerTAM(baseProcessWorker):
             if mask_global is None:
                 logger.debug("global line not found")
                 return
-            self.signals.seg_mask.emit("global", mask_global[0])
-            self._save_masked_img(self.curr_img, mask_global[0], name=f"{self.name}_global")
+            self.signals.seg_mask.emit("global", mask_global)
+            self._save_masked_img(self.curr_img, mask_global, name=f"{self.name}_global")
         except Exception as e:
             logger.error(f"Error occurred while tracking global: {e}")
             return
 
         try:
             #print("--- Track local ---")
-            mask_local = self._track_local(self.predictor_local, mask_global[0], self.curr_img)
+            mask_local = self._track_local(self.predictor_local, mask_global, self.curr_img)
             if mask_local is None:
                 logger.debug("line not found")
                 return

@@ -15,7 +15,7 @@ from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorker
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class DrawWorkerSignal(QObject):
@@ -432,15 +432,14 @@ class ProbeDetectManager(QObject):
         coords = self.model.get_coords_for_debug(self.name)
         if coords is None:
             return None
-        N = 5
+        N = 1
         neg_pts_coords = coords[-N:]
         # if points are exceeing image size, clip to boundary (camera_resolution)
         camera_resolution = self.model.get_camera_resolution(self.name)
         w, h = camera_resolution
-        print(f"{self.name} {w} x {h}")
         neg_pts_coords[:, 0] = np.clip(neg_pts_coords[:, 0], 0, w - 1)  # clip x
         neg_pts_coords[:, 1] = np.clip(neg_pts_coords[:, 1], 0, h - 1)  # clip y
-        logger.debug(f"{self.name} Negative points coords: {neg_pts_coords}")
+        logger.debug(f"{self.name} {w} x {h} Negative points coords: {neg_pts_coords}")
         return neg_pts_coords
 
     def stop(self):
