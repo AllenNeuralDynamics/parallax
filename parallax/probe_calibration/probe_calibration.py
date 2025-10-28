@@ -14,6 +14,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 #from .coords_transformation import RotationTransformation
 #from .transforms import fit_params
 from parallax.utils.transforms import fit_params
+from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
 from .bundle_adjustment import BALProblem, BALOptimizer
 from parallax.handlers.point_mesh import PointMesh
 from parallax.config.config_path import stages_dir
@@ -36,13 +37,16 @@ class ProbeCalibration(QObject):
     transM_info = pyqtSignal(str, object, float, object)
 
     THRESHOLD_MIN_MAX = 1500
-    THRESHOLD_MIN_MAX_Z = 200
+    THRESHOLD_MIN_MAX_Z = 100
     THRESHOLD_AVG_ERROR = 50
     THRESHOLD_N_PTS = 6
+
+    # 20 um diff on +8mm point e.g less than (0, 8020, 0) on (0, 8000, 0) is okay
+    # center:  +10mm point (10, 10, 10) on (0, 0, 0)
     THRESHOLD_MATRIX = np.array([
-        [0.001, 0.001, 0.001, 5.0],
-        [0.001, 0.001, 0.001, 5.0],
-        [0.001, 0.001, 0.001, 5.0],
+        [0.0025, 0.0025, 0.0025, 10.0],
+        [0.0025, 0.0025, 0.0025, 10.0],
+        [0.0025, 0.0025, 0.0025, 10.0],
         [0.0,   0.0,   0.0,   0.0],
     ])
     """ Test thresholds for calibration criteria
@@ -178,64 +182,63 @@ class ProbeCalibration(QObject):
         self.df = pd.read_csv(self.log_dir / "points.csv")
         return self.df[self.df["sn"] == sn]
 
-    def _get_local_global_points(self, df):
+    def _get_local_global_points(self, df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         """
         Retrieve local and global points from the DataFrame.
-
         Args:
             df (pd.DataFrame): The DataFrame containing the points.
-
         Returns:
-            tuple: Arrays of local points and global points.
+            tuple: Arrays of local points and global points. (Nx3 numpy arrays)
         """
-        # Extract local and global points
-        local_points = df[["local_x", "local_y", "local_z"]].values
-        global_points = df[["global_x", "global_y", "global_z"]].values
+        # Extract local and global points, which initially creates Nx3 arrays
+        local_pts = df[["local_x", "local_y", "local_z"]].values
+        global_pts = df[["global_x", "global_y", "global_z"]].values
+        local_pts = np.asarray(local_pts, dtype=float)
+        global_pts = np.asarray(global_pts, dtype=float)
 
-        return local_points, global_points
+        return local_pts, global_pts
 
-    def _get_l2_distance_deprecated(self, local_points, global_points):
-        """
-        Compute the L2 distance between the expected global points and the actual global points.
-
-        Args:
-            local_points (numpy.ndarray): The local points.
-            global_points (numpy.ndarray): The global points.
-
-        Returns:
-            numpy.ndarray: The L2 distance between the points.
-        """
-        R, t = self.R, self.origin
-        global_coords_exp = R @ local_points.T + t.reshape(-1, 1)
-        global_coords_exp = global_coords_exp.T
-
-        l2_distance = np.linalg.norm(global_points - global_coords_exp, axis=1)
-        mean_l2_distance = np.mean(l2_distance)
-        std_l2_distance = np.std(l2_distance)
-        logger.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
-
-        return l2_distance
-
-    def _get_l2_distance(self, local_points, global_points):
+    def _get_l2_distance(self, local_pts: np.ndarray, global_pts: np.ndarray):
         """
         Compute the L2 distance between the expected local points and the actual local points.
 
         Args:
-            local_points (numpy.ndarray): The local points.
-            global_points (numpy.ndarray): The global points.
+            local_points (numpy.ndarray): The local points. Nx3 numpy array (column vectors).
+            global_points (numpy.ndarray): The global points. Nx3 numpy array (column vectors).
 
         Returns:
-            numpy.ndarray: The L2 distance between the points.
+            numpy.ndarray: The L2 distance between the points. N-element array (row vector of distances).
         """
-        R, t = self.R, self.origin
-        local_coords_exp = R @ global_points.T + t.reshape(-1, 1)
-        local_coords_exp = local_coords_exp.T
+        print("shape local_pts:", local_pts.shape)
+        print("shape global_pts:", global_pts.shape)
+        # --- Input Validation (Ensure 3xN) ---
+        N_points = global_pts.shape[0] # Number of points is the second dimension (N)
 
-        l2_distance = np.linalg.norm(local_points - local_coords_exp, axis=1)
+        if global_pts.ndim != 2 or global_pts.shape[1] != 3 or N_points == 0:
+            if N_points == 0:
+                logger.warning("Attempted to compute L2 distance with zero global points.")
+                return np.array([]) # Return an empty array as the distance
+            raise ValueError("global_points must be a 2D array of shape (N, 3).")
+
+        if local_pts.ndim != 2 or local_pts.shape[1] != 3:
+            raise ValueError("local_points must be a 2D array of shape (N, 3).")
+
+        # R is column basis rotation local = R @ global + t
+        # output is Nx3 array (row vectors)
+        local_pts_exp = apply_affine(pts=global_pts, affine_R=self.R, translation=self.origin)
+
+        # 4. Compute the L2 norm (Euclidean distance)
+        # The difference is N x 3. axis=1 collapses the coordinate dimension (3) per point (N).
+        # The result is an (N,) array of distances.
+        l2_distance = np.linalg.norm(local_pts - local_pts_exp , axis=1)
+        logger.debug(f"L2 distances: {l2_distance}")
+
+        # 5. Calculate statistics and log (no change needed here)
         mean_l2_distance = np.mean(l2_distance)
         std_l2_distance = np.std(l2_distance)
         logger.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
 
+        # The output l2_distance is an (N,) array, which is the required row vector of distances.
         return l2_distance
 
     def _remove_outliers(self, df, threshold=30):
@@ -243,64 +246,68 @@ class ProbeCalibration(QObject):
         Remove outliers based on L2 distance threshold.
 
         Args:
-            local_points (numpy.ndarray): The local points.
-            global_points (numpy.ndarray): The global points.
+            df (pd.DataFrame): DataFrame containing local and global points.
             threshold (float): The L2 distance threshold for outlier removal.
 
         Returns:
-            tuple: Filtered local points, global points, and valid indices.
+            pd.DataFrame: The DataFrame containing only the inlier points.
         """
-        local_points, global_points = self._get_local_global_points(df)
+        # Ensure df is not empty before processing
+        if df.empty:
+            logger.warning("Input DataFrame is empty, returning empty DataFrame.")
+            return df
 
-        # Get the l2 distance
+        # This function relies on self._get_local_global_points to handle extraction and shape.
+        local_points, global_points = self._get_local_global_points(df)  # pts are Nx3 arrays
+
+        # Get the l2 distance (returns an (N,) array of distances)
         l2_distance = self._get_l2_distance(local_points, global_points)
 
         # Filter out points where L2 distance is greater than the threshold
         valid_indices = l2_distance <= threshold
+        
+        # Apply filter to the original DataFrame
+        df_filtered = df[valid_indices].reset_index(drop=True)
 
-        logger.debug(f"  (noise removed) -> \
-                     {np.mean(l2_distance[valid_indices])}, \
-                     {np.std(l2_distance[valid_indices])}")
+        # Log statistics only if there are valid points remaining
+        if np.any(valid_indices):
+            # Calculate mean and std using only the distances corresponding to valid_indices
+            l2_inliers = l2_distance[valid_indices]
+            mean_l2 = np.mean(l2_inliers)
+            std_l2 = np.std(l2_inliers)
+            
+            logger.debug(
+                f"(noise removed) -> mean: {mean_l2:.4f}, std: {std_l2:.4f}, "
+                f"kept: {len(l2_inliers)}/{len(l2_distance)}"
+            )
+        else:
+            logger.warning("All points were filtered out as outliers based on the threshold.")
+            
+        # Return the filtered DataFrame
+        return df_filtered
 
-        return df[valid_indices].reset_index(drop=True)
-
-    def _get_transM_LR_orthogonal(self, local_points, global_points, remove_noise=True):
-        """
-        Computes the transformation matrix from local to global coordinates using orthogonal distance regression.
-
-        Args:
-            local_points (np.array): Array of local points.
-            global_points (np.array): Array of global points.
-
-        Returns:
-            tuple: Linear regression model and transformation matrix.
-        """
-
-        if len(local_points) <= 3 or len(global_points) <= 3:
-            logger.warning("Not enough points for calibration.")
-            return None
-        self.origin, self.R, self.avg_err = fit_params(local_points, global_points)
-        transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
-        transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
-
-        return transformation_matrix
-
-    def _get_transM(self, df):
+    def _get_transM(self, local_pts: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
+        Args:
+            global_pts (np.ndarray): The global points (Nx3 numpy array).
+            local_pts (np.ndarray): The local points (Nx3 numpy array).
+        Returns:
+            np.ndarray: The 4x4 homogeneous transformation matrix.
         """
-        local_points, global_points = self._get_local_global_points(df)
 
-        if len(local_points) <= 3 or len(global_points) <= 3:
-            logger.warning("Not enough points for calibration.")
+        N_points = local_pts.shape[0]  # Number of points is the first dimension (N)
+        if N_points < 3:
+            logger.debug("At least three points are required for optimization (N >= 3).")
             return None
 
         # local = R @ global + t, where local shape and global shape are 3xN.
-        self.origin, self.R, self.avg_err = fit_params(local_points, global_points)
-        transformation_matrix = np.hstack([self.R, self.origin.reshape(-1, 1)])
-        transformation_matrix = np.vstack([transformation_matrix, [0, 0, 0, 1]])
+        # pts should be 3xN column vectors to fit the fit_params function
+        self.origin, self.R, self.avg_err = fit_params(local_pts.T, global_pts.T)
+        logger.debug(f"avg err: {self.avg_err}")
+        transM = make_homogeneous_transform(self.R, self.origin)
 
-        return transformation_matrix
+        return transM
 
     def _write_local_global_point(self, stage, debug_info=None):
         """
@@ -371,7 +378,8 @@ class ProbeCalibration(QObject):
             bool: True if the criteria are met, otherwise False.
         """
         diff_matrix = np.abs(self.transM_LR - self.transM_LR_prev)
-        logger.debug("Diff matrix:\n%s", diff_matrix)
+        with np.printoptions(suppress=True, precision=5):
+            logger.debug("Diff matrix:\n%s", diff_matrix)
         if np.all(diff_matrix <= self.THRESHOLD_MATRIX):
             return True
         else:
@@ -459,21 +467,22 @@ class ProbeCalibration(QObject):
             return True
 
         return False
-
+    
     def _apply_transformation(self):
         """
         Applies the calculated transformation matrix to convert a local point to global coordinates.
         local = R @ global + t, where local shape and global shape are {3x1}.
         To get local from global:
         global = R.T @ (local - t), local, t, and global are {3x1} vectors.
-        global = (local - t) @ R, local, t, and global are {1x3} vectors.
+
         Returns:
             np.array: The transformed global point.
         """
-        local_point = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z])
-        t = self.origin
-        global_point = (local_point - t) @ self.R
-        return global_point
+        local_pt = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z], dtype=float)
+        global_pts = apply_inverse_affine(pts=local_pt, affine_R=self.R, translation=self.origin)
+        #t = self.origin
+        #global_point = (local_point - t) @ self.R
+        return global_pts
 
     def _update_l2_error_current_point(self):
         """
@@ -514,7 +523,7 @@ class ProbeCalibration(QObject):
             return False
 
         if not self._is_criteria_avg_error_threshold():
-            logger.debug("Average error is above the threshold.")
+            logger.debug(f"Average error is above the threshold. {self.avg_err} >= {self.THRESHOLD_AVG_ERROR}")
             return False
 
         if not self._is_criteria_met_transM():
@@ -658,19 +667,23 @@ class ProbeCalibration(QObject):
         self._update_min_max_x_y_z(stage)    # update min max x,y,z and emit signals if criteria met
         self._update_movement(sn)
         df = self._filter_df_by_sn(sn)
-        self.transM_LR = self._get_transM(df)
+        local_pts, global_pts = self._get_local_global_points(df)
+        self.transM_LR = self._get_transM(local_pts, global_pts)
+        if self.transM_LR is None:
+            return
 
         if self._is_criteria_met_points_min_max(sn) and len(df) >= self.THRESHOLD_N_PTS \
                 and self.R is not None and self.origin is not None:
             logger.debug("===============")
             # Iteratively remove outliers and refit transformation
             # Get transM without removing outliers
-            for threshold in range(430, 29, -100):  # Remove from larger to smaller outliers
+            for threshold in range(430, 19, -100):  # Remove from larger to smaller outliers
                 df_ = self._remove_outliers(df, threshold=threshold)
                 if not self._is_trajectory_distance_sufficient(df_) or len(df_) < self.THRESHOLD_N_PTS:
                     break
                 df = df_
-                self.transM_LR = self._get_transM(df)
+                local_pts, global_pts = self._get_local_global_points(df)
+                self.transM_LR = self._get_transM(local_pts, global_pts)
                 logger.debug(f"len(df): {len(df)}, threshold: {threshold}, average error: {self.avg_err}")
             logger.debug("===============")
 
@@ -678,7 +691,7 @@ class ProbeCalibration(QObject):
         self._update_info_ui(sn)  # update transformation matrix and overall LR in UI
 
         if self.transM_LR is None or len(df) < self.THRESHOLD_N_PTS:
-            logger.debug("Not enough points for calibration.")
+            logger.debug(f"Not enough points for calibration. {self.transM_LR} = len(df) {len(df)}")
             return
 
         # Check criteria
@@ -826,7 +839,7 @@ class ProbeCalibration(QObject):
 
         bal_problem.df
         local_pts, opt_global_pts = bal_problem.local_pts, optimizer.opt_points
-        self.transM_LR = self._get_transM_LR_orthogonal(local_pts, opt_global_pts, remove_noise=False)
+        self.transM_LR = self._get_transM(local_pts, opt_global_pts)
         if self.transM_LR is None:
             return False
 
