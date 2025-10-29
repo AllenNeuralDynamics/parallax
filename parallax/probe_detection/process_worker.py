@@ -237,8 +237,8 @@ class ProcessWorkerTAM(baseProcessWorker):
             mask_global = self._track_global()
             if not self.probe_stopped:  # early exit if probe started moving
                 return
-            if mask_global is None:
-                logger.debug("global line not found")
+            if not mask_global.any():
+                logger.debug(f" {self.name} ******  global line not found ******")
                 return
             self.signals.seg_mask.emit("global", mask_global)
             self._save_masked_img(self.curr_img, mask_global, name=f"{self.name}_global")
@@ -343,7 +343,7 @@ class ProcessWorkerTAM(baseProcessWorker):
 
     def _track_global(self):
         self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
-        _, out_mask_logits = track(self.predictor_global, self.curr_img)
+        _, out_mask_logits = track(self.predictor_global, self.curr_img, name=f"{self.name}_global")
         mask_global = masks_to_uint8_batch(out_mask_logits)
         return mask_global[0]
 
@@ -365,13 +365,13 @@ class ProcessWorkerTAM(baseProcessWorker):
                 return None
             # Start Local
             predictor_local.predictor.load_first_frame(img_local)
-            _, out_mask_logits = start_with_mask(predictor_local, mask=mask_line)
+            _, out_mask_logits = start_with_mask(predictor_local, mask=mask_line, name=f"{self.name}_local")
         else:
             #print("*** track local ***")
             if not predictor_local.initialized:
                 logger.debug(f"{self.name} Local TAM predictor is not initialized.")
                 return None
-            _, out_mask_logits = track(predictor_local, img_local)
+            _, out_mask_logits = track(predictor_local, img_local, name=f"{self.name}_local")
             # save img_local
             if logger.getEffectiveLevel() == logging.DEBUG:
                 cv2.imwrite(os.path.join(debug_img_dir, f"{self.name}_tam_{self.img_ts}_local_input.jpg"), img_local)
@@ -416,7 +416,7 @@ class ProcessWorkerTAM(baseProcessWorker):
         self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
         self.predictor_global.predictor.load_first_frame(self.curr_img)
         logger.debug(f"(Global Tracking) pt: {self.pts}, labels: {self.labels}")
-        _, out_mask_logits = start(self.predictor_global, points=self.pts, labels=self.labels)
+        _, out_mask_logits = start(self.predictor_global, points=self.pts, labels=self.labels, name=f"{self.name}_global")
         mask_global = masks_to_uint8_batch(out_mask_logits)
         return mask_global[0]
 
@@ -447,9 +447,9 @@ class ProcessWorkerTAM(baseProcessWorker):
 
             try:
                 mask_global = self._start_tracking()
-                if mask_global is None:
+                if not mask_global.any():
                     self._cancel_current_tam()
-                    logger.debug("global mask - line not found")
+                    logger.debug(f"{self.name} ******  global mask - line not found ******")
                     return
                 self.signals.seg_mask.emit("global", mask_global)
                 self._save_masked_img(self.curr_img, mask_global, name="global")

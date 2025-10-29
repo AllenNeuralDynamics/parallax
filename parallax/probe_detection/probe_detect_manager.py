@@ -545,7 +545,6 @@ class ProbeDetectManager(QObject):
             if self.processWorker is not None:
                 self.processWorker.update_sn(sn)
                 self.processWorker.start_detection()
-                print(f"{self.name} Started OpenCV detection")
 
         elif self.detect_algorithm == 'tam':
             if self.processWorker is not None:
@@ -553,7 +552,6 @@ class ProbeDetectManager(QObject):
             if self.tamProcessWorker is not None:
                 self.tamProcessWorker.update_sn(sn)
                 self.tamProcessWorker.start_detection()
-                print(f"{self.name} Started TAM detection")
 
     def enable_calibration(self, stage_ts, sn):  # Call from stage listener.
         """
