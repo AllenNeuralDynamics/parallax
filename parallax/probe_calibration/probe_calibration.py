@@ -38,7 +38,7 @@ class ProbeCalibration(QObject):
 
     THRESHOLD_MIN_MAX = 1500
     THRESHOLD_MIN_MAX_Z = 100
-    THRESHOLD_AVG_ERROR = 50
+    THRESHOLD_AVG_ERROR = 40
     THRESHOLD_N_PTS = 6
 
     # 20 um diff on +8mm point e.g less than (0, 8020, 0) on (0, 8000, 0) is okay
@@ -49,17 +49,6 @@ class ProbeCalibration(QObject):
         [0.0025, 0.0025, 0.0025, 10.0],
         [0.0,   0.0,   0.0,   0.0],
     ])
-    """ Test thresholds for calibration criteria
-    THRESHOLD_MIN_MAX = 150
-    THRESHOLD_MIN_MAX_Z = 20
-    THRESHOLD_AVG_ERROR = 500
-    THRESHOLD_MATRIX = np.array([
-        [0.1, 0.1, 0.1, 50.0],
-        [0.1, 0.1, 0.1, 50.0],
-        [0.1, 0.1, 0.1, 50.0],
-        [0.0,   0.0,   0.0,   0.0],
-    ])
-    """
 
     def __init__(self, model, stage_listener):
         """
@@ -209,8 +198,6 @@ class ProbeCalibration(QObject):
         Returns:
             numpy.ndarray: The L2 distance between the points. N-element array (row vector of distances).
         """
-        print("shape local_pts:", local_pts.shape)
-        print("shape global_pts:", global_pts.shape)
         # --- Input Validation (Ensure 3xN) ---
         N_points = global_pts.shape[0] # Number of points is the second dimension (N)
 
@@ -677,7 +664,8 @@ class ProbeCalibration(QObject):
             logger.debug("===============")
             # Iteratively remove outliers and refit transformation
             # Get transM without removing outliers
-            for threshold in range(430, 19, -100):  # Remove from larger to smaller outliers
+            thresholds = [500, 300, 100, 70, 50, 45, 40]
+            for threshold in thresholds:
                 df_ = self._remove_outliers(df, threshold=threshold)
                 if not self._is_trajectory_distance_sufficient(df_) or len(df_) < self.THRESHOLD_N_PTS:
                     break
@@ -705,7 +693,9 @@ class ProbeCalibration(QObject):
 
         if min(df['global_x']) > 0 or max(df['global_x']) < 0 or \
            min(df['global_y']) > 0 or max(df['global_y']) < 0:
-            logger.debug("Trajectory distance not cross to axis.")
+            logger.debug(f"Trajectory distance not cross to axis."
+                          f"min_x: {min(df['global_x'])}, max_x: {max(df['global_x'])},"
+                          f"min_y: {min(df['global_y'])}, max_y: {max(df['global_y'])}")
             return False
 
         # Compute span in each local axis
