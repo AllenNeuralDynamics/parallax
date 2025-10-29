@@ -13,12 +13,12 @@ from parallax.probe_detection.probe_img_processor import ProbeImageProcessor
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.probe_detector import ProbeDetector
 from parallax.reticle_detection.reticle_detection import ReticleDetection
-from parallax.config.config_path import debug_img_dir, tam_model_dir
+from parallax.config.config_path import debug_img_dir, tam_model_dir, CKPT_NAME_SMALL, CKPT_NAME_TINY
 from parallax.utils.utils import UtilsCoords
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 # Import double times!
@@ -154,8 +154,6 @@ class baseProcessWorker(QRunnable):
 # -----------------------------
 
 class ProcessWorkerTAM(baseProcessWorker):
-    CKPT_NAME_SMALL = "efficienttam_s_512x512.pt"
-    CKPT_NAME_TINY = "efficienttam_ti_512x512.pt"
 
     def __init__(self, name, resolution, test=False):
         """
@@ -168,9 +166,9 @@ class ProcessWorkerTAM(baseProcessWorker):
 
         self.predictor_global = None
         self.predictor_local = None
-        self.tiny_checkpoint_path = self._import_checkpoint(self.CKPT_NAME_TINY)
+        self.tiny_checkpoint_path = self._import_checkpoint(CKPT_NAME_TINY)
         self.tiny_cfg_path = find_matching_cfg(self.tiny_checkpoint_path)
-        self.small_checkpoint_path = self._import_checkpoint(self.CKPT_NAME_SMALL)
+        self.small_checkpoint_path = self._import_checkpoint(CKPT_NAME_SMALL)
         self.small_cfg_path = find_matching_cfg(self.small_checkpoint_path)
         self._prev_pt = None
         self.pts = None

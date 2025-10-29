@@ -11,7 +11,7 @@ from parallax.probe_detection.probe_fine_tip_detector import ProbeFineTipDetecto
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ProbeImageProcessor:
@@ -439,6 +439,23 @@ class ProbeImageProcessor:
         return kept
 
     @classmethod
+    def hough_line_detection(cls, img):
+        config = cls._ensure_config_loaded()
+        line_config = config.get("line_detection", {})
+        # Hough Transform line detection
+        hough_config = line_config.get("hough", {})
+        rho = hough_config.get("rho", 1)
+        theta = cls._get_cv2_constant(hough_config.get("theta", "pi/180"))
+        threshold = hough_config.get("threshold", 80)
+        min_line_length = hough_config.get("min_line_length", 150)
+        max_line_gap = hough_config.get("max_line_gap", 5)
+        
+        linesP = cv2.HoughLinesP(img, rho, theta, threshold=threshold, 
+                                minLineLength=min_line_length, maxLineGap=max_line_gap)
+
+        return linesP
+
+    @classmethod
     def detect_line_on_pt(cls, img, pt, mask=None):
         config = cls._ensure_config_loaded()
         line_config = config.get("line_detection", {})
@@ -452,16 +469,7 @@ class ProbeImageProcessor:
         img = cls._preprocess(img)
         img = cls._apply_mask(img, mask)
 
-        # Hough Transform line detection
-        hough_config = line_config.get("hough", {})
-        rho = hough_config.get("rho", 1)
-        theta = cls._get_cv2_constant(hough_config.get("theta", "pi/180"))
-        threshold = hough_config.get("threshold", 80)
-        min_line_length = hough_config.get("min_line_length", 150)
-        max_line_gap = hough_config.get("max_line_gap", 5)
-        
-        linesP = cv2.HoughLinesP(img, rho, theta, threshold=threshold, 
-                                minLineLength=min_line_length, maxLineGap=max_line_gap)
+        linesP = cls.hough_line_detection(img)
         
         tol = line_config.get("point_tolerance", 5.0)
         hits = []

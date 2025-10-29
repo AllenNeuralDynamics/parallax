@@ -45,6 +45,8 @@ cnn_export_dir.mkdir(parents=True, exist_ok=True)
 
 # Realtime Efficient Track Anything model directory
 tam_model_dir = project_root / "external" / "EfficientTam"
+CKPT_NAME_SMALL = "efficienttam_s_512x512.pt"
+CKPT_NAME_TINY = "efficienttam_ti_512x512.pt"
 
 # Font
 fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")
