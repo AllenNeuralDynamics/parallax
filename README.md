@@ -69,30 +69,24 @@ parallax/
 │               └── superglue_indoor.pth
 ```
 
-### Optional: Enable Realtime Efficient Tam for probe tracking (must insatalled for 4 shanks tracking)
+### Optional: Enable Yolo for probe tracking (must insatalled for 4 shanks tracking)
 1. Clone the repository if it hasn't been done already.
 ```bash
 git clone https://github.com/AllenNeuralDynamics/parallax.git
 ```
-2. Install [RealtimeEfficientTam](tttps://github.com/AllenNeuralDynamics/RealtimeEfficientTAM)
-```bash
-pip install git+https://github.com/AllenNeuralDynamics/RealtimeEfficientTAM@main
-```
+2. Install
+TBD
+
 3. Download pretrained model
-```bash
-./external/EfficientTam/download_checkpoints.sh
-```
-EfficientTAM checkpoints are available at [the Hugging Face Space](https://huggingface.co/yunyangx/efficient-track-anything/tree/main).
+TBD
 
 4. Verify your folder structure looks like this:
 ```bash
 parallax/
 ├── external/
-│   └── EfficientTam/
+│   └── Yolo/
 │       ├── download_checkpoints.sh
-│       ├── efficienttam_ti_512x512.pt
-│       ├── efficienttam_s_512x512.pt
-│       ├── ...
+│       ├── ....pt
 ```
 
 ### For developers:
