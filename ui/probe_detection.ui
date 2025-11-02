@@ -68,7 +68,7 @@ border: 3px solid #FFAD00;
    <item row="1" column="0">
     <widget class="QRadioButton" name="radioButton1">
      <property name="text">
-      <string>OpenCV</string>
+      <string>OpenCV - 1 shank</string>
      </property>
      <property name="checked">
       <bool>true</bool>
@@ -81,7 +81,7 @@ border: 3px solid #FFAD00;
       <bool>false</bool>
      </property>
      <property name="text">
-      <string>RealtimeTAM</string>
+      <string>Yolo- 4 shanks</string>
      </property>
     </widget>
    </item>
