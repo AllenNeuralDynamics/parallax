@@ -48,6 +48,9 @@ tam_model_dir = project_root / "external" / "EfficientTam"
 CKPT_NAME_SMALL = "efficienttam_s_512x512.pt"
 CKPT_NAME_TINY = "efficienttam_ti_512x512.pt"
 
+# Yolo Config
+yolo_config_path = data_dir / "yolo_config.yaml"
+
 # Font
 fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")
 

@@ -16,9 +16,59 @@ class UtilsCoords:
 
     All methods are implemented as static methods, since no instance or class state is required.
     """
-
     @staticmethod
     def scale_coords_to_original(
+        coords: list,
+        original_size: Tuple[int, int],
+        resized_size: Tuple[int, int]
+    ) -> list:
+        """
+        Scale coordinates (single point, bbox, or a list of points) from a resized image 
+        back to the original image dimensions.
+
+        Args:
+            coords (list): A list containing coordinates: 
+                           - [x, y] for a single point (keypoint).
+                           - [x1, y1, x2, y2] for a bounding box.
+            original_size (Tuple[int, int]): The (width, height) of the original image.
+            resized_size (Tuple[int, int]): The (width, height) of the resized image.
+
+        Returns:
+            list: The scaled coordinates.
+        """
+        original_width, original_height = original_size
+        resized_width, resized_height = resized_size
+
+        scale_x = original_width / resized_width
+        scale_y = original_height / resized_height
+
+        scaled_coords = []
+        
+        # Bounding Box: [x1, y1, x2, y2]
+        if len(coords) == 4:
+            x1, y1, x2, y2 = coords
+            
+            scaled_coords.append(int(x1 * scale_x))
+            scaled_coords.append(int(y1 * scale_y))
+            scaled_coords.append(int(x2 * scale_x))
+            scaled_coords.append(int(y2 * scale_y))
+            
+        # Single Point (Keypoint or other single coordinate pair): [x, y]
+        elif len(coords) == 2:
+            x, y = coords
+            
+            scaled_coords.append(int(x * scale_x))
+            scaled_coords.append(int(y * scale_y))
+            
+        # Error handling for unexpected coordinate formats
+        else:
+            print(f"Warning: Unexpected coordinate length ({len(coords)}). Skipping scaling.")
+            return coords # Return original coordinates
+
+        return scaled_coords
+
+    @staticmethod
+    def scale_coords_to_original_deprecate(
         tip: Tuple[int, int],
         original_size: Tuple[int, int],
         resized_size: Tuple[int, int]

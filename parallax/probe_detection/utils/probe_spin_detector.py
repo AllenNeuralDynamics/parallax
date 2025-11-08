@@ -8,7 +8,7 @@ import numpy as np
 import cv2
 
 # --- project imports ---
-from parallax.probe_detection.probe_img_processor import ProbeImageProcessor
+from parallax.probe_detection.utils.probe_img_processor import ProbeImageProcessor
 from parallax.config.config_path import debug_img_dir
 from parallax.config.config_calibration import MIN_SHANK_DIST_MM, MAX_SHANK_DIST_MM, Z_SPAN_MAX_MM
 from parallax.cameras.calibration_camera import CameraParams, triangulate

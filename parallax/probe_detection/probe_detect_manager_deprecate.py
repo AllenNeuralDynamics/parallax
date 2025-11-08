@@ -10,7 +10,7 @@ import cv2
 import time
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
-from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerYolo
+from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerTAM
 
 
 # Set logger name
@@ -322,61 +322,6 @@ class DrawWorker(QRunnable):
             layer[mask_bool] = color
         return layer
 
-    def receive_yolo_detections(self, detections: list):
-        if not detections:
-            return
-
-        print(f"Received {len(detections)} detections.")
-
-        for detection in detections:
-            print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
-
-            color = (0, 255, 0)  # Green for all boxes; could customize per class
-            x1, y1, x2, y2 = map(int, detection['bbox'])
-
-            # ---- Draw bounding box ----
-            cv2.rectangle(self.frame, (x1, y1), (x2, y2), color, 2)
-
-            # ---- Label text ----
-            label = f"{detection['class_name']} {detection['confidence']:.2f}"
-            cv2.putText(self.frame, label, (x1, max(20, y1 - 10)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
-
-            # ---- Draw segmentation mask outline ----
-            mask_poly = detection.get("mask", [])
-            if mask_poly and len(mask_poly) > 0:
-                # Handle both single and multiple polygons
-                if isinstance(mask_poly[0][0], (list, tuple, np.ndarray)):
-                    # Multiple polygons (list of polygons)
-                    for poly in mask_poly:
-                        pts = np.array(poly, dtype=np.int32)
-                        cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=2)
-                else:
-                    # Single polygon
-                    pts = np.array(mask_poly, dtype=np.int32)
-                    cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=2)
-            
-            # ---- Draw keypoints ----
-            keypoints_list = detection.get("keypoints", [])
-            if keypoints_list and len(keypoints_list) > 0:
-                # Iterate directly over the list of keypoints for THIS detection/instance
-                for i, point in enumerate(keypoints_list):
-                    # 'point' is [x, y, confidence]
-                    confidence = point[2]
-                    
-                    # We assume 'color' is defined outside this block from the bounding box drawing
-                    # For simplicity in this standalone fix, we use a fixed color (255, 255, 255)
-                    kpt_color = (255, 20*i, 50*i)
-
-                    if confidence > 0.5: 
-                        # Data is already in PIXEL COORDINATES
-                        x_kpt = int(point[0])
-                        y_kpt = int(point[1])
-                        
-                        # Draw the keypoint on the 'frame' (or 'overlay' if you are using one)
-                        cv2.circle(self.frame, (x_kpt, y_kpt), 3, kpt_color, -1)
-
-
 class ProbeDetectManager(QObject):
     """
     Manager class for probe detection. It handles frame processing, probe detection,
@@ -399,7 +344,7 @@ class ProbeDetectManager(QObject):
         self.name = camera_name
         self.worker = None          # Worker for refersh screen
         self.processWorker = None   # Worker for processing frames
-        self.yoloProcessWorker = None # Worker for TAM processing frames
+        self.tamProcessWorker = None # Worker for TAM processing frames
         self._prev_ts = None
         self.threadpool = QThreadPool()
         self.last_detected_frame = None
@@ -424,15 +369,14 @@ class ProbeDetectManager(QObject):
         self.processWorker.signals.tip_moving.connect(self.found_probe_moving)
         self.processWorker.signals.status.connect(self.worker.update_status)
 
-        # YOLO Process Worker
-        self.yoloProcessWorker = ProcessWorkerYolo(self.name, camera_resolution, test=self.model.test)
-        self.yoloProcessWorker.signals.finished.connect(self._onYoloProcessThreadFinished)
-        self.yoloProcessWorker.signals.tip_stopped.connect(self.found_probe)
-        self.yoloProcessWorker.signals.yolo_detection.connect(self.worker.receive_yolo_detections)
-        #self.yoloProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
-        #self.yoloProcessWorker.signals.status.connect(self.worker.update_status)
-        #self.yoloProcessWorker.signals.seg_mask.connect(self.worker.found_seg_mask)
-        #self.yoloProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
+        # TAM Process Worker
+        self.tamProcessWorker = ProcessWorkerTAM(self.name, camera_resolution, test=self.model.test)
+        self.tamProcessWorker.signals.finished.connect(self._onTamProcessThreadFinished)
+        self.tamProcessWorker.signals.tip_stopped.connect(self.found_probe)
+        #self.tamProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
+        #self.tamProcessWorker.signals.status.connect(self.worker.update_status)
+        self.tamProcessWorker.signals.seg_mask.connect(self.worker.found_seg_mask)
+        self.tamProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
 
     def start(self):
         """
@@ -452,20 +396,23 @@ class ProbeDetectManager(QObject):
         self.worker.start_running()
         self.threadpool.start(self.worker)
 
-        self._init_process_thread() # Init processWorker and yoloProcessWorker
+        self._init_process_thread() # Init processWorker and tamProcessWorker
         self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
-        self.yoloProcessWorker.start_running()
-        self.threadpool.start(self.yoloProcessWorker)
+
+        neg_pts_coords = self._get_negative_points()
+        self.tamProcessWorker.update_negative_points(neg_pts_coords)
+        self.tamProcessWorker.start_running()
+        self.threadpool.start(self.tamProcessWorker)
 
     def get_mask(self):
         """Save the current image and global mask."""
         return self.worker.mask_bool.astype(np.uint8) * 255
 
     def get_frame(self):
-        if self.yoloProcessWorker is not None:
-            self.yoloProcessWorker.cache_last_detected_frame()
-            return self.yoloProcessWorker.last_detected_frame
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.cache_last_detected_frame()
+            return self.tamProcessWorker.last_detected_frame
         elif self.processWorker is not None:
             self.processWorker.cache_last_detected_frame()
             return self.processWorker.last_detected_frame
@@ -481,19 +428,33 @@ class ProbeDetectManager(QObject):
             self.worker.update_base_coords(None, None)
             self.worker.update_is_seg_mask(False)
 
+    def _get_negative_points(self):
+        coords = self.model.get_coords_for_debug(self.name)
+        if coords is None:
+            return None
+        N = 1
+        neg_pts_coords = coords[-N:]
+        # if points are exceeing image size, clip to boundary (camera_resolution)
+        camera_resolution = self.model.get_camera_resolution(self.name)
+        w, h = camera_resolution
+        neg_pts_coords[:, 0] = np.clip(neg_pts_coords[:, 0], 0, w - 1)  # clip x
+        neg_pts_coords[:, 1] = np.clip(neg_pts_coords[:, 1], 0, h - 1)  # clip y
+        logger.debug(f"{self.name} {w} x {h} Negative points coords: {neg_pts_coords}")
+        return neg_pts_coords
+
     def stop(self):
         """
         Stop the probe detection manager by halting the worker thread.
         """
         logger.debug(f"{self.name} - Stopping thread")
-        if self.worker is None and self.processWorker is None and self.yoloProcessWorker is None:  # State: Stopped
+        if self.worker is None and self.processWorker is None and self.tamProcessWorker is None:  # State: Stopped
             return
 
         if self.processWorker is not None:
             self.processWorker.stop_running()
 
-        if self.yoloProcessWorker is not None:
-            self.yoloProcessWorker.stop_running()
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.stop_running()
 
         if self.worker is not None:
             self.worker.stop_running()
@@ -506,9 +467,9 @@ class ProbeDetectManager(QObject):
         """Handle thread finished signal."""
         self.processWorker = None
 
-    def _onYoloProcessThreadFinished(self):
+    def _onTamProcessThreadFinished(self):
         """Handle thread finished signal."""
-        self.yoloProcessWorker = None
+        self.tamProcessWorker = None
 
     def process(self, frame, timestamp):
         """
@@ -518,24 +479,16 @@ class ProbeDetectManager(QObject):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-        fps = 1  # TODO handle different fps per processor
-        if self._prev_ts is None or (timestamp - self._prev_ts) >= (1.0/fps):
-            if self.processWorker is not None:
-                self.processWorker.update_frame(frame, timestamp)
-            if self.yoloProcessWorker is not None:
-                self.yoloProcessWorker.update_frame(frame, timestamp)
-            self._prev_ts = timestamp
-
-        """
         if self._prev_ts is None:
             self._prev_ts = timestamp
+
         if (timestamp - self._prev_ts) > 0.5: # TODO Adjust time gap
             if self.processWorker is not None:
                 self.processWorker.update_frame(frame, timestamp)
-            if self.yoloProcessWorker is not None:
-                self.yoloProcessWorker.update_frame(frame, timestamp)
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.update_frame(frame, timestamp)
             self._prev_ts = timestamp
-        """
+
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
         
@@ -587,18 +540,18 @@ class ProbeDetectManager(QObject):
             sn (str): Serial number.
         """
         if self.detect_algorithm == 'opencv':
-            if self.yoloProcessWorker is not None:
-                self.yoloProcessWorker.stop_detection()
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.stop_detection()
             if self.processWorker is not None:
                 self.processWorker.update_sn(sn)
                 self.processWorker.start_detection()
 
-        elif self.detect_algorithm == 'yolo':
+        elif self.detect_algorithm == 'tam':
             if self.processWorker is not None:
                 self.processWorker.stop_detection()
-            if self.yoloProcessWorker is not None:
-                self.yoloProcessWorker.update_sn(sn)
-                self.yoloProcessWorker.start_detection()
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.update_sn(sn)
+                self.tamProcessWorker.start_detection()
 
     def enable_calibration(self, stage_ts, sn):  # Call from stage listener.
         """
@@ -614,9 +567,9 @@ class ProbeDetectManager(QObject):
         if self.processWorker is not None and self.detect_algorithm == 'opencv':
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
-        if self.yoloProcessWorker is not None and self.detect_algorithm == 'yolo':
-            self.yoloProcessWorker.update_stage_timestamp(stage_ts)
-            self.yoloProcessWorker.enable_calib()
+        if self.tamProcessWorker is not None and self.detect_algorithm == 'tam':
+            self.tamProcessWorker.update_stage_timestamp(stage_ts)
+            self.tamProcessWorker.enable_calib()
 
 
     def disable_calibration(self, sn):  # Call from stage listener.
@@ -626,12 +579,12 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
-        if self.yoloProcessWorker is not None and self.worker is not None:
+        if self.tamProcessWorker is not None and self.worker is not None:
             self.worker.cancel_seg_mask() # clear the mask in drawing worker
         if self.processWorker is not None:
             self.processWorker.disable_calib()
-        if self.yoloProcessWorker is not None:
-            self.yoloProcessWorker.disable_calib()
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.disable_calib()
 
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
@@ -652,8 +605,8 @@ class ProbeDetectManager(QObject):
 
         if self.processWorker is not None:
             self.processWorker.set_name(self.name)
-        if self.yoloProcessWorker is not None:
-            self.yoloProcessWorker.set_name(self.name)
+        if self.tamProcessWorker is not None:
+            self.tamProcessWorker.set_name(self.name)
         logger.debug(f"{self.name} set camera name")
 
     def get_reticle_coords(self, name):
@@ -677,6 +630,6 @@ class ProbeDetectManager(QObject):
         if self.detect_algorithm == 'opencv':
             if self.processWorker is not None:
                 self.processWorker.clicked_position(pt)
-        if self.detect_algorithm == 'yolo':
-            if self.yoloProcessWorker is not None:
-                self.yoloProcessWorker.clicked_position(pt)
+        if self.detect_algorithm == 'tam':
+            if self.tamProcessWorker is not None:
+                self.tamProcessWorker.clicked_position(pt)

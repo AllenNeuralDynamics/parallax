@@ -7,7 +7,7 @@ import json
 from parallax.config.config_path import debug_img_dir
 from parallax.config.config_path import img_processing_config_file
 from parallax.utils.utils import UtilsCoords, UtilsCrops
-from parallax.probe_detection.probe_fine_tip_detector import ProbeFineTipDetector
+from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 
 # Set logger name
 logger = logging.getLogger(__name__)

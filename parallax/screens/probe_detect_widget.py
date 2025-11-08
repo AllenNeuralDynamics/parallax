@@ -30,45 +30,17 @@ class ProbeDetectWidget(QWidget):
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
-        if self._is_tam_available_cached():
-            self.settingMenu.radioButton2.setEnabled(True)
+        self.settingMenu.radioButton2.setEnabled(True)
 
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
         )
         self.settingMenu.run_pushBtn.clicked.connect(self._apply_detection_algorithm)
 
-    @classmethod
-    def _is_tam_available_cached(cls) -> bool:
-        """
-        Checks if realtime_efficient_tam is available and caches the result
-        at the class level to avoid repeated imports.
-        """
-        # If the check has already run, return the cached result immediately
-        if cls._TAM_AVAILABLE is not None:
-            return cls._TAM_AVAILABLE
-
-        # Check availability for the first time
-        try:
-            import efficient_track_anything
-            # Store version info
-            cls._TAM_VERSION = getattr(efficient_track_anything, '__version__', 'unknown')
-            logger.debug(f"Realtime EfficientTrackAnything version: {cls._TAM_VERSION}")
-
-            # Cache the successful result
-            cls._TAM_AVAILABLE = True
-            return True
-
-        except ImportError:
-            logger.warning("[WARN] realtime_efficient_tam package is not installed.")
-            # Cache the failed result
-            cls._TAM_AVAILABLE = False
-            return False
-
     def _apply_detection_algorithm(self):
         """Apply the selected detection algorithm to the screen and model."""
         # Update into model
-        algorithm = 'tam' if self.settingMenu.radioButton2.isChecked() else 'opencv'
+        algorithm = 'yolo' if self.settingMenu.radioButton2.isChecked() else 'opencv'
         self.model.set_probe_detect_algorithms(
             self.screen.camera_name,
             algorithm
@@ -80,8 +52,8 @@ class ProbeDetectWidget(QWidget):
 
         # SuperPoint + LightGlue detection
         elif self.settingMenu.radioButton2.isChecked():
-            print(f"{self.screen.camera_name} - 'Realtime Efficient TAM' tracking selected")
-            self.screen.set_probe_detect_algorithms('tam')
+            print(f"{self.screen.camera_name} - 'YoloV11' tracking selected")
+            self.screen.set_probe_detect_algorithms('yolo')
 
     def _get_setting_button(self):
         """Create and return the settings button for reticle detection."""

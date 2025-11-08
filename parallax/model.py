@@ -45,7 +45,7 @@ class Model(QObject):
             'visible': True,
             'device_model': cam.device_model,
             'is_triangulation_candidate' : False,
-            'probe_detect_algorithm': 'opencv', # optaion 'opencv', 'tam'
+            'probe_detect_algorithm': 'opencv',  # 'opencv' or 'yolo'
             'coords_axis': None,
             'coords_debug': None,
             'pos_x': None,
@@ -108,7 +108,7 @@ class Model(QObject):
 
         Args:
             camera_sn (str): The serial number of the camera.
-            algorithms (str): The detection algorithm to set ('opencv' or 'tam').
+            algorithms (str): The detection algorithm to set ('opencv' or 'yolo').
         """
         if camera_sn in self.cameras:
             self.cameras[camera_sn]['probe_detect_algorithm'] = algorithms
@@ -119,7 +119,7 @@ class Model(QObject):
         Args:
             camera_sn (str): The serial number of the camera.
         Returns:
-            str: The detection algorithm used by the camera ('opencv' or 'tam').
+            str: The detection algorithm used by the camera ('opencv' or 'yolo').
         """
         return self.cameras.get(camera_sn, {}).get('probe_detect_algorithm', 'opencv')
 

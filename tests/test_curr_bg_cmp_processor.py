@@ -1,9 +1,9 @@
 import pytest
 import cv2
 import os
-from parallax.probe_detection.curr_bg_cmp_processor import CurrBgCmpProcessor
+from parallax.probe_detection.opencv.curr_bg_cmp_processor import CurrBgCmpProcessor
 from parallax.reticle_detection.mask_generator import MaskGenerator
-from parallax.probe_detection.probe_detector import ProbeDetector
+from parallax.probe_detection.opencv.probe_detector import ProbeDetector
 
 # Resized/original sizes used by your pipeline
 IMG_SIZE = (1000, 750)          # (width, height) for resized images

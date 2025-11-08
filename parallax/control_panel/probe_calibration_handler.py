@@ -14,7 +14,7 @@ from typing import Optional
 import cv2
 
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
-from parallax.probe_detection.probe_spin_detector import SpinCalculationResult, SpinDetectionInputs, SpinProcessor
+from parallax.probe_detection.utils.probe_spin_detector import SpinCalculationResult, SpinDetectionInputs, SpinProcessor
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_camera import triangulate

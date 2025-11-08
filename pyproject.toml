@@ -31,7 +31,9 @@ dependencies = [
     "PyQt6-WebEngine",
     "aiohttp",
     "pyyaml",
-    "SimpleITK"
+    "SimpleITK",
+    "ultralytics>=8.2.0",
+    "torch>=2.3.0"
    ]
  
 [tool.setuptools.packages.find]
