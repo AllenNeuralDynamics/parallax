@@ -39,8 +39,8 @@ except ImportError:
 class ProcessWorkerSignal(QObject):
     """Signals for the ProcessWorker."""
     finished = pyqtSignal()
-    tip_stopped = pyqtSignal(float, float, str, tuple, tuple)
-    tip_moving = pyqtSignal(float, str, tuple, tuple)
+    tip_stopped = pyqtSignal(float, float, str, list, list)
+    tip_moving = pyqtSignal(float, str, list, list)
     seg_mask = pyqtSignal(str, np.ndarray)
     status = pyqtSignal(str)
     cancel_seg_mask = pyqtSignal()
@@ -113,14 +113,6 @@ class baseProcessWorker(QRunnable):
         """Start the worker running."""
         self.running = True
 
-    def start_detection(self):
-        """Start the probe detection."""
-        self.is_detection_on = True
-
-    def stop_detection(self):
-        """Stop the probe detection."""
-        self.is_detection_on = False
-
     def run(self):
         """Run the worker thread."""
         logger.debug(f"{self.name} - Process worker running ")
@@ -148,13 +140,23 @@ class baseProcessWorker(QRunnable):
 
     def enable_calib(self):
         """Enable calibration mode."""
+        # TODO emit the tip detected signal
         self.probe_stopped = True
         self.stopped_first_frame = True
 
     def disable_calib(self):
         """Disable calibration mode."""
+        # TODO do not emit tip detected
         self.probe_stopped = False
         self.stopped_first_frame = False
+
+    def start_detection(self):
+        """Start the probe detection."""
+        self.is_detection_on = True
+
+    def stop_detection(self):
+        """Stop the probe detection."""
+        self.is_detection_on = False
 # -----------------------------
 
 def handle_detections(frame, detections):
@@ -167,16 +169,18 @@ def handle_detections(frame, detections):
     for detection in detections:
         print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
 
-        color = (0, 255, 0)  # Green color for bounding box and mask outline
-        x1, y1, x2, y2 = map(int, detection['bbox'])
+        if 'bbox' in detection and detection['bbox'] is not None:
+            color = (0, 255, 255)  # Green color for bounding box and mask outline
+            x1, y1 = map(int, detection['bbox'][0])
+            x2, y2 = map(int, detection['bbox'][1])
 
-        # ---- Draw bounding box ----
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+            # ---- Draw bounding box ----
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
-        # ---- Label text ----
-        label = f"{detection['class_name']} {detection['confidence']:.2f}"
-        cv2.putText(frame, label, (x1, max(20, y1 - 10)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+            # ---- Label text ----
+            label = f"{detection['class_name']} {detection['confidence']:.2f}"
+            cv2.putText(frame, label, (x1, max(20, y1 - 10)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
 
         # ---- Draw segmentation mask outline ----
         mask_poly = detection.get("mask", [])
@@ -261,16 +265,15 @@ class ProcessWorkerYolo(baseProcessWorker):
 
     def yolo_callback(self, detections):
         """Handle YOLO detections."""
-        print(f"{self.name} detection: ", detections)
+        #print(f"{self.name} detected {len(detections)} objects.")
         if detections is None or len(detections) == 0:
             return
         
-        handle_detections(self.frame, detections)
+        #handle_detections(self.frame, detections)
 
-        #detections = self._detection_to_original_frame(detections)
-        #if detections is not None:
-        #    self.signals.yolo_detection.emit(detections)
-        #self.handle_detections(detections)
+        detections = self._detection_to_original_frame(detections)
+        if detections is not None:
+            self.signals.yolo_detection.emit(detections)
 
     def _detection_to_original_frame(self, detections):
         # NOTE: Using the generalized method: UtilsCoords.scale_coordinates_to_original
@@ -280,10 +283,19 @@ class ProcessWorkerYolo(baseProcessWorker):
             return
 
         for detection in detections:
+            #print(detection)
             # --- 1. Rescale Bounding Box (bbox: [x1, y1, x2, y2]) ---
             if 'bbox' in detection and detection['bbox']:
+                # change format to [[x1, y1], [x2, y2]] for scaling
                 detection['bbox'] = UtilsCoords.scale_coords_to_original(
-                    coords=detection['bbox'], 
+                    coords=[detection['bbox'][:2], detection['bbox'][2:]], 
+                    original_size=self.IMG_SIZE_ORIGINAL, 
+                    resized_size=self.size
+                )
+            
+            if 'mask' in detection and detection['mask']:
+                detection['mask'] = UtilsCoords.scale_coords_to_original(
+                    coords=detection['mask'], 
                     original_size=self.IMG_SIZE_ORIGINAL, 
                     resized_size=self.size
                 )
@@ -325,8 +337,8 @@ class ProcessWorkerYolo(baseProcessWorker):
         4. Emits signal when probe is found or moving.
         """
         # Process only when probe is stopped
-        if not self.probe_stopped:
-            return
+        #if not self.probe_stopped:
+        #    return
         
         if self.copy_last_detected_frame:
             self.last_detected_frame = self.frame.copy()
@@ -335,345 +347,6 @@ class ProcessWorkerYolo(baseProcessWorker):
         self.frame = cv2.resize(self.frame, self.size)
         
         self.yolo_worker.process_frame(self.frame, self.img_ts)
-
-class ProcessWorkerTAM(baseProcessWorker):
-
-    def __init__(self, name, resolution, test=False):
-        """
-        Initialize the Worker object with camera and model data.
-        Args:
-            name (str): Camera serial number.
-            model (object): The main model containing stage and camera data.
-        """
-        super().__init__(name, resolution, test)
-
-        self.predictor_global = None
-        self.predictor_local = None
-        self.tiny_checkpoint_path = self._import_checkpoint(CKPT_NAME_TINY)
-        self.tiny_cfg_path = find_matching_cfg(self.tiny_checkpoint_path)
-        self.small_checkpoint_path = self._import_checkpoint(CKPT_NAME_SMALL)
-        self.small_cfg_path = find_matching_cfg(self.small_checkpoint_path)
-        self._prev_pt = None
-        self.pts = None
-        self.labels = None
-        self.mask = None
-        self.mask_detector = MaskGenerator()
-
-    def update_negative_points(self, neg_pts):
-        """Update negative points for TAM."""
-        if neg_pts is None:
-            return
-        pts_resized = []
-        labels = []
-
-        for pt in neg_pts:
-            pt_ = self._get_pt(pt)   # should return (x, y) or None
-            if pt_ is not None:
-                pts_resized.append(pt_)
-                labels.append(0)     # 0 for negative points
-
-        # Ensure consistent array shapes
-        self.pts = np.array(pts_resized, dtype=np.float32)
-        self.labels = np.array(labels, dtype=np.int32)
-        logger.debug(f"Negative points: {neg_pts}, Resized: {self.pts}")
-
-    def _keep_negative_points(self):
-        if self.pts is None:
-            return
-        # if label is 0 (negative), keep the label and points
-        mask = self.labels == 0
-        self.pts = self.pts[mask]
-        self.labels = self.labels[mask]
-
-    def _import_checkpoint(self, ckpt_name):
-        ckpt = Path(tam_model_dir) / ckpt_name
-        if not ckpt.is_file():
-            logger.error(f"Checkpoint not found at {ckpt}. Expected under tam_model_dir={tam_model_dir}")
-            return None
-        return ckpt
-
-    @pyqtSlot()
-    def process(self):
-        """
-        Main probe detection logic:
-        1. Prepares the current image.
-        2. Handles reticle zone setup.
-        3. Runs comparison via currPrevCmpProcess or currBgCmpProcess.
-        4. Emits signal when probe is found or moving.
-        """
-        # Process only when probe is stopped
-        if not self.probe_stopped:
-            return
-        if self.predictor_global is None or self.predictor_local is None:
-            return
-
-        self.stop_detection()
-        if not self.predictor_global.initialized or not self.predictor_local.initialized:
-            return
-        if not self.running:
-            return
-
-        try:
-            #print("--- Track global ---")
-            mask_global = self._track_global()
-            if not self.probe_stopped:  # early exit if probe started moving
-                return
-            if not mask_global.any():
-                logger.debug(f" {self.name} ******  global line not found ******")
-                return
-            self.signals.seg_mask.emit("global", mask_global)
-            self._save_masked_img(self.curr_img, mask_global, name=f"{self.name}_global")
-        except Exception as e:
-            logger.error(f"Error occurred while tracking global: {e}")
-            return
-
-        try:
-            #print("--- Track local ---")
-            mask_local = self._track_local(self.predictor_local, mask_global, self.curr_img)
-            if mask_local is None:
-                logger.debug("line not found")
-                return
-            if not self.probe_stopped: # early exit if probe started moving
-                return
-            self.signals.seg_mask.emit("local", mask_local)
-            self._save_masked_img(self.curr_img, mask_local, name=f"{self.name}_local")
-        except Exception as e:
-            logger.error(f"Error occurred while tracking local: {e}")
-            return
-
-        # Get base and tip points
-        # Get highest point and lowest point from the mask_local
-        try:
-            # TODO get highest and lowest from global mask?
-            highest_pt, lowest_pt = ProbeImageProcessor.get_far_endpoints_from_mask(mask_local)
-            if highest_pt is None or lowest_pt is None:
-                logger.debug("No probe points found.")
-                return
-            mask = self._get_mask(self.curr_img)
-            probe_tip, probe_base = ProbeImageProcessor.get_probe_point(mask, highest_pt, lowest_pt)
-            probe_tip_org = UtilsCoords.scale_coords_to_original(probe_tip, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            probe_base_org = UtilsCoords.scale_coords_to_original(probe_base, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            # get fine tip
-            probe_tip_fine = ProbeImageProcessor.get_precise_tip(probe_tip_org, probe_base_org, self.frame)
-            if not self.probe_stopped: # early exit if probe started moving
-                return
-            self.signals.tip_stopped.emit(self.stage_ts, self.img_ts, self.sn, probe_tip_fine, probe_base_org)
-            if self.copy_last_detected_frame:
-                self.last_detected_frame = self.frame.copy()
-                self.last_detected_ts = self.img_ts
-                print("Cache last detected frame.")
-        except Exception as e:
-            logger.error(f"Error occurred while getting probe points: {e}")
-            return
-
-    def _get_mask(self, img):
-        """Convert and blur the frame, generate mask."""
-        if img.ndim > 2:
-            img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
-        else:
-            img = img
-
-        if img.shape != self.IMG_SIZE:
-            img = cv2.resize(img, self.IMG_SIZE)
-
-        curr_img = cv2.GaussianBlur(img, (9, 9), 0)
-        mask = self.mask_detector.process(curr_img)
-
-        return mask
-
-    def _save_masked_img(self, img, mask, name=None):
-        """Save masked image for debugging."""
-        if logger.getEffectiveLevel() == logging.DEBUG:
-            if name is not None:
-                file_name = f"{self.name}_tam_{self.img_ts}_{name}.jpg"
-            else:
-                file_name = f"{self.name}_tam_{self.img_ts}.jpg"
-
-            save_path = os.path.join(debug_img_dir, file_name)
-            masked_img = cv2.bitwise_and(img, img, mask=mask)
-            cv2.imwrite(save_path, masked_img)
-
-    def _get_pt(self, pt):
-        pt = UtilsCoords.scale_coords_to_resized_img(pt, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-        x, y = int(pt[0]), int(pt[1])
-        return [x, y]
-
-    def _cancel_current_tam(self):
-        if self.predictor_global is not None:
-            self.predictor_global = None
-            self._prev_pt = None
-            print("*** Cancel current TAM. ***")
-        if self.predictor_local is not None:
-            self.predictor_local = None
-        self.signals.cancel_seg_mask.emit()
-        self._keep_negative_points()
-
-    def _is_close_prev_pt(self, pt, threshold=10):
-        logger.debug(f"pt: {pt}, prev_pt: {self._prev_pt}")
-        if self._prev_pt is not None:
-            # ensure 2D (x, y)
-            curr = np.asarray(pt, dtype=float).ravel()[:2]
-            prev = np.asarray(self._prev_pt, dtype=float).ravel()[:2]
-
-            # fast “within 10 px” check (no sqrt)
-            diff = np.dot(curr - prev, curr - prev)
-            if diff < threshold**2:
-                logger.debug(f"Clicked point is close to previous point ({diff}). Cancel TAM.")
-                return True
-        return False
-
-    def _track_global(self):
-        self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
-        _, out_mask_logits = track(self.predictor_global, self.curr_img, name=f"{self.name}_global")
-        mask_global = masks_to_uint8_batch(out_mask_logits)
-        return mask_global[0]
-
-    def _track_local(self, predictor_local, mask_global, img, points=None):
-        # Local - Preprocessing
-        # crop the global mask to get initial local mask
-        bbox = ProbeImageProcessor.mask_to_bbox_xyxy(mask_global, img.shape, pad=20)  # (x1,y1,x2,y2)
-        if not bbox:
-            raise RuntimeError("No foreground detected in the global mask.")
-        img_local = ProbeImageProcessor.crop_and_resize(bbox, img)
-        mask_local = ProbeImageProcessor.crop_and_resize(bbox, mask_global)
-
-        if points is not None:
-            #print("points:", points)
-            points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
-            #print("points_local:", points_local)
-            mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
-            if mask_line is None:
-                return None
-            # Start Local
-            predictor_local.predictor.load_first_frame(img_local)
-            _, out_mask_logits = start_with_mask(predictor_local, mask=mask_line, name=f"{self.name}_local")
-        else:
-            #print("*** track local ***")
-            if not predictor_local.initialized:
-                logger.debug(f"{self.name} Local TAM predictor is not initialized.")
-                return None
-            _, out_mask_logits = track(predictor_local, img_local, name=f"{self.name}_local")
-            # save img_local
-            if logger.getEffectiveLevel() == logging.DEBUG:
-                cv2.imwrite(os.path.join(debug_img_dir, f"{self.name}_tam_{self.img_ts}_local_input.jpg"), img_local)
-
-        mask_local = masks_to_uint8_batch(out_mask_logits)
-        # save
-        self._save_masked_img(img_local, mask_local[0], name="local_crop")
-
-        # Post processing Lift local mask to global
-        # mask_local[0] matches local_img size (w,h); lift it back to full-frame
-        H, W = img.shape[:2]
-        mask_local_global = ProbeImageProcessor.lift_local_mask_to_global(mask_local[0], bbox, (H, W))
-
-        return mask_local_global
-
-    def _add_pts(self, pt):
-        if self.pts is None:
-            self.pts = np.array([pt], dtype=np.float32)
-            self.labels = np.array([1], dtype=np.int32)  # 1 for positive point
-        else:
-            self.pts = np.append(self.pts, [pt], axis=0)
-            self.labels = np.append(self.labels, [1], axis=0)
-        logger.debug(f"Add point: {self.pts}, labels: {self.labels}")
-
-    def _build_predictors(self):
-        self.predictor_global = build_predictor(
-            model_cfg=str(self.small_cfg_path),
-            tam_checkpoint=str(self.small_checkpoint_path)
-        )
-        self.predictor_local = build_predictor(
-            model_cfg=str(self.small_cfg_path),
-            tam_checkpoint=str(self.small_checkpoint_path)
-        )
-
-    def _start_tracking(self) -> np.ndarray:
-        """
-        Start tracking with the global predictor.
-        Returns:
-            np.ndarray: The mask obtained from tracking.
-        """
-        logger.debug(f"\n{self.name} TAM Global starting..")
-        self.curr_img = cv2.resize(self.frame, self.IMG_SIZE)
-        self.predictor_global.predictor.load_first_frame(self.curr_img)
-        logger.debug(f"(Global Tracking) pt: {self.pts}, labels: {self.labels}")
-        _, out_mask_logits = start(self.predictor_global, points=self.pts, labels=self.labels, name=f"{self.name}_global")
-        mask_global = masks_to_uint8_batch(out_mask_logits)
-        return mask_global[0]
-
-    def clicked_position(self, pt):
-        """Handle clicked position for calibration."""
-        pt = self._get_pt(pt)
-        if self._is_close_prev_pt(pt):
-            self._cancel_current_tam()
-            return
-
-        if self.predictor_global is None and self.predictor_local is None and self._prev_pt is None:
-            if self.tiny_checkpoint_path is None or self.small_checkpoint_path is None:
-                logger.warning("TAM checkpoint(s) not found.")
-                return
-            if self.tiny_cfg_path is None or self.small_cfg_path is None:
-                logger.warning("TAM config(s) not found.")
-                return
-        
-            self.stop_detection()  # pause detection while TAM handling the frame
-            self._add_pts(pt)
-            # Global - Preprocessing
-            try:
-                print(f"\n{self.name} TAM initializing..")
-                self._build_predictors()
-            except Exception as e:
-                self._cancel_current_tam()
-                logger.error(f"Error occurred while building predictor: {e}")
-
-            try:
-                mask_global = self._start_tracking()
-                if not mask_global.any():
-                    self._cancel_current_tam()
-                    logger.debug(f"{self.name} ******  global mask - line not found ******")
-                    return
-                self.signals.seg_mask.emit("global", mask_global)
-                self._save_masked_img(self.curr_img, mask_global, name="global")
-            except Exception as e:
-                self._cancel_current_tam()
-                logger.error(f"Error occurred while starting TAM (global): {e}")
-                return
-
-            # Local
-            try:
-                # --- Track local ---
-                logger.debug(f"\n{self.name} TAM Local tracking with point: {pt}")
-                mask_local = self._track_local(self.predictor_local, mask_global, self.curr_img, points=[pt])
-            except Exception as e:
-                self._cancel_current_tam()
-                logger.error(f"Error occurred while starting TAM (local): {e}")
-                return
-
-            if mask_local is None:
-                self._cancel_current_tam()
-                logger.debug("local_mask - line not found")
-                return
-
-            self.signals.seg_mask.emit("local", mask_local)
-            self._save_masked_img(self.curr_img, mask_local, name="local")
-            self._prev_pt = pt
-
-        elif self.predictor_global is not None and self.predictor_local is not None:
-            self._prev_pt = pt
-
-    def _point_to_segment_dist(self, pt, a, b):
-        # pt, a, b are (x, y)
-        p = np.array(pt, dtype=float)
-        A = np.array(a, dtype=float)
-        B = np.array(b, dtype=float)
-        AB = B - A
-        if np.allclose(AB, 0):
-            return np.linalg.norm(p - A)
-        t = np.dot(p - A, AB) / np.dot(AB, AB)
-        t = np.clip(t, 0.0, 1.0)
-        proj = A + t * AB
-        return np.linalg.norm(p - proj)
-
 
 # -----------------------------
 class ProcessWorker(baseProcessWorker):
@@ -866,3 +539,5 @@ class ProcessWorker(baseProcessWorker):
                     self.last_detected_frame = self.frame.copy()
                     self.last_detected_ts = self.img_ts
                 logger.info(f"Emit tip stopped signal with coords: {self.probeDetect.probe_tip_org}")
+
+

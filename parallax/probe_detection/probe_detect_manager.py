@@ -326,21 +326,26 @@ class DrawWorker(QRunnable):
         if not detections:
             return
 
-        print(f"Received {len(detections)} detections.")
+        #print(f"Received {len(detections)} detections.")
 
         for detection in detections:
-            print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
+            #print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
 
-            color = (0, 255, 0)  # Green for all boxes; could customize per class
-            x1, y1, x2, y2 = map(int, detection['bbox'])
-
-            # ---- Draw bounding box ----
-            cv2.rectangle(self.frame, (x1, y1), (x2, y2), color, 2)
-
-            # ---- Label text ----
-            label = f"{detection['class_name']} {detection['confidence']:.2f}"
-            cv2.putText(self.frame, label, (x1, max(20, y1 - 10)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+            if 'bbox' in detection and detection['bbox'] is not None:
+                try:
+                    # Your original line is fine now, assuming detection['bbox'] is a list of 4 numbers
+                    color = (0, 255, 255)  # Green for all boxes; could customize per class
+                    # detection['bbox'] format is [[x1, y1], [x2, y2]]
+                    x1, y1 = map(int, detection['bbox'][0])
+                    x2, y2 = map(int, detection['bbox'][1])
+                    cv2.rectangle(self.frame, (x1, y1), (x2, y2), color, 2)
+                    # ---- Label text ----
+                    label = f"{detection['class_name']} {detection['confidence']:.2f}"
+                    cv2.putText(self.frame, label, (x1, max(20, y1 - 10)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
+                except TypeError as e:
+                    print(f"Error processing bbox data: {e}. Bbox value: {detection.get('bbox')}")
+                    continue # Skip to the next detection
 
             # ---- Draw segmentation mask outline ----
             mask_poly = detection.get("mask", [])
@@ -457,6 +462,7 @@ class ProbeDetectManager(QObject):
         self.threadpool.start(self.processWorker)
         self.yoloProcessWorker.start_running()
         self.threadpool.start(self.yoloProcessWorker)
+        
 
     def get_mask(self):
         """Save the current image and global mask."""
@@ -518,7 +524,7 @@ class ProbeDetectManager(QObject):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-        fps = 1  # TODO handle different fps per processor
+        fps = 5  # TODO handle different fps per processor
         if self._prev_ts is None or (timestamp - self._prev_ts) >= (1.0/fps):
             if self.processWorker is not None:
                 self.processWorker.update_frame(frame, timestamp)
@@ -539,7 +545,7 @@ class ProbeDetectManager(QObject):
         if self.worker is not None:
             self.worker.update_frame(frame, timestamp)
         
-    @pyqtSlot(float, float, str, tuple, tuple)
+    @pyqtSlot(float, float, str, list, list)
     def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):
         """
         Emit the found coordinates signal after detection.
@@ -580,8 +586,9 @@ class ProbeDetectManager(QObject):
         if self.model.test:
             self.worker.update_base_coords(base_coords, color=(0, 255, 0))
 
-    def start_detection(self, sn):  # Call from stage listener.
+    def start_detection(self, sn):  # Call from stage listener. (stage is moving)
         """Start the probe detection for a specific serial number.
+        When stage is moving, do detection, but no calibration.
 
         Args:
             sn (str): Serial number.

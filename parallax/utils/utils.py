@@ -7,7 +7,7 @@ Classes:
     UtilsCrops: Utility methods for calculating and validating crop regions.
 """
 
-from typing import Tuple
+from typing import List, Tuple
 
 
 class UtilsCoords:
@@ -18,23 +18,23 @@ class UtilsCoords:
     """
     @staticmethod
     def scale_coords_to_original(
-        coords: list,
-        original_size: Tuple[int, int],
-        resized_size: Tuple[int, int]
-    ) -> list:
+        coords: List[List[int]],  # List of points [x, y] (single point or multiple points)
+        original_size: Tuple[int, int],  # Original image dimensions (width, height)
+        resized_size: Tuple[int, int]   # Resized image dimensions (width, height)
+    ) -> List[List[int]]:
         """
-        Scale coordinates (single point, bbox, or a list of points) from a resized image 
+        Scale coordinates (single or multiple points) from a resized image 
         back to the original image dimensions.
 
         Args:
-            coords (list): A list containing coordinates: 
-                           - [x, y] for a single point (keypoint).
-                           - [x1, y1, x2, y2] for a bounding box.
+            coords (List[List[int]]): A list of coordinates: 
+                                       - [[x1, y1], [x2, y2], ...] for multiple points (keypoints).
+                                       - [x, y] for a single point.
             original_size (Tuple[int, int]): The (width, height) of the original image.
             resized_size (Tuple[int, int]): The (width, height) of the resized image.
 
         Returns:
-            list: The scaled coordinates.
+            List[List[int]]: The scaled coordinates, where each point is in the format [x, y].
         """
         original_width, original_height = original_size
         resized_width, resized_height = resized_size
@@ -43,27 +43,15 @@ class UtilsCoords:
         scale_y = original_height / resized_height
 
         scaled_coords = []
-        
-        # Bounding Box: [x1, y1, x2, y2]
-        if len(coords) == 4:
-            x1, y1, x2, y2 = coords
-            
-            scaled_coords.append(int(x1 * scale_x))
-            scaled_coords.append(int(y1 * scale_y))
-            scaled_coords.append(int(x2 * scale_x))
-            scaled_coords.append(int(y2 * scale_y))
-            
-        # Single Point (Keypoint or other single coordinate pair): [x, y]
-        elif len(coords) == 2:
-            x, y = coords
-            
-            scaled_coords.append(int(x * scale_x))
-            scaled_coords.append(int(y * scale_y))
-            
-        # Error handling for unexpected coordinate formats
-        else:
-            print(f"Warning: Unexpected coordinate length ({len(coords)}). Skipping scaling.")
-            return coords # Return original coordinates
+
+        for coord in coords:
+            # If the coordinate is in the form of [x, y], scale it
+            if len(coord) == 2:
+                x, y = coord
+                scaled_coords.append([int(x * scale_x), int(y * scale_y)])
+            else:
+                print(f"Warning: Unexpected coordinate format {coord}. Skipping scaling.")
+                scaled_coords.append(coord)  # Keep the original if format is unexpected
 
         return scaled_coords
 
