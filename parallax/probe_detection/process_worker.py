@@ -12,10 +12,14 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QRunnable
 from parallax.probe_detection.opencv.curr_bg_cmp_processor import CurrBgCmpProcessor
 from parallax.probe_detection.opencv.curr_prev_cmp_processor import CurrPrevCmpProcessor
 from parallax.probe_detection.utils.probe_img_processor import ProbeImageProcessor
-from parallax.probe_detection.yolo.yolo_server import YoloSegmentation
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.opencv.probe_detector import ProbeDetector
 from parallax.reticle_detection.reticle_detection import ReticleDetection
+from parallax.probe_detection.yolo_global.yolo_client import YOLOClient as GlobalYOLOClient
+from parallax.probe_detection.yolo_local.yolo_client import YOLOClient as LocalYOLOClient
+from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
+from parallax.probe_detection.yolo_local.utils import postprocessing as postprocessing_local
+
 from parallax.config.config_path import debug_img_dir, tam_model_dir, CKPT_NAME_SMALL, CKPT_NAME_TINY
 from parallax.utils.utils import UtilsCoords
 from parallax.config.config_path import yolo_config_path
@@ -159,7 +163,7 @@ class baseProcessWorker(QRunnable):
         self.is_detection_on = False
 # -----------------------------
 
-def handle_detections(frame, detections):
+def handle_detections_(frame, detections):
     """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
     if not detections:
         return
@@ -226,7 +230,7 @@ def handle_detections(frame, detections):
     cv2.imwrite(output_path, frame)
     print(f"Saved annotated frame → {output_path}")
 
-class ProcessWorkerYolo(baseProcessWorker):
+class ProcessWorkerYolo_(baseProcessWorker):
     def __init__(self, name, resolution, test=False):
         """
         Initialize the Worker object with camera and model data.
@@ -244,7 +248,7 @@ class ProcessWorkerYolo(baseProcessWorker):
         yolo_config = config.get('yolo', {})
         print("Yolo config:", yolo_config)
         self.size = yolo_config.get('img_dim', [640, 480])
-        self.yolo_worker = YoloSegmentation(yolo_config, detection_callback=self.yolo_callback)
+        self.yolo_worker = GlobalYoloClient(yolo_config, detection_callback=self.yolo_callback)
 
     def start_detection(self):
         """Start the probe detection."""
@@ -541,3 +545,84 @@ class ProcessWorker(baseProcessWorker):
                 logger.info(f"Emit tip stopped signal with coords: {self.probeDetect.probe_tip_org}")
 
 
+
+# -----------------------------
+class ProcessWorkerYolo:
+    def __init__(self, name, original_resolution, test=False, detection_callback=None, finished_callback=None):
+        self.name = name
+        self.original_resolution = original_resolution
+        self.test = test
+        self.detection_callback = detection_callback
+        self.finished_callback = finished_callback
+
+        # Initialize state flags to track when each client finishes
+        self.local_client_finished = False
+        self.global_client_finished = False
+
+        # init
+        try:
+            CONFIG = self._load_yolo_config(yolo_config_path)
+        except Exception as e:
+            print(f"Error loading YOLO config: {e}")
+            CONFIG = {}
+        self.yolo_local = LocalYOLOClient(config=CONFIG["keypoints"],
+                                          detection_callback=self.handle_detections,
+                                          finished_callback=lambda: self.wait_finished('local'))
+        self.yolo_global = GlobalYOLOClient(config=CONFIG["segmentation"],
+                                            detection_callback=self.handle_global_detections,
+                                            finished_callback=lambda: self.wait_finished('global'))
+
+    def wait_finished(self, client_name: str):
+        """
+        Tracks which client has finished and calls the main finished_callback
+        only when both local and global clients are done.
+        """
+        if client_name == 'local':
+            self.local_client_finished = True
+        elif client_name == 'global':
+            self.global_client_finished = True
+        
+        print(f"Client '{client_name}' finished. Local state: {self.local_client_finished}, Global state: {self.global_client_finished}")
+
+        # Check if BOTH clients have finished
+        if self.local_client_finished and self.global_client_finished:
+            print("Both YOLO clients finished. Calling main finished callback.")
+            if self.finished_callback:
+                self.finished_callback()
+
+
+    def _load_yolo_config(self, config_path):
+        with open(config_path, 'r') as f:
+            return yaml.safe_load(f)
+        
+    def handle_global_detections(self, frame, crop_info, detections): # frame is 640x640
+        print(f"Received {len(detections)} global detections.")
+        for detection in detections:
+            print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
+            self.yolo_local.newframe_captured(frame, crop_info, detection=detection) # 640x640
+            time.sleep(0.05)
+
+    def start_running(self):
+        self.yolo_local.start_client()
+        self.yolo_global.start_client()
+
+    def stop_running(self):
+        self.yolo_global.stop()
+        self.yolo_local.stop()
+
+    def update_frame(self, frame, timestamp):
+        print(frame.shape)
+        self.yolo_global.newframe_captured(frame, timestamp)
+        time.sleep(0.05)
+
+    def handle_detections(self, frame:np.ndarray, crop_info: dict, detections: dict):
+        if not detections:
+            return
+        detections_on_global = postprocessing_local(detections, crop_info) # 640x640
+        detections_on_original = postprocessing_global(detections_on_global, crop_info) # original input
+
+        #print(detections_on_original)
+
+        if self.detection_callback:
+            self.detection_callback(detections_on_original)
+        

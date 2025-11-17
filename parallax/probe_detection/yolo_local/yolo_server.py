@@ -1,4 +1,3 @@
-from unittest import result
 import cv2
 import numpy as np
 import time
@@ -14,29 +13,30 @@ import torch
 # Basic logging setup (You can customize this in your main script)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-class YoloSegmentation:
+class YoloKeypoints:
     """YOLO segmentation worker that runs in its own thread"""
     
-    def __init__(self, config, detection_callback=None):
+    def __init__(self, config, detection_callback=None, finished_callback=None):
         """
         :param config: Configuration dictionary.
         :param detection_callback: A function to call with the list of detections.
         """
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.weights_path = config.get('weights_path', r'external\YoloV11\yolo_keypoint_fast_v1.pt')
+        self.weights_path = config.get('weights_path', r'weights\seg_fast.pt')
         self.conf_thresh = config.get('conf_thresh', 0.25)
         self.iou_thresh = config.get('iou_thresh', 0.45)
         self.img_size = config.get('img_size', 640)
-        self.img_dim = config.get('img_dim', [640, 640])  # input image dimension for YOLO (w, h)
+        self.img_dim = config.get('img_dim', [640, 480])  # input image dimension for YOLO (w, h)
         self.max_det = config.get('max_det', 30)
         self.model = None
-        self.frame_queue = deque(maxlen=1)
+        self.frame_queue = deque(maxlen=20)
         self.running = False
         self.worker_thread = None
         
         # New: Store the callback function
         self.detection_callback = detection_callback
+        self.finished_callback = finished_callback
         
         try:
             print(f"weights_path: {self.weights_path}")
@@ -97,7 +97,6 @@ class YoloSegmentation:
         except Exception as e:
             self.logger.error(f"Warmup failed: {e}")
             self.warmup_done = True  # Continue anyway
-    
         
     def stop(self):
         """Stop the YOLO processing thread"""
@@ -106,25 +105,30 @@ class YoloSegmentation:
             self.worker_thread.join(timeout=1.0)
         self.logger.info("YOLO segmentation worker stopped")
         
-    def process_frame(self, frame: np.ndarray, ts: float = None):
+    def process_frame(self, frame: np.ndarray, crop_info: dict = None, ts: float = None):
         """Add frame to processing queue"""
         if not self.running:
             return
-        
-        # Use deque's nature to drop older frames if a new one arrives immediately
+
+        # If ts is changed (from new detections from global yolo), clear the queue to prioritize latest frame
+        # For the same ts, process all frames
         try:
-            # Clear old frame and append new one to ensure only the latest frame is processed
-            self.frame_queue.clear() 
-            self.frame_queue.append((frame, ts))
-        except:
-            pass
+            if self.frame_queue:
+                # Get the timestamp of the last frame in the queue (the most recent one)
+                last_frame_ts = self.frame_queue[-1][1]
+                if ts != last_frame_ts:
+                    self.frame_queue.clear()
+            self.frame_queue.append((frame, crop_info, ts))
+        except Exception as e:
+            # Catch errors related to queue access/data structure
+            print(f"Error processing frame queue: {e}")
             
     def _process_frames(self):
         """Process frames from the queue"""
         while self.running:
             try:
                 if len(self.frame_queue) > 0:
-                    (frame, ts) = self.frame_queue.pop()
+                    (frame, crop_info, ts) = self.frame_queue.pop()
                     detections = []
                     
                     if self.model is None:
@@ -147,18 +151,19 @@ class YoloSegmentation:
                         # Convert results to detection format
                         if results and len(results) > 0:
                             result = results[0]
-                            # Initialize mask data structure
-                            masks_data = {}
-                            if hasattr(result, 'masks') and result.masks is not None:
-                                # result.masks.xy contains the polygon coordinates for each mask
-                                # It's a list of NumPy arrays, where each array is N x 2 (N points, x, y coordinates)
-                                masks_data = {i: mask_poly.tolist() for i, mask_poly in enumerate(result.masks.xy)}
 
-                            all_keypoints_list = []
+                            keypoints_data = {}
                             if hasattr(result, 'keypoints') and result.keypoints is not None:
-                                # .data returns a PyTorch tensor (N, K, 3), where N is number of boxes
-                                # .tolist() converts this into a standard Python list of lists of lists.
-                                all_keypoints_list = result.keypoints.data.tolist()
+                                # result.keypoints.xy contains the pixel coordinates (N_objects, N_keypoints, 2)
+                                # result.keypoints.conf contains the confidence (N_objects, N_keypoints)
+                                keypoints_xy = result.keypoints.xy.cpu().numpy()
+                                keypoints_conf = result.keypoints.conf.cpu().numpy()
+                                for i in range(len(keypoints_xy)):
+                                    # Create a flat list of [x1, y1, conf1, x2, y2, conf2, ...] for each object
+                                    kp_list = []
+                                    for kp_xy, kp_conf in zip(keypoints_xy[i], keypoints_conf[i]):
+                                        kp_list.extend([float(kp_xy[0]), float(kp_xy[1]), float(kp_conf)])
+                                    keypoints_data[i] = kp_list
 
                             if hasattr(result, 'boxes') and result.boxes is not None:
                                 boxes = result.boxes
@@ -172,8 +177,6 @@ class YoloSegmentation:
                                         search_id = int(boxes.id[i].cpu().numpy())
                                     else:
                                         search_id = 0
-
-                                    instance_keypoints = all_keypoints_list[i] if i < len(all_keypoints_list) else []
                                     detection = {
                                         'timestamp': ts,
                                         'bbox': bbox.tolist(),
@@ -181,20 +184,26 @@ class YoloSegmentation:
                                         'class_name': class_name,
                                         'confidence': conf,
                                         'id': search_id,
-                                        'mask': masks_data.get(i, []),
-                                        'keypoints': instance_keypoints
+                                        'keypoints': keypoints_data.get(i, [])
                                     }
                                     detections.append(detection)
                     
                     # Call the provided callback function with detections
                     if self.detection_callback:
-                        self.detection_callback(detections)
+                        self.detection_callback(frame, crop_info,detections)
                 else:
                     # No frames to process, sleep briefly
                     time.sleep(0.01)
                     
             except Exception as e:
                 self.logger.error(f"Error processing frame: {e}")
-                print("Error processing frame:", e)
                 time.sleep(0.01)
                 continue
+
+        self.logger.info("yolo_keypoints: Exiting loop.")
+        # Check if a finished callback was provided and call it
+        if self.finished_callback:
+            try:
+                self.finished_callback()
+            except Exception as e:
+                self.logger.error(f"Error calling finished_callback: {e}")

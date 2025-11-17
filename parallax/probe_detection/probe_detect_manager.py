@@ -430,14 +430,19 @@ class ProbeDetectManager(QObject):
         self.processWorker.signals.status.connect(self.worker.update_status)
 
         # YOLO Process Worker
-        self.yoloProcessWorker = ProcessWorkerYolo(self.name, camera_resolution, test=self.model.test)
-        self.yoloProcessWorker.signals.finished.connect(self._onYoloProcessThreadFinished)
-        self.yoloProcessWorker.signals.tip_stopped.connect(self.found_probe)
-        self.yoloProcessWorker.signals.yolo_detection.connect(self.worker.receive_yolo_detections)
+        self.yoloProcessWorker = ProcessWorkerYolo(self.name, camera_resolution, test=self.model.test,
+                                                   detection_callback=self.receive_yolo_detections,
+                                                   finished_callback=self._onYoloProcessThreadFinished)
+        #self.yoloProcessWorker.signals.finished.connect(self._onYoloProcessThreadFinished)
+        #self.yoloProcessWorker.signals.tip_stopped.connect(self.found_probe)
+        #self.yoloProcessWorker.signals.yolo_detection.connect(self.worker.receive_yolo_detections)
         #self.yoloProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
         #self.yoloProcessWorker.signals.status.connect(self.worker.update_status)
         #self.yoloProcessWorker.signals.seg_mask.connect(self.worker.found_seg_mask)
         #self.yoloProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
+
+    def receive_yolo_detections(self, detections: list):
+        print(f"{self.name} Received {len(detections)} YOLO detections.")
 
     def start(self):
         """
@@ -460,8 +465,10 @@ class ProbeDetectManager(QObject):
         self._init_process_thread() # Init processWorker and yoloProcessWorker
         self.processWorker.start_running()
         self.threadpool.start(self.processWorker)
+        
+        #self.yoloProcessWorker.start_running()
+        #self.threadpool.start(self.yoloProcessWorker)
         self.yoloProcessWorker.start_running()
-        self.threadpool.start(self.yoloProcessWorker)
         
 
     def get_mask(self):
@@ -514,6 +521,7 @@ class ProbeDetectManager(QObject):
 
     def _onYoloProcessThreadFinished(self):
         """Handle thread finished signal."""
+        print(f"{self.name} YOLO Process thread finished")
         self.yoloProcessWorker = None
 
     def process(self, frame, timestamp):
@@ -528,9 +536,11 @@ class ProbeDetectManager(QObject):
         if self._prev_ts is None or (timestamp - self._prev_ts) >= (1.0/fps):
             if self.processWorker is not None:
                 self.processWorker.update_frame(frame, timestamp)
-            if self.yoloProcessWorker is not None:
-                self.yoloProcessWorker.update_frame(frame, timestamp)
             self._prev_ts = timestamp
+            
+        if self.yoloProcessWorker is not None:
+            self.yoloProcessWorker.update_frame(frame, timestamp)
+
 
         """
         if self._prev_ts is None:
