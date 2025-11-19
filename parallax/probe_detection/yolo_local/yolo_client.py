@@ -3,6 +3,8 @@ from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
 import time
 import numpy as np
 import logging
+import cv2
+from parallax.config.config_path import debug_img_dir
 
 
 class YOLOClient:
@@ -12,6 +14,7 @@ class YOLOClient:
         self.fps = config.get('fps', 5)
         self.dim = config.get('yolo', {}).get('img_dim', [320, 320])
         self.bbox_margin = config.get('yolo', {}).get('bbox_margin', 30)
+        self.mask_margin = config.get('yolo', {}).get('mask_margin', 50)
         self.apply_mask = config.get('yolo', {}).get('apply_mask', False)
         self.current_time = None
         
@@ -35,12 +38,15 @@ class YOLOClient:
         """Put new frame at the specified FPS rate"""
         # Rate limit the frames sent to the YOLO worker
         #if self.current_time is None or current - self.current_time > (1/self.fps):
-        frame_resized, crop_info = preprocessing(frame,  # Resized to 320x320
+        frame_cropped_resized, crop_info = preprocessing(frame,  # Resized to 320x320
                               detection = detection,
                               target_size=self.dim,
                               crop_info=crop_info,
                               bbox_margin=self.bbox_margin,
+                              mask_margin=self.mask_margin,
                               apply_mask=self.apply_mask)  # Add any preprocessing needed
+        
+        
         current = None
         if detection and isinstance(detection, dict) and 'timestamp' in detection:
             current = detection['timestamp']
@@ -48,7 +54,7 @@ class YOLOClient:
             current = time.time() # Fallback to system time if metadata is missing
 
         # 3. PROCESS FRAME
-        self.yolo_worker.process_frame(frame_resized, crop_info, ts=current) 
+        self.yolo_worker.process_frame(frame_cropped_resized, crop_info, ts=current, global_detection=detection)
             
     def stop(self):
         """Stop the YOLO worker"""

@@ -24,7 +24,7 @@ class YoloSegmentation:
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
         self.weights_path = config.get('weights_path', r'weights\seg_fast.pt')
-        self.conf_thresh = config.get('conf_thresh', 0.25)
+        self.conf_thresh = config.get('conf_thresh', 0.5)
         self.iou_thresh = config.get('iou_thresh', 0.45)
         self.img_size = config.get('img_size', 640)
         self.img_dim = config.get('img_dim', [640, 480])  # input image dimension for YOLO (w, h)
@@ -76,6 +76,16 @@ class YoloSegmentation:
             
         self.logger.info("Warming up YOLO model...")
         warmup_start = time.time()
+
+        if hasattr(self.model, 'names'):
+            print("\n--- Available Model Classes for global Yolo ---")
+            # self.model.names is a dictionary mapping ID (int) to Name (str)
+            sorted_class_names = sorted(self.model.names.items())
+            for class_id, class_name in sorted_class_names:
+                print(f"    ID: {class_id} / Name: {class_name}")
+            print("-----------------------------\n")
+        else:
+            self.logger.warning("Could not find class names attribute (self.model.names).")
         
         try:
             # Create dummy frame matching your expected input
@@ -84,7 +94,7 @@ class YoloSegmentation:
             # Run several warmup inferences
             for i in range(3):
                 # Using predict for simple warmup instead of track if tracking is not essential here
-                _ = self.model.track(dummy_frame, persist=True) 
+                _ = self.model.track(dummy_frame, persist=False) 
 
             # Additional GPU warmup if using CUDA
             if torch.cuda.is_available():
@@ -140,7 +150,8 @@ class YoloSegmentation:
                         # Run YOLO inference
                         results = self.model.track(
                             frame, 
-                            persist=True
+                            persist=True, # Keep persist=True to maintain tracker state
+                            conf=self.conf_thresh
                         )
 
                         # Convert results to detection format

@@ -11,6 +11,7 @@ import time
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
 from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerYolo
+from parallax.config.config_path import debug_img_dir
 
 
 # Set logger name
@@ -322,29 +323,35 @@ class DrawWorker(QRunnable):
             layer[mask_bool] = color
         return layer
 
+    def _get_color_for_keypoint(self, kp_id):
+        """Mocks a function to get a color based on keypoint ID."""
+        # Simple mock: use different colors for different keypoint IDs
+        colors = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (128, 128, 128)] 
+        return colors[kp_id % len(colors)]
+
     def receive_yolo_detections(self, detections: list):
         if not detections:
             return
 
-        #print(f"Received {len(detections)} detections.")
+        #print(f"  Received {len(detections)} detections.")
 
         for detection in detections:
-            #print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
+            print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
 
-            if 'bbox' in detection and detection['bbox'] is not None:
+            if 'bbox_orig' in detection and detection['bbox_orig'] is not None:
+                print("  BBox Origin:", detection['bbox_orig'])
                 try:
-                    # Your original line is fine now, assuming detection['bbox'] is a list of 4 numbers
                     color = (0, 255, 255)  # Green for all boxes; could customize per class
-                    # detection['bbox'] format is [[x1, y1], [x2, y2]]
-                    x1, y1 = map(int, detection['bbox'][0])
-                    x2, y2 = map(int, detection['bbox'][1])
+                    x1_f, y1_f, x2_f, y2_f = detection['bbox_orig'] 
+                    x1, y1 = int(x1_f), int(y1_f)
+                    x2, y2 = int(x2_f), int(y2_f)
                     cv2.rectangle(self.frame, (x1, y1), (x2, y2), color, 2)
                     # ---- Label text ----
                     label = f"{detection['class_name']} {detection['confidence']:.2f}"
                     cv2.putText(self.frame, label, (x1, max(20, y1 - 10)),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
                 except TypeError as e:
-                    print(f"Error processing bbox data: {e}. Bbox value: {detection.get('bbox')}")
+                    print(f"Error processing bbox data: {e}. Bbox value: {detection.get('bbox_orig')}")
                     continue # Skip to the next detection
 
             # ---- Draw segmentation mask outline ----
@@ -362,24 +369,22 @@ class DrawWorker(QRunnable):
                     cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=2)
             
             # ---- Draw keypoints ----
-            keypoints_list = detection.get("keypoints", [])
-            if keypoints_list and len(keypoints_list) > 0:
-                # Iterate directly over the list of keypoints for THIS detection/instance
-                for i, point in enumerate(keypoints_list):
-                    # 'point' is [x, y, confidence]
-                    confidence = point[2]
+            keypoints = detection.get("keypoints_orig", [])
+            if keypoints and len(keypoints) > 0:
+                for j in range(0, len(keypoints), 3):
+                    x = int(keypoints[j])
+                    y = int(keypoints[j+1])
+                    conf = keypoints[j+2]
                     
-                    # We assume 'color' is defined outside this block from the bounding box drawing
-                    # For simplicity in this standalone fix, we use a fixed color (255, 255, 255)
-                    kpt_color = (255, 20*i, 50*i)
-
-                    if confidence > 0.5: 
-                        # Data is already in PIXEL COORDINATES
-                        x_kpt = int(point[0])
-                        y_kpt = int(point[1])
+                    # Only draw keypoints with sufficient confidence
+                    if conf > 0.3: # Use your desired confidence threshold
+                        # Draw a solid circle for the keypoint
+                        cv2.circle(self.frame, (x, y), 5, self._get_color_for_keypoint(j//3), -1) 
                         
-                        # Draw the keypoint on the 'frame' (or 'overlay' if you are using one)
-                        cv2.circle(self.frame, (x_kpt, y_kpt), 3, kpt_color, -1)
+                        # Optionally, draw a smaller, brighter center dot
+                        cv2.circle(self.frame, (x, y), 2, (255, 255, 255), -1)
+
+        #cv2.imwrite(f"{debug_img_dir}/{detection['timestamp']}_yolo_detections_{self.name}_.png", self.frame) 
 
 
 class ProbeDetectManager(QObject):
@@ -443,6 +448,13 @@ class ProbeDetectManager(QObject):
 
     def receive_yolo_detections(self, detections: list):
         print(f"{self.name} Received {len(detections)} YOLO detections.")
+        """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
+        if not detections:
+            return
+        print(f"  Received {len(detections)} detections.")
+        if self.worker is not None:
+            self.worker.receive_yolo_detections(detections)
+
 
     def start(self):
         """

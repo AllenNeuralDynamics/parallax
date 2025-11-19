@@ -2,6 +2,9 @@ import numpy as np
 import cv2
 
 def preprocessing(frame: np.ndarray, target_size: tuple=(640, 640)):
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
     frame_resized = cv2.resize(frame, target_size) # Resized to 640x640
     # Initialize the crop_info dictionary
     crop_info = {

@@ -602,6 +602,8 @@ class ProcessWorkerYolo:
             self.yolo_local.newframe_captured(frame, crop_info, detection=detection) # 640x640
             time.sleep(0.05)
 
+        self._debug_draw(frame, detections, filename_suffix="global")
+
     def start_running(self):
         self.yolo_local.start_client()
         self.yolo_global.start_client()
@@ -610,19 +612,97 @@ class ProcessWorkerYolo:
         self.yolo_global.stop()
         self.yolo_local.stop()
 
+    def stop_detection(self):
+        pass
+
     def update_frame(self, frame, timestamp):
-        print(frame.shape)
+        #print(frame.shape)
         self.yolo_global.newframe_captured(frame, timestamp)
         time.sleep(0.05)
 
     def handle_detections(self, frame:np.ndarray, crop_info: dict, detections: dict):
+        # Debug
+        self._debug_draw(frame, detections, filename_suffix="local")  # 320x320
         if not detections:
             return
-        detections_on_global = postprocessing_local(detections, crop_info) # 640x640
+        
+        print(f"Received {len(detections)} local detections.")
+        frame_draw, detections_on_global = postprocessing_local(frame, detections, crop_info) # 640x640
+        cv2.imwrite(f"{debug_img_dir}/{time.time()}_post_local_{self.name}.png", frame_draw)   
+
         detections_on_original = postprocessing_global(detections_on_global, crop_info) # original input
 
         #print(detections_on_original)
 
         if self.detection_callback:
             self.detection_callback(detections_on_original)
+
+    def _debug_draw(self, frame, detections, filename_suffix=""):
+        """Draws bounding boxes, masks, and keypoints on the frame for debugging."""
         
+        # 2. Debug Draw
+        if detections:
+            # Create a copy of the frame to draw on for debugging
+            debug_frame = frame.copy()
+            
+            # Define drawing parameters
+            keypoint_color = (255, 0, 0) # Blue for keypoints
+            keypoint_radius = 4
+            confidence_threshold = 0.5 # Only draw keypoints with confidence above this value
+            
+            for detection in detections:
+                bbox = detection.get('bbox')
+                mask_poly = detection.get('mask')
+                keypoints = detection.get('keypoints', [])
+                class_name = detection.get('class_name', 'Unknown')
+                confidence = detection.get('confidence', 0.0)
+                
+                # --- Draw Mask --- (Existing Logic)
+                if mask_poly and filename_suffix == "global":
+                    contour = np.array(mask_poly, dtype=np.int32).reshape((-1, 1, 2))
+                    mask_color = (0, 255, 0) 
+                    mask_overlay = debug_frame.copy()
+                    cv2.fillPoly(mask_overlay, [contour], mask_color)
+                    cv2.addWeighted(mask_overlay, 0.4, debug_frame, 0.6, 0, debug_frame)
+
+                # --- Draw Bounding Box and Label --- (Existing Logic)
+                if bbox and len(bbox) == 4:
+                    x1, y1, x2, y2 = map(int, bbox) 
+                    box_color = (0, 0, 255) # Red box
+                    cv2.rectangle(debug_frame, (x1, y1), (x2, y2), box_color, 2)
+                    label = f"{class_name} {confidence:.2f}"
+                    cv2.putText(debug_frame, label, (x1, max(20, y1 - 10)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 1, cv2.LINE_AA)
+                
+                # --- Draw Keypoints --- (NEW LOGIC)
+                if keypoints:
+                    print(f"  {class_name} keypoints on draw local:", keypoints)
+                    # The keypoints list is flat: [x1, y1, conf1, x2, y2, conf2, ...]
+                    # Iterate through the list in steps of 3
+                    for i in range(0, len(keypoints), 3):
+                        # Check if we have a complete (x, y, confidence) set
+                        if i + 2 < len(keypoints):
+                            kp_x = int(keypoints[i])
+                            kp_y = int(keypoints[i+1])
+                            kp_conf = keypoints[i+2]
+                            
+                            if kp_conf > confidence_threshold:
+                                # Draw a filled circle for the keypoint
+                                cv2.circle(debug_frame, 
+                                        (kp_x, kp_y), 
+                                        keypoint_radius, 
+                                        keypoint_color, 
+                                        -1) # -1 means fill the circle
+                            # else:
+                                # Optional: Draw a smaller, fainter circle for low-confidence keypoints
+                                # pass
+            
+            # Save the debug image (Existing Logic)
+            ts = detections[0].get('timestamp', time.time()) 
+            # Ensure debug_img_dir is a valid path and self.name is defined
+            cv2.imwrite(f"{debug_img_dir}/{ts}_{filename_suffix}_{self.name}_.png", debug_frame)
+        else:
+            print("No detections to draw.")
+            # Just draw frame
+            cv2.imwrite(f"{debug_img_dir}/{time.time()}_no_detections_{filename_suffix}_{self.name}_.png", frame)
+            
