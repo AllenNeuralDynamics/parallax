@@ -36,7 +36,7 @@ class YOLOClient:
         if self.current_time is None or current - self.current_time > (1/self.fps):
             frame_resized, crop_info = preprocessing(frame, target_size=self.dim)
             self.yolo_worker.process_frame(frame_resized, crop_info, ts=current) # Reisized to 640x640
-            self.current_time = current
+        self.current_time = current
             
     def stop(self):
         """Stop the YOLO worker"""

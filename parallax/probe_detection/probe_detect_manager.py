@@ -24,7 +24,6 @@ class DrawWorkerSignal(QObject):
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
 
-
 class DrawWorker(QRunnable):
     """
     Worker class for performing probe detection in a separate thread. This class handles
@@ -51,10 +50,10 @@ class DrawWorker(QRunnable):
         self.tip_coords_color, self.base_coords_color = None, None
         self.h = None
         self.w = None
-        self.is_seg_mask = False
         self.mask_bool, self.mask_idx, self.seg_color_pixels = None, None, None
         self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
         self.status = "first_detect"
+        self.yolo_detections = None
         self.register_colormap()
 
     def update_frame(self, frame, timestamp):
@@ -82,12 +81,50 @@ class DrawWorker(QRunnable):
                 color = self.colormap_reticle_debug[i][0].tolist()
                 cv2.circle(self.frame, (x, y), 3, color, -1)
 
-    def _draw_segmentation(self):
+    def _draw_yolo_detection(self):
         """
         Overlay segmentation mask on the frame.
         """
-        if self.is_seg_mask:
-            self._overlay_mask_bgr()
+        if self.yolo_detections is None:
+            return
+
+        color = (0, 255, 0) # Yellow/Cyan
+        for detection in self.yolo_detections:
+            # --- Draw Bounding Box ---
+            if 'bbox_orig' in detection and detection['bbox_orig'] is not None:
+                try:
+                    x1_f, y1_f, x2_f, y2_f = detection['bbox_orig']
+                    x1, y1 = int(x1_f), int(y1_f)
+                    x2, y2 = int(x2_f), int(y2_f)
+                    cv2.rectangle(self.frame, (x1, y1), (x2, y2), color, 2)
+                    # ---- Label text ----
+                    label = f"{detection['class_name']} {detection['confidence']:.2f}"
+                    cv2.putText(self.frame, label, (x1, max(20, y1 - 10)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 2.0, color, 2, cv2.LINE_AA)
+                except TypeError as e:
+                    print(f"Error processing bbox data: {e}. Bbox value: {detection.get('bbox_orig')}")
+                    continue
+
+            mask_orig = detection.get("mask_orig")
+            color = (255, 255, 0)
+            if mask_orig is not None:
+                try:
+                    # Draw the polygon outline
+                    pts = mask_orig.reshape((-1, 1, 2))
+                    cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=3)
+                except Exception as e:
+                    print(f"Error processing mask_orig: Data shape incorrect. {e}")
+                    continue
+
+            # ---- Draw keypoints ----
+            keypoints = detection.get("keypoints_orig", [])
+            if keypoints and len(keypoints) > 0:
+                for j in range(0, len(keypoints), 3):
+                    x = int(keypoints[j])
+                    y = int(keypoints[j+1])
+                    #conf = keypoints[j+2]
+                    # Draw a solid circle for the keypoint
+                    cv2.circle(self.frame, (x, y), 10, (255-j*25, 0, 255-j*25), -1)
 
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
@@ -116,7 +153,7 @@ class DrawWorker(QRunnable):
                 self._draw_reticle()
                 self._draw_coords()
                 #self._draw_detection_status()
-                self._draw_segmentation()
+                self._draw_yolo_detection()
                 self.signals.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.001)
@@ -187,199 +224,22 @@ class DrawWorker(QRunnable):
         #if self.frame is not None and base_coords is not None:
         #    cv2.circle(self.frame, base_coords, 5, color, -1)
 
-    def update_is_seg_mask(self, status: bool):
-        self.is_seg_mask = status
-        #print(f"{self.name} Segmentation mask status: {self.is_seg_mask}")
-
     def update_status(self, status):
         """Update the status of the worker."""
         self.status = status
 
-    def cancel_seg_mask(self) -> None:
-        """Called when segmentation mask is to be cleared."""
-        #self.update_is_seg_mask(False)
-        #self.mask_bool = None
-        self.mask_idx, self.seg_color_pixels = None, None
-        self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
-        self.update_is_seg_mask(False)
-
-        self.update_tip_coords(None, None)
-        self.update_base_coords(None, None)
-
-    def found_seg_mask(self, type: str, mask: np.ndarray) -> None:
-        if type == "global":
-            self.found_seg_mask_global(mask)
-
-        elif type == "local":
-            self.found_seg_mask_local(mask)
-
-    def found_seg_mask_global(self, mask: np.ndarray) -> None:
-        """Called when a new segmentation mask arrives."""
-        if self.frame is None or mask is None:
-            self.mask_bool = None
-            self.mask_idx = None
-            self.seg_color_pixels = None
-            return
-
-        # 1) Resize -> boolean mask aligned with current frame
-        self.mask_bool = self._resize_and_binarize(mask, target_hw=self.frame.shape[:2])  # (H, W) bool
-
-        if not self.mask_bool.any():
-            # No mask: clear caches
-            self.mask_idx = None
-            self.seg_color_pixels = None
-            return
-
-        # 2) Cache row/col indices to avoid re-building them every frame
-        self.mask_idx = np.where(self.mask_bool)  # tuple (rows, cols)
-
-        # 3) Build a constant color array ONLY for masked pixels (N, 3), uint8
-        n = self.mask_idx[0].size
-        self.seg_color_pixels = np.empty((n, 3), dtype=np.uint8)
-        self.seg_color_pixels[:] = np.array(self.OVERLAY_COLOR_BGR, dtype=np.uint8)
-
-        # Update segmentation mask status
-        self.update_is_seg_mask(True)
-
-    def found_seg_mask_local(self, mask: np.ndarray) -> None:
-        """Called when a new segmentation mask arrives."""
-        if self.frame is None or mask is None:
-            self.mask_bool_local = None
-            self.mask_idx_local = None
-            self.seg_color_pixels_local = None
-            return
-
-        # 1) Resize -> boolean mask aligned with current frame
-        self.mask_bool_local = self._resize_and_binarize(mask, target_hw=self.frame.shape[:2])  # (H, W) bool
-
-        if not self.mask_bool_local.any():
-            # No mask: clear caches
-            self.mask_idx_local = None
-            self.seg_color_pixels_local = None
-            return
-
-        # 2) Cache row/col indices to avoid re-building them every frame
-        self.mask_idx_local = np.where(self.mask_bool_local)  # tuple (rows, cols)
-
-        # 3) Build a constant color array ONLY for masked pixels (N, 3), uint8
-        n = self.mask_idx_local[0].size
-        self.seg_color_pixels_local = np.empty((n, 3), dtype=np.uint8)
-        self.seg_color_pixels_local[:] = np.array((0, 255, 0), dtype=np.uint8)
-
-    def _overlay_mask(self, mask_idx, seg_color_pixel, a: float = 0.1) -> None:
-        r, c = mask_idx
-        if r is None or c is None:
-            logger.warning(f"{self.name} No mask indices to overlay")
-            return
-
-        try:
-            # Blend and WRITE BACK to the frame
-            blended = cv2.addWeighted(self.frame[r, c], 1.0 - a, seg_color_pixel, a, 0.0)
-            self.frame[r, c] = blended
-        except Exception as e:
-            # Keep logs lightweight; avoid printing big arrays
-            logger.error(f"{self.name} overlay error: {e})")
-        pass
-
-    def _overlay_mask_bgr(self, a: float = 0.1) -> None:
-        """Very fast per-frame overlay using cached indices + per-pixel color."""
-        if self.frame is None:
-            logger.warning("No frame to overlay")
-            return
-        if self.mask_idx is None or self.seg_color_pixels is None:
-            #logger.warning("No mask to overlay")
-            return
-        if self.is_seg_mask is False:
-            return
-        self._overlay_mask(self.mask_idx, self.seg_color_pixels, a)
-        self._overlay_mask_bgr_local(a=0.3)
-
-    def _overlay_mask_bgr_local(self, a: float = 0.3) -> None:
-        """Very fast per-frame overlay using cached indices + per-pixel color."""
-        # Overlay local mask in different color
-        if self.mask_idx_local is None or self.seg_color_pixels_local is None:
-            return
-        self._overlay_mask(self.mask_idx_local, self.seg_color_pixels_local, a)
-
-    def _resize_and_binarize(self, m, target_hw):
-        H, W = target_hw
-        m = np.asarray(m)
-        # squeeze common shapes: (1,H,W) or (H,W,1)
-        if m.ndim == 3:
-            if m.shape[0] == 1:
-                m = m[0]
-            elif m.shape[-1] == 1:
-                m = m[..., 0]
-        # threshold to {0,1}
-        m = (m > 0).astype(np.uint8)
-        # resize to frame size (NEAREST for labels)
-        if m.shape[:2] != (H, W):
-            m = cv2.resize(m, (W, H), interpolation=cv2.INTER_NEAREST)
-        return np.ascontiguousarray(m.astype(bool))
-
-    def _prepare_color_layer(self, mask_bool, color=(0, 255, 0)):
-        layer = np.zeros_like(self.frame, dtype=np.uint8)
-        if mask_bool.any():
-            layer[mask_bool] = color
-        return layer
-
-    def _get_color_for_keypoint(self, kp_id):
-        """Mocks a function to get a color based on keypoint ID."""
-        # Simple mock: use different colors for different keypoint IDs
-        colors = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (128, 128, 128)] 
-        return colors[kp_id % len(colors)]
-
     def receive_yolo_detections(self, detections: list):
         if not detections:
             return
+        self.yolo_detections = detections
+        
+        # Debug
+        #self._draw_yolo_detection()
+        #cv2.imwrite(f"{debug_img_dir}/{self.yolo_detections[0]['timestamp']}_{self.name}.png", self.frame)
 
-        color = (0, 255, 255) # Yellow/Cyan
-        for detection in detections:
-            # --- Draw Bounding Box ---
-            if 'bbox_orig' in detection and detection['bbox_orig'] is not None:
-                try:
-                    x1_f, y1_f, x2_f, y2_f = detection['bbox_orig'] 
-                    x1, y1 = int(x1_f), int(y1_f)
-                    x2, y2 = int(x2_f), int(y2_f)
-                    cv2.rectangle(self.frame, (x1, y1), (x2, y2), color, 2)
-                    # ---- Label text ----
-                    label = f"{detection['class_name']} {detection['confidence']:.2f}"
-                    cv2.putText(self.frame, label, (x1, max(20, y1 - 10)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
-                except TypeError as e:
-                    print(f"Error processing bbox data: {e}. Bbox value: {detection.get('bbox_orig')}")
-                    continue
-
-            mask_orig = detection.get("mask_orig")
-            if mask_orig is not None:
-                try:
-                    # 1. Convert flat list [x1, y1, x2, y2, ...] to a 2D array [[x1, y1], [x2, y2], ...]
-                    # This reshaping is simpler and often more robust across different OpenCV versions.
-                    #pts_2d = np.array(mask_orig, dtype=np.int32).reshape((-1, 2))
-
-                    # 2. Reshape to the required OpenCV format: (N_vertices, 1, 2)
-                    # We need the extra dimension for cv2.polylines when drawing a list of contours.
-                    #pts = pts_2d.reshape((-1, 1, 2))
-
-                    # Draw the polygon outline
-                    pts = mask_orig.reshape((-1, 1, 2))
-                    cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=2)
-                except Exception as e:
-                    print(f"Error processing mask_orig: Data shape incorrect. {e}")
-                    continue
-            # ---- Draw keypoints ----
-            keypoints = detection.get("keypoints_orig", [])
-            if keypoints and len(keypoints) > 0:
-                for j in range(0, len(keypoints), 3):
-                    x = int(keypoints[j])
-                    y = int(keypoints[j+1])
-                    conf = keypoints[j+2]
-                    # Draw a solid circle for the keypoint
-                    cv2.circle(self.frame, (x, y), 5, self._get_color_for_keypoint(j//3), -1)
-                    # Optionally, draw a smaller, brighter center dot
-                    cv2.circle(self.frame, (x, y), 2, (255, 255, 255), -1)
-
-        #cv2.imwrite(f"{debug_img_dir}/{detection['timestamp']}_{self.name}.png", self.frame)
+    def clear_yolo_detections(self):
+        """Clear the stored YOLO detections."""
+        self.yolo_detections = None
 
 class ProbeDetectManager(QObject):
     """
@@ -403,7 +263,7 @@ class ProbeDetectManager(QObject):
         self.name = camera_name
         self.worker = None          # Worker for refersh screen
         self.processWorker = None   # Worker for processing frames
-        self.yoloProcessWorker = None # Worker for TAM processing frames
+        self.yoloProcessWorker = None
         self._prev_ts = None
         self.threadpool = QThreadPool()
         self.last_detected_frame = None
@@ -422,13 +282,16 @@ class ProbeDetectManager(QObject):
         camera_resolution = self.model.get_camera_resolution(self.name)
 
         # OpenCV Process Worker
+        """
         self.processWorker = ProcessWorker(self.name, camera_resolution, test=self.model.test)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.tip_stopped.connect(self.found_probe)
         self.processWorker.signals.tip_moving.connect(self.found_probe_moving)
         self.processWorker.signals.status.connect(self.worker.update_status)
+        """
 
         # YOLO Process Worker
+        # init and warmup the model but no thread runing yet
         self.yoloProcessWorker = ProcessWorkerYolo(self.name, camera_resolution, test=self.model.test,
                                                    detection_callback=self.receive_yolo_detections,
                                                    finished_callback=self._onYoloProcessThreadFinished)
@@ -437,21 +300,20 @@ class ProbeDetectManager(QObject):
         #self.yoloProcessWorker.signals.yolo_detection.connect(self.worker.receive_yolo_detections)
         #self.yoloProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
         #self.yoloProcessWorker.signals.status.connect(self.worker.update_status)
-        #self.yoloProcessWorker.signals.seg_mask.connect(self.worker.found_seg_mask)
-        #self.yoloProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
 
     def receive_yolo_detections(self, detections: list):
         """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
         if not detections:
             return
         if self.worker is not None:
+            self.worker.clear_yolo_detections()
             self.worker.receive_yolo_detections(detections)
-
 
     def start(self):
         """
         Start the probe detection manager by initializing the worker thread and running it.
         """
+        print(f" {self.name} Starting ProbeDetectManager for with algorithm {self.detect_algorithm}")
         wait_time = 0
         while (self.worker is not None or self.processWorker is not None) and wait_time < 3.0:
             time.sleep(0.1)
@@ -460,21 +322,19 @@ class ProbeDetectManager(QObject):
             print(f"{self.name} Previous thread not cleaned up")
             return
 
-        print(f"{self.name} Start probe detection")
         logger.debug(f"{self.name} - Starting thread")
         self._init_draw_thread()
         self.worker.start_running()
         self.threadpool.start(self.worker)
 
         self._init_process_thread() # Init processWorker and yoloProcessWorker
-        self.processWorker.start_running()
-        self.threadpool.start(self.processWorker)
+        if self.detect_algorithm == 'opencv' and self.processWorker is not None:
+            self.processWorker.start_running()
+            self.threadpool.start(self.processWorker)
+        elif self.detect_algorithm == 'yolo' and self.yoloProcessWorker is not None:
+            self.yoloProcessWorker.start_running()
+            #self.threadpool.start(self.yoloProcessWorker)
         
-        #self.yoloProcessWorker.start_running()
-        #self.threadpool.start(self.yoloProcessWorker)
-        self.yoloProcessWorker.start_running()
-        
-
     def get_mask(self):
         """Save the current image and global mask."""
         return self.worker.mask_bool.astype(np.uint8) * 255
@@ -491,17 +351,17 @@ class ProbeDetectManager(QObject):
     def set_algorithm(self, algorithms):
         """Set the probe detection algorithm."""
         self.detect_algorithm = algorithms
-        print("Set detection algorithm - ", self.name, self.detect_algorithm)
         # Clear current tip/base coords and mask
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
-            self.worker.update_is_seg_mask(False)
+            self.worker.clear_yolo_detections()
 
     def stop(self):
         """
         Stop the probe detection manager by halting the worker thread.
         """
+        print(f"  {self.name} Stopping ProbeDetectManager")
         logger.debug(f"{self.name} - Stopping thread")
         if self.worker is None and self.processWorker is None and self.yoloProcessWorker is None:  # State: Stopped
             return
@@ -536,15 +396,18 @@ class ProbeDetectManager(QObject):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
+
         fps = 5  # TODO handle different fps per processor
         if self._prev_ts is None or (timestamp - self._prev_ts) >= (1.0/fps):
             if self.processWorker is not None:
                 self.processWorker.update_frame(frame, timestamp)
             self._prev_ts = timestamp
-            
+
+        if self.worker is not None:
+                self.worker.update_frame(frame, timestamp)
+        
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.update_frame(frame, timestamp)
-
 
         """
         if self._prev_ts is None:
@@ -556,8 +419,6 @@ class ProbeDetectManager(QObject):
                 self.yoloProcessWorker.update_frame(frame, timestamp)
             self._prev_ts = timestamp
         """
-        if self.worker is not None:
-            self.worker.update_frame(frame, timestamp)
         
     @pyqtSlot(float, float, str, list, list)
     def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):
@@ -607,57 +468,57 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number.
         """
+        print(f"  {self.name} Start detection for {sn} with algorithm {self.detect_algorithm}")
+        if self.worker is not None:  # Clear current tip/base coords and mask
+            self.worker.update_tip_coords(None, None)
+            self.worker.update_base_coords(None, None)
+            self.worker.clear_yolo_detections()
+
         if self.detect_algorithm == 'opencv':
             if self.yoloProcessWorker is not None:
                 self.yoloProcessWorker.stop_detection()
             if self.processWorker is not None:
                 self.processWorker.update_sn(sn)
-                self.processWorker.start_detection()
+                self.processWorker.start_detection()  # is_detection_on = True, and processing frame
 
         elif self.detect_algorithm == 'yolo':
             if self.processWorker is not None:
                 self.processWorker.stop_detection()
             if self.yoloProcessWorker is not None:
                 self.yoloProcessWorker.update_sn(sn)
-                self.yoloProcessWorker.start_detection()
+                self.yoloProcessWorker.start_detection()    # is_detection_on = True, and processing frame
 
-    def enable_calibration(self, stage_ts, sn):  # Call from stage listener.
+    def enable_calibration(self, stage_ts, sn):  # Call from stage listener. (stage is stopped)
         """
         Enable calibration mode for the worker. (stage is stopped)
 
         Args:
             sn (str): Serial number of the device.
         """
+        print(f"  {self.name} Enable calibration for {sn} with algorithm {self.detect_algorithm}")
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
-            self.worker.update_is_seg_mask(False)
+            self.worker.clear_yolo_detections()
         if self.processWorker is not None and self.detect_algorithm == 'opencv':
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
         if self.yoloProcessWorker is not None and self.detect_algorithm == 'yolo':
-            self.yoloProcessWorker.update_stage_timestamp(stage_ts)
+            #self.yoloProcessWorker.update_stage_timestamp(stage_ts)
             self.yoloProcessWorker.enable_calib()
 
-
-    def disable_calibration(self, sn):  # Call from stage listener.
+    def disable_calibration(self, sn):  # Call from stage listener. (stage is moving)
         """Disable calibration mode for the worker. (stage is moving)
         Disable calibration mode for the worker. (stage is moving)
 
         Args:
             sn (str): Serial number of the device.
         """
-        if self.yoloProcessWorker is not None and self.worker is not None:
-            self.worker.cancel_seg_mask() # clear the mask in drawing worker
+        print(f"  {self.name} Disable calibration for {sn} with algorithm {self.detect_algorithm}")        
         if self.processWorker is not None:
             self.processWorker.disable_calib()
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.disable_calib()
-
-        if self.worker is not None:
-            self.worker.update_tip_coords(None, None)
-            self.worker.update_base_coords(None, None)
-            self.worker.update_is_seg_mask(False)
 
     def set_name(self, camera_name):
         """

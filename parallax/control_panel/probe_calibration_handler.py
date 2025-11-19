@@ -311,6 +311,7 @@ class ProbeCalibrationHandler(QWidget):
             camera_name = screen.get_camera_name()
             if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                 if screen.probeDetector.processWorker is not None or screen.probeDetector.worker is not None:
+                    print(f" Probe calibration thread is running for camera: {camera_name}, processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}")
                     return False
         return True
 

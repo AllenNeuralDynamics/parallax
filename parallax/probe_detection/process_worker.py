@@ -356,6 +356,10 @@ class ProcessWorkerYolo:
         self.local_client_finished = False
         self.global_client_finished = False
 
+        # Interface with probe detection manager
+        self.is_detection_on = True
+        self.probe_stopped = True
+
         # init
         try:
             CONFIG = self._load_yolo_config(yolo_config_path)
@@ -370,21 +374,29 @@ class ProcessWorkerYolo:
                                             finished_callback=lambda: self.wait_finished('global'))
 
     def update_frame(self, frame, timestamp):
-        self.yolo_global.newframe_captured(frame, timestamp)
-        time.sleep(0.05)
+        if self.is_detection_on:
+            self.yolo_global.newframe_captured(frame, timestamp)
+            time.sleep(0.05)
 
     def handle_global_detections(self, frame, crop_info, detections): # frame is 640x640
-        for detection in detections:
-            self.yolo_local.newframe_captured(frame, crop_info, detection=detection) # 640x640
-            time.sleep(0.05)
+        if self.probe_stopped:
+            for detection in detections:
+                self.yolo_local.newframe_captured(frame, crop_info, detection=detection) # 640x640
+                time.sleep(0.05)
+        else:
+            self.handle_detections(crop_info, detections)
 
     def handle_detections(self, crop_info: dict, detections: dict):
         if not detections:
             return
-        detections_global = postprocessing_local(detections, crop_info) # 640x640
-        detections_original = postprocessing_global(detections_global, crop_info) # original input
+        if self.probe_stopped:  # if probe is stopped, run both local and global YOLO
+            detections = postprocessing_local(detections, crop_info) # 640x640
+        detections_original = postprocessing_global(detections, crop_info) # original input
         if self.detection_callback:
             self.detection_callback(detections_original)
+
+        if self.probe_stopped:  # if probe is stopped, just detect once
+            self.stop_detection()
 
     def wait_finished(self, client_name: str):
         """
@@ -407,13 +419,36 @@ class ProcessWorkerYolo:
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
         
-    def start_running(self):
+    def start_running(self):  # Running Yolo Server Threads
         self.yolo_local.start_client()
         self.yolo_global.start_client()
 
-    def stop_running(self):
+    def stop_running(self):  # Stopping Yolo Server Threads
         self.yolo_global.stop()
         self.yolo_local.stop()
 
+    def disable_calib(self):  # stage is moving
+        # TODO run only global
+        self.probe_stopped = False
+        pass
+
+    def enable_calib(self):  # stage is stopped
+        # TODO run both global and local
+        self.probe_stopped = True
+        pass
+
+    def start_detection(self):  # stage is moving
+        """Start the probe detection."""
+        self.is_detection_on = True
+
     def stop_detection(self):
+        """Stop the probe detection."""
+        self.is_detection_on = False
+
+    def update_sn(self, sn):
+        """Update the serial number."""
+        pass
+
+    def clicked_position(self, pt):
+        """Handle clicked position for calibration."""
         pass
