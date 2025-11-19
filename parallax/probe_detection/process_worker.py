@@ -230,127 +230,6 @@ def handle_detections_(frame, detections):
     cv2.imwrite(output_path, frame)
     print(f"Saved annotated frame → {output_path}")
 
-class ProcessWorkerYolo_(baseProcessWorker):
-    def __init__(self, name, resolution, test=False):
-        """
-        Initialize the Worker object with camera and model data.
-        Args:
-            name (str): Camera serial number.
-            model (object): The main model containing stage and camera data.
-        """
-        super().__init__(name, resolution, test)
-        
-        try:
-            config = self._load_yolo_config(yolo_config_path)
-        except Exception as e:
-            print(f"Error loading YOLO config: {e}")
-            config = {}
-        yolo_config = config.get('yolo', {})
-        print("Yolo config:", yolo_config)
-        self.size = yolo_config.get('img_dim', [640, 480])
-        self.yolo_worker = GlobalYoloClient(yolo_config, detection_callback=self.yolo_callback)
-
-    def start_detection(self):
-        """Start the probe detection."""
-        self.is_detection_on = True
-        print(f"{self.name}: YOLO detection started.")
-        self.yolo_worker.start()
-
-    def stop_detection(self):
-        """Stop the probe detection."""
-        self.is_detection_on = False
-        print(f"{self.name}: YOLO detection stopped.")
-        if self.yolo_worker:
-            self.yolo_worker.stop()
-
-    def _load_yolo_config(self, config_path):
-        with open(config_path, 'r') as f:
-            return yaml.safe_load(f)
-
-    def yolo_callback(self, detections):
-        """Handle YOLO detections."""
-        #print(f"{self.name} detected {len(detections)} objects.")
-        if detections is None or len(detections) == 0:
-            return
-        
-        #handle_detections(self.frame, detections)
-
-        detections = self._detection_to_original_frame(detections)
-        if detections is not None:
-            self.signals.yolo_detection.emit(detections)
-
-    def _detection_to_original_frame(self, detections):
-        # NOTE: Using the generalized method: UtilsCoords.scale_coordinates_to_original
-
-        if not self.size or not self.IMG_SIZE_ORIGINAL:
-            print("Warning: Image sizes not initialized. Skipping coordinate scaling.")
-            return
-
-        for detection in detections:
-            #print(detection)
-            # --- 1. Rescale Bounding Box (bbox: [x1, y1, x2, y2]) ---
-            if 'bbox' in detection and detection['bbox']:
-                # change format to [[x1, y1], [x2, y2]] for scaling
-                detection['bbox'] = UtilsCoords.scale_coords_to_original(
-                    coords=[detection['bbox'][:2], detection['bbox'][2:]], 
-                    original_size=self.IMG_SIZE_ORIGINAL, 
-                    resized_size=self.size
-                )
-            
-            if 'mask' in detection and detection['mask']:
-                detection['mask'] = UtilsCoords.scale_coords_to_original(
-                    coords=detection['mask'], 
-                    original_size=self.IMG_SIZE_ORIGINAL, 
-                    resized_size=self.size
-                )
-
-            # --- 2. Rescale Keypoints (keypoints: [[x, y, conf], [x, y, conf], ...]) ---
-            if 'keypoints' in detection and detection['keypoints']:
-                new_keypoints = []
-                for kpt in detection['keypoints']:
-                    coords_to_scale = kpt[:2]  # [x, y]
-                    confidence = kpt[2]
-                    
-                    # Call the utility method, which handles the [x, y] format
-                    scaled_coords = UtilsCoords.scale_coords_to_original(
-                        coords=coords_to_scale, 
-                        original_size=self.IMG_SIZE_ORIGINAL, 
-                        resized_size=self.size
-                    )
-                    
-                    # Recombine scaled [x, y] with confidence
-                    new_keypoints.append([scaled_coords[0], scaled_coords[1], confidence])
-                
-                detection['keypoints'] = new_keypoints
-            
-        return detections
-
-    def handle_detections(self, detections):
-        """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
-        if not detections:
-            return
-        print(f"{self.name} Received {len(detections)} detections.")
-    
-    @pyqtSlot()
-    def process(self):
-        """
-        Main probe detection logic:
-        1. Prepares the current image.
-        2. Handles reticle zone setup.
-        3. Runs comparison via currPrevCmpProcess or currBgCmpProcess.
-        4. Emits signal when probe is found or moving.
-        """
-        # Process only when probe is stopped
-        #if not self.probe_stopped:
-        #    return
-        
-        if self.copy_last_detected_frame:
-            self.last_detected_frame = self.frame.copy()
-            self.last_detected_ts = self.img_ts
-
-        self.frame = cv2.resize(self.frame, self.size)
-        
-        self.yolo_worker.process_frame(self.frame, self.img_ts)
 
 # -----------------------------
 class ProcessWorker(baseProcessWorker):
@@ -626,9 +505,8 @@ class ProcessWorkerYolo:
         if not detections:
             return
         
-        print(f"Received {len(detections)} local detections.")
         frame_draw, detections_on_global = postprocessing_local(frame, detections, crop_info) # 640x640
-        cv2.imwrite(f"{debug_img_dir}/{time.time()}_post_local_{self.name}.png", frame_draw)   
+        cv2.imwrite(f"{debug_img_dir}/{time.time()}_post_local_{self.name}.png", frame_draw)
 
         detections_on_original = postprocessing_global(detections_on_global, crop_info) # original input
 

@@ -384,7 +384,7 @@ class DrawWorker(QRunnable):
                         # Optionally, draw a smaller, brighter center dot
                         cv2.circle(self.frame, (x, y), 2, (255, 255, 255), -1)
 
-        #cv2.imwrite(f"{debug_img_dir}/{detection['timestamp']}_yolo_detections_{self.name}_.png", self.frame) 
+        cv2.imwrite(f"{debug_img_dir}/{detection['timestamp']}_yolo_detections_{self.name}_.png", self.frame) 
 
 
 class ProbeDetectManager(QObject):
@@ -447,11 +447,10 @@ class ProbeDetectManager(QObject):
         #self.yoloProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
 
     def receive_yolo_detections(self, detections: list):
-        print(f"{self.name} Received {len(detections)} YOLO detections.")
+        print(f"  {self.name} Received {len(detections)} YOLO detections.")
         """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
         if not detections:
             return
-        print(f"  Received {len(detections)} detections.")
         if self.worker is not None:
             self.worker.receive_yolo_detections(detections)
 

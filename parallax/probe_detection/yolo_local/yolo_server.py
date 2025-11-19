@@ -157,13 +157,12 @@ class YoloKeypoints:
                         if global_class_name and self.model.names:
                             # Search the model's names dictionary for the ID
                             for cls_id, cls_name in self.model.names.items():
-                                print(f"Model class id/name: {cls_id} / {cls_name}")
                                 if cls_name == global_class_name:
                                     class_id_to_track = [cls_id] # Must be a list of IDs
                                     break
                         
                         # Run YOLO inference
-                        print("************* Tracking local keypoints with class filter:", class_id_to_track, global_class_name)
+                        print("  ** Tracking local keypoints with class filter:", class_id_to_track, global_class_name)
                         results = self.model.track(
                             frame, 
                             persist=True,  # Keep persist=True to maintain tracker state
@@ -179,7 +178,6 @@ class YoloKeypoints:
                             if hasattr(result, 'keypoints') and result.keypoints is not None:
                                 # result.keypoints.xy contains the pixel coordinates (N_objects, N_keypoints, 2)
                                 # result.keypoints.conf contains the confidence (N_objects, N_keypoints)
-                                print(f"  {global_class_name} Keypoints detected yoloserver:", result.keypoints)
                                 keypoints_xy = result.keypoints.xy.cpu().numpy()
                                 keypoints_conf = result.keypoints.conf.cpu().numpy()
                                 for i in range(len(keypoints_xy)):
