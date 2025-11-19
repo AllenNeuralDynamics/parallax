@@ -43,11 +43,6 @@ cnn_export_dir = debug_dir / "cnn_export_dir"
 cnn_img_dir.mkdir(parents=True, exist_ok=True)
 cnn_export_dir.mkdir(parents=True, exist_ok=True)
 
-# Realtime Efficient Track Anything model directory
-tam_model_dir = project_root / "external" / "EfficientTam"
-CKPT_NAME_SMALL = "efficienttam_s_512x512.pt"
-CKPT_NAME_TINY = "efficienttam_ti_512x512.pt"
-
 # Yolo Config
 yolo_config_path = data_dir / "yolo_config.yaml"
 

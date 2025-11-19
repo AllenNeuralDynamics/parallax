@@ -1,9 +1,6 @@
 import numpy as np
 import cv2
 from typing import Tuple, Dict
-import time
-from parallax.config.config_path import debug_img_dir
-#from ephys_probe_tracking.yolo_local.visualization import handle_detections
 
 def preprocessing(frame: np.ndarray,
                   detection: dict,
@@ -86,39 +83,7 @@ def preprocessing(frame: np.ndarray,
     frame_cropped_resized = cv2.resize(frame, target_size)    
     return frame_cropped_resized, crop_info, detection
 
-
-
-def draw_detections_on_frame(frame, detections):
-    """
-    Placeholder function to draw bounding boxes and keypoints on the frame.
-    Requires OpenCV or similar library (cv2 is assumed here).
-    """
-    if not detections:
-        return frame
-        
-    for detection in detections:
-        # Draw Bounding Box (assuming [x1, y1, x2, y2] format)
-        if 'bbox_global' in detection:
-            x1, y1, x2, y2 = map(int, detection['bbox_global'])
-            # Draw green rectangle on the frame
-            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            
-        # Draw Keypoints (assuming [x1, y1, c1, x2, y2, c2, ...] format)
-        if 'keypoints_global' in detection:
-            keypoints = detection['keypoints_global']
-            for i in range(0, len(keypoints), 3):
-                kp_x = int(keypoints[i])
-                kp_y = int(keypoints[i+1])
-                confidence = keypoints[i+2]
-                
-                # Draw only visible keypoints (confidence > 1 in COCO format)
-                if confidence > 0:
-                    cv2.circle(frame, (kp_x, kp_y), 5, (255, 0, 0), -1) # Draw blue circle
-
-    return frame
-
-
-def postprocessing(frame, detections: list, crop_info: dict):
+def postprocessing(detections: list, crop_info: dict):
     """
     Reverts local YOLO coordinates (bbox and keypoints) from target_size 
     back to the original frame's pixel coordinates, and draws them on the frame.
@@ -129,7 +94,7 @@ def postprocessing(frame, detections: list, crop_info: dict):
         crop_info (dict): Dictionary containing the context from the preprocessing step.
     """
     if not detections:
-        return frame, []
+        return []
     
     # 1. Extract necessary transformation parameters
     x_offset = crop_info['x_global_offset']
@@ -169,135 +134,7 @@ def postprocessing(frame, detections: list, crop_info: dict):
             
             detection['keypoints_global'] = kp_array.tolist()
 
-    output_frame = np.zeros((640, 640, 3), dtype=np.uint8)
-    resized_input_to_crop_size = cv2.resize(frame, (crop_w, crop_h), interpolation=cv2.INTER_LINEAR)
-    y_end = y_offset + crop_h
-    x_end = x_offset + crop_w
-    output_frame[y_offset:y_end, x_offset:x_end] = resized_input_to_crop_size
-    frame_with_detections = draw_detections_on_frame(output_frame, detections)
+    return detections
 
-    return frame_with_detections, detections
-
-
-def postprocessing_(frame, detections: list, crop_info: dict):
-    """
-    Reverts local YOLO coordinates (bbox and keypoints) from target_size 
-    back to the original frame's pixel coordinates.
-
-    Args:
-        detections (list): List of detection dictionaries from local YOLO (320x320 space).
-        crop_info (dict): Dictionary containing the context from the preprocessing step.
-    """
-    if not detections:
-        return []
-    
-    # 1. Extract necessary transformation parameters
-    x_offset = crop_info['x_global_offset']
-    y_offset = crop_info['y_global_offset']
-    crop_w = crop_info['crop_width']
-    crop_h = crop_info['crop_height']
-    target_w, target_h = crop_info['local_yolo_size']  # 320x320
-    
-    # 2. Calculate scaling ratios
-    # Ratio = (Actual size of cropped area) / (Model input size)
-    scale_x = crop_w / target_w
-    scale_y = crop_h / target_h
-    
-    for detection in detections:
-        # --- A. Rescale Bounding Box (bbox) ---
-        bbox = np.array(detection['bbox']).astype(np.float64)  # Coordinates are [x1, y1, x2, y2]
-        
-        # Rescale: Multiply by the ratio to get back to the cropped dimensions
-        bbox[::2] *= scale_x # Apply scale_x to x1 and x2
-        bbox[1::2] *= scale_y # Apply scale_y to y1 and y2
-        
-        # Offset: Add the original crop's top-left corner
-        bbox[::2] += x_offset
-        bbox[1::2] += y_offset
-        
-        # Update the detection with the final, original-frame coordinates
-        detection['bbox_global'] = bbox.tolist() 
-        
-        # --- B. Rescale Keypoints ---
-        keypoints = detection.get('keypoints')
-        if keypoints:
-            # Keypoints format: [x1, y1, conf1, x2, y2, conf2, ...]
-            kp_array = np.array(keypoints)
-            
-            # Rescale X coordinates (every 3rd element starting at 0)
-            kp_array[0::3] *= scale_x
-            # Rescale Y coordinates (every 3rd element starting at 1)
-            kp_array[1::3] *= scale_y
-            
-            # Offset X coordinates
-            kp_array[0::3] += x_offset
-            # Offset Y coordinates
-            kp_array[1::3] += y_offset
-            
-            # Update the detection with the final, original-frame keypoint coordinates
-            detection['keypoints_global'] = kp_array.tolist()
-            
-    return frame, detections
-
-# --- Example Usage ---
 if __name__ == "__main__":
-    # Setup Mock Environment
-    # Original global frame (e.g., from a high-res camera)
-    ORIG_H, ORIG_W = 960, 960
-    # Note: Using random frame creation requires 'import numpy as np'
-    dummy_frame = np.random.randint(0, 255, (ORIG_H, ORIG_W, 3), dtype=np.uint8)
-
-    # Mock Global Detection Result (This detection defines the crop area)
-    # The bounding box is in ORIG_W x ORIG_H space (e.g., 960x960)
-    # This example centers the bbox at (400, 400)
-    mock_global_detection = {
-        'bbox': [300, 300, 500, 500], # x1, y1, x2, y2 in 960x960 pixel space
-        'timestamp': time.time(),
-        'confidence': 0.99
-    }
-
-    # Target size for local YOLO
-    TARGET_SIZE = (320, 320)
-    MARGIN = 30
-
-    # 2. Run Preprocessing (Crop and Resize)
-    print("--- 1. Preprocessing (Crop and Resize) ---")
-    cropped_frame, crop_context, _ = preprocessing(
-        dummy_frame, 
-        mock_global_detection, 
-        target_size=TARGET_SIZE, 
-        bbox_margin=MARGIN
-    )
-
-    print(f"Original Frame Size: {ORIG_W}x{ORIG_H}")
-    print(f"Cropped Frame Size: {crop_context['crop_width']}x{crop_context['crop_height']}")
-    print(f"Offset (x, y): ({crop_context['x_global_offset']}, {crop_context['y_global_offset']})")
-    print(f"Local YOLO Input Size: {cropped_frame.shape[1]}x{cropped_frame.shape[0]}")
-    
-    # Mock Local YOLO Output (Simulates local inference on the 320x320 frame)
-    # The local model finds a keypoint near the center of the 320x320 crop
-    mock_local_detections = [
-        {
-            'bbox': [100, 100, 200, 200], # Local bbox on 320x320 image
-            'keypoints': [150, 150, 0.98, 170, 170, 0.97], # Two keypoints in 320x320 space
-            'class': 1,
-            'confidence': 0.95
-        }
-    ]
-
-    # 4. Run Postprocessing (Rescale and Draw onto 640x640 black frame)
-    print("\n--- 2. Postprocessing (Rescale and Offset) ---")
-
-    # CRITICAL FIX: The function signature is postprocessing(frame, detections, crop_info)
-    frame_with_dets, final_detections = postprocessing(
-        cropped_frame, # The input frame is the cropped_frame from step 2
-        mock_local_detections, 
-        crop_context
-    )
-
-    # 5. Verification
-    print("Local Detection (320x320):", final_detections[0]['bbox'])
-    print("Local Keypoints (320x320):", final_detections[0]['keypoints'][0:2])
-    print("\nFinal Original Coordinates (These should be near the center of the 960x960 image):")
-    print(f"Bbox (Global Context): {final_detections[0]['bbox_global']}")
-    print(f"Keypoint 1 (Global Context): ({final_detections[0]['keypoints_global'][0]:.2f}, {final_detections[0]['keypoints_global'][1]:.2f})")
+    pass

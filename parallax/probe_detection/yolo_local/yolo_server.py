@@ -15,6 +15,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 
 class YoloKeypoints:
     """YOLO segmentation worker that runs in its own thread"""
+    _info_printed = False
     
     def __init__(self, config, detection_callback=None, finished_callback=None):
         """
@@ -23,7 +24,7 @@ class YoloKeypoints:
         """
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.weights_path = config.get('weights_path', r'weights\seg_fast.pt')
+        self.weights_path = config.get('weights_path', r'external/YoloV11/tip_keypoint_detection_fast.pt')
         self.conf_thresh = config.get('conf_thresh', 0.5)
         self.iou_thresh = config.get('iou_thresh', 0.45)
         self.img_size = config.get('img_size', 640)
@@ -39,7 +40,7 @@ class YoloKeypoints:
         self.finished_callback = finished_callback
         
         try:
-            print(f"weights_path: {self.weights_path}")
+            self.logger.debug(f"weights_path: {self.weights_path}")
             self.model = YOLO(self.weights_path)
             self.model.overrides['conf'] = self.conf_thresh
             self.model.overrides['iou'] = self.iou_thresh
@@ -77,13 +78,15 @@ class YoloKeypoints:
         self.logger.info("Warming up YOLO model...")
         warmup_start = time.time()
 
-        if hasattr(self.model, 'names'):
+        
+        if not YoloKeypoints._info_printed and hasattr(self.model, 'names'):
             print("\n--- Available Model Classes for local Yolo ---")
             # self.model.names is a dictionary mapping ID (int) to Name (str)
             sorted_class_names = sorted(self.model.names.items())
             for class_id, class_name in sorted_class_names:
                 print(f"    ID: {class_id} / Name: {class_name}")
             print("-----------------------------\n")
+            YoloKeypoints._info_printed = True
         else:
             self.logger.warning("Could not find class names attribute (self.model.names).")
         
@@ -194,8 +197,8 @@ class YoloKeypoints:
                                     bbox = boxes.xyxy[i].cpu().numpy()  # x1, y1, x2, y2
                                     conf = float(boxes.conf[i].cpu().numpy())
                                     cls_id = int(boxes.cls[i].cpu().numpy())
-                                    class_name = self.model.names[cls_id] if cls_id < len(self.model.names) else f"class_{cls_id}"
 
+                                    class_name = self.model.names[cls_id] if cls_id < len(self.model.names) else f"class_{cls_id}"
                                     if global_class_name and class_name != global_class_name:
                                         # Skip this local detection if it doesn't match the global detection's class
                                         self.logger.debug(f"Skipping local detection '{class_name}'. Requires '{global_class_name}'.")
@@ -222,7 +225,7 @@ class YoloKeypoints:
                     
                     # Call the provided callback function with detections
                     if self.detection_callback:
-                        self.detection_callback(frame, crop_info, detections)
+                        self.detection_callback(crop_info, detections)
                 else:
                     # No frames to process, sleep briefly
                     time.sleep(0.01)

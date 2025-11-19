@@ -10,11 +10,13 @@ from ultralytics import YOLO
 import torch
 
 
+
 # Basic logging setup (You can customize this in your main script)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class YoloSegmentation:
     """YOLO segmentation worker that runs in its own thread"""
+    _info_printed = False
     
     def __init__(self, config, detection_callback=None, finished_callback=None):
         """
@@ -23,7 +25,7 @@ class YoloSegmentation:
         """
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.weights_path = config.get('weights_path', r'weights\seg_fast.pt')
+        self.weights_path = config.get('weights_path', r'external/YoloV11/tip_keypoint_detection_fast.pt')
         self.conf_thresh = config.get('conf_thresh', 0.5)
         self.iou_thresh = config.get('iou_thresh', 0.45)
         self.img_size = config.get('img_size', 640)
@@ -39,7 +41,7 @@ class YoloSegmentation:
         self.finished_callback = finished_callback
         
         try:
-            print(f"weights_path: {self.weights_path}")
+            self.logger.debug(f"weights_path: {self.weights_path}")
             self.model = YOLO(self.weights_path)
             self.model.overrides['conf'] = self.conf_thresh
             self.model.overrides['iou'] = self.iou_thresh
@@ -77,13 +79,14 @@ class YoloSegmentation:
         self.logger.info("Warming up YOLO model...")
         warmup_start = time.time()
 
-        if hasattr(self.model, 'names'):
-            print("\n--- Available Model Classes for global Yolo ---")
+        if not YoloSegmentation._info_printed and hasattr(self.model, 'names'):
+            print("--- Available Model Classes for global Yolo ---")
             # self.model.names is a dictionary mapping ID (int) to Name (str)
             sorted_class_names = sorted(self.model.names.items())
             for class_id, class_name in sorted_class_names:
                 print(f"    ID: {class_id} / Name: {class_name}")
             print("-----------------------------\n")
+            YoloSegmentation._info_printed = True
         else:
             self.logger.warning("Could not find class names attribute (self.model.names).")
         

@@ -20,7 +20,7 @@ from parallax.probe_detection.yolo_local.yolo_client import YOLOClient as LocalY
 from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
 from parallax.probe_detection.yolo_local.utils import postprocessing as postprocessing_local
 
-from parallax.config.config_path import debug_img_dir, tam_model_dir, CKPT_NAME_SMALL, CKPT_NAME_TINY
+from parallax.config.config_path import debug_img_dir
 from parallax.utils.utils import UtilsCoords
 from parallax.config.config_path import yolo_config_path
 
@@ -28,27 +28,12 @@ from parallax.config.config_path import yolo_config_path
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-
-# Import double times!
-try:
-    #import efficient_track_anything  # noqa: F401
-    from efficient_track_anything.realtime_tam import build_predictor, start, track, start_with_mask
-    from efficient_track_anything.utils.helper import masks_to_uint8_batch, find_matching_cfg
-    print(f"Realtime EfficientTrackAnything imported successfully.")
-except ImportError:
-    logger.warning("[WARN] realtime_efficient_tam package is not installed.")
-    print("[WARN] realtime_efficient_tam package is not installed.")
-
-
 class ProcessWorkerSignal(QObject):
     """Signals for the ProcessWorker."""
     finished = pyqtSignal()
     tip_stopped = pyqtSignal(float, float, str, list, list)
     tip_moving = pyqtSignal(float, str, list, list)
-    seg_mask = pyqtSignal(str, np.ndarray)
     status = pyqtSignal(str)
-    cancel_seg_mask = pyqtSignal()
-    yolo_detection = pyqtSignal(list)
 
 class baseProcessWorker(QRunnable):
     def __init__(self, name, resolution, test=False):
@@ -161,77 +146,10 @@ class baseProcessWorker(QRunnable):
     def stop_detection(self):
         """Stop the probe detection."""
         self.is_detection_on = False
-# -----------------------------
-
-def handle_detections_(frame, detections):
-    """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
-    if not detections:
-        return
-
-    print(f"Received {len(detections)} detections.")
-
-    for detection in detections:
-        print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
-
-        if 'bbox' in detection and detection['bbox'] is not None:
-            color = (0, 255, 255)  # Green color for bounding box and mask outline
-            x1, y1 = map(int, detection['bbox'][0])
-            x2, y2 = map(int, detection['bbox'][1])
-
-            # ---- Draw bounding box ----
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-
-            # ---- Label text ----
-            label = f"{detection['class_name']} {detection['confidence']:.2f}"
-            cv2.putText(frame, label, (x1, max(20, y1 - 10)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1, cv2.LINE_AA)
-
-        # ---- Draw segmentation mask outline ----
-        mask_poly = detection.get("mask", [])
-        if mask_poly and len(mask_poly) > 0:
-            # Handle both single and multiple polygons
-            if isinstance(mask_poly[0][0], (list, tuple, np.ndarray)):
-                # Multiple polygons (list of polygons)
-                for poly in mask_poly:
-                    pts = np.array(poly, dtype=np.int32)
-                    cv2.polylines(frame, [pts], isClosed=True, color=color, thickness=2)
-            else:
-                # Single polygon
-                pts = np.array(mask_poly, dtype=np.int32)
-                cv2.polylines(frame, [pts], isClosed=True, color=color, thickness=2)
-        
-        # ---- Draw keypoints ----
-        keypoints_list = detection.get("keypoints", [])
-        if keypoints_list and len(keypoints_list) > 0:
-            # Iterate directly over the list of keypoints for THIS detection/instance
-            for i, point in enumerate(keypoints_list):
-                # 'point' is [x, y, confidence]
-                confidence = point[2]
-                
-                # We assume 'color' is defined outside this block from the bounding box drawing
-                # For simplicity in this standalone fix, we use a fixed color (255, 255, 255)
-                kpt_color = (255, 20*i, 50*i)
-
-                x_kpt = int(point[0])
-                y_kpt = int(point[1])
-                    
-                # Draw the keypoint on the 'frame' (or 'overlay' if you are using one)
-                cv2.circle(frame, (x_kpt, y_kpt), 3, kpt_color, -1)
-
-    # ---- Use timestamp from first detection ----
-    ts = detections[0].get("timestamp", None)
-    if ts is not None:
-        ts_str = str(ts).replace(":", "_").replace(" ", "_")
-    else:
-        ts_str = "unknown"
-
-    # ---- Save annotated frame ----
-    output_path = os.path.join(debug_img_dir, f"detections_{ts_str}.jpg")
-    cv2.imwrite(output_path, frame)
-    print(f"Saved annotated frame → {output_path}")
-
 
 # -----------------------------
+
+
 class ProcessWorker(baseProcessWorker):
     """
     Worker class for performing probe detection in a separate thread. This class handles
@@ -451,6 +369,23 @@ class ProcessWorkerYolo:
                                             detection_callback=self.handle_global_detections,
                                             finished_callback=lambda: self.wait_finished('global'))
 
+    def update_frame(self, frame, timestamp):
+        self.yolo_global.newframe_captured(frame, timestamp)
+        time.sleep(0.05)
+
+    def handle_global_detections(self, frame, crop_info, detections): # frame is 640x640
+        for detection in detections:
+            self.yolo_local.newframe_captured(frame, crop_info, detection=detection) # 640x640
+            time.sleep(0.05)
+
+    def handle_detections(self, crop_info: dict, detections: dict):
+        if not detections:
+            return
+        detections_global = postprocessing_local(detections, crop_info) # 640x640
+        detections_original = postprocessing_global(detections_global, crop_info) # original input
+        if self.detection_callback:
+            self.detection_callback(detections_original)
+
     def wait_finished(self, client_name: str):
         """
         Tracks which client has finished and calls the main finished_callback
@@ -461,26 +396,17 @@ class ProcessWorkerYolo:
         elif client_name == 'global':
             self.global_client_finished = True
         
-        print(f"Client '{client_name}' finished. Local state: {self.local_client_finished}, Global state: {self.global_client_finished}")
-
+        logger.debug(f"Client '{client_name}' finished. Local state: {self.local_client_finished}, Global state: {self.global_client_finished}")
         # Check if BOTH clients have finished
         if self.local_client_finished and self.global_client_finished:
-            print("Both YOLO clients finished. Calling main finished callback.")
+            logger.info("Both YOLO clients finished. Calling main finished callback.")
             if self.finished_callback:
                 self.finished_callback()
-
 
     def _load_yolo_config(self, config_path):
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
         
-    def handle_global_detections(self, frame, crop_info, detections): # frame is 640x640
-        for detection in detections:
-            self.yolo_local.newframe_captured(frame, crop_info, detection=detection) # 640x640
-            time.sleep(0.05)
-
-        #self._debug_draw(frame, detections, filename_suffix="global")
-
     def start_running(self):
         self.yolo_local.start_client()
         self.yolo_global.start_client()
@@ -491,94 +417,3 @@ class ProcessWorkerYolo:
 
     def stop_detection(self):
         pass
-
-    def update_frame(self, frame, timestamp):
-        #print(frame.shape)
-        self.yolo_global.newframe_captured(frame, timestamp)
-        time.sleep(0.05)
-
-    def handle_detections(self, frame:np.ndarray, crop_info: dict, detections: dict):
-        # Debug
-        #self._debug_draw(frame, detections, filename_suffix="local")  # 320x320
-        if not detections:
-            return
-        
-        frame_draw, detections_on_global = postprocessing_local(frame, detections, crop_info) # 640x640
-        #cv2.imwrite(f"{debug_img_dir}/{time.time()}_post_local_{self.name}.png", frame_draw)
-
-        detections_on_original = postprocessing_global(detections_on_global, crop_info) # original input
-
-        #print(detections_on_original)
-
-        if self.detection_callback:
-            self.detection_callback(detections_on_original)
-
-    def _debug_draw(self, frame, detections, filename_suffix=""):
-        """Draws bounding boxes, masks, and keypoints on the frame for debugging."""
-        
-        # 2. Debug Draw
-        if detections:
-            # Create a copy of the frame to draw on for debugging
-            debug_frame = frame.copy()
-            
-            # Define drawing parameters
-            keypoint_color = (255, 0, 0) # Blue for keypoints
-            keypoint_radius = 4
-            confidence_threshold = 0.5 # Only draw keypoints with confidence above this value
-            
-            for detection in detections:
-                bbox = detection.get('bbox')
-                mask_poly = detection.get('mask')
-                keypoints = detection.get('keypoints', [])
-                class_name = detection.get('class_name', 'Unknown')
-                confidence = detection.get('confidence', 0.0)
-                
-                # --- Draw Mask --- (Existing Logic)
-                if mask_poly and filename_suffix == "global":
-                    contour = np.array(mask_poly, dtype=np.int32).reshape((-1, 1, 2))
-                    mask_color = (0, 255, 0) 
-                    mask_overlay = debug_frame.copy()
-                    cv2.fillPoly(mask_overlay, [contour], mask_color)
-                    cv2.addWeighted(mask_overlay, 0.4, debug_frame, 0.6, 0, debug_frame)
-
-                # --- Draw Bounding Box and Label --- (Existing Logic)
-                if bbox and len(bbox) == 4:
-                    x1, y1, x2, y2 = map(int, bbox) 
-                    box_color = (0, 0, 255) # Red box
-                    cv2.rectangle(debug_frame, (x1, y1), (x2, y2), box_color, 2)
-                    label = f"{class_name} {confidence:.2f}"
-                    cv2.putText(debug_frame, label, (x1, max(20, y1 - 10)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 1, cv2.LINE_AA)
-                
-                # --- Draw Keypoints --- (NEW LOGIC)
-                if keypoints:
-                    #print(f"  {class_name} keypoints on draw local:", keypoints)
-                    # The keypoints list is flat: [x1, y1, conf1, x2, y2, conf2, ...]
-                    # Iterate through the list in steps of 3
-                    for i in range(0, len(keypoints), 3):
-                        # Check if we have a complete (x, y, confidence) set
-                        if i + 2 < len(keypoints):
-                            kp_x = int(keypoints[i])
-                            kp_y = int(keypoints[i+1])
-                            kp_conf = keypoints[i+2]
-                            
-                            if kp_conf > confidence_threshold:
-                                # Draw a filled circle for the keypoint
-                                cv2.circle(debug_frame, 
-                                        (kp_x, kp_y), 
-                                        keypoint_radius, 
-                                        keypoint_color, 
-                                        -1) # -1 means fill the circle
-                            # else:
-                                # Optional: Draw a smaller, fainter circle for low-confidence keypoints
-                                # pass
-            
-            # Save the debug image (Existing Logic)
-            ts = detections[0].get('timestamp', time.time()) 
-            # Ensure debug_img_dir is a valid path and self.name is defined
-            cv2.imwrite(f"{debug_img_dir}/{ts}_{filename_suffix}_{self.name}_.png", debug_frame)
-        else:
-            #print("No detections to draw.")
-            # Just draw frame
-            cv2.imwrite(f"{debug_img_dir}/{time.time()}_no_detections_{filename_suffix}_{self.name}_.png", frame)
-            
