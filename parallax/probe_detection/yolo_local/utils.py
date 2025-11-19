@@ -84,7 +84,7 @@ def preprocessing(frame: np.ndarray,
         # offset remains (0, 0), and crop_width/height are the original W/H.
             
     frame_cropped_resized = cv2.resize(frame, target_size)    
-    return frame_cropped_resized, crop_info
+    return frame_cropped_resized, crop_info, detection
 
 
 
@@ -144,8 +144,6 @@ def postprocessing(frame, detections: list, crop_info: dict):
     
     # 3. Apply scaling and offset to coordinates
     for detection in detections:
-        # --- A. Rescale Bounding Box (bbox) ---
-        # Assuming bbox is [x1, y1, x2, y2]
         bbox = np.array(detection['bbox']).astype(np.float64) 
         
         # Rescale
@@ -155,13 +153,8 @@ def postprocessing(frame, detections: list, crop_info: dict):
         # Offset
         bbox[::2] += x_offset
         bbox[1::2] += y_offset
-        
         detection['bbox_global'] = bbox.tolist()
-        
-        # --- B. Rescale Keypoints ---
         keypoints = detection.get('keypoints')
-        
-        print(f"  {detection['class_name']} Keypoints before rescaling: {keypoints}")
         if keypoints:
             # Keypoints format: [x1, y1, conf1, x2, y2, conf2, ...]
             kp_array = np.array(keypoints)
@@ -175,21 +168,14 @@ def postprocessing(frame, detections: list, crop_info: dict):
             kp_array[1::3] += y_offset
             
             detection['keypoints_global'] = kp_array.tolist()
-            
-    # --- 4. Draw detections on the original frame ---
-    # This step applies the result of the coordinate transformation 
-    # back onto the image using the newly calculated global coordinates.
+
     output_frame = np.zeros((640, 640, 3), dtype=np.uint8)
     resized_input_to_crop_size = cv2.resize(frame, (crop_w, crop_h), interpolation=cv2.INTER_LINEAR)
-    # 5b. Define the region on the canvas where the image will be pasted
     y_end = y_offset + crop_h
     x_end = x_offset + crop_w
-    # 5c. Paste the resized image onto the black canvas at the global offset
     output_frame[y_offset:y_end, x_offset:x_end] = resized_input_to_crop_size
-
     frame_with_detections = draw_detections_on_frame(output_frame, detections)
-    
-    # Return the frame with the drawn bounding boxes/keypoints and the updated detections list
+
     return frame_with_detections, detections
 
 
@@ -254,42 +240,42 @@ def postprocessing_(frame, detections: list, crop_info: dict):
     return frame, detections
 
 # --- Example Usage ---
-
 if __name__ == "__main__":
-    # 1. Setup Mock Environment
+    # Setup Mock Environment
     # Original global frame (e.g., from a high-res camera)
     ORIG_H, ORIG_W = 960, 960
+    # Note: Using random frame creation requires 'import numpy as np'
     dummy_frame = np.random.randint(0, 255, (ORIG_H, ORIG_W, 3), dtype=np.uint8)
-    
-    # Mock Global Detection Result (normalized/scaled to the global model's 640x640 input)
-    # Let's assume the global model found an object centered around (1000, 1500)
+
+    # Mock Global Detection Result (This detection defines the crop area)
+    # The bounding box is in ORIG_W x ORIG_H space (e.g., 960x960)
+    # This example centers the bbox at (400, 400)
     mock_global_detection = {
-        'bbox': [0, 100, 200, 300], # x1, y1, x2, y2 in 4000x3000 pixel space
+        'bbox': [300, 300, 500, 500], # x1, y1, x2, y2 in 960x960 pixel space
         'timestamp': time.time(),
         'confidence': 0.99
     }
-    
+
     # Target size for local YOLO
     TARGET_SIZE = (320, 320)
     MARGIN = 30
-    
-    # 2. Run Preprocessing (Simulates Stage 5)
+
+    # 2. Run Preprocessing (Crop and Resize)
     print("--- 1. Preprocessing (Crop and Resize) ---")
-    cropped_frame, crop_context = preprocessing(
+    cropped_frame, crop_context, _ = preprocessing(
         dummy_frame, 
         mock_global_detection, 
         target_size=TARGET_SIZE, 
         bbox_margin=MARGIN
     )
-    
+
     print(f"Original Frame Size: {ORIG_W}x{ORIG_H}")
     print(f"Cropped Frame Size: {crop_context['crop_width']}x{crop_context['crop_height']}")
-    print(f"Offset (x, y): ({crop_context['x_orig_offset']}, {crop_context['y_orig_offset']})")
+    print(f"Offset (x, y): ({crop_context['x_global_offset']}, {crop_context['y_global_offset']})")
     print(f"Local YOLO Input Size: {cropped_frame.shape[1]}x{cropped_frame.shape[0]}")
     
-    # 3. Mock Local YOLO Output (Simulates Stage 7)
+    # Mock Local YOLO Output (Simulates local inference on the 320x320 frame)
     # The local model finds a keypoint near the center of the 320x320 crop
-    # Center of 320x320 is (160, 160)
     mock_local_detections = [
         {
             'bbox': [100, 100, 200, 200], # Local bbox on 320x320 image
@@ -298,20 +284,20 @@ if __name__ == "__main__":
             'confidence': 0.95
         }
     ]
-    
-    # 4. Run Postprocessing (Simulates Stage 8)
+
+    # 4. Run Postprocessing (Rescale and Draw onto 640x640 black frame)
     print("\n--- 2. Postprocessing (Rescale and Offset) ---")
-    final_detections = postprocessing(mock_local_detections, crop_context)
-    
+
+    # CRITICAL FIX: The function signature is postprocessing(frame, detections, crop_info)
+    frame_with_dets, final_detections = postprocessing(
+        cropped_frame, # The input frame is the cropped_frame from step 2
+        mock_local_detections, 
+        crop_context
+    )
+
     # 5. Verification
     print("Local Detection (320x320):", final_detections[0]['bbox'])
     print("Local Keypoints (320x320):", final_detections[0]['keypoints'][0:2])
-    
-    print("\nFinal Original Coordinates:")
-    
-    print(f"Bbox (Original Frame): {final_detections[0]['bbox_orig']}")
-    print(f"Keypoint 1 (Original Frame): ({final_detections[0]['keypoints_orig'][0]:.2f}, {final_detections[0]['keypoints_orig'][1]:.2f})")
-    
-    # Expected KP X1: ~990.62
-    
-    print("\nPostprocessing complete. Coordinates are now relative to the original high-resolution frame.")
+    print("\nFinal Original Coordinates (These should be near the center of the 960x960 image):")
+    print(f"Bbox (Global Context): {final_detections[0]['bbox_global']}")
+    print(f"Keypoint 1 (Global Context): ({final_detections[0]['keypoints_global'][0]:.2f}, {final_detections[0]['keypoints_global'][1]:.2f})")

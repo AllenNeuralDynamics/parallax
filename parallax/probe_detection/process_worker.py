@@ -475,13 +475,11 @@ class ProcessWorkerYolo:
             return yaml.safe_load(f)
         
     def handle_global_detections(self, frame, crop_info, detections): # frame is 640x640
-        print(f"Received {len(detections)} global detections.")
         for detection in detections:
-            print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
             self.yolo_local.newframe_captured(frame, crop_info, detection=detection) # 640x640
             time.sleep(0.05)
 
-        self._debug_draw(frame, detections, filename_suffix="global")
+        #self._debug_draw(frame, detections, filename_suffix="global")
 
     def start_running(self):
         self.yolo_local.start_client()
@@ -501,12 +499,12 @@ class ProcessWorkerYolo:
 
     def handle_detections(self, frame:np.ndarray, crop_info: dict, detections: dict):
         # Debug
-        self._debug_draw(frame, detections, filename_suffix="local")  # 320x320
+        #self._debug_draw(frame, detections, filename_suffix="local")  # 320x320
         if not detections:
             return
         
         frame_draw, detections_on_global = postprocessing_local(frame, detections, crop_info) # 640x640
-        cv2.imwrite(f"{debug_img_dir}/{time.time()}_post_local_{self.name}.png", frame_draw)
+        #cv2.imwrite(f"{debug_img_dir}/{time.time()}_post_local_{self.name}.png", frame_draw)
 
         detections_on_original = postprocessing_global(detections_on_global, crop_info) # original input
 
@@ -554,7 +552,7 @@ class ProcessWorkerYolo:
                 
                 # --- Draw Keypoints --- (NEW LOGIC)
                 if keypoints:
-                    print(f"  {class_name} keypoints on draw local:", keypoints)
+                    #print(f"  {class_name} keypoints on draw local:", keypoints)
                     # The keypoints list is flat: [x1, y1, conf1, x2, y2, conf2, ...]
                     # Iterate through the list in steps of 3
                     for i in range(0, len(keypoints), 3):
@@ -580,7 +578,7 @@ class ProcessWorkerYolo:
             # Ensure debug_img_dir is a valid path and self.name is defined
             cv2.imwrite(f"{debug_img_dir}/{ts}_{filename_suffix}_{self.name}_.png", debug_frame)
         else:
-            print("No detections to draw.")
+            #print("No detections to draw.")
             # Just draw frame
             cv2.imwrite(f"{debug_img_dir}/{time.time()}_no_detections_{filename_suffix}_{self.name}_.png", frame)
             

@@ -28,7 +28,6 @@ def preprocessing(frame: np.ndarray, target_size: tuple=(640, 640)):
 
     crop_info = {
         'orig_size': (W, H), 
-        # YOLO target size is also stored as (width, height)
         'global_yolo_size': target_size, 
     }
 
@@ -49,8 +48,7 @@ def postprocessing(detections: list, crop_info: dict):
     Returns:
         list: Detections with keypoints and bboxes scaled to the original size.
     """
-    original_size = crop_info.get('orig_size', (960, 960))
-    print(f"Original size: {original_size}")
+    original_size = crop_info.get('orig_size', (4000, 3000))
     target_size = crop_info.get('global_yolo_size', (640, 640))
     original_w, original_h = original_size
     target_w, target_h = target_size
@@ -60,31 +58,37 @@ def postprocessing(detections: list, crop_info: dict):
     scale_y = original_h / target_h
     
     for detection in detections:
-        # --- A. Rescale Bounding Box (bbox) ---
         # Coordinates are [x1, y1, x2, y2]
-        bbox = np.array(detection['bbox_global']).astype(np.float64) 
+        bbox = detection.get('bbox_global')
+        if bbox:
+            bbox = np.array(bbox).flatten().astype(np.float64)
+            bbox[[0, 2]] *= scale_x
+            bbox[[1, 3]] *= scale_y
+            detection['bbox_orig'] = bbox.tolist()
+
+        bbox_seg = detection.get('bbox_seg')
+        if bbox_seg:
+            bbox_seg = np.array(bbox_seg).flatten().astype(np.float64)
+            bbox_seg[[0, 2]] *= scale_x
+            bbox_seg[[1, 3]] *= scale_y
+            detection['bbox_seg_orig'] = bbox_seg.tolist()
         
-        # Rescale X coordinates (x1 and x2)
-        bbox[[0, 2]] *= scale_x
-        # Rescale Y coordinates (y1 and y2)
-        bbox[[1, 3]] *= scale_y
-        
-        detection['bbox_orig'] = bbox.tolist() 
-        
-        # --- B. Rescale Keypoints ---
         keypoints = detection.get('keypoints_global')
         if keypoints:
             # Keypoints format: [x1, y1, conf1, x2, y2, conf2, ...]
-            kp_array = np.array(keypoints)
-            
-            # Rescale X coordinates (every 3rd element starting at 0)
+            kp_array = np.array(keypoints).flatten().astype(np.float64)
             kp_array[0::3] *= scale_x
-            # Rescale Y coordinates (every 3rd element starting at 1)
             kp_array[1::3] *= scale_y
-
-            # Update the detection with the final, original-frame keypoint coordinates
             detection['keypoints_orig'] = kp_array.tolist()
-            
+
+        mask_poly = detection.get('mask')
+        if mask_poly is not None:
+            #  poly_list is the input: [[x1, y1], [x2, y2], ...]
+            poly_array = np.array(mask_poly).astype(np.float64)
+            poly_array[:, 0] *= scale_x
+            poly_array[:, 1] *= scale_y
+            poly_array = poly_array.astype(np.int32)
+            detection['mask_orig'] = poly_array
     return detections
 
 

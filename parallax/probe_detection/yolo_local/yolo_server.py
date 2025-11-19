@@ -162,7 +162,7 @@ class YoloKeypoints:
                                     break
                         
                         # Run YOLO inference
-                        print("  ** Tracking local keypoints with class filter:", class_id_to_track, global_class_name)
+                        #print("  ** Tracking local keypoints with class filter:", class_id_to_track, global_class_name)
                         results = self.model.track(
                             frame, 
                             persist=True,  # Keep persist=True to maintain tracker state
@@ -206,6 +206,7 @@ class YoloKeypoints:
                                         search_id = int(boxes.id[i].cpu().numpy())
                                     else:
                                         search_id = 0
+                                    
                                     detection = {
                                         'timestamp': ts,
                                         'bbox': bbox.tolist(),
@@ -213,7 +214,9 @@ class YoloKeypoints:
                                         'class_name': class_name,
                                         'confidence': conf,
                                         'id': search_id,
-                                        'keypoints': keypoints_data.get(i, [])
+                                        'keypoints': keypoints_data.get(i, []),
+                                        'bbox_seg': global_detection['bbox'] if global_detection and 'bbox' in global_detection else None,
+                                        'mask': global_detection['mask'] if global_detection and 'mask' in global_detection else None
                                     }
                                     detections.append(detection)
                     

@@ -333,15 +333,11 @@ class DrawWorker(QRunnable):
         if not detections:
             return
 
-        #print(f"  Received {len(detections)} detections.")
-
+        color = (0, 255, 255) # Yellow/Cyan
         for detection in detections:
-            print(f"  {detection['class_name']} with confidence {detection['confidence']:.2f}")
-
+            # --- Draw Bounding Box ---
             if 'bbox_orig' in detection and detection['bbox_orig'] is not None:
-                print("  BBox Origin:", detection['bbox_orig'])
                 try:
-                    color = (0, 255, 255)  # Green for all boxes; could customize per class
                     x1_f, y1_f, x2_f, y2_f = detection['bbox_orig'] 
                     x1, y1 = int(x1_f), int(y1_f)
                     x2, y2 = int(x2_f), int(y2_f)
@@ -352,22 +348,25 @@ class DrawWorker(QRunnable):
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2, cv2.LINE_AA)
                 except TypeError as e:
                     print(f"Error processing bbox data: {e}. Bbox value: {detection.get('bbox_orig')}")
-                    continue # Skip to the next detection
+                    continue
 
-            # ---- Draw segmentation mask outline ----
-            mask_poly = detection.get("mask", [])
-            if mask_poly and len(mask_poly) > 0:
-                # Handle both single and multiple polygons
-                if isinstance(mask_poly[0][0], (list, tuple, np.ndarray)):
-                    # Multiple polygons (list of polygons)
-                    for poly in mask_poly:
-                        pts = np.array(poly, dtype=np.int32)
-                        cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=2)
-                else:
-                    # Single polygon
-                    pts = np.array(mask_poly, dtype=np.int32)
+            mask_orig = detection.get("mask_orig")
+            if mask_orig is not None:
+                try:
+                    # 1. Convert flat list [x1, y1, x2, y2, ...] to a 2D array [[x1, y1], [x2, y2], ...]
+                    # This reshaping is simpler and often more robust across different OpenCV versions.
+                    #pts_2d = np.array(mask_orig, dtype=np.int32).reshape((-1, 2))
+
+                    # 2. Reshape to the required OpenCV format: (N_vertices, 1, 2)
+                    # We need the extra dimension for cv2.polylines when drawing a list of contours.
+                    #pts = pts_2d.reshape((-1, 1, 2))
+
+                    # Draw the polygon outline
+                    pts = mask_orig.reshape((-1, 1, 2))
                     cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=2)
-            
+                except Exception as e:
+                    print(f"Error processing mask_orig: Data shape incorrect. {e}")
+                    continue
             # ---- Draw keypoints ----
             keypoints = detection.get("keypoints_orig", [])
             if keypoints and len(keypoints) > 0:
@@ -375,17 +374,12 @@ class DrawWorker(QRunnable):
                     x = int(keypoints[j])
                     y = int(keypoints[j+1])
                     conf = keypoints[j+2]
-                    
-                    # Only draw keypoints with sufficient confidence
-                    if conf > 0.3: # Use your desired confidence threshold
-                        # Draw a solid circle for the keypoint
-                        cv2.circle(self.frame, (x, y), 5, self._get_color_for_keypoint(j//3), -1) 
-                        
-                        # Optionally, draw a smaller, brighter center dot
-                        cv2.circle(self.frame, (x, y), 2, (255, 255, 255), -1)
+                    # Draw a solid circle for the keypoint
+                    cv2.circle(self.frame, (x, y), 5, self._get_color_for_keypoint(j//3), -1)
+                    # Optionally, draw a smaller, brighter center dot
+                    cv2.circle(self.frame, (x, y), 2, (255, 255, 255), -1)
 
-        cv2.imwrite(f"{debug_img_dir}/{detection['timestamp']}_yolo_detections_{self.name}_.png", self.frame) 
-
+        #cv2.imwrite(f"{debug_img_dir}/{detection['timestamp']}_{self.name}.png", self.frame)
 
 class ProbeDetectManager(QObject):
     """
@@ -447,7 +441,6 @@ class ProbeDetectManager(QObject):
         #self.yoloProcessWorker.signals.cancel_seg_mask.connect(self.worker.cancel_seg_mask)
 
     def receive_yolo_detections(self, detections: list):
-        print(f"  {self.name} Received {len(detections)} YOLO detections.")
         """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
         if not detections:
             return
