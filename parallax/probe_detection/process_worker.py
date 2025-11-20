@@ -278,7 +278,7 @@ class ProcessWorker(baseProcessWorker):
             if not self.stopped_first_frame:
                 return False
 
-            # First frame after stage stopped
+            # stage time stamp is later than image time stamp
             if self.stage_ts - self.img_ts > 0:
                 logger.debug(f"{self.name} - Stage ts: {self.stage_ts}, img ts: {self.img_ts}")
                 return False
@@ -303,6 +303,7 @@ class ProcessWorker(baseProcessWorker):
 
             self.stopped_first_frame = False
             if ret:
+                print("emit stopped", self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
                 self.signals.tip_stopped.emit(
                     self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org
                 )
@@ -322,6 +323,7 @@ class ProcessWorker(baseProcessWorker):
                                 )
 
             if ret:
+                print("emit moving", self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
                 self.signals.tip_moving.emit(self.img_ts, self.sn, self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
                 return True
             return False
@@ -345,12 +347,14 @@ class ProcessWorker(baseProcessWorker):
 
 # -----------------------------
 class ProcessWorkerYolo:
+
     def __init__(self, name, original_resolution, test=False, detection_callback=None, finished_callback=None):
         self.name = name
         self.original_resolution = original_resolution
         self.test = test
         self.detection_callback = detection_callback
         self.finished_callback = finished_callback
+        self.stage_ts = None
 
         # Initialize state flags to track when each client finishes
         self.local_client_finished = False
@@ -373,17 +377,37 @@ class ProcessWorkerYolo:
                                             detection_callback=self.handle_global_detections,
                                             finished_callback=lambda: self.wait_finished('global'))
 
-    def update_frame(self, frame, timestamp):
+    def update_frame(self, frame: np.ndarray, timestamp: float):
         if self.is_detection_on:
             self.yolo_global.newframe_captured(frame, timestamp)
-            time.sleep(0.05)
+            time.sleep(0.01)
 
-    def handle_global_detections(self, frame, crop_info, detections): # frame is 640x640
-        if self.probe_stopped:
+    def handle_global_detections(self, frame: np.ndarray, crop_info: dict, detections: list[dict]): 
+        if not detections:
+            return
+        
+        if not self.probe_stopped:
+            self.handle_detections(crop_info, detections)
+            return
+        
+        img_ts = detections[0].get('timestamp')
+        if img_ts is None:
+            logger.warning("Warning: Detection missing image timestamp. Skipping logic.")
+            return
+
+        # Only run local processing if:
+        # A. The probe is explicitly flagged as stopped.
+        # B. The image is 'Fresh' (Captured AFTER the stage reported the stop).
+        #    If stage_ts is None, it is first detection, so consider it fresh.
+        is_fresh_image = (self.stage_ts is None) or (img_ts > self.stage_ts)
+        if is_fresh_image:
             for detection in detections:
-                self.yolo_local.newframe_captured(frame, crop_info, detection=detection) # 640x640
-                time.sleep(0.05)
+                self.yolo_local.newframe_captured(frame, crop_info, detection=detection)
+                # TODO if there are multiple detections, yolo local might not proceeed the queue (queue size is 1)
+                #time.sleep(0.01)
         else:
+            # Fallback: Probe is moving OR image is buffered from before stop
+            # Just update the tracker/visuals without running the expensive local model
             self.handle_detections(crop_info, detections)
 
     def handle_detections(self, crop_info: dict, detections: dict):
@@ -394,7 +418,6 @@ class ProcessWorkerYolo:
         detections_original = postprocessing_global(detections, crop_info) # original input
         if self.detection_callback:
             self.detection_callback(detections_original)
-
         if self.probe_stopped:  # if probe is stopped, just detect once
             self.stop_detection()
 
@@ -449,6 +472,9 @@ class ProcessWorkerYolo:
         """Update the serial number."""
         pass
 
-    def clicked_position(self, pt):
+    def clicked_position(self, pt: tuple):
         """Handle clicked position for calibration."""
         pass
+
+    def update_stage_timestamp(self, stage_ts: float):
+        self.stage_ts = stage_ts

@@ -50,8 +50,6 @@ class DrawWorker(QRunnable):
         self.tip_coords_color, self.base_coords_color = None, None
         self.h = None
         self.w = None
-        self.mask_bool, self.mask_idx, self.seg_color_pixels = None, None, None
-        self.mask_bool_local, self.mask_idx_local, self.seg_color_pixels_local = None, None, None
         self.status = "first_detect"
         self.yolo_detections = None
         self.register_colormap()
@@ -124,7 +122,7 @@ class DrawWorker(QRunnable):
                     y = int(keypoints[j+1])
                     #conf = keypoints[j+2]
                     # Draw a solid circle for the keypoint
-                    cv2.circle(self.frame, (x, y), 10, (255-j*25, 0, 255-j*25), -1)
+                    cv2.circle(self.frame, (x, y), 3, (200-j*25, 0, 200-j*25), -1)
 
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
@@ -178,6 +176,8 @@ class DrawWorker(QRunnable):
         """
         Draw the probe tip on the frame.
         """
+        #
+        # print(" Drawing tip/base coords:", self.tip_coords, self.base_coords)
         if self.tip_coords is not None and self.frame is not None:
             cv2.circle(self.frame, self.tip_coords, 5, self.tip_coords_color, -1)
 
@@ -205,7 +205,7 @@ class DrawWorker(QRunnable):
     def update_tip_coords(self, tip_coords, color=(0, 255, 0)):
         """Update the tip coordinates on the frame.
         Args:
-            pixel_coords (tuple): Pixel coordinates of the detected probe tip.
+            pixel_coords (list): Pixel coordinates of the detected probe tip.
             color (tuple): Color for drawing the tip, default is green.
         """
         self.tip_coords = tip_coords
@@ -216,7 +216,7 @@ class DrawWorker(QRunnable):
     def update_base_coords(self, base_coords, color=(255, 0, 0)):
         """Update the base coordinates on the frame.
         Args:
-            pixel_coords (tuple): Pixel coordinates of the detected probe base.
+            pixel_coords (list): Pixel coordinates of the detected probe base.
             color (tuple): Color for drawing the base, default is red.
         """
         self.base_coords = base_coords
@@ -248,7 +248,7 @@ class ProbeDetectManager(QObject):
     """
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(float, float, str, dict, tuple, tuple)
+    found_coords = pyqtSignal(float, float, str, dict, list, list)
 
     def __init__(self, model, camera_name):
         """
@@ -282,13 +282,11 @@ class ProbeDetectManager(QObject):
         camera_resolution = self.model.get_camera_resolution(self.name)
 
         # OpenCV Process Worker
-        """
         self.processWorker = ProcessWorker(self.name, camera_resolution, test=self.model.test)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.tip_stopped.connect(self.found_probe)
         self.processWorker.signals.tip_moving.connect(self.found_probe_moving)
         self.processWorker.signals.status.connect(self.worker.update_status)
-        """
 
         # YOLO Process Worker
         # init and warmup the model but no thread runing yet
@@ -363,9 +361,6 @@ class ProbeDetectManager(QObject):
         """
         print(f"  {self.name} Stopping ProbeDetectManager")
         logger.debug(f"{self.name} - Stopping thread")
-        if self.worker is None and self.processWorker is None and self.yoloProcessWorker is None:  # State: Stopped
-            return
-
         if self.processWorker is not None:
             self.processWorker.stop_running()
 
@@ -381,11 +376,12 @@ class ProbeDetectManager(QObject):
 
     def _onProcessThreadFinished(self):
         """Handle thread finished signal."""
+        print(f"{self.name} Opencv thread finished")
         self.processWorker = None
 
     def _onYoloProcessThreadFinished(self):
         """Handle thread finished signal."""
-        print(f"{self.name} YOLO Process thread finished")
+        print(f"{self.name} YOLO thread finished")
         self.yoloProcessWorker = None
 
     def process(self, frame, timestamp):
@@ -408,17 +404,6 @@ class ProbeDetectManager(QObject):
         
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.update_frame(frame, timestamp)
-
-        """
-        if self._prev_ts is None:
-            self._prev_ts = timestamp
-        if (timestamp - self._prev_ts) > 0.5: # TODO Adjust time gap
-            if self.processWorker is not None:
-                self.processWorker.update_frame(frame, timestamp)
-            if self.yoloProcessWorker is not None:
-                self.yoloProcessWorker.update_frame(frame, timestamp)
-            self._prev_ts = timestamp
-        """
         
     @pyqtSlot(float, float, str, list, list)
     def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):
@@ -428,12 +413,13 @@ class ProbeDetectManager(QObject):
         Args:
             timestamp (str): Timestamp of the frame.
             sn (str): Serial number of the device.
-            tip_coords (tuple): Pixel coordinates of the detected probe tip.
+            tip_coords (list): Pixel coordinates of the detected probe tip.
         """
+        print(tip_coords, base_coords)
         # Update into screen
         if self.worker is not None:
             self.worker.update_tip_coords(tip_coords, color=(255, 0, 0))
-            if base_coords != (None, None):
+            if base_coords != [None, None]:
                 self.worker.update_base_coords(base_coords, color=(0, 255, 0))
 
         moving_stage = self.model.get_stage(sn)
@@ -504,7 +490,7 @@ class ProbeDetectManager(QObject):
             self.processWorker.update_stage_timestamp(stage_ts)
             self.processWorker.enable_calib()
         if self.yoloProcessWorker is not None and self.detect_algorithm == 'yolo':
-            #self.yoloProcessWorker.update_stage_timestamp(stage_ts)
+            self.yoloProcessWorker.update_stage_timestamp(stage_ts)
             self.yoloProcessWorker.enable_calib()
 
     def disable_calibration(self, sn):  # Call from stage listener. (stage is moving)

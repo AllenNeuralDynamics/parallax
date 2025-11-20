@@ -492,20 +492,18 @@ class ProbeDetector:
                                  base=(self.probe_base[0] - offset_x, self.probe_base[1] - offset_y), ts=ts)
         return ret
 
-
     def _update_original_coords(self):
         """Update the original coordinates of the probe tip and base."""
         if self.probe_tip is None or self.probe_base is None:
             return
-        
         self.probe_tip_org = UtilsCoords.scale_coords_to_original(
-            self.probe_tip,
+            [self.probe_tip],
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-        )
+        )[0]
         self.probe_base_org = UtilsCoords.scale_coords_to_original(
-            self.probe_base,
+            [self.probe_base],
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-        )
+        )[0]
 
     def update_probe(
         self,

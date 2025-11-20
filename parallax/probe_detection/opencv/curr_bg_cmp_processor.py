@@ -246,17 +246,20 @@ class CurrBgCmpProcessor():
         return ret
 
     def get_crop_region_boundary(self):
-        """Get the boundary of the crop region."""
-        if self.top is not None:
-            top_left = UtilsCoords.scale_coords_to_original(
-                (self.left, self.top), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            bottom_right = UtilsCoords.scale_coords_to_original(
-                (self.right, self.bottom), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
-            left, top = top_left
-            right, bottom = bottom_right
-            return top, bottom, left, right
-        else:
-            return None, None, None, None
+            """Get the boundary of the crop region."""
+            if self.top is not None:
+                # 1. Wrap input in []
+                # 2. Extract output with [0]
+                top_left = UtilsCoords.scale_coords_to_original(
+                    [(self.left, self.top)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)[0]
+                bottom_right = UtilsCoords.scale_coords_to_original(
+                    [(self.right, self.bottom)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)[0]
+
+                left, top = top_left
+                right, bottom = bottom_right
+                return top, bottom, left, right
+            else:
+                return None, None, None, None
 
     def _is_point_in_reticle_region(self, image, point):
         """Check if a point is in the reticle region."""
@@ -274,13 +277,14 @@ class CurrBgCmpProcessor():
         ret = False
 
         probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
-            self.ProbeDetector.probe_tip,
+            [self.ProbeDetector.probe_tip],
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-        )
+        )[0]
+
         probe_base_original_coords = UtilsCoords.scale_coords_to_original(
-            self.ProbeDetector.probe_base,
+            [self.ProbeDetector.probe_base],
             self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-        )
+        )[0]
 
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = UtilsCrops.calculate_crop_region(
             probe_tip_original_coords,

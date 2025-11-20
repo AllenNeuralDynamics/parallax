@@ -18,7 +18,7 @@ class UtilsCoords:
     """
     @staticmethod
     def scale_coords_to_original(
-        coords: List[List[int]],  # List of points [x, y] (single point or multiple points)
+        coords: List[List[int]],  # Accepts [x, y] OR [[x, y], [x, y]]
         original_size: Tuple[int, int],  # Original image dimensions (width, height)
         resized_size: Tuple[int, int]   # Resized image dimensions (width, height)
     ) -> List[List[int]]:

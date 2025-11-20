@@ -164,9 +164,9 @@ class CurrPrevCmpProcessor():
         """Get the boundary of the crop region."""
         if self.top is not None:
             top_left = UtilsCoords.scale_coords_to_original(
-                (self.left, self.top), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+                [(self.left, self.top)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)[0]
             bottom_right = UtilsCoords.scale_coords_to_original(
-                (self.right, self.bottom), self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)
+                [(self.right, self.bottom)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)[0]
             left, top = top_left
             right, bottom = bottom_right
             return top, bottom, left, right
@@ -186,13 +186,13 @@ class CurrPrevCmpProcessor():
 
         if probe_tip_original_coords is None:
             probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
-                self.ProbeDetector.probe_tip,
+                [self.ProbeDetector.probe_tip],
                 self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-            )
+            )[0]
             probe_base_original_coords = UtilsCoords.scale_coords_to_original(
-                self.ProbeDetector.probe_base,
+                [self.ProbeDetector.probe_base],
                 self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
-            )
+            )[0]
 
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = UtilsCrops.calculate_crop_region(
             probe_tip_original_coords,
