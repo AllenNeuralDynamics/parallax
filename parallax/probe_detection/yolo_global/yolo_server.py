@@ -180,6 +180,7 @@ class YoloSegmentation:
                                     else:
                                         search_id = 0
                                     detection = {
+                                        'model': 'yolo_global',
                                         'timestamp': ts,
                                         'bbox': bbox.tolist(),
                                         'class': int(cls_id),

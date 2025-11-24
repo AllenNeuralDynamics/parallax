@@ -34,7 +34,7 @@ class YOLOClient:
             self.logger.error(f"Error starting Simple YOLO client: {e}")
             return False
         
-    def newframe_captured(self, frame: np.ndarray, crop_info: object = None, detection: dict = None):
+    def newframe_captured(self, frame: np.ndarray, crop_info: object = None, detection: dict = None, i_th: int = 0):
         """Put new frame at the specified FPS rate"""
         # Rate limit the frames sent to the YOLO worker
         #if self.current_time is None or current - self.current_time > (1/self.fps):
@@ -45,8 +45,7 @@ class YOLOClient:
                               bbox_margin=self.bbox_margin,
                               mask_margin=self.mask_margin,
                               apply_mask=self.apply_mask)  # Add any preprocessing needed
-        
-        
+
         current = None
         if detection and isinstance(detection, dict) and 'timestamp' in detection:
             current = detection['timestamp']
@@ -54,12 +53,18 @@ class YOLOClient:
             current = time.time() # Fallback to system time if metadata is missing
 
         # 3. PROCESS FRAME
-        self.yolo_worker.process_frame(frame_cropped_resized, crop_info, ts=current, global_detection=detection)
+        self.yolo_worker.process_frame(frame_cropped_resized, crop_info, ts=current, global_detection=detection, i=i_th) # Reisized to 320x320
             
     def stop(self):
         """Stop the YOLO worker"""
         if self.yolo_worker:
             self.yolo_worker.stop()
+
+    def get_queue_size(self):
+        """Get the current size of the YOLO worker's input queue"""
+        if self.yolo_worker:
+            return self.yolo_worker.get_queue_size()
+        return 0
 
 
 # --- Example Usage ---

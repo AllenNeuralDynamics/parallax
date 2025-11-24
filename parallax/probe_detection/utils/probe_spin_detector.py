@@ -143,7 +143,7 @@ class SpinProcessor:
         print("3D Global points:\n", np.round(global_pts, 4))
 
         # 4. Sanity Check
-        is_sane = self._run_sanity_checks(global_pts)
+        is_sane = self.run_sanity_checks(global_pts)
         if not is_sane:
             return SpinCalculationResult(0.0, 0.0, False, "FAILED_SANITY_CHECKS")
 
@@ -154,7 +154,7 @@ class SpinProcessor:
         print("vector (XY):", np.round(vec, 4).tolist())
         return SpinCalculationResult(angle_deg, np.deg2rad(angle_deg), True, "4_SHANK")
 
-    def _run_sanity_checks(self, global_points: np.ndarray) -> bool:
+    def run_sanity_checks(self, global_points: np.ndarray) -> bool:
         ok1 = self._check_consecutive_spacings(global_points, unit="mm", scale=1.0)
         ok2, z_vals, z_span = self._check_same_local_z_RT(global_points, self.inputs.transM, tol_mm=Z_SPAN_MAX_MM)
         return ok1 and ok2
@@ -288,6 +288,43 @@ class SpinProcessor:
         order = np.argsort(dists)[:min(k, len(pts))]   # ascending distance
         return np.asarray([pts[i] for i in order], dtype=int)
 
+
+def run_sanity_checks(global_points: np.ndarray) -> bool:
+    ok1 = _check_consecutive_spacings(global_points, unit="mm", scale=1.0)
+    
+def _check_consecutive_spacings(global_pts: np.ndarray,
+                                unit: str = "mm",
+                                scale: float = 1.0) -> bool:
+    """
+    Validates if the consecutive distances between global points fall
+    within the acceptable range [0.20 mm, 0.30 mm]. Prints all calculated distances.
+    global_pts: (N,3) points in world units (must be scaled to mm).
+    Returns: True if all distances are within the bounds, False otherwise.
+    """
+    N = len(global_pts)
+    if N < 2:
+        print("Need at least 2 shank points for spacing check.")
+        return False
+    all_valid = True
+    # --- Calculate Distances Vectorized ---
+    # Calculate Euclidean distance between adjacent points
+    diffs = global_pts[1:] - global_pts[:-1]
+    distances = np.linalg.norm(diffs, axis=1) * scale
+    print("\n--- Shank Spacing Check ---")
+    for i, d in enumerate(distances):
+        # 1. Check bounds
+        is_valid = (MIN_SHANK_DIST_MM <= d <= MAX_SHANK_DIST_MM)
+        # 2. Print status and distance (as requested)
+        status = "OK" if is_valid else "FAIL"
+        print(f"Distance between shank {i+1} and {i+2}: {d:.2f} {unit} | Status: {status}")
+        if not is_valid:
+            all_valid = False
+    if not all_valid:
+        print(f"Sanity Check FAILED: One or more spacings outside [{MIN_SHANK_DIST_MM:.2f}, {MAX_SHANK_DIST_MM:.2f}] {unit}.")
+    else:
+        print("Sanity Check PASSED: All shank spacings are within tolerance.")
+    print("---------------------------\n")
+    return all_valid
 # ---------- dev main ----------
 if __name__ == "__main__":
     pass

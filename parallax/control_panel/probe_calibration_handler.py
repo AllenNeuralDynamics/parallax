@@ -20,6 +20,7 @@ from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
+from parallax.probe_detection.utils.probe_spin_detector import run_sanity_checks
 
 
 logger = logging.getLogger(__name__)
@@ -197,6 +198,7 @@ class ProbeCalibrationHandler(QWidget):
 
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
+        print("---- probe_detect_on_two_screens ----")
         for screen in self.screen_widgets:
             cam = screen.get_camera_name()
             if cam == self.camA_best:
@@ -213,7 +215,18 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
-        print("global_coords", global_coords[0])
+        if stage_A.get("type", "") == "4shanks":
+            pass
+            #okay = run_sanity_checks(global_coords)
+            #print("\n  global_coords", global_coords)
+
+            # Reverse order for tip_B
+            #global_coords = triangulate(ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params)
+            #okay = run_sanity_checks(global_coords)
+            #print("\n  global_coords", global_coords)
+            
+        #print(f"  stage info {self.camA_best}", stage_A)
+        #print(f"  stage_info {self.camB_best}", stage_B)
 
         self.stageListener.handleGlobalDataChange(
             sn_A,

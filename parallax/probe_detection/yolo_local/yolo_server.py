@@ -58,6 +58,9 @@ class YoloKeypoints:
             self.logger.error(f"Failed to load YOLO model: {e}, running yolo in dummy mode")
             self.model = None
 
+    def get_queue_size(self):
+        return len(self.frame_queue) if self.frame_queue else 0
+    
     def start(self):
         """Start the YOLO segmentation thread"""
         if self.running:
@@ -118,7 +121,7 @@ class YoloKeypoints:
             self.worker_thread.join(timeout=1.0)
         self.logger.info("YOLO segmentation worker stopped")
         
-    def process_frame(self, frame: np.ndarray, crop_info: dict = None, ts: float = None, global_detection: dict = None):
+    def process_frame(self, frame: np.ndarray, crop_info: dict = None, ts: float = None, global_detection: dict = None, i: int = 0):
         """Add frame to processing queue"""
         if not self.running:
             return
@@ -131,7 +134,7 @@ class YoloKeypoints:
                 last_frame_ts = self.frame_queue[-1][1]
                 if ts != last_frame_ts:
                     self.frame_queue.clear()
-            self.frame_queue.append((frame, crop_info, ts, global_detection))
+            self.frame_queue.append((frame, crop_info, ts, global_detection, i))
         except Exception as e:
             # Catch errors related to queue access/data structure
             print(f"Error processing frame queue: {e}")
@@ -141,7 +144,8 @@ class YoloKeypoints:
         while self.running:
             try:
                 if len(self.frame_queue) > 0:
-                    (frame, crop_info, ts, global_detection) = self.frame_queue.pop()
+                    (frame, crop_info, ts, global_detection, i_th) = self.frame_queue.pop()
+                    print(f"   {i_th} - {crop_info} pop")
                     global_class_name = global_detection.get("class_name", "") if global_detection else ""
                     detections = []
                     
@@ -204,28 +208,43 @@ class YoloKeypoints:
                                         self.logger.debug(f"Skipping local detection '{class_name}'. Requires '{global_class_name}'.")
                                         continue
 
+                                    """
                                     # Get tracking ID if available      
                                     if hasattr(boxes, 'id') and boxes.id is not None:
                                         search_id = int(boxes.id[i].cpu().numpy())
                                     else:
                                         search_id = 0
+                                    """
                                     
                                     detection = {
+                                        'model': 'yolo_local',
                                         'timestamp': ts,
                                         'bbox': bbox.tolist(),
                                         'class': int(cls_id),
                                         'class_name': class_name,
                                         'confidence': conf,
-                                        'id': search_id,
+                                        'id': global_detection['id'] if global_detection and 'id' in global_detection else None,
                                         'keypoints': keypoints_data.get(i, []),
+                                        'stage_ts': global_detection['stage_ts'] if global_detection and 'stage_ts' in global_detection else None,
                                         'bbox_seg': global_detection['bbox'] if global_detection and 'bbox' in global_detection else None,
                                         'mask': global_detection['mask'] if global_detection and 'mask' in global_detection else None
                                     }
                                     detections.append(detection)
                     
+                        else:  # No results
+                            self.logger.debug("No detections from YOLO model.")
+                            detections = [{
+                                'model': 'yolo_local',
+                                'timestamp': ts,
+                                'confidence': 0.0,
+                                'stage_ts': global_detection['stage_ts'] if global_detection and 'stage_ts' in global_detection else None,
+                                'bbox_seg': global_detection['bbox'] if global_detection and 'bbox' in global_detection else None,
+                                'mask': global_detection['mask'] if global_detection and 'mask' in global_detection else None
+                            }]
+                    
                     # Call the provided callback function with detections
                     if self.detection_callback:
-                        self.detection_callback(crop_info, detections)
+                        self.detection_callback(crop_info, detections, i_th)
                 else:
                     # No frames to process, sleep briefly
                     time.sleep(0.01)

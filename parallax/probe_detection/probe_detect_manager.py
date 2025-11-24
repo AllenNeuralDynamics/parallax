@@ -86,8 +86,14 @@ class DrawWorker(QRunnable):
         if self.yolo_detections is None:
             return
 
-        color = (0, 255, 0) # Yellow/Cyan
-        for detection in self.yolo_detections:
+        palette = [
+            (0, 255, 0),   (255, 0, 0),   (0, 0, 255),
+            (255, 255, 0), (0, 255, 255), (255, 0, 255),
+            (0, 165, 255), (128, 0, 128)
+        ]
+
+        for i, detection in enumerate(self.yolo_detections):
+            color = palette[i % len(palette)]
             # --- Draw Bounding Box ---
             if 'bbox_orig' in detection and detection['bbox_orig'] is not None:
                 try:
@@ -95,19 +101,21 @@ class DrawWorker(QRunnable):
                     x1, y1 = int(x1_f), int(y1_f)
                     x2, y2 = int(x2_f), int(y2_f)
                     cv2.rectangle(self.frame, (x1, y1), (x2, y2), color, 2)
+
                     # ---- Label text ----
                     label = f"{detection['class_name']} {detection['confidence']:.2f}"
+                    # Use the same color for text so it matches the box
                     cv2.putText(self.frame, label, (x1, max(20, y1 - 10)),
                                 cv2.FONT_HERSHEY_SIMPLEX, 2.0, color, 2, cv2.LINE_AA)
                 except TypeError as e:
                     print(f"Error processing bbox data: {e}. Bbox value: {detection.get('bbox_orig')}")
                     continue
 
+            # --- Draw Mask ---
             mask_orig = detection.get("mask_orig")
-            color = (255, 255, 0)
             if mask_orig is not None:
                 try:
-                    # Draw the polygon outline
+                    # Draw the polygon outline using the SAME unique color
                     pts = mask_orig.reshape((-1, 1, 2))
                     cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=3)
                 except Exception as e:
@@ -120,9 +128,9 @@ class DrawWorker(QRunnable):
                 for j in range(0, len(keypoints), 3):
                     x = int(keypoints[j])
                     y = int(keypoints[j+1])
-                    #conf = keypoints[j+2]
-                    # Draw a solid circle for the keypoint
-                    cv2.circle(self.frame, (x, y), 3, (200-j*25, 0, 200-j*25), -1)
+                    # Option A: Keep your custom logic (fading purple)
+                    kp_color = (200-j*25, 0, 200-j*25)
+                    cv2.circle(self.frame, (x, y), 5, kp_color, -1)
 
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
@@ -282,11 +290,13 @@ class ProbeDetectManager(QObject):
         camera_resolution = self.model.get_camera_resolution(self.name)
 
         # OpenCV Process Worker
+        self.processWorker = None
+        """
         self.processWorker = ProcessWorker(self.name, camera_resolution, test=self.model.test)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.tip_stopped.connect(self.found_probe)
         self.processWorker.signals.tip_moving.connect(self.found_probe_moving)
-        self.processWorker.signals.status.connect(self.worker.update_status)
+        self.processWorker.signals.status.connect(self.worker.update_status)"""
 
         # YOLO Process Worker
         # init and warmup the model but no thread runing yet
@@ -299,13 +309,61 @@ class ProbeDetectManager(QObject):
         #self.yoloProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
         #self.yoloProcessWorker.signals.status.connect(self.worker.update_status)
 
-    def receive_yolo_detections(self, detections: list):
+    def receive_yolo_detections(self, detections: list[dict]):
         """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
         if not detections:
             return
+
+        print(f"  {self.name} Received {len(detections)} YOLO detections.")
+        # Draw on screen
         if self.worker is not None:
             self.worker.clear_yolo_detections()
             self.worker.receive_yolo_detections(detections)
+
+        # Emit found_coords if all detections are from yolo_local
+        if all(d.get('model') == 'yolo_local' for d in detections) and self.yoloProcessWorker.probe_stopped:
+            #self.yoloProcessWorker.stop_detection()
+            # Emit found_coords signal
+            print(f"  {self.name} Emitting found_coords from YOLO detections.")
+            # TODO filter out moving detections
+            self.emit_found_coords(detections[0])
+
+    def emit_found_coords(self, detection: dict):
+        stage_ts = detection.get('stage_ts', None)
+        img_ts = detection.get('timestamp', None)
+        keypoints = detection.get("keypoints_orig", [])  #[x1, y1, conf1, x2, y2, conf2, ...]
+
+        tip_coords, base_coords = [], []
+        if keypoints and len(keypoints) > 0:
+            for j in range(0, len(keypoints), 3):
+                x = float(keypoints[j])
+                y = float(keypoints[j+1])
+                tip_coords.append([x, y]) # Append simple list [x, y]
+
+        if tip_coords:
+            # Convert list of lists to (N, 2) array
+            tip_coords = np.array(tip_coords, dtype=np.float64)
+        else:
+            return
+
+        sn = self.yoloProcessWorker.sn
+        print("sn:", sn)
+        moving_stage = self.model.get_stage(sn)
+        if moving_stage is None:
+            return
+        stage_info = {
+            "type": "1shank" if len(tip_coords) == 1 else "4shanks",
+            "stage_x": moving_stage.stage_x,
+            "stage_y": moving_stage.stage_y,
+            "stage_z": moving_stage.stage_z,
+        }
+
+        try:
+            # found_coords = pyqtSignal(float, float, str, dict, list, list)
+            print(f" {self.name} Emitting found_coords:", stage_ts, img_ts, sn, tip_coords, base_coords, stage_info)
+            self.found_coords.emit(stage_ts, img_ts, sn, stage_info, tip_coords, base_coords)
+        except Exception as e:
+            logger.error(f"Error emitting found_coords: {e}")
 
     def start(self):
         """
@@ -327,10 +385,13 @@ class ProbeDetectManager(QObject):
 
         self._init_process_thread() # Init processWorker and yoloProcessWorker
         if self.detect_algorithm == 'opencv' and self.processWorker is not None:
-            self.processWorker.start_running()
-            self.threadpool.start(self.processWorker)
+            #self.processWorker.start_running()  # running thread
+            #self.threadpool.start(self.processWorker)
+            pass
         elif self.detect_algorithm == 'yolo' and self.yoloProcessWorker is not None:
-            self.yoloProcessWorker.start_running()
+            sn = self.model.get_selected_stage_ui()
+            self.yoloProcessWorker.update_sn(sn)  # TODO set real sn
+            self.yoloProcessWorker.start_running()  # running thread
             #self.threadpool.start(self.yoloProcessWorker)
         
     def get_mask(self):
@@ -415,9 +476,9 @@ class ProbeDetectManager(QObject):
             sn (str): Serial number of the device.
             tip_coords (list): Pixel coordinates of the detected probe tip.
         """
-        print(tip_coords, base_coords)
+        #print(tip_coords, base_coords)
         # Update into screen
-        if self.worker is not None:
+        if self.worker is not None and self.detect_algorithm == 'opencv':
             self.worker.update_tip_coords(tip_coords, color=(255, 0, 0))
             if base_coords != [None, None]:
                 self.worker.update_base_coords(base_coords, color=(0, 255, 0))
@@ -425,6 +486,7 @@ class ProbeDetectManager(QObject):
         moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:
             stage_info = {
+                "type": "1shank",
                 "stage_x": moving_stage.stage_x,
                 "stage_y": moving_stage.stage_y,
                 "stage_z": moving_stage.stage_z,
@@ -450,6 +512,7 @@ class ProbeDetectManager(QObject):
     def start_detection(self, sn):  # Call from stage listener. (stage is moving)
         """Start the probe detection for a specific serial number.
         When stage is moving, do detection, but no calibration.
+        sn is moving stage serial number from Pathfinder SW
 
         Args:
             sn (str): Serial number.

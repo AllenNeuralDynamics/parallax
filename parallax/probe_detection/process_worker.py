@@ -15,6 +15,7 @@ from parallax.probe_detection.utils.probe_img_processor import ProbeImageProcess
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.opencv.probe_detector import ProbeDetector
 from parallax.reticle_detection.reticle_detection import ReticleDetection
+
 from parallax.probe_detection.yolo_global.yolo_client import YOLOClient as GlobalYOLOClient
 from parallax.probe_detection.yolo_local.yolo_client import YOLOClient as LocalYOLOClient
 from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
@@ -347,7 +348,6 @@ class ProcessWorker(baseProcessWorker):
 
 # -----------------------------
 class ProcessWorkerYolo:
-
     def __init__(self, name, original_resolution, test=False, detection_callback=None, finished_callback=None):
         self.name = name
         self.original_resolution = original_resolution
@@ -355,6 +355,8 @@ class ProcessWorkerYolo:
         self.detection_callback = detection_callback
         self.finished_callback = finished_callback
         self.stage_ts = None
+        self.sn = None
+        self.detections = []
 
         # Initialize state flags to track when each client finishes
         self.local_client_finished = False
@@ -371,7 +373,8 @@ class ProcessWorkerYolo:
             print(f"Error loading YOLO config: {e}")
             CONFIG = {}
         self.yolo_local = LocalYOLOClient(config=CONFIG["keypoints"],
-                                          detection_callback=self.handle_detections,
+                                          #detection_callback=self.handle_detections_local,
+                                          detection_callback=self.handle_local_detections,
                                           finished_callback=lambda: self.wait_finished('local'))
         self.yolo_global = GlobalYOLOClient(config=CONFIG["segmentation"],
                                             detection_callback=self.handle_global_detections,
@@ -385,41 +388,65 @@ class ProcessWorkerYolo:
     def handle_global_detections(self, frame: np.ndarray, crop_info: dict, detections: list[dict]): 
         if not detections:
             return
-        
-        if not self.probe_stopped:
-            self.handle_detections(crop_info, detections)
+        if not self.is_detection_on:
             return
         
+        self.global_emit(crop_info, detections)  # Draw mask
+
+        # If probe is not stopped, skip local detection
+        if not self.probe_stopped:
+            self.detections = None
+            return
+        
+        # If probe is stopped, run local detection on top of global detections
         img_ts = detections[0].get('timestamp')
         if img_ts is None:
-            logger.warning("Warning: Detection missing image timestamp. Skipping logic.")
+            # logger.warning(...)
             return
 
-        # Only run local processing if:
-        # A. The probe is explicitly flagged as stopped.
-        # B. The image is 'Fresh' (Captured AFTER the stage reported the stop).
-        #    If stage_ts is None, it is first detection, so consider it fresh.
-        is_fresh_image = (self.stage_ts is None) or (img_ts > self.stage_ts)
-        if is_fresh_image:
-            for detection in detections:
-                self.yolo_local.newframe_captured(frame, crop_info, detection=detection)
-                # TODO if there are multiple detections, yolo local might not proceeed the queue (queue size is 1)
-                #time.sleep(0.01)
+        # Check if the image timestamp is after the stage stopped timestamp
+        is_stage_stopped_img = (self.stage_ts is None) or (img_ts > self.stage_ts)
+        if is_stage_stopped_img and self.probe_stopped and self.is_detection_on:
+            self.stop_detection()
+            self.detections = detections.copy()
+            for i, detection in enumerate(detections):
+                detection['stage_ts'] = self.stage_ts
+                self.yolo_local.newframe_captured(frame, crop_info.copy(), detection=detection, i_th=i)  
+                time.sleep(0.01)
         else:
-            # Fallback: Probe is moving OR image is buffered from before stop
-            # Just update the tracker/visuals without running the expensive local model
-            self.handle_detections(crop_info, detections)
+            self.global_emit(crop_info, detections)
 
-    def handle_detections(self, crop_info: dict, detections: dict):
+    def global_emit(self, crop_info: dict, detections: list[dict]):
         if not detections:
             return
-        if self.probe_stopped:  # if probe is stopped, run both local and global YOLO
-            detections = postprocessing_local(detections, crop_info) # 640x640
         detections_original = postprocessing_global(detections, crop_info) # original input
         if self.detection_callback:
             self.detection_callback(detections_original)
-        if self.probe_stopped:  # if probe is stopped, just detect once
-            self.stop_detection()
+
+    def handle_local_detections(self, crop_info: dict, detections: list[dict], i: int = 0):
+        if not detections:
+            print(f" {i} - No local detections received.")
+            return
+        
+        # Get only one detection per crop with highest confidence
+        detection = max(detections, key=lambda d: d.get('confidence', 0))
+        detection_global = postprocessing_local([detection], crop_info)
+        detection_original = postprocessing_global(detection_global, crop_info)
+        
+        # Update the shared list safely because handle_global is now blocked
+        if self.detections and i < len(self.detections):
+            self.detections[i] = detection_original[0]
+
+        if self._is_local_batch_complete():
+            # emit
+            if self.detection_callback:
+                self.detection_callback(self.detections)
+            self.detections = []
+            
+    def _is_local_batch_complete(self):
+        # check detection 'model' feild is all set to 'yolo_local'
+        if not self.detections: return False
+        return all(d.get('model') == 'yolo_local' for d in self.detections)
 
     def wait_finished(self, client_name: str):
         """
@@ -443,6 +470,7 @@ class ProcessWorkerYolo:
             return yaml.safe_load(f)
         
     def start_running(self):  # Running Yolo Server Threads
+        self.stage_ts = 0.0     # init
         self.yolo_local.start_client()
         self.yolo_global.start_client()
 
@@ -451,14 +479,10 @@ class ProcessWorkerYolo:
         self.yolo_local.stop()
 
     def disable_calib(self):  # stage is moving
-        # TODO run only global
         self.probe_stopped = False
-        pass
 
     def enable_calib(self):  # stage is stopped
-        # TODO run both global and local
         self.probe_stopped = True
-        pass
 
     def start_detection(self):  # stage is moving
         """Start the probe detection."""
@@ -470,11 +494,13 @@ class ProcessWorkerYolo:
 
     def update_sn(self, sn):
         """Update the serial number."""
-        pass
+        self.sn = sn
+
+    def update_stage_timestamp(self, stage_ts: float):
+        self.stage_ts = stage_ts
+        #print(f" {self.name} ProcessWorkerYolo update_stage_timestamp: {stage_ts}")
 
     def clicked_position(self, pt: tuple):
         """Handle clicked position for calibration."""
         pass
 
-    def update_stage_timestamp(self, stage_ts: float):
-        self.stage_ts = stage_ts
