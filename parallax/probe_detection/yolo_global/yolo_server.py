@@ -153,7 +153,9 @@ class YoloSegmentation:
                         results = self.model.track(
                             frame, 
                             persist=True, # Keep persist=True to maintain tracker state
-                            conf=self.conf_thresh
+                            conf=self.conf_thresh,
+                            iou=self.iou_thresh,
+                            agnostic_nms=True
                         )
 
                         # Convert results to detection format

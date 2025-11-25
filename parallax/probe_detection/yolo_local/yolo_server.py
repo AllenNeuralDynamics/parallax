@@ -28,7 +28,7 @@ class YoloKeypoints:
         self.name = name
         self.weights_path = config.get('weights_path', r'external/YoloV11/tip_keypoint_detection_fast.pt')
         self.conf_thresh = config.get('conf_thresh', 0.5)
-        self.iou_thresh = config.get('iou_thresh', 0.45)
+        self.iou_thresh = config.get('iou_thresh', 0.75)
         self.img_size = config.get('img_size', 640)
         self.img_dim = config.get('img_dim', [640, 480])  # input image dimension for YOLO (w, h)
         self.max_det = config.get('max_det', 30)
