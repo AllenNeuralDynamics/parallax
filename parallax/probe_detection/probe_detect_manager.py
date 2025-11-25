@@ -60,7 +60,7 @@ class DrawWorker(QRunnable):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-        self.frame = frame.copy()  # To seperate frame with ProcessWorker
+        self.frame = frame.copy()
         self.new = True
         self.timestamp = timestamp
 
@@ -117,7 +117,7 @@ class DrawWorker(QRunnable):
                 try:
                     # Draw the polygon outline using the SAME unique color
                     pts = mask_orig.reshape((-1, 1, 2))
-                    cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=3)
+                    cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=2)
                 except Exception as e:
                     print(f"Error processing mask_orig: Data shape incorrect. {e}")
                     continue
@@ -128,9 +128,8 @@ class DrawWorker(QRunnable):
                 for j in range(0, len(keypoints), 3):
                     x = int(keypoints[j])
                     y = int(keypoints[j+1])
-                    # Option A: Keep your custom logic (fading purple)
-                    kp_color = (200-j*25, 0, 200-j*25)
-                    cv2.circle(self.frame, (x, y), 5, kp_color, -1)
+                    kp_color = (200-j*25, 0, 200-j*25)  # (fading purple)
+                    cv2.circle(self.frame, (x, y), 3, kp_color, -1)
 
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
@@ -313,20 +312,24 @@ class ProbeDetectManager(QObject):
         """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
         if not detections:
             return
-
         print(f"  {self.name} Received {len(detections)} YOLO detections.")
+
+        # Emit found_coords if all detections are from yolo_local
+        if all(d.get('model') == 'yolo_local' for d in detections) and self.yoloProcessWorker.probe_stopped:
+            # TODO # Run fine tip detection
+            for detection in detections:
+                keypoints = detection.get("keypoints_orig", [])
+                if keypoints and self.yoloProcessWorker is not None:
+                    refined_keypoints = self.yoloProcessWorker.get_precise_tip(keypoints)
+                    detection["keypoints_orig"] = refined_keypoints
+                    print(f"  {self.name} Refined keypoints:", refined_keypoints)
+            # TODO filter out moving detections
+
         # Draw on screen
         if self.worker is not None:
             self.worker.clear_yolo_detections()
             self.worker.receive_yolo_detections(detections)
-
-        # Emit found_coords if all detections are from yolo_local
-        if all(d.get('model') == 'yolo_local' for d in detections) and self.yoloProcessWorker.probe_stopped:
-            #self.yoloProcessWorker.stop_detection()
-            # Emit found_coords signal
-            print(f"  {self.name} Emitting found_coords from YOLO detections.")
-            # TODO filter out moving detections
-            self.emit_found_coords(detections[0])
+            #self.emit_found_coords(detections[0])
 
     def emit_found_coords(self, detection: dict):
         stage_ts = detection.get('stage_ts', None)
@@ -339,7 +342,7 @@ class ProbeDetectManager(QObject):
                 x = float(keypoints[j])
                 y = float(keypoints[j+1])
                 tip_coords.append([x, y]) # Append simple list [x, y]
-
+        
         if tip_coords:
             # Convert list of lists to (N, 2) array
             tip_coords = np.array(tip_coords, dtype=np.float64)
@@ -453,18 +456,17 @@ class ProbeDetectManager(QObject):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-
         fps = 5  # TODO handle different fps per processor
         if self._prev_ts is None or (timestamp - self._prev_ts) >= (1.0/fps):
             if self.processWorker is not None:
                 self.processWorker.update_frame(frame, timestamp)
             self._prev_ts = timestamp
 
-        if self.worker is not None:
-                self.worker.update_frame(frame, timestamp)
-        
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.update_frame(frame, timestamp)
+
+        if self.worker is not None:
+                self.worker.update_frame(frame, timestamp)
         
     @pyqtSlot(float, float, str, list, list)
     def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):

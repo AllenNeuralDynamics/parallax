@@ -121,7 +121,13 @@ class YoloKeypoints:
             self.worker_thread.join(timeout=1.0)
         self.logger.info("YOLO segmentation worker stopped")
         
-    def process_frame(self, frame: np.ndarray, crop_info: dict = None, ts: float = None, global_detection: dict = None, i: int = 0):
+    def process_frame(self,
+                      frame: np.ndarray,
+                      crop_info: dict = None,
+                      ts: float = None,
+                      global_detection: dict = None,
+                      i: int = 0
+                    ):
         """Add frame to processing queue"""
         if not self.running:
             return
@@ -145,7 +151,6 @@ class YoloKeypoints:
             try:
                 if len(self.frame_queue) > 0:
                     (frame, crop_info, ts, global_detection, i_th) = self.frame_queue.pop()
-                    print(f"   {i_th} - {crop_info} pop")
                     global_class_name = global_detection.get("class_name", "") if global_detection else ""
                     detections = []
                     

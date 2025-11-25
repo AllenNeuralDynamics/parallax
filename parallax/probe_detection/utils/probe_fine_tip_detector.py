@@ -13,7 +13,7 @@ from parallax.config.config_path import img_processing_config_file
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ProbeFineTipDetector:
@@ -287,8 +287,10 @@ class ProbeFineTipDetector:
         refinement_config = config.get("tip_refinement", {})
 
         if logger.getEffectiveLevel() == logging.DEBUG and debug_config.get("save_images", True):
-            save_path = os.path.join(debug_img_dir, f"{cam_name}_tip_{time.time()}.jpg")
-            cv2.imwrite(save_path, img)
+            img_before = img.copy()
+            cv2.circle(img_before, (tip[0] - offset_x, tip[1] - offset_y), 1, (0, 0, 255), -1)
+            save_path = os.path.join(debug_img_dir, f"{cam_name}_{tip}_{time.time()}_before.jpg")
+            cv2.imwrite(save_path, img_before)
 
         img = cls._preprocess_image(img)
 
@@ -305,14 +307,14 @@ class ProbeFineTipDetector:
 
         if logger.getEffectiveLevel() == logging.DEBUG and debug_config.get("save_images", True):
             x, y = precise_tip_extended[0] - offset_x, precise_tip_extended[1] - offset_y
-
             # Use configurable debug circle parameters
-            radius = debug_config.get("circle_radius", 5)
+            radius = debug_config.get("circle_radius", 2)
             color = tuple(debug_config.get("circle_color", [0, 255, 0]))
             thickness = debug_config.get("circle_thickness", -1)
 
-            cv2.circle(img, (x, y), radius, color, thickness)
-            save_path = os.path.join(debug_img_dir, f"{cam_name}_tip_{time.time()}.jpg")
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            cv2.circle(img, (x, y), 1, color, thickness)
+            save_path = os.path.join(debug_img_dir, f"{cam_name}_{tip}_{time.time()}_after.jpg")
             cv2.imwrite(save_path, img)
 
         return True, precise_tip_extended

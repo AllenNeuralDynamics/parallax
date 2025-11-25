@@ -20,9 +20,10 @@ from parallax.probe_detection.yolo_global.yolo_client import YOLOClient as Globa
 from parallax.probe_detection.yolo_local.yolo_client import YOLOClient as LocalYOLOClient
 from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
 from parallax.probe_detection.yolo_local.utils import postprocessing as postprocessing_local
+from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 
 from parallax.config.config_path import debug_img_dir
-from parallax.utils.utils import UtilsCoords
+from parallax.utils.utils import UtilsCoords, UtilsCrops
 from parallax.config.config_path import yolo_config_path
 
 # Set logger name
@@ -345,10 +346,10 @@ class ProcessWorker(baseProcessWorker):
                 logger.info(f"Emit tip stopped signal with coords: {self.probeDetect.probe_tip_org}")
 
 
-
 # -----------------------------
 class ProcessWorkerYolo:
     def __init__(self, name, original_resolution, test=False, detection_callback=None, finished_callback=None):
+        self.frame = None
         self.name = name
         self.original_resolution = original_resolution
         self.test = test
@@ -373,7 +374,6 @@ class ProcessWorkerYolo:
             print(f"Error loading YOLO config: {e}")
             CONFIG = {}
         self.yolo_local = LocalYOLOClient(config=CONFIG["keypoints"],
-                                          #detection_callback=self.handle_detections_local,
                                           detection_callback=self.handle_local_detections,
                                           finished_callback=lambda: self.wait_finished('local'))
         self.yolo_global = GlobalYOLOClient(config=CONFIG["segmentation"],
@@ -382,6 +382,7 @@ class ProcessWorkerYolo:
 
     def update_frame(self, frame: np.ndarray, timestamp: float):
         if self.is_detection_on:
+            self.frame = frame
             self.yolo_global.newframe_captured(frame, timestamp)
             time.sleep(0.01)
 
@@ -438,11 +439,15 @@ class ProcessWorkerYolo:
             self.detections[i] = detection_original[0]
 
         if self._is_local_batch_complete():
+            # get moving probes
             # emit
             if self.detection_callback:
                 self.detection_callback(self.detections)
             self.detections = []
-            
+
+    def _get_moving_probes(self, detections: list[dict]):
+        pass
+
     def _is_local_batch_complete(self):
         # check detection 'model' feild is all set to 'yolo_local'
         if not self.detections: return False
@@ -504,3 +509,32 @@ class ProcessWorkerYolo:
         """Handle clicked position for calibration."""
         pass
 
+    def get_precise_tip(self, keypoints: list):
+        if keypoints is None:
+            return None
+        if keypoints and len(keypoints) > 0:
+            for j in range(0, len(keypoints), 3):  # format [x1, y1, c1, x2, y2, c2, ...]
+                x = int(keypoints[j])
+                y = int(keypoints[j+1])
+                tip = (x, y)
+
+                top_fine, bottom_fine, left_fine, right_fine = UtilsCrops.calculate_crop_region(
+                    tip,
+                    tip,
+                    crop_size=25,
+                    IMG_SIZE=self.original_resolution,
+                )
+                tip_image = self.frame[top_fine:bottom_fine, left_fine:right_fine]
+                ret, tip = ProbeFineTipDetector.get_precise_tip(
+                    tip_image,
+                    tip=tip,
+                    base=None,
+                    offset_x=left_fine,
+                    offset_y=top_fine,
+                    cam_name=self.name
+                )
+
+                if ret:
+                    keypoints[j] = float(tip[0])
+                    keypoints[j+1] = float(tip[1])s
+        return keypoints
