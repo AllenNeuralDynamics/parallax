@@ -18,13 +18,14 @@ class YoloSegmentation:
     """YOLO segmentation worker that runs in its own thread"""
     _info_printed = False
     
-    def __init__(self, config, detection_callback=None, finished_callback=None):
+    def __init__(self, name, config, detection_callback=None, finished_callback=None):
         """
         :param config: Configuration dictionary.
         :param detection_callback: A function to call with the list of detections.
         """
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.name = name
         self.weights_path = config.get('weights_path', r'external/YoloV11/tip_keypoint_detection_fast.pt')
         self.conf_thresh = config.get('conf_thresh', 0.5)
         self.iou_thresh = config.get('iou_thresh', 0.45)
@@ -87,8 +88,6 @@ class YoloSegmentation:
                 print(f"    ID: {class_id} / Name: {class_name}")
             print("-----------------------------\n")
             YoloSegmentation._info_printed = True
-        else:
-            self.logger.warning("Could not find class names attribute (self.model.names).")
         
         try:
             # Create dummy frame matching your expected input

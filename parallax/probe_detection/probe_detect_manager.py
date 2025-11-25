@@ -312,18 +312,23 @@ class ProbeDetectManager(QObject):
         """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
         if not detections:
             return
-        print(f"  {self.name} Received {len(detections)} YOLO detections.")
+        #print(f"{self.name} Received {len(detections)} YOLO detections.")
 
         # Emit found_coords if all detections are from yolo_local
         if all(d.get('model') == 'yolo_local' for d in detections) and self.yoloProcessWorker.probe_stopped:
+            print(f":):) {self.name} Received kpts {len(detections)} YOLO detections.")
             # TODO # Run fine tip detection
             for detection in detections:
                 keypoints = detection.get("keypoints_orig", [])
-                if keypoints and self.yoloProcessWorker is not None:
+                if keypoints and len(keypoints) > 0 and self.yoloProcessWorker is not None:
                     refined_keypoints = self.yoloProcessWorker.get_precise_tip(keypoints)
                     detection["keypoints_orig"] = refined_keypoints
-                    print(f"  {self.name} Refined keypoints:", refined_keypoints)
-            # TODO filter out moving detections
+                    print(f"{self.name} Received kpts {len(detections)} YOLO detections.")
+                    #print(f"  {self.name} Refined keypoints: {refined_keypoints}\n")
+
+                # TODO filter out moving detections
+                #is_moving = detection.get("is_moving", False)
+                #print(f"  {self.name} - {detection.get('id')} {detection.get('class_name')}, moving: {is_moving}")
 
         # Draw on screen
         if self.worker is not None:

@@ -6,16 +6,17 @@ import logging
 
 
 class YOLOClient:
-    def __init__(self, config={}, detection_callback=None, finished_callback=None):
+    def __init__(self, name="", config={}, detection_callback=None, finished_callback=None):
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.name = name
         self.fps = config.get('fps', 5)
         self.dim = config.get('yolo', {}).get('img_dim', [640, 640])
         self.current_time = None
         
         # Create YOLO segmentator, passing the detection callback
         yolo_config = config.get('yolo', {})
-        self.yolo_worker = YoloSegmentation(yolo_config, detection_callback=detection_callback, finished_callback=finished_callback)
+        self.yolo_worker = YoloSegmentation(name, yolo_config, detection_callback=detection_callback, finished_callback=finished_callback)
 
         # Note: All PyQT signal/slot connections have been replaced by the direct 
         # `detection_callback` function passed to YoloSegmentation's constructor.

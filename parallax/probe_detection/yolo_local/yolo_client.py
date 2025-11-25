@@ -8,9 +8,10 @@ from parallax.config.config_path import debug_img_dir
 
 
 class YOLOClient:
-    def __init__(self, config={}, detection_callback=None, finished_callback=None):
+    def __init__(self, name="", config={}, detection_callback=None, finished_callback=None):
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.name = name
         self.fps = config.get('fps', 5)
         self.dim = config.get('yolo', {}).get('img_dim', [320, 320])
         self.bbox_margin = config.get('yolo', {}).get('bbox_margin', 30)
@@ -20,7 +21,7 @@ class YOLOClient:
         
         # Create YOLO segmentator, passing the detection callback
         yolo_config = config.get('yolo', {})
-        self.yolo_worker = YoloKeypoints(yolo_config, detection_callback=detection_callback, finished_callback=finished_callback)
+        self.yolo_worker = YoloKeypoints(name, yolo_config, detection_callback=detection_callback, finished_callback=finished_callback)
         # Note: All PyQT signal/slot connections have been replaced by the direct 
         # `detection_callback` function passed to YoloSegmentation's constructor.
 
@@ -52,7 +53,6 @@ class YOLOClient:
         else:
             current = time.time() # Fallback to system time if metadata is missing
 
-        # 3. PROCESS FRAME
         self.yolo_worker.process_frame(frame_cropped_resized, crop_info, ts=current, global_detection=detection, i=i_th) # Reisized to 320x320
             
     def stop(self):

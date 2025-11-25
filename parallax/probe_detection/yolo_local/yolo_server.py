@@ -8,6 +8,7 @@ import sys # Import sys for basic signal/logging if needed
 from threading import Thread, Event # Using Event for better thread signaling
 from ultralytics import YOLO
 import torch
+from parallax.config.config_path import debug_img_dir
 
 
 # Basic logging setup (You can customize this in your main script)
@@ -17,13 +18,14 @@ class YoloKeypoints:
     """YOLO segmentation worker that runs in its own thread"""
     _info_printed = False
     
-    def __init__(self, config, detection_callback=None, finished_callback=None):
+    def __init__(self, name, config, detection_callback=None, finished_callback=None):
         """
         :param config: Configuration dictionary.
         :param detection_callback: A function to call with the list of detections.
         """
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.name = name
         self.weights_path = config.get('weights_path', r'external/YoloV11/tip_keypoint_detection_fast.pt')
         self.conf_thresh = config.get('conf_thresh', 0.5)
         self.iou_thresh = config.get('iou_thresh', 0.45)
@@ -34,6 +36,7 @@ class YoloKeypoints:
         self.frame_queue = deque(maxlen=20)
         self.running = False
         self.worker_thread = None
+        self.names_map = {}
         
         # New: Store the callback function
         self.detection_callback = detection_callback
@@ -81,18 +84,20 @@ class YoloKeypoints:
         self.logger.info("Warming up YOLO model...")
         warmup_start = time.time()
 
-        
+        # Cache the names immediately upon load
+        if hasattr(self.model, 'names'):
+            self.names_map = self.model.names
+        else:
+            self.logger.warning("Could not find class names attribute (self.model.names)")
+
         if not YoloKeypoints._info_printed and hasattr(self.model, 'names'):
             print("\n--- Available Model Classes for local Yolo ---")
-            # self.model.names is a dictionary mapping ID (int) to Name (str)
             sorted_class_names = sorted(self.model.names.items())
             for class_id, class_name in sorted_class_names:
                 print(f"    ID: {class_id} / Name: {class_name}")
             print("-----------------------------\n")
             YoloKeypoints._info_printed = True
-        else:
-            self.logger.warning("Could not find class names attribute (self.model.names).")
-        
+
         try:
             # Create dummy frame matching your expected input
             dummy_frame = np.random.randint(0, 255, (self.img_dim[1], self.img_dim[0], 3), dtype=np.uint8)
@@ -137,10 +142,17 @@ class YoloKeypoints:
         try:
             if self.frame_queue:
                 # Get the timestamp of the last frame in the queue (the most recent one)
-                last_frame_ts = self.frame_queue[-1][1]
+                last_frame_ts = self.frame_queue[-1][2]
                 if ts != last_frame_ts:
                     self.frame_queue.clear()
+                    print(f"{self.name} {i}- Cleared frame queue due to new timestamp: {ts}")
             self.frame_queue.append((frame, crop_info, ts, global_detection, i))
+            print(f"{self.name} {i} - ** Queue **. {global_detection['class_name']} Current queue size:", len(self.frame_queue))
+            # save image
+            if debug_img_dir:
+                debug_img_path = debug_img_dir / f"{self.name}_{i}_{global_detection['class_name']}_{int(ts*1000)}.jpg"
+                cv2.imwrite(str(debug_img_path), frame)
+            
         except Exception as e:
             # Catch errors related to queue access/data structure
             print(f"Error processing frame queue: {e}")
@@ -152,6 +164,7 @@ class YoloKeypoints:
                 if len(self.frame_queue) > 0:
                     (frame, crop_info, ts, global_detection, i_th) = self.frame_queue.pop()
                     global_class_name = global_detection.get("class_name", "") if global_detection else ""
+                    print(f"{self.name} {i_th} - ** Dequeue **.", len(self.frame_queue), global_class_name)
                     detections = []
                     
                     if self.model is None:
@@ -166,18 +179,19 @@ class YoloKeypoints:
                         }]
                     else:
                         class_id_to_track = None
-                        if global_class_name and self.model.names:
-                            # Search the model's names dictionary for the ID
-                            for cls_id, cls_name in self.model.names.items():
+                        if global_class_name and self.names_map:
+                            # Search the CACHED dictionary for the ID
+                            for cls_id, cls_name in self.names_map.items():
                                 if cls_name == global_class_name:
                                     class_id_to_track = [cls_id] # Must be a list of IDs
                                     break
                         
                         # Run YOLO inference
                         #print("  ** Tracking local keypoints with class filter:", class_id_to_track, global_class_name)
+                        print(f" {self.name} {i_th} - Tracking.. {global_class_name}")
                         results = self.model.track(
                             frame, 
-                            persist=True,  # Keep persist=True to maintain tracker state
+                            persist=False,  # Keep persist=True to maintain tracker state
                             classes=class_id_to_track if class_id_to_track else None, # <-- Filter by class
                             conf=self.conf_thresh
                         )
@@ -187,6 +201,8 @@ class YoloKeypoints:
                             result = results[0]
 
                             keypoints_data = {}
+                            print(f"{self.name} {i_th}- Detections found from YOLO model :", len(results[0].boxes) if results[0].boxes is not None else 0)
+                            
                             if hasattr(result, 'keypoints') and result.keypoints is not None:
                                 # result.keypoints.xy contains the pixel coordinates (N_objects, N_keypoints, 2)
                                 # result.keypoints.conf contains the confidence (N_objects, N_keypoints)
@@ -199,8 +215,10 @@ class YoloKeypoints:
                                         if kp_conf >= self.conf_thresh: 
                                             kp_list.extend([float(kp_xy[0]), float(kp_xy[1]), float(kp_conf)])
                                     keypoints_data[i] = kp_list
+                                    print(f"   {self.name} {i_th}- Keypoints for object {i}: ", kp_list)
 
-                            if hasattr(result, 'boxes') and result.boxes is not None:
+                            #if hasattr(result, 'boxes') and result.boxes is not None:
+                            if hasattr(result, 'boxes') and result.boxes is not None and len(result.boxes) > 0:
                                 boxes = result.boxes
                                 for i in range(len(boxes)):
                                     bbox = boxes.xyxy[i].cpu().numpy()  # x1, y1, x2, y2
@@ -236,26 +254,36 @@ class YoloKeypoints:
                                     }
                                     detections.append(detection)
                     
-                        else:  # No results
-                            self.logger.debug("No detections from YOLO model.")
-                            detections = [{
-                                'model': 'yolo_local',
-                                'timestamp': ts,
-                                'confidence': 0.0,
-                                'stage_ts': global_detection['stage_ts'] if global_detection and 'stage_ts' in global_detection else None,
-                                'bbox_seg': global_detection['bbox'] if global_detection and 'bbox' in global_detection else None,
-                                'mask': global_detection['mask'] if global_detection and 'mask' in global_detection else None
-                            }]
+                            else:  # No results
+                                self.logger.debug(f"{self.name} {i_th}- No detections from YOLO model.")
+                                print(f"{self.name} {i_th}- No detections from YOLO model. ,<======")
+                                #print(f" {self.name} {i_th} - global data:", global_detection)
+                                detections = [{
+                                    'model': 'yolo_local',
+                                    'timestamp': ts,
+                                    'confidence': 0.0,  # Detection confidence
+                                    'bbox': [],
+                                    'keypoints': [],
+                                    'class': -1,         # Indicator for no class
+                                    # ---------------------
+                                    'class_name': global_class_name,
+                                    'id': global_detection['id'] if global_detection and 'id' in global_detection else None,
+                                    'stage_ts': global_detection['stage_ts'] if global_detection and 'stage_ts' in global_detection else None,
+                                    'bbox_seg': global_detection['bbox'] if global_detection and 'bbox' in global_detection else None,
+                                    'mask': global_detection['mask'] if global_detection and 'mask' in global_detection else None
+                                }]
                     
                     # Call the provided callback function with detections
                     if self.detection_callback:
+                        print(f"{self.name} && Calling detection callback with", len(detections), "detections.  i_th:", i_th)
                         self.detection_callback(crop_info, detections, i_th)
                 else:
                     # No frames to process, sleep briefly
                     time.sleep(0.01)
                     
             except Exception as e:
-                self.logger.error(f"Error processing frame: {e}")
+                self.logger.error(f"{self.name} Error processing frame: {e}")
+                print(f"{self.name} Error processing frame:", e)
                 time.sleep(0.01)
                 continue
 

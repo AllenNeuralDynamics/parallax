@@ -1,3 +1,4 @@
+import math
 import os
 import logging
 from build.lib.parallax.config import config_path
@@ -357,6 +358,7 @@ class ProcessWorkerYolo:
         self.finished_callback = finished_callback
         self.stage_ts = None
         self.sn = None
+        self.prev_detections = None
         self.detections = []
 
         # Initialize state flags to track when each client finishes
@@ -373,10 +375,12 @@ class ProcessWorkerYolo:
         except Exception as e:
             print(f"Error loading YOLO config: {e}")
             CONFIG = {}
-        self.yolo_local = LocalYOLOClient(config=CONFIG["keypoints"],
+        self.yolo_local = LocalYOLOClient(name=self.name,
+                                          config=CONFIG["keypoints"],
                                           detection_callback=self.handle_local_detections,
                                           finished_callback=lambda: self.wait_finished('local'))
-        self.yolo_global = GlobalYOLOClient(config=CONFIG["segmentation"],
+        self.yolo_global = GlobalYOLOClient(name=self.name,
+                                            config=CONFIG["segmentation"],
                                             detection_callback=self.handle_global_detections,
                                             finished_callback=lambda: self.wait_finished('global'))
 
@@ -409,9 +413,12 @@ class ProcessWorkerYolo:
         is_stage_stopped_img = (self.stage_ts is None) or (img_ts > self.stage_ts)
         if is_stage_stopped_img and self.probe_stopped and self.is_detection_on:
             self.stop_detection()
+            #self.prev_detections = self.detections
             self.detections = detections.copy()
+            print(f"\n {self.name} - global detections received:", len(detections))
             for i, detection in enumerate(detections):
                 detection['stage_ts'] = self.stage_ts
+                print(f" {self.name} {i} - {detection['class_name']} - Running local detection...")
                 self.yolo_local.newframe_captured(frame, crop_info.copy(), detection=detection, i_th=i)  
                 time.sleep(0.01)
         else:
@@ -426,8 +433,9 @@ class ProcessWorkerYolo:
 
     def handle_local_detections(self, crop_info: dict, detections: list[dict], i: int = 0):
         if not detections:
-            print(f" {i} - No local detections received.")
+            print(f" {self.name} {i} - No local detections received.")
             return
+        print(f" {self.name} {i} - Local detections received:", detections[0].get('class_name', ''), len(detections))
         
         # Get only one detection per crop with highest confidence
         detection = max(detections, key=lambda d: d.get('confidence', 0))
@@ -439,14 +447,69 @@ class ProcessWorkerYolo:
             self.detections[i] = detection_original[0]
 
         if self._is_local_batch_complete():
+            print(f" {self.name} - Local batch complete with", len(self.detections), "detections.")
             # get moving probes
             # emit
+            #self._get_moving_probes()
             if self.detection_callback:
                 self.detection_callback(self.detections)
             self.detections = []
 
-    def _get_moving_probes(self, detections: list[dict]):
-        pass
+    def _get_moving_probes(self):
+        """
+        Identifies probes that have moved more than 50 pixels since the previous frame.
+        Returns: A list of detection IDs (or objects) that are moving.
+        """
+        MOVEMENT_THRESHOLD = 50.0  # pixels
+
+        if not self.prev_detections or not self.detections:
+            print(" No previous or current detections to compare.")
+            return
+
+        # 1. Map previous detections by ID for fast lookup (O(1) access)
+        #    Assumes detection structure is dict-like: {'id': 1, 'keypoints': [...]}
+        prev_map = {d['id']: d for d in self.prev_detections if d.get('id') is not None}
+        print(f" Previous detections IDs: {list(prev_map.keys())}")
+
+        # 2. Iterate through current detections
+        for curr_d in self.detections:
+            curr_id = curr_d.get('id')
+
+            # We can only calculate movement if this ID existed in the previous frame
+            if curr_id in prev_map:
+                prev = prev_map[curr_id]
+
+                kpts_curr = curr_d.get('keypoints', [])
+                kpts_prev = prev.get('keypoints', [])
+                
+                max_dist = 0.0
+
+                # 3. Compare Keypoints
+                #    Iterate with step 3 to handle [x, y, conf, x, y, conf...] format
+                #    Use min() length to prevent index errors if keypoint count changes
+                print("kpts_curr:", kpts_curr)
+                print("kpts_prev:", kpts_prev)
+                for i in range(0, min(len(kpts_curr), len(kpts_prev)), 3):
+                    # Extract coordinates
+                    cx, cy = kpts_curr[i], kpts_curr[i+1]
+                    px, py = kpts_prev[i], kpts_prev[i+1]
+
+                    # Calculate Euclidean distance for this specific keypoint
+                    dist = math.hypot(cx - px, cy - py)
+                    print(" Keypoint", i//3, "moved distance:", dist)
+                    
+                    # We care about the MAX movement of any part of the probe
+                    if dist > max_dist:
+                        max_dist = dist
+
+                # 4. Check Threshold
+                if max_dist > MOVEMENT_THRESHOLD:
+                    # print(f"Probe {curr_id} moved {max_dist:.2f} px")
+                    curr_d['is_moving'] = True
+                else:
+                    curr_d['is_moving'] = False
+
+        return
 
     def _is_local_batch_complete(self):
         # check detection 'model' feild is all set to 'yolo_local'
@@ -536,5 +599,5 @@ class ProcessWorkerYolo:
 
                 if ret:
                     keypoints[j] = float(tip[0])
-                    keypoints[j+1] = float(tip[1])s
+                    keypoints[j+1] = float(tip[1])
         return keypoints
