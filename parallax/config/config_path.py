@@ -51,28 +51,28 @@ fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")
 
 # Color Pallets
 palette_cool = [
-    (235, 166, 52),   # Electric Blue
-    (255, 50, 220),   # Neon Purple
-    (255, 255, 0),    # Bright Cyan
+    (220, 50, 255),   # Neon Purple
     (220, 220, 220),  # Crisp White/Grey
-    (255, 150, 100)   # Deep Sky Blue
+    (52, 166, 235),   # Electric Blue
+    (0, 255, 255),    # Bright Cyan
+    (100, 150, 255)   # Deep Sky Blue
 ]
 
 # Vibe: Alert, Recording, Active
 palette_warm = [
-    (80, 80, 255),    # Salmon Red
-    (0, 165, 255),    # Golden Orange
-    (0, 215, 255),    # Bright Gold
-    (100, 100, 255),  # Light Coral
-    (180, 0, 255)     # Hot Magenta
+    (255, 0, 180),     # Hot Magenta
+    (255, 80, 80),    # Salmon Red
+    (255, 165, 0),    # Golden Orange
+    (255, 215, 0),    # Bright Gold
+    (255, 100, 0),  # Light Coral
 ]
 
 # These are kept pure and bright to stand out against the masks
 pallett_tips = [
-    (235, 91, 0),
-    (177, 44, 0),
-    (255, 204, 0),
-    (100, 13, 95)
+    (0, 91, 235),
+    (0, 44, 177),
+    (0, 204, 255),
+    (95, 13, 100)
 ]
 
 # Logging setup

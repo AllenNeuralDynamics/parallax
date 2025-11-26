@@ -70,18 +70,22 @@ class DrawWorker(QRunnable):
 
     def _draw_reticle(self):
         """
-        Draw reticle and debug coordinates on the frame.
+        Draw reticle and debug coordinates with zero-overhead loops.
+        Uses the pre-calculated self._cache_* lists.
         """
-        if self.reticle_coords is not None:
+        if not self.reticle_coords and not self.reticle_coords_debug:
+            return
+        frame = self.frame
+        if self.reticle_coords and self._cache_reticle_colors:
+            cached_colors = self._cache_reticle_colors
             for coords in self.reticle_coords:
-                for i, (x, y) in enumerate(coords):
-                    color = self.colormap_reticle[i][0].tolist()
-                    cv2.circle(self.frame, (x, y), 7, color, -1)
-
-        if self.reticle_coords_debug is not None:
-            for i, (x, y) in enumerate(self.reticle_coords_debug):
-                color = self.colormap_reticle_debug[i][0].tolist()
-                cv2.circle(self.frame, (x, y), 3, color, -1)
+                for (x, y), color in zip(coords, cached_colors):
+                    cv2.circle(frame, (int(x), int(y)), 6, color, -1)
+        # 3. Draw Debug Reticles
+        if self.reticle_coords_debug is not None and self._cache_debug_colors is not None:
+            cached_colors_debug = self._cache_debug_colors
+            for (x, y), color in zip(self.reticle_coords_debug, cached_colors_debug):
+                cv2.circle(frame, (int(x), int(y)), 2, color, -1)
 
     def _draw_yolo_detection(self):
         """
@@ -152,22 +156,25 @@ class DrawWorker(QRunnable):
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
 
     def register_colormap(self):
-        """Register a colormap for visualizing reticle coordinates."""
-        if self.reticle_coords is not None:
+        """
+        Register and cache colormaps for zero-latency drawing.
+        """
+        if self.reticle_coords is not None and len(self.reticle_coords) > 0:
             for idx, coords in enumerate(self.reticle_coords):
-                # Normalize indices to 0-255 for colormap application.
-                indices = np.linspace(
-                    0, 255, len(coords), endpoint=True, dtype=np.uint8
-                )
-                # Apply 'jet' colormap to x-coords, 'winter' to the y-coords.
-                self.colormap_reticle = cv2.applyColorMap(
-                    indices,
-                    cv2.COLORMAP_JET if idx == 0 else cv2.COLORMAP_WINTER,
-                )
-        if self.reticle_coords_debug is not None:
+                n = len(coords)
+                if n == 0: continue
+                indices = np.linspace(0, 255, n, endpoint=True, dtype=np.uint8)
+                cmap_code = cv2.COLORMAP_JET if idx == 0 else cv2.COLORMAP_WINTER
+                colored = cv2.applyColorMap(indices, cmap_code)
+                self._cache_reticle_colors = colored.reshape(-1, 3).tolist()
+
+        # 2. Debug Reticle Colors
+        if self.reticle_coords_debug is not None and len(self.reticle_coords_debug) > 0:
             n = len(self.reticle_coords_debug)
-            indices = np.linspace(0, 255, n, endpoint=True, dtype=np.uint8)
-            self.colormap_reticle_debug = cv2.applyColorMap(indices, cv2.COLORMAP_JET)
+            if n > 0:
+                indices = np.linspace(0, 255, n, endpoint=True, dtype=np.uint8)
+                colored_debug = cv2.applyColorMap(indices, cv2.COLORMAP_JET)
+                self._cache_debug_colors = colored_debug.reshape(-1, 3).tolist()
 
     @pyqtSlot()
     def run(self):
