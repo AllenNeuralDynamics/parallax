@@ -413,12 +413,11 @@ class ProcessWorkerYolo:
         is_stage_stopped_img = (self.stage_ts is None) or (img_ts > self.stage_ts)
         if is_stage_stopped_img and self.probe_stopped and self.is_detection_on:
             self.stop_detection()
-            #self.prev_detections = self.detections
             self.detections = detections.copy()
-            print(f"\n {self.name} - global detections received:", len(detections))
+            logger.debug(f"\n {self.name} - global detections received: {len(detections)}")
             for i, detection in enumerate(detections):
                 detection['stage_ts'] = self.stage_ts
-                print(f" {self.name} {i} - {detection['class_name']} - Running local detection...")
+                logger.debug(f" {self.name} {i} - {detection['class_name']} - Running local detection...")
                 self.yolo_local.newframe_captured(frame, crop_info.copy(), detection=detection, i_th=i)  
                 time.sleep(0.01)
         else:
@@ -433,9 +432,9 @@ class ProcessWorkerYolo:
 
     def handle_local_detections(self, crop_info: dict, detections: list[dict], i: int = 0):
         if not detections:
-            print(f" {self.name} {i} - No local detections received.")
+            logger.warning(f" {self.name} {i} - No local detections received.")
             return
-        print(f" {self.name} {i} - Local detections received:", detections[0].get('class_name', ''), len(detections))
+        logger.debug(f" {self.name} {i} - Local detections received: {detections[0].get('class_name', '')} {len(detections)}")
         
         # Get only one detection per crop with highest confidence
         detection = max(detections, key=lambda d: d.get('confidence', 0))
@@ -447,30 +446,34 @@ class ProcessWorkerYolo:
             self.detections[i] = detection_original[0]
 
         if self._is_local_batch_complete():
-            print(f" {self.name} - Local batch complete with", len(self.detections), "detections.")
+            logger.debug(f" {self.name} - Local batch complete with {len(self.detections)} detections.")
             # get moving probes
             # emit
-            #self._get_moving_probes()
+            self._get_moving_probes()
+            self.prev_detections = self.detections
             if self.detection_callback:
                 self.detection_callback(self.detections)
             self.detections = []
 
     def _get_moving_probes(self):
         """
-        Identifies probes that have moved more than 50 pixels since the previous frame.
+        Identifies probe`s that have moved more than 50 pixels since the previous frame.
         Returns: A list of detection IDs (or objects) that are moving.
         """
         MOVEMENT_THRESHOLD = 50.0  # pixels
 
         if not self.prev_detections or not self.detections:
-            print(" No previous or current detections to compare.")
+            print(f" {self.name} - No previous or current detections to compare.")
             return
+        
+        # print previsous and current detection IDs
+        print(f"\n {self.name} - Current detections IDs: {[d.get('id') for d in self.detections]}")
+        print(f" {self.name} - Previous detections IDs: {[d.get('id') for d in self.prev_detections]}")
 
         # 1. Map previous detections by ID for fast lookup (O(1) access)
         #    Assumes detection structure is dict-like: {'id': 1, 'keypoints': [...]}
         prev_map = {d['id']: d for d in self.prev_detections if d.get('id') is not None}
-        print(f" Previous detections IDs: {list(prev_map.keys())}")
-
+        
         # 2. Iterate through current detections
         for curr_d in self.detections:
             curr_id = curr_d.get('id')
@@ -566,7 +569,6 @@ class ProcessWorkerYolo:
 
     def update_stage_timestamp(self, stage_ts: float):
         self.stage_ts = stage_ts
-        #print(f" {self.name} ProcessWorkerYolo update_stage_timestamp: {stage_ts}")
 
     def clicked_position(self, pt: tuple):
         """Handle clicked position for calibration."""

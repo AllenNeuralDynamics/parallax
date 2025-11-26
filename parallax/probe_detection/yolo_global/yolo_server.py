@@ -10,10 +10,6 @@ from ultralytics import YOLO
 import torch
 
 
-
-# Basic logging setup (You can customize this in your main script)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
 class YoloSegmentation:
     """YOLO segmentation worker that runs in its own thread"""
     _info_printed = False

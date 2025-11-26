@@ -11,7 +11,7 @@ import time
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
 from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerYolo
-from parallax.config.config_path import debug_img_dir
+from parallax.config.config_path import debug_img_dir, palette_cool, palette_warm, pallett_tips
 
 
 # Set logger name
@@ -54,6 +54,10 @@ class DrawWorker(QRunnable):
         self.yolo_detections = None
         self.register_colormap()
 
+        self.palette_cool = palette_cool
+        self.palette_warm = palette_warm
+        self.pallett_tips = pallett_tips
+
     def update_frame(self, frame, timestamp):
         """Update the frame and timestamp.
         Args:
@@ -81,55 +85,71 @@ class DrawWorker(QRunnable):
 
     def _draw_yolo_detection(self):
         """
-        Overlay segmentation mask on the frame.
+        High-Performance Overlay: Draws masks, keypoints, and labels with minimal overhead.
         """
-        if self.yolo_detections is None:
+        if not self.yolo_detections:
             return
-
-        palette = [
-            (0, 255, 0),   (255, 0, 0),   (0, 0, 255),
-            (255, 255, 0), (0, 255, 255), (255, 0, 255),
-            (0, 165, 255), (128, 0, 128)
-        ]
+        # Cache reference to frame to avoid self lookup in loop
+        frame = self.frame 
+        # Pre-calculate lengths to avoid len() calls in loop
+        len_cool = len(self.palette_cool)
+        len_warm = len(self.palette_warm)
+        len_tips = len(self.pallett_tips)
 
         for i, detection in enumerate(self.yolo_detections):
-            color = palette[i % len(palette)]
-            # --- Draw Bounding Box ---
-            if 'bbox_orig' in detection and detection['bbox_orig'] is not None:
-                try:
-                    x1_f, y1_f, x2_f, y2_f = detection['bbox_orig']
-                    x1, y1 = int(x1_f), int(y1_f)
-                    x2, y2 = int(x2_f), int(y2_f)
-                    cv2.rectangle(self.frame, (x1, y1), (x2, y2), color, 2)
+            # --- Fast Data Extraction ---
+            track_id = detection.get('id')
+            class_name = detection.get('class_name', '')
+            
+            # --- 1. Color Selection (Branchless-ish) ---
+            # Use tracked ID if available, else use index
+            idx = int(track_id) if track_id is not None else i
+            id_text = f"ID:{track_id}" if track_id is not None else "ID:?"
 
-                    # ---- Label text ----
-                    label = f"{detection['class_name']} {detection['confidence']:.2f}"
-                    # Use the same color for text so it matches the box
-                    cv2.putText(self.frame, label, (x1, max(20, y1 - 10)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 2.0, color, 2, cv2.LINE_AA)
-                except TypeError as e:
-                    print(f"Error processing bbox data: {e}. Bbox value: {detection.get('bbox_orig')}")
-                    continue
+            if '4shanks' in class_name:
+                color = self.palette_warm[idx % len_warm]
+            else:
+                color = self.palette_cool[idx % len_cool]
 
-            # --- Draw Mask ---
+            # --- 2. Draw Mask (Vectorized) ---
             mask_orig = detection.get("mask_orig")
             if mask_orig is not None:
                 try:
-                    # Draw the polygon outline using the SAME unique color
-                    pts = mask_orig.reshape((-1, 1, 2))
-                    cv2.polylines(self.frame, [pts], isClosed=True, color=color, thickness=2)
-                except Exception as e:
-                    print(f"Error processing mask_orig: Data shape incorrect. {e}")
-                    continue
+                    # cv2.polylines expects a specific shape (N, 1, 2)
+                    # Assuming mask_orig is already a numpy array from upstream
+                    if mask_orig.ndim == 2:
+                        mask_orig = mask_orig.reshape((-1, 1, 2))
+                    
+                    cv2.polylines(frame, [mask_orig], isClosed=True, color=color, thickness=2)
+                except Exception:
+                    pass # Skip bad masks instantly to maintain FPS
 
-            # ---- Draw keypoints ----
-            keypoints = detection.get("keypoints_orig", [])
-            if keypoints and len(keypoints) > 0:
-                for j in range(0, len(keypoints), 3):
-                    x = int(keypoints[j])
-                    y = int(keypoints[j+1])
-                    kp_color = (200-j*25, 0, 200-j*25)  # (fading purple)
-                    cv2.circle(self.frame, (x, y), 3, kp_color, -1)
+            # --- 3. Keypoints & Labels (Optimized Slicing) ---
+            keypoints = detection.get("keypoints_orig") # Expecting flat list [x, y, c, x, y, c...]
+            
+            if keypoints:
+                # OPTIMIZATION: Use list slicing [start:stop:step] 
+                # This is much faster than a python for-loop with range()
+                xs = keypoints[0::3]
+                ys = keypoints[1::3]
+                
+                # Draw all circles
+                for j, (x, y) in enumerate(zip(xs, ys)):
+                    kp_color = self.pallett_tips[j % len_tips]
+                    cv2.circle(frame, (int(x), int(y)), 3, kp_color, -1)
+
+                # --- 4. Draw Label (At min X, min Y) ---
+                if xs:
+                    lx, ly = int(min(xs)), int(min(ys))
+                    label = f"{id_text} {class_name} {detection['confidence']:.2f}"
+                    text_x, text_y = lx, max(20, ly - 10)
+                    
+                    # Shadow (Thicker black line behind)
+                    cv2.putText(frame, label, (text_x + 1, text_y + 1),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2, cv2.LINE_AA)
+                    # Foreground Text
+                    cv2.putText(frame, label, (text_x, text_y),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
 
     def register_colormap(self):
         """Register a colormap for visualizing reticle coordinates."""
@@ -312,7 +332,6 @@ class ProbeDetectManager(QObject):
         """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
         if not detections:
             return
-        #print(f"{self.name} Received {len(detections)} YOLO detections.")
 
         # Emit found_coords if all detections are from yolo_local
         if all(d.get('model') == 'yolo_local' for d in detections) and self.yoloProcessWorker.probe_stopped:
@@ -323,8 +342,7 @@ class ProbeDetectManager(QObject):
                 if keypoints and len(keypoints) > 0 and self.yoloProcessWorker is not None:
                     refined_keypoints = self.yoloProcessWorker.get_precise_tip(keypoints)
                     detection["keypoints_orig"] = refined_keypoints
-                    print(f"{self.name} Received kpts {len(detections)} YOLO detections.")
-                    #print(f"  {self.name} Refined keypoints: {refined_keypoints}\n")
+                    logger.debug(f"{self.name} Received local {len(detections)} YOLO detections.")
 
                 # TODO filter out moving detections
                 #is_moving = detection.get("is_moving", False)

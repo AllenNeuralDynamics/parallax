@@ -49,6 +49,32 @@ yolo_config_path = data_dir / "yolo_config.yaml"
 # Font
 fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")
 
+# Color Pallets
+palette_cool = [
+    (235, 166, 52),   # Electric Blue
+    (255, 50, 220),   # Neon Purple
+    (255, 255, 0),    # Bright Cyan
+    (220, 220, 220),  # Crisp White/Grey
+    (255, 150, 100)   # Deep Sky Blue
+]
+
+# Vibe: Alert, Recording, Active
+palette_warm = [
+    (80, 80, 255),    # Salmon Red
+    (0, 165, 255),    # Golden Orange
+    (0, 215, 255),    # Bright Gold
+    (100, 100, 255),  # Light Coral
+    (180, 0, 255)     # Hot Magenta
+]
+
+# These are kept pure and bright to stand out against the masks
+pallett_tips = [
+    (235, 91, 0),
+    (177, 44, 0),
+    (255, 204, 0),
+    (100, 13, 95)
+]
+
 # Logging setup
 def setup_logging():
     """Set up logging to file."""

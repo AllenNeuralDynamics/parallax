@@ -10,9 +10,10 @@ from ultralytics import YOLO
 import torch
 from parallax.config.config_path import debug_img_dir
 
+# Set logger name
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
-# Basic logging setup (You can customize this in your main script)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 class YoloKeypoints:
     """YOLO segmentation worker that runs in its own thread"""
@@ -145,17 +146,17 @@ class YoloKeypoints:
                 last_frame_ts = self.frame_queue[-1][2]
                 if ts != last_frame_ts:
                     self.frame_queue.clear()
-                    print(f"{self.name} {i}- Cleared frame queue due to new timestamp: {ts}")
+                    logger.debug(f"{self.name} {i}- Cleared frame queue due to new timestamp: {ts}")
             self.frame_queue.append((frame, crop_info, ts, global_detection, i))
-            print(f"{self.name} {i} - ** Queue **. {global_detection['class_name']} Current queue size:", len(self.frame_queue))
+            logger.debug(f"{self.name} {i} - ** Queue **. {global_detection['class_name']} Current queue size: {len(self.frame_queue)}")
             # save image
-            if debug_img_dir:
+            if debug_img_dir and logging.getLogger().isEnabledFor(logging.DEBUG):
                 debug_img_path = debug_img_dir / f"{self.name}_{i}_{global_detection['class_name']}_{int(ts*1000)}.jpg"
                 cv2.imwrite(str(debug_img_path), frame)
             
         except Exception as e:
             # Catch errors related to queue access/data structure
-            print(f"Error processing frame queue: {e}")
+            logger.debug(f"Error processing frame queue: {e}")
             
     def _process_frames(self):
         """Process frames from the queue"""
@@ -164,7 +165,7 @@ class YoloKeypoints:
                 if len(self.frame_queue) > 0:
                     (frame, crop_info, ts, global_detection, i_th) = self.frame_queue.pop()
                     global_class_name = global_detection.get("class_name", "") if global_detection else ""
-                    print(f"{self.name} {i_th} - ** Dequeue **.", len(self.frame_queue), global_class_name)
+                    logger.debug(f"{self.name} {i_th} - ** Dequeue **. Queue size: {len(self.frame_queue)}. Global class: {global_class_name}")
                     detections = []
                     
                     if self.model is None:
@@ -187,8 +188,7 @@ class YoloKeypoints:
                                     break
                         
                         # Run YOLO inference
-                        #print("  ** Tracking local keypoints with class filter:", class_id_to_track, global_class_name)
-                        print(f" {self.name} {i_th} - Tracking.. {global_class_name}")
+                        logger.debug(f" {self.name} {i_th} - Tracking.. {global_class_name}")
                         results = self.model.track(
                             frame, 
                             persist=False,  # Keep persist=True to maintain tracker state
@@ -201,7 +201,7 @@ class YoloKeypoints:
                             result = results[0]
 
                             keypoints_data = {}
-                            print(f"{self.name} {i_th}- Detections found from YOLO model :", len(results[0].boxes) if results[0].boxes is not None else 0)
+                            logger.debug(f"{self.name} {i_th}- Detections found from YOLO model : {len(results[0].boxes) if results[0].boxes is not None else 0}")
                             
                             if hasattr(result, 'keypoints') and result.keypoints is not None:
                                 # result.keypoints.xy contains the pixel coordinates (N_objects, N_keypoints, 2)
@@ -213,9 +213,9 @@ class YoloKeypoints:
                                     kp_list = []
                                     for kp_xy, kp_conf in zip(keypoints_xy[i], keypoints_conf[i]):
                                         if kp_conf >= self.conf_thresh: 
-                                            kp_list.extend([float(kp_xy[0]), float(kp_xy[1]), float(kp_conf)])
+                                            kp_list.extend([round(float(kp_xy[0]), 2), round(float(kp_xy[1]), 2), round(float(kp_conf), 2)])
                                     keypoints_data[i] = kp_list
-                                    print(f"   {self.name} {i_th}- Keypoints for object {i}: ", kp_list)
+                                    logger.debug(f"   {self.name} {i_th}- Keypoints for object {i}: {kp_list}")
 
                             #if hasattr(result, 'boxes') and result.boxes is not None:
                             if hasattr(result, 'boxes') and result.boxes is not None and len(result.boxes) > 0:
@@ -230,14 +230,6 @@ class YoloKeypoints:
                                         # Skip this local detection if it doesn't match the global detection's class
                                         self.logger.debug(f"Skipping local detection '{class_name}'. Requires '{global_class_name}'.")
                                         continue
-
-                                    """
-                                    # Get tracking ID if available      
-                                    if hasattr(boxes, 'id') and boxes.id is not None:
-                                        search_id = int(boxes.id[i].cpu().numpy())
-                                    else:
-                                        search_id = 0
-                                    """
                                     
                                     detection = {
                                         'model': 'yolo_local',
@@ -255,9 +247,7 @@ class YoloKeypoints:
                                     detections.append(detection)
                     
                             else:  # No results
-                                self.logger.debug(f"{self.name} {i_th}- No detections from YOLO model.")
-                                print(f"{self.name} {i_th}- No detections from YOLO model. ,<======")
-                                #print(f" {self.name} {i_th} - global data:", global_detection)
+                                logger.debug(f"{self.name} {i_th}- No detections from YOLO model.")
                                 detections = [{
                                     'model': 'yolo_local',
                                     'timestamp': ts,
@@ -275,19 +265,18 @@ class YoloKeypoints:
                     
                     # Call the provided callback function with detections
                     if self.detection_callback:
-                        print(f"{self.name} && Calling detection callback with", len(detections), "detections.  i_th:", i_th)
+                        logger.debug(f"{self.name} && Calling detection callback with {len(detections)} detections.  i_th: {i_th}")
                         self.detection_callback(crop_info, detections, i_th)
                 else:
                     # No frames to process, sleep briefly
                     time.sleep(0.01)
                     
             except Exception as e:
-                self.logger.error(f"{self.name} Error processing frame: {e}")
-                print(f"{self.name} Error processing frame:", e)
+                logger.error(f"{self.name} Error processing frame: {e}")
                 time.sleep(0.01)
                 continue
 
-        self.logger.info("yolo_keypoints: Exiting loop.")
+        logger.info("yolo_keypoints: Exiting loop.")
         # Check if a finished callback was provided and call it
         if self.finished_callback:
             try:
