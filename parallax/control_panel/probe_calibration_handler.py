@@ -192,7 +192,7 @@ class ProbeCalibrationHandler(QWidget):
     def enable_probe_calibration_btn(self):
         """
         Enables the probe calibration button and sets its style to indicate that it is active.
-        """
+        """ 
         if not self.probe_calibration_btn.isEnabled():
             self.probe_calibration_btn.setEnabled(True)
 
@@ -209,22 +209,30 @@ class ProbeCalibrationHandler(QWidget):
         if (sn_A is None) or (tip_A is None) or (img_ts_A is None) or (stage_ts_A is None) or \
             (sn_B is None) or (tip_B is None) or (img_ts_B is None) or (stage_ts_B is None):
             return
-        if sn_A != sn_B:
+        if sn_A != sn_B: 
             return
         if stage_ts_A != stage_ts_B:
             return
+        if stage_A.get("type", "") != stage_B.get("type", ""):
+            logger.warning("Probe shank type do not match between the two cameras.")
+            return
+        if len(tip_A) != len(tip_B):
+            logger.warning("Number of detected tips do not match between the two cameras.")
+            return
 
         global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
-        if stage_A.get("type", "") == "4shanks":
-            pass
-            #okay = run_sanity_checks(global_coords)
-            #print("\n  global_coords", global_coords)
 
+        if stage_A.get("type", "") == "4shanks":
+            print("\n  global_coords", global_coords)
+            okay = run_sanity_checks(global_coords)
+           
             # Reverse order for tip_B
-            #global_coords = triangulate(ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params)
-            #okay = run_sanity_checks(global_coords)
-            #print("\n  global_coords", global_coords)
+            global_coords = triangulate(ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params)
+            print("\n  global_coords", global_coords)
+            okay = run_sanity_checks(global_coords)
             
+        
+        # TODO : send the lowest z point (far left or far right) only 
         #print(f"  stage info {self.camA_best}", stage_A)
         #print(f"  stage_info {self.camB_best}", stage_B)
 

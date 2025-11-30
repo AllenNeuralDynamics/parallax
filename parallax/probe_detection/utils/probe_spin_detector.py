@@ -288,19 +288,14 @@ class SpinProcessor:
         order = np.argsort(dists)[:min(k, len(pts))]   # ascending distance
         return np.asarray([pts[i] for i in order], dtype=int)
 
-
+"""
 def run_sanity_checks(global_points: np.ndarray) -> bool:
     ok1 = _check_consecutive_spacings(global_points, unit="mm", scale=1.0)
-    
+
 def _check_consecutive_spacings(global_pts: np.ndarray,
                                 unit: str = "mm",
                                 scale: float = 1.0) -> bool:
-    """
-    Validates if the consecutive distances between global points fall
-    within the acceptable range [0.20 mm, 0.30 mm]. Prints all calculated distances.
-    global_pts: (N,3) points in world units (must be scaled to mm).
-    Returns: True if all distances are within the bounds, False otherwise.
-    """
+
     N = len(global_pts)
     if N < 2:
         print("Need at least 2 shank points for spacing check.")
@@ -325,6 +320,132 @@ def _check_consecutive_spacings(global_pts: np.ndarray,
         print("Sanity Check PASSED: All shank spacings are within tolerance.")
     print("---------------------------\n")
     return all_valid
+"""
+def run_sanity_checks(global_points: np.ndarray) -> bool:
+    """
+    Main sanity check function.
+    1. Sorts points spatially.
+    2. Checks if they form a line.
+    3. Checks spacing between sorted points.
+    """
+    if global_points is None or len(global_points) < 2:
+        print("Error: Not enough points for sanity check.")
+        return False
+
+    # 1. Sort the points along their primary axis
+    sorted_points = _sort_points_along_line(global_points)
+    
+    # 2. Check linearity (are they actually in a line?)
+    LINEARITY_TOLERANCE_MM = 0.1  # 100 microns
+    is_linear = _check_linearity(sorted_points, tolerance=LINEARITY_TOLERANCE_MM)
+    
+    # 3. Check spacing (distance between 1-2, 2-3, 3-4)
+    is_spacing_ok = _check_consecutive_spacings(sorted_points, unit="mm", scale=1.0)
+
+    return is_linear and is_spacing_ok
+
+def _sort_points_along_line(points: np.ndarray) -> np.ndarray:
+    """
+    Sorts 3D points based on their projection onto the principal axis (PCA).
+    This handles any arbitrary order (e.g., 4-1-2-3 -> 1-2-3-4).
+    """
+    if len(points) < 2:
+        return points
+
+    # Center the points
+    mean = np.mean(points, axis=0)
+    centered = points - mean
+
+    # PCA: Singular Value Decomposition to find the main direction of the line
+    # The first principal component (v[0]) is the direction vector of the line
+    u, s, vh = np.linalg.svd(centered)
+    principal_axis = vh[0] 
+
+    # Project all points onto this axis (dot product)
+    # This gives a single scalar "score" for each point representing its position on the line
+    projections = np.dot(centered, principal_axis)
+
+    # Sort indices based on these projection scores
+    sort_indices = np.argsort(projections)
+    
+    return points[sort_indices]
+
+def _check_linearity(sorted_points: np.ndarray, tolerance: float = 0.05) -> bool:
+    """
+    Checks if points lie on a straight line by measuring the distance of 
+    inner points from the line segment formed by the first and last point.
+    """
+    if len(sorted_points) < 3:
+        return True # 2 points always form a line
+
+    start = sorted_points[0]
+    end = sorted_points[-1]
+    
+    line_vec = end - start
+    line_len_sq = np.dot(line_vec, line_vec)
+    
+    if line_len_sq == 0:
+        print("Error: Start and End points are identical.")
+        return False
+
+    print(f"--- Linearity Check (Tolerance: {tolerance}mm) ---")
+    all_linear = True
+    
+    # Check every intermediate point
+    for i in range(1, len(sorted_points) - 1):
+        p = sorted_points[i]
+        
+        # Calculate perpendicular distance from point P to line (Start->End)
+        # Formula: || (end-start) x (start-p) || / || end-start ||
+        cross_prod = np.cross(line_vec, start - p)
+        dist = np.linalg.norm(cross_prod) / np.sqrt(line_len_sq)
+        
+        status = "OK" if dist <= tolerance else "FAIL"
+        print(f"Point {i} deviation: {dist:.4f} mm | Status: {status}")
+        
+        if dist > tolerance:
+            all_linear = False
+
+    if not all_linear:
+        print("  --> Sanity Check FAILED: Points are not collinear.")
+    else:
+        print("  --> Sanity Check PASSED: Points form a valid line.")
+    return all_linear
+
+def _check_consecutive_spacings(global_pts: np.ndarray,
+                                unit: str = "mm",
+                                scale: float = 1.0) -> bool:
+    """
+    Validates if the consecutive distances between SORTED global points fall
+    within the acceptable range.
+    """
+    N = len(global_pts)
+    if N < 2:
+        return False
+        
+    all_valid = True
+    
+    # --- Calculate Distances Vectorized ---
+    diffs = global_pts[1:] - global_pts[:-1]
+    distances = np.linalg.norm(diffs, axis=1) * scale
+    
+    print("--- Shank Spacing Check (Sorted) ---")
+    for i, d in enumerate(distances):
+        # 1. Check bounds
+        is_valid = (MIN_SHANK_DIST_MM <= d <= MAX_SHANK_DIST_MM)
+        
+        # 2. Print status
+        status = "OK" if is_valid else "FAIL"
+        print(f"Distance {i}->{i+1}: {d:.4f} {unit} | Status: {status}")
+        
+        if not is_valid:
+            all_valid = False
+            
+    if not all_valid:
+        print(f"  --> Sanity Check FAILED: Spacings outside [{MIN_SHANK_DIST_MM}, {MAX_SHANK_DIST_MM}] {unit}.")
+    else:
+        print("  --> Sanity Check PASSED: Spacings are correct.")
+
 # ---------- dev main ----------
 if __name__ == "__main__":
     pass

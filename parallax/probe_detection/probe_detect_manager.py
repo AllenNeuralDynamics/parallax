@@ -341,7 +341,7 @@ class ProbeDetectManager(QObject):
             return
 
         # Emit found_coords if all detections are from yolo_local
-        if all(d.get('model') == 'yolo_local' for d in detections) and self.yoloProcessWorker.probe_stopped:
+        if self._is_from_local_yolo(detections) and self.yoloProcessWorker.probe_stopped:
             print(f":):) {self.name} Received kpts {len(detections)} YOLO detections.")
             # TODO # Run fine tip detection
             for detection in detections:
@@ -351,19 +351,29 @@ class ProbeDetectManager(QObject):
                     detection["keypoints_orig"] = refined_keypoints
                     logger.debug(f"{self.name} Received local {len(detections)} YOLO detections.")
 
-                # TODO filter out moving detections
-                #is_moving = detection.get("is_moving", False)
-                #print(f"  {self.name} - {detection.get('id')} {detection.get('class_name')}, moving: {is_moving}")
-
         # Draw on screen
         if self.worker is not None:
             self.worker.clear_yolo_detections()
             self.worker.receive_yolo_detections(detections)
-            #self.emit_found_coords(detections[0])
+
+        # Emit found_coords for the moving stage keypoints detection only
+        if self._is_from_local_yolo(detections) and self.yoloProcessWorker is not None:
+            # filter out the moving stage
+            # TODO at first time, map between id and stage_sn and store in yoloProcessWorker
+            detections = self.yoloProcessWorker.get_moving_stage(detections)
+            # Emit
+            for detection in detections:
+                if detection.get('is_moving', False):
+                    self.emit_found_coords(detection)
+
+    def _is_from_local_yolo(self, detections: list[dict]) -> bool:
+        """Check if the detection is from local YOLO model."""
+        return all(d.get('model') == 'yolo_local' for d in detections)
 
     def emit_found_coords(self, detection: dict):
         stage_ts = detection.get('stage_ts', None)
         img_ts = detection.get('timestamp', None)
+        nShank = detection.get('class_name', '1shank')
         keypoints = detection.get("keypoints_orig", [])  #[x1, y1, conf1, x2, y2, conf2, ...]
 
         tip_coords, base_coords = [], []
@@ -380,12 +390,12 @@ class ProbeDetectManager(QObject):
             return
 
         sn = self.yoloProcessWorker.sn
-        print("sn:", sn)
+        #print("sn:", sn)
         moving_stage = self.model.get_stage(sn)
         if moving_stage is None:
             return
         stage_info = {
-            "type": "1shank" if len(tip_coords) == 1 else "4shanks",
+            "type": nShank,
             "stage_x": moving_stage.stage_x,
             "stage_y": moving_stage.stage_y,
             "stage_z": moving_stage.stage_z,
@@ -393,7 +403,7 @@ class ProbeDetectManager(QObject):
 
         try:
             # found_coords = pyqtSignal(float, float, str, dict, list, list)
-            print(f" {self.name} Emitting found_coords:", stage_ts, img_ts, sn, tip_coords, base_coords, stage_info)
+            #print(f" {self.name} Emitting found_coords:", stage_ts, img_ts, sn, tip_coords, base_coords, stage_info)
             self.found_coords.emit(stage_ts, img_ts, sn, stage_info, tip_coords, base_coords)
         except Exception as e:
             logger.error(f"Error emitting found_coords: {e}")

@@ -449,70 +449,58 @@ class ProcessWorkerYolo:
             logger.debug(f" {self.name} - Local batch complete with {len(self.detections)} detections.")
             # get moving probes
             # emit
-            self._get_moving_probes()
-            self.prev_detections = self.detections
             if self.detection_callback:
                 self.detection_callback(self.detections)
             self.detections = []
 
-    def _get_moving_probes(self):
+    def get_moving_stage(self, detections: list[dict]):
         """
-        Identifies probe`s that have moved more than 50 pixels since the previous frame.
-        Returns: A list of detection IDs (or objects) that are moving.
+        Identifies probes that have moved more than 50 pixels since the previous frame.
+        Compares ONLY the first keypoint (Tip) for movement.
         """
-        MOVEMENT_THRESHOLD = 50.0  # pixels
+        MOVEMENT_THRESHOLD = 10.0  # pixels
+        if not detections:
+            print(f" {self.name} - No detections to compare.")
+            return detections
 
-        if not self.prev_detections or not self.detections:
-            print(f" {self.name} - No previous or current detections to compare.")
-            return
+        if not self.prev_detections:
+            print(f" {self.name} - No previous to compare.")
+            self.prev_detections = detections.copy()
+            return detections
         
-        # print previsous and current detection IDs
-        print(f"\n {self.name} - Current detections IDs: {[d.get('id') for d in self.detections]}")
-        print(f" {self.name} - Previous detections IDs: {[d.get('id') for d in self.prev_detections]}")
-
-        # 1. Map previous detections by ID for fast lookup (O(1) access)
-        #    Assumes detection structure is dict-like: {'id': 1, 'keypoints': [...]}
+        # 1. Map previous detections by ID for fast lookup
         prev_map = {d['id']: d for d in self.prev_detections if d.get('id') is not None}
-        
+
+        print(" --------------- ")
         # 2. Iterate through current detections
-        for curr_d in self.detections:
+        for curr_d in detections:
             curr_id = curr_d.get('id')
 
-            # We can only calculate movement if this ID existed in the previous frame
             if curr_id in prev_map:
                 prev = prev_map[curr_id]
-
-                kpts_curr = curr_d.get('keypoints', [])
-                kpts_prev = prev.get('keypoints', [])
+                kpts_curr = curr_d.get('keypoints_orig', [])
+                kpts_prev = prev.get('keypoints_orig', [])
                 
-                max_dist = 0.0
-
-                # 3. Compare Keypoints
-                #    Iterate with step 3 to handle [x, y, conf, x, y, conf...] format
-                #    Use min() length to prevent index errors if keypoint count changes
-                print("kpts_curr:", kpts_curr)
-                print("kpts_prev:", kpts_prev)
-                for i in range(0, min(len(kpts_curr), len(kpts_prev)), 3):
-                    # Extract coordinates
-                    cx, cy = kpts_curr[i], kpts_curr[i+1]
-                    px, py = kpts_prev[i], kpts_prev[i+1]
-
-                    # Calculate Euclidean distance for this specific keypoint
-                    dist = math.hypot(cx - px, cy - py)
-                    print(" Keypoint", i//3, "moved distance:", dist)
+                dist = 0.0
+                # Keypoint format is flat list: [x1, y1, conf1, x2, y2, conf2...]
+                if len(kpts_curr) >= 2 and len(kpts_prev) >= 2:
+                    cx, cy = kpts_curr[0], kpts_curr[1]
+                    px, py = kpts_prev[0], kpts_prev[1]
                     
-                    # We care about the MAX movement of any part of the probe
-                    if dist > max_dist:
-                        max_dist = dist
+                    # Calculate Euclidean distance for just the first point
+                    dist = math.hypot(cx - px, cy - py)
+                    # print(f" {self.name} - Probe {curr_id} moved {dist:.2f} px")
 
                 # 4. Check Threshold
-                if max_dist > MOVEMENT_THRESHOLD:
-                    # print(f"Probe {curr_id} moved {max_dist:.2f} px")
+                if dist > MOVEMENT_THRESHOLD:
                     curr_d['is_moving'] = True
+                    print(f" {self.name} - Probe {curr_id} is moving. Distance: {dist:.2f} px")
                 else:
                     curr_d['is_moving'] = False
+                    print(f" {self.name} - Probe {curr_id} is not moving. Distance: {dist:.2f} px")
 
-        return
+        self.prev_detections = detections.copy()
+        return detections
 
     def _is_local_batch_complete(self):
         # check detection 'model' feild is all set to 'yolo_local'

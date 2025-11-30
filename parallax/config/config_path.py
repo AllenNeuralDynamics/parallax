@@ -69,10 +69,10 @@ palette_warm = [
 
 # These are kept pure and bright to stand out against the masks
 pallett_tips = [
-    (0, 91, 235),
-    (0, 44, 177),
-    (0, 204, 255),
-    (95, 13, 100)
+    (0, 0, 255),
+    (0, 50, 100),
+    (0, 100, 50),
+    (0, 255, 0),
 ]
 
 # Logging setup
