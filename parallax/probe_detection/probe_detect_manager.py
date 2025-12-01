@@ -109,8 +109,11 @@ class DrawWorker(QRunnable):
             
             # --- 1. Color Selection (Branchless-ish) ---
             # Use tracked ID if available, else use index
-            idx = int(track_id) if track_id is not None else i
-            id_text = f"ID:{track_id}" if track_id is not None else "ID:?"
+            if track_id == "manual_click":
+                idx = i
+            else:
+                idx = int(track_id) if track_id is not None else i
+                id_text = f"ID:{track_id}" if track_id is not None else "ID:?"
 
             if '4shanks' in class_name:
                 color = self.palette_warm[idx % len_warm]
@@ -134,8 +137,6 @@ class DrawWorker(QRunnable):
             keypoints = detection.get("keypoints_orig") # Expecting flat list [x, y, c, x, y, c...]
             
             if keypoints:
-                # OPTIMIZATION: Use list slicing [start:stop:step] 
-                # This is much faster than a python for-loop with range()
                 xs = keypoints[0::3]
                 ys = keypoints[1::3]
                 
@@ -145,7 +146,7 @@ class DrawWorker(QRunnable):
                     cv2.circle(frame, (int(x), int(y)), 3, kp_color, -1)
 
                 # --- 4. Draw Label (At min X, min Y) ---
-                if xs:
+                if xs and ys and detection.get('confidence') is not None:
                     lx, ly = int(min(xs)), int(min(ys))
                     label = f"{id_text} {class_name} {detection['confidence']:.2f}"
                     text_x, text_y = lx, max(20, ly - 10)

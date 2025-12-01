@@ -3,16 +3,15 @@ import numpy as np
 import time
 import logging
 from collections import deque
-import sys # Import sys for basic signal/logging if needed
 
-from threading import Thread, Event # Using Event for better thread signaling
+from threading import Thread
 from ultralytics import YOLO
 import torch
 from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class YoloKeypoints:
@@ -25,7 +24,6 @@ class YoloKeypoints:
         :param detection_callback: A function to call with the list of detections.
         """
         # super().__init__() # REMOVED QObject
-        self.logger = logging.getLogger(self.__class__.__name__)
         self.name = name
         self.weights_path = config.get('weights_path', r'external/YoloV11/tip_keypoint_detection_fast.pt')
         self.conf_thresh = config.get('conf_thresh', 0.5)
@@ -44,7 +42,7 @@ class YoloKeypoints:
         self.finished_callback = finished_callback
         
         try:
-            self.logger.debug(f"weights_path: {self.weights_path}")
+            logger.debug(f"weights_path: {self.weights_path}")
             self.model = YOLO(self.weights_path)
             self.model.overrides['conf'] = self.conf_thresh
             self.model.overrides['iou'] = self.iou_thresh
@@ -52,14 +50,14 @@ class YoloKeypoints:
             self.model.overrides['imgsz'] = self.img_size
             self.model.overrides['verbose'] = False
             self.model.to('cuda' if torch.cuda.is_available() else 'cpu')
-            self.logger.info(f"YOLO model loaded from: {self.weights_path}")
-            self.logger.info(f"Model is running on: {self.model.device}")
+            logger.info(f"YOLO model loaded from: {self.weights_path}")
+            logger.info(f"Model is running on: {self.model.device}")
 
             # Warmup the model
             self._warmup_model()
-            self.logger.info("YOLO model warmup completed")
+            logger.info("YOLO model warmup completed")
         except Exception as e:
-            self.logger.error(f"Failed to load YOLO model: {e}, running yolo in dummy mode")
+            logger.error(f"Failed to load YOLO model: {e}, running yolo in dummy mode")
             self.model = None
 
     def get_queue_size(self):
@@ -74,7 +72,7 @@ class YoloKeypoints:
         # Use a standard Thread
         self.worker_thread = Thread(target=self._process_frames, daemon=True)
         self.worker_thread.start()
-        self.logger.info("YOLO segmentation thread started")
+        logger.info("YOLO segmentation thread started")
         return True
     
     def _warmup_model(self):
@@ -82,14 +80,14 @@ class YoloKeypoints:
         if self.model is None:
             return
             
-        self.logger.info("Warming up YOLO model...")
+        logger.info("Warming up YOLO model...")
         warmup_start = time.time()
 
         # Cache the names immediately upon load
         if hasattr(self.model, 'names'):
             self.names_map = self.model.names
         else:
-            self.logger.warning("Could not find class names attribute (self.model.names)")
+            logger.warning("Could not find class names attribute (self.model.names)")
 
         if not YoloKeypoints._info_printed and hasattr(self.model, 'names'):
             print("\n--- Available Model Classes for local Yolo ---")
@@ -113,11 +111,11 @@ class YoloKeypoints:
                 torch.cuda.synchronize()  # Wait for GPU operations to complete
                 
             warmup_time = time.time() - warmup_start
-            self.logger.info(f"Model warmup completed in {warmup_time:.2f}s")
+            logger.info(f"Model warmup completed in {warmup_time:.2f}s")
             self.warmup_done = True
             
         except Exception as e:
-            self.logger.error(f"Warmup failed: {e}")
+            logger.error(f"Warmup failed: {e}")
             self.warmup_done = True  # Continue anyway
         
     def stop(self):
@@ -125,7 +123,7 @@ class YoloKeypoints:
         self.running = False
         if self.worker_thread:
             self.worker_thread.join(timeout=1.0)
-        self.logger.info("YOLO segmentation worker stopped")
+        logger.info("YOLO segmentation worker stopped")
         
     def process_frame(self,
                       frame: np.ndarray,
@@ -150,7 +148,7 @@ class YoloKeypoints:
             self.frame_queue.append((frame, crop_info, ts, global_detection, i))
             logger.debug(f"{self.name} {i} - ** Queue **. {global_detection['class_name']} Current queue size: {len(self.frame_queue)}")
             # save image
-            if debug_img_dir and logging.getLogger().isEnabledFor(logging.DEBUG):
+            if debug_img_dir and logger.isEnabledFor(logging.DEBUG):
                 debug_img_path = debug_img_dir / f"{self.name}_{i}_{global_detection['class_name']}_{int(ts*1000)}.jpg"
                 cv2.imwrite(str(debug_img_path), frame)
             
@@ -228,7 +226,7 @@ class YoloKeypoints:
                                     class_name = self.model.names[cls_id] if cls_id < len(self.model.names) else f"class_{cls_id}"
                                     if global_class_name and class_name != global_class_name:
                                         # Skip this local detection if it doesn't match the global detection's class
-                                        self.logger.debug(f"Skipping local detection '{class_name}'. Requires '{global_class_name}'.")
+                                        logger.debug(f"Skipping local detection '{class_name}'. Requires '{global_class_name}'.")
                                         continue
                                     
                                     detection = {
@@ -282,4 +280,4 @@ class YoloKeypoints:
             try:
                 self.finished_callback()
             except Exception as e:
-                self.logger.error(f"Error calling finished_callback: {e}")
+                logger.error(f"Error calling finished_callback: {e}")

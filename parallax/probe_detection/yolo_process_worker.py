@@ -127,11 +127,15 @@ class YoloProcessWorker:
         Identifies probes that have moved more than 50 pixels since the previous frame.
         Compares ONLY the first keypoint (Tip) for movement.
         """
-        MOVEMENT_THRESHOLD = 10.0  # pixels
         if not detections:
             print(f" {self.name} - No detections to compare.")
             return detections
+    
+        if len(detections) == 1 and detections[0].get('id') == 'manual_click':
+            detections[0]['is_moving'] = True
+            return detections
 
+        MOVEMENT_THRESHOLD = 10.0  # pixels
         if not self.prev_detections:
             print(f" {self.name} - No previous to compare.")
             self.prev_detections = detections.copy()
@@ -228,8 +232,19 @@ class YoloProcessWorker:
         self.stage_ts = stage_ts
 
     def clicked_position(self, pt: tuple):
-        """Handle clicked position for calibration."""
-        pass
+        """Handle manual click for calibration."""
+        # Use the processor to refine the tip based on the click
+        keypoints = [float(pt[0]), float(pt[1]), 0.0]  # x, y, confidence
+
+        # Send keypoints
+        detections = [{"model": "yolo_local",
+                       "id": "manual_click",
+                       "stage_ts": self.stage_ts,
+                       "timestamp": time.time(),
+                       "keypoints_orig": keypoints}]
+
+        if self.detection_callback:
+            self.detection_callback(detections)
 
     def get_precise_tip(self, keypoints: list):
         if keypoints is None:
