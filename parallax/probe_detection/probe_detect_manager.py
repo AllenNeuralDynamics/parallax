@@ -10,13 +10,15 @@ import cv2
 import time
 import numpy as np
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
-from parallax.probe_detection.process_worker import ProcessWorker, ProcessWorkerYolo
+from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
+from parallax.probe_detection.opencv_process_worker import OpenCVProcessWorker
+
 from parallax.config.config_path import debug_img_dir, palette_cool, palette_warm, pallett_tips
 
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class DrawWorkerSignal(QObject):
@@ -296,7 +298,7 @@ class ProbeDetectManager(QObject):
         self.model = model
         self.name = camera_name
         self.worker = None          # Worker for refersh screen
-        self.processWorker = None   # Worker for processing frames
+        self.opencvProcessWorker = None   # Worker for processing frames
         self.yoloProcessWorker = None
         self._prev_ts = None
         self.threadpool = QThreadPool()
@@ -316,24 +318,25 @@ class ProbeDetectManager(QObject):
         camera_resolution = self.model.get_camera_resolution(self.name)
 
         # OpenCV Process Worker
-        self.processWorker = None
-        """
-        self.processWorker = ProcessWorker(self.name, camera_resolution, test=self.model.test)
-        self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
-        self.processWorker.signals.tip_stopped.connect(self.found_probe)
-        self.processWorker.signals.tip_moving.connect(self.found_probe_moving)
-        self.processWorker.signals.status.connect(self.worker.update_status)"""
+        self.opencvProcessWorker = OpenCVProcessWorker(self.name,
+                                                 camera_resolution,
+                                                 test=self.model.test,
+                                                 callbacks=self.receive_opencv_detections())
 
         # YOLO Process Worker
         # init and warmup the model but no thread runing yet
-        self.yoloProcessWorker = ProcessWorkerYolo(self.name, camera_resolution, test=self.model.test,
+        self.yoloProcessWorker = YoloProcessWorker(self.name, camera_resolution, test=self.model.test,
                                                    detection_callback=self.receive_yolo_detections,
                                                    finished_callback=self._onYoloProcessThreadFinished)
-        #self.yoloProcessWorker.signals.finished.connect(self._onYoloProcessThreadFinished)
-        #self.yoloProcessWorker.signals.tip_stopped.connect(self.found_probe)
-        #self.yoloProcessWorker.signals.yolo_detection.connect(self.worker.receive_yolo_detections)
-        #self.yoloProcessWorker.signals.tip_moving.connect(self.found_probe_moving)
-        #self.yoloProcessWorker.signals.status.connect(self.worker.update_status)
+
+    def receive_opencv_detections(self):
+        return {
+            # Callback Name in Worker  :  Method in Manager
+            'on_tip_stopped': self.found_probe,
+            'on_tip_moving':  self.found_probe_moving,
+            'on_status':      self.worker.update_status,
+            'on_finished':    self._onProcessThreadFinished
+        }
 
     def receive_yolo_detections(self, detections: list[dict]):
         """Draw bounding boxes + mask outlines and save frame using timestamp from detections"""
@@ -402,8 +405,6 @@ class ProbeDetectManager(QObject):
         }
 
         try:
-            # found_coords = pyqtSignal(float, float, str, dict, list, list)
-            #print(f" {self.name} Emitting found_coords:", stage_ts, img_ts, sn, tip_coords, base_coords, stage_info)
             self.found_coords.emit(stage_ts, img_ts, sn, stage_info, tip_coords, base_coords)
         except Exception as e:
             logger.error(f"Error emitting found_coords: {e}")
@@ -414,10 +415,10 @@ class ProbeDetectManager(QObject):
         """
         print(f" {self.name} Starting ProbeDetectManager for with algorithm {self.detect_algorithm}")
         wait_time = 0
-        while (self.worker is not None or self.processWorker is not None) and wait_time < 3.0:
+        while (self.worker is not None or self.opencvProcessWorker is not None) and wait_time < 3.0:
             time.sleep(0.1)
             wait_time += 0.1
-        if self.worker is not None or self.processWorker is not None:
+        if self.worker is not None or self.opencvProcessWorker is not None:
             print(f"{self.name} Previous thread not cleaned up")
             return
 
@@ -426,16 +427,14 @@ class ProbeDetectManager(QObject):
         self.worker.start_running()
         self.threadpool.start(self.worker)
 
-        self._init_process_thread() # Init processWorker and yoloProcessWorker
-        if self.detect_algorithm == 'opencv' and self.processWorker is not None:
-            #self.processWorker.start_running()  # running thread
-            #self.threadpool.start(self.processWorker)
+        self._init_process_thread() # Init opencvProcessWorker and yoloProcessWorker
+        if self.detect_algorithm == 'opencv' and self.opencvProcessWorker is not None:
+            self.opencvProcessWorker.start_running()  # running thread
             pass
         elif self.detect_algorithm == 'yolo' and self.yoloProcessWorker is not None:
             sn = self.model.get_selected_stage_ui()
             self.yoloProcessWorker.update_sn(sn)  # TODO set real sn
             self.yoloProcessWorker.start_running()  # running thread
-            #self.threadpool.start(self.yoloProcessWorker)
         
     def get_mask(self):
         """Save the current image and global mask."""
@@ -445,9 +444,9 @@ class ProbeDetectManager(QObject):
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.cache_last_detected_frame()
             return self.yoloProcessWorker.last_detected_frame
-        elif self.processWorker is not None:
-            self.processWorker.cache_last_detected_frame()
-            return self.processWorker.last_detected_frame
+        elif self.opencvProcessWorker is not None:
+            self.opencvProcessWorker.cache_last_detected_frame()
+            return self.opencvProcessWorker.last_detected_frame
         return
 
     def set_algorithm(self, algorithms):
@@ -465,8 +464,8 @@ class ProbeDetectManager(QObject):
         """
         print(f"  {self.name} Stopping ProbeDetectManager")
         logger.debug(f"{self.name} - Stopping thread")
-        if self.processWorker is not None:
-            self.processWorker.stop_running()
+        if self.opencvProcessWorker is not None:
+            self.opencvProcessWorker.stop_running()
 
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.stop_running()
@@ -481,7 +480,7 @@ class ProbeDetectManager(QObject):
     def _onProcessThreadFinished(self):
         """Handle thread finished signal."""
         print(f"{self.name} Opencv thread finished")
-        self.processWorker = None
+        self.opencvProcessWorker = None
 
     def _onYoloProcessThreadFinished(self):
         """Handle thread finished signal."""
@@ -496,11 +495,8 @@ class ProbeDetectManager(QObject):
             frame (numpy.ndarray): Input frame.
             timestamp (str): Timestamp of the frame.
         """
-        fps = 5  # TODO handle different fps per processor
-        if self._prev_ts is None or (timestamp - self._prev_ts) >= (1.0/fps):
-            if self.processWorker is not None:
-                self.processWorker.update_frame(frame, timestamp)
-            self._prev_ts = timestamp
+        if self.opencvProcessWorker is not None:
+            self.opencvProcessWorker.update_frame(frame, timestamp)
 
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.update_frame(frame, timestamp)
@@ -568,13 +564,13 @@ class ProbeDetectManager(QObject):
         if self.detect_algorithm == 'opencv':
             if self.yoloProcessWorker is not None:
                 self.yoloProcessWorker.stop_detection()
-            if self.processWorker is not None:
-                self.processWorker.update_sn(sn)
-                self.processWorker.start_detection()  # is_detection_on = True, and processing frame
+            if self.opencvProcessWorker is not None:
+                self.opencvProcessWorker.update_sn(sn)
+                self.opencvProcessWorker.start_detection()  # is_detection_on = True, and processing frame
 
         elif self.detect_algorithm == 'yolo':
-            if self.processWorker is not None:
-                self.processWorker.stop_detection()
+            if self.opencvProcessWorker is not None:
+                self.opencvProcessWorker.stop_detection()
             if self.yoloProcessWorker is not None:
                 self.yoloProcessWorker.update_sn(sn)
                 self.yoloProcessWorker.start_detection()    # is_detection_on = True, and processing frame
@@ -591,9 +587,9 @@ class ProbeDetectManager(QObject):
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
             self.worker.clear_yolo_detections()
-        if self.processWorker is not None and self.detect_algorithm == 'opencv':
-            self.processWorker.update_stage_timestamp(stage_ts)
-            self.processWorker.enable_calib()
+        if self.opencvProcessWorker is not None and self.detect_algorithm == 'opencv':
+            self.opencvProcessWorker.update_stage_timestamp(stage_ts)
+            self.opencvProcessWorker.enable_calib()
         if self.yoloProcessWorker is not None and self.detect_algorithm == 'yolo':
             self.yoloProcessWorker.update_stage_timestamp(stage_ts)
             self.yoloProcessWorker.enable_calib()
@@ -606,8 +602,8 @@ class ProbeDetectManager(QObject):
             sn (str): Serial number of the device.
         """
         print(f"  {self.name} Disable calibration for {sn} with algorithm {self.detect_algorithm}")        
-        if self.processWorker is not None:
-            self.processWorker.disable_calib()
+        if self.opencvProcessWorker is not None:
+            self.opencvProcessWorker.disable_calib()
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.disable_calib()
 
@@ -623,8 +619,8 @@ class ProbeDetectManager(QObject):
             reticle_coords, reticle_coords_debug = self.get_reticle_coords(self.name)
             self.worker.set_name_coords(self.name, reticle_coords, reticle_coords_debug)
 
-        if self.processWorker is not None:
-            self.processWorker.set_name(self.name)
+        if self.opencvProcessWorker is not None:
+            self.opencvProcessWorker.set_name(self.name)
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.set_name(self.name)
         logger.debug(f"{self.name} set camera name")
@@ -648,8 +644,8 @@ class ProbeDetectManager(QObject):
     def clicked_position(self, pt):
         """Get clicked position."""
         if self.detect_algorithm == 'opencv':
-            if self.processWorker is not None:
-                self.processWorker.clicked_position(pt)
+            if self.opencvProcessWorker is not None:
+                self.opencvProcessWorker.clicked_position(pt)
         if self.detect_algorithm == 'yolo':
             if self.yoloProcessWorker is not None:
                 self.yoloProcessWorker.clicked_position(pt)

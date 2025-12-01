@@ -81,7 +81,7 @@ border: 3px solid #FFAD00;
       <bool>false</bool>
      </property>
      <property name="text">
-      <string>Yolo- 4 shanks</string>
+      <string>Yolo</string>
      </property>
     </widget>
    </item>

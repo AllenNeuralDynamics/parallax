@@ -24,7 +24,7 @@ from parallax.probe_detection.utils.probe_spin_detector import run_sanity_checks
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 @dataclass
@@ -225,13 +225,14 @@ class ProbeCalibrationHandler(QWidget):
         if stage_A.get("type", "") == "4shanks":
             print("\n  global_coords", global_coords)
             okay = run_sanity_checks(global_coords)
-           
+            if not okay:
+                print("  Retry triangulation with reversed tip_B order.")
+
             # Reverse order for tip_B
             global_coords = triangulate(ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params)
             print("\n  global_coords", global_coords)
             okay = run_sanity_checks(global_coords)
-            
-        
+
         # TODO : send the lowest z point (far left or far right) only 
         #print(f"  stage info {self.camA_best}", stage_A)
         #print(f"  stage_info {self.camB_best}", stage_B)
@@ -331,7 +332,7 @@ class ProbeCalibrationHandler(QWidget):
         for screen in self.screen_widgets:
             camera_name = screen.get_camera_name()
             if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
-                if screen.probeDetector.processWorker is not None or screen.probeDetector.worker is not None:
+                if screen.probeDetector.opencvProcessWorker is not None or screen.probeDetector.worker is not None:
                     print(f" Probe calibration thread is running for camera: {camera_name}, processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}")
                     return False
         return True
