@@ -149,7 +149,7 @@ class DrawWorker(QRunnable):
                 if xs and ys and detection.get('confidence') is not None:
                     lx, ly = int(min(xs)), int(min(ys))
                     label = f"{id_text} {class_name} {detection['confidence']:.2f}"
-                    text_x, text_y = lx, max(20, ly - 10)
+                    text_x, text_y = lx, max(20, ly - 20)
                     
                     # Shadow (Thicker black line behind)
                     cv2.putText(frame, label, (text_x + 1, text_y + 1),

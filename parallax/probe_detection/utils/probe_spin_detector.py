@@ -321,7 +321,7 @@ def _check_consecutive_spacings(global_pts: np.ndarray,
     print("---------------------------\n")
     return all_valid
 """
-def run_sanity_checks(global_points: np.ndarray) -> bool:
+def is_sane_4shanks(global_points: np.ndarray) -> bool:
     """
     Main sanity check function.
     1. Sorts points spatially.
@@ -333,15 +333,16 @@ def run_sanity_checks(global_points: np.ndarray) -> bool:
         return False
 
     # 1. Sort the points along their primary axis
-    sorted_points = _sort_points_along_line(global_points)
+    #sorted_points = _sort_points_along_line(global_points)
     
     # 2. Check linearity (are they actually in a line?)
     LINEARITY_TOLERANCE_MM = 0.1  # 100 microns
-    is_linear = _check_linearity(sorted_points, tolerance=LINEARITY_TOLERANCE_MM)
+    is_linear = _check_linearity(global_points, tolerance=LINEARITY_TOLERANCE_MM)
     
     # 3. Check spacing (distance between 1-2, 2-3, 3-4)
-    is_spacing_ok = _check_consecutive_spacings(sorted_points, unit="mm", scale=1.0)
+    is_spacing_ok = _check_consecutive_spacings(global_points, unit="mm", scale=1.0)
 
+    print(f"Overall Sanity Check: {'PASSED' if is_linear and is_spacing_ok else 'FAILED'}")
     return is_linear and is_spacing_ok
 
 def _sort_points_along_line(points: np.ndarray) -> np.ndarray:
@@ -388,6 +389,7 @@ def _check_linearity(sorted_points: np.ndarray, tolerance: float = 0.05) -> bool
         print("Error: Start and End points are identical.")
         return False
 
+    print(f"\nglobal coords:{np.round(sorted_points, 2)}")
     print(f"--- Linearity Check (Tolerance: {tolerance}mm) ---")
     all_linear = True
     
@@ -445,6 +447,7 @@ def _check_consecutive_spacings(global_pts: np.ndarray,
         print(f"  --> Sanity Check FAILED: Spacings outside [{MIN_SHANK_DIST_MM}, {MAX_SHANK_DIST_MM}] {unit}.")
     else:
         print("  --> Sanity Check PASSED: Spacings are correct.")
+    return all_valid
 
 # ---------- dev main ----------
 if __name__ == "__main__":

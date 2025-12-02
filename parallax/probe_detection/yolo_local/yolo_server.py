@@ -1,3 +1,4 @@
+from unittest import result
 import cv2
 import numpy as np
 import time
@@ -7,7 +8,7 @@ from collections import deque
 from threading import Thread
 from ultralytics import YOLO
 import torch
-from parallax.config.config_path import debug_img_dir
+from parallax.config.config_path import map_4shanks, debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -36,6 +37,9 @@ class YoloKeypoints:
         self.running = False
         self.worker_thread = None
         self.names_map = {}
+
+        self.order_4shanks = ['sh1', 'sh2', 'sh3', 'sh4']
+        self.map_4shanks = map_4shanks
         
         # New: Store the callback function
         self.detection_callback = detection_callback
@@ -206,14 +210,44 @@ class YoloKeypoints:
                                 # result.keypoints.conf contains the confidence (N_objects, N_keypoints)
                                 keypoints_xy = result.keypoints.xy.cpu().numpy()
                                 keypoints_conf = result.keypoints.conf.cpu().numpy()
+
                                 for i in range(len(keypoints_xy)):
-                                    # Create a flat list of [x1, y1, conf1, x2, y2, conf2, ...] for each object
                                     kp_list = []
-                                    for kp_xy, kp_conf in zip(keypoints_xy[i], keypoints_conf[i]):
-                                        if kp_conf >= self.conf_thresh: 
-                                            kp_list.extend([round(float(kp_xy[0]), 2), round(float(kp_xy[1]), 2), round(float(kp_conf), 2)])
+
+                                    # --- SPECIAL HANDLING FOR "4shanks" ---
+                                    if global_class_name == "4shanks":
+                                        found_kps = {}
+                                        for kp_idx, (kp_xy, kp_conf) in enumerate(zip(keypoints_xy[i], keypoints_conf[i])):
+                                            if kp_conf >= self.conf_thresh:
+                                                # Look up the name (e.g., "sh2") based on index (e.g., 0)
+                                                k_name = self.map_4shanks.get(kp_idx)
+                                                if k_name:
+                                                    found_kps[k_name] = [
+                                                        round(float(kp_xy[0]), 2),
+                                                        round(float(kp_xy[1]), 2),
+                                                        round(float(kp_conf), 2)
+                                                    ]
+
+                                        # Sort and Flatten based on target_order
+                                        # This ensures sh1 -> sh2 -> sh3 -> sh4 regardless of original index
+                                        for s_name in self.order_4shanks:
+                                            if s_name in found_kps:
+                                                kp_list.extend(found_kps[s_name])
+
+                                    # --- DEFAULT HANDLING (1shank, etc.) ---
+                                    else:
+                                        # Keep original behavior for 1shank or others:
+                                        # Just append them in the order the model outputs them.
+                                        for kp_xy, kp_conf in zip(keypoints_xy[i], keypoints_conf[i]):
+                                            if kp_conf >= self.conf_thresh:
+                                                kp_list.extend([
+                                                    round(float(kp_xy[0]), 2),
+                                                    round(float(kp_xy[1]), 2),
+                                                    round(float(kp_conf), 2)
+                                                ])
+
                                     keypoints_data[i] = kp_list
-                                    logger.debug(f"   {self.name} {i_th}- Keypoints for object {i}: {kp_list}")
+                                    logger.debug(f"   {self.name} {i_th}- Keypoints for object {i} ({global_class_name}): {kp_list}")
 
                             #if hasattr(result, 'boxes') and result.boxes is not None:
                             if hasattr(result, 'boxes') and result.boxes is not None and len(result.boxes) > 0:

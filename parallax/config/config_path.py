@@ -45,6 +45,7 @@ cnn_export_dir.mkdir(parents=True, exist_ok=True)
 
 # Yolo Config
 yolo_config_path = data_dir / "yolo_config.yaml"
+map_4shanks = {0: 'sh2', 1: 'sh3', 2: 'sh4', 3: 'sh1'}
 
 # Font
 fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")

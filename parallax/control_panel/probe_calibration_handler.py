@@ -20,7 +20,7 @@ from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
-from parallax.probe_detection.utils.probe_spin_detector import run_sanity_checks
+from parallax.probe_detection.utils.probe_spin_detector import is_sane_4shanks
 
 
 logger = logging.getLogger(__name__)
@@ -196,6 +196,16 @@ class ProbeCalibrationHandler(QWidget):
         if not self.probe_calibration_btn.isEnabled():
             self.probe_calibration_btn.setEnabled(True)
 
+    def _get_lowest_shank_index(self, global_coords):
+        """
+        Finds the index of the coordinate with the lowest Z value.
+        Returns None if input is invalid.
+        """
+        if global_coords is None or len(global_coords) == 0:
+            return None
+        # argmin returns the index of the minimum value along the Z axis (index 2)
+        return np.argmin(global_coords[:, 2])
+
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
         print("---- probe_detect_on_two_screens ----")
@@ -220,22 +230,33 @@ class ProbeCalibrationHandler(QWidget):
             logger.warning("Number of detected tips do not match between the two cameras.")
             return
 
-        global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
-
+        global_coords = None
         if stage_A.get("type", "") == "4shanks":
-            print("\n  global_coords", global_coords)
-            okay = run_sanity_checks(global_coords)
-            if not okay:
-                print("  Retry triangulation with reversed tip_B order.")
+            coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
 
-            # Reverse order for tip_B
-            global_coords = triangulate(ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params)
-            print("\n  global_coords", global_coords)
-            okay = run_sanity_checks(global_coords)
+            # Check normal, then reversed if needed
+            if is_sane_4shanks(coords):
+                global_coords = coords
+            elif is_sane_4shanks(coords_rev := triangulate(ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params)):
+                global_coords = coords_rev
+                tip_B = tip_B[::-1]  # Update the actual variable used later
 
-        # TODO : send the lowest z point (far left or far right) only 
-        #print(f"  stage info {self.camA_best}", stage_A)
-        #print(f"  stage_info {self.camB_best}", stage_B)
+            # If successful, identify the lowest shank index for filtering
+            print("global coords before filtering:", global_coords)
+            if global_coords is not None:
+                idx = self._get_lowest_shank_index(global_coords)
+                if idx is not None:
+                    # Update the main variables to ensure consistency
+                    global_coords = global_coords[idx:idx+1]
+                    tip_A = tip_A[idx:idx+1]
+                    tip_B = tip_B[idx:idx+1]
+                    print(" Lowest shank index:", idx)
+        else:  # 1 shank
+            global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
+
+        if global_coords is None:
+            print(" No valid global coordinates from triangulation.")
+            return
 
         self.stageListener.handleGlobalDataChange(
             sn_A,
@@ -248,8 +269,9 @@ class ProbeCalibrationHandler(QWidget):
             self.camB_best,
             tip_B,
         )
-        logger.debug(f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A['stage_x']}, {stage_A['stage_y']}, {stage_A['stage_z']}) {global_coords}")
+        logger.debug(f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")
 
+        """
         if self.update_spin_inputs:
             self.spinDetectionInputs.camA = self.camA_best
             self.spinDetectionInputs.camB = self.camB_best
@@ -259,6 +281,7 @@ class ProbeCalibrationHandler(QWidget):
             self.spinDetectionInputs.baseB_px = base_B
             self.spinDetectionInputs.camA_params = self.camA_params
             self.spinDetectionInputs.camB_params = self.camB_params
+        """
 
     @pyqtSlot()
     def probe_detect_on_screens(self, detected_cam):
