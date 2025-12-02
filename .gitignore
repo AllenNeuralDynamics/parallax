@@ -25,6 +25,7 @@ docs/_build/
 
 # User-specific files
 data
+!data/yolo_config.yaml
 debug
 
 # Unit test / coverage reports
