@@ -350,8 +350,10 @@ class ProbeDetectManager(QObject):
             # TODO # Run fine tip detection
             for detection in detections:
                 keypoints = detection.get("keypoints_orig", [])
+                nShank = detection.get("class_name", "1shank")
+                check_boundary = True if nShank == "1shank" else False
                 if keypoints and len(keypoints) > 0 and self.yoloProcessWorker is not None:
-                    refined_keypoints = self.yoloProcessWorker.get_precise_tip(keypoints)
+                    refined_keypoints = self.yoloProcessWorker.get_precise_tip(keypoints, check_boundary=check_boundary)
                     detection["keypoints_orig"] = refined_keypoints
                     logger.debug(f"{self.name} Received local {len(detections)} YOLO detections.")
 

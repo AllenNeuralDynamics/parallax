@@ -213,13 +213,13 @@ class YoloKeypoints:
 
                                 for i in range(len(keypoints_xy)):
                                     kp_list = []
-
+                                    """
                                     # --- SPECIAL HANDLING FOR "4shanks" ---
                                     if global_class_name == "4shanks":
                                         found_kps = {}
                                         for kp_idx, (kp_xy, kp_conf) in enumerate(zip(keypoints_xy[i], keypoints_conf[i])):
                                             if kp_conf >= self.conf_thresh:
-                                                # Look up the name (e.g., "sh2") based on index (e.g., 0)
+                                                # Look up the name (e.g., "sh2") based on index
                                                 k_name = self.map_4shanks.get(kp_idx)
                                                 if k_name:
                                                     found_kps[k_name] = [
@@ -236,15 +236,16 @@ class YoloKeypoints:
 
                                     # --- DEFAULT HANDLING (1shank, etc.) ---
                                     else:
-                                        # Keep original behavior for 1shank or others:
-                                        # Just append them in the order the model outputs them.
-                                        for kp_xy, kp_conf in zip(keypoints_xy[i], keypoints_conf[i]):
-                                            if kp_conf >= self.conf_thresh:
-                                                kp_list.extend([
-                                                    round(float(kp_xy[0]), 2),
-                                                    round(float(kp_xy[1]), 2),
-                                                    round(float(kp_conf), 2)
-                                                ])
+                                    """
+                                    # Keep original behavior for 1shank or others:
+                                    # Just append them in the order the model outputs them.
+                                    for kp_xy, kp_conf in zip(keypoints_xy[i], keypoints_conf[i]):
+                                        if kp_conf >= self.conf_thresh:
+                                            kp_list.extend([
+                                                round(float(kp_xy[0]), 2),
+                                                round(float(kp_xy[1]), 2),
+                                                round(float(kp_conf), 2)
+                                            ])
 
                                     keypoints_data[i] = kp_list
                                     logger.debug(f"   {self.name} {i_th}- Keypoints for object {i} ({global_class_name}): {kp_list}")

@@ -246,7 +246,7 @@ class YoloProcessWorker:
         if self.detection_callback:
             self.detection_callback(detections)
 
-    def get_precise_tip(self, keypoints: list):
+    def get_precise_tip(self, keypoints: list, check_boundary: bool = True):
         if keypoints is None:
             return None
         if keypoints and len(keypoints) > 0:
@@ -268,7 +268,8 @@ class YoloProcessWorker:
                     base=None,
                     offset_x=left_fine,
                     offset_y=top_fine,
-                    cam_name=self.name
+                    cam_name=self.name,
+                    check_validity=check_boundary
                 )
 
                 if ret:

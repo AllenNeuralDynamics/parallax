@@ -13,7 +13,7 @@ from parallax.config.config_path import img_processing_config_file
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ProbeFineTipDetector:
@@ -280,7 +280,7 @@ class ProbeFineTipDetector:
         return tuple(new_tip)
 
     @classmethod
-    def get_precise_tip(cls, img, tip=None, base=None, offset_x=0, offset_y=0, direction="S", cam_name="cam"):
+    def get_precise_tip(cls, img, tip=None, base=None, offset_x=0, offset_y=0, direction="S", cam_name="cam", check_validity=True):
         """Get the precise tip coordinates from the image."""
         config = cls._ensure_config_loaded()
         debug_config = config.get("debug", {})
@@ -294,7 +294,8 @@ class ProbeFineTipDetector:
 
         img = cls._preprocess_image(img)
 
-        if not cls._is_valid(img):
+        print("check_validity:", check_validity)
+        if check_validity and not cls._is_valid(img):
             logger.debug("Boundary check failed.")
             return False, tip
 
