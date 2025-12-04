@@ -30,7 +30,7 @@
       }
     },
     "tip_refinement": {
-      "l2_offset": 3,
+      "l2_offset": 7,
       "enable_offset": true
     },
     "debug": {

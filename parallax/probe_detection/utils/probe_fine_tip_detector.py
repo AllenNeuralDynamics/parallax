@@ -81,7 +81,7 @@ class ProbeFineTipDetector:
                 }
             },
             "tip_refinement": {
-                "l2_offset": 3,
+                "l2_offset": 7,
                 "enable_offset": True
             },
             "debug": {
@@ -196,42 +196,6 @@ class ProbeFineTipDetector:
         return True
 
     @classmethod
-    def _detect_closest_centroid(cls, img, tip, offset_x, offset_y, direction):
-        """Detect the closest centroid to the tip."""
-        config = cls._ensure_config_loaded()
-        corner_config = config.get("corner_detection", {})
-        harris_config = corner_config.get("harris", {})
-
-        cx, cy = tip[0], tip[1]
-        closest_centroid = (cx, cy)
-        min_distance = float("inf")
-
-        # Harris corner detection with configurable parameters
-        block_size = harris_config.get("block_size", 7)
-        ksize = harris_config.get("ksize", 5)
-        k = harris_config.get("k", 0.1)
-        threshold_factor = harris_config.get("threshold_factor", 0.3)
-
-        harris_corners = cv2.cornerHarris(img, blockSize=block_size, ksize=ksize, k=k)
-        threshold = threshold_factor * harris_corners.max()
-        corner_marks = np.zeros_like(img)
-        corner_marks[harris_corners > threshold] = 255
-
-        contours, _ = cv2.findContours(
-            corner_marks, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-        )
-
-        for contour in contours:
-            contour_tip = cls._get_direction_tip(contour, direction)
-            tip_x, tip_y = contour_tip[0] + offset_x, contour_tip[1] + offset_y
-            distance = np.sqrt((tip_x - cx) ** 2 + (tip_y - cy) ** 2)
-            if distance < min_distance:
-                min_distance = distance
-                closest_centroid = (tip_x, tip_y)
-
-        return closest_centroid
-
-    @classmethod
     def _get_direction_tip(cls, contour, direction):
         """Get the tip coordinates based on the direction."""
         tip = (0, 0)
@@ -259,7 +223,7 @@ class ProbeFineTipDetector:
         if offset is None:
             config = cls._ensure_config_loaded()
             refinement_config = config.get("tip_refinement", {})
-            offset = refinement_config.get("l2_offset", 2)
+            offset = refinement_config.get("l2_offset", 7)
 
         # Calculate the vector from the base to the tip
         vector = np.array(tip) - np.array(base)
@@ -274,10 +238,81 @@ class ProbeFineTipDetector:
         unit_vector = vector / distance
 
         # Calculate the new tip position by extending the tip by the given offset
+        print("Original tip:", tip, "Base:", base, "Offset:", offset)
         new_tip = np.array(tip) + unit_vector * offset
         new_tip = np.round(new_tip).astype(int)
 
         return tuple(new_tip)
+
+    @classmethod
+    def _get_contour_centroid(cls, contour):
+        """
+        Calculates centroid, angle (direction), and an estimated base point
+        using Image Moments to avoid re-running findContours.
+        """
+        # 1. Get Moments once
+        M = cv2.moments(contour)
+
+        # Filter out small noise (avoid division by zero)
+        if M["m00"] == 0:
+            return None, None, None
+
+        # 2. Calculate Centroid
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        centroid = (cx, cy)
+
+        return centroid
+
+    @classmethod
+    def _detect_closest_centroid(cls, img, tip, offset_x, offset_y, direction):
+        """Detect the closest centroid to the tip."""
+        config = cls._ensure_config_loaded()
+        corner_config = config.get("corner_detection", {})
+        harris_config = corner_config.get("harris", {})
+
+        cx, cy = tip[0], tip[1]
+        closest_centroid = (cx, cy)
+        min_distance = float("inf")
+
+        # Harris corner detection with configurable parameters
+        block_size = harris_config.get("block_size", 7)
+        ksize = harris_config.get("ksize", 5)
+        k = harris_config.get("k", 0.1)
+        threshold_factor = harris_config.get("threshold_factor", 0.3)
+
+        # Detect corners (tips)
+        harris_corners = cv2.cornerHarris(img, blockSize=block_size, ksize=ksize, k=k)
+        threshold = threshold_factor * harris_corners.max()
+        corner_marks = np.zeros_like(img)
+        corner_marks[harris_corners > threshold] = 255
+
+        contours, _ = cv2.findContours(
+            corner_marks, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        for contour in contours:
+            #contour_tip = cls._get_direction_tip(contour, direction)
+            contour_tip = cls._get_centroid(contour)
+            if contour_tip is None:
+                continue
+            tip_x, tip_y = contour_tip[0] + offset_x, contour_tip[1] + offset_y
+            distance = np.sqrt((tip_x - cx) ** 2 + (tip_y - cy) ** 2)
+            if distance < min_distance:
+                min_distance = distance
+                closest_centroid = (tip_x, tip_y)
+
+        return closest_centroid
+
+    @classmethod
+    def _get_centroid(cls, contour):
+        """Get centroid of a contour using image moments."""
+        M = cv2.moments(contour)
+        if M["m00"] == 0:
+            return None
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        return (cx, cy)
 
     @classmethod
     def get_precise_tip(cls, img, tip=None, base=None, offset_x=0, offset_y=0, direction="S", cam_name="cam", check_validity=True):
@@ -294,16 +329,27 @@ class ProbeFineTipDetector:
 
         img = cls._preprocess_image(img)
 
-        print("check_validity:", check_validity)
         if check_validity and not cls._is_valid(img):
             logger.debug("Boundary check failed.")
             return False, tip
 
+        # TODO: base is none, get base from contour centroid and direction from tip and base
         precise_tip = cls._detect_closest_centroid(img, tip, offset_x, offset_y, direction)
 
+        """
         if base is None or not refinement_config.get("enable_offset", True):
             precise_tip_extended = precise_tip
         else:
+            precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base)
+        """
+        if not refinement_config.get("enable_offset", False):
+            precise_tip_extended = precise_tip
+        else:
+            if base is None:
+                base = cls._get_base(img, precise_tip, offset_x, offset_y)
+                if base is None:
+                    logger.debug("Could not determine base for tip refinement.")
+                    return False, precise_tip
             precise_tip_extended = cls.add_L2_offset_to_tip(precise_tip, base)
 
         if logger.getEffectiveLevel() == logging.DEBUG and debug_config.get("save_images", True):
@@ -314,11 +360,62 @@ class ProbeFineTipDetector:
             thickness = debug_config.get("circle_thickness", -1)
 
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-            cv2.circle(img, (x, y), 1, color, thickness)
+            cv2.circle(img, (x, y), 2, color, thickness)  # extended tip
+
+            x, y = precise_tip[0] - offset_x, precise_tip[1] - offset_y
+            cv2.circle(img, (x, y), 1, (0, 255, 255), thickness)  # detected tip
+            if base is not None:
+                x, y = base[0] - offset_x, base[1] - offset_y
+                cv2.circle(img, (x, y), 1, (255, 0, 0), thickness)  # base
             save_path = os.path.join(debug_img_dir, f"{cam_name}_{tip}_{time.time()}_after.jpg")
             cv2.imwrite(save_path, img)
 
         return True, precise_tip_extended
+
+    @classmethod
+    def _get_base(cls, img, tip, offset_x, offset_y):
+        """
+        Determines the base centroid. 
+        If multiple contours exist, picks the one containing or closest to the tip.
+        """
+        # 1. Find contours in the local image
+        # invert image for contour detection
+        img = cv2.bitwise_not(img)
+        contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return None
+
+        chosen_contour = None
+        # 2. Case: Single Contour
+        if len(contours) == 1:
+            chosen_contour = contours[0]
+        # 3. Case: Multiple Contours
+        else:
+            # Convert global tip to local coordinates relative to the cropped img
+            local_tip = (tip[0] - offset_x, tip[1] - offset_y)
+            
+            # Use pointPolygonTest to find the best contour.
+            # measureDist=True returns:
+            #   > 0: Inside (distance to nearest edge)
+            #   = 0: On the edge
+            #   < 0: Outside (negative distance to nearest edge)
+            # The maximum value corresponds to the contour the point is deepest inside
+            # or (if outside all) the one it is closest to.
+            chosen_contour = max(
+                contours, 
+                key=lambda c: cv2.pointPolygonTest(c, local_tip, measureDist=True)
+            )
+
+        # 4. Get local centroid
+        local_base = cls._get_centroid(chosen_contour)
+        
+        if local_base is None:
+            return None
+
+        # 5. Convert local centroid back to global coordinates
+        global_base = (local_base[0] + offset_x, local_base[1] + offset_y)
+        
+        return global_base
 
 """
 #Module-level configuration
