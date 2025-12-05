@@ -19,7 +19,7 @@ from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
-from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
+from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma, spin_angle_from_vec
 from parallax.probe_detection.utils.probe_spin_detector import is_sane_4shanks
 
 
@@ -89,6 +89,7 @@ class ProbeCalibrationHandler(QWidget):
         self.moving_stage_id = None
         self.transMbs = None
         self.arc_angle_global, self.arc_angle_bregma = None, None
+        self.spin_angle = None
         self.spinDetectionInputs = SpinDetectionInputs()
         self.update_spin_inputs = False
 
@@ -230,27 +231,29 @@ class ProbeCalibrationHandler(QWidget):
             logger.warning("Number of detected tips do not match between the two cameras.")
             return
 
-        global_coords = None
+        global_coords, global_coords_4shanks = None, None
         if stage_A.get("type", "") == "4shanks":
             coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
-
             # Check normal, then reversed if needed
             if is_sane_4shanks(coords):
-                global_coords = coords
+                global_coords_4shanks = coords
             elif is_sane_4shanks(coords_rev := triangulate(ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params)):
-                global_coords = coords_rev
+                global_coords_4shanks = coords_rev
                 tip_B = tip_B[::-1]  # Update the actual variable used later
 
             # If successful, identify the lowest shank index for filtering
-            print("global coords before filtering:", global_coords)
-            if global_coords is not None:
-                idx = self._get_lowest_shank_index(global_coords)
+            if global_coords_4shanks is not None:
+                print("global coords:", global_coords_4shanks)
+                idx = self._get_lowest_shank_index(global_coords_4shanks)
                 if idx is not None:
                     # Update the main variables to ensure consistency
-                    global_coords = global_coords[idx:idx+1]
+                    global_coords = global_coords_4shanks[idx:idx+1]
                     tip_A = tip_A[idx:idx+1]
                     tip_B = tip_B[idx:idx+1]
                     print(" Lowest shank index:", idx)
+
+                # Get spin
+                self.spin_angle = self._get_spin_angle(global_coords_4shanks)
         else:  # 1 shank
             global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
 
@@ -277,11 +280,18 @@ class ProbeCalibrationHandler(QWidget):
             self.spinDetectionInputs.camB = self.camB_best
             self.spinDetectionInputs.tipA_px = tip_A
             self.spinDetectionInputs.tipB_px = tip_B
-            self.spinDetectionInputs.baseA_px = base_A
-            self.spinDetectionInputs.baseB_px = base_B
             self.spinDetectionInputs.camA_params = self.camA_params
-            self.spinDetectionInputs.camB_params = self.camB_params
-        """
+            self.spinDetectionInputs.camB_params = self.camB_params"""
+
+    def _get_spin_angle(self, global_pts):
+        # 5. Get spin angle
+        print("\n--- Spin Angle Calculation ---")
+        vec, pts_xy, rms_perp = SpinProcessor.pca_global_pts_to_vec(global_pts)
+        angle_deg = spin_angle_from_vec(vec)
+        print(f"Spin: {angle_deg:.2f}° (0° = +Y), RMS⊥ error: {rms_perp:.4f}")
+        print("vector (XY):", np.round(vec, 4).tolist())
+
+        return angle_deg
 
     @pyqtSlot()
     def probe_detect_on_screens(self, detected_cam):
@@ -594,13 +604,6 @@ class ProbeCalibrationHandler(QWidget):
                 continue
 
             self.spinDetectionInputs.transM = self.transM
-            if camera_name == self.camA_best:
-                self.spinDetectionInputs.maskA = screen.get_mask_from_probe_detector()
-                self.spinDetectionInputs.imgA = screen.get_frame_from_probe_detector()
-            if camera_name == self.camB_best:
-                self.spinDetectionInputs.maskB = screen.get_mask_from_probe_detector()
-                self.spinDetectionInputs.imgB = screen.get_frame_from_probe_detector()
-
         return self.spinDetectionInputs.ready_for_calc()
 
     def _update_probe_angle(self) -> bool:
@@ -609,50 +612,13 @@ class ProbeCalibrationHandler(QWidget):
         skipped (Single Shank). Returns False if the process should be retried
         (data not yet ready or PCA failed).
         """
-
+        print(" *** Updating probe angle info... ****")
         # 1. Early exit if angle is restored from session
         if self.arc_angle_global is not None:
             return True
 
-        # Try to get spin info for 4 shank probe
-        self._update_best_stereo_pair()
-        if self.camA_best is None or self.camB_best is None:
-            logger.warning("No valid stereo pair found for probe angle calculation.")
-            return True
-
-        alg_A = self.model.get_probe_detect_algorithms(self.camA_best)
-        alg_B = self.model.get_probe_detect_algorithms(self.camB_best)
-        IS_FOUR_SHANK = (alg_A == 'tam' and alg_B == 'tam') # Both algorithm are 'tam' -> 4 shank probe
-
-        # Retry for 4-Shank Failures, but Skip and Proceed for Single-Shank Mode
-        if IS_FOUR_SHANK:
-            # Check 1: Data readiness
-            if not self.is_spin_data_ready():
-                print("Failed to get spin info. Trying triangulation one more time.")
-                return False
-
-            # Check 2: Spin calculation
-            spin_processor = SpinProcessor(self.spinDetectionInputs)
-            result: SpinCalculationResult = spin_processor.run_detection_pipeline()
-
-            # Detected 1 shank only - cannot compute spin angle, but proceed
-            if result.mode == "FAILED_1_SHANK":
-                print("Spin detection found only 1 shank. Skipping spin angle calculation.")
-                self.arc_angle_global = get_rx_ry(self.transM)
-                self.arc_angle_global["rz"] = None
-                return True
-            # Failed to detect spin angle
-            if not result.is_valid:
-                print("Spin detection failed. Trying triangulation one more time.")
-                return False
-
-            # Get probe angle information of 4 shanks
-            self.arc_angle_global = get_rx_ry(self.transM)
-            self.arc_angle_global["rz"] = result.spin_angle_deg
-        else:
-            # Single shank probe
-            self.arc_angle_global = get_rx_ry(self.transM)
-            self.arc_angle_global["rz"] = None
+        self.arc_angle_global = get_rx_ry(self.transM)
+        self.arc_angle_global["rz"] = self.spin_angle
 
         return True
 

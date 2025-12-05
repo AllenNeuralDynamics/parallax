@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 
 # --- project imports ---
+from parallax.probe_detection.utils.probe_img_processor import ProbeImageProcessor
 from parallax.config.config_path import debug_img_dir
 from parallax.config.config_calibration import MIN_SHANK_DIST_MM, MAX_SHANK_DIST_MM, Z_SPAN_MAX_MM
 from parallax.cameras.calibration_camera import CameraParams, triangulate
@@ -22,14 +23,20 @@ class SpinCalculationResult:
     spin_angle_deg: float
     spin_angle_rad: float
     is_valid: bool
-    mode: str = "4_SHANK" # Options include: "4_SHANK", "FAILED_INPUTS", "FAILED_SANITY_CHECK", etc.
+    mode: str = "4_SHANK" # Options include: "4_SHANK", "FAILED_INPUTS", "FAILED_SANITY_CHECK", "FAILED_1_SHANK", etc.
 
 @dataclass(slots=True)
 class SpinDetectionInputs:
     camA: Optional[str] = None
     camB: Optional[str] = None
+    maskA: Optional[np.ndarray] = None
+    maskB: Optional[np.ndarray] = None
+    imgA:  Optional[np.ndarray] = None
+    imgB:  Optional[np.ndarray] = None
     tipA_px: Optional[Tuple[float, float]] = None
     tipB_px: Optional[Tuple[float, float]] = None
+    baseA_px: Optional[Tuple[float, float]] = None
+    baseB_px: Optional[Tuple[float, float]] = None
     transM: Optional[np.ndarray] = None            # 4x4
     camA_params: Optional[CameraParams] = None
     camB_params: Optional[CameraParams] = None
@@ -39,6 +46,8 @@ class SpinDetectionInputs:
     def ready_for_calc(self) -> bool:
         return all([
             self.camA, self.camB,
+            self.maskA is not None, self.maskB is not None,
+            self.imgA  is not None, self.imgB  is not None,
             self.tipA_px is not None, self.tipB_px is not None,
             self.transM is not None,
             self.camA_params is not None, self.camB_params is not None,
@@ -55,19 +64,79 @@ class SpinProcessor:
             print("Inputs not ready for calculation.")
             return SpinCalculationResult(0.0, 0.0, False, "FAILED_INPUTS")
 
-        # ---- CAM1 ----
-        print("CAM1:", self.inputs.tipA_px)
-        
-        # ---- CAM2 ----
-        print("CAM2:", self.inputs.tipB_px)
+        # Save img and mask
+        if logger.isEnabledFor(logging.DEBUG):
+            if self.inputs.imgA is not None:
+                cv2.imwrite(str(debug_img_dir / "A_frame.png"), self.inputs.imgA)
+            if self.inputs.imgB is not None:
+                cv2.imwrite(str(debug_img_dir / "B_frame.png"), self.inputs.imgB)
+            if self.inputs.maskA is not None:
+                cv2.imwrite(str(debug_img_dir / "A_mask.png"), self.inputs.maskA)
+            if self.inputs.maskB is not None:
+                cv2.imwrite(str(debug_img_dir / "B_mask.png"), self.inputs.maskB)
 
-        if len(self.inputs.tipA_px) != 4 or len(self.inputs.tipB_px) != 4:
+        # 1 Image Processing
+        parallel_lines_mask1 = self._detect_parallel_lines(
+                                img = self.inputs.imgA,
+                                tip=self.inputs.tipA_px,
+                                base=self.inputs.baseA_px,
+                                mask=self.inputs.maskA
+                            )
+        parallel_lines_mask2 = self._detect_parallel_lines(
+                                img = self.inputs.imgB,
+                                tip=self.inputs.tipB_px,
+                                base=self.inputs.baseB_px,
+                                mask=self.inputs.maskB
+                            )
+        if parallel_lines_mask1 is None or parallel_lines_mask2 is None:
+            print("Error: Failed to detect parallel lines (shanks) in one or both cameras.")
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_PREPROCESSING")
+
+        # ---- CAM1 ----
+        cam1_tip_base_dist = np.linalg.norm(np.asarray(self.inputs.tipA_px) - np.asarray(self.inputs.baseA_px))
+        endpoints1 = ProbeImageProcessor.extract_shank_endpoints_from_line_mask(
+                line_mask=parallel_lines_mask1,
+                k=4,
+                min_abs_len_px=cam1_tip_base_dist*0.7,
+                elong_thresh=2.0,
+                draw_on=self.inputs.imgA,
+                save_to=Path(debug_img_dir) / "A_frame_shank_endpoints.png"
+            )
+        print("CAM1:", endpoints1)
+        # ---- CAM2 ----
+        cam2_tip_base_dist = np.linalg.norm(np.asarray(self.inputs.tipB_px) - np.asarray(self.inputs.baseB_px))
+        endpoints2 = ProbeImageProcessor.extract_shank_endpoints_from_line_mask(
+            line_mask=parallel_lines_mask2,
+            k=4,
+            min_abs_len_px=cam2_tip_base_dist*0.7,
+            elong_thresh=2.0,
+            draw_on=self.inputs.imgB,
+            save_to=Path(debug_img_dir) / "B_frame_shank_endpoints.png"
+        )
+        print("CAM2:", endpoints2)
+
+        if endpoints1 is None or endpoints2 is None:
+            print("Error: Failed to extract a sufficient number of shank endpoints (need >=4).")
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_PREPROCESSING")
+        if  len(endpoints1) == 1 and len(endpoints2) == 1:
+            print("Error: Only one shank detected in one or both cameras.")
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_1_SHANK")
+        if len(endpoints1) < 4 or len(endpoints2) < 4:
+            print("Error: Less than 4 shanks detected in one or both cameras.")
+            return SpinCalculationResult(0.0, 0.0, False, "FAILED_LESS_THAN_4_SHANKS")
+
+       # 2. find the matching points (1st~4th shank)
+        nearest_pts_cam1 = self._closest_endpoints_to_tip(endpoints1, self.inputs.tipA_px, k=4)
+        nearest_pts_cam2 = self._closest_endpoints_to_tip(endpoints2, self.inputs.tipB_px, k=4)
+        print("Matched CAM1 points:", nearest_pts_cam1)
+        print("Matched CAM2 points:", nearest_pts_cam2)
+        if len(nearest_pts_cam1) != 4 or len(nearest_pts_cam2) != 4:
             print("Error: Failed to find 4 matched endpoint pairs.")
             return SpinCalculationResult(0.0, 0.0, False, "FAILED_MATCHING_ENDPOINTS")
 
         # 3. Triangulate to get 3D coordinates
-        global_pts = triangulate(ptsA=self.inputs.tipA_px,
-                                 ptsB=self.inputs.tipB_px,
+        global_pts = triangulate(ptsA=nearest_pts_cam1,
+                                 ptsB=nearest_pts_cam2,
                                  paramsA=self.inputs.camA_params,
                                  paramsB=self.inputs.camB_params)
         self.shank_endpoints_3D = global_pts
@@ -79,20 +148,18 @@ class SpinProcessor:
             return SpinCalculationResult(0.0, 0.0, False, "FAILED_SANITY_CHECKS")
 
         # 5. Get spin angle
-        vec, pts_xy, rms_perp = self.pca_global_pts_to_vec(global_pts)
+        vec, pts_xy, rms_perp = self._pca_global_pts_to_vec(global_pts)
         angle_deg = spin_angle_from_vec(vec)
         print(f"Spin: {angle_deg:.2f}° (0° = +Y), RMS⊥ error: {rms_perp:.4f}")
         print("vector (XY):", np.round(vec, 4).tolist())
         return SpinCalculationResult(angle_deg, np.deg2rad(angle_deg), True, "4_SHANK")
-
 
     def run_sanity_checks(self, global_points: np.ndarray) -> bool:
         ok1 = self._check_consecutive_spacings(global_points, unit="mm", scale=1.0)
         ok2, z_vals, z_span = self._check_same_local_z_RT(global_points, self.inputs.transM, tol_mm=Z_SPAN_MAX_MM)
         return ok1 and ok2
 
-    @staticmethod
-    def pca_global_pts_to_vec(global_pts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
+    def _pca_global_pts_to_vec(self, global_pts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
         """
         PCA-based spin:
         - Project to XY
@@ -181,6 +248,45 @@ class SpinProcessor:
         print("---------------------------\n")
         return all_valid
 
+    def _detect_parallel_lines(self, img: np.ndarray,
+                            tip: Optional[Tuple[float, float]] = None,
+                            base: Optional[Tuple[float, float]] = None,
+                            mask: Optional[np.ndarray] = None) -> Optional[np.ndarray]:
+        """Run your real detector: detect_line -> detect_parallel_lines -> draw mask."""
+        linesP = ProbeImageProcessor.detect_line(img, mask=mask)
+
+        if linesP is None or len(linesP) == 0:
+            return None
+
+        linesP = ProbeImageProcessor.detect_parallel_lines(
+            linesP, tip=tip, base=base, max_angle_deg=10, debug=False
+        )
+        if linesP is None or len(linesP) == 0:
+            print("No parallel lines found")
+            return None
+
+        sel_mask = np.zeros(img.shape[:2], np.uint8)
+        for x1, y1, x2, y2 in linesP[:, 0]:
+            cv2.line(sel_mask, (x1, y1), (x2, y2), 255, 4)
+        return sel_mask
+
+    def _closest_endpoints_to_tip(self, linesP, tip_xy, k=4):
+        tip = np.asarray(tip_xy, float).ravel()[:2]
+        lines = np.asarray(linesP).reshape(-1, 4)
+
+        pts, dists = [], []
+        for x1, y1, x2, y2 in lines:
+            p1 = np.array([x1, y1], float)
+            p2 = np.array([x2, y2], float)
+            d1 = np.linalg.norm(p1 - tip)
+            d2 = np.linalg.norm(p2 - tip)
+            if d1 <= d2:
+                pts.append((x1, y1)); dists.append(d1)
+            else:
+                pts.append((x2, y2)); dists.append(d2)
+
+        order = np.argsort(dists)[:min(k, len(pts))]   # ascending distance
+        return np.asarray([pts[i] for i in order], dtype=int)
 
 """
 def run_sanity_checks(global_points: np.ndarray) -> bool:
@@ -223,7 +329,7 @@ def is_sane_4shanks(global_points: np.ndarray) -> bool:
     3. Checks spacing between sorted points.
     """
     if global_points is None or len(global_points) < 2:
-        #print("Error: Not enough points for sanity check.")
+        print("Error: Not enough points for sanity check.")
         return False
 
     # 1. Sort the points along their primary axis
@@ -280,10 +386,11 @@ def _check_linearity(sorted_points: np.ndarray, tolerance: float = 0.05) -> bool
     line_len_sq = np.dot(line_vec, line_vec)
     
     if line_len_sq == 0:
-        logger.debug("Error: Start and End points are identical.")
+        print("Error: Start and End points are identical.")
         return False
 
-    logger.debug(f"--- Linearity Check (Tolerance: {tolerance}mm) ---")
+    print(f"\nglobal coords:{np.round(sorted_points, 2)}")
+    print(f"--- Linearity Check (Tolerance: {tolerance}mm) ---")
     all_linear = True
     
     # Check every intermediate point
@@ -296,15 +403,15 @@ def _check_linearity(sorted_points: np.ndarray, tolerance: float = 0.05) -> bool
         dist = np.linalg.norm(cross_prod) / np.sqrt(line_len_sq)
         
         status = "OK" if dist <= tolerance else "FAIL"
-        logger.debug(f"Point {i} deviation: {dist:.4f} mm | Status: {status}")
+        print(f"Point {i} deviation: {dist:.4f} mm | Status: {status}")
         
         if dist > tolerance:
             all_linear = False
 
     if not all_linear:
-        logger.debug("  --> Sanity Check FAILED: Points are not collinear.")
+        print("  --> Sanity Check FAILED: Points are not collinear.")
     else:
-        logger.debug("  --> Sanity Check PASSED: Points form a valid line.")
+        print("  --> Sanity Check PASSED: Points form a valid line.")
     return all_linear
 
 def _check_consecutive_spacings(global_pts: np.ndarray,
@@ -324,22 +431,22 @@ def _check_consecutive_spacings(global_pts: np.ndarray,
     diffs = global_pts[1:] - global_pts[:-1]
     distances = np.linalg.norm(diffs, axis=1) * scale
     
-    logger.debug("--- Shank Spacing Check (Sorted) ---")
+    print("--- Shank Spacing Check (Sorted) ---")
     for i, d in enumerate(distances):
         # 1. Check bounds
         is_valid = (MIN_SHANK_DIST_MM <= d <= MAX_SHANK_DIST_MM)
         
         # 2. Print status
         status = "OK" if is_valid else "FAIL"
-        logger.debug(f"Distance {i}->{i+1}: {d:.4f} {unit} | Status: {status}")
+        print(f"Distance {i}->{i+1}: {d:.4f} {unit} | Status: {status}")
         
         if not is_valid:
             all_valid = False
             
     if not all_valid:
-        logger.debug(f"  --> Sanity Check FAILED: Spacings outside [{MIN_SHANK_DIST_MM}, {MAX_SHANK_DIST_MM}] {unit}.")
+        print(f"  --> Sanity Check FAILED: Spacings outside [{MIN_SHANK_DIST_MM}, {MAX_SHANK_DIST_MM}] {unit}.")
     else:
-        logger.debug("  --> Sanity Check PASSED: Spacings are correct.")
+        print("  --> Sanity Check PASSED: Spacings are correct.")
     return all_valid
 
 # ---------- dev main ----------

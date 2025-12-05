@@ -238,7 +238,6 @@ class ProbeFineTipDetector:
         unit_vector = vector / distance
 
         # Calculate the new tip position by extending the tip by the given offset
-        print("Original tip:", tip, "Base:", base, "Offset:", offset)
         new_tip = np.array(tip) + unit_vector * offset
         new_tip = np.round(new_tip).astype(int)
 

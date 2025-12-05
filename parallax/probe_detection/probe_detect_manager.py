@@ -346,7 +346,6 @@ class ProbeDetectManager(QObject):
 
         # Emit found_coords if all detections are from yolo_local
         if self._is_from_local_yolo(detections) and self.yoloProcessWorker.probe_stopped:
-            print(f":):) {self.name} Received kpts {len(detections)} YOLO detections.")
             # TODO # Run fine tip detection
             for detection in detections:
                 keypoints = detection.get("keypoints_orig", [])
@@ -419,13 +418,13 @@ class ProbeDetectManager(QObject):
         """
         Start the probe detection manager by initializing the worker thread and running it.
         """
-        print(f" {self.name} Starting ProbeDetectManager for with algorithm {self.detect_algorithm}")
+        logger.debug(f" {self.name} Starting ProbeDetectManager for with algorithm {self.detect_algorithm}")
         wait_time = 0
         while (self.worker is not None or self.opencvProcessWorker is not None) and wait_time < 3.0:
             time.sleep(0.1)
             wait_time += 0.1
         if self.worker is not None or self.opencvProcessWorker is not None:
-            print(f"{self.name} Previous thread not cleaned up")
+            logger.debug(f"{self.name} Previous thread not cleaned up")
             return
 
         logger.debug(f"{self.name} - Starting thread")
@@ -468,7 +467,7 @@ class ProbeDetectManager(QObject):
         """
         Stop the probe detection manager by halting the worker thread.
         """
-        print(f"  {self.name} Stopping ProbeDetectManager")
+        logger.debug(f"  {self.name} Stopping ProbeDetectManager")
         logger.debug(f"{self.name} - Stopping thread")
         if self.opencvProcessWorker is not None:
             self.opencvProcessWorker.stop_running()
@@ -485,12 +484,12 @@ class ProbeDetectManager(QObject):
 
     def _onProcessThreadFinished(self):
         """Handle thread finished signal."""
-        print(f"{self.name} Opencv thread finished")
+        logger.debug(f"{self.name} Opencv thread finished")
         self.opencvProcessWorker = None
 
     def _onYoloProcessThreadFinished(self):
         """Handle thread finished signal."""
-        print(f"{self.name} YOLO thread finished")
+        logger.debug(f"{self.name} YOLO thread finished")
         self.yoloProcessWorker = None
 
     def process(self, frame, timestamp):
@@ -561,7 +560,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number.
         """
-        print(f"  {self.name} Start detection for {sn} with algorithm {self.detect_algorithm}")
+        logger.debug(f"  {self.name} Start detection for {sn} with algorithm {self.detect_algorithm}")
         if self.worker is not None:  # Clear current tip/base coords and mask
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
@@ -588,7 +587,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
-        print(f"  {self.name} Enable calibration for {sn} with algorithm {self.detect_algorithm}")
+        logger.debug(f"  {self.name} Enable calibration for {sn} with algorithm {self.detect_algorithm}")
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
@@ -607,7 +606,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
-        print(f"  {self.name} Disable calibration for {sn} with algorithm {self.detect_algorithm}")        
+        logger.debug(f"  {self.name} Disable calibration for {sn} with algorithm {self.detect_algorithm}")        
         if self.opencvProcessWorker is not None:
             self.opencvProcessWorker.disable_calib()
         if self.yoloProcessWorker is not None:
