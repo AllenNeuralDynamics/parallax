@@ -199,13 +199,21 @@ class ProbeCalibrationHandler(QWidget):
 
     def _get_lowest_shank_index(self, global_coords):
         """
-        Finds the index of the coordinate with the lowest Z value.
-        Returns None if input is invalid.
+        Compares only the first and last coordinates and returns 
+        the index of the one with the lowest Z value.
         """
         if global_coords is None or len(global_coords) == 0:
             return None
-        # argmin returns the index of the minimum value along the Z axis (index 2)
-        return np.argmin(global_coords[:, 2])
+        
+        # Compare Z (index 2) of the first and last points
+        z_first = global_coords[0, 2]
+        z_last = global_coords[-1, 2]
+
+        if z_first < z_last:
+            return 0
+        else:
+            # Return the explicit last index (not -1) so slicing [idx:idx+1] works
+            return len(global_coords) - 1
 
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
