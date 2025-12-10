@@ -282,22 +282,15 @@ class ProbeCalibrationHandler(QWidget):
         )
         logger.debug(f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")
 
-        """
-        if self.update_spin_inputs:
-            self.spinDetectionInputs.camA = self.camA_best
-            self.spinDetectionInputs.camB = self.camB_best
-            self.spinDetectionInputs.tipA_px = tip_A
-            self.spinDetectionInputs.tipB_px = tip_B
-            self.spinDetectionInputs.camA_params = self.camA_params
-            self.spinDetectionInputs.camB_params = self.camB_params"""
-
     def _get_spin_angle(self, global_pts):
         # 5. Get spin angle
         print("\n--- Spin Angle Calculation ---")
+        # sort by global z coords (ascending)
+        global_pts = global_pts[np.argsort(global_pts[:, 2])]
         vec, pts_xy, rms_perp = SpinProcessor.pca_global_pts_to_vec(global_pts)
         angle_deg = spin_angle_from_vec(vec)
-        print(f"Spin: {angle_deg:.2f}° (0° = +Y), RMS⊥ error: {rms_perp:.4f}")
-        print("vector (XY):", np.round(vec, 4).tolist())
+        print(f"Spin: {angle_deg:.2f}° (0° = -X), RMS⊥ error: {rms_perp:.4f}")
+        logger.debug("vector (XY):", np.round(vec, 4).tolist())
 
         return angle_deg
 

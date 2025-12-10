@@ -43,10 +43,13 @@ def get_rx_ry(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
 
 def spin_angle_from_vec(v: np.ndarray) -> float:
     """
-    Spin angle: positive for CCW, 0° if along +Y
+    Spin angle: positive for CCW, 0° if along -X
     """
-    angle_deg = float(np.degrees(np.arctan2(v[0], v[1])))
-    angle_deg = (angle_deg + 180) % 360 - 180  # Normalize to [-180, 180]
+    # Use (-y, -x) to rotate the frame so -X becomes the 0° reference
+    angle_deg = float(np.degrees(np.arctan2(-v[1], -v[0])))
+    # Normalize to [-180, 180] range
+    angle_deg = (angle_deg + 180) % 360 - 180
+    
     return angle_deg
 
 def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.ndarray]:
@@ -64,7 +67,6 @@ def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.nd
     vec = R[2, :]  # shape (3,)
     return vec
 
-
 def _vector_to_arc_angles(
     vec: Optional[np.ndarray],
     degrees: bool = True,
@@ -72,6 +74,11 @@ def _vector_to_arc_angles(
 ) -> Optional[dict[str, float]]:
     """
     Calculate arc angles for a given 3D direction vector in RAS (x=ML, y=AP, z=DV).
+    Parameters
+    ----------
+    vec : array_like
+        A 3-element vector with ML, AP, and DV components. Directions should be
+        in RAS.
 
     Returns
     -------
