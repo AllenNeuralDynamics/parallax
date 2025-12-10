@@ -93,13 +93,13 @@ class UserSettingsManager:
         if "main" in settings:
             main_settings = settings["main"]
             nColumn = main_settings.get("nColumn", 1)
-            directory = main_settings.get("directory", "")
+            directory = main_settings.get("directory", None)
             width = main_settings.get("width", 1400)
             height = main_settings.get("height", 1000)
             return nColumn, directory, width, height
         else:
             logger.debug("load_mainWindow_settings: Settings file not found.")
-            return 1, "", 1400, 1000
+            return 1, None, 1400, 1000
 
     @classmethod
     def load_settings_item(cls, category, item=None):
