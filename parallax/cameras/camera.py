@@ -655,9 +655,13 @@ class PySpinCamera(BaseCamera):
         Stops the ongoing video capture process and releases video resources.
         """
         self.video_recording_on.clear()
-        self.video_recording_idle.wait()
+        # Wait for up to 1 second for the thread to finish cleanly
+        is_clean_exit = self.video_recording_idle.wait(timeout=1.0)
+        if not is_clean_exit:
+            logger.warning("Recording thread did not signal idle; forcing stop.")
         self.video_recording_idle.clear()
-        self.video_output.release()
+        if self.video_output is not None:
+            self.video_output.release()
 
     # Clean up the camera
     def stop(self, clean=False):
