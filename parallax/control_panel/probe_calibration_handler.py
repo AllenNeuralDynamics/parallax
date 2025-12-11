@@ -457,6 +457,7 @@ class ProbeCalibrationHandler(QWidget):
 
         self.probe_detection_status = "default"
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
+        self.spin_angle, self.arc_angle_global = None, None
         self.transM, self.L2_err, self.dist_travel = None, None, None
         self.probeCalibration.reset_calib()
         self.reticle_metadata.default_reticle_selector()
