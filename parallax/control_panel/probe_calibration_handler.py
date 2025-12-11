@@ -90,7 +90,7 @@ class ProbeCalibrationHandler(QWidget):
         self.moving_stage_id = None
         self.transMbs = None
         self.arc_angle_global, self.arc_angle_bregma = None, None
-        self.spin_angle = None
+        self.spin_angle = []
         self.update_spin_inputs = False
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
@@ -251,14 +251,18 @@ class ProbeCalibrationHandler(QWidget):
             # If successful, identify the lowest shank index for filtering
             if global_coords_4shanks is not None:
                 logger.debug(f"global coords: {global_coords_4shanks}")
-                idx = self._get_lowest_shank_index(global_coords_4shanks)
+                idx = self._get_lowest_shank_index(global_coords_4shanks)  # TODO handle the parallel to the reticle surface
                 if idx is not None:
                     # Update the main variables to ensure consistency
                     global_coords = global_coords_4shanks[idx:idx+1]
                     tip_A = tip_A[idx:idx+1]
                     tip_B = tip_B[idx:idx+1]
                     logger.debug(f" Lowest shank index: {idx}")
-                self.spin_angle = self._get_spin_angle(global_coords_4shanks)  # spin angle from all 4 shanks
+
+                # Spin
+                spin_angle = self._get_spin_angle(global_coords_4shanks)
+                if spin_angle is not None:
+                    self.spin_angle.append(spin_angle)
         else:  # 1 shank
             global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
 
@@ -283,7 +287,6 @@ class ProbeCalibrationHandler(QWidget):
         # sort by global z coords (ascending)
         global_pts = global_pts[np.argsort(global_pts[:, 2])]
         angle_deg = get_spin_angle(global_pts)
-
         return angle_deg
 
     @pyqtSlot()
@@ -457,7 +460,7 @@ class ProbeCalibrationHandler(QWidget):
 
         self.probe_detection_status = "default"
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
-        self.spin_angle, self.arc_angle_global = None, None
+        self.arc_angle_global, self.spin_angle = None, []
         self.transM, self.L2_err, self.dist_travel = None, None, None
         self.probeCalibration.reset_calib()
         self.reticle_metadata.default_reticle_selector()
@@ -584,8 +587,12 @@ class ProbeCalibrationHandler(QWidget):
             print(f"Probe ({self.selected_stage_id}) angle already available from session.")
             return
         self.arc_angle_global = get_rx_ry(self.transM)
-        self.arc_angle_global["rz"] = self.spin_angle
 
+        # update median of spin angle if available
+        if len(self.spin_angle) == 0:
+            self.arc_angle_global["rz"] = None
+        else:
+            self.spin_angle = np.median(self.spin_angle)
 
     def probe_detect_accepted_status(self, switch_probe=False):
         """

@@ -17,6 +17,7 @@ def get_spin_angle(global_pts: np.ndarray) -> Optional[float]:
     vec, pts_xy, rms_perp = _pca_global_pts_to_vec(global_pts)
     angle_deg = spin_angle_from_vec(vec)
     print(f"Spin: {angle_deg:.2f}° (0° = -X), vector (XY): {np.round(vec, 4).tolist()}")
+    return angle_deg
 
 def _pca_global_pts_to_vec(global_pts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
     """
