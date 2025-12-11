@@ -304,7 +304,7 @@ class ProbeDetectManager(QObject):
         self._prev_ts = None
         self.threadpool = QThreadPool()
         self.last_detected_frame = None
-        self.detect_algorithm = 'opencv'  # Default algorithm
+        self.detect_algorithm = 'yolo'  # Default algorithm
 
     def _init_draw_thread(self):
         """Initialize the draw worker thread."""

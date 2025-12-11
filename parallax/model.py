@@ -138,7 +138,7 @@ class Model(QObject):
         Returns:
             str: The detection algorithm used by the camera ('opencv' or 'yolo').
         """
-        return self.cameras.get(camera_sn, {}).get('probe_detect_algorithm', 'opencv')
+        return self.cameras.get(camera_sn, {}).get('probe_detect_algorithm', 'yolo')
 
     def get_camera(self, sn):
         return self.cameras.get(sn, {}).get('obj', None)
@@ -171,7 +171,7 @@ class Model(QObject):
                 'visible': True,
                 'device_model': cam.device_model,
                 'is_triangulation_candidate': False,
-                'probe_detect_algorithm': 'opencv',
+                'probe_detect_algorithm': 'yolo',
             }
         print(" Cameras:", list(self.cameras.keys()))
 
@@ -185,7 +185,7 @@ class Model(QObject):
                 'visible': True,
                 'device_model': cam.device_model,
                 'is_triangulation_candidate' : False,
-                'probe_detect_algorithm': 'opencv',
+                'probe_detect_algorithm': 'yolo',
             }
 
         self.nPySpinCameras = sum(isinstance(cam['obj'], PySpinCamera) for cam in self.cameras.values())
