@@ -16,8 +16,7 @@ logger.setLevel(logging.DEBUG)
 def get_spin_angle(global_pts: np.ndarray) -> Optional[float]:
     vec, pts_xy, rms_perp = _pca_global_pts_to_vec(global_pts)
     angle_deg = spin_angle_from_vec(vec)
-    print(f"Spin: {angle_deg:.2f}° (0° = -X), RMS⊥ error: {rms_perp:.4f}")
-    logger.debug("vector (XY):", np.round(vec, 4).tolist())
+    print(f"Spin: {angle_deg:.2f}° (0° = -X), vector (XY): {np.round(vec, 4).tolist()}")
 
 def _pca_global_pts_to_vec(global_pts: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float]:
     """
@@ -67,7 +66,7 @@ def is_sane_4shanks(global_points: np.ndarray) -> bool:
     # 3. Check spacing (distance between 1-2, 2-3, 3-4)
     is_spacing_ok = _check_consecutive_spacings(global_points, unit="mm", scale=1.0)
 
-    print(f"Overall Sanity Check: {'PASSED' if is_linear and is_spacing_ok else 'FAILED'}")
+    logger.debug(f"Overall Sanity Check: {'PASSED' if is_linear and is_spacing_ok else 'FAILED'}")
     return is_linear and is_spacing_ok
 
 def _check_linearity(sorted_points: np.ndarray, tolerance: float = 0.05) -> bool:

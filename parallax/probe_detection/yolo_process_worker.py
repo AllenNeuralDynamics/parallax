@@ -135,17 +135,16 @@ class YoloProcessWorker:
             detections[0]['is_moving'] = True
             return detections
 
-        MOVEMENT_THRESHOLD = 10.0  # pixels
+        MOVEMENT_THRESHOLD = 8.0  # pixels
         if not self.prev_detections:
             print(f" {self.name} - No previous to compare.")
             self.prev_detections = detections.copy()
             return detections
         
-        # 1. Map previous detections by ID for fast lookup
+        # Map previous detections by ID for fast lookup
         prev_map = {d['id']: d for d in self.prev_detections if d.get('id') is not None}
 
-        print(" --------------- ")
-        # 2. Iterate through current detections
+        #  Iterate through current detections
         for curr_d in detections:
             curr_id = curr_d.get('id')
 
@@ -167,10 +166,8 @@ class YoloProcessWorker:
                 # 4. Check Threshold
                 if dist > MOVEMENT_THRESHOLD:
                     curr_d['is_moving'] = True
-                    print(f" {self.name} - Probe {curr_id} is moving. Distance: {dist:.2f} px")
                 else:
                     curr_d['is_moving'] = False
-                    print(f" {self.name} - Probe {curr_id} is not moving. Distance: {dist:.2f} px")
 
         self.prev_detections = detections.copy()
         return detections

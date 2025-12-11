@@ -19,7 +19,7 @@ from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
-from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma, spin_angle_from_vec
+from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
 from parallax.probe_detection.utils.probe_spin_detector import is_sane_4shanks
 
 
@@ -217,7 +217,6 @@ class ProbeCalibrationHandler(QWidget):
 
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
-        print("---- probe_detect_on_two_screens ----")
         for screen in self.screen_widgets:
             cam = screen.get_camera_name()
             if cam == self.camA_best:
@@ -251,22 +250,20 @@ class ProbeCalibrationHandler(QWidget):
 
             # If successful, identify the lowest shank index for filtering
             if global_coords_4shanks is not None:
-                print("global coords:", global_coords_4shanks)
+                logger.debug(f"global coords: {global_coords_4shanks}")
                 idx = self._get_lowest_shank_index(global_coords_4shanks)
                 if idx is not None:
                     # Update the main variables to ensure consistency
                     global_coords = global_coords_4shanks[idx:idx+1]
                     tip_A = tip_A[idx:idx+1]
                     tip_B = tip_B[idx:idx+1]
-                    print(" Lowest shank index:", idx)
-
-                # Get spin
-                self.spin_angle = self._get_spin_angle(global_coords_4shanks)
+                    logger.debug(f" Lowest shank index: {idx}")
+                self.spin_angle = self._get_spin_angle(global_coords_4shanks)  # spin angle from all 4 shanks
         else:  # 1 shank
             global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
 
         if global_coords is None:
-            print(" No valid global coordinates from triangulation.")
+            logger.debug(" No valid global coordinates from triangulation.")
             return
 
         self.stageListener.handleGlobalDataChange(
@@ -282,9 +279,7 @@ class ProbeCalibrationHandler(QWidget):
         )
         logger.debug(f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")
 
-    def _get_spin_angle(self, global_pts):
-        # 5. Get spin angle
-        print("\n--- Spin Angle Calculation ---")
+    def _get_spin_angle(self, global_pts: np.ndarray) -> Optional[float]:
         # sort by global z coords (ascending)
         global_pts = global_pts[np.argsort(global_pts[:, 2])]
         angle_deg = get_spin_angle(global_pts)
@@ -578,21 +573,18 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.arc_angle_global = self.arc_angle_global
         stage_info.arc_angle_bregma = self.arc_angle_bregma
 
-    def _update_probe_angle(self) -> bool:
+    def _update_probe_angle(self):
         """
         Updates probe angle information. Returns True if successfully calculated or
         skipped (Single Shank). Returns False if the process should be retried
         (data not yet ready or PCA failed).
         """
-        print(" *** Updating probe angle info... ****")
-        # 1. Early exit if angle is restored from session
         if self.arc_angle_global is not None:
-            return True
-
+            print(f"Probe ({self.selected_stage_id}) angle already available from session.")
+            return
         self.arc_angle_global = get_rx_ry(self.transM)
         self.arc_angle_global["rz"] = self.spin_angle
 
-        return True
 
     def probe_detect_accepted_status(self, switch_probe=False):
         """
@@ -607,13 +599,9 @@ class ProbeCalibrationHandler(QWidget):
             return
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
-
         # Update probe angle rx, ry, spin (for 4 shank probe)
-        is_valid = self._update_probe_angle()
-        if not is_valid:
-            # Retry for 4-Shank Failures, but Skip and Proceed for Single-Shank Mode
-            print("Probe angle calculation not valid yet. Trying triangulation one more time.")
-            return
+        self._update_probe_angle()
+        print("---- probe_detect_accepted_status ----", self.selected_stage_id, self.arc_angle_global)
 
         # Update reticle metatdata related info
         self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
