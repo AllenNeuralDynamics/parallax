@@ -14,7 +14,7 @@ from typing import Optional
 import cv2
 
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
-from parallax.probe_detection.utils.probe_spin_detector import SpinCalculationResult, SpinDetectionInputs, SpinProcessor
+from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.cameras.calibration_camera import triangulate
@@ -55,6 +55,7 @@ class StageCalibrationInfo:
     min_gy: float = float("inf")
     max_gy: float = float("-inf")
 
+
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
     def __init__(
@@ -90,7 +91,6 @@ class ProbeCalibrationHandler(QWidget):
         self.transMbs = None
         self.arc_angle_global, self.arc_angle_bregma = None, None
         self.spin_angle = None
-        self.spinDetectionInputs = SpinDetectionInputs()
         self.update_spin_inputs = False
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
@@ -287,10 +287,7 @@ class ProbeCalibrationHandler(QWidget):
         print("\n--- Spin Angle Calculation ---")
         # sort by global z coords (ascending)
         global_pts = global_pts[np.argsort(global_pts[:, 2])]
-        vec, pts_xy, rms_perp = SpinProcessor.pca_global_pts_to_vec(global_pts)
-        angle_deg = spin_angle_from_vec(vec)
-        print(f"Spin: {angle_deg:.2f}° (0° = -X), RMS⊥ error: {rms_perp:.4f}")
-        logger.debug("vector (XY):", np.round(vec, 4).tolist())
+        angle_deg = get_spin_angle(global_pts)
 
         return angle_deg
 
@@ -580,32 +577,6 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.transM_bregma = self.transMbs
         stage_info.arc_angle_global = self.arc_angle_global
         stage_info.arc_angle_bregma = self.arc_angle_bregma
-
-    def find_probe_spin_bregma(self):
-        # return dictionary of degrees
-        return
-
-    def is_spin_data_ready(self):
-        # TODO: If spin is not found for 4 shanks, do not comp the probe calibration.
-        # Prepare images to get spin info
-        # probe_detect_on_two_screens
-        # -> stageListener.handleGlobalDataChange
-        # -> probeCalibration.update
-        # -> probeCalibration.calib_complete
-        # Todo if spin is not sucessful, do not stop calibration
-        # if calib_complete is called, request tor getting spin.
-        print("*** Getting spin info... ****")
-        self.update_spin_inputs = True
-        if self.filter != "probe_detection":
-            return False
-
-        for screen in self.screen_widgets:
-            camera_name = screen.get_camera_name()
-            if camera_name != self.camA_best and camera_name != self.camB_best:
-                continue
-
-            self.spinDetectionInputs.transM = self.transM
-        return self.spinDetectionInputs.ready_for_calc()
 
     def _update_probe_angle(self) -> bool:
         """
