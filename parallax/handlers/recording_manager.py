@@ -18,28 +18,23 @@ class RecordingManager:
         """Initialize recording manager"""
         self.model = model
         self.recording_camera_list = []
-        self.snapshot_camera_list = []
 
     def save_last_image(self, save_path, screen_widgets):
         """Saves the last captured image from all active camera feeds."""
-        # Initialize the list to keep track of cameras from which an image has been saved
-        self.snapshot_camera_list = []
         # Get the directory path where the images will be saved
         if os.path.exists(save_path):
             print("\nSnapshot...")
             for screen in screen_widgets:
                 sn = screen.camera.name(sn_only=True)
                 if self.model.cameras.get(sn, {}).get('visible', False) and screen.is_camera():
-                    if sn not in self.snapshot_camera_list:
-                        customName = screen.parent().title()
-                        customName = customName if customName else sn
-
-                        # Save the image with a timestamp and custom name
-                        screen.save_image(
-                            save_path, isTimestamp=True, name=customName
-                        )
-                        # Add the camera to the list of cameras from which an image has been saved
-                        self.snapshot_camera_list.append(sn)
+                    customName = screen.parent().title()
+                    customName = customName if customName else sn
+                    # Save the image with a timestamp and custom name
+                    screen.save_image(
+                        save_path, isTimestamp=True, name=customName
+                    )
+                    # Add the camera to the list of cameras from which an image has been saved
+                    self.snapshot_camera_list.append(sn)
                 else:
                     logger.debug("save_last_image) camera not found")
         else:

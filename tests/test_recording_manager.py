@@ -40,10 +40,6 @@ def test_save_last_image(recording_manager, mock_screen_widget, tmpdir):
     mock_screen_widget.save_image.assert_called_once_with(
         save_path, isTimestamp=True, name="MockCamera"
     )
-    # Assert that the camera name was added to the snapshot_camera_list.
-    assert "MockCamera123" in recording_manager.snapshot_camera_list, (
-        f"{mock_screen_widget.get_camera_name()} was not tracked as a snapshot camera."
-    )
 
 def test_save_last_image_directory_not_exists(recording_manager, mock_screen_widget):
     """Test saving the last image when the save path does not exist."""
