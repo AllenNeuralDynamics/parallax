@@ -504,7 +504,6 @@ class PySpinCamera(BaseCamera):
             # Record the image if video recording is active
             if self.video_recording_on.is_set():
                 self.video_recording_idle.clear()
-
                 frame = self.get_last_image_data()
                 if frame is not None:
                     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)

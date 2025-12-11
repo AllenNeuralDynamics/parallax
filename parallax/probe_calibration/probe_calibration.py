@@ -16,7 +16,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from parallax.utils.transforms import fit_params
 from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
 from .bundle_adjustment import BALProblem, BALOptimizer
-from parallax.handlers.point_mesh import PointMesh
+#from parallax.handlers.point_mesh import PointMesh
 from parallax.config.config_path import stages_dir
 
 # Set logger name

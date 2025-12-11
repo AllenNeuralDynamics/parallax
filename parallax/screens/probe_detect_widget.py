@@ -16,10 +16,6 @@ logger.setLevel(logging.WARNING)
 class ProbeDetectWidget(QWidget):
     """Settings menu widget to control a microscope screen."""
 
-    # CLASS VARIABLE to store the cached result of TAM availability check
-    _TAM_AVAILABLE: bool | None = None
-    _TAM_VERSION: str | None = None
-
     def __init__(self, parent, model, screen):
         """Initialize the ReticleDetectWidget with a parent, model, and screen."""
         super().__init__()
@@ -30,7 +26,7 @@ class ProbeDetectWidget(QWidget):
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
-        self.settingMenu.radioButton2.setEnabled(True)
+        #self.settingMenu.radioButton1.setEnabled(True)
 
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
@@ -40,18 +36,18 @@ class ProbeDetectWidget(QWidget):
     def _apply_detection_algorithm(self):
         """Apply the selected detection algorithm to the screen and model."""
         # Update into model
-        algorithm = 'yolo' if self.settingMenu.radioButton2.isChecked() else 'opencv'
+        algorithm = 'yolo' if self.settingMenu.radioButton1.isChecked() else 'opencv'
         self.model.set_probe_detect_algorithms(
             self.screen.camera_name,
             algorithm
         )
         # Run open cv default detection
-        if self.settingMenu.radioButton1.isChecked():
+        if self.settingMenu.radioButton2.isChecked():
             print(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
             self.screen.set_probe_detect_algorithms('opencv')
 
-        # SuperPoint + LightGlue detection
-        elif self.settingMenu.radioButton2.isChecked():
+        # Yolo v11 detection
+        elif self.settingMenu.radioButton1.isChecked():
             print(f"{self.screen.camera_name} - 'YoloV11' tracking selected")
             self.screen.set_probe_detect_algorithms('yolo')
 
