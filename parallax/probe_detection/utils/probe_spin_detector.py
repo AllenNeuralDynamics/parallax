@@ -10,7 +10,7 @@ from parallax.config.config_calibration import MIN_SHANK_DIST_MM, MAX_SHANK_DIST
 from parallax.utils.probe_angles import spin_angle_from_vec
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 def get_spin_angle(global_pts: np.ndarray) -> Optional[float]:

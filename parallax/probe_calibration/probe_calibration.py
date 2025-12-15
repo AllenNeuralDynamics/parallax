@@ -11,17 +11,14 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal
-#from .coords_transformation import RotationTransformation
-#from .transforms import fit_params
 from parallax.utils.transforms import fit_params
 from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
 from .bundle_adjustment import BALProblem, BALOptimizer
-#from parallax.handlers.point_mesh import PointMesh
 from parallax.config.config_path import stages_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class ProbeCalibration(QObject):
