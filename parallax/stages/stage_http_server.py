@@ -60,7 +60,7 @@ class StageHttpServer():
             data = await request.json()
             logger.info(f"PUT request received:\n{json.dumps(data, indent=2)}")
 
-            # Offlaod CPU work to a thread
+            # Offload CPU work to a thread
             loop = asyncio.get_running_loop()
             # Offload to thread pool executor
             result = await loop.run_in_executor(None, self.stage_controller.request, data)

@@ -30,7 +30,7 @@ class StageUI(QWidget):
         # initialize UI
         self.initialize()
 
-        # Swtich Reticle Coordinates (e.g Reticle + No Offset, Reticle + Offset..)
+        # Switch Reticle Coordinates (e.g Reticle + No Offset, Reticle + Offset..)
         self.ui.reticle_selector.currentIndexChanged.connect(self.updateCurrentReticle)
 
     def initialize(self):

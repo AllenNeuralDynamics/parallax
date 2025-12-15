@@ -325,7 +325,7 @@ class ProbeDetectManager(QObject):
                                                  callbacks=self.receive_opencv_detections())
 
         # YOLO Process Worker
-        # init and warmup the model but no thread runing yet
+        # init and warmup the model but no thread running yet
         self.yoloProcessWorker = YoloProcessWorker(self.name, camera_resolution, test=self.model.test,
                                                    detection_callback=self.receive_yolo_detections,
                                                    finished_callback=self._onYoloProcessThreadFinished)

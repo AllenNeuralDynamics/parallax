@@ -549,15 +549,15 @@ class ProbeCalibrationHandler(QWidget):
         QMessageBox.information(self, "Probe calibration info", message)
 
     def _update_best_stereo_pair(self):
-        candidats = self.model.get_camera_triangulation_candidate()
-        if not candidats:
+        candidates = self.model.get_camera_triangulation_candidate()
+        if not candidates:
             logger.debug("No valid stereo pair found")
             return
-        if len(candidats) < 2:
+        if len(candidates) < 2:
             logger.debug("Less than two triangulation candidates found")
             return
         try:
-            self.camA_best, self.camB_best = candidats[:2]
+            self.camA_best, self.camB_best = candidates[:2]
         except Exception as e:
             logger.error(f"Error updating best stereo pair: {e}")
 
@@ -641,7 +641,7 @@ class ProbeCalibrationHandler(QWidget):
         self._update_probe_angle()
         print(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
 
-        # Update reticle metatdata related info
+        # Update reticle metadata related info
         self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
 
         # Update into model

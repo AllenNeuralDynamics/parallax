@@ -317,7 +317,7 @@ class BaseReticleManager(QObject):
             self._state("Stopped")  # Stop the draw worker. processWoker is already stopped
 
         # State: InProgress
-        self._state("Stopping")  # Both Draw and Process worker were in progres. DrawWorker draw progress.
+        self._state("Stopping")
         if self.processWorker:
             self.processWorker.stop_running()  # Stop the processWorker. After finishing, stop the DrawWorker
 

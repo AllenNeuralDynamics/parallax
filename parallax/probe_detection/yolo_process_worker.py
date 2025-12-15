@@ -173,7 +173,7 @@ class YoloProcessWorker:
         return detections
 
     def _is_local_batch_complete(self):
-        # check detection 'model' feild is all set to 'yolo_local'
+        # check detection 'model' field is all set to 'yolo_local'
         if not self.detections: return False
         return all(d.get('model') == 'yolo_local' for d in self.detections)
 
