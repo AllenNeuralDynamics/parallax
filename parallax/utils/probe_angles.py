@@ -43,13 +43,16 @@ def get_rx_ry(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
 
 def spin_angle_from_vec(v: np.ndarray) -> float:
     """
-    Spin angle: positive for CCW, 0° if along -X
+    Spin angle: positive for CCW, 0° if along -Y
     """
-    # Use (-y, -x) to rotate the frame so -X becomes the 0° reference
-    angle_deg = float(np.degrees(np.arctan2(-v[1], -v[0])))
+    # To make -Y the 0° reference:
+    # The 'x' component (horizontal in standard math) becomes -y (v[1])
+    # The 'y' component (vertical in standard math) becomes x (v[0])
+    # arctan2(sine_comp, cosine_comp) -> arctan2(x, -y)
+    angle_deg = float(np.degrees(np.arctan2(v[0], -v[1])))
     # Normalize to [-180, 180] range
     angle_deg = (angle_deg + 180) % 360 - 180
-    
+
     return angle_deg
 
 def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.ndarray]:

@@ -622,7 +622,7 @@ class ProbeCalibrationHandler(QWidget):
         if len(self.spin_angle) == 0:
             self.arc_angle_global["rz"] = None
         else:
-            self.arc_angle_global["rz"] = np.median(self.spin_angle)
+            self.arc_angle_global["rz"] = float(np.median(self.spin_angle))
 
     def probe_detect_accepted_status(self, switch_probe=False):
         """
@@ -639,7 +639,7 @@ class ProbeCalibrationHandler(QWidget):
             return
         # Update probe angle rx, ry, spin (for 4 shank probe)
         self._update_probe_angle()
-        print(f"---- probe_detect_accepted_status ---- {self.selected_stage_id} {self.arc_angle_global}")
+        print(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
 
         # Update reticle metatdata related info
         self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
