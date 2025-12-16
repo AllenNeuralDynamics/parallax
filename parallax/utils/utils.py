@@ -7,7 +7,7 @@ Classes:
     UtilsCrops: Utility methods for calculating and validating crop regions.
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 
 class UtilsCoords:
@@ -18,7 +18,7 @@ class UtilsCoords:
     """
     @staticmethod
     def scale_coords_to_original(
-        coords: List[List[int]],  # Accepts [x, y] OR [[x, y], [x, y]]
+        coords: Union[List[Tuple[int, int]], List[List[int]]],  # Accepts [(x, y),(x,y)] or [[x, y],[x,y]]
         original_size: Tuple[int, int],  # Original image dimensions (width, height)
         resized_size: Tuple[int, int]   # Resized image dimensions (width, height)
     ) -> List[List[int]]:
@@ -54,35 +54,6 @@ class UtilsCoords:
                 scaled_coords.append(coord)  # Keep the original if format is unexpected
 
         return scaled_coords
-
-    @staticmethod
-    def scale_coords_to_original_deprecate(
-        tip: Tuple[int, int],
-        original_size: Tuple[int, int],
-        resized_size: Tuple[int, int]
-    ) -> Tuple[int, int]:
-        """
-        Scale coordinates from a resized image back to the original image dimensions.
-
-        Args:
-            tip (Tuple[int, int]): The (x, y) coordinates of the tip in the resized image.
-            original_size (Tuple[int, int]): The (width, height) of the original image.
-            resized_size (Tuple[int, int]): The (width, height) of the resized image.
-
-        Returns:
-            Tuple[int, int]: The scaled (x, y) coordinates of the tip in the original image.
-        """
-        x, y = tip
-        original_width, original_height = original_size
-        resized_width, resized_height = resized_size
-
-        scale_x = original_width / resized_width
-        scale_y = original_height / resized_height
-
-        original_x = int(x * scale_x)
-        original_y = int(y * scale_y)
-
-        return (original_x, original_y)
 
     @staticmethod
     def scale_coords_to_resized_img(

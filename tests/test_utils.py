@@ -10,12 +10,17 @@ def img_sizes():
         "resized": (1000, 750),
     }
 
+
 # Test UtilsCoords
 def test_scale_coords_to_original(img_sizes):
     """Test scaling coordinates from a resized image back to the original image."""
-    tip = (100, 100)
+    tip = [(100, 100)]
     scaled_coords = UtilsCoords.scale_coords_to_original(tip, img_sizes['original'], img_sizes['resized'])
-    assert scaled_coords == (400, 400), "Scaled coordinates to original image size are incorrect."
+    assert scaled_coords == [[400, 400]], "Scaled coordinates to original image size are incorrect."
+
+    tips = [[100, 100], [200,200]]
+    scaled_coords = UtilsCoords.scale_coords_to_original(tips, img_sizes['original'], img_sizes['resized'])
+    assert scaled_coords == [[400, 400], [800, 800]], "Scaled coordinates to original image size are incorrect."
 
 
 def test_scale_coords_to_resized_img(img_sizes):
