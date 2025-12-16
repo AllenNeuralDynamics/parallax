@@ -109,16 +109,18 @@ def postprocessing(detections: list, crop_info: dict):
     
     # 3. Apply scaling and offset to coordinates
     for detection in detections:
-        bbox = np.array(detection['bbox']).astype(np.float64) 
+        if detection.get('bbox'):
+            bbox = np.array(detection['bbox']).astype(np.float64) 
+            
+            # Rescale
+            bbox[::2] *= scale_x  # x1 and x2
+            bbox[1::2] *= scale_y # y1 and y2
+            
+            # Offset
+            bbox[::2] += x_offset
+            bbox[1::2] += y_offset
+            detection['bbox_global'] = bbox.tolist()
         
-        # Rescale
-        bbox[::2] *= scale_x  # x1 and x2
-        bbox[1::2] *= scale_y # y1 and y2
-        
-        # Offset
-        bbox[::2] += x_offset
-        bbox[1::2] += y_offset
-        detection['bbox_global'] = bbox.tolist()
         keypoints = detection.get('keypoints')
         if keypoints:
             # Keypoints format: [x1, y1, conf1, x2, y2, conf2, ...]

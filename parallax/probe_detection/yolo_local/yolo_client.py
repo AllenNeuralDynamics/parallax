@@ -35,8 +35,9 @@ class YOLOClient:
             self.logger.error(f"Error starting Simple YOLO client: {e}")
             return False
         
-    def newframe_captured(self, frame: np.ndarray, crop_info: object = None, detection: dict = None, i_th: int = 0):
+    def newframe_captured(self, frame: np.ndarray, crop_info: dict = None, detection: dict = None, i_th: int = 0):
         """Put new frame at the specified FPS rate"""
+        """ Dictioction """
         # Rate limit the frames sent to the YOLO worker
         #if self.current_time is None or current - self.current_time > (1/self.fps):
         frame_cropped_resized, crop_info, detection = preprocessing(frame,  # Resized to 320x320

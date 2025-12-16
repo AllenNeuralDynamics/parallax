@@ -60,6 +60,32 @@ class YoloProcessWorker:
             time.sleep(0.01)
 
     def handle_global_detections(self, frame: np.ndarray, crop_info: dict, detections: list[dict]): 
+        """
+            Process the results from the Global YOLO detection.
+
+            If the probe is moving, this simply emits the global results. 
+            If the probe is stopped, this triggers the Local YOLO detection on crops 
+            around the detected objects.
+
+            Args:
+                frame (np.ndarray): The original image frame as a numpy array.
+                crop_info (dict): Metadata regarding the image resizing/cropping.
+                    Expected structure:
+                    {
+                        'orig_size': (width, height),        # Original image dimensions
+                        'global_yolo_size': (width, height)  # Target size used for inference
+                    }
+                detections (list[dict]): A list of detection results. Each detection is a dict containing:
+                    {
+                        'timestamp': float,                  # Frame timestamp
+                        'bbox': [x1, y1, x2, y2],            # Bounding box coordinates
+                        'confidence': float,                 # Detection confidence (0.0 - 1.0)
+                        'class_name': str,                   # Name of the detected class
+                        'class_id': int,                     # Integer ID of the class
+                        'id': int (optional),                # Tracking ID if available
+                        'mask': dict (optional)              # Segmentation mask data
+                    }
+        """
         if not detections:
             return
         if not self.is_detection_on:
@@ -100,6 +126,29 @@ class YoloProcessWorker:
             self.detection_callback(detections_original)
 
     def handle_local_detections(self, crop_info: dict, detections: list[dict], i: int = 0):
+        """
+        Process results from Local YOLO detection for a specific crop.
+
+        Args:
+            crop_info (dict): Metadata for the crop region relative to the original image.
+                Structure: {
+                    'x_global_offset': int, 'y_global_offset': int,
+                    'crop_width': int, 'crop_height': int,
+                    'local_yolo_size': (width, height)
+                }
+            detections (list[dict]): Local detection results merged with global context.
+                Structure: {
+                    'model': 'yolo_local', 'timestamp': float,
+                    'confidence': float, 'class': int,
+                    'class_name': str,
+                    'bbox': [x1, y1, x2, y2],
+                    'keypoints': list,
+                    'id': int,
+                    'stage_ts': float,
+                    'bbox_seg': list,
+                    'mask': dict  # Inherited from global detection
+                }
+        """
         if not detections:
             logger.warning(f" {self.name} {i} - No local detections received.")
             return

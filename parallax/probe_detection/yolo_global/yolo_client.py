@@ -18,9 +18,6 @@ class YOLOClient:
         yolo_config = config.get('yolo', {})
         self.yolo_worker = YoloSegmentation(name, yolo_config, detection_callback=detection_callback, finished_callback=finished_callback)
 
-        # Note: All PyQT signal/slot connections have been replaced by the direct 
-        # `detection_callback` function passed to YoloSegmentation's constructor.
-
     def start_client(self):
         """Start the YOLO processing worker"""
         try:
