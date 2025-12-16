@@ -8,8 +8,8 @@ import unittest
 
 import numpy as np
 
-from aind_mri_utils import rotations
-from aind_mri_utils.rotations import prepare_data_for_homogeneous_transform
+import parallax.utils.rotations as rotations
+from parallax.utils.rotations import prepare_data_for_homogeneous_transform
 
 
 class RotationsTest(unittest.TestCase):
