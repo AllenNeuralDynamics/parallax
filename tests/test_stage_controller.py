@@ -66,11 +66,14 @@ def test_get_probe_index_uses_status_mapping(stage_controller, monkeypatch):
     assert stage_controller._get_probe_index("SN_B") == 1
     assert stage_controller._get_probe_index("UNKNOWN") is None
 
-def test_moveXYZ_world_global_converts_and_sets_z(stage_controller, monkeypatch, mocker):
+def test_moveXYZ_world_global_converts_and_sets_z(stage_controller, monkeypatch):
     """
     moveXYZ with world='global' should call CoordsConverter.global_to_local (µm),
     convert back to mm, and send a single XYZ command with Z = 15.0 - local_z_mm.
     """
+    stage_controller.model.is_calibrated.return_value = True
+    stage_controller.model.get_transform.return_value = np.eye(4)
+
     # Mock status so we can resolve probe index
     def fake_get(url):
         return _MockResp(_make_status(serial="SN_G", z=12.0))
@@ -82,12 +85,6 @@ def test_moveXYZ_world_global_converts_and_sets_z(stage_controller, monkeypatch,
         class _P: pass
         return _P()
     monkeypatch.setattr("requests.put", fake_put)
-
-    # Patch the converter: inputs (mm) are converted to µm and returned as-is * 1000
-    mocker.patch(
-        "parallax.stages.stage_controller.CoordsConverter.global_to_local",
-        side_effect=lambda model, sn, pts_um: np.array(pts_um, dtype=float)
-    )
 
     cmd = {
         "move_type": "moveXYZ",
@@ -103,10 +100,13 @@ def test_moveXYZ_world_global_converts_and_sets_z(stage_controller, monkeypatch,
     sent = sent_puts[0]
     assert sent["PutId"] == "ProbeMotion"
     assert sent["Probe"] == 0
-    # local == global in our patched converter; check 15.0 - z
+    
+    # Since we used np.eye(4), Local == Global.
+    # Check 15.0 - z (15.0 - 2.0 = 13.0)
     assert sent["X"] == pytest.approx(10.0)
     assert sent["Y"] == pytest.approx(5.0)
     assert sent["Z"] == pytest.approx(15.0 - 2.0)
+    
     # AxisMask for XYZ = 1|2|4 = 7
     assert sent["AxisMask"] == 7
 
