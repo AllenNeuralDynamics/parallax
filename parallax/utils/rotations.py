@@ -14,7 +14,6 @@ from scipy.spatial.transform import Rotation
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-from . import utils as ut
 
 # Tell mypy the signature; bind the real function at runtime.
 if TYPE_CHECKING:
@@ -25,6 +24,18 @@ if TYPE_CHECKING:
 else:
     _from_euler: Callable[..., Rotation] = Rotation.from_euler
 
+def norm_vec(vec: NDArray[np.floating[Any]]) -> NDArray[np.floating[Any]]:
+    """Normalize input vector"""
+    n = np.linalg.norm(vec)
+    if n == 0:
+        raise ValueError("Input has norm of zero")
+    return vec / n
+
+def skew_symmetric_cross_product_matrix(
+    v: NDArray[np.floating[Any]],
+) -> NDArray[np.floating[Any]]:
+    """Find the cross product matrix for a vector v"""
+    return np.cross(v, np.identity(v.shape[0]) * -1)
 
 def define_euler_rotation(
     rx: float, ry: float, rz: float, degrees: bool = True, order: str = "xyz"
@@ -218,13 +229,13 @@ def rotation_matrix_from_vectors(
     nd = a.shape[0]
     if nd != b.shape[0]:
         raise ValueError("a must be same size as b")
-    na = ut.norm_vec(a)
-    nb = ut.norm_vec(b)
+    na = norm_vec(a)
+    nb = norm_vec(b)
     c = np.dot(na, nb)
     if c == -1:
         return -np.eye(nd)
     v = np.cross(na, nb)
-    ax = ut.skew_symmetric_cross_product_matrix(v)
+    ax = skew_symmetric_cross_product_matrix(v)
     rotation_matrix = np.eye(nd) + ax + ax @ ax * (1 / (1 + c))
     return rotation_matrix
 
