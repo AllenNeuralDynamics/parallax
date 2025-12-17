@@ -13,7 +13,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
 from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 from parallax.probe_detection.opencv_process_worker import OpenCVProcessWorker
 
-from parallax.config.config_path import debug_img_dir, palette_cool, palette_warm, pallett_tips
+from parallax.config.config_path import debug_img_dir, palette_cool, palette_warm, palette_tips
 
 
 # Set logger name
@@ -58,7 +58,7 @@ class DrawWorker(QRunnable):
 
         self.palette_cool = palette_cool
         self.palette_warm = palette_warm
-        self.pallett_tips = pallett_tips
+        self.palette_tips = palette_tips
 
     def update_frame(self, frame, timestamp):
         """Update the frame and timestamp.
@@ -100,7 +100,7 @@ class DrawWorker(QRunnable):
         # Pre-calculate lengths to avoid len() calls in loop
         len_cool = len(self.palette_cool)
         len_warm = len(self.palette_warm)
-        len_tips = len(self.pallett_tips)
+        len_tips = len(self.palette_tips)
 
         for i, detection in enumerate(self.yolo_detections):
             # --- Fast Data Extraction ---
@@ -142,7 +142,7 @@ class DrawWorker(QRunnable):
                 
                 # Draw all circles
                 for j, (x, y) in enumerate(zip(xs, ys)):
-                    kp_color = self.pallett_tips[j % len_tips]
+                    kp_color = self.palette_tips[j % len_tips]
                     cv2.circle(frame, (int(x), int(y)), 3, kp_color, -1)
 
                 # --- 4. Draw Label (At min X, min Y) ---
@@ -346,7 +346,6 @@ class ProbeDetectManager(QObject):
 
         # Emit found_coords if all detections are from yolo_local
         if self._is_from_local_yolo(detections) and self.yoloProcessWorker.probe_stopped:
-            # TODO # Run fine tip detection
             for detection in detections:
                 keypoints = detection.get("keypoints_orig", [])
                 nShank = detection.get("class_name", "1shank")

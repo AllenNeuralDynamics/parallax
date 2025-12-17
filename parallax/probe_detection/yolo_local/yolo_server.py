@@ -8,7 +8,7 @@ from collections import deque
 from threading import Thread
 from ultralytics import YOLO
 import torch
-from parallax.config.config_path import map_4shanks, debug_img_dir
+from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -37,9 +37,6 @@ class YoloKeypoints:
         self.running = False
         self.worker_thread = None
         self.names_map = {}
-
-        self.order_4shanks = ['sh1', 'sh2', 'sh3', 'sh4']
-        self.map_4shanks = map_4shanks
         
         # New: Store the callback function
         self.detection_callback = detection_callback
@@ -213,30 +210,6 @@ class YoloKeypoints:
 
                                 for i in range(len(keypoints_xy)):
                                     kp_list = []
-                                    """
-                                    # --- SPECIAL HANDLING FOR "4shanks" ---
-                                    if global_class_name == "4shanks":
-                                        found_kps = {}
-                                        for kp_idx, (kp_xy, kp_conf) in enumerate(zip(keypoints_xy[i], keypoints_conf[i])):
-                                            if kp_conf >= self.conf_thresh:
-                                                # Look up the name (e.g., "sh2") based on index
-                                                k_name = self.map_4shanks.get(kp_idx)
-                                                if k_name:
-                                                    found_kps[k_name] = [
-                                                        round(float(kp_xy[0]), 2),
-                                                        round(float(kp_xy[1]), 2),
-                                                        round(float(kp_conf), 2)
-                                                    ]
-
-                                        # Sort and Flatten based on target_order
-                                        # This ensures sh1 -> sh2 -> sh3 -> sh4 regardless of original index
-                                        for s_name in self.order_4shanks:
-                                            if s_name in found_kps:
-                                                kp_list.extend(found_kps[s_name])
-
-                                    # --- DEFAULT HANDLING (1shank, etc.) ---
-                                    else:
-                                    """
                                     # Keep original behavior for 1shank or others:
                                     # Just append them in the order the model outputs them.
                                     for kp_xy, kp_conf in zip(keypoints_xy[i], keypoints_conf[i]):

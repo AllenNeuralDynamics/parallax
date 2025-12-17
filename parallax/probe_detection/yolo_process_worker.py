@@ -44,14 +44,19 @@ class YoloProcessWorker:
         except Exception as e:
             print(f"Error loading YOLO config: {e}")
             CONFIG = {}
+
+        keypoints_cfg = CONFIG.get("keypoints", {})
+        segmentation_cfg = CONFIG.get("segmentation", {})
         self.yolo_local = LocalYOLOClient(name=self.name,
-                                          config=CONFIG["keypoints"],
+                                          config=keypoints_cfg,
                                           detection_callback=self.handle_local_detections,
                                           finished_callback=lambda: self.wait_finished('local'))
         self.yolo_global = GlobalYOLOClient(name=self.name,
-                                            config=CONFIG["segmentation"],
+                                            config=segmentation_cfg,
                                             detection_callback=self.handle_global_detections,
                                             finished_callback=lambda: self.wait_finished('global'))
+        
+        self.movement_threshold = CONFIG.get("image_processing", {}).get("movement_threshold", 8.0)
 
     def update_frame(self, frame: np.ndarray, timestamp: float):
         if self.is_detection_on:
@@ -165,7 +170,6 @@ class YoloProcessWorker:
 
         if self._is_local_batch_complete():
             logger.debug(f" {self.name} - Local batch complete with {len(self.detections)} detections.")
-            # get moving probes
             # emit
             if self.detection_callback:
                 self.detection_callback(self.detections)
@@ -173,7 +177,7 @@ class YoloProcessWorker:
 
     def get_moving_stage(self, detections: list[dict]):
         """
-        Identifies probes that have moved more than 50 pixels since the previous frame.
+        Identifies probes that have moved more than 8 pixels since the previous frame.
         Compares ONLY the first keypoint (Tip) for movement.
         """
         if not detections:
@@ -184,7 +188,6 @@ class YoloProcessWorker:
             detections[0]['is_moving'] = True
             return detections
 
-        MOVEMENT_THRESHOLD = 8.0  # pixels
         if not self.prev_detections:
             print(f" {self.name} - No previous to compare.")
             self.prev_detections = detections.copy()
@@ -213,7 +216,7 @@ class YoloProcessWorker:
                     # print(f" {self.name} - Probe {curr_id} moved {dist:.2f} px")
 
                 # 4. Check Threshold
-                if dist > MOVEMENT_THRESHOLD:
+                if dist > self.movement_threshold:
                     curr_d['is_moving'] = True
                 else:
                     curr_d['is_moving'] = False
