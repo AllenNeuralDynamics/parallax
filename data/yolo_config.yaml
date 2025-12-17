@@ -1,0 +1,29 @@
+segmentation:
+  fps: 10
+  yolo:
+    weights_path: "external/YoloV11/global_segmentation_fast.pt" 
+    conf_thresh: 0.6
+    iou_thresh: 0.3
+    img_size: 640
+    img_dim: [640, 640]
+    max_det: 10
+keypoints:
+  fps: 10
+  yolo:
+    weights_path: "external/YoloV11/tip_keypoint_detection_accurate.pt" 
+    conf_thresh: 0.2
+    img_size: 320
+    img_dim: [320, 320]
+    max_det: 30
+    bbox_margin: 30
+    apply_mask: True
+    mask_margin: 15
+object_detection:
+  fps: 5
+  yolo:
+    weights_path: "external/YoloV11/tip_object_detection_fast.pt" 
+    conf_thresh: 0.25
+    iou_thresh: 0.45
+    img_size: 320
+    img_dim: [320, 320]
+    max_det: 10
