@@ -26,62 +26,30 @@ class ProbeDetectWidget(QWidget):
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
-        if self._is_tam_available():
-            self.settingMenu.radioButton2.setEnabled(True)
+        #self.settingMenu.radioButton1.setEnabled(True)
 
         self.detectButton.toggled.connect(
             lambda checked: self._show_detect_menu(checked)
         )
         self.settingMenu.run_pushBtn.clicked.connect(self._apply_detection_algorithm)
-        #self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
-        #self.screen.reticle_coords_detected.connect(self._reticle_detected)
-        #self.screen.reticle_coords_detect_finished.connect(self._enable_run_button)
-        self._init_model_setting()
-
-    def _init_model_setting(self):
-        self.model.set_probe_detect_algorithms(self.screen.camera_name, 'opencv')
-
-    def _is_tam_available(self):
-        """Check if realtime_efficient_tam is available by verifying import and file presence."""
-        # Check if realtime_efficient_tam can be imported
-        try:
-            import efficient_track_anything
-            print(f"version: {efficient_track_anything.__version__}")
-            logger.debug(f"Realtime EfficientTrackAnything version: {efficient_track_anything.__version__}")
-            return True
-        except ImportError:
-            logger.warning("[WARN] realtime_efficient_tam package is not installed.")
-            return False
 
     def _apply_detection_algorithm(self):
         """Apply the selected detection algorithm to the screen and model."""
+        # Update into model
+        algorithm = 'yolo' if self.settingMenu.radioButton1.isChecked() else 'opencv'
+        self.model.set_probe_detect_algorithms(
+            self.screen.camera_name,
+            algorithm
+        )
         # Run open cv default detection
-        if self.settingMenu.radioButton1.isChecked():
+        if self.settingMenu.radioButton2.isChecked():
             print(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
-            self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'opencv')
+            self.screen.set_probe_detect_algorithms('opencv')
 
-        # SuperPoint + LightGlue detection
-        elif self.settingMenu.radioButton2.isChecked():
-            print(f"{self.screen.camera_name} - 'Realtime Efficient TAM' tracking selected")
-            self.screen.set_probe_detect_algorithms(self.screen.camera_name, 'tam')
-
-
-    def _enable_run_button(self):
-        """Enable the run button after detection is finished."""
-        # Enable button
-        self.settingMenu.run_pushBtn.setEnabled(True)
-        self.settingMenu.run_pushBtn.setText("Run")
-
-    def _reset_detection(self):
-        """Reset the reticle detection settings."""
-        self.model.reset_coords_intrinsic_extrinsic(self.screen.camera_name)
-        self.model.save_camera_config(self.screen.camera_name)
-        self.screen.run_no_filter()
-
-    def _reticle_detected(self):
-        """Handle the event when reticle coordinates are detected."""
-        # Enable button
-        self.settingMenu.run_pushBtn.setText("Detected")
+        # Yolo v11 detection
+        elif self.settingMenu.radioButton1.isChecked():
+            print(f"{self.screen.camera_name} - 'YoloV11' tracking selected")
+            self.screen.set_probe_detect_algorithms('yolo')
 
     def _get_setting_button(self):
         """Create and return the settings button for reticle detection."""

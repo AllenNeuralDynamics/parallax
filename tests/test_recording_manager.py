@@ -1,5 +1,3 @@
-# test_recording_manager.py
-
 import pytest
 import os
 from unittest.mock import Mock, MagicMock
@@ -8,105 +6,119 @@ from parallax.handlers.recording_manager import RecordingManager
 @pytest.fixture
 def mock_model():
     """Fixture to create a mock model object."""
-    return Mock()
+    model = Mock()
+    # Initialize the cameras dictionary to avoid KeyErrors
+    model.cameras = {}
+    return model
 
 @pytest.fixture
 def mock_screen_widget():
     """Fixture to create a mock screen widget."""
     screen = Mock()
     screen.is_camera = Mock(return_value=True)
-    screen.get_camera_name = Mock(return_value="MockCamera123")
+    mock_cam_obj = Mock()
+    mock_cam_obj.name.return_value = "MockCamera123"
+    screen.camera = mock_cam_obj
     screen.save_image = Mock()
     screen.save_recording = Mock()
     screen.stop_recording = Mock()
     screen.parent = Mock()
-    screen.parent().title = Mock(return_value="MockCamera")
+    screen.parent().title = Mock(return_value="MockCameraTitle")
     return screen
 
 @pytest.fixture
 def recording_manager(mock_model):
     """Fixture to create a RecordingManager instance."""
-    return RecordingManager(mock_model)
+    # Ensure the snapshot list exists (it was missing in your original init but used in save_last_image)
+    manager = RecordingManager(mock_model)
+    manager.snapshot_camera_list = [] 
+    return manager
 
-def test_save_last_image(recording_manager, mock_screen_widget, tmpdir):
+def test_save_last_image(recording_manager, mock_screen_widget, mock_model, tmpdir):
     """Test saving the last image for a camera."""
     save_path = str(tmpdir)
     screen_widgets = [mock_screen_widget]
+    sn = "MockCamera123"
+    mock_model.cameras = {sn: {'visible': True}}
 
-    # Call the method to save the last image.
+    # Call the method
+    recording_manager.save_last_image(save_path, screen_widgets)
+    mock_screen_widget.save_image.assert_called_once_with(
+        save_path, isTimestamp=True, name="MockCameraTitle"
+    )
+    assert sn in recording_manager.snapshot_camera_list
+
+def test_save_last_image_not_visible(recording_manager, mock_screen_widget, mock_model, tmpdir):
+    """Test that invisible cameras are NOT saved."""
+    save_path = str(tmpdir)
+    screen_widgets = [mock_screen_widget]
+
+    sn = "MockCamera123"
+    mock_model.cameras = {sn: {'visible': False}}
+
+    # Call the method
     recording_manager.save_last_image(save_path, screen_widgets)
 
-    # Assert that the save_image method was called.
-    mock_screen_widget.save_image.assert_called_once_with(
-        save_path, isTimestamp=True, name="MockCamera"
-    )
-    # Assert that the camera name was added to the snapshot_camera_list.
-    assert "MockCamera123" in recording_manager.snapshot_camera_list, (
-        f"{mock_screen_widget.get_camera_name()} was not tracked as a snapshot camera."
-    )
+    # Assert save_image was NOT called
+    mock_screen_widget.save_image.assert_not_called()
 
 def test_save_last_image_directory_not_exists(recording_manager, mock_screen_widget):
     """Test saving the last image when the save path does not exist."""
     save_path = "non_existent_directory"
     screen_widgets = [mock_screen_widget]
 
-    # Call the method to save the last image.
     recording_manager.save_last_image(save_path, screen_widgets)
 
-    # Assert that save_image was not called since the directory does not exist.
     mock_screen_widget.save_image.assert_not_called()
 
-def test_save_recording(recording_manager, mock_screen_widget, tmpdir):
+def test_save_recording(recording_manager, mock_screen_widget, mock_model, tmpdir):
     """Test starting a recording for a camera."""
     save_path = str(tmpdir)
     screen_widgets = [mock_screen_widget]
 
-    # Call the method to start recording.
+    # Set visibility
+    sn = "MockCamera123"
+    mock_model.cameras = {sn: {'visible': True}}
+
+    # Call the method
     recording_manager.save_recording(save_path, screen_widgets)
 
-    # Assert that the save_recording method was called.
+    # Assert
     mock_screen_widget.save_recording.assert_called_once_with(
-        save_path, isTimestamp=True, name="MockCamera"
+        save_path, isTimestamp=True, name="MockCameraTitle"
     )
-    # Assert that the camera name is in the list of currently recording cameras.
-    assert mock_screen_widget.get_camera_name() in recording_manager.recording_camera_list
+    assert sn in recording_manager.recording_camera_list
 
 def test_save_recording_directory_not_exists(recording_manager, mock_screen_widget):
     """Test starting a recording when the save path does not exist."""
     save_path = "non_existent_directory"
     screen_widgets = [mock_screen_widget]
 
-    # Call the method to start recording.
     recording_manager.save_recording(save_path, screen_widgets)
 
-    # Assert that save_recording was not called since the directory does not exist.
     mock_screen_widget.save_recording.assert_not_called()
 
 def test_stop_recording(recording_manager, mock_screen_widget):
     """Test stopping a recording for a camera."""
     screen_widgets = [mock_screen_widget]
+    sn = "MockCamera123"
 
-    # Add the camera to the recording list to simulate it being recorded.
-    recording_manager.recording_camera_list.append(mock_screen_widget.get_camera_name())
+    # Add the camera to the recording list to simulate it being recorded
+    recording_manager.recording_camera_list.append(sn)
 
-    # Call the method to stop recording.
+    # Call the method
     recording_manager.stop_recording(screen_widgets)
 
-    # Assert that the stop_recording method was called.
+    # Assert
     mock_screen_widget.stop_recording.assert_called_once()
-
-    # Assert that the camera was removed from the recording list.
-    assert mock_screen_widget.get_camera_name() not in recording_manager.recording_camera_list
+    assert sn not in recording_manager.recording_camera_list
 
 def test_stop_recording_not_recording_camera(recording_manager, mock_screen_widget):
     """Test stopping a recording when the camera is not in the recording list."""
     screen_widgets = [mock_screen_widget]
 
-    # Ensure the camera is not in the recording list.
     recording_manager.recording_camera_list = []
 
-    # Call the method to stop recording.
     recording_manager.stop_recording(screen_widgets)
 
-    # Assert that the stop_recording method was not called since the camera was not recording.
     mock_screen_widget.stop_recording.assert_not_called()

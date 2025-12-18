@@ -1,13 +1,14 @@
 import pytest
 import cv2
 import os
-from parallax.probe_detection.curr_prev_cmp_processor import CurrPrevCmpProcessor
+from parallax.probe_detection.opencv.curr_prev_cmp_processor import CurrPrevCmpProcessor
 from parallax.reticle_detection.mask_generator import MaskGenerator
-from parallax.probe_detection.probe_detector import ProbeDetector
+from parallax.probe_detection.opencv.probe_detector import ProbeDetector
 
 # Define the folder containing your test images
 IMG_SIZE = (1000, 750)         # (width, height) for resized images
 IMG_SIZE_ORIGINAL = (4000, 3000)
+STAGE_SN = "SN1234"
 
 # Helper function to load images from a folder
 def load_images_from_folder(folder):
@@ -24,7 +25,7 @@ def load_images_from_folder(folder):
 def setup_curr_prev_cmp_processor():
     """Fixture to set up an instance of CurrPrevCmpProcessor."""
     cam_name = "MockCam"
-    probe_detector = ProbeDetector(cam_name, IMG_SIZE, IMG_SIZE_ORIGINAL)
+    probe_detector = ProbeDetector(STAGE_SN, cam_name, IMG_SIZE, IMG_SIZE_ORIGINAL)
 
     processor = CurrPrevCmpProcessor(
         cam_name=cam_name,

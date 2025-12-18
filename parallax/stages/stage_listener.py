@@ -189,7 +189,7 @@ class Worker(QObject):
                 self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
             if change_detected and self.curr_interval == self.LOW_FREQ_INTERVAL:
-                # Swith to high freq mode
+                # Switch to high freq mode
                 logger.debug("high freq mode")
                 self.curr_interval = self.HIGH_FREQ_INTERVAL
                 self.stop()
@@ -347,6 +347,7 @@ class StageListener(QObject):
         status_changed = (prev_is_calib is None) or (bool(is_calib) != prev_is_calib)
 
         if status_changed:
+            logger.debug(f"State changed from {prev_is_calib} to {is_calib} for stage {stage.sn}")
             # Always keep this boolean up to date
             info["is_calibrated"] = bool(is_calib)
             if is_calib and calib_info is not None:
@@ -379,7 +380,7 @@ class StageListener(QObject):
             - Clears `transM_dict`, removing all stored transformation matrices.
             - Triggers a UI update to reset the display of global coordinates to default values.
         """
-        if sn is None:  # Not specified, clear all (Use case: reticle Dection is reset)
+        if sn is None:  # Not specified, clear all (Use case: Detection Dection is reset)
             self.transM_dict = {}
         else:
             if self.transM_dict.get(sn) is not None:
@@ -442,6 +443,7 @@ class StageListener(QObject):
             if self.probeCalibrationLabel:
                 msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
                 self.probeCalibrationLabel.setText(msg)
+            # Update only globalCoords
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.

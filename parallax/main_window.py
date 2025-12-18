@@ -75,6 +75,8 @@ class MainWindow(QMainWindow):
         _, self.dir, width, height = (UserSettingsManager.load_mainWindow_settings())
         if width is not None and height is not None:
             self.resize(width, height)
+        if self.dir is None or not os.path.exists(self.dir):
+            self.dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
 
         # Attach directory selection event handler for saving files
         self.actionDir.triggered.connect(self.dir_setting_handler)
@@ -102,10 +104,6 @@ class MainWindow(QMainWindow):
         # Streaming button. If toggled, start camera acquisition
         self.actionStreaming.triggered.connect(self.start_button_handler)
 
-        # Fetch the default documents directory path
-        self.dir = QStandardPaths.writableLocation(
-            QStandardPaths.StandardLocation.DocumentsLocation
-        )
 
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
@@ -164,6 +162,8 @@ class MainWindow(QMainWindow):
             self.model.load_stage_config()
             self.control_panel.reticle_handler.apply_reticle_detection_status()
             self.control_panel.probe_calib_handler.apply_probe_calibration_status()
+            print(" Restored session info to cameras:", list(self.model.cameras.keys()))
+            print(" Restored session info to stages:", list(self.model.stages.keys()))
         else:
             # Clear yaml file
             self.model.clear_session_config()
@@ -240,10 +240,15 @@ class MainWindow(QMainWindow):
         This is a crucial function for users who need to save data or configurations, as it provides a
         simple and intuitive way to specify the location where files should be saved.
         """
+        # Open a dialog and capture the result in a temporary variable
+        new_dir = QFileDialog.getExistingDirectory(self, "Select Directory", self.dir)
 
-        # Open a dialog to allow the user to select a directory
-        self.dir =  QFileDialog.getExistingDirectory(self, "Select Directory", self.dir)
-        print("Selected directory:", self.dir)
+        # Only update self.dir if new_dir is not empty (i.e., user didn't cancel)
+        if new_dir:
+            self.dir = new_dir
+            print("Selected directory:", self.dir)
+        else:
+            print("Selection canceled. Keeping previous:", self.dir)
 
     def save_user_configs(self):
         """

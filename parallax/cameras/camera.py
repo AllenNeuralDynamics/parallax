@@ -504,7 +504,6 @@ class PySpinCamera(BaseCamera):
             # Record the image if video recording is active
             if self.video_recording_on.is_set():
                 self.video_recording_idle.clear()
-
                 frame = self.get_last_image_data()
                 if frame is not None:
                     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
@@ -655,9 +654,13 @@ class PySpinCamera(BaseCamera):
         Stops the ongoing video capture process and releases video resources.
         """
         self.video_recording_on.clear()
-        self.video_recording_idle.wait()
+        # Wait for up to 1 second for the thread to finish cleanly
+        is_clean_exit = self.video_recording_idle.wait(timeout=1.0)
+        if not is_clean_exit:
+            logger.warning("Recording thread did not signal idle; forcing stop.")
         self.video_recording_idle.clear()
-        self.video_output.release()
+        if self.video_output is not None:
+            self.video_output.release()
 
     # Clean up the camera
     def stop(self, clean=False):
@@ -695,6 +698,7 @@ class MockCamera(BaseCamera):
         self.video_cap = None  # For video file input
         self._next_frame = 0
         self.running = True
+        self.device_model = "MockCamera"
 
         self.device_color_type = "Color"
         self.width = 4000

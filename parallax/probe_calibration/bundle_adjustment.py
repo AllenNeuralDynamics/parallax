@@ -158,7 +158,7 @@ class BALProblem:
         self.cameras_params = []
 
         for camera_name in self.list_cameras:
-            intrinsic = self.model.get_camera_intrinsic(camera_name)
+            intrinsic = self.model.get_camera_params(camera_name)
             if intrinsic is None:
                 logger.warning("Intrinsic parameters not found for camera %s", camera_name)
                 continue

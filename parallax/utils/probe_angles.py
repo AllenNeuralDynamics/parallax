@@ -7,27 +7,26 @@ import math
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-def find_probe_angles_dict(transM_dict: dict[str, np.ndarray]) -> Optional[dict[str, dict[str, float]]]:
+def get_spin_bregma(spin_global: float, reticle_rot: float) -> Optional[float]:
     """
-    Compute arc angles per reticle.
+    Computes the effective spin angle relative to a reticle's initial orientation (Yaw offset).
 
-    Returns
-    -------
-    dict[str, dict[str, float]] | None
-        {"reticleA": {"rx": <deg>, "ry": <deg>}, ...} or None if empty input.
+    Args:
+        spin_global (float): The observed spin angle in the global coordinate system (in degrees).
+        reticle_rot (float): The reticle's rotation offset (in degrees).
+
+    Returns:
+        Optional[float]: The relative spin angle in degrees, or None if inputs are invalid.
     """
-    if not transM_dict:
+    if spin_global is None or reticle_rot is None:
+        logger.warning("Warning: spin_global or reticle_rot is None. Returning None.")
         return None
 
-    angles_dict: dict[str, dict[str, float]] = {}
-    for reticle, transM in transM_dict.items():
-        angles = find_probe_angle(transM)  # -> {"rx":..., "ry":...} | None
-        if angles is not None:
-            angles_dict[reticle] = angles
-    return angles_dict or None
+    relative_spin = spin_global - reticle_rot
+    relative_spin_normalized = (relative_spin + 180) % 360 - 180  # Normalize to [-180, 180]
+    return relative_spin_normalized
 
-
-def find_probe_angle(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
+def get_rx_ry(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
     """
     transM: 4x4 transformation matrix from global or bregma to coordinates.
     Depending on the context, the result is expressed in that coordinate system.
@@ -37,8 +36,24 @@ def find_probe_angle(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]
     dict[str, float] | None
         {"rx": <deg>, "ry": <deg>} or None if transM is None/invalid.
     """
+    if transM is None:
+        return None
     z_axis = _find_probe_insertion_vector(transM)
     return _vector_to_arc_angles(z_axis)
+
+def spin_angle_from_vec(v: np.ndarray) -> float:
+    """
+    Spin angle: positive for CCW, 0° if along -Y
+    """
+    # To make -Y the 0° reference:
+    # The 'x' component (horizontal in standard math) becomes -y (v[1])
+    # The 'y' component (vertical in standard math) becomes x (v[0])
+    # arctan2(sine_comp, cosine_comp) -> arctan2(x, -y)
+    angle_deg = float(np.degrees(np.arctan2(v[0], -v[1])))
+    # Normalize to [-180, 180] range
+    angle_deg = (angle_deg + 180) % 360 - 180
+
+    return angle_deg
 
 def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.ndarray]:
     """Return the probe direction as a 3-vector (GLOBAL/BREGMA frame), or None."""
@@ -55,7 +70,6 @@ def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.nd
     vec = R[2, :]  # shape (3,)
     return vec
 
-
 def _vector_to_arc_angles(
     vec: Optional[np.ndarray],
     degrees: bool = True,
@@ -63,6 +77,11 @@ def _vector_to_arc_angles(
 ) -> Optional[dict[str, float]]:
     """
     Calculate arc angles for a given 3D direction vector in RAS (x=ML, y=AP, z=DV).
+    Parameters
+    ----------
+    vec : array_like
+        A 3-element vector with ML, AP, and DV components. Directions should be
+        in RAS.
 
     Returns
     -------

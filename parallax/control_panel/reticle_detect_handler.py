@@ -26,7 +26,7 @@ class ReticleDetecthandler(QWidget):
         self.screen_widgets = screen_widgets
         self.filter = filter  # TODO move filter to screen widget
         self.actionTriangulate = actionTriangulate
-        self.camera_handler = StereoCameraHandler(model, self.screen_widgets)
+        self.camera_handler = StereoCameraHandler(model)
 
         # UI
         loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self)
@@ -121,8 +121,7 @@ class ReticleDetecthandler(QWidget):
         self.triangulate_btn.setChecked(False)
 
         self.model.reset_stage_calib_info()
-        self.model.reset_stereo_calib_instance()
-        self.model.reset_camera_extrinsic()
+        self.model.reset_all_triangulation_partners()
 
         # Enable triangulate_btn button
         if not self.triangulate_btn.isEnabled():
@@ -162,7 +161,7 @@ class ReticleDetecthandler(QWidget):
         # Check at least two screens are detected.
         valid_intrinsics = [
             sn for sn in self.model.get_visible_camera_sns()
-            if self.model.get_camera_intrinsic(sn)
+            if self.model.get_camera_params(sn)
         ]
 
         if len(valid_intrinsics) < 2:
@@ -245,7 +244,6 @@ class ReticleDetecthandler(QWidget):
         Returns:
             None
         """
-
 
         if self._is_positive_x_axis_detected():
             if self.get_pos_x_from_user_timer.isActive():

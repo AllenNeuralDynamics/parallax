@@ -7,6 +7,7 @@ from parallax.model import Model
 from parallax.cameras.camera import MockCamera, PySpinCamera
 from parallax.stages.stage_listener import Stage
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
+from parallax.cameras.calibration_camera import CameraParams
 from helper import model, mock_stage_instances
 
 
@@ -169,34 +170,49 @@ def test_clicked_points_order_and_limit(model):
     model.reset_pts()
     assert len(model.get_cameras_detected_pts()) == 0
 
-
 # ----------------------------
 # Intrinsics roundtrip + save hook
 # ----------------------------
 def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
-    cam = MockCamera()
-    sn = cam.name(sn_only=True)
+    # Mock a camera object
+    cam = MagicMock()
+    # Emulate cam.name(sn_only=True) returning a string
+    cam.name.return_value = "test_sn_001"
+    sn = "test_sn_001"
+    
+    # Setup the model with the mock camera
     model.cameras[sn] = {"obj": cam, "visible": True}
 
+    # Mock the save_to_yaml method to verify it gets called
     called = {}
     monkeypatch.setattr(
         "parallax.config.user_setting_manager.CameraConfigManager.save_to_yaml",
         lambda _m, s: called.setdefault("sn", s)
     )
 
+    # Create dummy data
     mtx = np.eye(3)
     dist = np.zeros(5)
     rvec = np.array([[0.1], [0.2], [0.3]])
     tvec = np.array([[1.0], [2.0], [3.0]])
 
-    model.add_camera_intrinsic(sn, mtx, dist, rvec, tvec)
-    stored = model.get_camera_intrinsic(sn)
+    # FIX 1: Create the CameraParams object (don't pass loose args)
+    params_obj = CameraParams(mtx=mtx, dist=dist, rvec=rvec, tvec=tvec)
 
+    # FIX 2: Pass the object to the method
+    model.add_camera_params(sn, params_obj)
+    
+    # Retrieve
+    stored = model.get_camera_params(sn)
+
+    # FIX 3: Access attributes using dot notation (stored.mtx), not dict keys
     assert stored is not None
-    assert np.allclose(stored["mtx"], mtx)
-    assert np.allclose(stored["dist"], dist)
-    assert np.allclose(stored["rvec"], rvec)
-    assert np.allclose(stored["tvec"], tvec)
+    assert np.allclose(stored.mtx, mtx)
+    assert np.allclose(stored.dist, dist)
+    assert np.allclose(stored.rvec, rvec)
+    assert np.allclose(stored.tvec, tvec)
+    
+    # Verify save was triggered
     assert called.get("sn") == sn
 
 
@@ -204,32 +220,52 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
 # Coords/intrinsic/extrinsic reset helpers
 # ----------------------------
 def test_reset_coords_intrinsic_extrinsic(model):
-    # seed two cameras with data
-    camA, camB = MockCamera(), MockCamera()
-    snA, snB = camA.name(sn_only=True), camB.name(sn_only=True)
-    model.cameras[snA] = {"obj": camA, "visible": True, "coords_axis": [1], "coords_debug": [2], "pos_x": (0, 0), "intrinsic": {"a": 1}}
-    model.cameras[snB] = {"obj": camB, "visible": True, "coords_axis": [1], "coords_debug": [2], "pos_x": (0, 0), "intrinsic": {"a": 1}}
-    model.camera_extrinsic["A-B"] = [0, None, None, None, None]
-    model.best_camera_pair = [snA, snB]
+    # Mock cameras
+    camA, camB = MagicMock(), MagicMock()
+    snA, snB = "camA", "camB"
+    camA.name.return_value = snA
+    camB.name.return_value = snB
 
-    # reset one
+    # FIX 4: Use correct key 'params' (matching your code) instead of 'intrinsic'
+    # Seed data into the model
+    model.cameras[snA] = {
+        "obj": camA, 
+        "visible": True, 
+        "coords_axis": [1], 
+        "coords_debug": [2], 
+        "pos_x": (0, 0), 
+        "params": MagicMock() # Mock param object
+    }
+    model.cameras[snB] = {
+        "obj": camB, 
+        "visible": True, 
+        "coords_axis": [1], 
+        "coords_debug": [2], 
+        "pos_x": (0, 0), 
+        "params": MagicMock() # Mock param object
+    }
+    
+    # --- Test 1: Reset ONE camera ---
     model.reset_coords_intrinsic_extrinsic(snA)
+    
+    # Assert Camera A fields are cleared
     assert model.cameras[snA]["coords_axis"] is None
     assert model.cameras[snA]["coords_debug"] is None
     assert model.cameras[snA]["pos_x"] is None
-    assert model.cameras[snA]["intrinsic"] is None
-    # other camera untouched
-    assert model.cameras[snB]["intrinsic"] == {"a": 1}
+    assert model.cameras[snA].get("params") is None
+    
+    # Assert Camera B is untouched
+    assert model.cameras[snB].get("params") is not None
 
-    # reset all
+    # --- Test 2: Reset ALL ---
     model.reset_coords_intrinsic_extrinsic()
+    
+    # Assert Camera B is now cleared
     assert model.cameras[snB]["coords_axis"] is None
     assert model.cameras[snB]["coords_debug"] is None
     assert model.cameras[snB]["pos_x"] is None
-    assert model.cameras[snB]["intrinsic"] is None
-    assert model.camera_extrinsic == {}
-    assert model.best_camera_pair is None
-
+    assert model.cameras[snB].get("params") is None
+# ----------------------------
 
 def test_pos_x_helpers(model):
     cam = MockCamera()

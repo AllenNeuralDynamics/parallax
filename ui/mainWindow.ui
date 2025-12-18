@@ -340,7 +340,7 @@ QMenu::item:selected {
      <normaloff>:/Icons/3D_map.png</normaloff>:/Icons/3D_map.png</iconset>
    </property>
    <property name="text">
-    <string>Tranjectory</string>
+    <string>Trajectory</string>
    </property>
   </action>
   <action name="actionCalculator">

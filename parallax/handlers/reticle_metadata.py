@@ -17,11 +17,11 @@ import os
 import logging
 import json
 import numpy as np
-from scipy.spatial.transform import Rotation
 from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
 from PyQt6.uic import loadUi
 from PyQt6.QtCore import Qt
 from parallax.config.config_path import ui_dir, reticle_metadata_file
+from parallax.utils.rotations import define_euler_rotation
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -393,9 +393,7 @@ class ReticleMetadata(QWidget):
         rotmat = np.eye(3)
         if offset_rot != 0:
             rotmat = (
-                Rotation.from_euler("z", offset_rot, degrees=True)
-                .as_matrix()
-                .squeeze()
+                define_euler_rotation(0, 0, offset_rot, degrees=True).as_matrix() # CCW
             )
 
         self.reticles[name] = {
@@ -407,36 +405,3 @@ class ReticleMetadata(QWidget):
         }
         # Register the reticle in the model
         self.model.add_reticle_metadata(name, self.reticles[name])
-
-    def get_global_coords_with_offset(self, reticle_name, global_pts):
-        """
-        Get the global coordinates of a point after applying the reticle's rotation and offsets.
-
-        Args:
-            reticle_name (str): The name of the reticle.
-            global_pts (numpy.ndarray): The original global coordinates (3D point).
-
-        Returns:
-            tuple: The transformed global coordinates (global_x, global_y, global_z).
-        """
-        if reticle_name not in self.reticles.keys():
-            raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
-
-        reticle = self.reticles[reticle_name]
-        reticle_rot = reticle.get("rot", 0)
-        reticle_rotmat = reticle.get("rotmat", np.eye(3))  # Default to identity matrix if not found
-        reticle_offset = np.array([
-            reticle.get("offset_x", global_pts[0]),
-            reticle.get("offset_y", global_pts[1]),
-            reticle.get("offset_z", global_pts[2])
-        ])
-
-        if reticle_rot != 0:
-            # Transpose because points are row vectors
-            global_pts = global_pts @ reticle_rotmat.T
-        global_pts = global_pts + reticle_offset
-
-        global_x = np.round(global_pts[0], 1)
-        global_y = np.round(global_pts[1], 1)
-        global_z = np.round(global_pts[2], 1)
-        return global_x, global_y, global_z

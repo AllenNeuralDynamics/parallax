@@ -20,6 +20,7 @@ from parallax.stages.stage_http_server import StageHttpServer
 
 from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
 from parallax.control_panel.probe_calibration_handler import ProbeCalibrationHandler
+from parallax.control_panel.transform_info_handler import TransformInfoHandler
 from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
@@ -84,6 +85,10 @@ class ControlPanel(QWidget):
             self.probe_calib_handler.reticle_detection_status_change
             )
         self.stage_status_ui.layout().addWidget(self.probe_calib_handler)  # Add it to the placeholder's layout
+        
+        # TODO
+        self.transform_info_handler = TransformInfoHandler(self.model)
+        self.stage_status_ui.layout().addWidget(self.transform_info_handler)  # Add it to the placeholder's layout
 
         # Create a vertical spacer with expanding policy
         spacer = QSpacerItem(
@@ -138,7 +143,7 @@ class ControlPanel(QWidget):
         self.stage_server_ipconfig.refresh_stages()  # Update stages to model
 
         # Set Stage UI
-        self.stageUI = StageUI(self, self.probe_calib_handler.reticle_metadata)  # TODO Move UI into StageUI
+        self.stageUI = StageUI(self)  # TODO Move UI into StageUI
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)

@@ -6,7 +6,7 @@ from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDraw
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.reticle_detection.reticle_detection import ReticleDetection
 from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
-from parallax.cameras.calibration_camera import CalibrationCamera
+from parallax.cameras.calibration_camera import calibrate_camera
 from parallax.cameras.calibration_camera import get_axis_object_points, get_projected_points, get_origin_xyz
 
 logger = logging.getLogger(__name__)
@@ -19,16 +19,16 @@ class ReticleDetectManager(BaseReticleManager):
     """Manager for reticle detection using OpenCV."""
     class ProcessWorker(BaseProcessWorker):
         """Worker for processing frames with OpenCV-based reticle detection."""
-        def __init__(self, name, test_mode=False):
+        def __init__(self, model, name, test_mode=False):
             """Initializes the OpenCV-based reticle detection worker."""
             super().__init__(name)
+            self.model = model
             self.test_mode = test_mode
             self.mask_detect = MaskGenerator(initial_detect=True)
             self.reticleDetector = ReticleDetection(
                 IMG_SIZE_ORIGINAL, self.mask_detect, self.name, test_mode=self.test_mode
             )
             self.coordsInterests = ReticleDetectCoordsInterest()
-            self.calibrationCamera = CalibrationCamera(self.name)
 
         def process(self, frame):
             """Process a single frame to detect reticle coordinates."""
@@ -49,7 +49,11 @@ class ReticleDetectManager(BaseReticleManager):
                 return DetectionResult.FAILED
 
             # Step 3: Camera calibration
-            success, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(self.x_coords, self.y_coords)
+            success, params = calibrate_camera(
+                self.x_coords,
+                self.y_coords,
+                camera_model_name=self.model.get_camera_device_model(self.name)
+            )
             if not self.running:
                 return DetectionResult.STOPPED
             if not success:
@@ -58,23 +62,23 @@ class ReticleDetectManager(BaseReticleManager):
             # Step 4: Reproject 3D axis points
             objpts_x_coords = get_axis_object_points(axis='x', coord_range=10)
             objpts_y_coords = get_axis_object_points(axis='y', coord_range=10)
-            x_coords_ = get_projected_points(objpts_x_coords, rvecs[0], tvecs[0], mtx, dist)
-            y_coords_ = get_projected_points(objpts_y_coords, rvecs[0], tvecs[0], mtx, dist)
+            x_coords_ = get_projected_points(objpts_x_coords, params.rvec, params.tvec, params.mtx, params.dist)
+            y_coords_ = get_projected_points(objpts_y_coords, params.rvec, params.tvec, params.mtx, params.dist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
                 imgpoints=np.array(self.x_coords, dtype=np.float32),
-                mtx=mtx,
-                dist=dist,
-                rvecs=rvecs[0],
-                tvecs=tvecs[0],
+                mtx=params.mtx,
+                dist=params.dist,
+                rvecs=params.rvec,
+                tvecs=params.tvec,
                 center_index_x=len(self.x_coords) // 2,
                 axis_length=10
             )
 
             # Emit data
             logger.debug("OpenCV")
-            logger.debug(f"rvecs: {rvecs}")
-            logger.debug(f"tvecs: {tvecs}")
-            self.signals.found_coords.emit(self.x_coords, self.y_coords, mtx, dist, rvecs, tvecs)
+            logger.debug(f"rvecs: {params.rvec}")
+            logger.debug(f"tvecs: {params.tvec}")
+            self.signals.found_coords.emit(self.x_coords, self.y_coords, params)
             if not self.running:
                 return DetectionResult.STOPPED
 
@@ -87,7 +91,7 @@ class ReticleDetectManager(BaseReticleManager):
             super().__init__(name)
             self.test_mode = test_mode
 
-    def __init__(self, camera_name,  test_mode=False):
+    def __init__(self, model, camera_name,  test_mode=False):
         """Initializes the reticle detection manager with OpenCV."""
-        super().__init__(camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
+        super().__init__(model, camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode

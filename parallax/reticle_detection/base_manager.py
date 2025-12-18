@@ -22,7 +22,6 @@ class DrawWorkerSignal(QObject):
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
 
-
 class BaseDrawWorker(QRunnable):
     """Base worker for drawing reticle detection results on frames."""
     def __init__(self, name):
@@ -190,7 +189,7 @@ class BaseDrawWorker(QRunnable):
 class ProcessWorkerSignal(QObject):
     """Signals for the ProcessWorker."""
     finished = pyqtSignal()
-    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, object) # x_coords, y_coords, CameraParams
     state = pyqtSignal(str)  # "Found", "Failed", "Stopped", "InProcess"
 
 
@@ -259,12 +258,13 @@ class BaseReticleManager(QObject):
     """Base manager for reticle detection workers."""
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, object) # x_coords, y_coords, CameraParams
     finished = pyqtSignal()
 
-    def __init__(self, name, WorkerClass, ProcessWorkerClass):
+    def __init__(self, model, name, WorkerClass, ProcessWorkerClass):
         """Initialize the reticle manager with worker classes and a name."""
         super().__init__()
+        self.model = model
         self.name = name
         self.WorkerClass = WorkerClass
         self.worker = None
@@ -280,7 +280,7 @@ class BaseReticleManager(QObject):
 
     def _init_process_thread(self):
         """Initialize the process worker thread."""
-        self.processWorker = self.processWorkerClass(self.name)
+        self.processWorker = self.processWorkerClass(self.model, self.name)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.found_coords.connect(self.found_coords)
         self.processWorker.signals.state.connect(self._state)
@@ -317,7 +317,7 @@ class BaseReticleManager(QObject):
             self._state("Stopped")  # Stop the draw worker. processWoker is already stopped
 
         # State: InProgress
-        self._state("Stopping")  # Both Draw and Process worker were in progres. DrawWorker draw progress.
+        self._state("Stopping")
         if self.processWorker:
             self.processWorker.stop_running()  # Stop the processWorker. After finishing, stop the DrawWorker
 
