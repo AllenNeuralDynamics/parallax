@@ -72,6 +72,7 @@ class ControlPanel(QWidget):
             )
         self.stage_status_ui.layout().addWidget(self.reticle_handler)
 
+        self.transform_info_handler = TransformInfoHandler(self.model, self.reticle_selector)
         self.probe_calib_handler = ProbeCalibrationHandler(
             self.model,
             self.screen_widgets,
@@ -79,7 +80,8 @@ class ControlPanel(QWidget):
             self.reticle_selector,
             self.actionTrajectory,
             self.actionCalculator,
-            self.actionReticlesMetadata
+            self.actionReticlesMetadata,
+            self.transform_info_handler
         )
         self.reticle_handler.reticleDetectionStatusChanged.connect(
             self.probe_calib_handler.reticle_detection_status_change
@@ -87,9 +89,9 @@ class ControlPanel(QWidget):
         self.stage_status_ui.layout().addWidget(self.probe_calib_handler)  # Add it to the placeholder's layout
         
         # TODO
-        self.transform_info_handler = TransformInfoHandler(self.model)
+        
         self.stage_status_ui.layout().addWidget(self.transform_info_handler)  # Add it to the placeholder's layout
-
+        
         # Create a vertical spacer with expanding policy
         spacer = QSpacerItem(
             20, 40,

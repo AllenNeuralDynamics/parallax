@@ -67,6 +67,7 @@ class ProbeCalibrationHandler(QWidget):
             actionTrajectory: QAction = None,
             actionCalculator: QAction = None,
             actionReticlesMetadata: QAction = None,
+            transform_info_handler: QWidget = None
         ):
         super().__init__()
         self.model = model
@@ -76,6 +77,7 @@ class ProbeCalibrationHandler(QWidget):
         self.actionTrajectory = actionTrajectory
         self.actionCalculator = actionCalculator
         self.actionReticlesMetadata = actionReticlesMetadata
+        self.transform_info_handler = transform_info_handler
 
         self.selected_stage_id = None
         self.stageUI = None
@@ -94,7 +96,8 @@ class ProbeCalibrationHandler(QWidget):
         self.update_spin_inputs = False
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
-        self.setMinimumSize(0, 420)
+        #self.setMinimumSize(0, 420)
+        self.setMinimumSize(0, 100)
 
         # Access probe_calibration_btn
         self.probe_calibration_btn = self.findChild(QPushButton, "probe_calibration_btn")
@@ -449,6 +452,7 @@ class ProbeCalibrationHandler(QWidget):
         self.hide_reticle_metadata_btn()
 
         self.probeCalibrationLabel.setText("")
+        self.transform_info_handler.display(self.selected_stage_id)
         self.probe_calibration_btn.setChecked(False)
         if self.model.reticle_detection_status == "default":
             self.probe_calibration_btn.setEnabled(False)
@@ -759,6 +763,7 @@ class ProbeCalibrationHandler(QWidget):
         if self.moving_stage_id == self.selected_stage_id:
             # If moving stage is the selected stage, update the probe calibration status on UI
             self.display_probe_calib_status(transM, L2_err, dist_travel)
+            self.transform_info_handler.display(self.selected_stage_id)
 
             # Update x, y, z UIs
             self._update_xyz(moving_stage_id)
@@ -971,11 +976,14 @@ class ProbeCalibrationHandler(QWidget):
                 self.calib_z_complete(switch_probe=True)
             if self.transM is not None:
                 self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travel)
+                self.transform_info_handler.display(self.selected_stage_id)
             else:
                 self.probeCalibrationLabel.setText("")
+                self.transform_info_handler.display(self.selected_stage_id)
         elif probe_detection_status == "accepted":
             self.apply_probe_calibration_status()
             if self.transM is not None:
                 self.display_probe_calib_status(self.transM, self.L2_err, self.dist_travel)
+                self.transform_info_handler.display(self.selected_stage_id)
 
         self.probe_detection_status = probe_detection_status
