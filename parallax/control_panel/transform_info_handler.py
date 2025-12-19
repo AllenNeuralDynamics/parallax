@@ -28,7 +28,6 @@ class TransformInfoHandler(QWidget):
         # self.T_label is already auto-bound by loadUi
         
         # Set font for the matrix to look clean
-        from PyQt6.QtGui import QFont
         self.R_label.setFont(QFont("Courier New", ))
         self.T_label.setFont(QFont("Courier New", 8))
         self.l2_label.setFont(QFont("Courier New", 8))
@@ -36,7 +35,6 @@ class TransformInfoHandler(QWidget):
         self.ry_label.setFont(QFont("Courier New", 8))
         self.rz_label.setFont(QFont("Courier New", 8))
         self.travel_label.setFont(QFont("Courier New", 8))
-
 
         self.setMinimumSize(0, 200)
         self.reticle_selector_comboBox.currentIndexChanged.connect(
@@ -58,11 +56,13 @@ class TransformInfoHandler(QWidget):
 
     def display(self, stage_id):
         # We use self.setVisible because 'self' IS the info_widget from the UI file
+        print(f"\nDisplay {stage_id}")
         if not stage_id or stage_id not in self.model.stages:
             self.setVisible(False)
             return
 
         reticle_name = self._get_current_reticle_name()
+        print(f"Reticle name: {reticle_name}")
         
         if reticle_name == 'proj' or not reticle_name:
             self.setVisible(False)
@@ -97,8 +97,8 @@ class TransformInfoHandler(QWidget):
             t_str = f"x: {t_part[0]:.1f}, y: {t_part[1]:.1f}, z: {t_part[2]:.1f}"
             self.T_label.setText(t_str)
         else:
-            self.R_label.setText("N/A")
-            self.T_label.setText("N/A")
+            self.R_label.setText("-")
+            self.T_label.setText("-")
 
         # 3. Stats
         l2 = info.get('l2_err')
@@ -115,16 +115,21 @@ class TransformInfoHandler(QWidget):
             self.rx_label.setText(f"{angles.get('rx', 0):.2f}°" if angles.get('rx') is not None else "-")
             self.ry_label.setText(f"{angles.get('ry', 0):.2f}°" if angles.get('ry') is not None else "-")
             self.rz_label.setText(f"{angles.get('rz', 0):.2f}°" if angles.get('rz') is not None else "-")
-
+        else:
+            self.rx_label.setText("-")
+            self.ry_label.setText("-")
+            self.rz_label.setText("-")
 
     def _get_transM_from_model(self, stage_id, reticle_name):
         stage_info = self.model.stages.get(stage_id)
+        print("Stage Info:", stage_info)
         if not stage_info:
             return None
 
         # Check if calibrated
         calib_info = stage_info.get('calib_info')
-        if not stage_info.get('is_calib') or calib_info is None:
+        #if not stage_info.get('is_calib') or calib_info is None:
+        if calib_info is None:
             return None
         
         info = {}

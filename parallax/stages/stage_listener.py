@@ -259,7 +259,7 @@ class StageListener(QObject):
         self.transM_dict = {}
         self.snapshot_folder_path = None
         self.stages_info = {}
-        self.probeCalibrationLabel =  None
+        self.probeCalibrationLabel =  None  # TODO
 
         # Connect the snapshot button
         self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
