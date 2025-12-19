@@ -516,10 +516,6 @@ class ProbeCalibrationHandler(QWidget):
         if not self.probe_calibration_btn.isChecked():
             self.probe_calibration_btn.setChecked(True)
 
-        self.calib_x.show()
-        self.calib_y.show()
-        self.calib_z.show()
-
         self._update_best_stereo_pair()
         if self.camA_best is None or self.camB_best is None:
             logger.debug("No valid stereo pair found for probe detection.")
@@ -542,12 +538,16 @@ class ProbeCalibrationHandler(QWidget):
         self.filter = "probe_detection"
         logger.debug(f"filter: {self.filter}")
 
+        # UI
+        self.calib_x.show()
+        self.calib_y.show()
+        self.calib_z.show()
+        self._set_visible_gadget(visible=False)
+        self.transform_info_handler.display(self.selected_stage_id)
+
         # message
         message = "Move probe at least 2mm along X, Y, and Z axes"
         QMessageBox.information(self, "Probe calibration info", message)
-
-        # Display transform info
-        self.transform_info_handler.display(self.selected_stage_id)
 
     def _update_best_stereo_pair(self):
         candidates = self.model.get_camera_triangulation_candidate()
@@ -659,16 +659,7 @@ class ProbeCalibrationHandler(QWidget):
 
         # UI
         self.hide_x_y_z()
-        if not self.viewTrajectory_btn.isVisible():
-            self.viewTrajectory_btn.show()
-        if not self.actionTrajectory.isEnabled():
-            self.actionTrajectory.setEnabled(True)
-        if not self.calculation_btn.isVisible():
-            self.calculation_btn.show()
-        if not self.actionCalculator.isEnabled():
-            self.actionCalculator.setEnabled(True)
-        if not self.reticle_metadata_btn.isVisible():
-            self.reticle_metadata_btn.show()
+        self._set_visible_gadget(visible=True)
         if self.filter == "probe_detection":
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
@@ -685,6 +676,30 @@ class ProbeCalibrationHandler(QWidget):
         
         if self.transM is not None:
             self.transform_info_handler.display(self.selected_stage_id)
+
+    def _set_visible_gadget(self, visible: bool):
+        if visible:
+            if not self.viewTrajectory_btn.isVisible():
+                self.viewTrajectory_btn.show()
+            if not self.actionTrajectory.isEnabled():
+                self.actionTrajectory.setEnabled(True)
+            if not self.calculation_btn.isVisible():
+                self.calculation_btn.show()
+            if not self.actionCalculator.isEnabled():
+                self.actionCalculator.setEnabled(True)
+            if not self.reticle_metadata_btn.isVisible():
+                self.reticle_metadata_btn.show()
+        else:
+            if self.viewTrajectory_btn.isVisible():
+                self.viewTrajectory_btn.hide()
+            if self.actionTrajectory.isEnabled():
+                self.actionTrajectory.setEnabled(False)
+            if self.calculation_btn.isVisible():
+                self.calculation_btn.hide()
+            if self.actionCalculator.isEnabled():
+                self.actionCalculator.setEnabled(False)
+            if self.reticle_metadata_btn.isVisible():
+                self.reticle_metadata_btn.hide()
 
     def update_probe_calib_status_transM(self, transformation_matrix):
         """
@@ -753,11 +768,14 @@ class ProbeCalibrationHandler(QWidget):
             
             # Update x, y, z UIs
             self._update_xyz(moving_stage_id)
+            self._set_visible_gadget(visible=True)
 
+            """
             if not self.viewTrajectory_btn.isVisible():
                 self.viewTrajectory_btn.show()
             if not self.actionTrajectory.isEnabled():
                 self.actionTrajectory.setEnabled(True)
+            """
         else:
             logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 

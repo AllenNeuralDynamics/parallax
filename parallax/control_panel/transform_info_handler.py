@@ -1,11 +1,11 @@
 import logging
 import os
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtGui import QAction
 from PyQt6.uic import loadUi
 from parallax.config.config_path import ui_dir
-from PyQt6.QtWidgets import QLabel
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QPixmap
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox, QPushButton
+from PyQt6.QtCore import Qt
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,11 @@ class TransformInfoHandler(QWidget):
         self.reticle_selector_comboBox.currentIndexChanged.connect(
             lambda: self.display(self.model.get_selected_stage_ui())
         )
+
+        # Connect the help button
+        self.transM_q = self.findChild(QPushButton, "transM_q")
+        if self.transM_q:
+            self.transM_q.clicked.connect(self._show_transformation_help)
 
     def _get_current_reticle_name(self):
         reticle_name = self.reticle_selector_comboBox.currentText()
@@ -82,7 +87,8 @@ class TransformInfoHandler(QWidget):
 
     def _display_ui(self, info):
         # 1. Update Title
-        self.transM_title_label.setText(f"local <-> {info.get('reticle', 'N/A')}")
+        conver_to = 'Global' if info.get('reticle') == 'global' else f"Bregma ({info.get('reticle')})"
+        self.transM_title_label.setText(f"Local <-> {conver_to}")
 
         # 2. Extract Rotation (R) and Translation (T) from the 4x4 TransM
         transM = info.get('transM')
@@ -157,6 +163,56 @@ class TransformInfoHandler(QWidget):
 
         return info
 
+    def _show_transformation_help(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Transformation Matrix Help")
+        layout = QVBoxLayout(dialog)
 
+        help_text = (
+            "<b>Transformation Matrix (TransM) Help:</b><br><br>"
+            "<b>1. Local ↔ Global (Reticle)</b><br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;<i>probe_pts = R @ global_pts + translation</i><br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;• Points are column vectors.<br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;• 'Global' refers to reticle coordinates.<br><br>"
+            
+            "<b>2. Local ↔ Bregma</b><br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;<i>probe_pts = R @ bregma_pts + translation</i><br><br>"
+            
+            "<b>3. Arc Angle (AIND Modular System)</b><br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;• <b>rz:</b> Spin angle.<br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;• <b>4-Shanks:</b> 0° reference when aligned to -y axis.<br><br>"
+            
+            "<b>4. Calibration Metrics</b><br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;• <b>L2 Error:</b> RMSE of predicted vs. collected points.<br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;• <b>Travel Distance:</b> Total probe movement."
+        )
         
+        text_label = QLabel(help_text)
+        text_label.setWordWrap(True)
+        text_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(text_label)
+
+        image_path = r"C:\Users\hanna.lee\Documents\00_Parallax\000_Project\parallax\ui\Ephys_global_coordinate system.png"
         
+        if os.path.exists(image_path):
+            img_label = QLabel()
+            pixmap = QPixmap(image_path)
+            # Updated for PyQt6 Enums
+            img_label.setPixmap(pixmap.scaledToWidth(
+                500, 
+                Qt.TransformationMode.SmoothTransformation
+            ))
+            img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(img_label)
+        
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        buttons.accepted.connect(dialog.accept)
+        layout.addWidget(buttons)
+
+        dialog.setStyleSheet("""
+            QDialog { background-color: #121212; }
+            QLabel { color: #E0E0E0; font-family: 'Consolas'; font-size: 10pt; }
+            QPushButton { background-color: #333; color: white; padding: 6px; border-radius: 3px; min-width: 80px; }
+        """)
+
+        dialog.exec()
