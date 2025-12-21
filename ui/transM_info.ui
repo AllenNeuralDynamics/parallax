@@ -56,6 +56,13 @@ QLineEdit, QDoubleSpinBox, QLabel#value_display {
 QLabel[text*=&quot;TransM&quot;], QLabel[text*=&quot;Arc Angle&quot;] {
     font-weight: bold;
     letter-spacing: 0.5px;
+}
+
+/* Greyout state when setEnabled(False) is called */
+QPushButton#rz_push_btn:disabled {
+    background-color: #1a1a1a; /* Darker than the background */
+    color: #555555;            /* Dimmed grey text */
+    border: 1px solid #222;    /* Darkened border */
 }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">

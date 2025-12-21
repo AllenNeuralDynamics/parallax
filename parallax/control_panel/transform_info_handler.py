@@ -54,7 +54,7 @@ class TransformInfoHandler(QWidget):
                 lambda: self._handle_rz_push_btn(self.model.get_selected_stage_sn())
         )
 
-    def _handle_rz_push_btn(self, stage_id):
+    def _handle_rz_push_btn(self, stage_id): 
         try:
             # Save new rz into model
             self._update_rz_to_model(stage_id)
@@ -123,11 +123,17 @@ class TransformInfoHandler(QWidget):
             return
 
         try:
+            self._update_rz_button_state(stage_id)
             self._display_ui(info)
             self.setVisible(True)
         except Exception as e:
             logger.error(f"Error displaying Transform UI: {e}")
             self.setVisible(False)
+
+    def _update_rz_button_state(self, stage_id):
+        """Syncs the rz button enabled state with the calibration status."""
+        is_calibrated = self.model.is_calibrated(stage_id)
+        self.rz_push_btn.setEnabled(is_calibrated)
 
     def _display_ui(self, info):
         # 1. Update Title
