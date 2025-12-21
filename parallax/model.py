@@ -70,7 +70,7 @@ class Model(QObject):
         self.reticle_metadata_instance = None
 
         # stage
-        self.stage_sn_ui = None
+        self.selected_stage_sn = None
         self.stages = {}  # Dictionary to hold stage instances
         """
         stages[sn] = {
@@ -91,7 +91,6 @@ class Model(QObject):
             }
         }
         """
-
         self.stage_listener_url = None
         self.stage_ipconfig_instance = None
 
@@ -104,21 +103,21 @@ class Model(QObject):
         # clicked pts, max len = 2 for triangulation
         self.clicked_pts = OrderedDict()
 
-    def update_selected_stage_ui(self, stage_sn):
+    def set_selected_stage_sn(self, stage_sn):
         """Update the selected stage in the UI.
 
         Args:
             stage_sn (str): The serial number of the stage to select.
         """
-        self.stage_sn_ui = stage_sn
+        self.selected_stage_sn = stage_sn
 
-    def get_selected_stage_ui(self):
+    def get_selected_stage_sn(self):
         """Get the currently selected stage in the UI.
 
         Returns:
             str: The serial number of the currently selected stage.
         """
-        return self.stage_sn_ui
+        return self.selected_stage_sn
 
     def set_probe_detect_algorithms(self, camera_sn, algorithms):
         """Add probe detection algorithms to the model.

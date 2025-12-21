@@ -436,7 +436,7 @@ class ProbeDetectManager(QObject):
             self.opencvProcessWorker.start_running()  # running thread
             pass
         elif self.detect_algorithm == 'yolo' and self.yoloProcessWorker is not None:
-            sn = self.model.get_selected_stage_ui()
+            sn = self.model.get_selected_stage_sn()
             self.yoloProcessWorker.update_sn(sn)  # TODO set real sn
             self.yoloProcessWorker.start_running()  # running thread
         

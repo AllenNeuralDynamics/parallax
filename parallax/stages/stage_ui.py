@@ -116,7 +116,7 @@ class StageUI(QWidget):
             self.selected_stage = self.model.stages.get(stage_id).get('obj', None)
             if self.selected_stage:
                 self.ui.stage_sn.setText(" " + self.selected_stage.sn)
-                self.model.update_selected_stage_ui(self.selected_stage.sn)
+                self.model.set_selected_stage_sn(self.selected_stage.sn)
         else:
             self.ui.stage_sn.setText("----------")
 

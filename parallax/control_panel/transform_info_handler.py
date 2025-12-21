@@ -39,7 +39,7 @@ class TransformInfoHandler(QWidget):
 
         self.setMinimumSize(0, 200)
         self.reticle_selector_comboBox.currentIndexChanged.connect(
-            lambda: self.display(self.model.get_selected_stage_ui())
+            lambda: self.display(self.model.get_selected_stage_sn())
         )
 
         # Connect the help button
@@ -50,31 +50,45 @@ class TransformInfoHandler(QWidget):
         # Connect the <-> button
         self.rz_push_btn = self.findChild(QPushButton, "rz_push_btn")
         if self.rz_push_btn:
-            self.rz_push_btn.clicked.connect(self._handle_rz_push_btn)
+            self.rz_push_btn.clicked.connect(
+                lambda: self._handle_rz_push_btn(self.model.get_selected_stage_sn())
+        )
 
-    def _handle_rz_push_btn(self):
-        current_text = self.rz_label.text().strip()
-        if not current_text or current_text == "-":
-            return
-
+    def _handle_rz_push_btn(self, stage_id):
         try:
-            clean_text = current_text.replace('°', '')
-            current_angle = float(clean_text)
-            new_angle = current_angle + 180
-            # Wrap to (-180, 180] range
-            new_angle = ((new_angle + 180) % 360) - 180
-            # Save into model
-            # Save global, and calc bregma and save
-            self.model.set_calibration_status(True)  # Save into Json
-            self.rz_label.setText(f"{new_angle:.2f}°")
+            # Save new rz into model
+            self._update_rz_to_model(stage_id)
+            # Display updated rz
+            self.display(stage_id)
         except ValueError:
             # If conversion fails (e.g. text is "Unknown"), just exit
             pass
 
-    def _save_rz_to_model(self, stage_id):
-        pass
+    def _get_new_rz_angle(self, current_angle):
+        new_angle = current_angle + 180
+        # Wrap to (-180, 180] range
+        new_angle = ((new_angle + 180) % 360) - 180
+        return round(new_angle, 2)
 
+    def _update_rz_to_model(self, stage_id):
+        # Update Global
+        arc_angle_global = self.model.get_arc_angle_global(stage_id)
+        if arc_angle_global and 'rz' in arc_angle_global:
+            arc_angle_global['rz'] = self._get_new_rz_angle(arc_angle_global['rz'])
+            self.model.set_arc_angle_global(stage_id, arc_angle_global)
 
+        # Update Bregma
+        arc_angle_bregma = self.model.get_arc_angle_bregma(stage_id)
+        if arc_angle_bregma:
+            for reticle in arc_angle_bregma:
+                if 'rz' in arc_angle_bregma[reticle]:
+                    current = arc_angle_bregma[reticle]['rz']
+                    arc_angle_bregma[reticle]['rz'] = self._get_new_rz_angle(current)
+            # save the whole updated dict back to the model
+            self.model.set_arc_angle_bregma(stage_id, arc_angle_bregma)
+
+        # Mark as modified to trigger auto-save or JSON update
+        self.model.set_calibration_status(stage_id, True)
 
     def _get_current_reticle_name(self):
         reticle_name = self.reticle_selector_comboBox.currentText()
