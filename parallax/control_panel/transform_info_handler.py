@@ -6,6 +6,7 @@ from parallax.config.config_path import ui_dir
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox, QPushButton
 from PyQt6.QtCore import Qt
+from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,35 @@ class TransformInfoHandler(QWidget):
         self.transM_q = self.findChild(QPushButton, "transM_q")
         if self.transM_q:
             self.transM_q.clicked.connect(self._show_transformation_help)
+
+        # Connect the <-> button
+        self.rz_push_btn = self.findChild(QPushButton, "rz_push_btn")
+        if self.rz_push_btn:
+            self.rz_push_btn.clicked.connect(self._handle_rz_push_btn)
+
+    def _handle_rz_push_btn(self):
+        current_text = self.rz_label.text().strip()
+        if not current_text or current_text == "-":
+            return
+
+        try:
+            clean_text = current_text.replace('°', '')
+            current_angle = float(clean_text)
+            new_angle = current_angle + 180
+            # Wrap to (-180, 180] range
+            new_angle = ((new_angle + 180) % 360) - 180
+            # Save into model
+            # Save global, and calc bregma and save
+            self.model.set_calibration_status(True)  # Save into Json
+            self.rz_label.setText(f"{new_angle:.2f}°")
+        except ValueError:
+            # If conversion fails (e.g. text is "Unknown"), just exit
+            pass
+
+    def _save_rz_to_model(self, stage_id):
+        pass
+
+
 
     def _get_current_reticle_name(self):
         reticle_name = self.reticle_selector_comboBox.currentText()
@@ -176,8 +206,10 @@ class TransformInfoHandler(QWidget):
             "&nbsp;&nbsp;&nbsp;&nbsp;• 'Global' refers to reticle coordinates.<br><br>"
             
             "<b>2. Local ↔ Bregma</b><br>"
-            "&nbsp;&nbsp;&nbsp;&nbsp;<i>probe_pts = R @ bregma_pts + translation</i><br><br>"
-            
+            "&nbsp;&nbsp;&nbsp;&nbsp;<i>probe_pts = R @ bregma_pts + translation</i><br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;• Points are column vectors.<br>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;• 'Bregma' refers to reticle-error-adjusted coordinates.<br><br>"
+
             "<b>3. Arc Angle (AIND Modular System)</b><br>"
             "&nbsp;&nbsp;&nbsp;&nbsp;• <b>rz:</b> Spin angle.<br>"
             "&nbsp;&nbsp;&nbsp;&nbsp;• <b>4-Shanks:</b> 0° reference when aligned to -y axis.<br><br>"

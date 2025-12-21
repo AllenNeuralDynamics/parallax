@@ -80,7 +80,7 @@ class Model(QObject):
                     detection_status: str = "default"  # options: default, process, accepted
                     transM: Optional[np.ndarray] = None
                     transM_bregma: Optional[dict] = None
-                    arc_angle_global: Optional[tuple] = None
+                    arc_angle_global: Optional[dict] = None
                     arc_angle_bregma: Optional[dict] = None
                     L2_err: Optional[float] = None
                     dist_travel: Optional[np.ndarray] = None
@@ -409,6 +409,25 @@ class Model(QObject):
             return None
         calib = stage.get("calib_info")
         return calib.arc_angle_global if calib else None
+    
+    def set_arc_angle_global(self, stage_sn: str, arc_angle_global: dict):
+        """
+        Set the arc angles in global coordinates for a specific stage.
+        Args:
+            stage_sn (str): The serial number of the stage.
+            arc_angle_global (dict): The arc angles to set in global coordinates.
+            arc_angle_global = {
+                'rx': float,
+                'ry': float,
+                'rz': float
+            }
+        """
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            return
+        calib = stage.get("calib_info")
+        if calib:
+            calib.arc_angle_global = arc_angle_global
 
     def get_arc_angle_bregma(self, stage_sn):
         """
@@ -420,6 +439,25 @@ class Model(QObject):
             return None
         calib = stage.get("calib_info")
         return calib.arc_angle_bregma if calib else None
+    
+    def set_arc_angle_bregma(self, stage_sn: str, arc_angle_bregma: dict):
+        """
+        Set the arc angles in bregma coordinates for a specific stage.
+        Args:
+            stage_sn (str): The serial number of the stage.
+            arc_angle_bregma (dict): The arc angles to set in bregma
+            arc_angle_bregma = {'reticle_name': {
+                'rx': float,
+                'ry': float,
+                'rz': float
+            }, ...}
+        """
+        stage = self.stages.get(stage_sn)
+        if not stage:
+            return
+        calib = stage.get("calib_info")
+        if calib:
+            calib.arc_angle_bregma = arc_angle_bregma
 
     def set_calibration_status(self, stage_sn, status: bool):
         """
