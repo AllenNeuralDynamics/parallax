@@ -24,7 +24,7 @@ from parallax.probe_detection.utils.probe_spin_detector import is_sane_4shanks
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 @dataclass
@@ -143,6 +143,7 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_z.hide()
         self.viewTrajectory_btn.hide()
         self.actionTrajectory.setEnabled(False)
+        self.transform_info_handler.setVisible(False)
 
         self.probeCalibration.calib_complete.connect(
             self.probe_detect_accepted_status
@@ -170,15 +171,15 @@ class ProbeCalibrationHandler(QWidget):
         """
         # Get status of selected stage on ui and apply the appropriate style 
         if self.model.is_calibrated(self.selected_stage_id):
+            self.transMbs = self.model.get_transM_bregma(self.selected_stage_id)
+            self.arc_angle_global = self.model.get_arc_angle_global(self.selected_stage_id)
+            self.arc_angle_bregma = self.model.get_arc_angle_bregma(self.selected_stage_id)
             self.update_probe_calib_status(  # self.transM, self.L2_err, self.dist_travel
                 self.selected_stage_id,
                 self.model.get_transform(self.selected_stage_id),
                 self.model.get_L2_err(self.selected_stage_id),
                 self.model.get_L2_travel(self.selected_stage_id)
             )
-            self.transMbs = self.model.get_transM_bregma(self.selected_stage_id)
-            self.arc_angle_global = self.model.get_arc_angle_global(self.selected_stage_id)
-            self.arc_angle_bregma = self.model.get_arc_angle_bregma(self.selected_stage_id)
             self.probe_detect_accepted_status(switch_probe=True)
         
     def reticle_detection_status_change(self):
@@ -543,6 +544,7 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_y.show()
         self.calib_z.show()
         self._set_visible_gadget(visible=False)
+        print("\nprobe_detect_process_status")
         self.transform_info_handler.display(self.selected_stage_id)
 
         # message
@@ -675,6 +677,7 @@ class ProbeCalibrationHandler(QWidget):
             logger.debug(f"filter: {self.filter}")
         
         if self.transM is not None:
+            print("\nprobe_detect_accepted_status")
             self.transform_info_handler.display(self.selected_stage_id)
 
     def _set_visible_gadget(self, visible: bool):
@@ -763,19 +766,12 @@ class ProbeCalibrationHandler(QWidget):
 
         if self.moving_stage_id == self.selected_stage_id:
             self.update_stage_info_to_model(self.selected_stage_id) # Update model info during 'process' status
-            # If moving stage is the selected stage, update the probe calibration status on UI
+
+            # Update UIs
+            print("\nupdate_probe_calib_status")
             self.transform_info_handler.display(self.selected_stage_id)
-            
-            # Update x, y, z UIs
             self._update_xyz(moving_stage_id)
             self._set_visible_gadget(visible=True)
-
-            """
-            if not self.viewTrajectory_btn.isVisible():
-                self.viewTrajectory_btn.show()
-            if not self.actionTrajectory.isEnabled():
-                self.actionTrajectory.setEnabled(True)
-            """
         else:
             logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 
@@ -924,11 +920,14 @@ class ProbeCalibrationHandler(QWidget):
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):
             self.transM = info.transM
+            self.transMbs = info.transM_bregma
             self.L2_err = info.L2_err
             self.dist_travel = info.dist_travel
             self.calib_status_x = info.status_x
             self.calib_status_y = info.status_y
             self.calib_status_z = info.status_z
+            self.arc_angle_global = info.arc_angle_global
+            self.arc_angle_bregma = info.arc_angle_bregma
 
     def update_stages(self, prev_stage_id, curr_stage_id):
         """
@@ -955,6 +954,7 @@ class ProbeCalibrationHandler(QWidget):
         # Load the current stage's calibration info
         info = self.model.get_stage_calib_info(curr_stage_id)
         logger.debug(f"Loaded stage {curr_stage_id} info: {info}")
+        print("*update_stages:", info)
         if isinstance(info, StageCalibrationInfo):
             self.update_stage_info(info)
             probe_detection_status = info.detection_status
@@ -978,4 +978,5 @@ class ProbeCalibrationHandler(QWidget):
                 self.calib_z_complete(switch_probe=True)
         elif probe_detection_status == "accepted":
             self.apply_probe_calibration_status()
+            print("\n**update_stages", self.model.get_stage_calib_info(curr_stage_id))
         self.probe_detection_status = probe_detection_status
