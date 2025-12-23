@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.uic import loadUi
 from parallax.config.config_path import ui_dir
 from PyQt6.QtGui import QFont, QPixmap
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox, QPushButton
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox, QPushButton, QLineEdit
 from PyQt6.QtCore import Qt
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 import numpy as np
@@ -53,28 +53,33 @@ class TransformInfoHandler(QWidget):
             self.rz_push_btn.clicked.connect(
                 lambda: self._handle_rz_push_btn(self.model.get_selected_stage_sn())
         )
+            
+        if isinstance(self.rz_label, QLineEdit):
+            self.rz_label.editingFinished.connect(
+                lambda: self._handle_rz_manual_input(self.model.get_selected_stage_sn())
+            )
 
     def _handle_rz_push_btn(self, stage_id): 
         try:
             # Save new rz into model
-            self._update_rz_to_model(stage_id)
+            self._update_flip_rz_to_model(stage_id)
             # Display updated rz
             self.display(stage_id)
         except ValueError:
             # If conversion fails (e.g. text is "Unknown"), just exit
             pass
 
-    def _get_new_rz_angle(self, current_angle):
+    def _get_flip_rz_angle(self, current_angle):
         new_angle = current_angle + 180
         # Wrap to (-180, 180] range
-        new_angle = ((new_angle + 180) % 360) - 180
+        new_angle = self._normalize_angle(new_angle)
         return round(new_angle, 2)
 
-    def _update_rz_to_model(self, stage_id):
+    def _update_flip_rz_to_model(self, stage_id):
         # Update Global
         arc_angle_global = self.model.get_arc_angle_global(stage_id)
         if arc_angle_global and 'rz' in arc_angle_global:
-            arc_angle_global['rz'] = self._get_new_rz_angle(arc_angle_global['rz'])
+            arc_angle_global['rz'] = self._get_flip_rz_angle(arc_angle_global['rz'])
             self.model.set_arc_angle_global(stage_id, arc_angle_global)
 
         # Update Bregma
@@ -83,12 +88,54 @@ class TransformInfoHandler(QWidget):
             for reticle in arc_angle_bregma:
                 if 'rz' in arc_angle_bregma[reticle]:
                     current = arc_angle_bregma[reticle]['rz']
-                    arc_angle_bregma[reticle]['rz'] = self._get_new_rz_angle(current)
+                    arc_angle_bregma[reticle]['rz'] = self._get_flip_rz_angle(current)
             # save the whole updated dict back to the model
             self.model.set_arc_angle_bregma(stage_id, arc_angle_bregma)
 
         # Mark as modified to trigger auto-save or JSON update
         self.model.set_calibration_status(stage_id, True)
+
+    def _update_manual_rz_to_model(self, stage_id, new_angle):
+        # Get current reticle context
+        reticle_name = self._get_current_reticle_name()
+        if reticle_name in ['proj', None, '']:
+            return 
+        
+        arc_angle_global = self.model.get_arc_angle_global(stage_id)
+        arc_angle_bregma = self.model.get_arc_angle_bregma(stage_id)
+        if not arc_angle_global or 'rz' not in arc_angle_global:
+            return
+
+        # Calculate Difference
+        diff_angle = 0.0
+        if reticle_name == 'global':
+            diff_angle = new_angle - arc_angle_global['rz']
+        elif arc_angle_bregma and reticle_name in arc_angle_bregma:
+            current_local_rz = arc_angle_bregma[reticle_name].get('rz', 0.0)
+            diff_angle = new_angle - current_local_rz
+        else:
+            return
+
+        # Global
+        arc_angle_global['rz'] = self._normalize_angle(arc_angle_global['rz'] + diff_angle)
+        
+        # Bregma
+        if arc_angle_bregma:
+            for reticle in arc_angle_bregma:
+                if 'rz' in arc_angle_bregma[reticle]:
+                    new_val = arc_angle_bregma[reticle]['rz'] + diff_angle
+                    arc_angle_bregma[reticle]['rz'] = self._normalize_angle(new_val)
+        
+        # Save back to model
+        self.model.set_arc_angle_global(stage_id, arc_angle_global)
+        self.model.set_arc_angle_bregma(stage_id, arc_angle_bregma)
+
+        # Trigger updates
+        self.model.set_calibration_status(stage_id, True)
+
+    def _normalize_angle(self, angle):
+        """Ensures angle stays within (-180, 180]"""
+        return ((angle + 180) % 360) - 180
 
     def _get_current_reticle_name(self):
         reticle_name = self.reticle_selector_comboBox.currentText()
@@ -213,6 +260,24 @@ class TransformInfoHandler(QWidget):
 
         return info
 
+    def _handle_rz_manual_input(self, stage_id):
+        """Handles manual text entry into the rz QLineEdit."""
+        try:
+            text_val = self.rz_label.text().replace('°', '').strip()
+            new_angle = float(text_val)
+            
+            # Update model with the specific value typed by user
+            self._update_manual_rz_to_model(stage_id, round(new_angle, 2))
+            
+            # Refresh UI to ensure formatting matches
+            self.display(stage_id) 
+            self.rz_label.clearFocus()
+            
+        except ValueError:
+            print("Invalid input for rz angle", text_val)
+            logger.warning("Invalid input for rz angle")
+            self.display(stage_id) # Reset display to valid model value
+
     def _show_transformation_help(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("Transformation Matrix Help")
@@ -268,3 +333,4 @@ class TransformInfoHandler(QWidget):
         """)
 
         dialog.exec()
+
