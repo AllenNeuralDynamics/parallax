@@ -33,8 +33,6 @@ class RecordingManager:
                     screen.save_image(
                         save_path, isTimestamp=True, name=customName
                     )
-                    # Add the camera to the list of cameras from which an image has been saved
-                    self.snapshot_camera_list.append(sn)
                 else:
                     logger.debug("save_last_image) camera not found")
         else:
