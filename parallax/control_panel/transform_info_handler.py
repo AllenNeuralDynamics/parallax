@@ -170,6 +170,7 @@ class TransformInfoHandler(QWidget):
             return
 
         try:
+            self._update_rz_label_state(stage_id)
             self._update_rz_button_state(stage_id)
             self._display_ui(info)
             self.setVisible(True)
@@ -181,6 +182,12 @@ class TransformInfoHandler(QWidget):
         """Syncs the rz button enabled state with the calibration status."""
         is_calibrated = self.model.is_calibrated(stage_id)
         self.rz_push_btn.setEnabled(is_calibrated)
+
+    def _update_rz_label_state(self, stage_id):
+        """Syncs the rz label editable state with the calibration status."""
+        is_calibrated = self.model.is_calibrated(stage_id)
+        if isinstance(self.rz_label, QLineEdit):
+            self.rz_label.setReadOnly(not is_calibrated)
 
     def _display_ui(self, info):
         # 1. Update Title
