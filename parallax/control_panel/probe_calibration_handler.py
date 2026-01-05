@@ -617,7 +617,7 @@ class ProbeCalibrationHandler(QWidget):
         (data not yet ready or PCA failed).
         """
         if self.arc_angle_global is not None:
-            print(f"Probe ({self.selected_stage_id}) angle already available from session.")
+            logger.debug(f"Probe ({self.selected_stage_id}) angle already available from session.")
             return
         self.arc_angle_global = get_rx_ry(self.transM)
 
@@ -642,7 +642,7 @@ class ProbeCalibrationHandler(QWidget):
             return
         # Update probe angle rx, ry, spin (for 4 shank probe)
         self._update_probe_angle()
-        print(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
+        logger.debug(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
 
         # Update reticle metadata related info
         self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
@@ -677,7 +677,6 @@ class ProbeCalibrationHandler(QWidget):
             logger.debug(f"filter: {self.filter}")
         
         if self.transM is not None:
-            print("\nprobe_detect_accepted_status")
             self.transform_info_handler.display(self.selected_stage_id)
 
     def _set_visible_gadget(self, visible: bool):
@@ -768,7 +767,6 @@ class ProbeCalibrationHandler(QWidget):
             self.update_stage_info_to_model(self.selected_stage_id) # Update model info during 'process' status
 
             # Update UIs
-            print("\nupdate_probe_calib_status")
             self.transform_info_handler.display(self.selected_stage_id)
             self._update_xyz(moving_stage_id)
             self._set_visible_gadget(visible=True)

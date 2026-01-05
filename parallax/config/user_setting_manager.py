@@ -244,10 +244,7 @@ class StageConfigManager(BaseConfigManager):
                 stage["obj"] = Stage(**stage["obj"])
             if "calib_info" in stage and isinstance(stage["calib_info"], dict):
                 stage["calib_info"] = StageCalibrationInfo(**stage["calib_info"])
-                print(f"Loaded stage '{sn}': {stage['calib_info']}")
-
             model.stages[sn] = stage
-            
 
         logger.debug(f"[StageConfigManager] Loaded {len(model.stages)} stage(s).")
 

@@ -6,7 +6,6 @@ from parallax.config.config_path import ui_dir
 from PyQt6.QtGui import QFont, QPixmap
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox, QPushButton, QLineEdit
 from PyQt6.QtCore import Qt
-from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -20,15 +19,9 @@ class TransformInfoHandler(QWidget):
         self.model = model
         self.reticle_selector_comboBox = reticle_selector
 
-        # This attaches all the XML widgets to 'self'
         loadUi(os.path.join(ui_dir, "transM_info.ui"), self)
-
-        # Mapping the specific names from your XML file
-        # self.transM_title_label is already auto-bound by loadUi
-        # self.R_label is already auto-bound by loadUi
-        # self.T_label is already auto-bound by loadUi
         
-        # Set font for the matrix to look clean
+        # Set fonts
         self.R_label.setFont(QFont("Courier New", ))
         self.T_label.setFont(QFont("Courier New", 8))
         self.l2_label.setFont(QFont("Courier New", 8))
@@ -152,13 +145,11 @@ class TransformInfoHandler(QWidget):
 
     def display(self, stage_id):
         # We use self.setVisible because 'self' IS the info_widget from the UI file
-        print(f"\nDisplay {stage_id}")
         if not stage_id or stage_id not in self.model.stages:
             self.setVisible(False)
             return
 
         reticle_name = self._get_current_reticle_name()
-        print(f"Reticle name: {reticle_name}")
         
         if reticle_name == 'proj' or not reticle_name:
             self.setVisible(False)
@@ -232,7 +223,6 @@ class TransformInfoHandler(QWidget):
 
     def _get_transM_from_model(self, stage_id, reticle_name):
         stage_info = self.model.stages.get(stage_id)
-        print("Stage Info:", stage_info)
         if not stage_info:
             return None
 
