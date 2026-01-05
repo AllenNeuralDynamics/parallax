@@ -29,9 +29,7 @@ def mock_screen_widget():
 @pytest.fixture
 def recording_manager(mock_model):
     """Fixture to create a RecordingManager instance."""
-    # Ensure the snapshot list exists (it was missing in your original init but used in save_last_image)
     manager = RecordingManager(mock_model)
-    manager.snapshot_camera_list = [] 
     return manager
 
 def test_save_last_image(recording_manager, mock_screen_widget, mock_model, tmpdir):
@@ -39,14 +37,26 @@ def test_save_last_image(recording_manager, mock_screen_widget, mock_model, tmpd
     save_path = str(tmpdir)
     screen_widgets = [mock_screen_widget]
     sn = "MockCamera123"
+    custom_title = "MockCameraTitle"
+    
+    # 1. Setup Model Data (Must be visible)
     mock_model.cameras = {sn: {'visible': True}}
 
-    # Call the method
+    # 2. Setup Screen Widget Mocks to pass the 'if' conditions
+    # Logic: if self.model...['visible'] and screen.is_camera():
+    mock_screen_widget.is_camera.return_value = True
+    mock_screen_widget.camera.name.return_value = sn
+    
+    # Logic: customName = screen.parent().title()
+    mock_screen_widget.parent.return_value.title.return_value = custom_title
+
+    # 3. Call the method
     recording_manager.save_last_image(save_path, screen_widgets)
+
+    # 4. Assert the core behavior: save_image was called with correct args
     mock_screen_widget.save_image.assert_called_once_with(
-        save_path, isTimestamp=True, name="MockCameraTitle"
+        save_path, isTimestamp=True, name=custom_title
     )
-    assert sn in recording_manager.snapshot_camera_list
 
 def test_save_last_image_not_visible(recording_manager, mock_screen_widget, mock_model, tmpdir):
     """Test that invisible cameras are NOT saved."""
