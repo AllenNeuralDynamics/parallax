@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt
 import numpy as np
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class TransformInfoHandler(QWidget):

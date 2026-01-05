@@ -11,7 +11,7 @@ from parallax.probe_detection.opencv.probe_detector import ProbeDetector
 
 # Set logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 class OpenCVProcessWorker:
     """

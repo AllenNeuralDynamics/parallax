@@ -11,7 +11,7 @@ from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipD
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class ProbeImageProcessor:

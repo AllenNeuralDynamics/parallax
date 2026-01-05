@@ -87,11 +87,8 @@ class ControlPanel(QWidget):
             self.probe_calib_handler.reticle_detection_status_change
             )
         self.stage_status_ui.layout().addWidget(self.probe_calib_handler)  # Add it to the placeholder's layout
-        
-        # TODO
-        
         self.stage_status_ui.layout().addWidget(self.transform_info_handler)  # Add it to the placeholder's layout
-        
+
         # Create a vertical spacer with expanding policy
         spacer = QSpacerItem(
             20, 40,

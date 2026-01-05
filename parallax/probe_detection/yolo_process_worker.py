@@ -15,7 +15,7 @@ from parallax.config.config_path import yolo_config_path
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 class YoloProcessWorker:
     def __init__(self, name, original_resolution, test=False, detection_callback=None, finished_callback=None):

@@ -24,7 +24,7 @@ from parallax.probe_detection.utils.probe_spin_detector import is_sane_4shanks
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 @dataclass
@@ -544,7 +544,6 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_y.show()
         self.calib_z.show()
         self._set_visible_gadget(visible=False)
-        print("\nprobe_detect_process_status")
         self.transform_info_handler.display(self.selected_stage_id)
 
         # message
@@ -952,7 +951,6 @@ class ProbeCalibrationHandler(QWidget):
         # Load the current stage's calibration info
         info = self.model.get_stage_calib_info(curr_stage_id)
         logger.debug(f"Loaded stage {curr_stage_id} info: {info}")
-        print("*update_stages:", info)
         if isinstance(info, StageCalibrationInfo):
             self.update_stage_info(info)
             probe_detection_status = info.detection_status
@@ -976,5 +974,4 @@ class ProbeCalibrationHandler(QWidget):
                 self.calib_z_complete(switch_probe=True)
         elif probe_detection_status == "accepted":
             self.apply_probe_calibration_status()
-            print("\n**update_stages", self.model.get_stage_calib_info(curr_stage_id))
         self.probe_detection_status = probe_detection_status
