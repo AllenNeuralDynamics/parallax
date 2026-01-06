@@ -3,8 +3,6 @@ from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
 import time
 import numpy as np
 import logging
-import cv2
-from parallax.config.config_path import debug_img_dir
 
 
 class YOLOClient:

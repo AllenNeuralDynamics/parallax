@@ -2,7 +2,7 @@
 
 import numpy as np
 import cv2
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 
 # --- RETICLE COORDS FOR CALIBRATION (Objectpoints) ---
 # These describe the physical target and are general to all cameras using this target.

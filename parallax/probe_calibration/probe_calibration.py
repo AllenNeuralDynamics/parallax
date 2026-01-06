@@ -801,7 +801,6 @@ class ProbeCalibration(QObject):
             print(f"[WARN] view_3d_trajectory failed: {e}")
         """
         print("3D trajectory visualization is currently disabled.")
-        pass
 
     def run_bundle_adjustment(self, file_path):
         """

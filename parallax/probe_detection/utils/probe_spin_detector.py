@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Optional, Tuple
 import numpy as np
-import cv2
 
 # --- project imports ---
 from parallax.config.config_calibration import MIN_SHANK_DIST_MM, MAX_SHANK_DIST_MM, Z_SPAN_MAX_MM

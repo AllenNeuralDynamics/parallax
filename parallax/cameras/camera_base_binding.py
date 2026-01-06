@@ -12,7 +12,6 @@ class BaseCamera(ABC):
     @abstractmethod
     def name(self, sn_only: bool = False) -> str:
         """Returns the name (sn) of the camera"""
-        pass
 
     @abstractmethod
     def get_last_image_data(self) -> np.ndarray:
@@ -21,7 +20,7 @@ class BaseCamera(ABC):
         Returns:
         - np.ndarray: The last captured image data.
         """
-        pass
+        ...
 
     def stop(self, clean: bool = False) -> None:
         """
@@ -29,7 +28,7 @@ class BaseCamera(ABC):
         Args:
         - clean (bool): If True, perform cleanup operations.
         """
-        pass
+        ...
 
     def save_last_image(self, filepath: str, isTimestamp: bool = False, custom_name: str = "Camera_") -> None:
         """
@@ -39,19 +38,19 @@ class BaseCamera(ABC):
         - isTimestamp (bool): If True, appends a timestamp to the filename.
         - custom_name (str): Custom name prefix for the saved image.
         """
-        pass
+        ...
 
     def begin_continuous_acquisition(self) -> None:
         """
         Begins continuous image acquisition from the camera.
         """
-        pass
+        ...
 
     def set_wb(self, channel: str, wb: float = 1.2) -> None:
         """
         Sets the white balance for a specific channel.
         """
-        pass
+        ...
 
     def get_wb(self, channel: str) -> float:
         """
@@ -69,7 +68,7 @@ class BaseCamera(ABC):
         Args:
         - gamma (float): The gamma value to set.
         """
-        pass
+        ...
 
     def set_gain(self, gain: int = 10) -> None:
         """
@@ -77,7 +76,7 @@ class BaseCamera(ABC):
         Args:
         - gain (int): The gain value to set.
         """
-        pass
+        ...
 
     def get_gain(self) -> int:
         """
@@ -93,7 +92,7 @@ class BaseCamera(ABC):
         Args:
         - expTime (int): The exposure time in microseconds.
         """
-        pass
+        ...
 
     def get_exposure(self) -> int:
         """

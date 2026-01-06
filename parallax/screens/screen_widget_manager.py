@@ -3,16 +3,13 @@ import os
 from PyQt6.QtWidgets import (
     QGroupBox,
     QVBoxLayout,
-    QWidget,
     QHBoxLayout,
-    QMdiSubWindow,
-    QMdiArea,
     QMenu,
     QMainWindow,
     QDockWidget,
 )
 from PyQt6.QtGui import QFont, QIcon
-from PyQt6.QtCore import Qt, QTimer, QEvent, QObject
+from PyQt6.QtCore import Qt, QTimer, QObject
 
 from parallax.screens.screen_widget import ScreenWidget
 from parallax.screens.screen_setting import ScreenSetting

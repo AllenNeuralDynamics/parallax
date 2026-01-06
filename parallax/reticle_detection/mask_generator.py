@@ -331,4 +331,3 @@ if __name__ == "__main__":
     else:
         print("No reticle detected in the image.")
     """
-    pass

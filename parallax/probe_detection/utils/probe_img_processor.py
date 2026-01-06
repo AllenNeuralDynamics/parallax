@@ -6,7 +6,7 @@ import time
 import json
 from parallax.config.config_path import debug_img_dir
 from parallax.config.config_path import img_processing_config_file
-from parallax.utils.utils import UtilsCoords, UtilsCrops
+from parallax.utils.utils import UtilsCrops
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 
 # Set logger name
@@ -770,4 +770,3 @@ if __name__ == "__main__":
 
     highest_pt, lowest_pt = ProbeImageProcessor.get_highest_lowest_point_from_mask(mask_local_global)
     """
-    pass

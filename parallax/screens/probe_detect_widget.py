@@ -1,8 +1,6 @@
 """Reticle detection widget"""
 import os
 import logging
-import sys
-from pathlib import Path
 from PyQt6.QtWidgets import QWidget, QToolButton
 from PyQt6.QtCore import QPoint, QCoreApplication
 from PyQt6.QtGui import QFont

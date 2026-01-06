@@ -13,7 +13,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
 from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 from parallax.probe_detection.opencv_process_worker import OpenCVProcessWorker
 
-from parallax.config.config_path import debug_img_dir, palette_cool, palette_warm, palette_tips
+from parallax.config.config_path import palette_cool, palette_warm, palette_tips
 
 
 # Set logger name
@@ -434,7 +434,6 @@ class ProbeDetectManager(QObject):
         self._init_process_thread() # Init opencvProcessWorker and yoloProcessWorker
         if self.detect_algorithm == 'opencv' and self.opencvProcessWorker is not None:
             self.opencvProcessWorker.start_running()  # running thread
-            pass
         elif self.detect_algorithm == 'yolo' and self.yoloProcessWorker is not None:
             sn = self.model.get_selected_stage_sn()
             self.yoloProcessWorker.update_sn(sn)  # TODO set real sn

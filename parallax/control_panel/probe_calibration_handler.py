@@ -1,17 +1,14 @@
 """Probe Calibration Handler"""
-from typing import Tuple
 import logging
 import os
 import numpy as np
 from dataclasses import dataclass
 from PyQt6.uic import loadUi
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
+from PyQt6.QtWidgets import QMessageBox, QPushButton, QWidget
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import pyqtSlot
 from parallax.config.config_path import ui_dir
 from typing import Optional
-import cv2
 
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle

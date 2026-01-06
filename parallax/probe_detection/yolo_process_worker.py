@@ -10,7 +10,7 @@ from parallax.probe_detection.yolo_global.utils import postprocessing as postpro
 from parallax.probe_detection.yolo_local.utils import postprocessing as postprocessing_local
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 
-from parallax.utils.utils import UtilsCoords, UtilsCrops
+from parallax.utils.utils import UtilsCrops
 from parallax.config.config_path import yolo_config_path
 
 # Set logger name
