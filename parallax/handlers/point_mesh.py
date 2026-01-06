@@ -46,6 +46,7 @@ from parallax.config.config_path import ui_dir
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class PointMesh(QWidget):
     """
     A widget that provides a 3D visualization of point meshes for trajectory analysis,
@@ -103,8 +104,7 @@ class PointMesh(QWidget):
         self._set_transM(transM)
 
         # Apply transformation matrix from bundle adjustment if available
-        if transM_BA is not None and \
-                self.model.bundle_adjustment and self.calib_completed:
+        if transM_BA is not None and self.model.bundle_adjustment and self.calib_completed:
             self.set_transM_BA(transM_BA)
 
         # Parse the CSV file and initialize the UI
@@ -160,28 +160,29 @@ class PointMesh(QWidget):
         self.df = self.df[self.df["sn"] == self.sn]  # filter by sn
 
         # Extract local points and convert them to global coordinates
-        self.local_pts_org = self.df[['local_x', 'local_y', 'local_z']].values
+        self.local_pts_org = self.df[["local_x", "local_y", "local_z"]].values
         self.local_pts = self._local_to_global(self.local_pts_org, self.R[self.sn], self.T[self.sn])
-        self.points_dict['local_pts'] = self.local_pts
+        self.points_dict["local_pts"] = self.local_pts
 
         # Extract global points
-        self.global_pts = self.df[['global_x', 'global_y', 'global_z']].values
-        self.points_dict['global_pts'] = self.global_pts
+        self.global_pts = self.df[["global_x", "global_y", "global_z"]].values
+        self.points_dict["global_pts"] = self.global_pts
 
         # Extract mean global points
         if self.model.bundle_adjustment and self.calib_completed:
-            self.m_global_pts = self.df[['m_global_x', 'm_global_y', 'm_global_z']].values
-            self.points_dict['m_global_pts'] = self.m_global_pts
+            self.m_global_pts = self.df[["m_global_x", "m_global_y", "m_global_z"]].values
+            self.points_dict["m_global_pts"] = self.m_global_pts
 
-            self.opt_global_pts = self.df[['opt_x', 'opt_y', 'opt_z']].values
-            self.points_dict['opt_global_pts'] = self.opt_global_pts
+            self.opt_global_pts = self.df[["opt_x", "opt_y", "opt_z"]].values
+            self.points_dict["opt_global_pts"] = self.opt_global_pts
 
             self.local_pts_BA = self._local_to_global(
-                self.local_pts_org, self.R_BA[self.sn], self.T_BA[self.sn], self.S_BA[self.sn])
-            self.points_dict['local_pts_BA'] = self.local_pts_BA
+                self.local_pts_org, self.R_BA[self.sn], self.T_BA[self.sn], self.S_BA[self.sn]
+            )
+            self.points_dict["local_pts_BA"] = self.local_pts_BA
 
         # Assign unique colors to each key
-        color_list = ['red', 'blue', 'green', 'cyan', 'magenta']
+        color_list = ["red", "blue", "green", "cyan", "magenta"]
         for i, key in enumerate(self.points_dict.keys()):
             self.colors[key] = color_list[i % len(color_list)]
 
@@ -209,7 +210,7 @@ class PointMesh(QWidget):
         # Create a button for each point set in points_dict
         for key in self.points_dict.keys():
             button_name = self._get_button_name(key)
-            button = QPushButton(f'{button_name}')
+            button = QPushButton(f"{button_name}")
             button.setCheckable(True)
             button.setMaximumWidth(200)
             button.clicked.connect(lambda checked, key=key: self._update_plot(key, checked))
@@ -218,9 +219,9 @@ class PointMesh(QWidget):
 
         # Default the selected point sets to display based on bundle adjustment status
         if self.model.bundle_adjustment and self.calib_completed:
-            keys_to_check = ['local_pts_BA', 'opt_global_pts']
+            keys_to_check = ["local_pts_BA", "opt_global_pts"]
         else:
-            keys_to_check = ['local_pts', 'global_pts']
+            keys_to_check = ["local_pts", "global_pts"]
 
         # Automatically check and display the default point sets
         for key in keys_to_check:
@@ -237,16 +238,16 @@ class PointMesh(QWidget):
         Returns:
         str: The display name for the point set.
         """
-        if key == 'local_pts':
-            return 'stage'
-        elif key == 'local_pts_BA':
-            return 'stage (BA)'
-        elif key == 'global_pts':
-            return 'global'
-        elif key == 'm_global_pts':
-            return 'global (mean)'
-        elif key == 'opt_global_pts':
-            return 'global (BA)'
+        if key == "local_pts":
+            return "stage"
+        elif key == "local_pts_BA":
+            return "stage (BA)"
+        elif key == "global_pts":
+            return "global"
+        elif key == "m_global_pts":
+            return "global (mean)"
+        elif key == "opt_global_pts":
+            return "global (BA)"
         else:
             return key  # Default to the key if no match
 
@@ -289,11 +290,13 @@ class PointMesh(QWidget):
 
         # Create a 3D scatter plot for the given point set
         scatter = go.Scatter3d(
-            x=x_rounded, y=y_rounded, z=z_rounded,
-            mode='markers+lines',
+            x=x_rounded,
+            y=y_rounded,
+            z=z_rounded,
+            mode="markers+lines",
             marker=dict(size=2, color=self.colors[key]),
             name=self._get_button_name(key),
-            hoverinfo='x+y+z'
+            hoverinfo="x+y+z",
         )
         self.traces[key] = scatter  # Store the trace in self.traces
 
@@ -303,17 +306,12 @@ class PointMesh(QWidget):
         """
         data = list(self.traces.values())
         layout = go.Layout(
-            scene=dict(
-                xaxis_title='X',
-                yaxis_title='Y',
-                zaxis_title='Z'
-            ),
-            margin=dict(l=0, r=0, b=0, t=0)
+            scene=dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z"), margin=dict(l=0, r=0, b=0, t=0)
         )
         fig = go.Figure(data=data, layout=layout)
 
         # Convert the Plotly figure to HTML and display it in the web view
-        html_content = fig.to_html(include_plotlyjs='cdn')
+        html_content = fig.to_html(include_plotlyjs="cdn")
         self.web_view.setHtml(html_content)
         logger.debug("[PointMesh] Canvas updated with new plot")
 

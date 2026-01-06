@@ -11,6 +11,7 @@ def config_mod():
     Import the module once so we can inspect its constants without side effects.
     """
     import importlib
+
     mod = importlib.import_module("parallax.config.config_path")
     return mod
 

@@ -43,7 +43,7 @@ class StageServerIPConfig(QWidget):
             self.windowFlags()
             | Qt.WindowType.Window
             | Qt.WindowType.WindowMinimizeButtonHint
-            | Qt.WindowType.WindowMaximizeButtonHint   # include if you want it
+            | Qt.WindowType.WindowMaximizeButtonHint  # include if you want it
             | Qt.WindowType.WindowCloseButtonHint
         )
 
@@ -61,7 +61,7 @@ class StageServerIPConfig(QWidget):
                 with open(stage_server_config_file, "r") as f:
                     config = json.load(f)
                 self.url = config.get("server_ip", "http://localhost")  # Default: http://localhost
-                self.port = config.get("server_port", "8080")    # Default: 8080
+                self.port = config.get("server_port", "8080")  # Default: 8080
             except json.JSONDecodeError:
                 logger.error("Failed to decode JSON file, using default values.")
                 self.url, self.port = "http://localhost", "8080"

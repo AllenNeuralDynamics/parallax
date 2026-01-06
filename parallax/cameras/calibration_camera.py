@@ -33,15 +33,18 @@ success, camera_params = calibrate_camera(
     device_model_name="Blackfly S BFS-U3-120S4C"
 )
 """
+
+
 @dataclass
 class CameraParams:
-    mtx: Optional[np.ndarray] = None          # (3,3) float64
-    dist: Optional[np.ndarray] = None         # (N,) or (1,N) float64
-    rvec: Optional[np.ndarray] = None         # (3,1) float64
-    tvec: Optional[np.ndarray] = None         # (3,1) float64
-    
+    mtx: Optional[np.ndarray] = None  # (3,3) float64
+    dist: Optional[np.ndarray] = None  # (N,) or (1,N) float64
+    rvec: Optional[np.ndarray] = None  # (3,1) float64
+    tvec: Optional[np.ndarray] = None  # (3,1) float64
+
+
 def calibrate_camera(
-    x_axis: Union[np.ndarray, List[Tuple[int, int]]], # accepts list or np.ndarray (N,2)
+    x_axis: Union[np.ndarray, List[Tuple[int, int]]],  # accepts list or np.ndarray (N,2)
     y_axis: Union[np.ndarray, List[Tuple[int, int]]],
     camera_model_name: str = "MockCamera",
 ) -> Tuple[float, CameraParams]:
@@ -60,8 +63,9 @@ def calibrate_camera(
     try:
         params = cfg.CAMERA_CONFIGS[camera_model_name]
     except KeyError:
-        raise ValueError(f"Unknown camera model: {camera_model_name}. "
-                         f"Please add its configuration to config_calibration.py.")
+        raise ValueError(
+            f"Unknown camera model: {camera_model_name}. " f"Please add its configuration to config_calibration.py."
+        )
 
     image_size = params["SIZE"]
     imtx_init = params["imtx_INIT"]
@@ -82,21 +86,14 @@ def calibrate_camera(
         flags=flags,
         criteria=cfg.CRIT,
     )
-    format_mtxt = (
-        "\n".join(
-            [" ".join([f"{val:.2f}" for val in row]) for row in mtx]
-        )
-        + "\n"
-    )
+    format_mtxt = "\n".join([" ".join([f"{val:.2f}" for val in row]) for row in mtx]) + "\n"
     format_dist = " ".join([f"{val:.2f}" for val in dist[0]]) + "\n"
     logger.debug(f"A reproj error: {ret}")
     logger.debug(f"Intrinsic: {format_mtxt}\n")
     logger.debug(f"Distortion: {format_dist}\n")
     logger.debug(f"Focal length: {mtx[0][0]*pixel_size}")
     distancesA = [np.linalg.norm(vec) for vec in tvecs]
-    logger.debug(
-        f"Distance from camera to world center: {np.mean(distancesA)}"
-    )
+    logger.debug(f"Distance from camera to world center: {np.mean(distancesA)}")
 
     return ret, CameraParams(mtx, dist, rvecs[0], tvecs[0])
 
@@ -118,6 +115,7 @@ def _get_changed_data_format(x_axis, y_axis):
         raise ValueError("y_axis must have shape (M, 2)")
     coords_lines = np.vstack([x_axis, y_axis])
     return coords_lines
+
 
 def process_reticle_points(x_axis, y_axis):
     """
@@ -152,10 +150,12 @@ def get_rotmat_from_camA_to_global(rvecA, tvecA):
     tvecs_inv = -rmat_inv @ tvecA
     return rmat_inv, tvecs_inv
 
+
 def change_coords_system_from_camA_to_global(points_3d_AB, R, t):
     # Transform the points
     points_3d_G = np.dot(R, points_3d_AB.T).T + t.T
     return points_3d_G
+
 
 def get_debug_points(rvec, tvec, mtx, dist):
     """
@@ -175,17 +175,14 @@ def get_debug_points(rvec, tvec, mtx, dist):
     """
     x = np.arange(-4, 5)  # from -4 to 4
     y = np.arange(-4, 5)  # from -4 to 4
-    xv, yv = np.meshgrid(x, y, indexing='ij')
+    xv, yv = np.meshgrid(x, y, indexing="ij")
     grid_points = np.column_stack([xv.flatten(), yv.flatten(), np.zeros(xv.size)])
 
     # Define the additional specific debug points
-    custom_points = np.array([
-        [5.0, 0.0, 0.0],
-        [-8.0, 0.0, 0.0],
-        [0.0, 8.0, 0.0],
-        [0.0, -8.0, 0.0],
-        [0.0, 0.0, 0.0]  # Origin
-    ], dtype=np.float32)
+    custom_points = np.array(
+        [[5.0, 0.0, 0.0], [-8.0, 0.0, 0.0], [0.0, 8.0, 0.0], [0.0, -8.0, 0.0], [0.0, 0.0, 0.0]],  # Origin
+        dtype=np.float32,
+    )
 
     objpoints_3d = np.vstack((grid_points, custom_points))
     # Ensure the combined array is float32
@@ -193,6 +190,7 @@ def get_debug_points(rvec, tvec, mtx, dist):
     pixel_coords = get_projected_points(objpoints_3d, rvec, tvec, mtx, dist)
 
     return pixel_coords
+
 
 # Utils
 def get_projected_points(objpoints, rvec, tvec, mtx, dist):
@@ -211,7 +209,7 @@ def get_projected_points(objpoints, rvec, tvec, mtx, dist):
     return np.round(imgpoints.reshape(-1, 2)).astype(np.int32)
 
 
-def get_axis_object_points(axis='x', coord_range=10, world_scale=0.2):
+def get_axis_object_points(axis="x", coord_range=10, world_scale=0.2):
     """
     Generate 1D object points along a given axis.
 
@@ -226,9 +224,9 @@ def get_axis_object_points(axis='x', coord_range=10, world_scale=0.2):
     coords = np.arange(-coord_range, coord_range + 1, dtype=np.float32)
     points = np.zeros((len(coords), 3), dtype=np.float32)
 
-    if axis == 'x':
+    if axis == "x":
         points[:, 0] = coords
-    elif axis == 'y':
+    elif axis == "y":
         points[:, 1] = coords
     else:
         raise ValueError("axis must be 'x' or 'y'")
@@ -269,19 +267,20 @@ def get_origin_xyz(imgpoints, mtx, dist, rvecs, tvecs, center_index_x=0, axis_le
 
 
 def _P_from_params(params: CameraParams) -> Optional[np.ndarray]:
-    K    = np.asarray(params.mtx,  dtype=np.float64)
-    rvec = np.asarray(params.rvec, dtype=np.float64).reshape(3,1)
-    tvec = np.asarray(params.tvec, dtype=np.float64).reshape(3,1)
+    K = np.asarray(params.mtx, dtype=np.float64)
+    rvec = np.asarray(params.rvec, dtype=np.float64).reshape(3, 1)
+    tvec = np.asarray(params.tvec, dtype=np.float64).reshape(3, 1)
     R, _ = cv2.Rodrigues(rvec)
-    Rt   = np.hstack([R, tvec])           # 3x4
-    return K @ Rt                         # 3x4
+    Rt = np.hstack([R, tvec])  # 3x4
+    return K @ Rt  # 3x4
+
 
 def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, paramsB: CameraParams) -> np.ndarray:
     """
-    Performs 3D point reconstruction (triangulation) from a set of matched 2D 
+    Performs 3D point reconstruction (triangulation) from a set of matched 2D
     image points observed by two cameras.
 
-    This function first applies undistortion and then uses the cameras' 
+    This function first applies undistortion and then uses the cameras'
     absolute pose (P matrices) to calculate the corresponding 3D world coordinates.
 
     Args:
@@ -293,7 +292,7 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
         paramsB (CameraParams): Intrinsic and extrinsic parameters for Camera B.
 
     Returns:
-        np.ndarray: The triangulated 3D points in the world coordinate system 
+        np.ndarray: The triangulated 3D points in the world coordinate system
                     defined by the CameraParams' rvec/tvec.
                     Expected shape: (N, 3), where 3 = (X, Y, Z), dtype: float.
 
@@ -318,13 +317,13 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
     ptsB_in = np.asarray(ptsB, dtype=np.float64)
 
     # cv2.undistortPoints expects N x 1 x 2 input
-    ptsA_undistorted = cv2.undistortPoints(
-        ptsA_in.reshape(-1, 1, 2), paramsA.mtx, paramsA.dist, P=paramsA.mtx
-    ).reshape(-1, 2)
+    ptsA_undistorted = cv2.undistortPoints(ptsA_in.reshape(-1, 1, 2), paramsA.mtx, paramsA.dist, P=paramsA.mtx).reshape(
+        -1, 2
+    )
 
-    ptsB_undistorted = cv2.undistortPoints(
-        ptsB_in.reshape(-1, 1, 2), paramsB.mtx, paramsB.dist, P=paramsB.mtx
-    ).reshape(-1, 2)
+    ptsB_undistorted = cv2.undistortPoints(ptsB_in.reshape(-1, 1, 2), paramsB.mtx, paramsB.dist, P=paramsB.mtx).reshape(
+        -1, 2
+    )
 
     # Convert to 2xN format for cv2.triangulatePoints
     ptsA_final = ptsA_undistorted.T  # 2xN
@@ -345,42 +344,43 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
     Xs = Xhs[:3, :] / w  # 3xN
     return Xs.T  # Nx3
 
+
 # Updated function signature to accept the full list of image points
 def evaluate_performance(
     imgpointsA: List[np.ndarray],
     paramsA: CameraParams,
     imgpointsB: List[np.ndarray],
     paramsB: CameraParams,
-    objpoints: np.ndarray = cfg.OBJPOINTS.astype(np.float32), # (1, N, 3) float32
-    print_results: bool = False
+    objpoints: np.ndarray = cfg.OBJPOINTS.astype(np.float32),  # (1, N, 3) float32
+    print_results: bool = False,
 ) -> float:
 
     imgpointsA_flat, _ = process_reticle_points(imgpointsA[0], imgpointsA[1])
     imgpointsB_flat, _ = process_reticle_points(imgpointsB[0], imgpointsB[1])
 
-    pointsA_for_triangulation = imgpointsA_flat[0].reshape(-1, 2) # Should be (42, 2)
-    pointsB_for_triangulation = imgpointsB_flat[0].reshape(-1, 2) # Should be (42, 2)
+    pointsA_for_triangulation = imgpointsA_flat[0].reshape(-1, 2)  # Should be (42, 2)
+    pointsB_for_triangulation = imgpointsB_flat[0].reshape(-1, 2)  # Should be (42, 2)
 
     # 2. Triangulate points
-    points_3d_G = triangulate(ptsA=pointsA_for_triangulation, ptsB=pointsB_for_triangulation,
-                paramsA=paramsA, paramsB=paramsB)
+    points_3d_G = triangulate(
+        ptsA=pointsA_for_triangulation, ptsB=pointsB_for_triangulation, paramsA=paramsA, paramsB=paramsB
+    )
     differences = points_3d_G - objpoints
     squared_distances = np.sum(np.square(differences), axis=1)
     euclidean_distances = np.sqrt(squared_distances)
     average_L2_distance = np.mean(euclidean_distances)
 
     if print_results:
-        print(
-            f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³"
-        )
+        print(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³")
         _evaluate_x_y_z_performance(points_3d_G, print_results=print_results)
         logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
     return average_L2_distance
 
+
 def _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=True):
     """Evaluates the performance..."""
-    
+
     # FIX: Standardize objpoints format to (N, 3)
     if objpoints.ndim == 3 and objpoints.shape[0] == 1:
         objpoints_flat = objpoints[0]
@@ -391,18 +391,16 @@ def _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=True):
     differences_x = points_3d_G[:, 0] - objpoints_flat[:, 0]
     differences_y = points_3d_G[:, 1] - objpoints_flat[:, 1]
     differences_z = points_3d_G[:, 2] - objpoints_flat[:, 2]
-    
+
     # Calculate the mean squared differences for each dimension
     mean_squared_diff_x = np.mean(np.square(differences_x))
     mean_squared_diff_y = np.mean(np.square(differences_y))
     mean_squared_diff_z = np.mean(np.square(differences_z))
-    
+
     # Calculate the L2 norm (Euclidean distance) for each dimension
     l2_x = np.sqrt(mean_squared_diff_x)
     l2_y = np.sqrt(mean_squared_diff_y)
     l2_z = np.sqrt(mean_squared_diff_z)
-    
+
     if print_results:
-        print(
-            f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z: {np.round(l2_z*1000, 2)}µm³"
-        )
+        print(f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z: {np.round(l2_z*1000, 2)}µm³")

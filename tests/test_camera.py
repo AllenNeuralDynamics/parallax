@@ -16,6 +16,7 @@ def test_mock_camera_default_frame_dimensions():
     assert frame.shape[0] == 3000  # height
     assert frame.shape[1] == 4000  # width
 
+
 def test_mock_camera_color_image_has_three_channels(tmp_path):
     """
     When an image is provided via set_data(), MockCamera should return an RGB image (3 channels).

@@ -1,6 +1,7 @@
 """
 Parallax: A GUI application for controlling hardware devices.
 """
+
 import atexit
 
 from PyQt6.QtWidgets import QApplication

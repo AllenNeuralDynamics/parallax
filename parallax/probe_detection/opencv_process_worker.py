@@ -13,11 +13,13 @@ from parallax.reticle_detection.mask_generator import MaskGenerator
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class OpenCVProcessWorker:
     """
     Worker class for performing OpenCV-based probe detection in a separate thread.
     No PyQt dependencies. Uses callbacks for communication.
     """
+
     def __init__(self, name, resolution, test=False, callbacks=None):
         """
         Args:
@@ -31,7 +33,7 @@ class OpenCVProcessWorker:
         self.IMG_SIZE_ORIGINAL = resolution
         self.IMG_SIZE = (1000, 750)
         self.test = test
-        
+
         # --- Callbacks (Replacement for Signals) ---
         self.callbacks = callbacks if callbacks else {}
         # Expected signatures:
@@ -55,17 +57,17 @@ class OpenCVProcessWorker:
         self.curr_img = None
         self.prev_img = None
         self.mask = None
-        
+
         self.stage_ts = 0.0
         self.img_ts = 0.0
         self.sn = None
-        
+
         self.last_detected_frame = None
         self.last_detected_ts = None
-        
+
         self.reticle_zone = None
         self.probes = {}  # Cache for switching probes
-        
+
         # --- Processors ---
         self.mask_detect = MaskGenerator()
         self.probeDetect = None
@@ -75,7 +77,7 @@ class OpenCVProcessWorker:
     # =========================================================
     #  Thread Management
     # =========================================================
-    
+
     def start_running(self):
         """Start the internal processing thread."""
         if self.running:
@@ -89,7 +91,7 @@ class OpenCVProcessWorker:
     def stop_running(self):
         """Stop the processing thread."""
         if not self.running:
-            self._trigger_callback('on_finished')
+            self._trigger_callback("on_finished")
             return
         self.running = False
         self.stop()
@@ -109,13 +111,13 @@ class OpenCVProcessWorker:
                         self.process()
                     self.new_frame_available = False
                 else:
-                    time.sleep(0.01) # Short sleep to prevent CPU hogging
+                    time.sleep(0.01)  # Short sleep to prevent CPU hogging
             except Exception as e:
                 print(f"{self.name} - Error in run loop: {e}")
                 time.sleep(0.1)
 
         print(f"{self.name} - OpenCV Process worker thread stopped")
-        self._trigger_callback('on_finished')
+        self._trigger_callback("on_finished")
 
     # =========================================================
     #  Public API (Called by Manager)
@@ -135,14 +137,14 @@ class OpenCVProcessWorker:
             self.sn = sn
             # Initialize core logic classes
             self.probeDetect = ProbeDetector(self.sn, self.name, self.IMG_SIZE, self.IMG_SIZE_ORIGINAL)
-            
+
             self.currPrevCmpProcess = CurrPrevCmpProcessor(
                 self.name, self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )
             self.currBgCmpProcess = CurrBgCmpProcessor(
                 self.name, self.probeDetect, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )
-            
+
             # Cache them
             self.probes[self.sn] = {
                 "probeDetector": self.probeDetect,
@@ -183,7 +185,8 @@ class OpenCVProcessWorker:
 
     def _prepare_current_image(self):
         """Pre-process image: Grayscale, Resize, Blur, Mask."""
-        if self.frame is None: return
+        if self.frame is None:
+            return
 
         if self.frame.ndim > 2:
             self.gray_img = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
@@ -191,7 +194,7 @@ class OpenCVProcessWorker:
             self.gray_img = self.frame
 
         self.curr_img = cv2.resize(self.gray_img, self.IMG_SIZE)
-        
+
         # Smoothing based on shank count
         if self.probeDetect and self.probeDetect.nShanks == 1:
             self.curr_img = cv2.GaussianBlur(self.curr_img, (9, 9), 0)
@@ -204,7 +207,7 @@ class OpenCVProcessWorker:
     def process(self):
         """Main processing pipeline executed by the thread."""
         self._prepare_current_image()
-        
+
         if not self.running or self.curr_img is None:
             return
 
@@ -226,24 +229,23 @@ class OpenCVProcessWorker:
         ret = self.currPrevCmpProcess.first_cmp(
             self.curr_img, self.prev_img, self.mask, lambda: self.running, ts=self.stage_ts
         )
-        
-        if not self.running: return False
+
+        if not self.running:
+            return False
 
         if not ret:
             # 2. Try Current vs Background
-            ret = self.currBgCmpProcess.first_cmp(
-                self.curr_img, self.mask, lambda: self.running, ts=self.stage_ts
-            )
+            ret = self.currBgCmpProcess.first_cmp(self.curr_img, self.mask, lambda: self.running, ts=self.stage_ts)
 
         if ret:
             logger.debug(f"{self.name} - First comparison successful")
-            self._trigger_callback('on_status', "update")
+            self._trigger_callback("on_status", "update")
             return True
         return False
 
     def _run_tracking_cmp(self) -> bool:
         """Run comparison for tracking (Moving vs Stopped logic)."""
-        
+
         # --- Case A: Probe Stopped (Calibration Mode) ---
         if self.probe_stopped:
             if not self.stopped_first_frame:
@@ -258,12 +260,10 @@ class OpenCVProcessWorker:
             ret = self.currPrevCmpProcess.update_cmp(
                 self.curr_img, self.prev_img, self.mask, self.gray_img, ts=self.stage_ts
             )
-            
+
             # 2. Try Current vs Background if (1) failed
             if not ret:
-                ret = self.currBgCmpProcess.update_cmp(
-                    self.curr_img, self.mask, self.gray_img, ts=self.stage_ts
-                )
+                ret = self.currBgCmpProcess.update_cmp(self.curr_img, self.mask, self.gray_img, ts=self.stage_ts)
 
             # Debug Saving
             if logger.getEffectiveLevel() == logging.DEBUG:
@@ -271,32 +271,39 @@ class OpenCVProcessWorker:
                 pass
 
             self.stopped_first_frame = False
-            
+
             if ret:
                 print("emit stopped", self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
-                self._trigger_callback('on_tip_stopped', 
-                                       self.stage_ts, self.img_ts, self.sn, 
-                                       self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
-                
+                self._trigger_callback(
+                    "on_tip_stopped",
+                    self.stage_ts,
+                    self.img_ts,
+                    self.sn,
+                    self.probeDetect.probe_tip_org,
+                    self.probeDetect.probe_base_org,
+                )
+
                 if self.copy_last_detected_frame:
                     self.last_detected_frame = self.frame.copy()
                     self.last_detected_ts = self.img_ts
-                
+
                 self.prev_img = self.curr_img
                 return True
             return False
 
         # --- Case B: Probe Moving ---
         else:
-            ret = self.currBgCmpProcess.update_cmp(
-                self.curr_img, self.mask, self.gray_img, get_fine_tip=False
-            )
+            ret = self.currBgCmpProcess.update_cmp(self.curr_img, self.mask, self.gray_img, get_fine_tip=False)
 
             if ret:
                 print("emit moving", self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
-                self._trigger_callback('on_tip_moving',
-                                       self.img_ts, self.sn, 
-                                       self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
+                self._trigger_callback(
+                    "on_tip_moving",
+                    self.img_ts,
+                    self.sn,
+                    self.probeDetect.probe_tip_org,
+                    self.probeDetect.probe_base_org,
+                )
                 return True
             return False
 
@@ -308,21 +315,21 @@ class OpenCVProcessWorker:
         if self.probeDetect.angle:
             # Use the processor to refine the tip based on the click
             if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
-                
-                self._trigger_callback('on_tip_stopped',
-                                       self.stage_ts, self.img_ts, self.sn,
-                                       self.probeDetect.probe_tip_org, (None, None))
+
+                self._trigger_callback(
+                    "on_tip_stopped", self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, (None, None)
+                )
 
                 if self.copy_last_detected_frame and self.frame is not None:
                     self.last_detected_frame = self.frame.copy()
                     self.last_detected_ts = self.img_ts
-                
+
                 logger.info(f"Emit tip stopped signal (manual click) with coords: {self.probeDetect.probe_tip_org}")
 
     # =========================================================
     #  Helper
     # =========================================================
-    
+
     def _trigger_callback(self, name, *args):
         """Safely execute a callback if it exists."""
         if name in self.callbacks and self.callbacks[name]:

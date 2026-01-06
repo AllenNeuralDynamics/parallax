@@ -59,9 +59,7 @@ class MainWindow(QMainWindow):
 
         # Update camera information
         self.refresh_cameras()
-        logger.debug(
-            f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
-        )
+        logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
 
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
@@ -71,7 +69,7 @@ class MainWindow(QMainWindow):
         self._set_font()
 
         # Load existing user preferences
-        _, self.dir, width, height = (UserSettingsManager.load_mainWindow_settings())
+        _, self.dir, width, height = UserSettingsManager.load_mainWindow_settings()
         if width is not None and height is not None:
             self.resize(width, height)
         if self.dir is None or not os.path.exists(self.dir):
@@ -84,44 +82,38 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
-        self.control_panel = ControlPanel(self.model,
-                                          self.screen_widget_manager.screen_widgets,
-                                          self.actionServer,
-                                          self.actionSaveInfo,
-                                          self.actionTrajectory,
-                                          self.actionCalculator,
-                                          self.actionTriangulate,
-                                          self.actionReticlesMetadata
-                                        )
+        self.control_panel = ControlPanel(
+            self.model,
+            self.screen_widget_manager.screen_widgets,
+            self.actionServer,
+            self.actionSaveInfo,
+            self.actionTrajectory,
+            self.actionCalculator,
+            self.actionTriangulate,
+            self.actionReticlesMetadata,
+        )
 
         # Add to splitter
         splitter = QSplitter()
-        #splitter.addWidget(scroll_area)
+        # splitter.addWidget(scroll_area)
         splitter.addWidget(self.control_panel)
         self.verticalLayout.addWidget(splitter)
 
         # Streaming button. If toggled, start camera acquisition
         self.actionStreaming.triggered.connect(self.start_button_handler)
 
-
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
         self.actionSnapshot.triggered.connect(
-            lambda: self.recordingManager.save_last_image(
-                self.dir, self.screen_widget_manager.screen_widgets
-            )
+            lambda: self.recordingManager.save_last_image(self.dir, self.screen_widget_manager.screen_widgets)
         )
-        self.actionRecording.triggered.connect(
-            self.record_button_handler
-        )  # Recording video button
+        self.actionRecording.triggered.connect(self.record_button_handler)  # Recording video button
 
         # Toggle start button on init
         self.start_button_handler()
 
         # actionDocumentation
-        self.actionDocumentation.triggered.connect(
-            lambda: webbrowser.open("https://parallax.readthedocs.io/")
-        )
+        self.actionDocumentation.triggered.connect(lambda: webbrowser.open("https://parallax.readthedocs.io/"))
 
         self.actionContactSupport.triggered.connect(
             lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
@@ -134,13 +126,13 @@ class MainWindow(QMainWindow):
         Returns:
             bool: True if the user confirms the restore, False otherwise.
         """
-        message = ("Restore previous session?")
+        message = "Restore previous session?"
         response = QMessageBox.warning(
             self,
             "Session Restore",
             message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,   # default
+            QMessageBox.StandardButton.No,  # default
         )
 
         if response == QMessageBox.StandardButton.Yes:

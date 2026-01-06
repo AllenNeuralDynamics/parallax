@@ -1,4 +1,4 @@
-""" ReticleDetection for identifying reticle coordinates in microscopy images
+"""ReticleDetection for identifying reticle coordinates in microscopy images
 
 Process:
 - preprocessing, masking, and morphological operations
@@ -113,9 +113,7 @@ class ReticleDetection:
             img_color = img.copy()
         """
 
-        contours, _ = cv2.findContours(
-            img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not running_flag():
             logger.debug(f"{self.name} ransac_detect_lines - stop running while searching for lines.")
             return False, [], []
@@ -278,9 +276,7 @@ class ReticleDetection:
                 logger.debug(f"{self.name} _eroding - stop running while eroding.")
                 return img
 
-            contours, _ = cv2.findContours(
-                img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-            )
+            contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             if not contours:
                 break
 
@@ -392,13 +388,9 @@ class ReticleDetection:
         for gap_index in large_gaps:
             start_point = points[gap_index]
             end_point = points[gap_index + 1]
-            num_missing = (
-                int(round(distances[gap_index] / average_distance)) - 1
-            )
+            num_missing = int(round(distances[gap_index] / average_distance)) - 1
             for i in range(1, num_missing + 1):
-                missing_point = start_point + (end_point - start_point) * (
-                    i / (num_missing + 1)
-                )
+                missing_point = start_point + (end_point - start_point) * (i / (num_missing + 1))
                 missing_points.append(np.round(missing_point))
 
         return np.array(missing_points)
@@ -429,36 +421,28 @@ class ReticleDetection:
                 missing_points_adjusted = np.array([])  # Handle empty case
             else:
                 if x_diff > y_diff:
-                    missing_points_adjusted = np.array([
-                        (x, line_model.predict_y(np.array([x]))[0])
-                        for x in missing_points[:, 0]
-                    ])
+                    missing_points_adjusted = np.array(
+                        [(x, line_model.predict_y(np.array([x]))[0]) for x in missing_points[:, 0]]
+                    )
                 else:
-                    missing_points_adjusted = np.array([
-                        (line_model.predict_x(np.array([y]))[0], y)
-                        for y in missing_points[:, 1]
-                    ])
+                    missing_points_adjusted = np.array(
+                        [(line_model.predict_x(np.array([y]))[0], y) for y in missing_points[:, 1]]
+                    )
             logger.debug(f"missing_points: {missing_points}, adjusted: {missing_points_adjusted}")
 
             # Combine original and adjusted missing points
             if missing_points_adjusted.size > 0:
-                full_line_pixels = np.vstack(
-                    (pixels_array, missing_points_adjusted)
-                )
+                full_line_pixels = np.vstack((pixels_array, missing_points_adjusted))
             else:
                 full_line_pixels = pixels_array
 
             # Sort pixels
             if x_diff > y_diff:
                 # If range of x is greater, sort by x-coordinate
-                full_line_pixels = full_line_pixels[
-                    full_line_pixels[:, 0].argsort()
-                ]
+                full_line_pixels = full_line_pixels[full_line_pixels[:, 0].argsort()]
             else:
                 # Otherwise, sort by y-coordinate
-                full_line_pixels = full_line_pixels[
-                    full_line_pixels[:, 1].argsort()
-                ]
+                full_line_pixels = full_line_pixels[full_line_pixels[:, 1].argsort()]
 
             full_line_pixels = np.around(full_line_pixels).astype(int)
             refined_pixels.append(full_line_pixels)
@@ -495,9 +479,7 @@ class ReticleDetection:
             cv2.line(bg, point1, point2, (0, 0, 255), 1)
             pixels = np.array(pixels)
             to_pixels = pixels - origin
-            proj_lengths = (
-                np.dot(to_pixels, direction) / np.linalg.norm(direction) ** 2
-            )
+            proj_lengths = np.dot(to_pixels, direction) / np.linalg.norm(direction) ** 2
             proj_points = np.outer(proj_lengths, direction) + origin
 
             proj_points = np.round(proj_points).astype(int)

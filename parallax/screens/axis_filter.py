@@ -144,18 +144,15 @@ class AxisFilter(QObject):
             # sort the reticle points and register to the model
             self.sort_reticle_points()
             ret, params = calibrate_camera(
-                    self.reticle_coords[0],
-                    self.reticle_coords[1],
-                    camera_model_name=self.model.get_camera_device_model(self.name)
-                )
+                self.reticle_coords[0],
+                self.reticle_coords[1],
+                camera_model_name=self.model.get_camera_device_model(self.name),
+            )
             if ret:
                 # Add debug coords to the model
                 debug_points = get_debug_points(params.rvec, params.tvec, params.mtx, params.dist)
                 self.model.add_coords_for_debug(self.name, debug_points)
-                self.found_coords.emit(
-                        self.reticle_coords[0], self.reticle_coords[1], params
-                )
-
+                self.found_coords.emit(self.reticle_coords[0], self.reticle_coords[1], params)
 
         def reset_pos_x(self):
             """Reset the position of the x-axis (pos_x) in the model."""

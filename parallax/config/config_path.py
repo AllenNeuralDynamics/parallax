@@ -1,6 +1,7 @@
 """
 This module defines the paths used in the project and sets up logging.
 """
+
 import logging
 from pathlib import Path
 
@@ -51,19 +52,19 @@ fira_font_dir = str(ui_dir / "font/FiraCode-VariableFont_wght.ttf")
 
 # Color palette
 palette_cool = [
-    (220, 50, 255),   # Neon Purple
+    (220, 50, 255),  # Neon Purple
     (220, 220, 220),  # Crisp White/Grey
-    (52, 166, 235),   # Electric Blue
-    (0, 255, 255),    # Bright Cyan
-    (100, 150, 255)   # Deep Sky Blue
+    (52, 166, 235),  # Electric Blue
+    (0, 255, 255),  # Bright Cyan
+    (100, 150, 255),  # Deep Sky Blue
 ]
 
 # Vibe: Alert, Recording, Active
 palette_warm = [
-    (255, 0, 180),     # Hot Magenta
-    (255, 80, 80),    # Salmon Red
-    (255, 165, 0),    # Golden Orange
-    (255, 215, 0),    # Bright Gold
+    (255, 0, 180),  # Hot Magenta
+    (255, 80, 80),  # Salmon Red
+    (255, 165, 0),  # Golden Orange
+    (255, 215, 0),  # Bright Gold
     (255, 100, 0),  # Light Coral
 ]
 
@@ -74,6 +75,7 @@ palette_tips = [
     (0, 100, 50),
     (0, 255, 0),
 ]
+
 
 # Logging setup
 def setup_logging():
@@ -88,5 +90,7 @@ def setup_logging():
 
     log_handler = logging.FileHandler(log_file_path)
     log_handler.setLevel(logging.DEBUG)
-    log_handler.setFormatter(logging.Formatter(fmt="%(asctime)s:%(name)s:%(levelname)s:%(filename)s:%(lineno)d: %(message)s"))
+    log_handler.setFormatter(
+        logging.Formatter(fmt="%(asctime)s:%(name)s:%(levelname)s:%(filename)s:%(lineno)d: %(message)s")
+    )
     logger.addHandler(log_handler)

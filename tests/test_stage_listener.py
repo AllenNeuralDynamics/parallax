@@ -14,7 +14,7 @@ def make_worker_payload_from_helper(src):
     Convert the helper's stage_server_txt (which separates 'Stage' and 'ProbeArray')
     into the shape Worker.fetchData() expects.
     """
-    payload = dict(src) 
+    payload = dict(src)
     payload["Probes"] = 1
     payload["SelectedProbe"] = 0
 

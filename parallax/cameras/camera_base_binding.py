@@ -1,4 +1,5 @@
 """Camera Base Binding"""
+
 import datetime
 from abc import ABC, abstractmethod
 
@@ -10,6 +11,7 @@ class BaseCamera(ABC):
     Abstract base class for camera operations.
     Defines the interface expected from all camera types.
     """
+
     @abstractmethod
     def name(self, sn_only: bool = False) -> str:
         """Returns the name (sn) of the camera"""

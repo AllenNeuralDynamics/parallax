@@ -2,6 +2,7 @@
 Provides classes to manage stage data fetching, representation, and updates in microscopy
 applications, using PyQt6 for threading and signals, and requests for HTTP requests.
 """
+
 import json
 import logging
 import os
@@ -56,6 +57,7 @@ class StageInfo:
 @dataclass
 class Stage:
     """Represents an individual stage with its properties."""
+
     sn: str
     name: Optional[str] = None
     stage_x: Optional[float] = None
@@ -88,7 +90,7 @@ class Stage:
             yaw=None,
             pitch=None,
             roll=None,
-            shank_cnt=1
+            shank_cnt=1,
         )
 
 
@@ -96,8 +98,8 @@ class Worker(QObject):
     """Fetch stage data at regular intervals and emit signals when data changes
     or significant movement is detected."""
 
-    dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
-    stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
+    dataChanged = pyqtSignal(dict)  # Emitted when stage data changes.
+    stage_moving = pyqtSignal(dict)  # Emitted when a stage is moving.
     stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving for a certain time.
     LOW_FREQ_INTERVAL = 500  # Interval for low frequency data fetching (in ms).
     HIGH_FREQ_INTERVAL = 100  # Interval for high frequency data fetching (in ms).
@@ -260,7 +262,7 @@ class StageListener(QObject):
         self.transM_dict = {}
         self.snapshot_folder_path = None
         self.stages_info = {}
-        self.probeCalibrationLabel =  None  # TODO
+        self.probeCalibrationLabel = None  # TODO
 
         # Connect the snapshot button
         self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
@@ -316,20 +318,26 @@ class StageListener(QObject):
             bregma_pts = {}
             for reticle in self.model.reticle_metadata.keys():
                 bregma_pt = apply_reticle_adjustments(self.model, global_pts, reticle=reticle)
-                #bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
-                #print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
+                # bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
+                # print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
                 if bregma_pt is not None:
                     # make JSON-safe now
-                    bregma_pts[reticle] = np.asarray(bregma_pt, dtype=float).reshape(3,).tolist()
+                    bregma_pts[reticle] = (
+                        np.asarray(bregma_pt, dtype=float)
+                        .reshape(
+                            3,
+                        )
+                        .tolist()
+                    )
 
             stage.stage_bregma = bregma_pts
 
         # Update stage UI
         # Stage is currently selected one, update into UI
         if sn == self.stage_ui.get_selected_stage_sn():
-            self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
+            self.stage_ui.updateStageLocalCoords()  # Update local coords into UI
             if is_calib:
-                self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
+                self.stage_ui.updateStageGlobalCoords()  # update global coords into UI
 
         # Update stage info
         self._update_stages_info(stage, is_calib, calib_info)
@@ -485,9 +493,7 @@ class StageListener(QObject):
             arr = np.asarray(v, dtype=float).reshape(-1)
             if arr.size < 3:
                 return None
-            return [round(arr[0] * 0.001, 4),
-                    round(arr[1] * 0.001, 4),
-                    round(arr[2] * 0.001, 4)]
+            return [round(arr[0] * 0.001, 4), round(arr[1] * 0.001, 4), round(arr[2] * 0.001, 4)]
 
         def _bregma_mm(b):
             """Dict of reticle -> 3-vector in µm -> mm dict."""
@@ -514,10 +520,12 @@ class StageListener(QObject):
         }
 
     def _get_calib_info_json(self, calib_info):
-        def _to_list(x): return None if x is None else np.asarray(x).tolist()
+        def _to_list(x):
+            return None if x is None else np.asarray(x).tolist()
 
         def _to_mm(M):
-            if M is None: return None
+            if M is None:
+                return None
             A = np.asarray(M, float).copy()
             A[:3, 3] /= 1000.0  # µm -> mm  # TODO replace to mm in entire Parallax model
             return A.tolist()
@@ -542,8 +550,11 @@ class StageListener(QObject):
         """Snapshot the current stage info. Handler for the stage snapshot button."""
         selected_sn = self.stage_ui.get_selected_stage_sn()
         now = datetime.now().astimezone()
-        info = {"timestamp": now.isoformat(timespec='milliseconds'),
-                "selected_sn": selected_sn, "probes:": self.stages_info}
+        info = {
+            "timestamp": now.isoformat(timespec="milliseconds"),
+            "selected_sn": selected_sn,
+            "probes:": self.stages_info,
+        }
 
         # If no folder is set, default to the "Documents" directory
         if self.snapshot_folder_path is None:
@@ -552,10 +563,7 @@ class StageListener(QObject):
         # Open save file dialog, defaulting to the last used folder
         now_fmt = now.strftime("%Y-%m-%dT%H%M%S%z")
         file_path, _ = QFileDialog.getSaveFileName(
-            None,
-            "Save Stage Info",
-            os.path.join(self.snapshot_folder_path, f"{now_fmt}.json"),
-            "JSON Files (*.json)"
+            None, "Save Stage Info", os.path.join(self.snapshot_folder_path, f"{now_fmt}.json"), "JSON Files (*.json)"
         )
 
         if not file_path:  # User canceled the dialog

@@ -38,20 +38,15 @@ Z_SPAN_MAX_MM = 0.10  # max Z variation in local coords
 # ----------------------------------------------------
 # Maps camera model names to their intrinsic and size parameters
 CAMERA_CONFIGS: Dict[str, Dict[str, Any]] = {
-    "Blackfly S BFS-U3-120S4C": { # Blackfly S BFS-U3-120S4C Model
-        "SIZE": (4000, 3000), # (width, height)
+    "Blackfly S BFS-U3-120S4C": {  # Blackfly S BFS-U3-120S4C Model
+        "SIZE": (4000, 3000),  # (width, height)
         "PIXEL_SIZE_MM": 0.00185,  # 1.85 um per pixel
-        
         # Initial Intrinsic Matrix Guess
-        "imtx_INIT": np.array([
-            [1.54e+04, 0.0e+00, 2e+03],
-            [0.0e+00, 1.54e+04, 1.5e+03],
-            [0.0e+00, 0.0e+00, 1.0e+00]
-        ], dtype=np.float32),
-
+        "imtx_INIT": np.array(
+            [[1.54e04, 0.0e00, 2e03], [0.0e00, 1.54e04, 1.5e03], [0.0e00, 0.0e00, 1.0e00]], dtype=np.float32
+        ),
         # Initial Distortion Coefficients Guess
         "idist_INIT": np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32),
-
         # Calibration Flags (Constraints)
         "FLAGS": (
             cv2.CALIB_USE_INTRINSIC_GUESS
@@ -62,23 +57,18 @@ CAMERA_CONFIGS: Dict[str, Dict[str, Any]] = {
             | cv2.CALIB_FIX_K2
             | cv2.CALIB_FIX_K3
             | cv2.CALIB_FIX_TANGENT_DIST
-        )
+        ),
     },
     # Mock Camera for Testing
     "MockCamera": {
-        "SIZE": (4000, 3000), # (width, height)
+        "SIZE": (4000, 3000),  # (width, height)
         "PIXEL_SIZE_MM": 0.00185,  # 1.85 um per pixel
-        
         # Initial Intrinsic Matrix Guess
-        "imtx_INIT": np.array([
-            [1.54e+04, 0.0e+00, 2e+03],
-            [0.0e+00, 1.54e+04, 1.5e+03],
-            [0.0e+00, 0.0e+00, 1.0e+00]
-        ], dtype=np.float32),
-
+        "imtx_INIT": np.array(
+            [[1.54e04, 0.0e00, 2e03], [0.0e00, 1.54e04, 1.5e03], [0.0e00, 0.0e00, 1.0e00]], dtype=np.float32
+        ),
         # Initial Distortion Coefficients Guess
         "idist_INIT": np.array([[0e00, 0e00, 0e00, 0e00, 0e00]], dtype=np.float32),
-
         # Calibration Flags (Constraints)
         "FLAGS": (
             cv2.CALIB_USE_INTRINSIC_GUESS
@@ -89,6 +79,6 @@ CAMERA_CONFIGS: Dict[str, Dict[str, Any]] = {
             | cv2.CALIB_FIX_K2
             | cv2.CALIB_FIX_K3
             | cv2.CALIB_FIX_TANGENT_DIST
-        )
+        ),
     },
 }

@@ -11,13 +11,15 @@ class YOLOClient:
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
         self.name = name
-        self.fps = config.get('fps', 5)
-        self.dim = config.get('yolo', {}).get('img_dim', [640, 640])
+        self.fps = config.get("fps", 5)
+        self.dim = config.get("yolo", {}).get("img_dim", [640, 640])
         self.current_time = None
-        
+
         # Create YOLO segmentator, passing the detection callback
-        yolo_config = config.get('yolo', {})
-        self.yolo_worker = YoloSegmentation(name, yolo_config, detection_callback=detection_callback, finished_callback=finished_callback)
+        yolo_config = config.get("yolo", {})
+        self.yolo_worker = YoloSegmentation(
+            name, yolo_config, detection_callback=detection_callback, finished_callback=finished_callback
+        )
 
     def start_client(self):
         """Start the YOLO processing worker"""
@@ -28,15 +30,15 @@ class YOLOClient:
         except Exception as e:
             self.logger.error(f"Error starting Simple YOLO client: {e}")
             return False
-        
+
     def newframe_captured(self, frame: np.ndarray, current: float = None):
         """Put new frame at the specified FPS rate"""
         # Rate limit the frames sent to the YOLO worker
-        if self.current_time is None or current - self.current_time > (1/self.fps):
+        if self.current_time is None or current - self.current_time > (1 / self.fps):
             frame_resized, crop_info = preprocessing(frame, target_size=self.dim)
-            self.yolo_worker.process_frame(frame_resized, crop_info, ts=current) # Reisized to 640x640
+            self.yolo_worker.process_frame(frame_resized, crop_info, ts=current)  # Reisized to 640x640
         self.current_time = current
-            
+
     def stop(self):
         """Stop the YOLO worker"""
         if self.yolo_worker:

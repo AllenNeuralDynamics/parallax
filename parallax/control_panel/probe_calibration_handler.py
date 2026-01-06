@@ -1,4 +1,5 @@
 """Probe Calibration Handler"""
+
 import logging
 import os
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ class StageCalibrationInfo:
     """
     Holds the probe calibration information.
     """
+
     detection_status: str = "default"  # options: default, process, accepted
     transM: Optional[np.ndarray] = None
     transM_bregma: Optional[dict] = None
@@ -54,22 +56,23 @@ class StageCalibrationInfo:
 
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
+
     def __init__(
-            self,
-            model,
-            screen_widgets,
-            filter,
-            reticle_selector,
-            actionTrajectory: QAction = None,
-            actionCalculator: QAction = None,
-            actionReticlesMetadata: QAction = None,
-            transform_info_handler: QWidget = None
-        ):
+        self,
+        model,
+        screen_widgets,
+        filter,
+        reticle_selector,
+        actionTrajectory: QAction = None,
+        actionCalculator: QAction = None,
+        actionReticlesMetadata: QAction = None,
+        transform_info_handler: QWidget = None,
+    ):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
         self.filter = filter
-        self.reticle_selector_comboBox = reticle_selector    # Combobox for reticle selector
+        self.reticle_selector_comboBox = reticle_selector  # Combobox for reticle selector
         self.actionTrajectory = actionTrajectory
         self.actionCalculator = actionCalculator
         self.actionReticlesMetadata = actionReticlesMetadata
@@ -82,7 +85,7 @@ class ProbeCalibrationHandler(QWidget):
         self.camA_params, self.camB_params = None, None
 
         # Probe Widget for the currently selected stage
-        self.probe_detection_status = "default"    # options: default, process, accepted
+        self.probe_detection_status = "default"  # options: default, process, accepted
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.transM, self.L2_err, self.dist_travel = None, None, None
         self.moving_stage_id = None
@@ -92,7 +95,7 @@ class ProbeCalibrationHandler(QWidget):
         self.update_spin_inputs = False
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
-        #self.setMinimumSize(0, 420)
+        # self.setMinimumSize(0, 420)
         self.setMinimumSize(0, 100)
 
         # Access probe_calibration_btn
@@ -123,12 +126,10 @@ class ProbeCalibrationHandler(QWidget):
     def init_stages(self, stageListener, stageUI):
         """Initializes the probe calibration handler with stage listener and UI."""
         self.probe_calibration_btn.setEnabled(False)
-        self.probe_calibration_btn.clicked.connect(
-            self.probe_detection_button_handler
-        )
+        self.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
 
         self.stageListener = stageListener
-        #self.stageListener.init_probe_calib_label(self.probeCalibrationLabel)  # TODO
+        # self.stageListener.init_probe_calib_label(self.probeCalibrationLabel)  # TODO
         self.stageUI = stageUI
         self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.probeCalibration = ProbeCalibration(self.model, self.stageListener)
@@ -141,12 +142,8 @@ class ProbeCalibrationHandler(QWidget):
         self.actionTrajectory.setEnabled(False)
         self.transform_info_handler.setVisible(False)
 
-        self.probeCalibration.calib_complete.connect(
-            self.probe_detect_accepted_status
-        )
-        self.probeCalibration.transM_info.connect(
-            self.update_probe_calib_status
-        )
+        self.probeCalibration.calib_complete.connect(self.probe_detect_accepted_status)
+        self.probeCalibration.transM_info.connect(self.update_probe_calib_status)
 
         # Calculator Button
         self.calculation_btn.hide()
@@ -165,7 +162,7 @@ class ProbeCalibrationHandler(QWidget):
         Applies the current probe calibration status to the UI and model.
         This method updates the probe calibration button style and visibility based on the current status.
         """
-        # Get status of selected stage on ui and apply the appropriate style 
+        # Get status of selected stage on ui and apply the appropriate style
         if self.model.is_calibrated(self.selected_stage_id):
             self.transMbs = self.model.get_transM_bregma(self.selected_stage_id)
             self.arc_angle_global = self.model.get_arc_angle_global(self.selected_stage_id)
@@ -174,10 +171,10 @@ class ProbeCalibrationHandler(QWidget):
                 self.selected_stage_id,
                 self.model.get_transform(self.selected_stage_id),
                 self.model.get_L2_err(self.selected_stage_id),
-                self.model.get_L2_travel(self.selected_stage_id)
+                self.model.get_L2_travel(self.selected_stage_id),
             )
             self.probe_detect_accepted_status(switch_probe=True)
-        
+
     def reticle_detection_status_change(self):
         """Updates the reticle detection status and performs actions based on the new status."""
         if self.model.reticle_detection_status == "default":
@@ -188,18 +185,18 @@ class ProbeCalibrationHandler(QWidget):
     def enable_probe_calibration_btn(self):
         """
         Enables the probe calibration button and sets its style to indicate that it is active.
-        """ 
+        """
         if not self.probe_calibration_btn.isEnabled():
             self.probe_calibration_btn.setEnabled(True)
 
     def _get_lowest_shank_index(self, global_coords):
         """
-        Compares only the first and last coordinates and returns 
+        Compares only the first and last coordinates and returns
         the index of the one with the lowest Z value.
         """
         if global_coords is None or len(global_coords) == 0:
             return None
-        
+
         # Compare Z (index 2) of the first and last points
         z_first = global_coords[0, 2]
         z_last = global_coords[-1, 2]
@@ -209,7 +206,6 @@ class ProbeCalibrationHandler(QWidget):
         else:
             # Return the explicit last index (not -1) so slicing [idx:idx+1] works
             return len(global_coords) - 1
-        
 
     def _get_lowest_shank_index(self, global_coords, tolerance=0.05):
         """
@@ -220,7 +216,7 @@ class ProbeCalibrationHandler(QWidget):
         """
         if global_coords is None or len(global_coords) == 0:
             return None
-        
+
         # Check if first and last are "almost same"
         z_first = global_coords[0, 2]
         z_last = global_coords[-1, 2]
@@ -233,11 +229,11 @@ class ProbeCalibrationHandler(QWidget):
         last_idx = len(global_coords) - 1
 
         # Enforce that the lowest point must be an endpoint (0 or last)
-        # If the lowest point is in the middle (e.g., index 1 in a set of 3), 
+        # If the lowest point is in the middle (e.g., index 1 in a set of 3),
         # we treat it as noise and default to 0.
         if lowest_idx != 0 and lowest_idx != last_idx:
             return 0
-            
+
         return lowest_idx
 
     @pyqtSlot(str)
@@ -249,10 +245,18 @@ class ProbeCalibrationHandler(QWidget):
             if cam == self.camB_best:
                 stage_ts_B, img_ts_B, sn_B, stage_B, tip_B, base_B = screen.get_last_detect_probe_info()
 
-        if (sn_A is None) or (tip_A is None) or (img_ts_A is None) or (stage_ts_A is None) or \
-            (sn_B is None) or (tip_B is None) or (img_ts_B is None) or (stage_ts_B is None):
+        if (
+            (sn_A is None)
+            or (tip_A is None)
+            or (img_ts_A is None)
+            or (stage_ts_A is None)
+            or (sn_B is None)
+            or (tip_B is None)
+            or (img_ts_B is None)
+            or (stage_ts_B is None)
+        ):
             return
-        if sn_A != sn_B: 
+        if sn_A != sn_B:
             return
         if stage_ts_A != stage_ts_B:
             return
@@ -269,19 +273,25 @@ class ProbeCalibrationHandler(QWidget):
             # Check normal, then reversed if needed
             if is_sane_4shanks(coords):
                 global_coords_4shanks = coords
-            elif is_sane_4shanks(coords_rev := triangulate(ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params)):
+            elif is_sane_4shanks(
+                coords_rev := triangulate(
+                    ptsA=tip_A, ptsB=tip_B[::-1], paramsA=self.camA_params, paramsB=self.camB_params
+                )
+            ):
                 global_coords_4shanks = coords_rev
                 tip_B = tip_B[::-1]  # Update the actual variable used later
 
             # If successful, identify the lowest shank index for filtering
             if global_coords_4shanks is not None:
                 logger.debug(f"global coords: {global_coords_4shanks}")
-                idx = self._get_lowest_shank_index(global_coords_4shanks)  # TODO handle the parallel to the reticle surface
+                idx = self._get_lowest_shank_index(
+                    global_coords_4shanks
+                )  # TODO handle the parallel to the reticle surface
                 if idx is not None:
                     # Update the main variables to ensure consistency
-                    global_coords = global_coords_4shanks[idx:idx+1]
-                    tip_A = tip_A[idx:idx+1]
-                    tip_B = tip_B[idx:idx+1]
+                    global_coords = global_coords_4shanks[idx : idx + 1]
+                    tip_A = tip_A[idx : idx + 1]
+                    tip_B = tip_B[idx : idx + 1]
                     logger.debug(f" Lowest shank index: {idx}")
 
                 # Spin
@@ -306,7 +316,9 @@ class ProbeCalibrationHandler(QWidget):
             self.camB_best,
             tip_B,
         )
-        logger.debug(f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")
+        logger.debug(
+            f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}"
+        )
 
     def _get_spin_angle(self, global_pts: np.ndarray) -> Optional[float]:
         # sort by global z coords (ascending)
@@ -359,7 +371,7 @@ class ProbeCalibrationHandler(QWidget):
         Returns:
             bool: True if the user confirms the overwrite, False otherwise.
         """
-        message = ("Are you sure you want to overwrite the current probe position?")
+        message = "Are you sure you want to overwrite the current probe position?"
         response = QMessageBox.warning(
             self,
             "Probe Detection",
@@ -387,7 +399,9 @@ class ProbeCalibrationHandler(QWidget):
             camera_name = screen.get_camera_name()
             if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                 if screen.probeDetector.opencvProcessWorker is not None or screen.probeDetector.worker is not None:
-                    print(f" Probe calibration thread is running for camera: {camera_name}, processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}")
+                    print(
+                        f" Probe calibration thread is running for camera: {camera_name}, processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}"
+                    )
                     return False
         return True
 
@@ -429,7 +443,8 @@ class ProbeCalibrationHandler(QWidget):
         Args:
             sn (str, optional): The serial number of the stage to reset. If None, resets all stages.
         """
-        self.probe_calibration_btn.setStyleSheet("""
+        self.probe_calibration_btn.setStyleSheet(
+            """
             QPushButton {
                 color: white;
                 background-color: black;
@@ -437,7 +452,8 @@ class ProbeCalibrationHandler(QWidget):
             QPushButton:hover {
                 background-color: #641e1e;
             }
-        """)
+        """
+        )
         self.hide_x_y_z()
         self.hide_trajectory_btn()
         self.hide_calculation_btn()
@@ -506,10 +522,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         self.probe_detection_status = "process"
-        self.probe_calibration_btn.setStyleSheet(
-            "color: white;"
-            "background-color: #bc9e44;"
-        )
+        self.probe_calibration_btn.setStyleSheet("color: white;" "background-color: #bc9e44;")
         if not self.probe_calibration_btn.isChecked():
             self.probe_calibration_btn.setChecked(True)
 
@@ -578,9 +591,9 @@ class ProbeCalibrationHandler(QWidget):
         for reticle_name, transMb in self.transMbs.items():
             self.arc_angle_bregma[reticle_name] = get_rx_ry(transMb)  # {"rx":..., "ry":...} | None
             if self.arc_angle_global.get("rz", None) is not None:
-                self.arc_angle_bregma[reticle_name]['rz'] = get_spin_bregma(
+                self.arc_angle_bregma[reticle_name]["rz"] = get_spin_bregma(
                     spin_global=self.arc_angle_global["rz"],
-                    reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0)
+                    reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0),
                 )
 
     def update_stage_info_to_model(self, stage_id) -> None:
@@ -647,10 +660,7 @@ class ProbeCalibrationHandler(QWidget):
         self.update_stage_info_to_model(self.selected_stage_id)
         self.model.set_calibration_status(self.selected_stage_id, True)
 
-        self.probe_calibration_btn.setStyleSheet(
-            "color: white;"
-            "background-color: #84c083;"
-        )
+        self.probe_calibration_btn.setStyleSheet("color: white;" "background-color: #84c083;")
         if not self.probe_calibration_btn.isChecked():
             self.probe_calibration_btn.setChecked(True)
 
@@ -670,7 +680,7 @@ class ProbeCalibrationHandler(QWidget):
 
             self.filter = "no_filter"
             logger.debug(f"filter: {self.filter}")
-        
+
         if self.transM is not None:
             self.transform_info_handler.display(self.selected_stage_id)
 
@@ -759,7 +769,7 @@ class ProbeCalibrationHandler(QWidget):
         self.moving_stage_id = moving_stage_id
 
         if self.moving_stage_id == self.selected_stage_id:
-            self.update_stage_info_to_model(self.selected_stage_id) # Update model info during 'process' status
+            self.update_stage_info_to_model(self.selected_stage_id)  # Update model info during 'process' status
 
             # Update UIs
             self.transform_info_handler.display(self.selected_stage_id)
@@ -829,10 +839,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Change the button to green.
-        self.calib_x.setStyleSheet(
-            "color: white;"
-            "background-color: #84c083;"
-        )
+        self.calib_x.setStyleSheet("color: white;" "background-color: #84c083;")
         self.calib_status_x = True
 
     def calib_y_complete(self, switch_probe=False):
@@ -843,10 +850,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Change the button to green.
-        self.calib_y.setStyleSheet(
-            "color: white;"
-            "background-color: #84c083;"
-        )
+        self.calib_y.setStyleSheet("color: white;" "background-color: #84c083;")
         self.calib_status_y = True
 
     def calib_z_complete(self, switch_probe=False):
@@ -857,10 +861,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Change the button to green.
-        self.calib_z.setStyleSheet(
-            "color: white;"
-            "background-color: #84c083;"
-        )
+        self.calib_z.setStyleSheet("color: white;" "background-color: #84c083;")
         self.calib_status_z = True
 
     def view_trajectory_button_handler(self):
@@ -896,19 +897,10 @@ class ProbeCalibrationHandler(QWidget):
         of the calibration buttons (X, Y, Z), indicating that they are ready for the next
         calibration process.
         """
-        self.calib_x.setStyleSheet(
-            "color: white;"
-            "background-color: black;"
-        )
-        self.calib_y.setStyleSheet(
-            "color: white;"
-            "background-color: black;"
-        )
+        self.calib_x.setStyleSheet("color: white;" "background-color: black;")
+        self.calib_y.setStyleSheet("color: white;" "background-color: black;")
 
-        self.calib_z.setStyleSheet(
-            "color: white;"
-            "background-color: black;"
-        )
+        self.calib_z.setStyleSheet("color: white;" "background-color: black;")
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibrationInfo):

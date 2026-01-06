@@ -10,12 +10,14 @@ from parallax.stages.stage_controller import StageController
 
 # ---------- Fixtures ----------
 
+
 @pytest.fixture()
 def mock_model():
     """Minimal model with the stage listener URL."""
     m = Mock()
     m.stage_listener_url = "http://localhost:8080/"
     return m
+
 
 @pytest.fixture()
 def stage_controller(mock_model, qapp):
@@ -25,7 +27,9 @@ def stage_controller(mock_model, qapp):
     """
     return StageController(mock_model)
 
+
 # ---------- Helpers for mocking requests ----------
+
 
 class _MockResp:
     def __init__(self, payload: Dict):
@@ -38,16 +42,16 @@ class _MockResp:
     def json(self):
         return self._payload
 
+
 def _make_status(probes=1, serial="SN123", x=1.0, y=2.0, z=10.0):
     return {
         "Probes": probes,
-        "ProbeArray": [
-            {"SerialNumber": serial, "Stage_X": x, "Stage_Y": y, "Stage_Z": z}
-            for _ in range(probes)
-        ]
+        "ProbeArray": [{"SerialNumber": serial, "Stage_X": x, "Stage_Y": y, "Stage_Z": z} for _ in range(probes)],
     }
 
+
 # ---------- Tests ----------
+
 
 def test_get_probe_index_uses_status_mapping(stage_controller, monkeypatch):
     """_get_probe_index should map serial -> index using /status JSON."""
@@ -65,6 +69,7 @@ def test_get_probe_index_uses_status_mapping(stage_controller, monkeypatch):
     assert stage_controller._get_probe_index("SN_B") == 1
     assert stage_controller._get_probe_index("UNKNOWN") is None
 
+
 def test_moveXYZ_world_global_converts_and_sets_z(stage_controller, monkeypatch):
     """
     moveXYZ with world='global' should call CoordsConverter.global_to_local (µm),
@@ -76,22 +81,28 @@ def test_moveXYZ_world_global_converts_and_sets_z(stage_controller, monkeypatch)
     # Mock status so we can resolve probe index
     def fake_get(url):
         return _MockResp(_make_status(serial="SN_G", z=12.0))
+
     monkeypatch.setattr("requests.get", fake_get)
 
     sent_puts: List[Dict] = []
+
     def fake_put(url, data=None, headers=None):
         sent_puts.append(json.loads(data))
-        class _P: pass
+
+        class _P:
+            pass
+
         return _P()
+
     monkeypatch.setattr("requests.put", fake_put)
 
     cmd = {
         "move_type": "moveXYZ",
         "stage_sn": "SN_G",
-        "x": 10.0,   # mm (global)
-        "y": 5.0,    # mm
-        "z": 2.0,    # mm
-        "world": "global"
+        "x": 10.0,  # mm (global)
+        "y": 5.0,  # mm
+        "z": 2.0,  # mm
+        "world": "global",
     }
     stage_controller.request(cmd)
 
@@ -99,25 +110,31 @@ def test_moveXYZ_world_global_converts_and_sets_z(stage_controller, monkeypatch)
     sent = sent_puts[0]
     assert sent["PutId"] == "ProbeMotion"
     assert sent["Probe"] == 0
-    
+
     # Since we used np.eye(4), Local == Global.
     # Check 15.0 - z (15.0 - 2.0 = 13.0)
     assert sent["X"] == pytest.approx(10.0)
     assert sent["Y"] == pytest.approx(5.0)
     assert sent["Z"] == pytest.approx(15.0 - 2.0)
-    
+
     # AxisMask for XYZ = 1|2|4 = 7
     assert sent["AxisMask"] == 7
 
+
 def test_stopAll_sends_stop_for_each_probe(stage_controller, monkeypatch):
     """stopAll should enumerate probes from status and send a stop command per probe."""
+
     def fake_get(url):
         return _MockResp(_make_status(probes=3, serial="SNX"))
 
     sent_puts: List[Dict] = []
+
     def fake_put(url, data=None, headers=None):
         sent_puts.append(json.loads(data))
-        class _P: pass
+
+        class _P:
+            pass
+
         return _P()
 
     monkeypatch.setattr("requests.get", fake_get)
@@ -131,14 +148,21 @@ def test_stopAll_sends_stop_for_each_probe(stage_controller, monkeypatch):
         assert payload["PutId"] == "ProbeStop"
         assert payload["Probe"] == i
 
+
 def test_stepmode_updates_probe_and_mode(stage_controller, monkeypatch):
     """stepMode should address the resolved probe and send StepMode."""
+
     def fake_get(url):
         return _MockResp(_make_status(probes=2, serial="SN_A"))  # index 0 found
+
     sent_puts: List[Dict] = []
+
     def fake_put(url, data=None, headers=None):
         sent_puts.append(json.loads(data))
-        class _P: pass
+
+        class _P:
+            pass
+
         return _P()
 
     monkeypatch.setattr("requests.get", fake_get)
@@ -156,9 +180,12 @@ def test_stepmode_updates_probe_and_mode(stage_controller, monkeypatch):
 def test_stop_sends_single_stop(stage_controller, monkeypatch):
     def fake_get(url):
         return _MockResp(_make_status(probes=3, serial="SNX"))
+
     sent_puts: List[Dict] = []
+
     def fake_put(url, data=None, headers=None):
-        sent_puts.append(json.loads(data));  return object()
+        sent_puts.append(json.loads(data))
+        return object()
 
     monkeypatch.setattr("requests.get", fake_get)
     monkeypatch.setattr("requests.put", fake_put)
@@ -173,7 +200,8 @@ def test_moveXY0_times_out_when_z_never_reaches_target(stage_controller, monkeyp
     sent_puts: List[Dict] = []
 
     def fake_put(url, data=None, headers=None):
-        sent_puts.append(json.loads(data));  return object()
+        sent_puts.append(json.loads(data))
+        return object()
 
     # Always return Z far from target so it never “arrives”
     def fake_get(url):

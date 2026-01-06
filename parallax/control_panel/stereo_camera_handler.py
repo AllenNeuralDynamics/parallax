@@ -1,4 +1,5 @@
 """Stereo Camera Handler Module"""
+
 import logging
 import math
 
@@ -13,6 +14,7 @@ logger.setLevel(logging.WARNING)
 # parallax/stage_widget/stereo_calibrator.py
 class StereoCameraHandler:
     """Handles stereo camera calibration by performing calibration between pairs of cameras"""
+
     def __init__(self, model):
         """Initializes the StereoCameraHandler with a model and screen widgets."""
         self.model = model
@@ -38,10 +40,7 @@ class StereoCameraHandler:
         Returns:
             float or None: The reprojection error from the calibration, or None if calibration could not be performed.
         """
-        valid_cams = [
-            sn for sn, cam in self.model.cameras.items()
-            if cam.get('coords_axis') is not None
-        ]
+        valid_cams = [sn for sn, cam in self.model.cameras.items() if cam.get("coords_axis") is not None]
         if len(valid_cams) < 2:
             return None
 
@@ -118,7 +117,7 @@ class StereoCameraHandler:
             for j in range(i + 1, len(cam_names)):
                 camA, camB = cam_names[i], cam_names[j]
                 if camA == camB:
-                    continue    # Skip if the cameras are the same
+                    continue  # Skip if the cameras are the same
                 coordsA, coordsB = img_coords[i], img_coords[j]
                 paramsA, paramsB = params[i], params[j]
 

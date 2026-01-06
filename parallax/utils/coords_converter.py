@@ -27,16 +27,19 @@ import parallax.utils.rotations as rotations
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
     R = transM[:3, :3]
     t = transM[:3, 3]
     return rotations.apply_affine(pts=global_pts, affine_R=R, translation=t)
 
+
 def apply_inverse_rigid_transform(transM: np.ndarray, local_pts: np.ndarray) -> np.ndarray:
     assert transM.shape == (4, 4), "transM must be 4x4"
     R = transM[:3, :3]
-    t = transM[:3, 3]    # t should be column vector
+    t = transM[:3, 3]  # t should be column vector
     return rotations.apply_inverse_affine(pts=local_pts, affine_R=R, translation=t)
+
 
 def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
@@ -82,6 +85,7 @@ def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
         global_pts = apply_reticle_adjustments(model, global_pts, reticle)
     return np.round(global_pts, 1)
 
+
 def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
     Convert global (1x3 row) -> local (1x3 row) using the stage's transform.
@@ -126,6 +130,7 @@ def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[st
     print("local_row:", local_row)
     return np.round(local_row, 1)
 
+
 def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: str) -> np.ndarray:
     """
     Apply the INVERSE of a reticle's rotation/offset to a GLOBAL point.
@@ -162,16 +167,10 @@ def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: st
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return np.array([bregma_pts[0], bregma_pts[1], bregma_pts[2]])
     Rm = md.get("rotmat", np.eye(3))
-    tm = np.array([
-        md.get("offset_x", 0.0),
-        md.get("offset_y", 0.0),
-        md.get("offset_z", 0.0)
-    ], dtype=float)
+    tm = np.array([md.get("offset_x", 0.0), md.get("offset_y", 0.0), md.get("offset_z", 0.0)], dtype=float)
 
     global_row = rotations.apply_inverse_affine(  # TODO: Use this library function
-        pts=bregma_pts, 
-        affine_R=Rm, 
-        translation=tm
+        pts=bregma_pts, affine_R=Rm, translation=tm
     )
     return np.array(global_row)
 
@@ -206,24 +205,17 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
         return np.array([global_pts[0], global_pts[1], global_pts[2]])
     reticle_rot = md.get("rot", 0)  # scalar degrees flag used by caller's convention
     Rm = md.get("rotmat", np.eye(3))
-    tm = np.array([
-        md.get("offset_x", 0.0),
-        md.get("offset_y", 0.0),
-        md.get("offset_z", 0.0)
-    ], dtype=float)
+    tm = np.array([md.get("offset_x", 0.0), md.get("offset_y", 0.0), md.get("offset_z", 0.0)], dtype=float)
 
     try:
         # bregma = R @ global + t (column form)
-        bregma_pts = rotations.apply_affine(
-            pts=global_pts,
-            affine_R=Rm,
-            translation=tm
-        )
+        bregma_pts = rotations.apply_affine(pts=global_pts, affine_R=Rm, translation=tm)
     except Exception as e:
         logger.error(f"Error applying affine reticle transformation: {e}")
         return None
 
     return np.round(bregma_pts, 1)
+
 
 def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
     """
@@ -254,21 +246,15 @@ def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
         logger.warning(f"Warning: No metadata found for reticle. Returning original points.")
         return None
     Rm = md.get("rotmat", np.eye(3))
-    tm = np.array([
-        md.get("offset_x", 0.0),
-        md.get("offset_y", 0.0),
-        md.get("offset_z", 0.0)
-    ], dtype=float)
+    tm = np.array([md.get("offset_x", 0.0), md.get("offset_y", 0.0), md.get("offset_z", 0.0)], dtype=float)
 
     R = transM[:3, :3]  # TODO
-    t = transM[:3, 3]    # (3,)
+    t = transM[:3, 3]  # (3,)
     Rb = R @ Rm.T
     tb = t - (Rb @ tm)
-    Tb = rotations.make_homogeneous_transform(
-        R=Rb,
-        translation=tb
-    )
+    Tb = rotations.make_homogeneous_transform(R=Rb, translation=tb)
     return Tb
+
 
 def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
     """
@@ -280,7 +266,7 @@ def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
         Keys are reticle names, values are 4x4 matrices as nested lists
         (JSON-serializable). None if the stage/transform is unavailable.
     """
-    if transM is None or transM.shape != (4,4):
+    if transM is None or transM.shape != (4, 4):
         print("Invalid transformation matrix.")
         return None
     if reticle_metadatas is None or len(reticle_metadatas) == 0:
@@ -294,6 +280,7 @@ def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
             bregma_to_local_transMs[reticle_name] = np.asarray(Tb, dtype=float).tolist()
             print("Computed Tb for reticle:", reticle_name)
     return bregma_to_local_transMs
+
 
 def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str] = None) -> Optional[np.ndarray]:
     """
@@ -328,7 +315,7 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
         Tb = transMbs
 
     Tb = np.asarray(Tb, dtype=float)
-    if Tb.shape != (4,4):
+    if Tb.shape != (4, 4):
         logger.warning(f"transMb must be 4x4, got {Tb.shape}.")
         return None
 
@@ -336,6 +323,7 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
     bregma_pts = apply_inverse_rigid_transform(Tb, local_pts)
 
     return np.round(bregma_pts, 1)
+
 
 def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
     """
@@ -353,6 +341,7 @@ def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
     print(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
 
     return QW, QX, QY, QZ, TX, TY, TZ
+
 
 def get_rvec_and_tvec(quat, tvecs):
     """

@@ -31,6 +31,7 @@ def stage_listener():
     """
     Fixture for creating a mock stage listener.
     """
+
     class MockStageListener(QObject):
         # We won't emit in this test, so signature doesn't matter.
         probeCalibRequest = pyqtSignal()
@@ -55,9 +56,11 @@ def test_probe_calibration_update(probe_calibration, sample_csv_file, monkeypatc
             f.write("a,b,c\n1,2,3\n4,5,6\n")
 
     calls = []
+
     def fake_update(self, row):
         calls.append(tuple(row.values))
         return None
+
     monkeypatch.setattr(ProbeCalibration, "update", fake_update, raising=True)
 
     df = pd.read_csv(sample_csv_file)

@@ -16,18 +16,19 @@ class UtilsCoords:
 
     All methods are implemented as static methods, since no instance or class state is required.
     """
+
     @staticmethod
     def scale_coords_to_original(
         coords: Union[List[Tuple[int, int]], List[List[int]]],  # Accepts [(x, y),(x,y)] or [[x, y],[x,y]]
         original_size: Tuple[int, int],  # Original image dimensions (width, height)
-        resized_size: Tuple[int, int]   # Resized image dimensions (width, height)
+        resized_size: Tuple[int, int],  # Resized image dimensions (width, height)
     ) -> List[List[int]]:
         """
-        Scale coordinates (single or multiple points) from a resized image 
+        Scale coordinates (single or multiple points) from a resized image
         back to the original image dimensions.
 
         Args:
-            coords (List[List[int]]): A list of coordinates: 
+            coords (List[List[int]]): A list of coordinates:
                                        - [[x1, y1], [x2, y2], ...] for multiple points (keypoints).
                                        - [x, y] for a single point.
             original_size (Tuple[int, int]): The (width, height) of the original image.
@@ -57,9 +58,7 @@ class UtilsCoords:
 
     @staticmethod
     def scale_coords_to_resized_img(
-        tip: Tuple[int, int],
-        original_size: Tuple[int, int],
-        resized_size: Tuple[int, int]
+        tip: Tuple[int, int], original_size: Tuple[int, int], resized_size: Tuple[int, int]
     ) -> Tuple[int, int]:
         """
         Scale coordinates from the original image to a resized image.
@@ -94,10 +93,7 @@ class UtilsCrops:
 
     @staticmethod
     def calculate_crop_region(
-        tip: Tuple[int, int],
-        base: Tuple[int, int],
-        crop_size: int,
-        IMG_SIZE: Tuple[int, int]
+        tip: Tuple[int, int], base: Tuple[int, int], crop_size: int, IMG_SIZE: Tuple[int, int]
     ) -> Tuple[int, int, int, int]:
         """
         Calculate the crop region based on tip and base coordinates.
@@ -121,12 +117,7 @@ class UtilsCrops:
 
     @staticmethod
     def is_point_on_crop_region(
-        point: Tuple[int, int],
-        top: int,
-        bottom: int,
-        left: int,
-        right: int,
-        buffer: int = 5
+        point: Tuple[int, int], top: int, bottom: int, left: int, right: int, buffer: int = 5
     ) -> bool:
         """
         Check if a point is on or near the crop region boundary.

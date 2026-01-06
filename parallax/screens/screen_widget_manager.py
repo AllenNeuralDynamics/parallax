@@ -47,7 +47,7 @@ class ScreenWidgetManager(QObject):
         self.model.refresh_camera = True
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get('visible', False):
+            if self.model.cameras.get(sn, {}).get("visible", False):
                 screen.start_acquisition_camera()
                 logger.debug("Camera acquisition started for:", sn)
 
@@ -62,7 +62,7 @@ class ScreenWidgetManager(QObject):
 
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get('visible', False):
+            if self.model.cameras.get(sn, {}).get("visible", False):
                 screen.stop_acquisition_camera()
                 logger.debug("Camera acquisition stopped for:", sn)
 
@@ -79,9 +79,9 @@ class ScreenWidgetManager(QObject):
                 logger.error("Unexpected error retrieving SN: %s", str(e))
                 continue
 
-            if sn and self.model.cameras.get(sn, {}).get('visible', False):
-                screen.refresh() # This is the slow part
-                
+            if sn and self.model.cameras.get(sn, {}).get("visible", False):
+                screen.refresh()  # This is the slow part
+
     def _toggle_streaming(self, on: bool, sn: str):
         """Start or stop streaming for a specific camera based on visibility toggle."""
         camera_data = self.model.cameras.get(sn, None)
@@ -114,7 +114,7 @@ class ScreenWidgetManager(QObject):
         layout = QVBoxLayout(group_box)
 
         sn = list(self.model.cameras.keys())[screen_index]
-        camera = self.model.cameras[sn]['obj']
+        camera = self.model.cameras[sn]["obj"]
 
         # Screen
         screen = ScreenWidget(camera, model=self.model, parent=group_box)

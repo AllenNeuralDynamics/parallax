@@ -22,8 +22,10 @@ logger.setLevel(logging.WARNING)
 
 class DrawWorkerSignal(QObject):
     """Signals for the DrawWorker."""
+
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
+
 
 class DrawWorker(QRunnable):
     """
@@ -31,7 +33,9 @@ class DrawWorker(QRunnable):
     image processing, probe detection, and reticle detection, and communicates results
     through PyQt signals.
     """
+
     OVERLAY_COLOR_BGR = (0, 255, 255)
+
     def __init__(self, name, reticle_coords=None, reticle_coords_debug=None):
         """
         Initialize the Worker object with camera and model data.
@@ -40,7 +44,7 @@ class DrawWorker(QRunnable):
             model (object): The main model containing stage and camera data.
         """
         super().__init__()
-        self.signals = (DrawWorkerSignal())
+        self.signals = DrawWorkerSignal()
         self.name = name
         self.reticle_coords = reticle_coords
         self.reticle_coords_debug = reticle_coords_debug
@@ -95,7 +99,7 @@ class DrawWorker(QRunnable):
         if not self.yolo_detections:
             return
         # Cache reference to frame to avoid self lookup in loop
-        frame = self.frame 
+        frame = self.frame
         # Pre-calculate lengths to avoid len() calls in loop
         len_cool = len(self.palette_cool)
         len_warm = len(self.palette_warm)
@@ -103,9 +107,9 @@ class DrawWorker(QRunnable):
 
         for i, detection in enumerate(self.yolo_detections):
             # --- Fast Data Extraction ---
-            track_id = detection.get('id')
-            class_name = detection.get('class_name', '')
-            
+            track_id = detection.get("id")
+            class_name = detection.get("class_name", "")
+
             # --- 1. Color Selection (Branchless-ish) ---
             # Use tracked ID if available, else use index
             if track_id == "manual_click":
@@ -114,7 +118,7 @@ class DrawWorker(QRunnable):
                 idx = int(track_id) if track_id is not None else i
                 id_text = f"ID:{track_id}" if track_id is not None else "ID:?"
 
-            if '4shanks' in class_name:
+            if "4shanks" in class_name:
                 color = self.palette_warm[idx % len_warm]
             else:
                 color = self.palette_cool[idx % len_cool]
@@ -127,35 +131,35 @@ class DrawWorker(QRunnable):
                     # Assuming mask_orig is already a numpy array from upstream
                     if mask_orig.ndim == 2:
                         mask_orig = mask_orig.reshape((-1, 1, 2))
-                    
+
                     cv2.polylines(frame, [mask_orig], isClosed=True, color=color, thickness=2)
                 except Exception:
-                    pass # Skip bad masks instantly to maintain FPS
+                    pass  # Skip bad masks instantly to maintain FPS
 
             # --- 3. Keypoints & Labels (Optimized Slicing) ---
-            keypoints = detection.get("keypoints_orig") # Expecting flat list [x, y, c, x, y, c...]
-            
+            keypoints = detection.get("keypoints_orig")  # Expecting flat list [x, y, c, x, y, c...]
+
             if keypoints:
                 xs = keypoints[0::3]
                 ys = keypoints[1::3]
-                
+
                 # Draw all circles
                 for j, (x, y) in enumerate(zip(xs, ys)):
                     kp_color = self.palette_tips[j % len_tips]
                     cv2.circle(frame, (int(x), int(y)), 3, kp_color, -1)
 
                 # --- 4. Draw Label (At min X, min Y) ---
-                if xs and ys and detection.get('confidence') is not None:
+                if xs and ys and detection.get("confidence") is not None:
                     lx, ly = int(min(xs)), int(min(ys))
                     label = f"{id_text} {class_name} {detection['confidence']:.2f}"
                     text_x, text_y = lx, max(20, ly - 20)
-                    
+
                     # Shadow (Thicker black line behind)
-                    cv2.putText(frame, label, (text_x + 1, text_y + 1),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2, cv2.LINE_AA)
+                    cv2.putText(
+                        frame, label, (text_x + 1, text_y + 1), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 2, cv2.LINE_AA
+                    )
                     # Foreground Text
-                    cv2.putText(frame, label, (text_x, text_y),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
+                    cv2.putText(frame, label, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
 
     def register_colormap(self):
         """
@@ -164,7 +168,8 @@ class DrawWorker(QRunnable):
         if self.reticle_coords is not None and len(self.reticle_coords) > 0:
             for idx, coords in enumerate(self.reticle_coords):
                 n = len(coords)
-                if n == 0: continue
+                if n == 0:
+                    continue
                 indices = np.linspace(0, 255, n, endpoint=True, dtype=np.uint8)
                 cmap_code = cv2.COLORMAP_JET if idx == 0 else cv2.COLORMAP_WINTER
                 colored = cv2.applyColorMap(indices, cmap_code)
@@ -186,7 +191,7 @@ class DrawWorker(QRunnable):
             if self.new:
                 self._draw_reticle()
                 self._draw_coords()
-                #self._draw_detection_status()
+                # self._draw_detection_status()
                 self._draw_yolo_detection()
                 self.signals.frame_processed.emit(self.frame)
                 self.new = False
@@ -227,15 +232,15 @@ class DrawWorker(QRunnable):
         - Yellow border if status is "update"
         """
         if self.status == "update":
-            return # Skip drawing border for "update" status
+            return  # Skip drawing border for "update" status
 
         if self.h is None or self.w is None:
             self.h, self.w = self.frame.shape[:2]
 
         # Draw just top + bottom + left + right lines instead of a full thick rectangle
-        cv2.line(self.frame, (0, 0), (self.w - 1, 0), (255, 0, 0), 10)          # top
+        cv2.line(self.frame, (0, 0), (self.w - 1, 0), (255, 0, 0), 10)  # top
         cv2.line(self.frame, (0, self.h - 1), (self.w - 1, self.h - 1), (255, 0, 0), 10)  # bottom
-        cv2.line(self.frame, (0, 0), (0, self.h - 1), (255, 0, 0), 10)          # left
+        cv2.line(self.frame, (0, 0), (0, self.h - 1), (255, 0, 0), 10)  # left
         cv2.line(self.frame, (self.w - 1, 0), (self.w - 1, self.h - 1), (255, 0, 0), 10)  # right
 
     def update_tip_coords(self, tip_coords, color=(0, 255, 0)):
@@ -246,7 +251,7 @@ class DrawWorker(QRunnable):
         """
         self.tip_coords = tip_coords
         self.tip_coords_color = color
-        #if self.frame is not None and tip_coords is not None:
+        # if self.frame is not None and tip_coords is not None:
         #    cv2.circle(self.frame, tip_coords, 5, color, -1)
 
     def update_base_coords(self, base_coords, color=(255, 0, 0)):
@@ -257,7 +262,7 @@ class DrawWorker(QRunnable):
         """
         self.base_coords = base_coords
         self.base_coords_color = color
-        #if self.frame is not None and base_coords is not None:
+        # if self.frame is not None and base_coords is not None:
         #    cv2.circle(self.frame, base_coords, 5, color, -1)
 
     def update_status(self, status):
@@ -268,20 +273,22 @@ class DrawWorker(QRunnable):
         if not detections:
             return
         self.yolo_detections = detections
-        
+
         # Debug
-        #self._draw_yolo_detection()
-        #cv2.imwrite(f"{debug_img_dir}/{self.yolo_detections[0]['timestamp']}_{self.name}.png", self.frame)
+        # self._draw_yolo_detection()
+        # cv2.imwrite(f"{debug_img_dir}/{self.yolo_detections[0]['timestamp']}_{self.name}.png", self.frame)
 
     def clear_yolo_detections(self):
         """Clear the stored YOLO detections."""
         self.yolo_detections = None
+
 
 class ProbeDetectManager(QObject):
     """
     Manager class for probe detection. It handles frame processing, probe detection,
     reticle zone detection, and result communication through signals.
     """
+
     name = "None"
     frame_processed = pyqtSignal(object)
     found_coords = pyqtSignal(float, float, str, dict, list, list)
@@ -297,13 +304,13 @@ class ProbeDetectManager(QObject):
         super().__init__()
         self.model = model
         self.name = camera_name
-        self.worker = None          # Worker for refersh screen
-        self.opencvProcessWorker = None   # Worker for processing frames
+        self.worker = None  # Worker for refersh screen
+        self.opencvProcessWorker = None  # Worker for processing frames
         self.yoloProcessWorker = None
         self._prev_ts = None
         self.threadpool = QThreadPool()
         self.last_detected_frame = None
-        self.detect_algorithm = 'yolo'  # Default algorithm
+        self.detect_algorithm = "yolo"  # Default algorithm
 
     def _init_draw_thread(self):
         """Initialize the draw worker thread."""
@@ -318,24 +325,27 @@ class ProbeDetectManager(QObject):
         camera_resolution = self.model.get_camera_resolution(self.name)
 
         # OpenCV Process Worker
-        self.opencvProcessWorker = OpenCVProcessWorker(self.name,
-                                                 camera_resolution,
-                                                 test=self.model.test,
-                                                 callbacks=self.receive_opencv_detections())
+        self.opencvProcessWorker = OpenCVProcessWorker(
+            self.name, camera_resolution, test=self.model.test, callbacks=self.receive_opencv_detections()
+        )
 
         # YOLO Process Worker
         # init and warmup the model but no thread running yet
-        self.yoloProcessWorker = YoloProcessWorker(self.name, camera_resolution, test=self.model.test,
-                                                   detection_callback=self.receive_yolo_detections,
-                                                   finished_callback=self._onYoloProcessThreadFinished)
+        self.yoloProcessWorker = YoloProcessWorker(
+            self.name,
+            camera_resolution,
+            test=self.model.test,
+            detection_callback=self.receive_yolo_detections,
+            finished_callback=self._onYoloProcessThreadFinished,
+        )
 
     def receive_opencv_detections(self):
         return {
             # Callback Name in Worker  :  Method in Manager
-            'on_tip_stopped': self.found_probe,
-            'on_tip_moving':  self.found_probe_moving,
-            'on_status':      self.worker.update_status,
-            'on_finished':    self._onProcessThreadFinished
+            "on_tip_stopped": self.found_probe,
+            "on_tip_moving": self.found_probe_moving,
+            "on_status": self.worker.update_status,
+            "on_finished": self._onProcessThreadFinished,
         }
 
     def receive_yolo_detections(self, detections: list[dict]):
@@ -351,7 +361,9 @@ class ProbeDetectManager(QObject):
                 check_boundary = True if nShank == "1shank" else False
                 if keypoints and len(keypoints) > 0 and self.yoloProcessWorker is not None:
                     try:
-                        refined_keypoints = self.yoloProcessWorker.get_precise_tip(keypoints, check_boundary=check_boundary)
+                        refined_keypoints = self.yoloProcessWorker.get_precise_tip(
+                            keypoints, check_boundary=check_boundary
+                        )
                         detection["keypoints_orig"] = refined_keypoints
                         logger.debug(f"{self.name} Received local {len(detections)} YOLO detections.")
                     except Exception as e:
@@ -369,26 +381,26 @@ class ProbeDetectManager(QObject):
             detections = self.yoloProcessWorker.get_moving_stage(detections)
             # Emit
             for detection in detections:
-                if detection.get('is_moving', False):
+                if detection.get("is_moving", False):
                     self.emit_found_coords(detection)
 
     def _is_from_local_yolo(self, detections: list[dict]) -> bool:
         """Check if the detection is from local YOLO model."""
-        return all(d.get('model') == 'yolo_local' for d in detections)
+        return all(d.get("model") == "yolo_local" for d in detections)
 
     def emit_found_coords(self, detection: dict):
-        stage_ts = detection.get('stage_ts', None)
-        img_ts = detection.get('timestamp', None)
-        nShank = detection.get('class_name', '1shank')
-        keypoints = detection.get("keypoints_orig", [])  #[x1, y1, conf1, x2, y2, conf2, ...]
+        stage_ts = detection.get("stage_ts", None)
+        img_ts = detection.get("timestamp", None)
+        nShank = detection.get("class_name", "1shank")
+        keypoints = detection.get("keypoints_orig", [])  # [x1, y1, conf1, x2, y2, conf2, ...]
 
         tip_coords, base_coords = [], []
         if keypoints and len(keypoints) > 0:
             for j in range(0, len(keypoints), 3):
                 x = float(keypoints[j])
-                y = float(keypoints[j+1])
-                tip_coords.append([x, y]) # Append simple list [x, y]
-        
+                y = float(keypoints[j + 1])
+                tip_coords.append([x, y])  # Append simple list [x, y]
+
         if tip_coords:
             # Convert list of lists to (N, 2) array
             tip_coords = np.array(tip_coords, dtype=np.float64)
@@ -396,7 +408,7 @@ class ProbeDetectManager(QObject):
             return
 
         sn = self.yoloProcessWorker.sn
-        #print("sn:", sn)
+        # print("sn:", sn)
         moving_stage = self.model.get_stage(sn)
         if moving_stage is None:
             return
@@ -430,14 +442,14 @@ class ProbeDetectManager(QObject):
         self.worker.start_running()
         self.threadpool.start(self.worker)
 
-        self._init_process_thread() # Init opencvProcessWorker and yoloProcessWorker
-        if self.detect_algorithm == 'opencv' and self.opencvProcessWorker is not None:
+        self._init_process_thread()  # Init opencvProcessWorker and yoloProcessWorker
+        if self.detect_algorithm == "opencv" and self.opencvProcessWorker is not None:
             self.opencvProcessWorker.start_running()  # running thread
-        elif self.detect_algorithm == 'yolo' and self.yoloProcessWorker is not None:
+        elif self.detect_algorithm == "yolo" and self.yoloProcessWorker is not None:
             sn = self.model.get_selected_stage_sn()
             self.yoloProcessWorker.update_sn(sn)  # TODO set real sn
             self.yoloProcessWorker.start_running()  # running thread
-        
+
     def get_mask(self):
         """Save the current image and global mask."""
         return self.worker.mask_bool.astype(np.uint8) * 255
@@ -504,8 +516,8 @@ class ProbeDetectManager(QObject):
             self.yoloProcessWorker.update_frame(frame, timestamp)
 
         if self.worker is not None:
-                self.worker.update_frame(frame, timestamp)
-        
+            self.worker.update_frame(frame, timestamp)
+
     @pyqtSlot(float, float, str, list, list)
     def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):
         """
@@ -516,9 +528,9 @@ class ProbeDetectManager(QObject):
             sn (str): Serial number of the device.
             tip_coords (list): Pixel coordinates of the detected probe tip.
         """
-        #print(tip_coords, base_coords)
+        # print(tip_coords, base_coords)
         # Update into screen
-        if self.worker is not None and self.detect_algorithm == 'opencv':
+        if self.worker is not None and self.detect_algorithm == "opencv":
             self.worker.update_tip_coords(tip_coords, color=(255, 0, 0))
             if base_coords != [None, None]:
                 self.worker.update_base_coords(base_coords, color=(0, 255, 0))
@@ -563,19 +575,19 @@ class ProbeDetectManager(QObject):
             self.worker.update_base_coords(None, None)
             self.worker.clear_yolo_detections()
 
-        if self.detect_algorithm == 'opencv':
+        if self.detect_algorithm == "opencv":
             if self.yoloProcessWorker is not None:
                 self.yoloProcessWorker.stop_detection()
             if self.opencvProcessWorker is not None:
                 self.opencvProcessWorker.update_sn(sn)
                 self.opencvProcessWorker.start_detection()  # is_detection_on = True, and processing frame
 
-        elif self.detect_algorithm == 'yolo':
+        elif self.detect_algorithm == "yolo":
             if self.opencvProcessWorker is not None:
                 self.opencvProcessWorker.stop_detection()
             if self.yoloProcessWorker is not None:
                 self.yoloProcessWorker.update_sn(sn)
-                self.yoloProcessWorker.start_detection()    # is_detection_on = True, and processing frame
+                self.yoloProcessWorker.start_detection()  # is_detection_on = True, and processing frame
 
     def enable_calibration(self, stage_ts, sn):  # Call from stage listener. (stage is stopped)
         """
@@ -589,10 +601,10 @@ class ProbeDetectManager(QObject):
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
             self.worker.clear_yolo_detections()
-        if self.opencvProcessWorker is not None and self.detect_algorithm == 'opencv':
+        if self.opencvProcessWorker is not None and self.detect_algorithm == "opencv":
             self.opencvProcessWorker.update_stage_timestamp(stage_ts)
             self.opencvProcessWorker.enable_calib()
-        if self.yoloProcessWorker is not None and self.detect_algorithm == 'yolo':
+        if self.yoloProcessWorker is not None and self.detect_algorithm == "yolo":
             self.yoloProcessWorker.update_stage_timestamp(stage_ts)
             self.yoloProcessWorker.enable_calib()
 
@@ -603,7 +615,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
-        logger.debug(f"  {self.name} Disable calibration for {sn} with algorithm {self.detect_algorithm}")        
+        logger.debug(f"  {self.name} Disable calibration for {sn} with algorithm {self.detect_algorithm}")
         if self.opencvProcessWorker is not None:
             self.opencvProcessWorker.disable_calib()
         if self.yoloProcessWorker is not None:
@@ -634,10 +646,7 @@ class ProbeDetectManager(QObject):
 
         # Preprocess for faster drawing later
         if reticle_coords is not None:
-            reticle_coords = [
-                [(int(x), int(y)) for (x, y) in coords]
-                for coords in reticle_coords
-            ]
+            reticle_coords = [[(int(x), int(y)) for (x, y) in coords] for coords in reticle_coords]
         if reticle_coords_debug is not None:
             reticle_coords_debug = np.asarray(reticle_coords_debug, dtype=int).reshape(-1, 2)
 
@@ -645,9 +654,9 @@ class ProbeDetectManager(QObject):
 
     def clicked_position(self, pt):
         """Get clicked position."""
-        if self.detect_algorithm == 'opencv':
+        if self.detect_algorithm == "opencv":
             if self.opencvProcessWorker is not None:
                 self.opencvProcessWorker.clicked_position(pt)
-        if self.detect_algorithm == 'yolo':
+        if self.detect_algorithm == "yolo":
             if self.yoloProcessWorker is not None:
                 self.yoloProcessWorker.clicked_position(pt)

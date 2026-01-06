@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class CurrPrevCmpProcessor():
+class CurrPrevCmpProcessor:
     """Finding diff image using Current Previous Comparison"""
 
     def __init__(self, cam_name, ProbeDetector, original_size, resized_size):
@@ -81,10 +81,9 @@ class CurrPrevCmpProcessor():
         if not running_flag():
             return False
 
-
         ret = self.ProbeDetector.first_detect_probe(self.diff_img, self.mask, ts=ts)
         if ret:
-            #ret_precise_tip = self._get_precise_tip(org_img)
+            # ret_precise_tip = self._get_precise_tip(org_img)
             pass
 
         return ret
@@ -110,7 +109,7 @@ class CurrPrevCmpProcessor():
         if not ret or not running_flag():
             return False
 
-        #self._save_debug_img(ts=ts)  # tmp debug
+        # self._save_debug_img(ts=ts)  # tmp debug
 
         ret = self._update_crop(ts=ts)
         if not running_flag():
@@ -131,30 +130,26 @@ class CurrPrevCmpProcessor():
         """
         ret = False
         crop_size = self.crop_init
-        while (ret is False) and (
-            crop_size <= max(self.IMG_SIZE[0], self.IMG_SIZE[1])
-        ):
+        while (ret is False) and (crop_size <= max(self.IMG_SIZE[0], self.IMG_SIZE[1])):
             self.top, self.bottom, self.left, self.right = UtilsCrops.calculate_crop_region(
                 self.ProbeDetector.probe_tip,
                 self.ProbeDetector.probe_base,
                 crop_size,
                 self.IMG_SIZE,
             )
-            diff_img_crop = self.diff_img[self.top:self.bottom, self.left:self.right]
-            hough_minLineLength_adaptive = (40 + int(crop_size / self.crop_init) * 5)
-            self.ProbeDetector.update_parameters({
-                "hough_minLineLength_update": hough_minLineLength_adaptive
-            })
+            diff_img_crop = self.diff_img[self.top : self.bottom, self.left : self.right]
+            hough_minLineLength_adaptive = 40 + int(crop_size / self.crop_init) * 5
+            self.ProbeDetector.update_parameters({"hough_minLineLength_update": hough_minLineLength_adaptive})
             ret = self.ProbeDetector.update_probe(
-                diff_img_crop,
-                self.mask,
-                offset_x=self.left,
-                offset_y=self.top,
-                ts=ts
+                diff_img_crop, self.mask, offset_x=self.left, offset_y=self.top, ts=ts
             )
 
             if ret and UtilsCrops.is_point_on_crop_region(
-                self.ProbeDetector.probe_tip, self.top, self.bottom, self.left, self.right,
+                self.ProbeDetector.probe_tip,
+                self.top,
+                self.bottom,
+                self.left,
+                self.right,
             ):
                 ret = False
             crop_size += 100
@@ -165,9 +160,11 @@ class CurrPrevCmpProcessor():
         """Get the boundary of the crop region."""
         if self.top is not None:
             top_left = UtilsCoords.scale_coords_to_original(
-                [(self.left, self.top)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)[0]
+                [(self.left, self.top)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            )[0]
             bottom_right = UtilsCoords.scale_coords_to_original(
-                [(self.right, self.bottom)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)[0]
+                [(self.right, self.bottom)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            )[0]
             left, top = top_left
             right, bottom = bottom_right
             return top, bottom, left, right
@@ -187,12 +184,10 @@ class CurrPrevCmpProcessor():
 
         if probe_tip_original_coords is None:
             probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
-                [self.ProbeDetector.probe_tip],
-                self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                [self.ProbeDetector.probe_tip], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )[0]
             probe_base_original_coords = UtilsCoords.scale_coords_to_original(
-                [self.ProbeDetector.probe_base],
-                self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                [self.ProbeDetector.probe_base], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )[0]
 
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = UtilsCrops.calculate_crop_region(
@@ -201,7 +196,7 @@ class CurrPrevCmpProcessor():
             crop_size=25,
             IMG_SIZE=self.IMG_SIZE_ORIGINAL,
         )
-        self.tip_image = org_img[self.top_fine:self.bottom_fine, self.left_fine:self.right_fine]
+        self.tip_image = org_img[self.top_fine : self.bottom_fine, self.left_fine : self.right_fine]
         ret, tip = ProbeFineTipDetector.get_precise_tip(
             self.tip_image,
             probe_tip_original_coords,
@@ -209,14 +204,13 @@ class CurrPrevCmpProcessor():
             offset_x=self.left_fine,
             offset_y=self.top_fine,
             direction=self.ProbeDetector.probe_tip_direction,
-            cam_name=self.cam_name
+            cam_name=self.cam_name,
         )
 
         if ret:
             self.ProbeDetector.probe_tip_org = tip
             tip = UtilsCoords.scale_coords_to_resized_img(
-                self.ProbeDetector.probe_tip_org,
-                self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                self.ProbeDetector.probe_tip_org, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )
             self.ProbeDetector.probe_tip = tip
         return ret
@@ -242,19 +236,13 @@ class CurrPrevCmpProcessor():
         """
         max_value = np.max(self.diff_img)
         if max_value < 20:
-            logger.debug(
-                f"Not strong pattern detected on diff image. max_value: {max_value}"
-            )
+            logger.debug(f"Not strong pattern detected on diff image. max_value: {max_value}")
             return False
 
         threshold_value = self.shadow_threshold * max_value
         self.diff_img[self.diff_img < threshold_value] = 0
-        _, self.diff_img = cv2.threshold(
-            self.diff_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-        )
-        self.diff_img = cv2.bitwise_and(
-            self.diff_img, self.diff_img, mask=self.mask
-        )
+        _, self.diff_img = cv2.threshold(self.diff_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        self.diff_img = cv2.bitwise_and(self.diff_img, self.diff_img, mask=self.mask)
 
         return True
 

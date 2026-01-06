@@ -2,6 +2,7 @@
 This module provides a StageHttpServer class that manages an HTTP server for controlling
 and querying the state of a stage controller. It uses aiohttp for asynchronous handling of HTTP requests.
 """
+
 import asyncio
 import json
 import logging
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class StageHttpServer():
+class StageHttpServer:
     """Manages the Stage HTTP Server using aiohttp (Fully Async)"""
 
     def __init__(self, model, stages_info, port=8081):

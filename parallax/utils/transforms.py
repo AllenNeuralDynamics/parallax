@@ -19,15 +19,15 @@ def _func(x, measured_pts, global_pts, reflect_z=False):
     """
     # 1. Extract R and t
     if reflect_z:  # stage follows left hand rule, so reflect z axis
-        R = combine_angles(-x[2], x[1], x[0]) # for reflecte_z, -x[0]
+        R = combine_angles(-x[2], x[1], x[0])  # for reflecte_z, -x[0]
     else:
         R = combine_angles(x[2], x[1], x[0])
 
     # Create the translation vector (t) and reshape it to (3, 1) for broadcasting
     t = x[3:6].reshape(3, 1)
-    
+
     # 2. Apply Transformation (Vectorized)
-    # measured_pt_exp = R @ global_pts + t 
+    # measured_pt_exp = R @ global_pts + t
     # R is (3,3), global_pts is (3,N). R @ global_pts is (3,N).
     # t is (3,1), which broadcasts correctly to (3,N).
     measured_pt_exp = R @ global_pts + t
@@ -39,6 +39,7 @@ def _func(x, measured_pts, global_pts, reflect_z=False):
     # 4. Flatten and return (least squares expects a 1D array of residuals)
     # The shape will be (3 * N,)
     return error_matrix.flatten()
+
 
 def _avg_error(x, measured_pts, global_pts, reflect_z=False):
     """
@@ -54,18 +55,19 @@ def _avg_error(x, measured_pts, global_pts, reflect_z=False):
         float: The average L2 error across all points.
     """
     error_values = _func(x, measured_pts, global_pts, reflect_z)  # (3 * N,)
-    
+
     # Reshape the 1D error vector back into the (3, N) error matrix
     N_points = global_pts.shape[1]
     error_matrix = error_values.reshape(3, N_points)
-    
+
     # Calculate the L2 norm (distance) for each point
     l2_errors = np.linalg.norm(error_matrix, axis=0)
-    
+
     # Calculate the average L2 error
     average_l2_error = np.mean(l2_errors)
-    
+
     return average_l2_error
+
 
 def fit_params(measured_pts, global_pts):
     """
@@ -82,7 +84,7 @@ def fit_params(measured_pts, global_pts):
     N_points = measured_pts.shape[1]
     if N_points < 3:
         raise ValueError("At least three points are required for optimization (N >= 3).")
-    
+
     # Optimize without reflection
     res = leastsq(_func, x0, args=(measured_pts, global_pts, False), maxfev=5000)
     avg_error = _avg_error(res[0], measured_pts, global_pts, False)

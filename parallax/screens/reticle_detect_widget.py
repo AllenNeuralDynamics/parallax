@@ -1,4 +1,5 @@
 """Reticle detection widget"""
+
 import logging
 import os
 import sys
@@ -31,9 +32,7 @@ class ReticleDetectWidget(QWidget):
         if self._is_superpoint_available():
             self.settingMenu.radioButton2.setEnabled(True)
 
-        self.detectButton.toggled.connect(
-            lambda checked: self._show_detect_menu(checked)
-        )
+        self.detectButton.toggled.connect(lambda checked: self._show_detect_menu(checked))
         self.settingMenu.run_pushBtn.clicked.connect(self._run_detection)
         self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
         self.screen.reticle_coords_detected.connect(self._reticle_detected)
@@ -110,9 +109,7 @@ class ReticleDetectWidget(QWidget):
         font_grpbox.setPointSize(8)
         btn.setFont(font_grpbox)
         btn.setCheckable(True)
-        btn.setText(
-            QCoreApplication.translate("MainWindow", "RETICLE DETECT \u25ba", None)
-        )
+        btn.setText(QCoreApplication.translate("MainWindow", "RETICLE DETECT \u25ba", None))
         return btn
 
     def _get_setting_menu(self):

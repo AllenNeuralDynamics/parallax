@@ -8,6 +8,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 def get_spin_bregma(spin_global: float, reticle_rot: float) -> Optional[float]:
     """
     Computes the effective spin angle relative to a reticle's initial orientation (Yaw offset).
@@ -27,6 +28,7 @@ def get_spin_bregma(spin_global: float, reticle_rot: float) -> Optional[float]:
     relative_spin_normalized = (relative_spin + 180) % 360 - 180  # Normalize to [-180, 180]
     return relative_spin_normalized
 
+
 def get_rx_ry(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
     """
     transM: 4x4 transformation matrix from global or bregma to coordinates.
@@ -42,6 +44,7 @@ def get_rx_ry(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
     z_axis = _find_probe_insertion_vector(transM)
     return _vector_to_arc_angles(z_axis)
 
+
 def spin_angle_from_vec(v: np.ndarray) -> float:
     """
     Spin angle: positive for CCW, 0° if along -Y
@@ -55,6 +58,7 @@ def spin_angle_from_vec(v: np.ndarray) -> float:
     angle_deg = (angle_deg + 180) % 360 - 180
 
     return angle_deg
+
 
 def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.ndarray]:
     """Return the probe direction as a 3-vector (GLOBAL/BREGMA frame), or None."""
@@ -70,6 +74,7 @@ def _find_probe_insertion_vector(transM: Optional[np.ndarray]) -> Optional[np.nd
     R = T[:3, :3]
     vec = R[2, :]  # shape (3,)
     return vec
+
 
 def _vector_to_arc_angles(
     vec: Optional[np.ndarray],
@@ -106,7 +111,7 @@ def _vector_to_arc_angles(
     nv = v / np.linalg.norm(v)
 
     # From vertical:
-    rx = -np.arcsin(nv[1])         # depends on AP component (rotation about x)
+    rx = -np.arcsin(nv[1])  # depends on AP component (rotation about x)
     ry = np.arctan2(nv[0], nv[2])  # ML vs DV (rotation about y)
 
     if degrees:

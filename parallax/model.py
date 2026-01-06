@@ -6,6 +6,7 @@ and handling point mesh instances for 3D visualization.
 This class integrates various hardware components such as cameras and stages and handles
 their initialization, configuration, and transformations between local and global coordinates.
 """
+
 from collections import OrderedDict
 from typing import Optional
 
@@ -40,7 +41,7 @@ class Model(QObject):
         self.nPySpinCameras = 0
 
         # cameras
-        self.refresh_camera = False     # Status of camera streaming
+        self.refresh_camera = False  # Status of camera streaming
         self.cameras = OrderedDict()
         """
         self.cameras[sn] = {
@@ -130,7 +131,7 @@ class Model(QObject):
             algorithms (str): The detection algorithm to set ('opencv' or 'yolo').
         """
         if camera_sn in self.cameras:
-            self.cameras[camera_sn]['probe_detect_algorithm'] = algorithms
+            self.cameras[camera_sn]["probe_detect_algorithm"] = algorithms
 
     def get_probe_detect_algorithms(self, camera_sn):
         """Get probe detection algorithms for a specific camera.
@@ -140,20 +141,20 @@ class Model(QObject):
         Returns:
             str: The detection algorithm used by the camera ('opencv' or 'yolo').
         """
-        return self.cameras.get(camera_sn, {}).get('probe_detect_algorithm', 'yolo')
+        return self.cameras.get(camera_sn, {}).get("probe_detect_algorithm", "yolo")
 
     def get_camera(self, sn):
-        return self.cameras.get(sn, {}).get('obj', None)
+        return self.cameras.get(sn, {}).get("obj", None)
 
     def get_visible_cameras(self):
-        return [v['obj'] for v in self.cameras.values() if v['visible']]
+        return [v["obj"] for v in self.cameras.values() if v["visible"]]
 
     def get_visible_camera_sns(self):
-        return [sn for sn, v in self.cameras.items() if v['visible']]
+        return [sn for sn, v in self.cameras.items() if v["visible"]]
 
     def set_camera_visibility(self, sn, visible):
         if sn in self.cameras:
-            self.cameras[sn]['visible'] = visible
+            self.cameras[sn]["visible"] = visible
 
     def init_stages(self):
         """Initialize stages by clearing the current stages and calibration data."""
@@ -169,11 +170,11 @@ class Model(QObject):
             cam = MockCamera()
             sn = cam.name(sn_only=True)
             self.cameras[sn] = {
-                'obj': cam,
-                'visible': True,
-                'device_model': cam.device_model,
-                'is_triangulation_candidate': False,
-                'probe_detect_algorithm': 'yolo',
+                "obj": cam,
+                "visible": True,
+                "device_model": cam.device_model,
+                "is_triangulation_candidate": False,
+                "probe_detect_algorithm": "yolo",
             }
         print(" Cameras:", list(self.cameras.keys()))
 
@@ -183,15 +184,15 @@ class Model(QObject):
         for cam in cams:
             sn = cam.name(sn_only=True)
             self.cameras[sn] = {
-                'obj': cam,
-                'visible': True,
-                'device_model': cam.device_model,
-                'is_triangulation_candidate' : False,
-                'probe_detect_algorithm': 'yolo',
+                "obj": cam,
+                "visible": True,
+                "device_model": cam.device_model,
+                "is_triangulation_candidate": False,
+                "probe_detect_algorithm": "yolo",
             }
 
-        self.nPySpinCameras = sum(isinstance(cam['obj'], PySpinCamera) for cam in self.cameras.values())
-        self.nMockCameras = sum(isinstance(cam['obj'], MockCamera) for cam in self.cameras.values())
+        self.nPySpinCameras = sum(isinstance(cam["obj"], PySpinCamera) for cam in self.cameras.values())
+        self.nMockCameras = sum(isinstance(cam["obj"], MockCamera) for cam in self.cameras.values())
         print(" Cameras:", list(self.cameras.keys()))
 
     def load_camera_config(self):
@@ -240,7 +241,7 @@ class Model(QObject):
             self.save_camera_config(camera_sn)
 
     def get_camera_resolution(self, camera_sn):
-        camera = self.cameras.get(camera_sn, {}).get('obj', None)
+        camera = self.cameras.get(camera_sn, {}).get("obj", None)
         if camera:
             return (camera.width, camera.height)
         return (4000, 3000)
@@ -275,11 +276,7 @@ class Model(QObject):
         Args:
             stage: Stage object to add to the model.
         """
-        self.stages[stage.sn] = {
-            "obj": stage,
-            "is_calib": False,
-            "calib_info": calib_info
-        }
+        self.stages[stage.sn] = {"obj": stage, "is_calib": False, "calib_info": calib_info}
 
     def get_stage(self, stage_sn):
         """Retrieve a stage by its serial number.
@@ -411,7 +408,7 @@ class Model(QObject):
             return None
         calib = stage.get("calib_info")
         return calib.arc_angle_global if calib else None
-    
+
     def set_arc_angle_global(self, stage_sn: str, arc_angle_global: dict):
         """
         Set the arc angles in global coordinates for a specific stage.
@@ -441,7 +438,7 @@ class Model(QObject):
             return None
         calib = stage.get("calib_info")
         return calib.arc_angle_bregma if calib else None
-    
+
     def set_arc_angle_bregma(self, stage_sn: str, arc_angle_bregma: dict):
         """
         Set the arc angles in bregma coordinates for a specific stage.
@@ -537,18 +534,18 @@ class Model(QObject):
         if sn is None:
             # Reset all cameras
             for cam in self.cameras.values():
-                cam['coords_axis'] = None
-                cam['coords_debug'] = None
-                cam['pos_x'] = None
-                cam['params'] = None
+                cam["coords_axis"] = None
+                cam["coords_debug"] = None
+                cam["pos_x"] = None
+                cam["params"] = None
             self.reset_all_triangulation_partners()
 
         else:
             if sn in self.cameras:
-                self.cameras[sn]['coords_axis'] = None
-                self.cameras[sn]['coords_debug'] = None
-                self.cameras[sn]['pos_x'] = None
-                self.cameras[sn]['params'] = None
+                self.cameras[sn]["coords_axis"] = None
+                self.cameras[sn]["coords_debug"] = None
+                self.cameras[sn]["pos_x"] = None
+                self.cameras[sn]["params"] = None
                 self.set_camera_triangulation_status(sn, False)
 
     def add_pos_x(self, sn, pt):
@@ -559,9 +556,9 @@ class Model(QObject):
             pt: The position of the x-axis.
         """
         if sn in self.cameras:
-            self.cameras[sn]['pos_x'] = pt
+            self.cameras[sn]["pos_x"] = pt
 
-            print("pos_x: ", self.cameras[sn]['pos_x'])
+            print("pos_x: ", self.cameras[sn]["pos_x"])
 
     def get_pos_x(self, sn):
         """Get the position for the x-axis of a specific camera.
@@ -572,12 +569,12 @@ class Model(QObject):
         Returns:
             The position of the x-axis for the camera, or None.
         """
-        return self.cameras.get(sn, {}).get('pos_x')
+        return self.cameras.get(sn, {}).get("pos_x")
 
     def reset_pos_x(self):
         """Reset all x-axis positions."""
         for cam in self.cameras.values():
-            cam['pos_x'] = None
+            cam["pos_x"] = None
 
     def add_coords_axis(self, sn, coords):
         """Add axis coordinates for a specific camera.
@@ -586,7 +583,7 @@ class Model(QObject):
             sn (str): The name of the camera.
             coords (list): The axis coordinates to be added.
         """
-        self.cameras[sn]['coords_axis'] = coords
+        self.cameras[sn]["coords_axis"] = coords
 
     def get_coords_axis(self, sn):
         """Get axis coordinates for a specific camera.
@@ -597,7 +594,7 @@ class Model(QObject):
         Returns:
             list: The axis coordinates for the given camera.
         """
-        return self.cameras[sn].get('coords_axis')
+        return self.cameras[sn].get("coords_axis")
 
     def get_camera_device_model(self, sn):
         """Get device model for a specific camera.
@@ -608,12 +605,12 @@ class Model(QObject):
         Returns:
             list: The axis coordinates for the given camera.
         """
-        return self.cameras[sn].get('device_model', 'MockCamera')
+        return self.cameras[sn].get("device_model", "MockCamera")
 
     def reset_coords_axis(self):
         """Reset axis coordinates for all cameras."""
         for cam in self.cameras.values():
-            cam['coords_axis'] = None
+            cam["coords_axis"] = None
 
     def add_coords_for_debug(self, sn, coords):
         """Add debug coordinates for a specific camera.
@@ -622,7 +619,7 @@ class Model(QObject):
             sn (str): The name of the camera.
             coords (list): The coordinates used for debugging.
         """
-        self.cameras[sn]['coords_debug'] = coords
+        self.cameras[sn]["coords_debug"] = coords
 
     def get_coords_for_debug(self, sn):
         """Get debug coordinates for a specific camera.
@@ -633,7 +630,7 @@ class Model(QObject):
         Returns:
             list: The debug coordinates for the given camera.
         """
-        return self.cameras[sn].get('coords_debug')
+        return self.cameras[sn].get("coords_debug")
 
     def add_camera_params(self, sn, camera_params: CameraParams):
         """Add camera parameters for a specific camera.
@@ -648,7 +645,7 @@ class Model(QObject):
             rvec: Optional[np.ndarray] = None         # (3,1) float64
             tvec: Optional[np.ndarray] = None         # (3,1) float64
         """
-        self.cameras[sn]['params'] = camera_params
+        self.cameras[sn]["params"] = camera_params
         self.save_camera_config(sn)
 
     def get_camera_params(self, sn) -> Optional[CameraParams]:
@@ -660,7 +657,7 @@ class Model(QObject):
         Returns:
             CameraParams: The intrinsic parameters [mtx, dist, rvec, tvec] for the camera.
         """
-        return self.cameras[sn].get('params', None)
+        return self.cameras[sn].get("params", None)
 
     def clean(self):
         """Clean up and close all camera connections."""
@@ -670,7 +667,7 @@ class Model(QObject):
         """Save the current frames from all cameras."""
         for i, camera in enumerate(self.cameras):
             if camera.last_image:
-                filename = 'camera%d_%s.png' % (i, camera.get_last_capture_time())
+                filename = "camera%d_%s.png" % (i, camera.get_last_capture_time())
                 camera.save_last_image(filename)
                 self.msg_log.post("Saved camera frame: %s" % filename)
 

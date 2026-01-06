@@ -15,6 +15,7 @@ def model():
     m.reset_reticle_metadata = Mock()
     return m
 
+
 @pytest.fixture(scope="function")
 def reticle_metadata(qtbot, model):
     """
@@ -22,9 +23,9 @@ def reticle_metadata(qtbot, model):
     *one* top-level safely at teardown. Do NOT delete children manually.
     """
     parent = QWidget()
-    qtbot.addWidget(parent)                # pytest-qt will close this at teardown
+    qtbot.addWidget(parent)  # pytest-qt will close this at teardown
 
-    reticle_selector = QComboBox(parent)   # give it a living parent
+    reticle_selector = QComboBox(parent)  # give it a living parent
     reticle_selector.setObjectName("reticleSelector")
 
     # If ReticleMetadata is a QWidget/QObject, parent it too (if it accepts parent).

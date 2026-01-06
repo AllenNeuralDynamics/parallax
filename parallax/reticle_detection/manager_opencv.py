@@ -1,4 +1,5 @@
-""" Reticle Detection Manager using OpenCV"""
+"""Reticle Detection Manager using OpenCV"""
+
 import logging
 
 import numpy as np
@@ -27,8 +28,10 @@ IMG_SIZE_ORIGINAL = (4000, 3000)
 
 class ReticleDetectManager(BaseReticleManager):
     """Manager for reticle detection using OpenCV."""
+
     class ProcessWorker(BaseProcessWorker):
         """Worker for processing frames with OpenCV-based reticle detection."""
+
         def __init__(self, model, name, test_mode=False):
             """Initializes the OpenCV-based reticle detection worker."""
             super().__init__(name)
@@ -60,9 +63,7 @@ class ReticleDetectManager(BaseReticleManager):
 
             # Step 3: Camera calibration
             success, params = calibrate_camera(
-                self.x_coords,
-                self.y_coords,
-                camera_model_name=self.model.get_camera_device_model(self.name)
+                self.x_coords, self.y_coords, camera_model_name=self.model.get_camera_device_model(self.name)
             )
             if not self.running:
                 return DetectionResult.STOPPED
@@ -70,8 +71,8 @@ class ReticleDetectManager(BaseReticleManager):
                 return DetectionResult.FAILED
 
             # Step 4: Reproject 3D axis points
-            objpts_x_coords = get_axis_object_points(axis='x', coord_range=10)
-            objpts_y_coords = get_axis_object_points(axis='y', coord_range=10)
+            objpts_x_coords = get_axis_object_points(axis="x", coord_range=10)
+            objpts_y_coords = get_axis_object_points(axis="y", coord_range=10)
             x_coords_ = get_projected_points(objpts_x_coords, params.rvec, params.tvec, params.mtx, params.dist)
             y_coords_ = get_projected_points(objpts_y_coords, params.rvec, params.tvec, params.mtx, params.dist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
@@ -81,7 +82,7 @@ class ReticleDetectManager(BaseReticleManager):
                 rvecs=params.rvec,
                 tvecs=params.tvec,
                 center_index_x=len(self.x_coords) // 2,
-                axis_length=10
+                axis_length=10,
             )
 
             # Emit data
@@ -96,12 +97,13 @@ class ReticleDetectManager(BaseReticleManager):
 
     class DrawWorker(BaseDrawWorker):
         """Worker for drawing reticle detection results."""
+
         def __init__(self, name, test_mode=False):
             """Initializes the OpenCV-based reticle detection drawing worker."""
             super().__init__(name)
             self.test_mode = test_mode
 
-    def __init__(self, model, camera_name,  test_mode=False):
+    def __init__(self, model, camera_name, test_mode=False):
         """Initializes the reticle detection manager with OpenCV."""
         super().__init__(model, camera_name, WorkerClass=self.DrawWorker, ProcessWorkerClass=self.ProcessWorker)
         self.test_mode = test_mode
