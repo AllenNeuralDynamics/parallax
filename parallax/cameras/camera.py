@@ -39,7 +39,6 @@ def list_cameras(dummy=False, version="V1"):
     global VERSION
     VERSION = version
 
-    global pyspin_cameras, pyspin_instance
     cameras = []
     if not dummy:
         if PySpin is not None:
