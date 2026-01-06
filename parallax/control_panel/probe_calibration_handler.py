@@ -1,24 +1,23 @@
 """Probe Calibration Handler"""
 import logging
 import os
-import numpy as np
 from dataclasses import dataclass
-from PyQt6.uic import loadUi
-from PyQt6.QtWidgets import QMessageBox, QPushButton, QWidget
-from PyQt6.QtGui import QAction
-from PyQt6.QtCore import pyqtSlot
-from parallax.config.config_path import ui_dir
 from typing import Optional
 
-from parallax.probe_calibration.probe_calibration import ProbeCalibration
-from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle
+import numpy as np
+from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QMessageBox, QPushButton, QWidget
+from PyQt6.uic import loadUi
+
+from parallax.cameras.calibration_camera import triangulate
+from parallax.config.config_path import ui_dir
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.reticle_metadata import ReticleMetadata
-from parallax.cameras.calibration_camera import triangulate
+from parallax.probe_calibration.probe_calibration import ProbeCalibration
+from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle, is_sane_4shanks
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
-from parallax.probe_detection.utils.probe_spin_detector import is_sane_4shanks
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

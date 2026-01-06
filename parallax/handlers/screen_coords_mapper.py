@@ -14,7 +14,9 @@ The ScreenCoordsMapper class includes functionality to:
 """
 
 import logging
+
 import numpy as np
+
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import apply_reticle_adjustments
 

@@ -1,6 +1,8 @@
-import numpy as np
+from typing import Dict, Tuple
+
 import cv2
-from typing import Tuple, Dict
+import numpy as np
+
 
 def preprocessing(frame: np.ndarray,
                   detection: dict,

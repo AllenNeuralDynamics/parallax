@@ -1,6 +1,8 @@
-import pytest
 import numpy as np
+import pytest
+
 from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
+
 
 @pytest.fixture
 def coords_interest_detector():

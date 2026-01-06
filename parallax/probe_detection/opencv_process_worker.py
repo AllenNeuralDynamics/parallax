@@ -1,13 +1,13 @@
 import logging
-import cv2
-import time
 import threading
+import time
+
+import cv2
 
 from parallax.probe_detection.opencv.curr_bg_cmp_processor import CurrBgCmpProcessor
 from parallax.probe_detection.opencv.curr_prev_cmp_processor import CurrPrevCmpProcessor
-from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.opencv.probe_detector import ProbeDetector
-
+from parallax.reticle_detection.mask_generator import MaskGenerator
 
 # Set logger
 logger = logging.getLogger(__name__)

@@ -5,8 +5,10 @@ import logging
 import os
 import threading
 import time
+
 import cv2
 import numpy as np
+
 from parallax.cameras.camera_base_binding import BaseCamera
 
 # Initialize the logger

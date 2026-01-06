@@ -1,14 +1,12 @@
 # tests/helper.py
 from typing import List
-import numpy as np
-import pytest
 from unittest.mock import MagicMock, Mock
 
+import numpy as np
+import pytest
+
 # ---- Qt imports kept local to tests ----
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QGroupBox, QPushButton,
-    QLineEdit, QLabel, QComboBox
-)
+from PyQt6.QtWidgets import QComboBox, QGroupBox, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
 
 # =========================

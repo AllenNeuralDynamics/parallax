@@ -1,12 +1,13 @@
+import logging
+import time
+from collections import deque
+from threading import Thread
+
 import cv2
 import numpy as np
-import time
-import logging
-from collections import deque
-
-from threading import Thread
-from ultralytics import YOLO
 import torch
+from ultralytics import YOLO
+
 from parallax.config.config_path import debug_img_dir
 
 # Set logger name

@@ -1,9 +1,11 @@
-import pytest
-import cv2
 import os
+
+import cv2
+import pytest
+
 from parallax.probe_detection.opencv.curr_prev_cmp_processor import CurrPrevCmpProcessor
-from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.opencv.probe_detector import ProbeDetector
+from parallax.reticle_detection.mask_generator import MaskGenerator
 
 # Define the folder containing your test images
 IMG_SIZE = (1000, 750)         # (width, height) for resized images

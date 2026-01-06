@@ -7,13 +7,15 @@ allowing persistence across sessions. The widget interacts with a model
 to apply the configuration dynamically.
 """
 
-import os
 import json
 import logging
+import os
+
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget
 from PyQt6.uic import loadUi
-from PyQt6.QtCore import Qt
-from parallax.config.config_path import ui_dir, stage_server_config_file
+
+from parallax.config.config_path import stage_server_config_file, ui_dir
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from parallax.utils.transforms import fit_params
 
 # --- Test for Optimization/Fit ---

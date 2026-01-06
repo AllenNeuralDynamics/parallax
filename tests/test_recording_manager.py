@@ -1,6 +1,9 @@
-import pytest
 from unittest.mock import Mock
+
+import pytest
+
 from parallax.handlers.recording_manager import RecordingManager
+
 
 @pytest.fixture
 def mock_model():

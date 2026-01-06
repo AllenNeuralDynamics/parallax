@@ -14,12 +14,14 @@ Classes:
     StageController: Manages the stage movement, status retrieval, and interaction with
     external systems through HTTP requests.
 """
-import logging
-import requests
 import json
-import numpy as np
+import logging
 from typing import Optional
+
+import numpy as np
+import requests
 from PyQt6.QtCore import QObject, QTimer
+
 from parallax.utils.coords_converter import global_to_local
 
 # Set logger name

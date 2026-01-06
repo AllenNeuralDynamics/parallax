@@ -9,14 +9,13 @@ Classes:
 """
 
 import logging
-import cv2
-import numpy as np
 from dataclasses import dataclass
-from typing import List, Tuple, Optional, Union
-import numpy as np
-import cv2
-import parallax.config.config_calibration as cfg
+from typing import List, Optional, Tuple, Union
 
+import cv2
+import numpy as np
+
+import parallax.config.config_calibration as cfg
 
 # Set logger name
 logger = logging.getLogger(__name__)

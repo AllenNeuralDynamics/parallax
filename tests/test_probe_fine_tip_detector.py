@@ -1,7 +1,9 @@
-import pytest
-import cv2
 import os
+
+import cv2
 import numpy as np
+import pytest
+
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 
 # Define the folder containing your test images

@@ -1,8 +1,9 @@
-from parallax.probe_detection.yolo_global.utils import preprocessing
-from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation
+import logging
 
 import numpy as np
-import logging
+
+from parallax.probe_detection.yolo_global.utils import preprocessing
+from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation
 
 
 class YOLOClient:

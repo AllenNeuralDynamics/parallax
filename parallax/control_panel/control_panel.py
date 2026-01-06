@@ -8,20 +8,20 @@ initializing components, and linking user actions to calibration processes.
 
 import logging
 import os
-from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
+
 from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
 from PyQt6.uic import loadUi
 
-from parallax.stages.stage_listener import StageListener
-from parallax.stages.stage_ui import StageUI
-from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
-from parallax.stages.stage_server_ipconfig import StageServerIPConfig
-from parallax.stages.stage_http_server import StageHttpServer
-
-from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
-from parallax.control_panel.probe_calibration_handler import ProbeCalibrationHandler
-from parallax.control_panel.transform_info_handler import TransformInfoHandler
 from parallax.config.config_path import ui_dir
+from parallax.control_panel.probe_calibration_handler import ProbeCalibrationHandler
+from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
+from parallax.control_panel.transform_info_handler import TransformInfoHandler
+from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
+from parallax.stages.stage_http_server import StageHttpServer
+from parallax.stages.stage_listener import StageListener
+from parallax.stages.stage_server_ipconfig import StageServerIPConfig
+from parallax.stages.stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

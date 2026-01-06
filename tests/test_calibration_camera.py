@@ -1,20 +1,23 @@
+from unittest.mock import patch
+
+import cv2
 import numpy as np
 import pytest
-import cv2
-from unittest.mock import patch
-# import parallax.config.config_calibration as cfg # Not needed here as it's patched
 
 # Import the functions and dataclass from your module
 from parallax.cameras.calibration_camera import (
+    CameraParams,
     _get_changed_data_format,
-    process_reticle_points,
-    get_rotmat_from_camA_to_global,
     change_coords_system_from_camA_to_global,
-    get_projected_points,
     get_axis_object_points,
     get_origin_xyz,
-    CameraParams
+    get_projected_points,
+    get_rotmat_from_camA_to_global,
+    process_reticle_points,
 )
+
+# import parallax.config.config_calibration as cfg # Not needed here as it's patched
+
 
 # --- Mock Configuration and Dependencies ---
 

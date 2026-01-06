@@ -2,14 +2,15 @@
 Module for detecting the fine tip of a probe in an image.
 Static version - no instantiation required.
 """
+import json
 import logging
 import os
+import time
+
 import cv2
 import numpy as np
-import time
-import json
-from parallax.config.config_path import debug_img_dir
-from parallax.config.config_path import img_processing_config_file
+
+from parallax.config.config_path import debug_img_dir, img_processing_config_file
 
 # Set logger name
 logger = logging.getLogger(__name__)

@@ -1,13 +1,15 @@
 """Screen settings widget for controlling microscope camera settings."""
-import os
 import logging
-from PyQt6.QtWidgets import QWidget, QToolButton, QPushButton, QFileDialog
-from PyQt6.QtCore import QPoint, QTimer, QCoreApplication
+import os
+
+from PyQt6.QtCore import QCoreApplication, QPoint, QTimer
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QFileDialog, QPushButton, QToolButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 

@@ -1,5 +1,7 @@
 import pytest
+
 from parallax.utils.utils import UtilsCoords, UtilsCrops
+
 
 # ======================= Test UtilsCoords =======================
 # Fixtures for common values

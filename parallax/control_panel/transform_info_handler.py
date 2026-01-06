@@ -1,12 +1,13 @@
 import logging
 import os
-from PyQt6.QtWidgets import QWidget
-from PyQt6.uic import loadUi
-from parallax.config.config_path import ui_dir
-from PyQt6.QtGui import QFont, QPixmap
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox, QPushButton, QLineEdit
-from PyQt6.QtCore import Qt
+
 import numpy as np
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont, QPixmap
+from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+from PyQt6.uic import loadUi
+
+from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

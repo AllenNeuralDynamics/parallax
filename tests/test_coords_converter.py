@@ -1,17 +1,16 @@
 # tests/test_coords_converter.py
 import numpy as np
-from parallax.utils import rotations
-from parallax.utils.rotations import define_euler_rotation
 
+from parallax.utils import rotations
 from parallax.utils.coords_converter import (
-    local_to_global,
-    global_to_local,
+    apply_inverse_rigid_transform,
     apply_reticle_adjustments,
     apply_reticle_adjustments_inverse,
     apply_rigid_transform,
-    apply_inverse_rigid_transform,
-
+    global_to_local,
+    local_to_global,
 )
+from parallax.utils.rotations import define_euler_rotation
 
 # Test env
 # Canonical form: local = R @ global + t
@@ -138,6 +137,7 @@ def test_bregma_to_local_composite():
     np.testing.assert_allclose(out_local, LOCAL_PT, atol=1e-5)
 
 import numpy as np
+
 # Assuming apply_rigid_transform and make_T are available in the scope of the test file
 
 def test_apply_rigid_transform_identity():

@@ -1,10 +1,12 @@
-import pytest
-import time
-import numpy as np
 import threading
-from unittest.mock import patch, MagicMock
+import time
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pytest
 
 from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
+
 
 class FakeYOLOClient:
     def __init__(self, name, config, detection_callback, finished_callback):

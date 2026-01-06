@@ -1,12 +1,15 @@
 """Base manager for reticle detection workers."""
-from PyQt6.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
-from parallax.config.config_path import debug_img_dir
-import time
-import numpy as np
-import cv2
 import logging
 import math
+import time
 from enum import Enum
+
+import cv2
+import numpy as np
+from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+
+from parallax.config.config_path import debug_img_dir
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 

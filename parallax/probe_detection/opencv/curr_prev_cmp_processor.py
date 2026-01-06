@@ -17,13 +17,14 @@ Usage:
 """
 
 import logging
-import cv2
-import numpy as np
 import os
 
+import cv2
+import numpy as np
+
+from parallax.config.config_path import debug_img_dir
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.utils.utils import UtilsCoords, UtilsCrops
-from parallax.config.config_path import debug_img_dir
 
 # Set logger name
 logger = logging.getLogger(__name__)

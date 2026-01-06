@@ -2,10 +2,11 @@
 This module provides a StageHttpServer class that manages an HTTP server for controlling
 and querying the state of a stage controller. It uses aiohttp for asynchronous handling of HTTP requests.
 """
-import logging
-import json
 import asyncio
+import json
+import logging
 import threading
+
 from aiohttp import web
 
 from .stage_controller import StageController

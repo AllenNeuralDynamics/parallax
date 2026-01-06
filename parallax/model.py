@@ -6,15 +6,18 @@ and handling point mesh instances for 3D visualization.
 This class integrates various hardware components such as cameras and stages and handles
 their initialization, configuration, and transformations between local and global coordinates.
 """
-import numpy as np
 from collections import OrderedDict
-from PyQt6.QtCore import QObject
-from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
-from parallax.stages.stage_listener import Stage, StageInfo
-from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
-from parallax.cameras.calibration_camera import CameraParams
-from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
 from typing import Optional
+
+import numpy as np
+from PyQt6.QtCore import QObject
+
+from parallax.cameras.calibration_camera import CameraParams
+from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
+from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
+from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
+from parallax.stages.stage_listener import Stage, StageInfo
+
 
 class Model(QObject):
     """Model class to handle cameras, stages, and calibration data."""

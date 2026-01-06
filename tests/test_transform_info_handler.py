@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 from unittest.mock import MagicMock
 
+import numpy as np
+import pytest
 
 from parallax.control_panel.transform_info_handler import TransformInfoHandler
+
 
 # -------------------------------------------------------------------------
 # BYPASS CLASS

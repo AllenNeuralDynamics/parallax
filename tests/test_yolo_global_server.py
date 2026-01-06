@@ -1,7 +1,8 @@
-import pytest
-import numpy as np
 import time
 from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pytest
 
 # Adjust the import based on your actual file structure
 from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation

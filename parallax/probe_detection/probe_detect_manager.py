@@ -6,15 +6,14 @@ and result communication, utilizing components like MaskGenerator and ProbeDetec
 
 import logging
 import time
+
 import cv2
-import time
 import numpy as np
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThreadPool, QRunnable
-from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
+from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+
+from parallax.config.config_path import palette_cool, palette_tips, palette_warm
 from parallax.probe_detection.opencv_process_worker import OpenCVProcessWorker
-
-from parallax.config.config_path import palette_cool, palette_warm, palette_tips
-
+from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 
 # Set logger name
 logger = logging.getLogger(__name__)

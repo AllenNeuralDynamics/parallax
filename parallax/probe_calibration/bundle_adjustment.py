@@ -8,10 +8,11 @@ The BALOptimizer class performs optimization on the Bundle Adjustment problem, u
 the reprojection error through optimization of camera parameters and 3D points.
 """
 
+import logging
+
+import cv2
 import numpy as np
 import pandas as pd
-import cv2
-import logging
 from scipy.optimize import leastsq
 
 # Set logger name

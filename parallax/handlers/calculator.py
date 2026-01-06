@@ -4,16 +4,17 @@ and control stage movements. It includes functionality for managing stage intera
 reticle adjustments, and issuing commands for stage movement.
 """
 
-import os
 import logging
-import numpy as np
-from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, QMessageBox
-from PyQt6.uic import loadUi
-from PyQt6.QtCore import Qt
+import os
 
-from parallax.utils.coords_converter import local_to_global, global_to_local
-from parallax.stages.stage_controller import StageController
+import numpy as np
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QGroupBox, QLabel, QLineEdit, QMessageBox, QPushButton, QWidget
+from PyQt6.uic import loadUi
+
 from parallax.config.config_path import ui_dir
+from parallax.stages.stage_controller import StageController
+from parallax.utils.coords_converter import global_to_local, local_to_global
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

@@ -1,13 +1,14 @@
+import json
 import logging
 import os
+import time
+
 import cv2
 import numpy as np
-import time
-import json
-from parallax.config.config_path import debug_img_dir
-from parallax.config.config_path import img_processing_config_file
-from parallax.utils.utils import UtilsCrops
+
+from parallax.config.config_path import debug_img_dir, img_processing_config_file
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
+from parallax.utils.utils import UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)

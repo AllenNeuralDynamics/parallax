@@ -1,8 +1,10 @@
 # tests/test_stage_server_ipconfig.py
 import os
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 from PyQt6.QtWidgets import QLineEdit
+
 from parallax.stages.stage_server_ipconfig import StageServerIPConfig
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data", "stage_server_ipconfig")

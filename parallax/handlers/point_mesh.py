@@ -31,15 +31,18 @@ point_mesh_widget = PointMesh(model, file_path, sn, transM)
 point_mesh_widget.show()
 """
 
-import os
 import logging
+import os
+
 import pandas as pd
 import plotly.graph_objs as go
-from PyQt6.QtWidgets import QWidget, QPushButton
-from PyQt6.uic import loadUi
 from PyQt6.QtCore import Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QPushButton, QWidget
+from PyQt6.uic import loadUi
+
 from parallax.config.config_path import ui_dir
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 

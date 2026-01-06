@@ -1,8 +1,10 @@
+import logging
+import time
+
+import numpy as np
+
 from parallax.probe_detection.yolo_local.utils import preprocessing
 from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
-import time
-import numpy as np
-import logging
 
 
 class YOLOClient:

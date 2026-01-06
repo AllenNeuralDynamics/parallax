@@ -15,10 +15,12 @@ Conventions
 """
 
 import logging
-import numpy as np
 from typing import Optional
-import scipy.spatial.transform as Rscipy
+
 import cv2
+import numpy as np
+import scipy.spatial.transform as Rscipy
+
 import parallax.utils.rotations as rotations
 
 # Set logger name

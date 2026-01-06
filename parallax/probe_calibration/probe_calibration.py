@@ -4,17 +4,20 @@ It supports calibrating the transformation between local and global coordinates 
 """
 
 import csv
+import datetime
 import logging
 import os
-import datetime
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal
-from parallax.utils.transforms import fit_params
-from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
-from .bundle_adjustment import BALProblem, BALOptimizer
+
 from parallax.config.config_path import stages_dir
+from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
+from parallax.utils.transforms import fit_params
+
+from .bundle_adjustment import BALOptimizer, BALProblem
 
 # Set logger name
 logger = logging.getLogger(__name__)

@@ -1,17 +1,17 @@
-import math
 import logging
+import math
 import time
+
 import numpy as np
 import yaml
 
-from parallax.probe_detection.yolo_global.yolo_client import YOLOClient as GlobalYOLOClient
-from parallax.probe_detection.yolo_local.yolo_client import YOLOClient as LocalYOLOClient
-from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
-from parallax.probe_detection.yolo_local.utils import postprocessing as postprocessing_local
-from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
-
-from parallax.utils.utils import UtilsCrops
 from parallax.config.config_path import yolo_config_path
+from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
+from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
+from parallax.probe_detection.yolo_global.yolo_client import YOLOClient as GlobalYOLOClient
+from parallax.probe_detection.yolo_local.utils import postprocessing as postprocessing_local
+from parallax.probe_detection.yolo_local.yolo_client import YOLOClient as LocalYOLOClient
+from parallax.utils.utils import UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)

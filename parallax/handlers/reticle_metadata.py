@@ -13,14 +13,16 @@ Key features:
 - Provides methods for retrieving global coordinates with specific reticle adjustments.
 """
 
-import os
-import logging
 import json
+import logging
+import os
+
 import numpy as np
-from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
-from PyQt6.uic import loadUi
 from PyQt6.QtCore import Qt
-from parallax.config.config_path import ui_dir, reticle_metadata_file
+from PyQt6.QtWidgets import QGroupBox, QLineEdit, QPushButton, QWidget
+from PyQt6.uic import loadUi
+
+from parallax.config.config_path import reticle_metadata_file, ui_dir
 from parallax.utils.rotations import define_euler_rotation
 
 logger = logging.getLogger(__name__)

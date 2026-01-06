@@ -5,12 +5,14 @@ checks to ensure accuracy.
 """
 
 import logging
-import cv2
 import os
-import numpy as np
 from collections import Counter
-from parallax.utils.utils import UtilsCoords
+
+import cv2
+import numpy as np
+
 from parallax.config.config_path import debug_img_dir
+from parallax.utils.utils import UtilsCoords
 
 # Set logger name
 logger = logging.getLogger(__name__)

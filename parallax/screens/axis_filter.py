@@ -7,9 +7,11 @@ clicked by the user on the screen.
 
 import logging
 import time
+
 import cv2
 import numpy as np
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
+
 from parallax.cameras.calibration_camera import calibrate_camera, get_debug_points
 
 # Set logger name

@@ -1,7 +1,8 @@
 """Camera Base Binding"""
-from abc import ABC, abstractmethod
-import numpy as np
 import datetime
+from abc import ABC, abstractmethod
+
+import numpy as np
 
 
 class BaseCamera(ABC):

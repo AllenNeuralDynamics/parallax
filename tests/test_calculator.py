@@ -1,10 +1,13 @@
-import pytest
-import numpy as np
 from unittest.mock import MagicMock
-from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QPushButton, QLineEdit, QComboBox, QLabel
+
+import numpy as np
+import pytest
+from PyQt6.QtWidgets import QComboBox, QGroupBox, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+
 # Import the module under test (used by the fixture)
-import parallax.handlers.calculator as calc_mod 
+import parallax.handlers.calculator as calc_mod
 from parallax.handlers.calculator import Calculator
+
 # Note: Since Calculator imports local_to_global directly, we don't need to import converter_mod here
 
 # ---------- Test helpers to stub UI & deps ----------

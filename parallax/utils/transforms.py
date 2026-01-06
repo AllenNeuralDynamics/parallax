@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.optimize import leastsq
+
 from parallax.utils.rotations import combine_angles
+
 
 def _func(x, measured_pts, global_pts, reflect_z=False):
     """

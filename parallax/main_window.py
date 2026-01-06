@@ -17,18 +17,17 @@ import webbrowser
 
 from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtGui import QFont, QFontDatabase
+
 # Import required PyQt6 modules and other libraries
-from PyQt6.QtWidgets import (QApplication, QFileDialog,
-                             QMainWindow, QSplitter, QMessageBox)
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QSplitter
 from PyQt6.uic import loadUi
 
-from parallax.handlers.recording_manager import RecordingManager
-from parallax.control_panel.control_panel import ControlPanel
+from parallax.config.config_path import fira_font_dir, ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
+from parallax.control_panel.control_panel import ControlPanel
+from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
-from parallax.config.config_path import ui_dir, fira_font_dir
 from ui.resources import rc
-
 
 # Set logger name
 logger = logging.getLogger(__name__)

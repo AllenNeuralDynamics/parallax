@@ -1,10 +1,10 @@
 # tests/test_stage_controller.py
 import json
-from typing import List, Dict
+from typing import Dict, List
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
-from unittest.mock import Mock
 
 from parallax.stages.stage_controller import StageController
 

@@ -5,17 +5,18 @@ for real-time processing and offers camera control functions.
 """
 
 import logging
+
+import cv2
+import numpy as np
 import pyqtgraph as pg
 from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, pyqtSignal
-import cv2
-import numpy as np
 
-from parallax.screens.no_filter import NoFilter
 from parallax.probe_detection.probe_detect_manager import ProbeDetectManager
-from parallax.reticle_detection.manager_opencv import ReticleDetectManager
 from parallax.reticle_detection.manager_cnn import ReticleDetectManagerCNN
+from parallax.reticle_detection.manager_opencv import ReticleDetectManager
 from parallax.screens.axis_filter import AxisFilter
+from parallax.screens.no_filter import NoFilter
 
 # Set logger name
 logger = logging.getLogger(__name__)

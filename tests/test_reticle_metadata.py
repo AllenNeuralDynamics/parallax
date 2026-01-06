@@ -1,8 +1,10 @@
-from PyQt6.QtWidgets import QComboBox, QWidget
 from unittest.mock import Mock
+
 import pytest
+from PyQt6.QtWidgets import QComboBox, QWidget
 
 from parallax.handlers.reticle_metadata import ReticleMetadata
+
 
 @pytest.fixture(scope="function")
 def model():

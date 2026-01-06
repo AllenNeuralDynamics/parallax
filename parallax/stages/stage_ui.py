@@ -4,9 +4,11 @@ including serial numbers and coordinates. It interacts with the model to reflect
 real-time data changes.
 """
 import logging
-from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import pyqtSignal
+
 import numpy as np
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QWidget
+
 from parallax.utils.coords_converter import apply_reticle_adjustments
 
 # Set logger name

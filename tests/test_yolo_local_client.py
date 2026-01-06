@@ -1,6 +1,7 @@
-import pytest
-import numpy as np
 from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pytest
 
 # Import the class under test
 from parallax.probe_detection.yolo_local.yolo_client import YOLOClient

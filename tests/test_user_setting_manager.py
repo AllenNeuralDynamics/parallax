@@ -1,18 +1,19 @@
 # tests/test_user_setting_manager.py
 import os
-import yaml
-import numpy as np
-import pytest
 from types import SimpleNamespace
 
+import numpy as np
+import pytest
+import yaml
+
+from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.user_setting_manager import (
-    UserSettingsManager,
+    CameraConfigManager,
     SessionConfigManager,
     StageConfigManager,
-    CameraConfigManager,
+    UserSettingsManager,
     sanitize_for_yaml,
 )
-from parallax.cameras.calibration_camera import CameraParams
 
 # ------------------------
 # Helpers

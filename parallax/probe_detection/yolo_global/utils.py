@@ -1,5 +1,6 @@
-import numpy as np
 import cv2
+import numpy as np
+
 
 def preprocessing(frame: np.ndarray, target_size: tuple=(640, 640)):
     """

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 from typing import Optional, Tuple
+
 import numpy as np
 
 # --- project imports ---
-from parallax.config.config_calibration import MIN_SHANK_DIST_MM, MAX_SHANK_DIST_MM, Z_SPAN_MAX_MM
+from parallax.config.config_calibration import MAX_SHANK_DIST_MM, MIN_SHANK_DIST_MM, Z_SPAN_MAX_MM
 from parallax.utils.probe_angles import spin_angle_from_vec
 
 logger = logging.getLogger(__name__)

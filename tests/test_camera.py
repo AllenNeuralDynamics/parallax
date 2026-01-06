@@ -1,8 +1,9 @@
 # tests/camera.py
-import numpy as np
 import cv2
+import numpy as np
 
 from parallax.cameras.camera import MockCamera
+
 
 def test_mock_camera_default_frame_dimensions():
     """

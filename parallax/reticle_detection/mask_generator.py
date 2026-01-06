@@ -3,13 +3,13 @@ MaskGenerator: Generates a mask from an input image
 using various image processing techniques.
 """
 
+import json
 import logging
 
 import cv2
 import numpy as np
-import json
-from parallax.config.config_path import img_processing_config_file
 
+from parallax.config.config_path import img_processing_config_file
 
 # Set logger name
 logger = logging.getLogger(__name__)

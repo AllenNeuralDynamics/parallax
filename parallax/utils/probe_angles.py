@@ -1,7 +1,8 @@
 import logging
-import numpy as np
-from typing import Optional
 import math
+from typing import Optional
+
+import numpy as np
 
 # Set logger name
 logger = logging.getLogger(__name__)

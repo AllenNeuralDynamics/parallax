@@ -1,9 +1,10 @@
-import pytest
-import numpy as np
 from unittest.mock import patch
 
+import numpy as np
+import pytest
+
 # Import the functions to be tested
-from parallax.probe_detection.yolo_local.utils import preprocessing, postprocessing
+from parallax.probe_detection.yolo_local.utils import postprocessing, preprocessing
 
 # ======================= Preprocessing Tests =======================
 

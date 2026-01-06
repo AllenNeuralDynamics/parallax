@@ -1,9 +1,11 @@
-import pytest
-import numpy as np
 import time
 from unittest.mock import MagicMock, patch
-from parallax.screens.axis_filter import AxisFilter
+
+import numpy as np
+import pytest
 from PyQt6.QtCore import QCoreApplication, QEventLoop
+
+from parallax.screens.axis_filter import AxisFilter
 
 # --- Fixtures and Mocks ---
 

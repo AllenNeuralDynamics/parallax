@@ -1,20 +1,29 @@
 """Parallax Camera Base Binding"""
 import logging
-import cv2
-import numpy as np
 import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
-from parallax.config.config_path import cnn_img_dir, cnn_export_dir
-from parallax.cameras.calibration_camera import CameraParams
-from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker, DetectionResult
+
+import cv2
+import numpy as np
+
+import parallax.config.config_calibration as cfg
 from parallax.cameras.calibration_camera import (
-    get_axis_object_points, get_projected_points, get_origin_xyz
+    CameraParams,
+    get_axis_object_points,
+    get_origin_xyz,
+    get_projected_points,
+)
+from parallax.config.config_path import cnn_export_dir, cnn_img_dir
+from parallax.reticle_detection.base_manager import (
+    BaseDrawWorker,
+    BaseProcessWorker,
+    BaseReticleManager,
+    DetectionResult,
 )
 from parallax.utils.coords_converter import get_rvec_and_tvec
-import parallax.config.config_calibration as cfg
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

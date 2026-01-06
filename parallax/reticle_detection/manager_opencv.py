@@ -1,13 +1,23 @@
 """ Reticle Detection Manager using OpenCV"""
 import logging
+
 import numpy as np
 
-from parallax.reticle_detection.base_manager import BaseReticleManager, BaseDrawWorker, BaseProcessWorker, DetectionResult
+from parallax.cameras.calibration_camera import (
+    calibrate_camera,
+    get_axis_object_points,
+    get_origin_xyz,
+    get_projected_points,
+)
+from parallax.reticle_detection.base_manager import (
+    BaseDrawWorker,
+    BaseProcessWorker,
+    BaseReticleManager,
+    DetectionResult,
+)
 from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.reticle_detection.reticle_detection import ReticleDetection
 from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
-from parallax.cameras.calibration_camera import calibrate_camera
-from parallax.cameras.calibration_camera import get_axis_object_points, get_projected_points, get_origin_xyz
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
