@@ -1,6 +1,7 @@
 # tests/test_no_filter.py
 import numpy as np
 import pytest
+
 from parallax.screens.no_filter import NoFilter
 
 

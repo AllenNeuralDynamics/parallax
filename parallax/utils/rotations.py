@@ -18,11 +18,11 @@ if TYPE_CHECKING:
 # Tell mypy the signature; bind the real function at runtime.
 if TYPE_CHECKING:
 
-    def _from_euler(
-        order: str, angles: Sequence[float], *, degrees: bool
-    ) -> Rotation: ...
+    def _from_euler(order: str, angles: Sequence[float], *, degrees: bool) -> Rotation: ...
+
 else:
     _from_euler: Callable[..., Rotation] = Rotation.from_euler
+
 
 def norm_vec(vec: NDArray[np.floating[Any]]) -> NDArray[np.floating[Any]]:
     """Normalize input vector"""
@@ -31,15 +31,15 @@ def norm_vec(vec: NDArray[np.floating[Any]]) -> NDArray[np.floating[Any]]:
         raise ValueError("Input has norm of zero")
     return vec / n
 
+
 def skew_symmetric_cross_product_matrix(
     v: NDArray[np.floating[Any]],
 ) -> NDArray[np.floating[Any]]:
     """Find the cross product matrix for a vector v"""
     return np.cross(v, np.identity(v.shape[0]) * -1)
 
-def define_euler_rotation(
-    rx: float, ry: float, rz: float, degrees: bool = True, order: str = "xyz"
-) -> Rotation:
+
+def define_euler_rotation(rx: float, ry: float, rz: float, degrees: bool = True, order: str = "xyz") -> Rotation:
     """
     Wrapper of scipy.spatial.transform.Rotation.from_euler
 
@@ -239,16 +239,14 @@ def rotation_matrix_from_vectors(
     rotation_matrix = np.eye(nd) + ax + ax @ ax * (1 / (1 + c))
     return rotation_matrix
 
-def _rotate_mat_by_single_euler(
-    mat: NDArray[np.floating[Any]], axis: str, angle: float
-) -> NDArray[np.floating[Any]]:
+
+def _rotate_mat_by_single_euler(mat: NDArray[np.floating[Any]], axis: str, angle: float) -> NDArray[np.floating[Any]]:
     "Helper function that rotates a matrix by a single Euler angle"
     rotation_matrix = Rotation.from_euler(axis, angle).as_matrix().squeeze()
     return mat @ rotation_matrix
 
-def roll(
-    input_mat: NDArray[np.floating[Any]], angle: float
-) -> NDArray[np.floating[Any]]:
+
+def roll(input_mat: NDArray[np.floating[Any]], angle: float) -> NDArray[np.floating[Any]]:
     """
     Apply a rotation around the x-axis (roll/bank angle) to the input matrix.
 
@@ -266,9 +264,8 @@ def roll(
     """
     return _rotate_mat_by_single_euler(input_mat, "x", angle)
 
-def pitch(
-    input_mat: NDArray[np.floating[Any]], angle: float
-) -> NDArray[np.floating[Any]]:
+
+def pitch(input_mat: NDArray[np.floating[Any]], angle: float) -> NDArray[np.floating[Any]]:
     """
     Apply a rotation around the y-axis (pitch/elevation angle) to the input
     matrix.
@@ -287,9 +284,8 @@ def pitch(
     """
     return _rotate_mat_by_single_euler(input_mat, "y", angle)
 
-def yaw(
-    input_mat: NDArray[np.floating[Any]], angle: float
-) -> NDArray[np.floating[Any]]:
+
+def yaw(input_mat: NDArray[np.floating[Any]], angle: float) -> NDArray[np.floating[Any]]:
     """
     Apply a rotation around the z-axis (yaw/heading angle) to the input matrix.
 
@@ -306,6 +302,7 @@ def yaw(
         The rotated matrix.
     """
     return _rotate_mat_by_single_euler(input_mat, "z", angle)
+
 
 def extract_angles(
     mat: NDArray[np.floating[Any]],
@@ -324,6 +321,7 @@ def extract_angles(
         The extracted Euler angles (roll, pitch, yaw) in radians.
     """
     return tuple(Rotation.from_matrix(mat).as_euler("xyz"))
+
 
 def combine_angles(x: float, y: float, z: float) -> NDArray[np.floating[Any]]:
     """
@@ -344,6 +342,7 @@ def combine_angles(x: float, y: float, z: float) -> NDArray[np.floating[Any]]:
         The resulting rotation matrix.
     """
     return Rotation.from_euler("xyz", [x, y, z]).as_matrix().squeeze()
+
 
 def make_homogeneous_transform(
     R: NDArray[np.floating[Any]],
@@ -384,6 +383,7 @@ def make_homogeneous_transform(
     R_homog[0:N, N] = translation
     return R_homog
 
+
 def affine_and_translation_from_homogeneous(
     R_homog: NDArray[np.floating[Any]],
 ) -> tuple[NDArray[np.floating[Any]], NDArray[np.floating[Any]]]:
@@ -408,6 +408,7 @@ def affine_and_translation_from_homogeneous(
     R = R_homog[0:N, 0:N]
     translation = R_homog[0:N, N]
     return R, translation
+
 
 def prepare_data_for_homogeneous_transform(
     pts: NDArray[np.floating[Any]],
@@ -438,6 +439,7 @@ def prepare_data_for_homogeneous_transform(
         raise ValueError("pts must be 1D or 2D")
     return pts_homog
 
+
 def extract_data_for_homogeneous_transform(
     pts_homog: NDArray[np.floating[Any]],
 ) -> NDArray[np.floating[Any]]:
@@ -460,10 +462,11 @@ def extract_data_for_homogeneous_transform(
         pts = pts_homog[0:M]
     elif nd == 2:
         N, M = pts_homog.shape
-        pts = pts_homog[:, 0 : (M - 1)]
+        pts = pts_homog[:, 0:(M - 1)]
     else:
         raise ValueError("pts_homog must be 1D or 2D")
     return pts
+
 
 def _apply_homogeneous_transform_to_transposed_pts(
     pts: NDArray[np.floating[Any]], R_homog: NDArray[np.floating[Any]]
@@ -471,6 +474,7 @@ def _apply_homogeneous_transform_to_transposed_pts(
     pts_homog = prepare_data_for_homogeneous_transform(pts)
     transformed_pts_homog = pts_homog @ R_homog.T  # pts_homog is row vectors
     return extract_data_for_homogeneous_transform(transformed_pts_homog)
+
 
 def apply_affine(
     pts: NDArray[np.floating[Any]],
@@ -497,6 +501,7 @@ def apply_affine(
     R_homog = make_homogeneous_transform(affine_R, translation)
     return _apply_homogeneous_transform_to_transposed_pts(pts, R_homog)
 
+
 def invert_affine(
     affine_R: NDArray[np.floating[Any]], translation: NDArray[np.floating[Any]]
 ) -> tuple[NDArray[np.floating[Any]], NDArray[np.floating[Any]]]:
@@ -520,6 +525,7 @@ def invert_affine(
     R_inv = np.linalg.inv(affine_R)
     t_inv = -R_inv @ translation
     return R_inv, t_inv
+
 
 def apply_inverse_affine(
     pts: NDArray[np.floating[Any]],
@@ -546,6 +552,7 @@ def apply_inverse_affine(
     R_inv, t_inv = invert_affine(affine_R, translation)
     return apply_affine(pts, R_inv, t_inv)
 
+
 def apply_rotate_translate(
     pts: NDArray[np.floating[Any]],
     R: NDArray[np.floating[Any]],
@@ -569,6 +576,7 @@ def apply_rotate_translate(
         The transformed points.
     """
     return apply_affine(pts, R, translation)
+
 
 def invert_rotate_translate(
     R: NDArray[np.floating[Any]], translation: NDArray[np.floating[Any]]
@@ -600,6 +608,7 @@ def invert_rotate_translate(
     t_inv = -translation @ R
     return R_inv, t_inv
 
+
 def create_homogeneous_from_euler_and_translation(
     rx: float, ry: float, rz: float, tx: float, ty: float, tz: float
 ) -> NDArray[np.floating[Any]]:
@@ -630,6 +639,7 @@ def create_homogeneous_from_euler_and_translation(
     R = combine_angles(rx, ry, rz)
     t = np.array([tx, ty, tz])
     return make_homogeneous_transform(R, t)
+
 
 def ras_to_lps_transform(
     R: NDArray[np.floating[Any]],
@@ -669,6 +679,7 @@ def ras_to_lps_transform(
     R_out = T_out[:3, :3]
     translation_out = T_out[:3, 3]
     return R_out, translation_out
+
 
 def compose_transforms(
     R_1: NDArray[np.floating[Any]],
@@ -719,6 +730,7 @@ def compose_transforms(
     else:
         raise ValueError("Invalid number of arguments")
 
+
 def itk_to_slicer_transform(
     itk_transform: NDArray[np.floating[Any]],
 ) -> tuple[NDArray[np.floating[Any]], NDArray[np.floating[Any]]]:
@@ -743,9 +755,7 @@ def itk_to_slicer_transform(
         A 1x3 numpy.ndarray representing the translation vector of the Slicer
         transform.
     """
-    R, translation = ras_to_lps_transform(
-        itk_transform[:3, :3], itk_transform[:3, 3]
-    )
+    R, translation = ras_to_lps_transform(itk_transform[:3, :3], itk_transform[:3, 3])
     T = make_homogeneous_transform(R, translation)
     transform_to_parent_RAS = np.linalg.inv(T)
     return transform_to_parent_RAS[:3, :3], transform_to_parent_RAS[:3, 3]

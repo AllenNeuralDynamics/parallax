@@ -1,15 +1,12 @@
 # tests/helper.py
-import os
 from typing import List
-import numpy as np
-import pytest
 from unittest.mock import MagicMock, Mock
 
+import numpy as np
+import pytest
+
 # ---- Qt imports kept local to tests ----
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QGroupBox, QPushButton,
-    QLineEdit, QLabel, QComboBox
-)
+from PyQt6.QtWidgets import QComboBox, QGroupBox, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
 
 # =========================
@@ -24,12 +21,14 @@ def _build_args():
     args.nCameras = 1
     return args
 
+
 @pytest.fixture(scope="function")
 def model():
     """Real Model fixture (import in tests if desired):
-       from tests.helper import model
+    from tests.helper import model
     """
     from parallax.model import Model
+
     m = Model(_build_args())
     m.stage_listener_url = "http://localhost:8080/"
     return m
@@ -87,9 +86,9 @@ def mock_stage_instances(n: int = 1):
     base = {
         "SerialNumber": "SN001",
         "Id": "A1",
-        "Stage_X": 1.0,    # mm
-        "Stage_Y": 2.0,    # mm
-        "Stage_Z": 3.0,    # mm
+        "Stage_X": 1.0,  # mm
+        "Stage_Y": 2.0,  # mm
+        "Stage_Z": 3.0,  # mm
         "Stage_XOffset": 0.1,
         "Stage_YOffset": 0.2,
         "Stage_ZOffset": 0.3,
@@ -100,6 +99,7 @@ def mock_stage_instances(n: int = 1):
         d.update({"SerialNumber": f"SN{i:03d}", "Id": f"A{i}"})
         out.append(d)
     return out
+
 
 def mock_get_request(payload, status_code: int = 200):
     """Return a Mock() emulating requests.get response."""
@@ -119,6 +119,7 @@ class DummySignal:
 
 class DummyScreenWidget(QWidget):
     """Widget with .selected signal signature expected by ScreenCoordsMapper."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.selected = DummySignal()
@@ -194,6 +195,7 @@ def patch_calculator_ui(monkeypatch):
         def __init__(self, model):
             self.model = model
             self.sent = []
+
         def request(self, cmd: dict):
             self.sent.append(cmd)
 
@@ -202,14 +204,16 @@ def patch_calculator_ui(monkeypatch):
     # CoordsConverter stubs use model.get_transform(sn)
     def _ltg(_model, sn, local_pts, _reticle=None):
         T = _model.get_transform(sn)
-        if T is None: return None
+        if T is None:
+            return None
         v = np.array([local_pts[0], local_pts[1], local_pts[2], 1.0], dtype=float)
         out = T @ v
         return out[:3]
 
     def _gtl(_model, sn, global_pts, _reticle=None):
         T = _model.get_transform(sn)
-        if T is None: return None
+        if T is None:
+            return None
         invT = np.linalg.inv(T)
         v = np.array([global_pts[0], global_pts[1], global_pts[2], 1.0], dtype=float)
         out = invT @ v
@@ -245,6 +249,7 @@ def _cp_fake_loadUi(path, base):
     # Provide a nested ui namespace if other code references self.ui.*
     class _Sub:
         pass
+
     base.ui = _Sub()
     base.ui.x = QLabel("", base)
     base.ui.y = QLabel("", base)
@@ -262,5 +267,6 @@ class DummyScreenCoordsMapper:
 def patch_control_panel_ui(monkeypatch):
     """Patch ControlPanel to avoid real .ui parsing and real screen mapper."""
     import parallax.control_panel.control_panel as cp_mod
+
     monkeypatch.setattr(cp_mod, "loadUi", _cp_fake_loadUi)
     monkeypatch.setattr(cp_mod, "ScreenCoordsMapper", DummyScreenCoordsMapper)

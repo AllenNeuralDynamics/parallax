@@ -1,9 +1,11 @@
-import pytest
-import numpy as np
 import time
 from unittest.mock import MagicMock, patch
-from parallax.screens.axis_filter import AxisFilter
+
+import numpy as np
+import pytest
 from PyQt6.QtCore import QCoreApplication, QEventLoop
+
+from parallax.screens.axis_filter import AxisFilter
 
 # --- Fixtures and Mocks ---
 
@@ -18,33 +20,76 @@ MOCK_CAMERA_CONFIGS = {
         "imtx_INIT": np.eye(3),
         "idist_INIT": np.zeros((1, 5)),
         "FLAGS": 0,
-        "PIXEL_SIZE_MM": 0.00345
+        "PIXEL_SIZE_MM": 0.00345,
     }
 }
+
 
 # 1. FIXTURE: Mock the configuration used by calibrate_camera
 @pytest.fixture(autouse=True)
 def mock_calibration_config():
     """Patches the configuration dictionary to include the mock device model."""
     # Patch cfg.CAMERA_CONFIGS to include our test key
-    with patch('parallax.cameras.calibration_camera.cfg.CAMERA_CONFIGS', MOCK_CAMERA_CONFIGS):
+    with patch("parallax.cameras.calibration_camera.cfg.CAMERA_CONFIGS", MOCK_CAMERA_CONFIGS):
         yield
+
 
 @pytest.fixture
 def mock_reticle_coords():
     """Mock reticle coordinates for testing."""
     return [
-        np.array([[1819, 1680], [1872, 1672], [1925, 1663], [1976, 1655], [2029, 1646],
-                  [2081, 1638], [2132, 1630], [2184, 1621], [2236, 1613], [2287, 1604],
-                  [2339, 1596], [2390, 1588], [2441, 1579], [2492, 1571], [2543, 1563],
-                  [2594, 1555], [2644, 1546], [2696, 1538], [2746, 1530], [2796, 1522],
-                  [2846, 1514]]), 
-        np.array([[2491, 2084], [2476, 2035], [2460, 1985], [2445, 1936], [2429, 1887],
-                  [2414, 1838], [2399, 1789], [2384, 1741], [2369, 1693], [2354, 1644],
-                  [2339, 1596], [2324, 1548], [2308, 1500], [2293, 1452], [2278, 1404],
-                  [2264, 1357], [2249, 1310], [2234, 1262], [2219, 1215], [2205, 1168],
-                  [2190, 1121]])
+        np.array(
+            [
+                [1819, 1680],
+                [1872, 1672],
+                [1925, 1663],
+                [1976, 1655],
+                [2029, 1646],
+                [2081, 1638],
+                [2132, 1630],
+                [2184, 1621],
+                [2236, 1613],
+                [2287, 1604],
+                [2339, 1596],
+                [2390, 1588],
+                [2441, 1579],
+                [2492, 1571],
+                [2543, 1563],
+                [2594, 1555],
+                [2644, 1546],
+                [2696, 1538],
+                [2746, 1530],
+                [2796, 1522],
+                [2846, 1514],
+            ]
+        ),
+        np.array(
+            [
+                [2491, 2084],
+                [2476, 2035],
+                [2460, 1985],
+                [2445, 1936],
+                [2429, 1887],
+                [2414, 1838],
+                [2399, 1789],
+                [2384, 1741],
+                [2369, 1693],
+                [2354, 1644],
+                [2339, 1596],
+                [2324, 1548],
+                [2308, 1500],
+                [2293, 1452],
+                [2278, 1404],
+                [2264, 1357],
+                [2249, 1310],
+                [2234, 1262],
+                [2219, 1215],
+                [2205, 1168],
+                [2190, 1121],
+            ]
+        ),
     ]
+
 
 @pytest.fixture
 def mock_model(mock_reticle_coords):
@@ -56,36 +101,29 @@ def mock_model(mock_reticle_coords):
 
     # --- 1. Define the Camera Parameters (params) Mock ---
     # This structure is needed for self.model.get_camera_intrinsic()
-    mock_params = {
-        'mtx': np.eye(3),
-        'dist': np.zeros((1, 5)),
-        'rvec': np.zeros((3, 1)),
-        'tvec': np.zeros((3, 1))
-    }
+    mock_params = {"mtx": np.eye(3), "dist": np.zeros((1, 5)), "rvec": np.zeros((3, 1)), "tvec": np.zeros((3, 1))}
 
     # --- 2. Define the Camera Data Structure ---
     mock_camera_data = {
-        'obj': MagicMock(),
-        'visible': True,
-        'device_model': MOCK_DEVICE_MODEL,
-        'is_triangulation_candidate': False,
-        'probe_detect_algorithm': 'opencv',
-        'coords_axis': mock_reticle_coords,
-        'coords_debug': None,
-        'pos_x': None,
-        'params': mock_params # The actual dictionary of parameters
+        "obj": MagicMock(),
+        "visible": True,
+        "device_model": MOCK_DEVICE_MODEL,
+        "is_triangulation_candidate": False,
+        "probe_detect_algorithm": "opencv",
+        "coords_axis": mock_reticle_coords,
+        "coords_debug": None,
+        "pos_x": None,
+        "params": mock_params,  # The actual dictionary of parameters
     }
 
     # --- 3. Populate the Model's Internal State ---
-    model.cameras = {
-        MOCK_CAMERA_SN: mock_camera_data
-    }
+    model.cameras = {MOCK_CAMERA_SN: mock_camera_data}
 
     # --- 4. Mock the Accessor Methods (to retrieve data from the structure) ---
     model.get_camera_device_model.return_value = MOCK_DEVICE_MODEL
     model.get_coords_axis.return_value = mock_reticle_coords
     model.get_pos_x.return_value = None
-    model.get_camera_intrinsic.return_value = mock_params # Returns the 'params' dict
+    model.get_camera_intrinsic.return_value = mock_params  # Returns the 'params' dict
 
     # Mock methods called by the AxisFilter worker
     model.add_pos_x = MagicMock()
@@ -94,10 +132,12 @@ def mock_model(mock_reticle_coords):
 
     return model
 
+
 @pytest.fixture
 def test_frame():
     """Create a test frame for processing."""
     return np.random.randint(0, 256, (3000, 4000, 3), dtype=np.uint8)
+
 
 @pytest.fixture
 def axis_filter(mock_model):
@@ -106,11 +146,13 @@ def axis_filter(mock_model):
     filter_instance.init_thread()
     return filter_instance
 
-@pytest.fixture(scope='module', autouse=True)
+
+@pytest.fixture(scope="module", autouse=True)
 def qt_application():
     """Set up the QCoreApplication for the PyQt event loop."""
     app = QCoreApplication([])  # Necessary for PyQt signal-slot mechanism
     yield app
+
 
 # Helper function to process and test pos_x
 def process_axis_filter(axis_filter, test_frame, click_position, qt_application, expected_pos_x):
@@ -133,6 +175,7 @@ def process_axis_filter(axis_filter, test_frame, click_position, qt_application,
     # Cleanup after each case
     axis_filter.stop()
     axis_filter.clean()
+
 
 # Test the process of handling reticle coordinates and checking pos_x for 4 different click cases
 def test_axis_filter_pos_x_cases(axis_filter, test_frame, qt_application):

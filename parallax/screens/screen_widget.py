@@ -5,17 +5,18 @@ for real-time processing and offers camera control functions.
 """
 
 import logging
+
+import cv2
+import numpy as np
 import pyqtgraph as pg
 from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, pyqtSignal
-import cv2
-import numpy as np
 
-from parallax.screens.no_filter import NoFilter
 from parallax.probe_detection.probe_detect_manager import ProbeDetectManager
-from parallax.reticle_detection.manager_opencv import ReticleDetectManager
 from parallax.reticle_detection.manager_cnn import ReticleDetectManagerCNN
+from parallax.reticle_detection.manager_opencv import ReticleDetectManager
 from parallax.screens.axis_filter import AxisFilter
+from parallax.screens.no_filter import NoFilter
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -75,10 +76,12 @@ class ScreenWidget(pg.GraphicsView):
         self.width, self.height = self.camera.width, self.camera.height
         if self.height is not None and self.width:
             self.view_box.setLimits(
-                xMin=-self.width, xMax=self.width * 2,  # Prevent panning outside image boundaries
-                yMin=-self.height, yMax=self.height * 2,
+                xMin=-self.width,
+                xMax=self.width * 2,  # Prevent panning outside image boundaries
+                yMin=-self.height,
+                yMax=self.height * 2,
                 maxXRange=self.width * 10,
-                maxYRange=self.height * 10
+                maxYRange=self.height * 10,
             )
 
         # No filter
@@ -92,18 +95,14 @@ class ScreenWidget(pg.GraphicsView):
 
         # Reticle Detection
         self.reticleDetector = ReticleDetectManager(self.model, self.camera_name, test_mode=self.model.test)
-        self.reticleDetector.frame_processed.connect(
-            self.set_image_from_data
-        )
+        self.reticleDetector.frame_processed.connect(self.set_image_from_data)
         self.reticleDetector.found_coords.connect(self.found_reticle_coords)
         self.reticleDetector.found_coords.connect(self.reticle_coords_detected)
         self.reticleDetector.finished.connect(self.reticle_coords_detect_finished)
 
         # Reticle Detection using CNN (Superpoint + Lightglue)
         self.reticleDetectorCNN = ReticleDetectManagerCNN(self.model, self.camera_name, test_mode=self.model.test)
-        self.reticleDetectorCNN.frame_processed.connect(
-            self.set_image_from_data
-        )
+        self.reticleDetectorCNN.frame_processed.connect(self.set_image_from_data)
         self.reticleDetectorCNN.found_coords.connect(self.found_reticle_coords)
         self.reticleDetectorCNN.found_coords.connect(self.reticle_coords_detected)
         self.reticleDetectorCNN.finished.connect(self.reticle_coords_detect_finished)
@@ -111,9 +110,7 @@ class ScreenWidget(pg.GraphicsView):
         # Probe Detection
         self.probeDetector = ProbeDetectManager(self.model, self.camera_name)
         self.model.add_probe_detector(self.probeDetector)
-        self.probeDetector.frame_processed.connect(
-            self.set_image_from_data
-        )
+        self.probeDetector.frame_processed.connect(self.set_image_from_data)
         self.probeDetector.found_coords.connect(self.found_probe_coords)
 
     def refresh(self):
@@ -412,7 +409,6 @@ class ScreenWidget(pg.GraphicsView):
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_params(self.camera_name, camera_matrix)
 
-
     def found_probe_coords(self, stage_ts, img_ts, probe_sn, stage_info, tip_coords, base_coords):
         """Store the found probe coordinates and related information."""
         self.probe_last_stopped_timestamp = stage_ts
@@ -422,7 +418,7 @@ class ScreenWidget(pg.GraphicsView):
         self.probe_detect_tip_coords = tip_coords
         self.probe_detect_base_coords = base_coords
 
-        #self.probe_coords_detected.emit(self.camera_name, stage_ts, img_ts, probe_sn, stage_info, tip_coords)
+        # self.probe_coords_detected.emit(self.camera_name, stage_ts, img_ts, probe_sn, stage_info, tip_coords)
         self.probe_coords_detected.emit(self.camera_name)
 
     def get_last_detect_probe_info(self):
@@ -467,7 +463,7 @@ class ScreenWidget(pg.GraphicsView):
 
         mods = e.modifiers()
         control = bool(mods & Qt.KeyboardModifier.ControlModifier)
-        shift   = bool(mods & Qt.KeyboardModifier.ShiftModifier)
+        shift = bool(mods & Qt.KeyboardModifier.ShiftModifier)
 
         if control:
             if self.focochan:

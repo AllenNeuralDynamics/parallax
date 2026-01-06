@@ -4,17 +4,20 @@ It supports calibrating the transformation between local and global coordinates 
 """
 
 import csv
+import datetime
 import logging
 import os
-import datetime
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal
-from parallax.utils.transforms import fit_params
-from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
-from .bundle_adjustment import BALProblem, BALOptimizer
+
 from parallax.config.config_path import stages_dir
+from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
+from parallax.utils.transforms import fit_params
+
+from .bundle_adjustment import BALOptimizer, BALProblem
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -30,6 +33,7 @@ class ProbeCalibration(QObject):
         calib_complete: Signal emitted when the full calibration is complete.
         transM_info (str, object, float, object): Signal emitted with transformation matrix information.
     """
+
     calib_complete = pyqtSignal()
     transM_info = pyqtSignal(str, object, float, object)
 
@@ -40,12 +44,14 @@ class ProbeCalibration(QObject):
 
     # 20 um diff on +8mm point e.g less than (0, 8020, 0) on (0, 8000, 0) is okay
     # center:  +10mm point (10, 10, 10) on (0, 0, 0)
-    THRESHOLD_MATRIX = np.array([
-        [0.0025, 0.0025, 0.0025, 10.0],
-        [0.0025, 0.0025, 0.0025, 10.0],
-        [0.0025, 0.0025, 0.0025, 10.0],
-        [0.0,   0.0,   0.0,   0.0],
-    ])
+    THRESHOLD_MATRIX = np.array(
+        [
+            [0.0025, 0.0025, 0.0025, 10.0],
+            [0.0025, 0.0025, 0.0025, 10.0],
+            [0.0025, 0.0025, 0.0025, 10.0],
+            [0.0, 0.0, 0.0, 0.0],
+        ]
+    )
 
     def __init__(self, model, stage_listener):
         """
@@ -110,7 +116,7 @@ class ProbeCalibration(QObject):
                 "cam0",
                 "pt0",
                 "cam1",
-                "pt1"
+                "pt1",
             ]
             writer.writerow(self.column_names)
 
@@ -150,7 +156,7 @@ class ProbeCalibration(QObject):
             pd.DataFrame: The DataFrame without duplicates.
         """
         logger.debug(f"Original rows: {self.df.shape[0]}")
-        df.drop_duplicates(subset=['sn', 'ts_local_coords', 'global_x', 'global_y', 'global_z'])
+        df.drop_duplicates(subset=["sn", "ts_local_coords", "global_x", "global_y", "global_z"])
         logger.debug(f"Unique rows: {self.df.shape[0]}")
 
         return df
@@ -196,12 +202,12 @@ class ProbeCalibration(QObject):
             numpy.ndarray: The L2 distance between the points. N-element array (row vector of distances).
         """
         # --- Input Validation (Ensure 3xN) ---
-        N_points = global_pts.shape[0] # Number of points is the second dimension (N)
+        N_points = global_pts.shape[0]  # Number of points is the second dimension (N)
 
         if global_pts.ndim != 2 or global_pts.shape[1] != 3 or N_points == 0:
             if N_points == 0:
                 logger.warning("Attempted to compute L2 distance with zero global points.")
-                return np.array([]) # Return an empty array as the distance
+                return np.array([])  # Return an empty array as the distance
             raise ValueError("global_points must be a 2D array of shape (N, 3).")
 
         if local_pts.ndim != 2 or local_pts.shape[1] != 3:
@@ -214,7 +220,7 @@ class ProbeCalibration(QObject):
         # 4. Compute the L2 norm (Euclidean distance)
         # The difference is N x 3. axis=1 collapses the coordinate dimension (3) per point (N).
         # The result is an (N,) array of distances.
-        l2_distance = np.linalg.norm(local_pts - local_pts_exp , axis=1)
+        l2_distance = np.linalg.norm(local_pts - local_pts_exp, axis=1)
         logger.debug(f"L2 distances: {l2_distance}")
 
         # 5. Calculate statistics and log (no change needed here)
@@ -249,7 +255,7 @@ class ProbeCalibration(QObject):
 
         # Filter out points where L2 distance is greater than the threshold
         valid_indices = l2_distance <= threshold
-        
+
         # Apply filter to the original DataFrame
         df_filtered = df[valid_indices].reset_index(drop=True)
 
@@ -259,14 +265,14 @@ class ProbeCalibration(QObject):
             l2_inliers = l2_distance[valid_indices]
             mean_l2 = np.mean(l2_inliers)
             std_l2 = np.std(l2_inliers)
-            
+
             logger.debug(
                 f"(noise removed) -> mean: {mean_l2:.4f}, std: {std_l2:.4f}, "
                 f"kept: {len(l2_inliers)}/{len(l2_distance)}"
             )
         else:
             logger.warning("All points were filtered out as outliers based on the threshold.")
-            
+
         # Return the filtered DataFrame
         return df_filtered
 
@@ -305,51 +311,53 @@ class ProbeCalibration(QObject):
             return  # Do not update if condition is met (to avoid noise)
 
         new_row_data = {
-            'sn': stage.sn,
-            'local_x': stage.stage_x,
-            'local_y': stage.stage_y,
-            'local_z': stage.stage_z,
-            'global_x': round(stage.stage_x_global, 0),
-            'global_y': round(stage.stage_y_global, 0),
-            'global_z': round(stage.stage_z_global, 0),
-            'ts_local_coords': debug_info.get('ts_local_coords', '') if debug_info else '',
-            'ts_img_captured': debug_info.get('ts_img_captured', '') if debug_info else '',
-            'cam0': '',
-            'pt0': '',
-            'cam1': '',
-            'pt1': ''
+            "sn": stage.sn,
+            "local_x": stage.stage_x,
+            "local_y": stage.stage_y,
+            "local_z": stage.stage_z,
+            "global_x": round(stage.stage_x_global, 0),
+            "global_y": round(stage.stage_y_global, 0),
+            "global_z": round(stage.stage_z_global, 0),
+            "ts_local_coords": debug_info.get("ts_local_coords", "") if debug_info else "",
+            "ts_img_captured": debug_info.get("ts_img_captured", "") if debug_info else "",
+            "cam0": "",
+            "pt0": "",
+            "cam1": "",
+            "pt1": "",
         }
         if debug_info:
             cam_info = [
-                (debug_info.get('cam0', ''), debug_info.get('pt0', '')),
-                (debug_info.get('cam1', ''), debug_info.get('pt1', ''))
+                (debug_info.get("cam0", ""), debug_info.get("pt0", "")),
+                (debug_info.get("cam1", ""), debug_info.get("pt1", "")),
             ]
             cam_info.sort(key=lambda x: x[0])  # Sort by camera name
             for i, (cam, pt) in enumerate(cam_info):
-                new_row_data[f'cam{i}'] = cam
-                new_row_data[f'pt{i}'] = pt
+                new_row_data[f"cam{i}"] = cam
+                new_row_data[f"pt{i}"] = pt
 
         # Read the entire CSV file to check for duplicates
         try:
-            with open(self.log_dir / "points.csv", "r", newline='') as file:
+            with open(self.log_dir / "points.csv", "r", newline="") as file:
                 reader = list(csv.DictReader(file))
                 for row in reversed(reader):
-                    if (row['sn'] == new_row_data['sn'] and
-                        row['ts_local_coords'] == new_row_data['ts_local_coords'] and
-                        round(float(row['global_x']), 0) == new_row_data['global_x'] and
-                        round(float(row['global_y']), 0) == new_row_data['global_y'] and
-                        round(float(row['global_z']), 0) == new_row_data['global_z'] and
-                        row['cam0'] == new_row_data['cam0'] and
-                            row['cam1'] == new_row_data['cam1']):
+                    if (
+                        row["sn"] == new_row_data["sn"]
+                        and row["ts_local_coords"] == new_row_data["ts_local_coords"]
+                        and round(float(row["global_x"]), 0) == new_row_data["global_x"]
+                        and round(float(row["global_y"]), 0) == new_row_data["global_y"]
+                        and round(float(row["global_z"]), 0) == new_row_data["global_z"]
+                        and row["cam0"] == new_row_data["cam0"]
+                        and row["cam1"] == new_row_data["cam1"]
+                    ):
                         return  # Do not update if it is a duplicate
-                    if row['ts_local_coords'] != new_row_data['ts_local_coords']:
+                    if row["ts_local_coords"] != new_row_data["ts_local_coords"]:
                         break
 
         except FileNotFoundError:
             logger.error("File does not exist")
 
         # Write the new row to the CSV file
-        with open(self.log_dir / "points.csv", "a", newline='') as file:
+        with open(self.log_dir / "points.csv", "a", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=new_row_data.keys())
             writer.writerow(new_row_data)
             logger.debug(f"New point added: {new_row_data}")
@@ -404,16 +412,21 @@ class ProbeCalibration(QObject):
 
         logger.debug(f"Updating movement for {calib_info}")
         # Check if the stage movement has exceeded the thresholds for x, y, and z axes
-        if (calib_info.max_x - calib_info.min_x > self.THRESHOLD_MIN_MAX) and \
-            (calib_info.min_gx < 0 < calib_info.max_gx) and not calib_info.status_x:
+        if (
+            (calib_info.max_x - calib_info.min_x > self.THRESHOLD_MIN_MAX)
+            and (calib_info.min_gx < 0 < calib_info.max_gx)
+            and not calib_info.status_x
+        ):
             calib_info.status_x = True
 
-        if (calib_info.max_y - calib_info.min_y > self.THRESHOLD_MIN_MAX) and \
-            (calib_info.min_gy < 0 < calib_info.max_gy) and not calib_info.status_y:
+        if (
+            (calib_info.max_y - calib_info.min_y > self.THRESHOLD_MIN_MAX)
+            and (calib_info.min_gy < 0 < calib_info.max_gy)
+            and not calib_info.status_y
+        ):
             calib_info.status_y = True
 
-        if (calib_info.max_z - calib_info.min_z > self.THRESHOLD_MIN_MAX_Z) and \
-            not calib_info.status_z:
+        if (calib_info.max_z - calib_info.min_z > self.THRESHOLD_MIN_MAX_Z) and not calib_info.status_z:
             calib_info.status_z = True
 
     def _is_criteria_number_of_points(self, df):
@@ -451,7 +464,7 @@ class ProbeCalibration(QObject):
             return True
 
         return False
-    
+
     def _apply_transformation(self):
         """
         Applies the calculated transformation matrix to convert a local point to global coordinates.
@@ -464,8 +477,8 @@ class ProbeCalibration(QObject):
         """
         local_pt = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z], dtype=float)
         global_pts = apply_inverse_affine(pts=local_pt, affine_R=self.R, translation=self.origin)
-        #t = self.origin
-        #global_point = (local_point - t) @ self.R
+        # t = self.origin
+        # global_point = (local_point - t) @ self.R
         return global_pts
 
     def _update_l2_error_current_point(self):
@@ -545,12 +558,7 @@ class ProbeCalibration(QObject):
         else:
             transM = self.transM_LR
 
-        self.transM_info.emit(
-            sn,
-            transM,
-            error,
-            np.array([x_diff, y_diff, z_diff])
-        )
+        self.transM_info.emit(sn, transM, error, np.array([x_diff, y_diff, z_diff]))
 
         if save_to_csv:
             self._save_transM_to_csv(file_name)
@@ -587,11 +595,19 @@ class ProbeCalibration(QObject):
 
         # Format the data as a dictionary
         data = {
-            'R_0_0': [R[0, 0]], 'R_0_1': [R[0, 1]], 'R_0_2': [R[0, 2]],
-            'R_1_0': [R[1, 0]], 'R_1_1': [R[1, 1]], 'R_1_2': [R[1, 2]],
-            'R_2_0': [R[2, 0]], 'R_2_1': [R[2, 1]], 'R_2_2': [R[2, 2]],
-            'T_0': [T[0]], 'T_1': [T[1]], 'T_2': [T[2]],
-            'avg_err': [self.avg_err]
+            "R_0_0": [R[0, 0]],
+            "R_0_1": [R[0, 1]],
+            "R_0_2": [R[0, 2]],
+            "R_1_0": [R[1, 0]],
+            "R_1_1": [R[1, 1]],
+            "R_1_2": [R[1, 2]],
+            "R_2_0": [R[2, 0]],
+            "R_2_1": [R[2, 1]],
+            "R_2_2": [R[2, 2]],
+            "T_0": [T[0]],
+            "T_1": [T[1]],
+            "T_2": [T[2]],
+            "avg_err": [self.avg_err],
         }
 
         df = pd.DataFrame(data)
@@ -647,7 +663,7 @@ class ProbeCalibration(QObject):
 
         # update points in the file
         self._write_local_global_point(stage, debug_info)  # Do no update if it is duplicates
-        self._update_min_max_x_y_z(stage)    # update min max x,y,z and emit signals if criteria met
+        self._update_min_max_x_y_z(stage)  # update min max x,y,z and emit signals if criteria met
         self._update_movement(sn)
         df = self._filter_df_by_sn(sn)
         local_pts, global_pts = self._get_local_global_points(df)
@@ -655,8 +671,12 @@ class ProbeCalibration(QObject):
         if self.transM_LR is None:
             return
 
-        if self._is_criteria_met_points_min_max(sn) and len(df) >= self.THRESHOLD_N_PTS \
-                and self.R is not None and self.origin is not None:
+        if (
+            self._is_criteria_met_points_min_max(sn)
+            and len(df) >= self.THRESHOLD_N_PTS
+            and self.R is not None
+            and self.origin is not None
+        ):
             logger.debug("===============")
             # Iteratively remove outliers and refit transformation
             # Get transM without removing outliers
@@ -687,24 +707,25 @@ class ProbeCalibration(QObject):
             logger.debug("Trajectory data is empty.")
             return False
 
-        if min(df['global_x']) > 0 or max(df['global_x']) < 0 or \
-           min(df['global_y']) > 0 or max(df['global_y']) < 0:
-            logger.debug(f"Trajectory distance not cross to axis."
-                          f"min_x: {min(df['global_x'])}, max_x: {max(df['global_x'])},"
-                          f"min_y: {min(df['global_y'])}, max_y: {max(df['global_y'])}")
+        if min(df["global_x"]) > 0 or max(df["global_x"]) < 0 or min(df["global_y"]) > 0 or max(df["global_y"]) < 0:
+            logger.debug(
+                f"Trajectory distance not cross to axis."
+                f"min_x: {min(df['global_x'])}, max_x: {max(df['global_x'])},"
+                f"min_y: {min(df['global_y'])}, max_y: {max(df['global_y'])}"
+            )
             return False
 
         # Compute span in each local axis
-        df_x = max(df['global_x']) - min(df['global_x']) > self.THRESHOLD_MIN_MAX
-        df_y = max(df['global_y']) - min(df['global_y']) > self.THRESHOLD_MIN_MAX
-        df_z = max(df['global_z']) - min(df['global_z']) > self.THRESHOLD_MIN_MAX_Z
+        df_x = max(df["global_x"]) - min(df["global_x"]) > self.THRESHOLD_MIN_MAX
+        df_y = max(df["global_y"]) - min(df["global_y"]) > self.THRESHOLD_MIN_MAX
+        df_z = max(df["global_z"]) - min(df["global_z"]) > self.THRESHOLD_MIN_MAX_Z
         if df_x and df_y and df_z:
             logger.debug("Trajectory distance is sufficient for calibration.")
             logger.debug(f"X span: {max(df['global_x'])} - {min(df['global_x'])}")
             logger.debug(f"Y span: {max(df['global_y'])} - {min(df['global_y'])}")
             logger.debug(f"Z span: {max(df['global_z'])} - {min(df['global_z'])}")
             return True
-        
+
         return False
 
     def complete_calibration(self, sn, df):
@@ -731,8 +752,7 @@ class ProbeCalibration(QObject):
         print("\n\n=========================================================")
         self._print_formatted_transM()
         print("=========================================================")
-        self._update_info_ui(sn, disp_avg_error=True, save_to_csv=True,
-                             file_name=f"transM_{sn}_{timestamp}.csv")
+        self._update_info_ui(sn, disp_avg_error=True, save_to_csv=True, file_name=f"transM_{sn}_{timestamp}.csv")
 
         if self.model.bundle_adjustment:
             self.old_transM = self.transM_LR
@@ -742,8 +762,9 @@ class ProbeCalibration(QObject):
                 print("** After Bundle Adjustment **")
                 self._print_formatted_transM()
                 print("=========================================================")
-                self._update_info_ui(sn, disp_avg_error=True, save_to_csv=True,
-                                     file_name=f"transM_BA_{sn}_{timestamp}.csv")
+                self._update_info_ui(
+                    sn, disp_avg_error=True, save_to_csv=True, file_name=f"transM_BA_{sn}_{timestamp}.csv"
+                )
             else:
                 return
 
@@ -801,7 +822,6 @@ class ProbeCalibration(QObject):
             print(f"[WARN] view_3d_trajectory failed: {e}")
         """
         print("3D trajectory visualization is currently disabled.")
-        pass
 
     def run_bundle_adjustment(self, file_path):
         """

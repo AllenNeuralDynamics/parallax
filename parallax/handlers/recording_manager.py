@@ -26,15 +26,11 @@ class RecordingManager:
             print("\nSnapshot...")
             for screen in screen_widgets:
                 sn = screen.camera.name(sn_only=True)
-                if self.model.cameras.get(sn, {}).get('visible', False) and screen.is_camera():
+                if self.model.cameras.get(sn, {}).get("visible", False) and screen.is_camera():
                     customName = screen.parent().title()
                     customName = customName if customName else sn
                     # Save the image with a timestamp and custom name
-                    screen.save_image(
-                        save_path, isTimestamp=True, name=customName
-                    )
-                    # Add the camera to the list of cameras from which an image has been saved
-                    self.snapshot_camera_list.append(sn)
+                    screen.save_image(save_path, isTimestamp=True, name=customName)
                 else:
                     logger.debug("save_last_image) camera not found")
         else:
@@ -54,16 +50,14 @@ class RecordingManager:
             print("\nRecording... ")
             for screen in screen_widgets:
                 sn = screen.camera.name(sn_only=True)
-                if self.model.cameras.get(sn, {}).get('visible', False) and screen.is_camera():
+                if self.model.cameras.get(sn, {}).get("visible", False) and screen.is_camera():
                     # If this camera is not already in the list of recording cameras, then record
                     if sn not in self.recording_camera_list:
                         # Use custom name of the camera if it has one, otherwise use the camera's serial number
                         customName = screen.parent().title()
                         customName = customName if customName else sn
                         # Start recording and save the video with a timestamp and custom name
-                        screen.save_recording(
-                            save_path, isTimestamp=True, name=customName
-                        )
+                        screen.save_recording(save_path, isTimestamp=True, name=customName)
                         self.recording_camera_list.append(sn)
         else:
             # If the save directory does not exist

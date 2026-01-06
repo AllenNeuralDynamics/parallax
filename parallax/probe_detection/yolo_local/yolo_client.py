@@ -1,10 +1,10 @@
+import logging
+import time
+
+import numpy as np
+
 from parallax.probe_detection.yolo_local.utils import preprocessing
 from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
-import time
-import numpy as np
-import logging
-import cv2
-from parallax.config.config_path import debug_img_dir
 
 
 class YOLOClient:
@@ -12,17 +12,19 @@ class YOLOClient:
         # super().__init__() # REMOVED QObject
         self.logger = logging.getLogger(self.__class__.__name__)
         self.name = name
-        self.fps = config.get('fps', 5)
-        self.dim = config.get('yolo', {}).get('img_dim', [320, 320])
-        self.bbox_margin = config.get('yolo', {}).get('bbox_margin', 30)
-        self.mask_margin = config.get('yolo', {}).get('mask_margin', 50)
-        self.apply_mask = config.get('yolo', {}).get('apply_mask', False)
+        self.fps = config.get("fps", 5)
+        self.dim = config.get("yolo", {}).get("img_dim", [320, 320])
+        self.bbox_margin = config.get("yolo", {}).get("bbox_margin", 30)
+        self.mask_margin = config.get("yolo", {}).get("mask_margin", 50)
+        self.apply_mask = config.get("yolo", {}).get("apply_mask", False)
         self.current_time = None
-        
+
         # Create YOLO segmentator, passing the detection callback
-        yolo_config = config.get('yolo', {})
-        self.yolo_worker = YoloKeypoints(name, yolo_config, detection_callback=detection_callback, finished_callback=finished_callback)
-        # Note: All PyQT signal/slot connections have been replaced by the direct 
+        yolo_config = config.get("yolo", {})
+        self.yolo_worker = YoloKeypoints(
+            name, yolo_config, detection_callback=detection_callback, finished_callback=finished_callback
+        )
+        # Note: All PyQT signal/slot connections have been replaced by the direct
         # `detection_callback` function passed to YoloSegmentation's constructor.
 
     def start_client(self):
@@ -34,28 +36,32 @@ class YOLOClient:
         except Exception as e:
             self.logger.error(f"Error starting Simple YOLO client: {e}")
             return False
-        
+
     def newframe_captured(self, frame: np.ndarray, crop_info: dict = None, detection: dict = None, i_th: int = 0):
         """Put new frame at the specified FPS rate"""
         """ Dictioction """
         # Rate limit the frames sent to the YOLO worker
-        #if self.current_time is None or current - self.current_time > (1/self.fps):
-        frame_cropped_resized, crop_info, detection = preprocessing(frame,  # Resized to 320x320
-                              detection=detection,
-                              target_size=self.dim,
-                              crop_info=crop_info,
-                              bbox_margin=self.bbox_margin,
-                              mask_margin=self.mask_margin,
-                              apply_mask=self.apply_mask)  # Add any preprocessing needed
+        # if self.current_time is None or current - self.current_time > (1/self.fps):
+        frame_cropped_resized, crop_info, detection = preprocessing(
+            frame,  # Resized to 320x320
+            detection=detection,
+            target_size=self.dim,
+            crop_info=crop_info,
+            bbox_margin=self.bbox_margin,
+            mask_margin=self.mask_margin,
+            apply_mask=self.apply_mask,
+        )  # Add any preprocessing needed
 
         current = None
-        if detection and isinstance(detection, dict) and 'timestamp' in detection:
-            current = detection['timestamp']
+        if detection and isinstance(detection, dict) and "timestamp" in detection:
+            current = detection["timestamp"]
         else:
-            current = time.time() # Fallback to system time if metadata is missing
+            current = time.time()  # Fallback to system time if metadata is missing
 
-        self.yolo_worker.process_frame(frame_cropped_resized, crop_info, ts=current, global_detection=detection, i=i_th) # Reisized to 320x320
-            
+        self.yolo_worker.process_frame(
+            frame_cropped_resized, crop_info, ts=current, global_detection=detection, i=i_th
+        )  # Reisized to 320x320
+
     def stop(self):
         """Stop the YOLO worker"""
         if self.yolo_worker:
@@ -82,10 +88,10 @@ if __name__ == '__main__':
         'fps': 10,
         'yolo': {
             'weights_path': 'path/to/your/model.pt', # REPLACE with your actual path!
-            'img_dim': [640, 480] 
+            'img_dim': [640, 480]
         }
     }
-    
+
     # 2. Define the callback function (replaces the Signal)
     def handle_detections(detections):
         print(f"Thread: {threading.current_thread().name} - Received {len(detections)} detections.")
@@ -94,7 +100,7 @@ if __name__ == '__main__':
     # 3. Initialize and start the client
     client = YOLOClient(config=yolo_client_config, detection_callback=handle_detections)
     client.start_client()
-    
+
     # 4. Simulate a video stream (sending frames)
     # The 'newframe_captured' method is now a regular method call.
     try:
@@ -107,7 +113,7 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         print("Stopping client...")
-        
+
     finally:
         # 5. Stop the worker thread cleanly
         client.stop()

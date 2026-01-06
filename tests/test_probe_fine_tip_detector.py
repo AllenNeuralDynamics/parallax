@@ -1,12 +1,15 @@
-import pytest
-import cv2
 import os
+
+import cv2
 import numpy as np
+import pytest
+
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 
 # Define the folder containing your test images
 IMAGE_FOLDER = "tests/test_data/probe_fine_tip_detector"
 TIP_IMAGE_PATH = os.path.join(IMAGE_FOLDER, "tip.jpg")
+
 
 @pytest.fixture
 def load_tip_image():
@@ -17,6 +20,7 @@ def load_tip_image():
     if img is None:
         pytest.fail(f"Failed to load image from {TIP_IMAGE_PATH}")
     return img
+
 
 def test_get_precise_tip(load_tip_image):
     """
@@ -38,7 +42,7 @@ def test_get_precise_tip(load_tip_image):
         offset_x=offset_x,
         offset_y=offset_y,
         direction=direction,
-        cam_name=cam_name
+        cam_name=cam_name,
     )
 
     # Print the results for debugging purposes
@@ -51,6 +55,8 @@ def test_get_precise_tip(load_tip_image):
     # Verify that the detected tip is close to the expected output
     expected_tip = (2760, 1566)
     np.testing.assert_allclose(
-        precise_tip, expected_tip, atol=30,
-        err_msg=f"Precise tip {precise_tip} is not close to the expected tip {expected_tip}"
+        precise_tip,
+        expected_tip,
+        atol=30,
+        err_msg=f"Precise tip {precise_tip} is not close to the expected tip {expected_tip}",
     )

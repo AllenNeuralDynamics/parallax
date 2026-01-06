@@ -13,14 +13,16 @@ Key features:
 - Provides methods for retrieving global coordinates with specific reticle adjustments.
 """
 
-import os
-import logging
 import json
+import logging
+import os
+
 import numpy as np
-from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
-from PyQt6.uic import loadUi
 from PyQt6.QtCore import Qt
-from parallax.config.config_path import ui_dir, reticle_metadata_file
+from PyQt6.QtWidgets import QGroupBox, QLineEdit, QPushButton, QWidget
+from PyQt6.uic import loadUi
+
+from parallax.config.config_path import reticle_metadata_file, ui_dir
 from parallax.utils.rotations import define_euler_rotation
 
 logger = logging.getLogger(__name__)
@@ -92,7 +94,7 @@ class ReticleMetadata(QWidget):
             return
 
         try:
-            with open(reticle_metadata_file, 'r') as json_file:
+            with open(reticle_metadata_file, "r") as json_file:
                 reticle_data = json.load(json_file)
             if reticle_data:
                 self._create_groupbox_from_metadata(reticle_data)
@@ -342,7 +344,7 @@ class ReticleMetadata(QWidget):
 
         # Save the updated groupbox information to file
         try:
-            with open(reticle_metadata_file, 'w') as json_file:
+            with open(reticle_metadata_file, "w") as json_file:
                 json.dump(reticle_info_list, json_file, indent=4)
             print(f"Metadata successfully saved to {reticle_metadata_file}")
         except Exception as e:
@@ -392,16 +394,14 @@ class ReticleMetadata(QWidget):
 
         rotmat = np.eye(3)
         if offset_rot != 0:
-            rotmat = (
-                define_euler_rotation(0, 0, offset_rot, degrees=True).as_matrix() # CCW
-            )
+            rotmat = define_euler_rotation(0, 0, offset_rot, degrees=True).as_matrix()  # CCW
 
         self.reticles[name] = {
             "rot": offset_rot,
             "rotmat": rotmat,
             "offset_x": offset_x,
             "offset_y": offset_y,
-            "offset_z": offset_z
+            "offset_z": offset_z,
         }
         # Register the reticle in the model
         self.model.add_reticle_metadata(name, self.reticles[name])

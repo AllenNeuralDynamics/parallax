@@ -3,10 +3,13 @@ Defines StageUI, a PyQt6 QWidget for showing and updating stage information in t
 including serial numbers and coordinates. It interacts with the model to reflect
 real-time data changes.
 """
+
 import logging
-from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import pyqtSignal
+
 import numpy as np
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QWidget
+
 from parallax.utils.coords_converter import apply_reticle_adjustments
 
 # Set logger name
@@ -16,6 +19,7 @@ logger.setLevel(logging.WARNING)
 
 class StageUI(QWidget):
     """User interface for stage control and display."""
+
     prev_curr_stages = pyqtSignal(str, str)
 
     def __init__(self, control_panel):
@@ -113,10 +117,10 @@ class StageUI(QWidget):
         """Update the displayed stage serial number."""
         stage_id = self.get_current_stage_id()
         if stage_id:
-            self.selected_stage = self.model.stages.get(stage_id).get('obj', None)
+            self.selected_stage = self.model.stages.get(stage_id).get("obj", None)
             if self.selected_stage:
                 self.ui.stage_sn.setText(" " + self.selected_stage.sn)
-                self.model.update_selected_stage_ui(self.selected_stage.sn)
+                self.model.set_selected_stage_sn(self.selected_stage.sn)
         else:
             self.ui.stage_sn.setText("----------")
 
@@ -124,7 +128,7 @@ class StageUI(QWidget):
         """Update the displayed local coordinates of the selected stage."""
         stage_id = self.get_current_stage_id()
         if stage_id:
-            self.selected_stage = self.model.stages.get(stage_id).get('obj', None)
+            self.selected_stage = self.model.stages.get(stage_id).get("obj", None)
             if self.selected_stage:
                 # unit is µm
                 self.ui.local_coords_x.setText(str(self.selected_stage.stage_x))
@@ -165,7 +169,7 @@ class StageUI(QWidget):
             self.updateStageGlobalCoords_default()
         else:
             # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
-            self.reticle = reticle_name.split('(')[-1].strip(')')
+            self.reticle = reticle_name.split("(")[-1].strip(")")
         return True
 
     def updateStageGlobalCoords(self):

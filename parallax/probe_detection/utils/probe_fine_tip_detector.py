@@ -2,22 +2,25 @@
 Module for detecting the fine tip of a probe in an image.
 Static version - no instantiation required.
 """
+
+import json
 import logging
 import os
+import time
+
 import cv2
 import numpy as np
-import time
-import json
-from parallax.config.config_path import debug_img_dir
-from parallax.config.config_path import img_processing_config_file
+
+from parallax.config.config_path import debug_img_dir, img_processing_config_file
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class ProbeFineTipDetector:
     """Class for detecting the fine tip of the probe in an image."""
+
     # Class-level configuration storage
     _config = None
     _config_file = img_processing_config_file
@@ -31,7 +34,7 @@ class ProbeFineTipDetector:
 
         if cls._config is None:  # Only load once
             try:
-                with open(cls._config_file, 'r') as f:
+                with open(cls._config_file, "r") as f:
                     config = json.load(f)
                 cls._config = config.get("ProbeFineTipDetector", {})
             except (FileNotFoundError, json.JSONDecodeError) as e:
@@ -52,44 +55,14 @@ class ProbeFineTipDetector:
         """Get default configuration if config file is not available."""
         return {
             "preprocessing": {
-                "gaussian_blur": {
-                    "kernel_size": [7, 7],
-                    "sigma": 0
-                },
-                "laplacian": {
-                    "ddepth": "CV_64F",
-                    "enable": True
-                },
-                "threshold": {
-                    "type": "OTSU",
-                    "threshold_value": 0,
-                    "max_value": 255
-                }
+                "gaussian_blur": {"kernel_size": [7, 7], "sigma": 0},
+                "laplacian": {"ddepth": "CV_64F", "enable": True},
+                "threshold": {"type": "OTSU", "threshold_value": 0, "max_value": 255},
             },
-            "validation": {
-                "boundary_check": {
-                    "enable": True,
-                    "max_contours": 2
-                }
-            },
-            "corner_detection": {
-                "harris": {
-                    "block_size": 7,
-                    "ksize": 5,
-                    "k": 0.1,
-                    "threshold_factor": 0.3
-                }
-            },
-            "tip_refinement": {
-                "l2_offset": 7,
-                "enable_offset": True
-            },
-            "debug": {
-                "save_images": True,
-                "circle_radius": 5,
-                "circle_color": [0, 255, 0],
-                "circle_thickness": -1
-            }
+            "validation": {"boundary_check": {"enable": True, "max_contours": 2}},
+            "corner_detection": {"harris": {"block_size": 7, "ksize": 5, "k": 0.1, "threshold_factor": 0.3}},
+            "tip_refinement": {"l2_offset": 7, "enable_offset": True},
+            "debug": {"save_images": True, "circle_radius": 5, "circle_color": [0, 255, 0], "circle_thickness": -1},
         }
 
     @classmethod
@@ -111,7 +84,7 @@ class ProbeFineTipDetector:
             "CV_32F": cv2.CV_32F,
             "CV_8U": cv2.CV_8U,
             "THRESH_BINARY": cv2.THRESH_BINARY,
-            "THRESH_OTSU": cv2.THRESH_OTSU
+            "THRESH_OTSU": cv2.THRESH_OTSU,
         }
         return cv2_constants.get(constant_name, constant_name)
 
@@ -144,8 +117,7 @@ class ProbeFineTipDetector:
         threshold_type = threshold_config.get("type", "OTSU")
 
         if threshold_type == "OTSU":
-            _, img = cv2.threshold(img, threshold_value, max_value,
-                                 cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            _, img = cv2.threshold(img, threshold_value, max_value, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         else:
             thresh_type = cls._get_cv2_constant(threshold_type)
             _, img = cv2.threshold(img, threshold_value, max_value, thresh_type)
@@ -168,14 +140,10 @@ class ProbeFineTipDetector:
         boundary_img = np.zeros_like(img)
         cv2.rectangle(boundary_img, (0, 0), (width - 1, height - 1), 255, 1)
         and_result = cv2.bitwise_and(cv2.bitwise_not(img), boundary_img)
-        contours_boundary, _ = cv2.findContours(
-            and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours_boundary, _ = cv2.findContours(and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if len(contours_boundary) >= max_contours:
-            logger.debug(
-                f"get_probe_precise_tip fail. N of contours_boundary :{len(contours_boundary)}"
-            )
+            logger.debug(f"get_probe_precise_tip fail. N of contours_boundary :{len(contours_boundary)}")
             return False
 
         boundary_img[0, 0] = 255
@@ -183,14 +151,10 @@ class ProbeFineTipDetector:
         boundary_img[height - 1, 0] = 255
         boundary_img[height - 1, width - 1] = 255
         and_result = cv2.bitwise_and(and_result, boundary_img)
-        contours_boundary, _ = cv2.findContours(
-            and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours_boundary, _ = cv2.findContours(and_result, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if len(contours_boundary) >= max_contours:
-            logger.debug(
-                f"get_probe_precise_tip fail. No detection of tip :{len(contours_boundary)}"
-            )
+            logger.debug(f"get_probe_precise_tip fail. No detection of tip :{len(contours_boundary)}")
             return False
 
         return True
@@ -286,12 +250,10 @@ class ProbeFineTipDetector:
         corner_marks = np.zeros_like(img)
         corner_marks[harris_corners > threshold] = 255
 
-        contours, _ = cv2.findContours(
-            corner_marks, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours, _ = cv2.findContours(corner_marks, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
-            #contour_tip = cls._get_direction_tip(contour, direction)
+            # contour_tip = cls._get_direction_tip(contour, direction)
             contour_tip = cls._get_centroid(contour)
             if contour_tip is None:
                 continue
@@ -314,7 +276,9 @@ class ProbeFineTipDetector:
         return (cx, cy)
 
     @classmethod
-    def get_precise_tip(cls, img, tip=None, base=None, offset_x=0, offset_y=0, direction="S", cam_name="cam", check_validity=True):
+    def get_precise_tip(
+        cls, img, tip=None, base=None, offset_x=0, offset_y=0, direction="S", cam_name="cam", check_validity=True
+    ):
         """Get the precise tip coordinates from the image."""
         config = cls._ensure_config_loaded()
         debug_config = config.get("debug", {})
@@ -354,7 +318,6 @@ class ProbeFineTipDetector:
         if logger.getEffectiveLevel() == logging.DEBUG and debug_config.get("save_images", True):
             x, y = precise_tip_extended[0] - offset_x, precise_tip_extended[1] - offset_y
             # Use configurable debug circle parameters
-            radius = debug_config.get("circle_radius", 2)
             color = tuple(debug_config.get("circle_color", [0, 255, 0]))
             thickness = debug_config.get("circle_thickness", -1)
 
@@ -374,7 +337,7 @@ class ProbeFineTipDetector:
     @classmethod
     def _get_base(cls, img, tip, offset_x, offset_y):
         """
-        Determines the base centroid. 
+        Determines the base centroid.
         If multiple contours exist, picks the one containing or closest to the tip.
         """
         # 1. Find contours in the local image
@@ -392,7 +355,7 @@ class ProbeFineTipDetector:
         else:
             # Convert global tip to local coordinates relative to the cropped img
             local_tip = (tip[0] - offset_x, tip[1] - offset_y)
-            
+
             # Use pointPolygonTest to find the best contour.
             # measureDist=True returns:
             #   > 0: Inside (distance to nearest edge)
@@ -400,21 +363,19 @@ class ProbeFineTipDetector:
             #   < 0: Outside (negative distance to nearest edge)
             # The maximum value corresponds to the contour the point is deepest inside
             # or (if outside all) the one it is closest to.
-            chosen_contour = max(
-                contours, 
-                key=lambda c: cv2.pointPolygonTest(c, local_tip, measureDist=True)
-            )
+            chosen_contour = max(contours, key=lambda c: cv2.pointPolygonTest(c, local_tip, measureDist=True))
 
         # 4. Get local centroid
         local_base = cls._get_centroid(chosen_contour)
-        
+
         if local_base is None:
             return None
 
         # 5. Convert local centroid back to global coordinates
         global_base = (local_base[0] + offset_x, local_base[1] + offset_y)
-        
+
         return global_base
+
 
 """
 #Module-level configuration

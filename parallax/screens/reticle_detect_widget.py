@@ -1,14 +1,17 @@
 """Reticle detection widget"""
-import os
+
 import logging
+import os
 import sys
 from pathlib import Path
-from PyQt6.QtWidgets import QWidget, QToolButton
-from PyQt6.QtCore import QPoint, QCoreApplication
+
+from PyQt6.QtCore import QCoreApplication, QPoint
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QToolButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -29,9 +32,7 @@ class ReticleDetectWidget(QWidget):
         if self._is_superpoint_available():
             self.settingMenu.radioButton2.setEnabled(True)
 
-        self.detectButton.toggled.connect(
-            lambda checked: self._show_detect_menu(checked)
-        )
+        self.detectButton.toggled.connect(lambda checked: self._show_detect_menu(checked))
         self.settingMenu.run_pushBtn.clicked.connect(self._run_detection)
         self.settingMenu.reset_pushBtn.clicked.connect(self._reset_detection)
         self.screen.reticle_coords_detected.connect(self._reticle_detected)
@@ -108,9 +109,7 @@ class ReticleDetectWidget(QWidget):
         font_grpbox.setPointSize(8)
         btn.setFont(font_grpbox)
         btn.setCheckable(True)
-        btn.setText(
-            QCoreApplication.translate("MainWindow", "RETICLE DETECT \u25ba", None)
-        )
+        btn.setText(QCoreApplication.translate("MainWindow", "RETICLE DETECT \u25ba", None))
         return btn
 
     def _get_setting_menu(self):

@@ -14,17 +14,19 @@ Example:
 import json
 import logging
 import os
-import yaml
-import numpy as np
+from dataclasses import asdict, is_dataclass
 
-from parallax.config.config_path import settings_file, session_file
+import numpy as np
+import yaml
+
 from parallax.cameras.calibration_camera import CameraParams
+from parallax.config.config_path import session_file, settings_file
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
-from dataclasses import is_dataclass, asdict
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
+
 
 class UserSettingsManager:
     "UserSettingsManager class"
@@ -120,15 +122,11 @@ class UserSettingsManager:
                 if item in settings[category]:
                     return settings[category][item]
                 else:
-                    logger.debug(
-                        f"load_settings_item: Item '{item}' not found in settings."
-                    )
+                    logger.debug(f"load_settings_item: Item '{item}' not found in settings.")
                     return None
             return settings[category]
         else:
-            logger.debug(
-                f"load_settings_item: Section '{category}' not found in settings."
-            )
+            logger.debug(f"load_settings_item: Section '{category}' not found in settings.")
             return None
 
     @classmethod
@@ -167,6 +165,7 @@ class UserSettingsManager:
 
 class BaseConfigManager:
     """Shared utilities for all ConfigManagers."""
+
     @staticmethod
     def _load_yaml() -> dict:
         """Always return a dict. If no file, create empty structure."""
@@ -241,10 +240,10 @@ class StageConfigManager(BaseConfigManager):
             # Rehydrate dataclasses lazily to avoid circular imports
             if "obj" in stage and isinstance(stage["obj"], dict):
                 from parallax.model import Stage  # adjust module if needed
+
                 stage["obj"] = Stage(**stage["obj"])
             if "calib_info" in stage and isinstance(stage["calib_info"], dict):
                 stage["calib_info"] = StageCalibrationInfo(**stage["calib_info"])
-
             model.stages[sn] = stage
 
         logger.debug(f"[StageConfigManager] Loaded {len(model.stages)} stage(s).")
@@ -283,13 +282,13 @@ class CameraConfigManager(BaseConfigManager):
 
             # Basic fields
             for key in [
-                    "visible",
-                    "coords_axis",
-                    "coords_debug",
-                    "pos_x",
-                    'device_model',
-                    'is_triangulation_candidate',
-                ]:
+                "visible",
+                "coords_axis",
+                "coords_debug",
+                "pos_x",
+                "device_model",
+                "is_triangulation_candidate",
+            ]:
                 if key not in cam_cfg or cam_cfg[key] is None:
                     continue
                 if key == "pos_x":
@@ -302,7 +301,7 @@ class CameraConfigManager(BaseConfigManager):
             # Intrinsic
             intr = cam_cfg.get("params", {})
             if intr:
-                mtx  = np.asarray(intr.get("mtx"),  dtype=np.float64) if intr.get("mtx")  is not None else None
+                mtx = np.asarray(intr.get("mtx"), dtype=np.float64) if intr.get("mtx") is not None else None
                 dist = np.asarray(intr.get("dist"), dtype=np.float64) if intr.get("dist") is not None else None
 
                 # Accept rvec/tvec in any of: [3], [3,1], (3,), (1,3)
@@ -314,7 +313,7 @@ class CameraConfigManager(BaseConfigManager):
                         raise ValueError(f"rvec/tvec must have 3 elements, got {a.shape}")
                     return a.reshape(3, 1)  # OpenCV-friendly (3,1)
 
-                rvec = _vec3(intr.get("rvec"))  #cv2.calibrateCamera return format
+                rvec = _vec3(intr.get("rvec"))  # cv2.calibrateCamera return format
                 tvec = _vec3(intr.get("tvec"))
 
                 camera_params = CameraParams(
@@ -341,8 +340,8 @@ class CameraConfigManager(BaseConfigManager):
         cam_cfg = {}
 
         # Basic fields
-        for key in ["visible", "coords_debug", 'device_model', 'is_triangulation_candidate']:
-             if key in camera:
+        for key in ["visible", "coords_debug", "device_model", "is_triangulation_candidate"]:
+            if key in camera:
                 cam_cfg[key] = camera[key]
 
         # pos_x

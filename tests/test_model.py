@@ -1,14 +1,14 @@
 # tests/test_model.py
-import pytest
-import numpy as np
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from parallax.model import Model
-from parallax.cameras.camera import MockCamera, PySpinCamera
-from parallax.stages.stage_listener import Stage
-from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
+import numpy as np
+from helper import mock_stage_instances, model
+
 from parallax.cameras.calibration_camera import CameraParams
-from helper import model, mock_stage_instances
+from parallax.cameras.camera import MockCamera, PySpinCamera
+from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
+from parallax.model import Model
+from parallax.stages.stage_listener import Stage
 
 
 # ----------------------------
@@ -83,7 +83,8 @@ def test_scan_for_usb_stages(mock_get_instances, model):
 # Stage lifecycle & calibration flow
 # ----------------------------
 def test_add_stage_and_defaults(model):
-    s = MagicMock(spec=Stage); s.sn = "S1"
+    s = MagicMock(spec=Stage)
+    s.sn = "S1"
     model.add_stage(s, StageCalibrationInfo())
 
     assert "S1" in model.stages
@@ -96,11 +97,14 @@ def test_add_stage_and_defaults(model):
 def test_stage_calibration_flow(model, monkeypatch):
     """Transform set/get, calibration status, and metric getters."""
     called = {}
+
     def fake_stage_save(_model, _sn):
         called["sn"] = _sn
+
     monkeypatch.setattr("parallax.config.user_setting_manager.StageConfigManager.save_to_yaml", fake_stage_save)
 
-    s = MagicMock(spec=Stage); s.sn = "S1"
+    s = MagicMock(spec=Stage)
+    s.sn = "S1"
     model.add_stage(s, StageCalibrationInfo())
 
     # initial state
@@ -130,11 +134,12 @@ def test_stage_calibration_flow(model, monkeypatch):
 def test_reset_stage_calib_info(model, monkeypatch):
     calls = []
     monkeypatch.setattr(
-        "parallax.config.user_setting_manager.StageConfigManager.save_to_yaml",
-        lambda _m, sn: calls.append(sn)
+        "parallax.config.user_setting_manager.StageConfigManager.save_to_yaml", lambda _m, sn: calls.append(sn)
     )
-    s1 = MagicMock(spec=Stage); s1.sn = "S1"
-    s2 = MagicMock(spec=Stage); s2.sn = "S2"
+    s1 = MagicMock(spec=Stage)
+    s1.sn = "S1"
+    s2 = MagicMock(spec=Stage)
+    s2.sn = "S2"
     model.add_stage(s1, StageCalibrationInfo())
     model.add_stage(s2, StageCalibrationInfo())
 
@@ -170,6 +175,7 @@ def test_clicked_points_order_and_limit(model):
     model.reset_pts()
     assert len(model.get_cameras_detected_pts()) == 0
 
+
 # ----------------------------
 # Intrinsics roundtrip + save hook
 # ----------------------------
@@ -179,7 +185,7 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
     # Emulate cam.name(sn_only=True) returning a string
     cam.name.return_value = "test_sn_001"
     sn = "test_sn_001"
-    
+
     # Setup the model with the mock camera
     model.cameras[sn] = {"obj": cam, "visible": True}
 
@@ -187,7 +193,7 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
     called = {}
     monkeypatch.setattr(
         "parallax.config.user_setting_manager.CameraConfigManager.save_to_yaml",
-        lambda _m, s: called.setdefault("sn", s)
+        lambda _m, s: called.setdefault("sn", s),
     )
 
     # Create dummy data
@@ -201,7 +207,7 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
 
     # FIX 2: Pass the object to the method
     model.add_camera_params(sn, params_obj)
-    
+
     # Retrieve
     stored = model.get_camera_params(sn)
 
@@ -211,7 +217,7 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
     assert np.allclose(stored.dist, dist)
     assert np.allclose(stored.rvec, rvec)
     assert np.allclose(stored.tvec, tvec)
-    
+
     # Verify save was triggered
     assert called.get("sn") == sn
 
@@ -229,43 +235,46 @@ def test_reset_coords_intrinsic_extrinsic(model):
     # FIX 4: Use correct key 'params' (matching your code) instead of 'intrinsic'
     # Seed data into the model
     model.cameras[snA] = {
-        "obj": camA, 
-        "visible": True, 
-        "coords_axis": [1], 
-        "coords_debug": [2], 
-        "pos_x": (0, 0), 
-        "params": MagicMock() # Mock param object
+        "obj": camA,
+        "visible": True,
+        "coords_axis": [1],
+        "coords_debug": [2],
+        "pos_x": (0, 0),
+        "params": MagicMock(),  # Mock param object
     }
     model.cameras[snB] = {
-        "obj": camB, 
-        "visible": True, 
-        "coords_axis": [1], 
-        "coords_debug": [2], 
-        "pos_x": (0, 0), 
-        "params": MagicMock() # Mock param object
+        "obj": camB,
+        "visible": True,
+        "coords_axis": [1],
+        "coords_debug": [2],
+        "pos_x": (0, 0),
+        "params": MagicMock(),  # Mock param object
     }
-    
+
     # --- Test 1: Reset ONE camera ---
     model.reset_coords_intrinsic_extrinsic(snA)
-    
+
     # Assert Camera A fields are cleared
     assert model.cameras[snA]["coords_axis"] is None
     assert model.cameras[snA]["coords_debug"] is None
     assert model.cameras[snA]["pos_x"] is None
     assert model.cameras[snA].get("params") is None
-    
+
     # Assert Camera B is untouched
     assert model.cameras[snB].get("params") is not None
 
     # --- Test 2: Reset ALL ---
     model.reset_coords_intrinsic_extrinsic()
-    
+
     # Assert Camera B is now cleared
     assert model.cameras[snB]["coords_axis"] is None
     assert model.cameras[snB]["coords_debug"] is None
     assert model.cameras[snB]["pos_x"] is None
     assert model.cameras[snB].get("params") is None
+
+
 # ----------------------------
+
 
 def test_pos_x_helpers(model):
     cam = MockCamera()

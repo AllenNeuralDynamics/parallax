@@ -1,14 +1,17 @@
-import pytest
-import cv2
 import os
+
+import cv2
+import pytest
+
 from parallax.probe_detection.opencv.curr_prev_cmp_processor import CurrPrevCmpProcessor
-from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.opencv.probe_detector import ProbeDetector
+from parallax.reticle_detection.mask_generator import MaskGenerator
 
 # Define the folder containing your test images
-IMG_SIZE = (1000, 750)         # (width, height) for resized images
+IMG_SIZE = (1000, 750)  # (width, height) for resized images
 IMG_SIZE_ORIGINAL = (4000, 3000)
 STAGE_SN = "SN1234"
+
 
 # Helper function to load images from a folder
 def load_images_from_folder(folder):
@@ -20,6 +23,7 @@ def load_images_from_folder(folder):
         if img is not None:
             images.append(img)
     return images
+
 
 @pytest.fixture
 def setup_curr_prev_cmp_processor():
@@ -35,9 +39,11 @@ def setup_curr_prev_cmp_processor():
     )
     return processor
 
+
 @pytest.fixture(scope="function")
 def sample_images():
     """Fixture to provide a way to process images into `curr_img`, `mask`."""
+
     def process_image(org_img, mask_generator):
         """Resize, blur, and generate mask for a given original image."""
         resized_img = cv2.resize(org_img, IMG_SIZE)
@@ -46,6 +52,7 @@ def sample_images():
         return curr_img, mask
 
     return process_image
+
 
 def test_first_cmp(setup_curr_prev_cmp_processor, sample_images):
     """Test the first_cmp method over a small sequence of images."""
@@ -71,6 +78,7 @@ def test_first_cmp(setup_curr_prev_cmp_processor, sample_images):
 
     # Basic assertions on return type and API stability
     assert isinstance(last_ret, bool), "first_cmp should return a boolean."
+
 
 def test_update_cmp(setup_curr_prev_cmp_processor, sample_images):
     """Test the update_cmp method with a sequence (first initialize via first_cmp)."""
@@ -100,12 +108,7 @@ def test_update_cmp(setup_curr_prev_cmp_processor, sample_images):
             continue
 
         # UPDATE: returns a single bool
-        ret = processor.update_cmp(
-            curr_img=curr_img,
-            prev_img=prev_img,
-            mask=mask,
-            org_img=org_img
-        )
+        ret = processor.update_cmp(curr_img=curr_img, prev_img=prev_img, mask=mask, org_img=org_img)
         prev_img = curr_img
 
     # Always at least validate return type; detection success can be content-dependent

@@ -1,13 +1,15 @@
-import pytest
+from unittest.mock import MagicMock
+
 import numpy as np
-import time
-from unittest.mock import MagicMock, patch
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QPushButton, QLineEdit, QComboBox, QLabel
+import pytest
+from PyQt6.QtWidgets import QComboBox, QGroupBox, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
+
 # Import the module under test (used by the fixture)
-import parallax.handlers.calculator as calc_mod 
+import parallax.handlers.calculator as calc_mod
 from parallax.handlers.calculator import Calculator
+
 # Note: Since Calculator imports local_to_global directly, we don't need to import converter_mod here
+
 
 # ---------- Test helpers to stub UI & deps ----------
 class DummyStageController:
@@ -69,6 +71,7 @@ def setup_calculator(qtbot, monkeypatch):
     """
     Build a Calculator with patched deps.
     """
+
     # 1) Patch loadUi
     def fake_loadUi(path, target):
         p = str(path)
@@ -134,20 +137,25 @@ def test_set_current_reticle(setup_calculator, qtbot):
     "localX, localY, localZ, T, globalX, globalY, globalZ",
     [
         # pure translation
-        (100.0, 200.0, 300.0,
-         np.array([[1, 0, 0, 10],
-                   [0, 1, 0, 20],
-                   [0, 0, 1, 30],
-                   [0, 0, 0, 1]], dtype=float),
-         90.0, 180.0, 270.0),
-
+        (
+            100.0,
+            200.0,
+            300.0,
+            np.array([[1, 0, 0, 10], [0, 1, 0, 20], [0, 0, 1, 30], [0, 0, 0, 1]], dtype=float),
+            90.0,
+            180.0,
+            270.0,
+        ),
         # rotation around Z by 90deg + translation (10,0,0)
-        (-190.0, 100.0, 300.0,
-         np.array([[0, -1, 0, 10],
-                   [1,  0, 0,  0],
-                   [0,  0, 1,  0],
-                   [0,  0, 0,  1]], dtype=float),
-         100.0, 200.0, 300.0),
+        (
+            -190.0,
+            100.0,
+            300.0,
+            np.array([[0, -1, 0, 10], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=float),
+            100.0,
+            200.0,
+            300.0,
+        ),
     ],
 )
 def test_transform_local_to_global(setup_calculator, qtbot, localX, localY, localZ, T, globalX, globalY, globalZ):
@@ -170,25 +178,29 @@ def test_transform_local_to_global(setup_calculator, qtbot, localX, localY, loca
     assert gz == pytest.approx(globalZ, abs=1e-2)
 
 
-
 @pytest.mark.parametrize(
     "localX, localY, localZ, T, globalX, globalY, globalZ",
     [
         # pure translation
-        (100.0, 200.0, 300.0,
-         np.array([[1, 0, 0, 10],
-                   [0, 1, 0, 20],
-                   [0, 0, 1, 30],
-                   [0, 0, 0, 1]], dtype=float),
-         90.0, 180.0, 270.0),
-
+        (
+            100.0,
+            200.0,
+            300.0,
+            np.array([[1, 0, 0, 10], [0, 1, 0, 20], [0, 0, 1, 30], [0, 0, 0, 1]], dtype=float),
+            90.0,
+            180.0,
+            270.0,
+        ),
         # rotation around Z by 90deg + translation (10,0,0)
-        (-190.0, 100.0, 300.0,
-         np.array([[0, -1, 0, 10],
-                   [1,  0, 0,  0],
-                   [0,  0, 1,  0],
-                   [0,  0, 0,  1]], dtype=float),
-         100.0, 200.0, 300.0),
+        (
+            -190.0,
+            100.0,
+            300.0,
+            np.array([[0, -1, 0, 10], [1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=float),
+            100.0,
+            200.0,
+            300.0,
+        ),
     ],
 )
 def test_transform_global_to_local(setup_calculator, qtbot, localX, localY, localZ, T, globalX, globalY, globalZ):

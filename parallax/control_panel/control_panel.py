@@ -8,20 +8,20 @@ initializing components, and linking user actions to calibration processes.
 
 import logging
 import os
-from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
+
 from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
 from PyQt6.uic import loadUi
 
-from parallax.stages.stage_listener import StageListener
-from parallax.stages.stage_ui import StageUI
-from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
-from parallax.stages.stage_server_ipconfig import StageServerIPConfig
-from parallax.stages.stage_http_server import StageHttpServer
-
-from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
-from parallax.control_panel.probe_calibration_handler import ProbeCalibrationHandler
-from parallax.control_panel.transform_info_handler import TransformInfoHandler
 from parallax.config.config_path import ui_dir
+from parallax.control_panel.probe_calibration_handler import ProbeCalibrationHandler
+from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
+from parallax.control_panel.transform_info_handler import TransformInfoHandler
+from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
+from parallax.stages.stage_http_server import StageHttpServer
+from parallax.stages.stage_listener import StageListener
+from parallax.stages.stage_server_ipconfig import StageServerIPConfig
+from parallax.stages.stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -30,16 +30,17 @@ logger.setLevel(logging.WARNING)
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
-    def __init__(self,
-            model,
-            screen_widgets,
-            actionServer: QAction=None,
-            actionSaveInfo: QAction=None,
-            actionTrajectory: QAction=None,
-            actionCalculator: QAction=None,
-            actionTriangulate: QAction=None,
-            actionReticlesMetadata: QAction=None
-        ):
+    def __init__(
+        self,
+        model,
+        screen_widgets,
+        actionServer: QAction = None,
+        actionSaveInfo: QAction = None,
+        actionTrajectory: QAction = None,
+        actionCalculator: QAction = None,
+        actionTriangulate: QAction = None,
+        actionReticlesMetadata: QAction = None,
+    ):
         """
         Initializes the StageWidget instance with model, UI directory, and screen widgets.
 
@@ -64,14 +65,10 @@ class ControlPanel(QWidget):
         self.filter = "no_filter"
         logger.debug(f"filter: {self.filter}")
 
-        self.reticle_handler = ReticleDetecthandler(
-                model,
-                self.screen_widgets,
-                self.filter,
-                self.actionTriangulate
-            )
+        self.reticle_handler = ReticleDetecthandler(model, self.screen_widgets, self.filter, self.actionTriangulate)
         self.stage_status_ui.layout().addWidget(self.reticle_handler)
 
+        self.transform_info_handler = TransformInfoHandler(self.model, self.reticle_selector)
         self.probe_calib_handler = ProbeCalibrationHandler(
             self.model,
             self.screen_widgets,
@@ -79,37 +76,34 @@ class ControlPanel(QWidget):
             self.reticle_selector,
             self.actionTrajectory,
             self.actionCalculator,
-            self.actionReticlesMetadata
+            self.actionReticlesMetadata,
+            self.transform_info_handler,
         )
         self.reticle_handler.reticleDetectionStatusChanged.connect(
             self.probe_calib_handler.reticle_detection_status_change
-            )
+        )
         self.stage_status_ui.layout().addWidget(self.probe_calib_handler)  # Add it to the placeholder's layout
-        
-        # TODO
-        self.transform_info_handler = TransformInfoHandler(self.model)
         self.stage_status_ui.layout().addWidget(self.transform_info_handler)  # Add it to the placeholder's layout
 
         # Create a vertical spacer with expanding policy
-        spacer = QSpacerItem(
-            20, 40,
-            QSizePolicy.Policy.Minimum,
-            QSizePolicy.Policy.Expanding
-        )
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         # Add the spacer to the layout
         self.stage_status_ui.layout().addItem(spacer)
-        #self.stage_status_ui.addItem(spacer)
+        # self.stage_status_ui.addItem(spacer)
 
         # Screen Coords Mapper
-        self.screen_coords_mapper = ScreenCoordsMapper(self.model, self.screen_widgets,
-                                                       self.reticle_selector,
-                                                       self.global_coords_x,
-                                                       self.global_coords_y,
-                                                       self.global_coords_z)
+        self.screen_coords_mapper = ScreenCoordsMapper(
+            self.model,
+            self.screen_widgets,
+            self.reticle_selector,
+            self.global_coords_x,
+            self.global_coords_y,
+            self.global_coords_z,
+        )
         self.reticle_handler.reticleDetectionStatusChanged.connect(
             self.screen_coords_mapper.reticle_detection_status_change
-            )
+        )
 
         # Stage Server IP Config
         self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages

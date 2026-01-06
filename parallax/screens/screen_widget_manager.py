@@ -1,25 +1,22 @@
 import logging
 import os
-from PyQt6.QtWidgets import (
-    QGroupBox,
-    QVBoxLayout,
-    QWidget,
-    QHBoxLayout,
-    QMdiSubWindow,
-    QMdiArea,
-    QMenu,
-    QMainWindow,
-    QDockWidget,
-)
+
+from PyQt6.QtCore import QObject, Qt, QTimer
 from PyQt6.QtGui import QFont, QIcon
-from PyQt6.QtCore import Qt, QTimer, QEvent, QObject
+from PyQt6.QtWidgets import (
+    QDockWidget,
+    QGroupBox,
+    QHBoxLayout,
+    QMainWindow,
+    QMenu,
+    QVBoxLayout,
+)
 
-from parallax.screens.screen_widget import ScreenWidget
-from parallax.screens.screen_setting import ScreenSetting
-from parallax.screens.reticle_detect_widget import ReticleDetectWidget
-from parallax.screens.probe_detect_widget import ProbeDetectWidget
 from parallax.config.config_path import ui_dir
-
+from parallax.screens.probe_detect_widget import ProbeDetectWidget
+from parallax.screens.reticle_detect_widget import ReticleDetectWidget
+from parallax.screens.screen_setting import ScreenSetting
+from parallax.screens.screen_widget import ScreenWidget
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +47,7 @@ class ScreenWidgetManager(QObject):
         self.model.refresh_camera = True
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get('visible', False):
+            if self.model.cameras.get(sn, {}).get("visible", False):
                 screen.start_acquisition_camera()
                 logger.debug("Camera acquisition started for:", sn)
 
@@ -65,7 +62,7 @@ class ScreenWidgetManager(QObject):
 
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get('visible', False):
+            if self.model.cameras.get(sn, {}).get("visible", False):
                 screen.stop_acquisition_camera()
                 logger.debug("Camera acquisition stopped for:", sn)
 
@@ -82,9 +79,9 @@ class ScreenWidgetManager(QObject):
                 logger.error("Unexpected error retrieving SN: %s", str(e))
                 continue
 
-            if sn and self.model.cameras.get(sn, {}).get('visible', False):
-                screen.refresh() # This is the slow part
-                
+            if sn and self.model.cameras.get(sn, {}).get("visible", False):
+                screen.refresh()  # This is the slow part
+
     def _toggle_streaming(self, on: bool, sn: str):
         """Start or stop streaming for a specific camera based on visibility toggle."""
         camera_data = self.model.cameras.get(sn, None)
@@ -117,7 +114,7 @@ class ScreenWidgetManager(QObject):
         layout = QVBoxLayout(group_box)
 
         sn = list(self.model.cameras.keys())[screen_index]
-        camera = self.model.cameras[sn]['obj']
+        camera = self.model.cameras[sn]["obj"]
 
         # Screen
         screen = ScreenWidget(camera, model=self.model, parent=group_box)

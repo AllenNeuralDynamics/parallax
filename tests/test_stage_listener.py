@@ -1,9 +1,12 @@
 # tests/test_stage_listener.py
-import pytest
 from unittest.mock import Mock, patch
-from parallax.stages.stage_listener import StageListener
+
+import pytest
+
 # Assuming these imports work in your env
-from helper import model, stage_server_txt, mock_get_request
+from helper import mock_get_request, model, stage_server_txt
+
+from parallax.stages.stage_listener import StageListener
 
 
 def make_worker_payload_from_helper(src):
@@ -11,7 +14,7 @@ def make_worker_payload_from_helper(src):
     Convert the helper's stage_server_txt (which separates 'Stage' and 'ProbeArray')
     into the shape Worker.fetchData() expects.
     """
-    payload = dict(src) 
+    payload = dict(src)
     payload["Probes"] = 1
     payload["SelectedProbe"] = 0
 

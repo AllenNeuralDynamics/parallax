@@ -1,10 +1,12 @@
 # tests/conftest.py
 import os
 import sys
-import types
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _qt_api():
@@ -29,5 +31,5 @@ sys.modules["torch"] = mock_torch
 # 2. Mock Ultralytics (YOLO)
 mock_ultralytics = MagicMock()
 # Ensure 'from ultralytics import YOLO' returns a Mock class
-mock_ultralytics.YOLO = MagicMock() 
+mock_ultralytics.YOLO = MagicMock()
 sys.modules["ultralytics"] = mock_ultralytics

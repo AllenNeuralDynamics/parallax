@@ -17,18 +17,17 @@ import webbrowser
 
 from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtGui import QFont, QFontDatabase
+
 # Import required PyQt6 modules and other libraries
-from PyQt6.QtWidgets import (QApplication, QFileDialog,
-                             QMainWindow, QSplitter, QMessageBox)
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QSplitter
 from PyQt6.uic import loadUi
 
-from parallax.handlers.recording_manager import RecordingManager
-from parallax.control_panel.control_panel import ControlPanel
+from parallax.config.config_path import fira_font_dir, ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
+from parallax.control_panel.control_panel import ControlPanel
+from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
-from parallax.config.config_path import ui_dir, fira_font_dir
-from ui.resources import rc
-
+from ui.resources import rc  # noqa
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -60,9 +59,7 @@ class MainWindow(QMainWindow):
 
         # Update camera information
         self.refresh_cameras()
-        logger.debug(
-            f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
-        )
+        logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
 
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
@@ -72,7 +69,7 @@ class MainWindow(QMainWindow):
         self._set_font()
 
         # Load existing user preferences
-        _, self.dir, width, height = (UserSettingsManager.load_mainWindow_settings())
+        _, self.dir, width, height = UserSettingsManager.load_mainWindow_settings()
         if width is not None and height is not None:
             self.resize(width, height)
         if self.dir is None or not os.path.exists(self.dir):
@@ -85,44 +82,38 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
-        self.control_panel = ControlPanel(self.model,
-                                          self.screen_widget_manager.screen_widgets,
-                                          self.actionServer,
-                                          self.actionSaveInfo,
-                                          self.actionTrajectory,
-                                          self.actionCalculator,
-                                          self.actionTriangulate,
-                                          self.actionReticlesMetadata
-                                        )
+        self.control_panel = ControlPanel(
+            self.model,
+            self.screen_widget_manager.screen_widgets,
+            self.actionServer,
+            self.actionSaveInfo,
+            self.actionTrajectory,
+            self.actionCalculator,
+            self.actionTriangulate,
+            self.actionReticlesMetadata,
+        )
 
         # Add to splitter
         splitter = QSplitter()
-        #splitter.addWidget(scroll_area)
+        # splitter.addWidget(scroll_area)
         splitter.addWidget(self.control_panel)
         self.verticalLayout.addWidget(splitter)
 
         # Streaming button. If toggled, start camera acquisition
         self.actionStreaming.triggered.connect(self.start_button_handler)
 
-
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
         self.actionSnapshot.triggered.connect(
-            lambda: self.recordingManager.save_last_image(
-                self.dir, self.screen_widget_manager.screen_widgets
-            )
+            lambda: self.recordingManager.save_last_image(self.dir, self.screen_widget_manager.screen_widgets)
         )
-        self.actionRecording.triggered.connect(
-            self.record_button_handler
-        )  # Recording video button
+        self.actionRecording.triggered.connect(self.record_button_handler)  # Recording video button
 
         # Toggle start button on init
         self.start_button_handler()
 
         # actionDocumentation
-        self.actionDocumentation.triggered.connect(
-            lambda: webbrowser.open("https://parallax.readthedocs.io/")
-        )
+        self.actionDocumentation.triggered.connect(lambda: webbrowser.open("https://parallax.readthedocs.io/"))
 
         self.actionContactSupport.triggered.connect(
             lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
@@ -135,13 +126,13 @@ class MainWindow(QMainWindow):
         Returns:
             bool: True if the user confirms the restore, False otherwise.
         """
-        message = ("Restore previous session?")
+        message = "Restore previous session?"
         response = QMessageBox.warning(
             self,
             "Session Restore",
             message,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,   # default
+            QMessageBox.StandardButton.No,  # default
         )
 
         if response == QMessageBox.StandardButton.Yes:

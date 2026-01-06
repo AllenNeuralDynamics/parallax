@@ -19,25 +19,23 @@ Usage:
 
 import logging
 import os
+
 import cv2
 import numpy as np
 
+from parallax.config.config_path import debug_img_dir
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.utils.utils import UtilsCoords, UtilsCrops
-from parallax.config.config_path import debug_img_dir
-
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class CurrBgCmpProcessor():
+class CurrBgCmpProcessor:
     """Finding diff image using Current and Background Comparison"""
 
-    def __init__(
-        self, cam_name, ProbeDetector, original_size, resized_size, reticle_zone=None
-    ):
+    def __init__(self, cam_name, ProbeDetector, original_size, resized_size, reticle_zone=None):
         """
         Initialize the CurrBgCmpProcessor.
 
@@ -101,10 +99,8 @@ class CurrBgCmpProcessor():
             return False
 
         if ret:
-            #ret_precise_tip = self._get_precise_tip(org_img)
-            self.bg = cv2.bitwise_not(
-                cv2.bitwise_xor(self.diff_img, self.curr_img), mask=self.mask
-            )
+            # ret_precise_tip = self._get_precise_tip(org_img)
+            self.bg = cv2.bitwise_not(cv2.bitwise_xor(self.diff_img, self.curr_img), mask=self.mask)
 
         return ret
 
@@ -132,7 +128,7 @@ class CurrBgCmpProcessor():
         if not running_flag():
             return False
 
-        #self._save_debug_img(ts=ts)  # tmp debug
+        # self._save_debug_img(ts=ts)  # tmp debug
 
         ret = self._update_crop(ts=ts)
         if not running_flag():
@@ -143,7 +139,7 @@ class CurrBgCmpProcessor():
                     return False
             if not running_flag():
                 return False
-            #if ret_precise_tip_ret:
+            # if ret_precise_tip_ret:
             self._update_bg(extended_offset=10)
 
         return ret
@@ -151,43 +147,37 @@ class CurrBgCmpProcessor():
     def _update_bg(self, extended_offset=10):
         """Update the background image."""
         kernel = np.ones((3, 3), np.uint8)
-        self.diff_img_crop = cv2.dilate(
-            self.diff_img_crop, kernel, iterations=1
-        )
+        self.diff_img_crop = cv2.dilate(self.diff_img_crop, kernel, iterations=1)
 
         # Find and process contours
-        contours, _ = cv2.findContours(
-            self.diff_img_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours, _ = cv2.findContours(self.diff_img_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if len(contours) >= 2:
             largest_contour = max(contours, key=cv2.contourArea)
             for contour in contours:
                 if contour is not largest_contour:
-                    self.diff_img_crop = cv2.drawContours(
-                        self.diff_img_crop, [contour], -1, (0, 0, 0), -1
-                    )
+                    self.diff_img_crop = cv2.drawContours(self.diff_img_crop, [contour], -1, (0, 0, 0), -1)
 
         # Initialize an empty image for drawing
         diff_img = np.zeros_like(self.diff_img)
 
         # Calculate the direction and extend the line between probe tip and base
-        tip_direction = np.array(self.ProbeDetector.probe_tip) - np.array(
-            self.ProbeDetector.probe_base
-        )
+        tip_direction = np.array(self.ProbeDetector.probe_tip) - np.array(self.ProbeDetector.probe_base)
         tip_direction_normalized = tip_direction / np.linalg.norm(tip_direction)
         extended_probe_tip = tuple(
-            np.array(self.ProbeDetector.probe_tip)
-            + (extended_offset * tip_direction_normalized).astype(int)
+            np.array(self.ProbeDetector.probe_tip) + (extended_offset * tip_direction_normalized).astype(int)
         )
         extended_probe_base = tuple(
-            np.array(self.ProbeDetector.probe_base)
-            - (extended_offset * tip_direction_normalized).astype(int)
+            np.array(self.ProbeDetector.probe_base) - (extended_offset * tip_direction_normalized).astype(int)
         )
 
         # Draw the extended line
         cv2.line(
             # diff_img, extended_probe_tip, extended_probe_base, 255, thickness=5
-            diff_img, extended_probe_tip, extended_probe_base, 255, thickness=10
+            diff_img,
+            extended_probe_tip,
+            extended_probe_base,
+            255,
+            thickness=10,
         )
 
         # Combine the processed image with the current image to extract the background
@@ -210,16 +200,10 @@ class CurrBgCmpProcessor():
                 self.IMG_SIZE,
             )
             self.diff_img_crop = self.diff_img[self.top:self.bottom, self.left:self.right]
-            hough_minLineLength_adaptive = (60 + int(crop_size / self.crop_init) * 5)
-            self.ProbeDetector.update_parameters({
-                "hough_minLineLength_update": hough_minLineLength_adaptive
-            })
+            hough_minLineLength_adaptive = 60 + int(crop_size / self.crop_init) * 5
+            self.ProbeDetector.update_parameters({"hough_minLineLength_update": hough_minLineLength_adaptive})
             ret = self.ProbeDetector.update_probe(
-                self.diff_img_crop,
-                self.mask,
-                offset_x=self.left,
-                offset_y=self.top,
-                ts=ts
+                self.diff_img_crop, self.mask, offset_x=self.left, offset_y=self.top, ts=ts
             )
 
             # cv2.rectangle(diff_img_, (left, top), (right, bottom), (155, 155, 0), 5)  # Green rectangle
@@ -229,12 +213,8 @@ class CurrBgCmpProcessor():
                 ret = False
 
             if ret and self.reticle_zone is not None:
-                tip_in_reticle = self._is_point_in_reticle_region(
-                    self.reticle_zone, self.ProbeDetector.probe_tip
-                )
-                base_in_reticle = self._is_point_in_reticle_region(
-                    self.reticle_zone, self.ProbeDetector.probe_base
-                )
+                tip_in_reticle = self._is_point_in_reticle_region(self.reticle_zone, self.ProbeDetector.probe_tip)
+                base_in_reticle = self._is_point_in_reticle_region(self.reticle_zone, self.ProbeDetector.probe_base)
                 if tip_in_reticle and base_in_reticle:
                     return False
 
@@ -246,20 +226,22 @@ class CurrBgCmpProcessor():
         return ret
 
     def get_crop_region_boundary(self):
-            """Get the boundary of the crop region."""
-            if self.top is not None:
-                # 1. Wrap input in []
-                # 2. Extract output with [0]
-                top_left = UtilsCoords.scale_coords_to_original(
-                    [(self.left, self.top)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)[0]
-                bottom_right = UtilsCoords.scale_coords_to_original(
-                    [(self.right, self.bottom)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE)[0]
+        """Get the boundary of the crop region."""
+        if self.top is not None:
+            # 1. Wrap input in []
+            # 2. Extract output with [0]
+            top_left = UtilsCoords.scale_coords_to_original(
+                [(self.left, self.top)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            )[0]
+            bottom_right = UtilsCoords.scale_coords_to_original(
+                [(self.right, self.bottom)], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            )[0]
 
-                left, top = top_left
-                right, bottom = bottom_right
-                return top, bottom, left, right
-            else:
-                return None, None, None, None
+            left, top = top_left
+            right, bottom = bottom_right
+            return top, bottom, left, right
+        else:
+            return None, None, None, None
 
     def _is_point_in_reticle_region(self, image, point):
         """Check if a point is in the reticle region."""
@@ -277,13 +259,11 @@ class CurrBgCmpProcessor():
         ret = False
 
         probe_tip_original_coords = UtilsCoords.scale_coords_to_original(
-            [self.ProbeDetector.probe_tip],
-            self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            [self.ProbeDetector.probe_tip], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )[0]
 
         probe_base_original_coords = UtilsCoords.scale_coords_to_original(
-            [self.ProbeDetector.probe_base],
-            self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+            [self.ProbeDetector.probe_base], self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
         )[0]
 
         self.top_fine, self.bottom_fine, self.left_fine, self.right_fine = UtilsCrops.calculate_crop_region(
@@ -301,15 +281,14 @@ class CurrBgCmpProcessor():
             offset_x=self.left_fine,
             offset_y=self.top_fine,
             direction=self.ProbeDetector.probe_tip_direction,
-            cam_name=self.cam_name
+            cam_name=self.cam_name,
         )
 
         if ret:
             self.ProbeDetector.probe_tip_org = tip
             # register probe_tip to fine tip
             tip = UtilsCoords.scale_coords_to_resized_img(
-                self.ProbeDetector.probe_tip_org,
-                self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
+                self.ProbeDetector.probe_tip_org, self.IMG_SIZE_ORIGINAL, self.IMG_SIZE
             )
             self.ProbeDetector.probe_tip = tip
 

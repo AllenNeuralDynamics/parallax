@@ -1,14 +1,17 @@
-import pytest
-import cv2
 import os
+
+import cv2
+import pytest
+
 from parallax.probe_detection.opencv.curr_bg_cmp_processor import CurrBgCmpProcessor
-from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.probe_detection.opencv.probe_detector import ProbeDetector
+from parallax.reticle_detection.mask_generator import MaskGenerator
 
 # Resized/original sizes used by your pipeline
-IMG_SIZE = (1000, 750)          # (width, height) for resized images
+IMG_SIZE = (1000, 750)  # (width, height) for resized images
 IMG_SIZE_ORIGINAL = (4000, 3000)
 STAGE_SN = "SN1234"
+
 
 def load_images_from_folder(folder):
     """Load and sort grayscale images from a folder."""
@@ -20,15 +23,19 @@ def load_images_from_folder(folder):
             images.append(img)
     return images
 
+
 @pytest.fixture(scope="function")
 def sample_images():
     """Resize, blur, and create mask for a given original image."""
+
     def process_image(org_img, mask_generator):
         resized = cv2.resize(org_img, IMG_SIZE)
         curr_img = cv2.GaussianBlur(resized, (9, 9), 0)
         mask = mask_generator.process(resized)
         return curr_img, mask
+
     return process_image
+
 
 @pytest.fixture
 def setup_curr_bg_cmp_processor():
@@ -41,6 +48,7 @@ def setup_curr_bg_cmp_processor():
         resized_size=IMG_SIZE,
         reticle_zone=None,
     )
+
 
 def test_first_cmp(setup_curr_bg_cmp_processor, sample_images):
     """Smoke test for first_cmp over a sequence; ensures correct call pattern and boolean return."""
@@ -58,6 +66,7 @@ def test_first_cmp(setup_curr_bg_cmp_processor, sample_images):
         last_ret = processor.first_cmp(org_img=curr_img, mask=mask)
 
     assert isinstance(last_ret, bool), "first_cmp should return a boolean."
+
 
 def test_update_cmp(setup_curr_bg_cmp_processor, sample_images):
     """Initialize with first_cmp, then run update_cmp until detection succeeds (content-dependent)."""

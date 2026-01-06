@@ -1,21 +1,23 @@
+import json
 import logging
 import os
+import time
+
 import cv2
 import numpy as np
-import time
-import json
-from parallax.config.config_path import debug_img_dir
-from parallax.config.config_path import img_processing_config_file
-from parallax.utils.utils import UtilsCoords, UtilsCrops
+
+from parallax.config.config_path import debug_img_dir, img_processing_config_file
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
+from parallax.utils.utils import UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class ProbeImageProcessor:
     """Class for detecting the fine tip of the probe in an image."""
+
     # Class-level configuration storage
     _config = None
     _config_file = img_processing_config_file
@@ -29,7 +31,7 @@ class ProbeImageProcessor:
 
         if cls._config is None:  # Only load once
             try:
-                with open(cls._config_file, 'r') as f:
+                with open(cls._config_file, "r") as f:
                     config = json.load(f)
                 cls._config = config.get("ProbeImageProcessor", {})
             except (FileNotFoundError, json.JSONDecodeError) as e:
@@ -50,82 +52,51 @@ class ProbeImageProcessor:
         """Return default configuration."""
         return {
             "preprocessing": {
-                "clahe": {
-                    "clip_limit": 2.0,
-                    "tile_grid_size": [8, 8],
-                    "enable": True
-                },
+                "clahe": {"clip_limit": 2.0, "tile_grid_size": [8, 8], "enable": True},
                 "unsharp_mask": {
                     "enable": True,
-                    "gaussian_blur": {
-                        "kernel_size": [0, 0],
-                        "sigma": 1.0
-                    },
+                    "gaussian_blur": {"kernel_size": [0, 0], "sigma": 1.0},
                     "weight_original": 1.6,
                     "weight_blur": -0.6,
-                    "gamma": 0
+                    "gamma": 0,
                 },
                 "adaptive_threshold": {
                     "max_value": 255,
                     "adaptive_method": "ADAPTIVE_THRESH_GAUSSIAN_C",
                     "threshold_type": "THRESH_BINARY_INV",
                     "block_size": 101,
-                    "c": 10
+                    "c": 10,
                 },
                 "canny": {
                     "enable": True,
-                    "pre_blur": {
-                        "kernel_size": [9, 9],
-                        "sigma": 2
-                    },
+                    "pre_blur": {"kernel_size": [9, 9], "sigma": 2},
                     "low_threshold": 150,
                     "high_threshold": 250,
-                    "aperture_size": 5
+                    "aperture_size": 5,
                 },
                 "morphology": {
                     "enable": True,
                     "operation": "MORPH_CLOSE",
                     "kernel_type": "MORPH_RECT",
                     "kernel_size": [3, 3],
-                    "iterations": 1
-                }
+                    "iterations": 1,
+                },
             },
             "line_detection": {
-                "hough": {
-                    "rho": 1,
-                    "theta": "pi/180",
-                    "threshold": 80,
-                    "min_line_length": 150,
-                    "max_line_gap": 5
-                },
+                "hough": {"rho": 1, "theta": "pi/180", "threshold": 80, "min_line_length": 150, "max_line_gap": 5},
                 "point_tolerance": 5.0,
-                "line_mask": {
-                    "line_thickness": 3,
-                    "color": 255
-                }
+                "line_mask": {"line_thickness": 3, "color": 255},
             },
-            "mask_operations": {
-                "dilation": {
-                    "kernel_size": [5, 5],
-                    "iterations": 1
-                }
-            },
-            "coordinate_conversion": {
-                "default_size": {
-                    "width": 512,
-                    "height": 512
-                }
-            },
-            "bbox": {
-                "default_padding": 10
-            },
+            "mask_operations": {"dilation": {"kernel_size": [5, 5], "iterations": 1}},
+            "coordinate_conversion": {"default_size": {"width": 512, "height": 512}},
+            "bbox": {"default_padding": 10},
             "debug": {
                 "save_intermediate_images": True,
                 "line_color": [0, 255, 0],
                 "line_thickness": 3,
                 "point_color": [0, 0, 255],
-                "point_radius": 4
-            }
+                "point_radius": 4,
+            },
         }
 
     @classmethod
@@ -151,7 +122,7 @@ class ProbeImageProcessor:
             "MORPH_OPEN": cv2.MORPH_OPEN,
             "MORPH_RECT": cv2.MORPH_RECT,
             "MORPH_ELLIPSE": cv2.MORPH_ELLIPSE,
-            "pi/180": np.pi/180
+            "pi/180": np.pi / 180,
         }
         return cv2_constants.get(constant_name, constant_name)
 
@@ -176,7 +147,7 @@ class ProbeImageProcessor:
             g = clahe.apply(img)
         else:
             g = img
-        
+
         # Save debug image when logger level is DEBUG
         if logger.isEnabledFor(logging.DEBUG):
             if debug_config.get("save_intermediate_images", True):
@@ -191,10 +162,10 @@ class ProbeImageProcessor:
             weight_orig = unsharp_config.get("weight_original", 1.6)
             weight_blur = unsharp_config.get("weight_blur", -0.6)
             gamma = unsharp_config.get("gamma", 0)
-            
+
             g_blur = cv2.GaussianBlur(g, kernel_size, sigma)
             g = cv2.addWeighted(g, weight_orig, g_blur, weight_blur, gamma)
-        
+
         if logger.isEnabledFor(logging.DEBUG):
             if debug_config.get("save_intermediate_images", True):
                 cv2.imwrite(os.path.join(debug_img_dir, "2_unsharp.jpg"), g)
@@ -206,13 +177,12 @@ class ProbeImageProcessor:
         threshold_type = cls._get_cv2_constant(adapt_config.get("threshold_type", "THRESH_BINARY_INV"))
         block_size = adapt_config.get("block_size", 101)
         c = adapt_config.get("c", 10)
-        
+
         bin_adapt = cv2.adaptiveThreshold(g, max_value, adaptive_method, threshold_type, block_size, c)
-        
+
         if logger.isEnabledFor(logging.DEBUG):
             if debug_config.get("save_intermediate_images", True):
                 cv2.imwrite(os.path.join(debug_img_dir, "3_bin_adapt.jpg"), bin_adapt)
-
 
         # 4) Canny edge detection
         canny_config = preprocess_config.get("canny", {})
@@ -223,7 +193,7 @@ class ProbeImageProcessor:
             low_thresh = canny_config.get("low_threshold", 150)
             high_thresh = canny_config.get("high_threshold", 250)
             aperture_size = canny_config.get("aperture_size", 5)
-            
+
             blurred_for_canny = cv2.GaussianBlur(grey, pre_blur_kernel, pre_blur_sigma)
             edges = cv2.Canny(blurred_for_canny, low_thresh, high_thresh, apertureSize=aperture_size)
         else:
@@ -247,10 +217,10 @@ class ProbeImageProcessor:
             kernel_type = cls._get_cv2_constant(morph_config.get("kernel_type", "MORPH_RECT"))
             kernel_size = tuple(morph_config.get("kernel_size", [3, 3]))
             iterations = morph_config.get("iterations", 1)
-            
+
             kernel = cv2.getStructuringElement(kernel_type, kernel_size)
             mask = cv2.morphologyEx(mask, operation, kernel, iterations=iterations)
-        
+
         if logger.isEnabledFor(logging.DEBUG):
             if debug_config.get("save_intermediate_images", True):
                 cv2.imwrite(os.path.join(debug_img_dir, "6_morph_close.jpg"), mask)
@@ -269,12 +239,12 @@ class ProbeImageProcessor:
             dilation_config = mask_config.get("dilation", {})
             kernel_size = tuple(dilation_config.get("kernel_size", [5, 5]))
             iterations = dilation_config.get("iterations", 1)
-            
+
             # Apply mask
             kernel = np.ones(kernel_size, np.uint8)
             mask = cv2.dilate(mask, kernel, iterations=iterations)
             img = cv2.bitwise_and(img, mask)
-            
+
             if logger.isEnabledFor(logging.DEBUG):
                 if debug_config.get("save_intermediate_images", True):
                     cv2.imwrite(os.path.join(debug_img_dir, "7_masked.jpg"), img)
@@ -297,7 +267,7 @@ class ProbeImageProcessor:
         linesP = cv2.HoughLinesP(
             img,
             rho=hough_config.get("rho", 1),
-            theta=cls._get_cv2_constant(hough_config.get("theta", np.pi/180)),
+            theta=cls._get_cv2_constant(hough_config.get("theta", np.pi / 180)),
             threshold=hough_config.get("threshold", 80),
             minLineLength=hough_config.get("minLineLength", 150),
             maxLineGap=hough_config.get("maxLineGap", 5),
@@ -315,9 +285,10 @@ class ProbeImageProcessor:
         threshold = hough_config.get("threshold", 80)
         min_line_length = hough_config.get("min_line_length", 150)
         max_line_gap = hough_config.get("max_line_gap", 5)
-        
-        linesP = cv2.HoughLinesP(img, rho, theta, threshold=threshold, 
-                                minLineLength=min_line_length, maxLineGap=max_line_gap)
+
+        linesP = cv2.HoughLinesP(
+            img, rho, theta, threshold=threshold, minLineLength=min_line_length, maxLineGap=max_line_gap
+        )
 
         return linesP
 
@@ -326,7 +297,7 @@ class ProbeImageProcessor:
         config = cls._ensure_config_loaded()
         line_config = config.get("line_detection", {})
         debug_config = config.get("debug", {})
-        
+
         out = img.copy()
         # if image is color, convert to grayscale
         if img.ndim == 3 and img.shape[2] == 3:
@@ -336,11 +307,10 @@ class ProbeImageProcessor:
         img = cls._apply_mask(img, mask)
 
         linesP = cls.hough_line_detection(img)
-        
+
         tol = line_config.get("point_tolerance", 5.0)
         hits = []
         logger.debug(f"number of lines detected: {0 if linesP is None else len(linesP)}")
-        
 
         if out.ndim == 2 or out.shape[2] == 1:
             debug_save = cv2.cvtColor(out, cv2.COLOR_GRAY2BGR)
@@ -357,9 +327,9 @@ class ProbeImageProcessor:
 
                 # Draw
                 if dist <= tol:
-                    cv2.line(debug_save, (x1, y1), (x2, y2), (0, 255, 0), 1) # hit
+                    cv2.line(debug_save, (x1, y1), (x2, y2), (0, 255, 0), 1)  # hit
                 else:
-                    cv2.line(debug_save, (x1, y1), (x2, y2), (255, 0, 0), 1) # not hit
+                    cv2.line(debug_save, (x1, y1), (x2, y2), (255, 0, 0), 1)  # not hit
         cv2.circle(debug_save, (int(pt[0]), int(pt[1])), 2, (0, 0, 255), -1)
         if logger.isEnabledFor(logging.DEBUG):
             cv2.imwrite(os.path.join(debug_img_dir, f"8_debug_hough_{int(time.time())}.jpg"), debug_save)
@@ -368,7 +338,7 @@ class ProbeImageProcessor:
         if hits:
             line_color = tuple(debug_config.get("line_color", [0, 255, 0]))
             line_thickness = debug_config.get("line_thickness", 4)
-            
+
             for x1, y1, x2, y2, dist in hits:
                 cv2.line(out, (x1, y1), (x2, y2), line_color, line_thickness)
         else:
@@ -381,7 +351,7 @@ class ProbeImageProcessor:
             line_mask_config = line_config.get("line_mask", {})
             line_thickness = line_mask_config.get("line_thickness", 4)
             color = line_mask_config.get("color", 255)
-            
+
             for x1, y1, x2, y2, dist in hits:
                 cv2.line(mask_result, (x1, y1), (x2, y2), color, line_thickness)
         else:
@@ -409,12 +379,12 @@ class ProbeImageProcessor:
         config = cls._ensure_config_loaded()
         coord_config = config.get("coordinate_conversion", {})
         default_size = coord_config.get("default_size", {})
-        
+
         if w is None:
             w = default_size.get("width", 512)
         if h is None:
             h = default_size.get("height", 512)
-            
+
         left, top, right, bottom = bbox
         crop = img[top:bottom, left:right]
         resized_img = cv2.resize(crop, (w, h), interpolation=cv2.INTER_LINEAR)
@@ -425,12 +395,12 @@ class ProbeImageProcessor:
         config = cls._ensure_config_loaded()
         coord_config = config.get("coordinate_conversion", {})
         default_size = coord_config.get("default_size", {})
-        
+
         if w is None:
             w = default_size.get("width", 512)
         if h is None:
             h = default_size.get("height", 512)
-            
+
         left, top, right, bottom = bbox
         crop_w = int(right - left)
         crop_h = int(bottom - top)
@@ -446,7 +416,7 @@ class ProbeImageProcessor:
             pts_local = np.array(pts_local, dtype=np.float32)
 
         return pts_local[0]
-    
+
     @classmethod
     def _converter_pts_after_crop(cls, pts, left, top):
         """
@@ -500,7 +470,7 @@ class ProbeImageProcessor:
         if arr.ndim == 1:
             arr = arr.reshape(1, 2)
         return arr
-    
+
     @classmethod
     def mask_to_bbox_xyxy(cls, mask_u8: np.ndarray, img_shape=None, pad: int = None):
         """
@@ -512,7 +482,7 @@ class ProbeImageProcessor:
             config = cls._ensure_config_loaded()
             bbox_config = config.get("bbox", {})
             pad = bbox_config.get("default_padding", 10)
-        
+
         # Ensure uint8, normalize to binary {0,1}
         if mask_u8.dtype != np.uint8:
             mask_u8 = mask_u8.astype(np.uint8)
@@ -528,21 +498,26 @@ class ProbeImageProcessor:
         x1, x2 = int(xs.min()), int(xs.max())
 
         # Apply padding
-        x1 -= pad; y1 -= pad; x2 += pad; y2 += pad
+        x1 -= pad
+        y1 -= pad
+        x2 += pad
+        y2 += pad
 
         # Clamp to image bounds
         if img_shape is None:
             h, w = mask_u8.shape[:2]
         else:
             h, w = img_shape[:2]
-        x1 = max(0, x1); y1 = max(0, y1)
-        x2 = min(w, x2); y2 = min(h, y2)
+        x1 = max(0, x1)
+        y1 = max(0, y1)
+        x2 = min(w, x2)
+        y2 = min(h, y2)
 
         if x2 <= x1 or y2 <= y1:
             return None
 
         return (x1, y1, x2, y2)  # (left, top, right, bottom), right/bottom are EXCLUSIVE
-    
+
     @classmethod
     def lift_local_mask_to_global(cls, mask_local_u8, bbox, global_hw):
         """
@@ -605,10 +580,10 @@ class ProbeImageProcessor:
         mean = pts.mean(axis=0)
         centered = pts - mean
         cov = np.cov(centered.T)
-        evals, evecs = np.linalg.eigh(cov)    # ascending
+        evals, evecs = np.linalg.eigh(cov)  # ascending
         order = np.argsort(evals)[::-1]
         evals = evals[order]
-        v = evecs[:, order[0]]                 # principal direction (unit after norm below)
+        v = evecs[:, order[0]]  # principal direction (unit after norm below)
         v = v / (np.linalg.norm(v) + 1e-12)
 
         # Elongation ratio λ1/λ2
@@ -623,12 +598,12 @@ class ProbeImageProcessor:
         # If not elongated (e.g., blobby/curvy), use convex-hull diameter
         if elong < float(elong_thresh):
             hull = cv2.convexHull(pts)  # (M,1,2)
-            H = hull.reshape(-1, 2)     # (M,2)
+            H = hull.reshape(-1, 2)  # (M,2)
             # Brute-force diameter over hull vertices (M is usually small)
             maxd = -1.0
             q1 = q2 = None
             for i in range(len(H)):
-                d = np.sum((H - H[i])**2, axis=1)
+                d = np.sum((H - H[i]) ** 2, axis=1)
                 j = int(np.argmax(d))
                 if d[j] > maxd:
                     maxd = float(d[j])
@@ -657,9 +632,7 @@ class ProbeImageProcessor:
         if mask is None:
             print("Mask is None, cannot determine probe points.")
 
-        mask = cv2.copyMakeBorder(
-            mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0]
-        )
+        mask = cv2.copyMakeBorder(mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0])
         dist_transform = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
 
         dist_p1 = dist_transform[p1[1], p1[0]]  # [y, x]
@@ -690,14 +663,14 @@ class ProbeImageProcessor:
             IMG_SIZE=IMG_SIZE_ORIGINAL,
         )
         tip_image = org_img[top_fine:bottom_fine, left_fine:right_fine]
-        #cv2.imwrite(os.path.join(debug_img_dir, f"9_tip_crop_{int(time.time())}.jpg"), tip_image)
+        # cv2.imwrite(os.path.join(debug_img_dir, f"9_tip_crop_{int(time.time())}.jpg"), tip_image)
         ret, fine_tip = ProbeFineTipDetector.get_precise_tip(
             tip_image,
             tip,
             base,
             offset_x=left_fine,
             offset_y=top_fine,
-            direction=ProbeImageProcessor._get_probe_direction(tip, base)
+            direction=ProbeImageProcessor._get_probe_direction(tip, base),
         )
         if ret:
             logger.debug(f"* original tip: {tip}")
@@ -761,7 +734,7 @@ if __name__ == "__main__":
         print("points:", points)
         points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
         print("points_local:", points_local)
-        mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
+        mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)
 
     # Post processing Lift local mask to global
     # mask_local[0] matches local_img size (w,h); lift it back to full-frame
@@ -770,4 +743,3 @@ if __name__ == "__main__":
 
     highest_pt, lowest_pt = ProbeImageProcessor.get_highest_lowest_point_from_mask(mask_local_global)
     """
-    pass

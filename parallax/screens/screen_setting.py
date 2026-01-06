@@ -1,13 +1,16 @@
 """Screen settings widget for controlling microscope camera settings."""
-import os
+
 import logging
-from PyQt6.QtWidgets import QWidget, QToolButton, QPushButton, QFileDialog
-from PyQt6.QtCore import QPoint, QTimer, QCoreApplication
+import os
+
+from PyQt6.QtCore import QCoreApplication, QPoint, QTimer
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QFileDialog, QPushButton, QToolButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -32,9 +35,7 @@ class ScreenSetting(QWidget):
         self.settings_refresh_timer.timeout.connect(self._update_setting_menu)
 
         self._update_setting_menu()
-        self.settingButton.toggled.connect(
-            lambda checked: self._show_settings_menu(checked)
-        )
+        self.settingButton.toggled.connect(lambda checked: self._show_settings_menu(checked))
 
     def _setup_settingMenu(self):
         """Setup the settings menu with all necessary controls."""
@@ -65,9 +66,7 @@ class ScreenSetting(QWidget):
         """Setup exposure settings in the settings menu."""
         # Exposure
         self.settingMenu.expSlider.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(
-                setting="exposure", val=self.settingMenu.expSlider.value() * 1000
-            )
+            lambda: self.screen.set_camera_setting(setting="exposure", val=self.settingMenu.expSlider.value() * 1000)
         )
         self.settingMenu.expSlider.valueChanged.connect(
             lambda: self.settingMenu.expNum.setNum(self.settingMenu.expSlider.value())
@@ -78,23 +77,17 @@ class ScreenSetting(QWidget):
             )
         )
         self.settingMenu.expAuto.clicked.connect(
-            lambda: self.settingMenu.expSlider.setValue(
-                int(self.screen.get_camera_setting(setting="exposure") / 1000)
-            )
+            lambda: self.settingMenu.expSlider.setValue(int(self.screen.get_camera_setting(setting="exposure") / 1000))
         )
 
     def _gamma(self):
         """Setup gamma settings in the settings menu."""
         # Gamma
         self.settingMenu.gammaSlider.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(
-                setting="gamma", val=self.settingMenu.gammaSlider.value() / 100
-            )
+            lambda: self.screen.set_camera_setting(setting="gamma", val=self.settingMenu.gammaSlider.value() / 100)
         )
         self.settingMenu.gammaSlider.valueChanged.connect(
-            lambda: self.settingMenu.gammaNum.setText(
-                "{:.2f}".format(self.settingMenu.gammaSlider.value() / 100)
-            )
+            lambda: self.settingMenu.gammaNum.setText("{:.2f}".format(self.settingMenu.gammaSlider.value() / 100))
         )
         self.settingMenu.gammaSlider.valueChanged.connect(
             lambda: UserSettingsManager.update_user_configs_settingMenu(
@@ -102,9 +95,7 @@ class ScreenSetting(QWidget):
             )
         )
         self.settingMenu.gammaAuto.clicked.connect(
-            lambda: self.settingMenu.gammaSlider.setEnabled(
-                not self.settingMenu.gammaSlider.isEnabled()
-            )
+            lambda: self.settingMenu.gammaSlider.setEnabled(not self.settingMenu.gammaSlider.isEnabled())
         )
         self.settingMenu.gammaAuto.clicked.connect(
             lambda: UserSettingsManager.update_user_configs_settingMenu(
@@ -116,9 +107,7 @@ class ScreenSetting(QWidget):
         """Setup gain settings in the settings menu."""
         # Gain
         self.settingMenu.gainSlider.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(
-                setting="gain", val=self.settingMenu.gainSlider.value()
-            )
+            lambda: self.screen.set_camera_setting(setting="gain", val=self.settingMenu.gainSlider.value())
         )
         self.settingMenu.gainSlider.valueChanged.connect(
             lambda: self.settingMenu.gainNum.setNum(self.settingMenu.gainSlider.value())
@@ -129,9 +118,7 @@ class ScreenSetting(QWidget):
             )
         )
         self.settingMenu.gainAuto.clicked.connect(
-            lambda: self.settingMenu.gainSlider.setValue(
-                int(self.screen.get_camera_setting(setting="gain"))
-            )
+            lambda: self.settingMenu.gainSlider.setValue(int(self.screen.get_camera_setting(setting="gain")))
         )
 
     def _white_balance(self):
@@ -144,14 +131,10 @@ class ScreenSetting(QWidget):
         """Setup color channel settings in the settings menu."""
         # Blue Channel
         self.settingMenu.wbSliderBlue.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(
-                setting="wbBlue", val=self.settingMenu.wbSliderBlue.value() / 100
-            )
+            lambda: self.screen.set_camera_setting(setting="wbBlue", val=self.settingMenu.wbSliderBlue.value() / 100)
         )
         self.settingMenu.wbSliderBlue.valueChanged.connect(
-            lambda: self.settingMenu.wbNumBlue.setText(
-                "{:.2f}".format(self.settingMenu.wbSliderBlue.value() / 100)
-            )
+            lambda: self.settingMenu.wbNumBlue.setText("{:.2f}".format(self.settingMenu.wbSliderBlue.value() / 100))
         )
         self.settingMenu.wbSliderBlue.valueChanged.connect(
             lambda: UserSettingsManager.update_user_configs_settingMenu(
@@ -159,21 +142,15 @@ class ScreenSetting(QWidget):
             )
         )
         self.settingMenu.wbAuto.clicked.connect(
-            lambda: self.settingMenu.wbSliderBlue.setValue(
-                int(self.screen.get_camera_setting(setting="wbBlue") * 100)
-            )
+            lambda: self.settingMenu.wbSliderBlue.setValue(int(self.screen.get_camera_setting(setting="wbBlue") * 100))
         )
 
         # Red Channel
         self.settingMenu.wbSliderRed.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(
-                setting="wbRed", val=self.settingMenu.wbSliderRed.value() / 100
-            )
+            lambda: self.screen.set_camera_setting(setting="wbRed", val=self.settingMenu.wbSliderRed.value() / 100)
         )
         self.settingMenu.wbSliderRed.valueChanged.connect(
-            lambda: self.settingMenu.wbNumRed.setText(
-                "{:.2f}".format(self.settingMenu.wbSliderRed.value() / 100)
-            )
+            lambda: self.settingMenu.wbNumRed.setText("{:.2f}".format(self.settingMenu.wbSliderRed.value() / 100))
         )
         self.settingMenu.wbSliderRed.valueChanged.connect(
             lambda: UserSettingsManager.update_user_configs_settingMenu(
@@ -181,9 +158,7 @@ class ScreenSetting(QWidget):
             )
         )
         self.settingMenu.wbAuto.clicked.connect(
-            lambda: self.settingMenu.wbSliderRed.setValue(
-                int(self.screen.get_camera_setting(setting="wbRed") * 100)
-            )
+            lambda: self.settingMenu.wbSliderRed.setValue(int(self.screen.get_camera_setting(setting="wbRed") * 100))
         )
 
     def _custom_name(self):
@@ -197,9 +172,7 @@ class ScreenSetting(QWidget):
         # Update GroupBox name
         # Name) If custom name is changed, change the groupBox name.
         self.settingMenu.customName.textChanged.connect(
-            lambda: self._update_groupbox_name(
-                self.parent, self.settingMenu.customName.text()
-            )
+            lambda: self._update_groupbox_name(self.parent, self.settingMenu.customName.text())
         )
         self.settingMenu.customName.textChanged.connect(
             lambda: UserSettingsManager.update_user_configs_settingMenu(
@@ -252,7 +225,7 @@ class ScreenSetting(QWidget):
             None,
             "Select Image or Video",
             "",
-            "Images (*.png *.xpm *.jpg *.bmp *.tiff);;Videos (*.mp4 *.avi *.mov *.mkv);;All Files (*)"
+            "Images (*.png *.xpm *.jpg *.bmp *.tiff);;Videos (*.mp4 *.avi *.mov *.mkv);;All Files (*)",
         )
         if file_path:
             print("Selected file:", file_path)
@@ -266,13 +239,11 @@ class ScreenSetting(QWidget):
         font_grpbox.setPointSize(8)
         btn.setFont(font_grpbox)
         btn.setCheckable(True)
-        btn.setText(
-            QCoreApplication.translate("MainWindow", "SETTINGS \u25ba", None)
-        )
+        btn.setText(QCoreApplication.translate("MainWindow", "SETTINGS \u25ba", None))
         return btn
 
     def _update_setting_menu(self):
-        """ Update the settings menu with the current camera settings."""
+        """Update the settings menu with the current camera settings."""
         # update sn
         self.sn = self.screen.get_camera_name()
 
@@ -287,9 +258,7 @@ class ScreenSetting(QWidget):
             gammaAuto = saved_settings.get("gammaAuto", None)
             if gammaAuto is True:
                 self.settingMenu.gammaSlider.setEnabled(True)
-                self.settingMenu.gammaSlider.setValue(
-                    int(saved_settings.get("gamma", 100))
-                )
+                self.settingMenu.gammaSlider.setValue(int(saved_settings.get("gamma", 100)))
             elif gammaAuto is False:
                 self.settingMenu.gammaSlider.setEnabled(False)
             else:
@@ -301,11 +270,11 @@ class ScreenSetting(QWidget):
                 self.settingMenu.wbSliderRed.setDisabled(False)
                 self.settingMenu.wbSliderBlue.setDisabled(False)
                 self.settingMenu.wbSliderRed.setValue(
-                    #saved_settings.get("wbRed", 1.2)
+                    # saved_settings.get("wbRed", 1.2)
                     saved_settings.get("wbRed", 120)
                 )
                 self.settingMenu.wbSliderBlue.setValue(
-                    #saved_settings.get("wbBlue", 2.8)
+                    # saved_settings.get("wbBlue", 2.8)
                     saved_settings.get("wbBlue", 280)
                 )
             elif self.screen.get_camera_color_type() == "Mono":
@@ -319,9 +288,7 @@ class ScreenSetting(QWidget):
             self.settingMenu.gainAuto.click()
             self.settingMenu.wbAuto.click()
             self.settingMenu.expAuto.click()
-            UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "gammaAuto", True
-            )
+            UserSettingsManager.update_user_configs_settingMenu(self.parent, "gammaAuto", True)
             UserSettingsManager.update_user_configs_settingMenu(
                 self.parent, "gamma", self.settingMenu.gammaSlider.value()
             )

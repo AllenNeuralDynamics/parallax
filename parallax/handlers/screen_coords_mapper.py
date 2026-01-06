@@ -14,7 +14,9 @@ The ScreenCoordsMapper class includes functionality to:
 """
 
 import logging
+
 import numpy as np
+
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import apply_reticle_adjustments
 
@@ -22,7 +24,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class ScreenCoordsMapper():
+class ScreenCoordsMapper:
     """
     This class handles the mapping of screen coordinates to global coordinates
     by processing the clicked position on a camera screen and calculating the
@@ -79,7 +81,7 @@ class ScreenCoordsMapper():
         reticle_name = self.reticle_selector.currentText()
         if "Proj" not in reticle_name:
             return
-        self.reticle = reticle_name.split('(')[-1].strip(')')
+        self.reticle = reticle_name.split("(")[-1].strip(")")
 
         # Apply reticle-specific adjustments or use raw global coordinates
         global_x, global_y, global_z = global_coords

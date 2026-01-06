@@ -1,14 +1,15 @@
 """Reticle detection widget"""
-import os
+
 import logging
-import sys
-from pathlib import Path
-from PyQt6.QtWidgets import QWidget, QToolButton
-from PyQt6.QtCore import QPoint, QCoreApplication
+import os
+
+from PyQt6.QtCore import QCoreApplication, QPoint
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QToolButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -26,30 +27,25 @@ class ProbeDetectWidget(QWidget):
 
         self.detectButton = self._get_setting_button()
         self.settingMenu = self._get_setting_menu()
-        #self.settingMenu.radioButton1.setEnabled(True)
+        # self.settingMenu.radioButton1.setEnabled(True)
 
-        self.detectButton.toggled.connect(
-            lambda checked: self._show_detect_menu(checked)
-        )
+        self.detectButton.toggled.connect(lambda checked: self._show_detect_menu(checked))
         self.settingMenu.run_pushBtn.clicked.connect(self._apply_detection_algorithm)
 
     def _apply_detection_algorithm(self):
         """Apply the selected detection algorithm to the screen and model."""
         # Update into model
-        algorithm = 'yolo' if self.settingMenu.radioButton1.isChecked() else 'opencv'
-        self.model.set_probe_detect_algorithms(
-            self.screen.camera_name,
-            algorithm
-        )
+        algorithm = "yolo" if self.settingMenu.radioButton1.isChecked() else "opencv"
+        self.model.set_probe_detect_algorithms(self.screen.camera_name, algorithm)
         # Run open cv default detection
         if self.settingMenu.radioButton2.isChecked():
             print(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
-            self.screen.set_probe_detect_algorithms('opencv')
+            self.screen.set_probe_detect_algorithms("opencv")
 
         # Yolo v11 detection
         elif self.settingMenu.radioButton1.isChecked():
             print(f"{self.screen.camera_name} - 'YoloV11' tracking selected")
-            self.screen.set_probe_detect_algorithms('yolo')
+            self.screen.set_probe_detect_algorithms("yolo")
 
     def _get_setting_button(self):
         """Create and return the settings button for reticle detection."""
@@ -59,9 +55,7 @@ class ProbeDetectWidget(QWidget):
         font_grpbox.setPointSize(8)
         btn.setFont(font_grpbox)
         btn.setCheckable(True)
-        btn.setText(
-            QCoreApplication.translate("MainWindow", "PROBE DETECT \u25ba", None)
-        )
+        btn.setText(QCoreApplication.translate("MainWindow", "PROBE DETECT \u25ba", None))
         return btn
 
     def _get_setting_menu(self):

@@ -4,16 +4,17 @@ and control stage movements. It includes functionality for managing stage intera
 reticle adjustments, and issuing commands for stage movement.
 """
 
-import os
 import logging
-import numpy as np
-from PyQt6.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, QMessageBox
-from PyQt6.uic import loadUi
-from PyQt6.QtCore import Qt
+import os
 
-from parallax.utils.coords_converter import local_to_global, global_to_local
-from parallax.stages.stage_controller import StageController
+import numpy as np
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QGroupBox, QLabel, QLineEdit, QMessageBox, QPushButton, QWidget
+from PyQt6.uic import loadUi
+
 from parallax.config.config_path import ui_dir
+from parallax.stages.stage_controller import StageController
+from parallax.utils.coords_converter import global_to_local, local_to_global
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -47,7 +48,7 @@ class Calculator(QWidget):
             self.windowFlags()
             | Qt.WindowType.Window
             | Qt.WindowType.WindowMinimizeButtonHint
-            | Qt.WindowType.WindowMaximizeButtonHint   # include if you want it
+            | Qt.WindowType.WindowMaximizeButtonHint  # include if you want it
             | Qt.WindowType.WindowCloseButtonHint
         )
 
@@ -57,7 +58,7 @@ class Calculator(QWidget):
         self.model.add_calc_instance(self)
 
     def add_stage_groupbox(self):
-        """ Adds group boxes for each stage dynamically based on the number of stages in the model. """
+        """Adds group boxes for each stage dynamically based on the number of stages in the model."""
         self._create_stage_groupboxes()
         self._connect_clear_buttons()
         self._connect_move_stage_buttons()
@@ -92,7 +93,7 @@ class Calculator(QWidget):
         if not reticle_name or "Proj" in reticle_name:
             return
         # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
-        self.reticle = reticle_name.split('(')[-1].strip(')')
+        self.reticle = reticle_name.split("(")[-1].strip(")")
         self._change_global_label()
 
         # Clear fields for all enabled stages
@@ -127,7 +128,7 @@ class Calculator(QWidget):
                         continue
                     self._enable(stage_sn)
                     push_button.clicked.connect(self._create_convert_function(stage_sn))
-            else:   # Block calc functions for uncalibrated stages
+            else:  # Block calc functions for uncalibrated stages
                 self._disable(stage_sn)
 
     def _create_convert_function(self, stage_sn):
@@ -220,6 +221,7 @@ class Calculator(QWidget):
             list: The local points or None.
             list: The global points or None.
         """
+
         def is_valid_number(s):
             """
             Checks if a given string can be converted to a float.
@@ -352,9 +354,7 @@ class Calculator(QWidget):
             move_type (str): The type of move (e.g., "stopAll").
         """
         print("Stopping all stages.")
-        command = {
-            "move_type": move_type
-        }
+        command = {"move_type": move_type}
         self.stage_controller.request(command)
 
     def _create_stage_function(self, stage_sn):
@@ -399,20 +399,10 @@ class Calculator(QWidget):
             return  # User canceled the move
 
         # If the user confirms, proceed with moving the stage
-        command = {
-            "stage_sn": stage_sn,
-            "move_type": "stepMode",
-            "stepMode": 0   # 0 for coarse, 1 for fine
-        }
+        command = {"stage_sn": stage_sn, "move_type": "stepMode", "stepMode": 0}  # 0 for coarse, 1 for fine
         self.stage_controller.request(command)
 
-        command = {
-            "stage_sn": stage_sn,
-            "move_type": "moveXY0",
-            "x": x,
-            "y": y,
-            "z": z
-        }
+        command = {"stage_sn": stage_sn, "move_type": "moveXY0", "x": x, "y": y, "z": z}
         self.stage_controller.request(command)
         print(f"Moving stage {stage_sn} to ({np.round(x*1000)}, {np.round(y*1000)}, 0)")
 
@@ -430,8 +420,8 @@ class Calculator(QWidget):
             bool: True if the Z position is safe, False otherwise.
         """
         # Z is inverted in the server
-        local_pts_top = np.array([x*1000, y*1000, z*1000], dtype=float)  # Should be top of the stage
-        local_pts_bottom = np.array([x*1000, y*1000, 15.0*1000], dtype=float)  # Should be bottom
+        local_pts_top = np.array([x * 1000, y * 1000, z * 1000], dtype=float)  # Should be top of the stage
+        local_pts_bottom = np.array([x * 1000, y * 1000, 15.0 * 1000], dtype=float)  # Should be bottom
 
         for sn in self.model.stages.keys():
             if sn != stage_sn:
