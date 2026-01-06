@@ -1,6 +1,5 @@
 import pytest
-import os
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from parallax.handlers.recording_manager import RecordingManager
 
 @pytest.fixture

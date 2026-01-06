@@ -1,4 +1,3 @@
-import numpy as np
 from PyQt6.QtWidgets import QComboBox, QWidget
 from unittest.mock import Mock
 import pytest

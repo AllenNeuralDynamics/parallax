@@ -1,8 +1,7 @@
 import pytest
 import numpy as np
 import time
-import threading
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, patch
 
 # Adjust the import based on your actual file structure
 from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation

@@ -1,7 +1,4 @@
-import pytest
 import numpy as np
-from PyQt6.QtWidgets import QLineEdit, QComboBox, QWidget, QVBoxLayout
-from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
 
 # --- Minimal mocks ------------------------------------------------------------
 

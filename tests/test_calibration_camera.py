@@ -1,13 +1,11 @@
 import numpy as np
 import pytest
 import cv2
-from typing import List, Tuple
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 # import parallax.config.config_calibration as cfg # Not needed here as it's patched
 
 # Import the functions and dataclass from your module
 from parallax.cameras.calibration_camera import (
-    calibrate_camera,
     _get_changed_data_format,
     process_reticle_points,
     get_rotmat_from_camA_to_global,

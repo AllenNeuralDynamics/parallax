@@ -1,6 +1,5 @@
 # tests/test_stage_controller.py
 import json
-import time
 from typing import List, Dict
 
 import numpy as np

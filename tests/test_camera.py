@@ -1,7 +1,6 @@
 # tests/camera.py
 import numpy as np
 import cv2
-import pytest
 
 from parallax.cameras.camera import MockCamera
 

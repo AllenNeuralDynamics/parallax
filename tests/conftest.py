@@ -1,7 +1,6 @@
 # tests/conftest.py
 import os
 import sys
-import types
 import pytest
 from unittest.mock import MagicMock
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")

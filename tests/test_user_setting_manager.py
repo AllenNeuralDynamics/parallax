@@ -1,11 +1,9 @@
 # tests/test_user_setting_manager.py
 import os
-import json
 import yaml
 import numpy as np
 import pytest
 from types import SimpleNamespace
-from unittest import mock
 
 from parallax.config.user_setting_manager import (
     UserSettingsManager,

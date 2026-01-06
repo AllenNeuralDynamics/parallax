@@ -138,7 +138,6 @@ def test_bregma_to_local_composite():
     np.testing.assert_allclose(out_local, LOCAL_PT, atol=1e-5)
 
 import numpy as np
-import pytest
 # Assuming apply_rigid_transform and make_T are available in the scope of the test file
 
 def test_apply_rigid_transform_identity():

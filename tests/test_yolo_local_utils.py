@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-import cv2
 from unittest.mock import patch
 
 # Import the functions to be tested

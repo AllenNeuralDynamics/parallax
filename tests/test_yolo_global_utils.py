@@ -1,6 +1,4 @@
-import pytest
 import numpy as np
-import cv2
 
 # Import the functions to be tested
 from parallax.probe_detection.yolo_global.utils import preprocessing, postprocessing

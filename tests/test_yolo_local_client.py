@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-import time
 from unittest.mock import MagicMock, patch
 
 # Import the class under test

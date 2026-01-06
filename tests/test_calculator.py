@@ -1,8 +1,6 @@
 import pytest
 import numpy as np
-import time
-from unittest.mock import MagicMock, patch
-from PyQt6.QtCore import Qt
+from unittest.mock import MagicMock
 from PyQt6.QtWidgets import QWidget, QGroupBox, QVBoxLayout, QPushButton, QLineEdit, QComboBox, QLabel
 # Import the module under test (used by the fixture)
 import parallax.handlers.calculator as calc_mod 

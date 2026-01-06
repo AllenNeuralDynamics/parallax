@@ -1,13 +1,12 @@
 # tests/test_model.py
-import pytest
 import numpy as np
 from unittest.mock import patch, MagicMock
 
-from parallax.model import Model
 from parallax.cameras.camera import MockCamera, PySpinCamera
 from parallax.stages.stage_listener import Stage
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.cameras.calibration_camera import CameraParams
+from parallax.model import Model
 from helper import model, mock_stage_instances
 
 

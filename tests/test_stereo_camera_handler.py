@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock
 from parallax.cameras.calibration_camera import CameraParams
 
 class TestStereoCameraHandler:
