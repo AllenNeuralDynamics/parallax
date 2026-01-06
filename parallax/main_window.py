@@ -27,7 +27,7 @@ from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.control_panel.control_panel import ControlPanel
 from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
-from ui.resources import rc
+from ui.resources import rc  # noqa
 
 # Set logger name
 logger = logging.getLogger(__name__)

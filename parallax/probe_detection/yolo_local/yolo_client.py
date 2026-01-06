@@ -88,10 +88,10 @@ if __name__ == '__main__':
         'fps': 10,
         'yolo': {
             'weights_path': 'path/to/your/model.pt', # REPLACE with your actual path!
-            'img_dim': [640, 480] 
+            'img_dim': [640, 480]
         }
     }
-    
+
     # 2. Define the callback function (replaces the Signal)
     def handle_detections(detections):
         print(f"Thread: {threading.current_thread().name} - Received {len(detections)} detections.")
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     # 3. Initialize and start the client
     client = YOLOClient(config=yolo_client_config, detection_callback=handle_detections)
     client.start_client()
-    
+
     # 4. Simulate a video stream (sending frames)
     # The 'newframe_captured' method is now a regular method call.
     try:
@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         print("Stopping client...")
-        
+
     finally:
         # 5. Stop the worker thread cleanly
         client.stop()

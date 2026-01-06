@@ -734,7 +734,7 @@ if __name__ == "__main__":
         print("points:", points)
         points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
         print("points_local:", points_local)
-        mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)  # Generate mask for line
+        mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)
 
     # Post processing Lift local mask to global
     # mask_local[0] matches local_img size (w,h); lift it back to full-frame

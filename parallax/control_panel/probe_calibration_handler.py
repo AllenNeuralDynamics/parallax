@@ -189,24 +189,6 @@ class ProbeCalibrationHandler(QWidget):
         if not self.probe_calibration_btn.isEnabled():
             self.probe_calibration_btn.setEnabled(True)
 
-    def _get_lowest_shank_index(self, global_coords):
-        """
-        Compares only the first and last coordinates and returns
-        the index of the one with the lowest Z value.
-        """
-        if global_coords is None or len(global_coords) == 0:
-            return None
-
-        # Compare Z (index 2) of the first and last points
-        z_first = global_coords[0, 2]
-        z_last = global_coords[-1, 2]
-
-        if z_first < z_last:
-            return 0
-        else:
-            # Return the explicit last index (not -1) so slicing [idx:idx+1] works
-            return len(global_coords) - 1
-
     def _get_lowest_shank_index(self, global_coords, tolerance=0.05):
         """
         Returns the index of the coordinate with the lowest Z value.
@@ -289,9 +271,9 @@ class ProbeCalibrationHandler(QWidget):
                 )  # TODO handle the parallel to the reticle surface
                 if idx is not None:
                     # Update the main variables to ensure consistency
-                    global_coords = global_coords_4shanks[idx : idx + 1]
-                    tip_A = tip_A[idx : idx + 1]
-                    tip_B = tip_B[idx : idx + 1]
+                    global_coords = global_coords_4shanks[idx:idx + 1]
+                    tip_A = tip_A[idx:idx + 1]
+                    tip_B = tip_B[idx:idx + 1]
                     logger.debug(f" Lowest shank index: {idx}")
 
                 # Spin
@@ -316,9 +298,8 @@ class ProbeCalibrationHandler(QWidget):
             self.camB_best,
             tip_B,
         )
-        logger.debug(
-            f"=====\n s: {stage_ts_A}\n i: {img_ts_A}\n ({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}"
-        )
+        logger.debug(f"=====\n s: {stage_ts_A} i: {img_ts_A}\n")
+        logger.debug(f"({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")
 
     def _get_spin_angle(self, global_pts: np.ndarray) -> Optional[float]:
         # sort by global z coords (ascending)
@@ -399,9 +380,8 @@ class ProbeCalibrationHandler(QWidget):
             camera_name = screen.get_camera_name()
             if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                 if screen.probeDetector.opencvProcessWorker is not None or screen.probeDetector.worker is not None:
-                    print(
-                        f" Probe calibration thread is running for camera: {camera_name}, processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}"
-                    )
+                    print(f" Probe calibration thread is running for camera: {camera_name}")
+                    print(f"processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}")
                     return False
         return True
 

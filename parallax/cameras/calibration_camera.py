@@ -21,12 +21,8 @@ import parallax.config.config_calibration as cfg
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-
-############## Calibration Functions ##############
-
-###### Stereo Calibration ######
 """
-# Example usage:
+Example usage:
 success, camera_params = calibrate_camera(
     x_axis=x_coords,
     y_axis=y_coords,

@@ -6,9 +6,7 @@ import numpy as np
 
 from parallax.cameras.calibration_camera import (
     calibrate_camera,
-    get_axis_object_points,
     get_origin_xyz,
-    get_projected_points,
 )
 from parallax.reticle_detection.base_manager import (
     BaseDrawWorker,
@@ -71,10 +69,6 @@ class ReticleDetectManager(BaseReticleManager):
                 return DetectionResult.FAILED
 
             # Step 4: Reproject 3D axis points
-            objpts_x_coords = get_axis_object_points(axis="x", coord_range=10)
-            objpts_y_coords = get_axis_object_points(axis="y", coord_range=10)
-            x_coords_ = get_projected_points(objpts_x_coords, params.rvec, params.tvec, params.mtx, params.dist)
-            y_coords_ = get_projected_points(objpts_y_coords, params.rvec, params.tvec, params.mtx, params.dist)
             self.origin, self.x, self.y, self.z = get_origin_xyz(
                 imgpoints=np.array(self.x_coords, dtype=np.float32),
                 mtx=params.mtx,

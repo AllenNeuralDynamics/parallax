@@ -99,7 +99,7 @@ class ProbeDetector:
             numpy.ndarray: Neighboring gradients.
         """
         gradient_index = np.where(self.angle_step_bins == target_angle)[0][0]
-        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index : gradient_index + 3]
+        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index+3]
         return neighboring_gradients
 
     def _contour_preprocessing(self, img, thresh=20, remove_noise=True, noise_threshold=1):
@@ -223,9 +223,7 @@ class ProbeDetector:
 
         if len(self.gradients) > 0:
             if self._is_distance_in_thres(highest_point, lowest_point):
-                logger.debug(
-                    f"{self.stage_sn}-{self.camera_sn} Distance between tip and base is too close {highest_point} {lowest_point}"
-                )
+                logger.debug(f"{self.stage_sn}-{self.camera_sn} Distance between tip and base is too close:\n")
                 return False, highest_point, lowest_point
             found_ret = True
             logger.debug(f"{self.stage_sn}-{self.camera_sn} First line detection {self.gradients}")
@@ -273,13 +271,13 @@ class ProbeDetector:
             return found_ret, highest_point, lowest_point
 
         gradient_index = gradient_index[0][0]
-        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index : gradient_index + 3]
+        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index + 3]
 
         # Draw the line segments
         if line_segments is not None:
             if (len(line_segments)) >= 30:
                 logger.debug(
-                    f"{self.stage_sn}-{self.camera_sn} get_tip_hough_line_detection:: Too many line detected. Possibly Plane image"
+                    f"{self.stage_sn}-{self.camera_sn} get_tip_hough_line_detection:: Too many line detected."
                 )
                 return found_ret, highest_point, lowest_point
 
@@ -321,15 +319,14 @@ class ProbeDetector:
         if found_ret:
             if self._is_distance_in_thres(highest_point, lowest_point):
                 logger.debug(
-                    f"{self.stage_sn}-{self.camera_sn} Distance between tip and base is too close, {highest_point} {lowest_point}"
+                    f"{self.stage_sn}-{self.camera_sn} Distance between tip and base is too close"
                 )
                 return False, highest_point, lowest_point
 
             gradient_counts = Counter(self.gradients)
             updated_gradient, _ = gradient_counts.most_common(1)[0]
-            logger.debug(
-                f"{self.stage_sn}-{self.camera_sn} target angle: {self.angle}, updated_detected: {updated_gradient}, neighbor: {neighboring_gradients}"
-            )
+            logger.debug(f"{self.stage_sn}-{self.camera_sn}")
+            logger.debug(f"target angle: {self.angle}, updated: {updated_gradient}, neighbor: {neighboring_gradients}")
             # logger.debug(gradient_counts)
             self.angle = updated_gradient
             return found_ret, highest_point, lowest_point
@@ -458,9 +455,8 @@ class ProbeDetector:
                 self.probe_base[1] + offset_y,
             )
             self._update_original_coords()
-            logger.debug(
-                f"{self.stage_sn}-{self.camera_sn} first_detect_probe:: probe_tip: {self.probe_tip}, probe_base: {self.probe_base}, direction: {self.probe_tip_direction}"
-            )
+            logger.debug(f"{self.stage_sn}-{self.camera_sn} first_detect_probe:: probe_tip: {self.probe_tip}")
+            logger.debug(f"probe_base: {self.probe_base}, direction: {self.probe_tip_direction}")
             self._save_debug_img(
                 img,
                 tip=(self.probe_tip[0] - offset_x, self.probe_tip[1] - offset_y),

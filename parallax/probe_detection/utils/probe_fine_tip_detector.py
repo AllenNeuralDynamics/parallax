@@ -318,7 +318,6 @@ class ProbeFineTipDetector:
         if logger.getEffectiveLevel() == logging.DEBUG and debug_config.get("save_images", True):
             x, y = precise_tip_extended[0] - offset_x, precise_tip_extended[1] - offset_y
             # Use configurable debug circle parameters
-            radius = debug_config.get("circle_radius", 2)
             color = tuple(debug_config.get("circle_color", [0, 255, 0]))
             thickness = debug_config.get("circle_thickness", -1)
 

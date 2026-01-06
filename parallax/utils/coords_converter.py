@@ -203,7 +203,6 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
     if not md:
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return np.array([global_pts[0], global_pts[1], global_pts[2]])
-    reticle_rot = md.get("rot", 0)  # scalar degrees flag used by caller's convention
     Rm = md.get("rotmat", np.eye(3))
     tm = np.array([md.get("offset_x", 0.0), md.get("offset_y", 0.0), md.get("offset_z", 0.0)], dtype=float)
 
@@ -243,7 +242,7 @@ def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
     explicit row formulas in other helpers.
     """
     if not md:
-        logger.warning(f"Warning: No metadata found for reticle. Returning original points.")
+        logger.warning("Warning: No metadata found for reticle. Returning original points.")
         return None
     Rm = md.get("rotmat", np.eye(3))
     tm = np.array([md.get("offset_x", 0.0), md.get("offset_y", 0.0), md.get("offset_z", 0.0)], dtype=float)

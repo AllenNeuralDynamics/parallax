@@ -137,7 +137,7 @@ class CurrPrevCmpProcessor:
                 crop_size,
                 self.IMG_SIZE,
             )
-            diff_img_crop = self.diff_img[self.top : self.bottom, self.left : self.right]
+            diff_img_crop = self.diff_img[self.top:self.bottom, self.left:self.right]
             hough_minLineLength_adaptive = 40 + int(crop_size / self.crop_init) * 5
             self.ProbeDetector.update_parameters({"hough_minLineLength_update": hough_minLineLength_adaptive})
             ret = self.ProbeDetector.update_probe(
@@ -196,7 +196,7 @@ class CurrPrevCmpProcessor:
             crop_size=25,
             IMG_SIZE=self.IMG_SIZE_ORIGINAL,
         )
-        self.tip_image = org_img[self.top_fine : self.bottom_fine, self.left_fine : self.right_fine]
+        self.tip_image = org_img[self.top_fine:self.bottom_fine, self.left_fine:self.right_fine]
         ret, tip = ProbeFineTipDetector.get_precise_tip(
             self.tip_image,
             probe_tip_original_coords,

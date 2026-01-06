@@ -1,8 +1,7 @@
 import logging
-import sys  # Import sys for basic signal/logging if needed
 import time
 from collections import deque
-from threading import Event, Thread  # Using Event for better thread signaling
+from threading import Thread  # Using Event for better thread signaling
 
 import numpy as np
 import torch
@@ -123,7 +122,7 @@ class YoloSegmentation:
             # Clear old frame and append new one to ensure only the latest frame is processed
             self.frame_queue.clear()
             self.frame_queue.append((frame, crop_info, ts))
-        except:
+        except Exception:
             pass
 
     def _process_frames(self):

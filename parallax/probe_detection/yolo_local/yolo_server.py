@@ -145,7 +145,7 @@ class YoloKeypoints:
                     logger.debug(f"{self.name} {i}- Cleared frame queue due to new timestamp: {ts}")
             self.frame_queue.append((frame, crop_info, ts, global_detection, i))
             logger.debug(
-                f"{self.name} {i} - ** Queue **. {global_detection['class_name']} Current queue size: {len(self.frame_queue)}"
+                f"{self.name} {i} - Queue {global_detection['class_name']} Current queue size: {len(self.frame_queue)}"
             )
             # save image
             if debug_img_dir and logger.isEnabledFor(logging.DEBUG):
@@ -164,7 +164,7 @@ class YoloKeypoints:
                     (frame, crop_info, ts, global_detection, i_th) = self.frame_queue.pop()
                     global_class_name = global_detection.get("class_name", "") if global_detection else ""
                     logger.debug(
-                        f"{self.name} {i_th} - ** Dequeue **. Queue size: {len(self.frame_queue)}. Global class: {global_class_name}"
+                        f"{self.name} {i_th} Dequeue size: {len(self.frame_queue)}. Global class: {global_class_name}"
                     )
                     detections = []
 
@@ -204,7 +204,7 @@ class YoloKeypoints:
 
                             keypoints_data = {}
                             logger.debug(
-                                f"{self.name} {i_th}- Detections found from YOLO model : {len(results[0].boxes) if results[0].boxes is not None else 0}"
+                                f"{self.name} {i_th}: {len(results[0].boxes) if results[0].boxes is not None else 0}"
                             )
 
                             if hasattr(result, "keypoints") and result.keypoints is not None:
@@ -229,7 +229,7 @@ class YoloKeypoints:
 
                                     keypoints_data[i] = kp_list
                                     logger.debug(
-                                        f"   {self.name} {i_th}- Keypoints for object {i} ({global_class_name}): {kp_list}"
+                                        f"   {self.name} {i_th}- kpts for object {i} ({global_class_name}): {kp_list}"
                                     )
 
                             # if hasattr(result, 'boxes') and result.boxes is not None:
@@ -321,7 +321,7 @@ class YoloKeypoints:
                     # Call the provided callback function with detections
                     if self.detection_callback:
                         logger.debug(
-                            f"{self.name} && Calling detection callback with {len(detections)} detections.  i_th: {i_th}"
+                            f"{self.name} & Calling detection callback with {len(detections)} detections. i_th: {i_th}"
                         )
                         self.detection_callback(crop_info, detections, i_th)
                 else:
