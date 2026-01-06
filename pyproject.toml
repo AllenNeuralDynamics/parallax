@@ -19,7 +19,7 @@ classifiers = [
 
 dependencies = [
     "pip",
-    "PyQt6",
+    "PyQt6>=6.10.0",
     "pyqtgraph",
     "opencv-python",
     "scipy",
@@ -28,7 +28,7 @@ dependencies = [
     "requests",
     "scikit-learn",
     "plotly",
-    "PyQt6-WebEngine",
+    "PyQt6-WebEngine>=6.10.0",
     "aiohttp",
     "pyyaml",
     "SimpleITK",
