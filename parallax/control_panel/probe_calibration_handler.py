@@ -690,57 +690,6 @@ class ProbeCalibrationHandler(QWidget):
             if self.reticle_metadata_btn.isVisible():
                 self.reticle_metadata_btn.hide()
 
-    def update_probe_calib_status_transM(self, transformation_matrix):
-        """
-        Updates the probe calibration status with the transformation matrix.
-        Extracts the rotation matrix (R), translation vector (T) formats
-        them into a string to be displayed in the UI.
-        """
-        # Extract the rotation matrix (top-left 3x3)
-        R = transformation_matrix[:3, :3]
-        # Extract the translation vector (top 3 elements of the last column)
-        T = transformation_matrix[:3, 3]
-
-        # Set the formatted string as the label's text
-        content = (
-            f"<span style='color:yellow;'><small>"
-            f"[Transformation Matrix]<br></small></span>"
-            f"<span style='color:green;'><small><b>R:</b><br>"
-            f" [[{R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f}],<br>"
-            f" [{R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f}],<br>"
-            f" [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]<br>"
-            f"<b>T: </b>"
-            f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]<br>"
-            f"</small></span>"
-        )
-        return content
-
-    def update_probe_calib_status_L2(self, L2_err):
-        """
-        Formats the L2 error value for display in the UI.
-        """
-        content = (
-            f"<span style='color:yellow;'><small>[L2 distance]<br></small></span>"
-            f"<span style='color:green;'><small> {L2_err:.3f}<br>"
-            f"</small></span>"
-        )
-        return content
-
-    def update_probe_calib_status_distance_traveled(self, dist_travel):
-        """
-        Formats the distance traveled in the X, Y, and Z directions for display in the UI.
-        """
-        if dist_travel is None:
-            return
-        x, y, z = dist_travel[0], dist_travel[1], dist_travel[2]
-        content = (
-            f"<span style='color:yellow;'><small>[Distance traveled (µm)]<br></small></span>"
-            f"<span style='color:green;'><small>"
-            f"x: {int(x)} y: {int(y)} z: {int(z)}<br>"
-            f"</small></span>"
-        )
-        return content
-
     def update_probe_calib_status(self, moving_stage_id, transM, L2_err, dist_travel):
         """
         Handler for the signal emitted when the probe calibration. (transM_info)
