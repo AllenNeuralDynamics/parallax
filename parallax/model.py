@@ -91,6 +91,7 @@ class Model(QObject):
                     status_x: Optional[str] = None
                     status_y: Optional[str] = None
                     status_z: Optional[str] = None
+                    trajectory_file: Optional[str] = None
                 )
             }
         }
