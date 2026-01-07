@@ -209,10 +209,14 @@ class TransformInfoHandler(QWidget):
         l2 = info.get("l2_err")
         self.l2_label.setText(f"{l2:.2f} µm" if l2 is not None else "-")
 
-        travel = info.get("dist_travel")
-        if isinstance(travel, np.ndarray):
-            travel = np.linalg.norm(travel)
-        self.travel_label.setText(f"{travel:.1f} µm" if travel is not None else "-")
+        try:
+            travel = info.get("dist_travel")
+            tx = int(travel[0])
+            ty = int(travel[1])
+            tz = int(travel[2])
+            self.travel_label.setText(f"x: {tx} µm, y: {ty} µm, z: {tz} µm")
+        except (TypeError, ValueError, IndexError, AttributeError):
+            self.travel_label.setText("-")
 
         # 4. Angles
         angles = info.get("arc_angle", {})
