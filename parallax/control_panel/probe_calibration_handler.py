@@ -40,6 +40,7 @@ class StageCalibrationInfo:
     status_x: Optional[str] = None
     status_y: Optional[str] = None
     status_z: Optional[str] = None
+    trajectory_file: Optional[str] = None
 
     # Movement tracking
     min_x: float = float("inf")

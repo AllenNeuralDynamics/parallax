@@ -389,7 +389,24 @@ class ProbeCalibration(QObject):
         else:
             return False
 
+    def _update_trajectory_file(self, sn:str, file_path:str):
+        """
+        Updates the trajectory file path in the calibration info for the given stage serial number.
+        Args:
+            sn (str): The serial number of the stage.
+            file_path (str): The path to the trajectory file.
+        """
+        calib_info = self.model.get_stage_calib_info(sn)
+        if calib_info is None:
+            return
+        calib_info.trajectory_file = file_path
+
     def _update_min_max_x_y_z(self, stage):
+        """
+        Updates the min and max x, y, z values for the given stage.
+        Args:
+            stage (Stage): The current stage object with position data.
+        """
         calib_info = self.model.get_stage_calib_info(stage.sn)
         if calib_info is None:
             return
@@ -563,22 +580,24 @@ class ProbeCalibration(QObject):
         if save_to_csv:
             self._save_transM_to_csv(file_name)
 
-    def _save_df_to_csv(self, df, file_name):
+    def _save_df_to_csv(self, df: pd.DataFrame, file_name: str) -> str:
         """
-        Save the filtered points back to the CSV file.
+        Helper to save a DataFrame to a CSV file within the instance's log directory.
 
         Args:
-            filtered_df (pd.DataFrame): DataFrame containing filtered local and global points.
+            df (pd.DataFrame): The DataFrame to save.
+            file_name (str): The name of the file (e.g., 'data.csv').
+
+        Returns:
+            str: The full path to the saved CSV file.
         """
         if self.log_dir is None:
-            logger.error("log_dir is not initialized.")
-            return
+            raise ValueError("Cannot save CSV: log_dir is not initialized.")
 
-        # Save the updated DataFrame back to the CSV file
-        csv_file = os.path.join(self.log_dir, file_name)
-        df.to_csv(csv_file, index=False)
+        file_path = os.path.join(self.log_dir, file_name)
+        df.to_csv(file_path, index=False)
 
-        return csv_file
+        return file_path
 
     def _save_transM_to_csv(self, file_name):
         """
@@ -727,6 +746,9 @@ class ProbeCalibration(QObject):
             return True
 
         return False
+    
+    def _register_file(self, sn):
+        self.model.get_stage_calib_info(sn)
 
     def complete_calibration(self, sn, df):
         """
@@ -747,7 +769,9 @@ class ProbeCalibration(QObject):
         # save the filtered points to a new file
         logger.debug("ProbeCalibration: complete_calibration")
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.file_name = self._save_df_to_csv(df, f"points_{sn}_{timestamp}.csv")
+        traj_file_path = self._save_df_to_csv(df, f"points_{sn}_{timestamp}.csv")
+        # register file path to model
+        self._update_trajectory_file(sn, traj_file_path)
 
         print("\n\n=========================================================")
         self._print_formatted_transM()
@@ -756,7 +780,7 @@ class ProbeCalibration(QObject):
 
         if self.model.bundle_adjustment:
             self.old_transM = self.transM_LR
-            ret = self.run_bundle_adjustment(self.file_name)
+            ret = self.run_bundle_adjustment(traj_file_path)
             if ret:
                 print("\n=========================================================")
                 print("** After Bundle Adjustment **")
@@ -770,10 +794,10 @@ class ProbeCalibration(QObject):
 
         # Init PointMesh
         if not self.model.bundle_adjustment:
-            self.point_mesh[sn] = PointMesh(self.model, self.file_name, sn,
+            self.point_mesh[sn] = PointMesh(self.model, traj_file_path, sn,
                                                        self.transM_LR, calib_completed=True)
         else:
-            self.point_mesh[sn] = PointMesh(self.model, self.file_name, sn,
+            self.point_mesh[sn] = PointMesh(self.model, traj_file_path, sn,
                                                        self.old_transM,
                                                        self.transM_LR, calib_completed=True)
 
