@@ -14,6 +14,7 @@ from PyQt6.uic import loadUi
 from parallax.cameras.calibration_camera import triangulate
 from parallax.config.config_path import ui_dir
 from parallax.handlers.calculator import Calculator
+from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle, is_sane_4shanks
@@ -852,8 +853,22 @@ class ProbeCalibrationHandler(QWidget):
         This method triggers the display of the 3D trajectory for the selected stage
         using the `probeCalibration` object.
         """
-        self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
-
+        #self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
+        if not self.selected_stage_id:
+            logger.warning("View Trajectory: No stage selected.")
+            return
+        
+        if self.selected_stage_id not in self.model.stages:
+            logger.error(f"View Trajectory: Stage ID '{self.selected_stage_id}' not found in model.")
+            return
+        
+        try:
+            stage = self.model.stages[self.selected_stage_id]
+            PointMesh.show(self.selected_stage_id, stage)
+            
+        except Exception as e:
+            logger.error(f"Failed to open 3D trajectory for '{self.selected_stage_id}': {e}")
+        
     def calculation_button_handler(self):
         """
         Handles the event when the user clicks the "Calculation" button.

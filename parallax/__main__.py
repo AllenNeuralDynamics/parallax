@@ -3,6 +3,7 @@ Parallax: A GUI application for controlling hardware devices.
 """
 
 import atexit
+import sys
 
 from PyQt6.QtWidgets import QApplication
 
@@ -26,7 +27,8 @@ if __name__ == "__main__":
     setup_logging()
 
     # Initialize the Qt application
-    app = QApplication([])
+    #app = QApplication([])
+    app = QApplication(sys.argv)
 
     # Initialize the model and main window
     model = Model(args)
