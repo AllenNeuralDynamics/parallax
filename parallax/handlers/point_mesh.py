@@ -2,33 +2,6 @@
 This module defines the `PointMesh` class, which provides a 3D visualization of point meshes
 for trajectory analysis. The widget integrates with Plotly to render 3D plots and allows users
 to interact with the displayed points via a PyQt6 interface.
-
-The class is designed to visualize different sets of points, including local, global, and
-bundle-adjusted (BA) coordinates, which are loaded from a CSV file. Users can toggle the
-visibility of these point sets using dynamically generated buttons in the UI.
-
-Key Features:
--------------
-- Parses a CSV file containing trajectory point data.
-- Converts local points to global coordinates using provided transformation matrices.
-- Supports both original and bundle-adjusted transformation matrices.
-- Visualizes point sets in a 3D Plotly plot embedded within a PyQt6 widget.
-- Allows users to toggle visibility of different point sets using buttons.
-- Responsive resizing and dynamic updating of the plot.
-
-Usage:
-------
-The `PointMesh` class should be instantiated with the necessary transformation matrices and
-point data, after which it can be shown using the `show()` method. The UI allows users to
-interact with the point sets and visualize their trajectories in 3D.
-
-Example:
---------
-# Instantiate the PointMesh widget
-point_mesh_widget = PointMesh(model, file_path, sn, transM)
-
-# Show the widget
-point_mesh_widget.show()
 """
 
 import logging
@@ -99,18 +72,15 @@ class PointMeshWidget(QWidget):
         )
 
         # Initialize
-        try:
-            self._parse_csv()
-            self._init_ui()
-            self._init_buttons()
-            self._update_canvas()
-        except Exception as e:
-            logger.error(f"Failed to initialize PointMeshWidget: {e}")
-            QMessageBox.warning(self, "Data Error", f"Could not load trajectory data:\n{e}")
+        self._parse_csv()
+        self._init_ui()
+        self._init_buttons()
+        self._update_canvas()
 
     def _init_ui(self):
         """Initializes the QWebEngineView."""
         # Safety check: close existing if for some reason it exists
+        print("Initializing UI Web View")
         if self.web_view is not None:
             self.web_view.close()
             
@@ -230,9 +200,7 @@ class PointMeshWidget(QWidget):
         self._update_canvas()
 
 
-# ---------------------------------------------------------
-# 2. The Static Helper Interface
-# ---------------------------------------------------------
+
 class PointMesh:
     """
     Static helper class to display 3D trajectories.
