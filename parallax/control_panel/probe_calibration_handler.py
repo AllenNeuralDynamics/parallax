@@ -270,7 +270,7 @@ class ProbeCalibrationHandler(QWidget):
                 logger.debug(f"global coords: {global_coords_4shanks}")
                 idx = self._get_lowest_shank_index(
                     global_coords_4shanks
-                )  # TODO handle the parallel to the reticle surface
+                )  # Handle the parallel to the reticle surface
                 if idx is not None:
                     # Update the main variables to ensure consistency
                     global_coords = global_coords_4shanks[idx:idx + 1]
