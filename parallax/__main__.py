@@ -27,7 +27,6 @@ if __name__ == "__main__":
     setup_logging()
 
     # Initialize the Qt application
-    #app = QApplication([])
     app = QApplication(sys.argv)
 
     # Initialize the model and main window
