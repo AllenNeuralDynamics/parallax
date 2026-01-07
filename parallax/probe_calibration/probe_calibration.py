@@ -398,6 +398,7 @@ class ProbeCalibration(QObject):
         """
         calib_info = self.model.get_stage_calib_info(sn)
         if calib_info is None:
+            logger.error(f"Calibration info not found for stage {sn}")
             return
         calib_info.trajectory_file = file_path
 
@@ -682,6 +683,7 @@ class ProbeCalibration(QObject):
 
         # update points in the file
         self._write_local_global_point(stage, debug_info)  # Do no update if it is duplicates
+        self._update_trajectory_file(sn, self.log_dir / "points.csv")
         self._update_min_max_x_y_z(stage)  # update min max x,y,z and emit signals if criteria met
         self._update_movement(sn)
         df = self._filter_df_by_sn(sn)
