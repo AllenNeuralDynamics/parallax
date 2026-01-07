@@ -39,7 +39,7 @@ class PointMeshWidget(QWidget):
     """
     A standalone widget that renders the 3D Plotly graph for a stage.
     """
-    def __init__(self, file_path, sn, transM):
+    def __init__(self, file_path, sn):
         """initializes the PointMeshWidget.
         Parameters:
         file_path (str): Path to the CSV file containing trajectory data.
@@ -53,7 +53,6 @@ class PointMeshWidget(QWidget):
         self.web_view = None
 
         # Data Containers
-        self.transM = transM
         self.points_dict = {}
         self.traces = {}
         self.colors = {}
@@ -100,30 +99,21 @@ class PointMeshWidget(QWidget):
         if df.empty:
             raise ValueError(f"No data found in CSV for stage {self.sn}")
 
-        # Local Points
-        local_pts_org = df[["local_x", "local_y", "local_z"]].values
-        
-        # TODO: Use the library function
-        # Decompose TransM
-        R = self.transM[:3, :3]
-        t = self.transM[:3, 3]
-        # Transform: (R @ local.T + t).T
-        local_pts_globalized = (R @ local_pts_org.T + t.reshape(-1, 1)).T
-        self.points_dict["local_pts"] = local_pts_globalized
-
         # Process Global Points (Reference)
         if all(col in df.columns for col in ["global_x", "global_y", "global_z"]):
             self.points_dict["global_pts"] = df[["global_x", "global_y", "global_z"]].values
+        if all(col in df.columns for col in ["global_x_exp", "global_y_exp", "global_z_exp"]):
+            self.points_dict["transformed_pts"] = df[["global_x_exp", "global_y_exp", "global_z_exp"]].values
 
         # Assign colors
-        self.colors["local_pts"] = "red"
-        self.colors["global_pts"] = "blue"
+        self.colors["global_pts"] = "red"
+        self.colors["transformed_pts"] = "blue"
 
     def _init_buttons(self):
         """Initializes buttons for toggling point sets."""
         self.buttons = {}
         for key in self.points_dict.keys():
-            btn_name = "Stage (Transformed)" if key == "local_pts" else "Global (Reference)"
+            btn_name = "Stage (Transformed)" if key == "transformed_pts" else "Global (Reference)"
             
             button = QPushButton(btn_name)
             button.setCheckable(True)
@@ -158,7 +148,7 @@ class PointMeshWidget(QWidget):
         key (str): The key identifying the set of points to draw.
         """
         pts = self.points_dict[key]
-        name_map = {"local_pts": "Stage (Transformed)", "global_pts": "Global (Reference)"}
+        name_map = {"transformed_pts": "Stage (Transformed)", "global_pts": "Global (Reference)"}
         scatter = go.Scatter3d(
             x=pts[:, 0], y=pts[:, 1], z=pts[:, 2],
             mode="markers+lines",
@@ -200,7 +190,6 @@ class PointMeshWidget(QWidget):
         self._update_canvas()
 
 
-
 class PointMesh:
     """
     Static helper class to display 3D trajectories.
@@ -212,30 +201,28 @@ class PointMesh:
         raise NotImplementedError("PointMesh is a static helper class.")
 
     @staticmethod
-    def show(stage_id: str, stage: dict):
+    def show(stage_sn: str, stage: dict):
         """
         Extracts data from the stage dictionary and opens the 3D view.
         """
-        logger.info(f"Displaying trajectory for stage: {stage_id}")
+        logger.info(f"Displaying trajectory for stage: {stage_sn}")
 
         calib_info = stage.get("calib_info")
         if not calib_info:
-            logger.error(f"No calibration info found for {stage_id}")
+            logger.error(f"No calibration info found for {stage_sn}")
             return
 
-        transM = calib_info.transM
         trajectory_file = calib_info.trajectory_file
 
         try:
             widget = PointMeshWidget(
                 file_path=trajectory_file,
-                sn=stage_id,
-                transM=transM
+                sn=stage_sn
             )
             widget.show()
             PointMesh._active_windows.append(widget)
             PointMesh._active_windows = [w for w in PointMesh._active_windows if w.isVisible()]
 
         except Exception as e:
-            logger.error(f"Failed to launch 3D view for {stage_id}: {e}")
-            QMessageBox.warning(None, "Trajectory Data Error", f"Could not load trajectory for {stage_id}:\n\n{e}")
+            logger.error(f"Failed to launch 3D view for {stage_sn}: {e}")
+            QMessageBox.warning(None, "Trajectory Data Error", f"Could not load trajectory for {stage_sn}:\n\n{e}")
