@@ -813,7 +813,11 @@ class ProbeCalibrationHandler(QWidget):
         
         try:
             stage = self.model.stages[self.selected_stage_id]
-            PointMesh.show(self.selected_stage_id, stage)
+            calib_info = stage.get("calib_info")
+            if not calib_info:
+                logger.error(f"No calibration info found for {self.selected_stage_id}")
+                return
+            PointMesh.show(self.selected_stage_id, calib_info.trajectory_file)
             
         except Exception as e:
             logger.error(f"Failed to open 3D trajectory for '{self.selected_stage_id}': {e}")

@@ -201,18 +201,14 @@ class PointMesh:
         raise NotImplementedError("PointMesh is a static helper class.")
 
     @staticmethod
-    def show(stage_sn: str, stage: dict):
+    def show(stage_sn: str, trajectory_file: str):
         """
         Extracts data from the stage dictionary and opens the 3D view.
-        """
+        Args:
+            stage_sn (str): The serial number of the stage.
+            trajectory_file (str): Path to the trajectory CSV file.
+        ️"""
         logger.info(f"Displaying trajectory for stage: {stage_sn}")
-
-        calib_info = stage.get("calib_info")
-        if not calib_info:
-            logger.error(f"No calibration info found for {stage_sn}")
-            return
-
-        trajectory_file = calib_info.trajectory_file
 
         try:
             widget = PointMeshWidget(
@@ -226,3 +222,17 @@ class PointMesh:
         except Exception as e:
             logger.error(f"Failed to launch 3D view for {stage_sn}: {e}")
             QMessageBox.warning(None, "Trajectory Data Error", f"Could not load trajectory for {stage_sn}:\n\n{e}")
+
+    @staticmethod
+    def close_all():
+        """
+        Force closes all active 3D trajectory windows.
+        Call this from the main window's closeEvent.
+        """
+        for widget in PointMesh._active_windows:
+            try:
+                widget.close()
+            except Exception as e:
+                logger.error(f"Error closing window: {e}")
+
+        PointMesh._active_windows.clear()

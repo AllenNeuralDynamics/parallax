@@ -815,13 +815,13 @@ class ProbeCalibration(QObject):
         logger.debug("ProbeCalibration: complete_calibration")
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         traj_file_path = self._save_df_to_csv(df, f"points_{sn}_{timestamp}.csv")
-        # register file path to model
-        self._update_trajectory_file(sn, traj_file_path)
 
         print("\n\n=========================================================")
         self._print_formatted_transM()
         print("=========================================================")
         self._update_info_ui(sn, disp_avg_error=True, save_to_csv=True, file_name=f"transM_{sn}_{timestamp}.csv")
+        self._write_transformed_global_points(sn, traj_file_path)  # Update transformed points in the file
+        self._update_trajectory_file(sn, traj_file_path)  # register file path to model
 
         if self.model.bundle_adjustment:
             self.old_transM = self.transM_LR
