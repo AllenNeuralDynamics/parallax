@@ -16,7 +16,7 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from parallax.config.config_path import stages_dir
 from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
 from parallax.utils.transforms import fit_params
-from parallax.utils.coords_converter import global_to_local, local_to_global
+from parallax.utils.coords_converter import local_to_global
 from parallax.probe_calibration.bundle_adjustment import BALOptimizer, BALProblem
 
 # Set logger name
@@ -323,10 +323,7 @@ class ProbeCalibration(QObject):
             mask = df["sn"] == sn
             if not df[mask].empty:
                 local_pts = df.loc[mask, ["local_x", "local_y", "local_z"]].to_numpy()
-                global_exp_pts = local_to_global(self.model, sn, local_pts)  #(N, 3)
-                print("local_pts shape:", local_pts.shape)
-                print("global_exp_pts shape:", global_exp_pts.shape if global_exp_pts is not None else "None")
-
+                global_exp_pts = local_to_global(self.model, sn, local_pts)  # (N, 3)
                 if global_exp_pts is not None:
                     df.loc[mask, ["global_x_exp", "global_y_exp", "global_z_exp"]] = global_exp_pts
                     global_pts = df.loc[mask, ["global_x", "global_y", "global_z"]].to_numpy()
@@ -432,7 +429,7 @@ class ProbeCalibration(QObject):
         else:
             return False
 
-    def _update_trajectory_file(self, sn:str, file_path:str):
+    def _update_trajectory_file(self, sn: str, file_path: str):
         """
         Updates the trajectory file path in the calibration info for the given stage serial number.
         Args:
@@ -617,7 +614,7 @@ class ProbeCalibration(QObject):
         else:
             transM = self.transM_LR
 
-        self.transM_info.emit(sn, transM, error, np.array([x_diff, y_diff, z_diff])) # update into model
+        self.transM_info.emit(sn, transM, error, np.array([x_diff, y_diff, z_diff]))  # update into model
 
         if save_to_csv:
             self._save_transM_to_csv(file_name)
@@ -792,7 +789,7 @@ class ProbeCalibration(QObject):
             return True
 
         return False
-    
+
     def _register_file(self, sn):
         self.model.get_stage_calib_info(sn)
 

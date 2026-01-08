@@ -11,21 +11,6 @@ import pandas as pd
 import plotly.graph_objs as go
 from PyQt6.QtCore import Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QPushButton, QWidget
-from PyQt6.uic import loadUi
-
-from parallax.config.config_path import ui_dir
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
-
-import logging
-import os
-import pandas as pd
-import plotly.graph_objs as go
-from PyQt6.QtCore import Qt
-from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QPushButton, QWidget, QMessageBox
 from PyQt6.uic import loadUi
 
@@ -82,7 +67,7 @@ class PointMeshWidget(QWidget):
         print("Initializing UI Web View")
         if self.web_view is not None:
             self.web_view.close()
-            
+
         self.web_view = QWebEngineView(self)
         self.ui.verticalLayout1.addWidget(self.web_view)
 
@@ -114,18 +99,18 @@ class PointMeshWidget(QWidget):
         self.buttons = {}
         for key in self.points_dict.keys():
             btn_name = "Stage (Transformed)" if key == "transformed_pts" else "Global (Reference)"
-            
+
             button = QPushButton(btn_name)
             button.setCheckable(True)
-            button.setChecked(True) # Default to on
+            button.setChecked(True)
             button.setMaximumWidth(200)
-            
+
             # Use default argument k=key to capture the value in the lambda
             button.clicked.connect(lambda checked, k=key: self._update_plot(k, checked))
-            
+
             self.ui.verticalLayout2.addWidget(button)
             self.buttons[key] = button
-            
+
             # Draw initially
             self._draw_specific_points(key)
 
@@ -179,14 +164,14 @@ class PointMeshWidget(QWidget):
             return
 
         sz = event.size()
-        
+
         # Now it is safe to access self.web_view
         self.web_view.resize(sz.width(), sz.height())
-        
+
         # Ensure UI elements exist before resizing them too
         if hasattr(self, 'ui') and hasattr(self.ui, 'horizontalLayoutWidget'):
             self.ui.horizontalLayoutWidget.resize(sz.width(), sz.height())
-            
+
         self._update_canvas()
 
 

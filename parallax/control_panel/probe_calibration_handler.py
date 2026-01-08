@@ -802,15 +802,14 @@ class ProbeCalibrationHandler(QWidget):
         This method triggers the display of the 3D trajectory for the selected stage
         using the `probeCalibration` object.
         """
-        #self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
         if not self.selected_stage_id:
             logger.warning("View Trajectory: No stage selected.")
             return
-        
+
         if self.selected_stage_id not in self.model.stages:
             logger.error(f"View Trajectory: Stage ID '{self.selected_stage_id}' not found in model.")
             return
-        
+
         try:
             stage = self.model.stages[self.selected_stage_id]
             calib_info = stage.get("calib_info")
@@ -818,10 +817,9 @@ class ProbeCalibrationHandler(QWidget):
                 logger.error(f"No calibration info found for {self.selected_stage_id}")
                 return
             PointMesh.show(self.selected_stage_id, calib_info.trajectory_file)
-            
         except Exception as e:
             logger.error(f"Failed to open 3D trajectory for '{self.selected_stage_id}': {e}")
-        
+
     def calculation_button_handler(self):
         """
         Handles the event when the user clicks the "Calculation" button.
