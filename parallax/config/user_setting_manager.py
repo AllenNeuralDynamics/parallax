@@ -239,7 +239,7 @@ class StageConfigManager(BaseConfigManager):
 
             # Rehydrate dataclasses lazily to avoid circular imports
             if "obj" in stage and isinstance(stage["obj"], dict):
-                from parallax.model import Stage  # adjust module if needed
+                from parallax.model import Stage
 
                 stage["obj"] = Stage(**stage["obj"])
             if "calib_info" in stage and isinstance(stage["calib_info"], dict):

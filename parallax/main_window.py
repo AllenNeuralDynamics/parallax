@@ -25,6 +25,7 @@ from PyQt6.uic import loadUi
 from parallax.config.config_path import fira_font_dir, ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.control_panel.control_panel import ControlPanel
+from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from ui.resources import rc  # noqa
@@ -264,8 +265,8 @@ class MainWindow(QMainWindow):
         Args:
             event (QCloseEvent): The close event triggered when the widget is closed.
         """
-        self.model.close_all_point_meshes()
         self.model.close_clac_instance()
         self.model.close_reticle_metadata_instance()
         self.model.close_stage_ipconfig_instance()
+        PointMesh.close_all()
         event.accept()

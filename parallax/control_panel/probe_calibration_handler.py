@@ -14,6 +14,7 @@ from PyQt6.uic import loadUi
 from parallax.cameras.calibration_camera import triangulate
 from parallax.config.config_path import ui_dir
 from parallax.handlers.calculator import Calculator
+from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle, is_sane_4shanks
@@ -40,6 +41,7 @@ class StageCalibrationInfo:
     status_x: Optional[str] = None
     status_y: Optional[str] = None
     status_z: Optional[str] = None
+    trajectory_file: Optional[str] = None
 
     # Movement tracking
     min_x: float = float("inf")
@@ -268,7 +270,7 @@ class ProbeCalibrationHandler(QWidget):
                 logger.debug(f"global coords: {global_coords_4shanks}")
                 idx = self._get_lowest_shank_index(
                     global_coords_4shanks
-                )  # TODO handle the parallel to the reticle surface
+                )  # Handle the parallel to the reticle surface
                 if idx is not None:
                     # Update the main variables to ensure consistency
                     global_coords = global_coords_4shanks[idx:idx + 1]
@@ -688,57 +690,6 @@ class ProbeCalibrationHandler(QWidget):
             if self.reticle_metadata_btn.isVisible():
                 self.reticle_metadata_btn.hide()
 
-    def update_probe_calib_status_transM(self, transformation_matrix):
-        """
-        Updates the probe calibration status with the transformation matrix.
-        Extracts the rotation matrix (R), translation vector (T) formats
-        them into a string to be displayed in the UI.
-        """
-        # Extract the rotation matrix (top-left 3x3)
-        R = transformation_matrix[:3, :3]
-        # Extract the translation vector (top 3 elements of the last column)
-        T = transformation_matrix[:3, 3]
-
-        # Set the formatted string as the label's text
-        content = (
-            f"<span style='color:yellow;'><small>"
-            f"[Transformation Matrix]<br></small></span>"
-            f"<span style='color:green;'><small><b>R:</b><br>"
-            f" [[{R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f}],<br>"
-            f" [{R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f}],<br>"
-            f" [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]<br>"
-            f"<b>T: </b>"
-            f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]<br>"
-            f"</small></span>"
-        )
-        return content
-
-    def update_probe_calib_status_L2(self, L2_err):
-        """
-        Formats the L2 error value for display in the UI.
-        """
-        content = (
-            f"<span style='color:yellow;'><small>[L2 distance]<br></small></span>"
-            f"<span style='color:green;'><small> {L2_err:.3f}<br>"
-            f"</small></span>"
-        )
-        return content
-
-    def update_probe_calib_status_distance_traveled(self, dist_travel):
-        """
-        Formats the distance traveled in the X, Y, and Z directions for display in the UI.
-        """
-        if dist_travel is None:
-            return
-        x, y, z = dist_travel[0], dist_travel[1], dist_travel[2]
-        content = (
-            f"<span style='color:yellow;'><small>[Distance traveled (µm)]<br></small></span>"
-            f"<span style='color:green;'><small>"
-            f"x: {int(x)} y: {int(y)} z: {int(z)}<br>"
-            f"</small></span>"
-        )
-        return content
-
     def update_probe_calib_status(self, moving_stage_id, transM, L2_err, dist_travel):
         """
         Handler for the signal emitted when the probe calibration. (transM_info)
@@ -851,7 +802,23 @@ class ProbeCalibrationHandler(QWidget):
         This method triggers the display of the 3D trajectory for the selected stage
         using the `probeCalibration` object.
         """
-        self.probeCalibration.view_3d_trajectory(self.selected_stage_id)
+        if not self.selected_stage_id:
+            logger.warning("View Trajectory: No stage selected.")
+            return
+
+        if self.selected_stage_id not in self.model.stages:
+            logger.error(f"View Trajectory: Stage ID '{self.selected_stage_id}' not found in model.")
+            return
+
+        try:
+            stage = self.model.stages[self.selected_stage_id]
+            calib_info = stage.get("calib_info")
+            if not calib_info:
+                logger.error(f"No calibration info found for {self.selected_stage_id}")
+                return
+            PointMesh.show(self.selected_stage_id, calib_info.trajectory_file)
+        except Exception as e:
+            logger.error(f"Failed to open 3D trajectory for '{self.selected_stage_id}': {e}")
 
     def calculation_button_handler(self):
         """

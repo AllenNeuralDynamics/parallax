@@ -16,8 +16,8 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from parallax.config.config_path import stages_dir
 from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
 from parallax.utils.transforms import fit_params
-
-from .bundle_adjustment import BALOptimizer, BALProblem
+from parallax.utils.coords_converter import local_to_global
+from parallax.probe_calibration.bundle_adjustment import BALOptimizer, BALProblem
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -65,7 +65,6 @@ class ProbeCalibration(QObject):
         self.model = model
         self.stage_listener = stage_listener
         self.stage_listener.probeCalibRequest.connect(self.update)
-        self.point_mesh = {}
         self.df = None
         self.inliers = []
         self.stage = None
@@ -76,8 +75,8 @@ class ProbeCalibration(QObject):
         self.avg_err = float("inf")
         self.last_row = None
 
-        # create file for points.csv
-        self.log_dir = None
+        self.log_dir = None  # Directory to store calibration logs
+        self.points_file = None  # Path to the points CSV file
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def reset_calib(self):
@@ -95,12 +94,12 @@ class ProbeCalibration(QObject):
         """
         self.log_dir = Path(stages_dir) / f"log_{self.timestamp}"
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        points_file = self.log_dir / "points.csv"
-        if points_file.exists():
-            points_file.unlink()  # Deletes the file
+        self.points_file = self.log_dir / "points.csv"
+        if self.points_file.exists():
+            self.points_file.unlink()  # Deletes the file
 
         # Create a new file and write column names
-        with open(points_file, "w", newline="") as file:
+        with open(self.points_file, "w", newline="") as file:
             writer = csv.writer(file)
             # Define column names
             self.column_names = [
@@ -111,6 +110,10 @@ class ProbeCalibration(QObject):
                 "global_x",
                 "global_y",
                 "global_z",
+                "global_x_exp",
+                "global_y_exp",
+                "global_z_exp",
+                "l2_distance",
                 "ts_local_coords",
                 "ts_img_captured",
                 "cam0",
@@ -135,15 +138,14 @@ class ProbeCalibration(QObject):
         if self.log_dir is None:
             return
 
-        points_path = self.log_dir / "points.csv"
         if sn is None:
-            if points_path.exists():
-                points_path.unlink()  # Deletes the file
+            if self.points_file.exists():
+                self.points_file.unlink()  # Deletes the file
         else:
-            if points_path.exists():
-                self.df = pd.read_csv(points_path)
+            if self.points_file.exists():
+                self.df = pd.read_csv(self.points_file)
                 self.df = self.df[self.df["sn"] != sn]
-                self.df.to_csv(points_path, index=False)
+                self.df.to_csv(self.points_file, index=False)
 
     def _remove_duplicates(self, df):
         """
@@ -171,7 +173,7 @@ class ProbeCalibration(QObject):
         Returns:
             pd.DataFrame: Filtered DataFrame containing only the rows for the specified stage.
         """
-        self.df = pd.read_csv(self.log_dir / "points.csv")
+        self.df = pd.read_csv(self.points_file)
         return self.df[self.df["sn"] == sn]
 
     def _get_local_global_points(self, df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
@@ -299,11 +301,45 @@ class ProbeCalibration(QObject):
 
         return transM
 
-    def _write_local_global_point(self, stage, debug_info=None):
+    def _write_transformed_global_points(self, sn: str, file_path: str):
+        """
+        Recalculates and updates the 'expected' global coordinates (global_exp)
+        using vectorized operations for better performance.
+        """
+        print("Updating transformed global points in batch...")
+        if sn is None:
+            logger.error("Serial number is None.")
+            return
+        if not os.path.exists(file_path):
+            logger.error(f"Points file does not exist: {file_path}")
+            return
+
+        try:
+            df = pd.read_csv(file_path)
+            for col in ["global_x_exp", "global_y_exp", "global_z_exp", "l2_distance"]:
+                if col not in df.columns:
+                    df[col] = ""
+
+            mask = df["sn"] == sn
+            if not df[mask].empty:
+                local_pts = df.loc[mask, ["local_x", "local_y", "local_z"]].to_numpy()
+                global_exp_pts = local_to_global(self.model, sn, local_pts)  # (N, 3)
+                if global_exp_pts is not None:
+                    df.loc[mask, ["global_x_exp", "global_y_exp", "global_z_exp"]] = global_exp_pts
+                    global_pts = df.loc[mask, ["global_x", "global_y", "global_z"]].to_numpy()
+                    df.loc[mask, "l2_distance"] = np.round(np.linalg.norm(global_exp_pts - global_pts, axis=1), 1)
+
+            df.to_csv(file_path, index=False)
+            logger.debug(f"Updated transformed global points for {sn}")
+
+        except Exception as e:
+            logger.error(f"Failed to update transformed points: {e}")
+
+    def _write_local_global_points(self, stage, debug_info=None):
         """
         Updates the CSV file with a new set of local and global points from the current stage position.
         """
-        if self.log_dir is None or not (self.log_dir / "points.csv").exists():
+        if self.log_dir is None or not self.points_file.exists():
             self._create_file()
 
         # Check if stage_z_global is under 0 microns
@@ -318,6 +354,10 @@ class ProbeCalibration(QObject):
             "global_x": round(stage.stage_x_global, 0),
             "global_y": round(stage.stage_y_global, 0),
             "global_z": round(stage.stage_z_global, 0),
+            "global_x_exp": "",
+            "global_y_exp": "",
+            "global_z_exp": "",
+            "l2_distance": "",
             "ts_local_coords": debug_info.get("ts_local_coords", "") if debug_info else "",
             "ts_img_captured": debug_info.get("ts_img_captured", "") if debug_info else "",
             "cam0": "",
@@ -337,7 +377,7 @@ class ProbeCalibration(QObject):
 
         # Read the entire CSV file to check for duplicates
         try:
-            with open(self.log_dir / "points.csv", "r", newline="") as file:
+            with open(self.points_file, "r", newline="") as file:
                 reader = list(csv.DictReader(file))
                 for row in reversed(reader):
                     if (
@@ -357,7 +397,7 @@ class ProbeCalibration(QObject):
             logger.error("File does not exist")
 
         # Write the new row to the CSV file
-        with open(self.log_dir / "points.csv", "a", newline="") as file:
+        with open(self.points_file, "a", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=new_row_data.keys())
             writer.writerow(new_row_data)
             logger.debug(f"New point added: {new_row_data}")
@@ -389,7 +429,25 @@ class ProbeCalibration(QObject):
         else:
             return False
 
+    def _update_trajectory_file(self, sn: str, file_path: str):
+        """
+        Updates the trajectory file path in the calibration info for the given stage serial number.
+        Args:
+            sn (str): The serial number of the stage.
+            file_path (str): The path to the trajectory file.
+        """
+        calib_info = self.model.get_stage_calib_info(sn)
+        if calib_info is None:
+            logger.error(f"Calibration info not found for stage {sn}")
+            return
+        calib_info.trajectory_file = file_path
+
     def _update_min_max_x_y_z(self, stage):
+        """
+        Updates the min and max x, y, z values for the given stage.
+        Args:
+            stage (Stage): The current stage object with position data.
+        """
         calib_info = self.model.get_stage_calib_info(stage.sn)
         if calib_info is None:
             return
@@ -477,8 +535,6 @@ class ProbeCalibration(QObject):
         """
         local_pt = np.array([self.stage.stage_x, self.stage.stage_y, self.stage.stage_z], dtype=float)
         global_pts = apply_inverse_affine(pts=local_pt, affine_R=self.R, translation=self.origin)
-        # t = self.origin
-        # global_point = (local_point - t) @ self.R
         return global_pts
 
     def _update_l2_error_current_point(self):
@@ -558,27 +614,29 @@ class ProbeCalibration(QObject):
         else:
             transM = self.transM_LR
 
-        self.transM_info.emit(sn, transM, error, np.array([x_diff, y_diff, z_diff]))
+        self.transM_info.emit(sn, transM, error, np.array([x_diff, y_diff, z_diff]))  # update into model
 
         if save_to_csv:
             self._save_transM_to_csv(file_name)
 
-    def _save_df_to_csv(self, df, file_name):
+    def _save_df_to_csv(self, df: pd.DataFrame, file_name: str) -> str:
         """
-        Save the filtered points back to the CSV file.
+        Helper to save a DataFrame to a CSV file within the instance's log directory.
 
         Args:
-            filtered_df (pd.DataFrame): DataFrame containing filtered local and global points.
+            df (pd.DataFrame): The DataFrame to save.
+            file_name (str): The name of the file (e.g., 'data.csv').
+
+        Returns:
+            str: The full path to the saved CSV file.
         """
         if self.log_dir is None:
-            logger.error("log_dir is not initialized.")
-            return
+            raise ValueError("Cannot save CSV: log_dir is not initialized.")
 
-        # Save the updated DataFrame back to the CSV file
-        csv_file = os.path.join(self.log_dir, file_name)
-        df.to_csv(csv_file, index=False)
+        file_path = os.path.join(self.log_dir, file_name)
+        df.to_csv(file_path, index=False)
 
-        return csv_file
+        return file_path
 
     def _save_transM_to_csv(self, file_name):
         """
@@ -662,7 +720,7 @@ class ProbeCalibration(QObject):
         self.stage = stage
 
         # update points in the file
-        self._write_local_global_point(stage, debug_info)  # Do no update if it is duplicates
+        self._write_local_global_points(stage, debug_info)  # Do no update if it is duplicates
         self._update_min_max_x_y_z(stage)  # update min max x,y,z and emit signals if criteria met
         self._update_movement(sn)
         df = self._filter_df_by_sn(sn)
@@ -671,6 +729,7 @@ class ProbeCalibration(QObject):
         if self.transM_LR is None:
             return
 
+        # Remove outlier points iteratively from large to small threshold
         if (
             self._is_criteria_met_points_min_max(sn)
             and len(df) >= self.THRESHOLD_N_PTS
@@ -693,6 +752,9 @@ class ProbeCalibration(QObject):
 
         self._update_l2_error_current_point()
         self._update_info_ui(sn)  # update transformation matrix and overall LR in UI
+        # Update expected global points into the file
+        self._write_transformed_global_points(sn, self.points_file)
+        self._update_trajectory_file(sn, self.points_file)
 
         if self.transM_LR is None or len(df) < self.THRESHOLD_N_PTS:
             logger.debug(f"Not enough points for calibration. {self.transM_LR} = len(df) {len(df)}")
@@ -728,6 +790,9 @@ class ProbeCalibration(QObject):
 
         return False
 
+    def _register_file(self, sn):
+        self.model.get_stage_calib_info(sn)
+
     def complete_calibration(self, sn, df):
         """
         Completes the probe calibration process by saving the filtered points, updating the
@@ -742,21 +807,22 @@ class ProbeCalibration(QObject):
             3. If bundle adjustment is enabled, optimizes the transformation matrix.
             4. Registers the transformation matrix into the model.
             5. Emits a signal indicating that calibration is complete.
-            6. Initializes the PointMesh instance for 3D visualization.
         """
         # save the filtered points to a new file
         logger.debug("ProbeCalibration: complete_calibration")
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.file_name = self._save_df_to_csv(df, f"points_{sn}_{timestamp}.csv")
+        traj_file_path = self._save_df_to_csv(df, f"points_{sn}_{timestamp}.csv")
 
         print("\n\n=========================================================")
         self._print_formatted_transM()
         print("=========================================================")
         self._update_info_ui(sn, disp_avg_error=True, save_to_csv=True, file_name=f"transM_{sn}_{timestamp}.csv")
+        self._write_transformed_global_points(sn, traj_file_path)  # Update transformed points in the file
+        self._update_trajectory_file(sn, traj_file_path)  # register file path to model
 
         if self.model.bundle_adjustment:
             self.old_transM = self.transM_LR
-            ret = self.run_bundle_adjustment(self.file_name)
+            ret = self.run_bundle_adjustment(traj_file_path)
             if ret:
                 print("\n=========================================================")
                 print("** After Bundle Adjustment **")
@@ -768,60 +834,9 @@ class ProbeCalibration(QObject):
             else:
                 return
 
-        """
-        # Init PointMesh
-        if not self.model.bundle_adjustment:
-            self.point_mesh[sn] = PointMesh(self.model, self.file_name, sn,
-                                                       self.transM_LR, calib_completed=True)
-        else:
-            self.point_mesh[sn] = PointMesh(self.model, self.file_name, sn,
-                                                       self.old_transM,
-                                                       self.transM_LR, calib_completed=True)
-        """
-
         # Emit the signal to indicate that calibration is complete
         self.calib_complete.emit()
         logger.debug(f"complete probe calibration {sn}, {self.transM_LR}")
-
-    def view_3d_trajectory(self, sn):
-        """
-        Displays the 3D trajectory of the probe based on the calibration data.
-
-        Args:
-            sn (str): Serial number of the stage for which the trajectory is to be displayed.
-
-        Behavior:
-            - If calibration is incomplete, it shows the trajectory for the current stage.
-            - If calibration is complete, it displays the PointMesh instance for the 3D trajectory.
-        """
-        """
-        try:
-            if not self.model.is_stage_calibrated(sn):
-                if self.stage is None or self.stage.sn is None:
-                    print(f"[WARN] Stage has not calibrated {sn}.")
-                    return
-
-                if sn == self.stage.sn:
-                    if self.transM_LR is None:
-                        print(f"[WARN] Stage has not calibrated {sn}.")
-                        return
-                    self.point_mesh_not_calibrated = PointMesh(
-                        self.model,
-                        self.log_dir / "points.csv",
-                        self.stage.sn,
-                        self.transM_LR
-                    )
-                    self.point_mesh_not_calibrated.show()
-            else:
-                # If calib is completed, show the PointMesh instance.
-                if sn in self.point_mesh and self.point_mesh[sn] is not None:
-                    self.point_mesh[sn].show()
-                else:
-                    print(f"[WARN] Restored session does not support trajectory map for {sn}.")
-        except Exception as e:
-            print(f"[WARN] view_3d_trajectory failed: {e}")
-        """
-        print("3D trajectory visualization is currently disabled.")
 
     def run_bundle_adjustment(self, file_path):
         """

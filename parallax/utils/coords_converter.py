@@ -70,10 +70,7 @@ def local_to_global(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
     np.ndarray or None
         Rounded GLOBAL coordinates (1x3). None if the stage/transform is unavailable.
     """
-    if model.is_calibrated(sn):
-        T = model.get_transform(sn)  # T = [[R,t],[0,1]] for GLOBAL→LOCAL
-    else:
-        return None
+    T = model.get_transform(sn)  # T = [[R,t],[0,1]] for GLOBAL→LOCAL
     if T is None:
         logger.debug(f"TransM not found for {sn}")
         return None
@@ -116,11 +113,7 @@ def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[st
     np.ndarray or None
         Rounded LOCAL coordinates (1x3). None if the stage/transform is unavailable.
     """
-    if model.is_calibrated(sn):
-        T = model.get_transform(sn)  # T = [[R, t],[0,1]] for GLOBAL→LOCAL
-    else:
-        logger.warning(f"Stage {sn} is not calibrated. Cannot convert global to local coordinates.")
-        return None
+    T = model.get_transform(sn)  # T = [[R, t],[0,1]] for GLOBAL→LOCAL
     if T is None:
         logger.warning(f"Transformation matrix not found for {sn}")
         return None

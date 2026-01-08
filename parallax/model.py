@@ -1,7 +1,6 @@
 """
 The Model class is the core component for managing cameras, stages, and calibration data.
-It provides methods for scanning and initializing cameras and stages, managing calibration data,
-and handling point mesh instances for 3D visualization.
+It provides methods for scanning and initializing cameras and stages, managing calibration data.
 
 This class integrates various hardware components such as cameras and stages and handles
 their initialization, configuration, and transformations between local and global coordinates.
@@ -64,9 +63,6 @@ class Model(QObject):
         # Session Config
         self.reticle_detection_status = "default"  # options: default, detected, accepted
 
-        # point mesh
-        self.point_mesh_instances = {}
-
         # Calculator
         self.calc_instance = None
 
@@ -91,6 +87,7 @@ class Model(QObject):
                     status_x: Optional[str] = None
                     status_y: Optional[str] = None
                     status_z: Optional[str] = None
+                    trajectory_file: Optional[str] = None
                 )
             }
         }
@@ -670,23 +667,6 @@ class Model(QObject):
                 filename = "camera%d_%s.png" % (i, camera.get_last_capture_time())
                 camera.save_last_image(filename)
                 self.msg_log.post("Saved camera frame: %s" % filename)
-
-    def add_point_mesh_instance(self, instance):
-        """Add a point mesh instance for a specific stage or object.
-
-        Args:
-            instance (object): The point mesh instance to add.
-        """
-        sn = instance.sn
-        if sn in self.point_mesh_instances.keys():
-            self.point_mesh_instances[sn].close()
-        self.point_mesh_instances[sn] = instance
-
-    def close_all_point_meshes(self):
-        """Close all point mesh instances and clear them from the model."""
-        for instance in self.point_mesh_instances.values():
-            instance.close()
-        self.point_mesh_instances.clear()
 
     def add_calc_instance(self, instance):
         """Add a calculator instance.
