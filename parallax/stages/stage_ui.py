@@ -223,4 +223,6 @@ class StageUI(QWidget):
             status (str): The new status of the reticle detection.
         """
         if self.model.reticle_detection_status == "default":
-            self.updateStageGlobalCoords_default()
+            pass
+            # TODO Test for camera-pairs logic
+            #self.updateStageGlobalCoords_default()

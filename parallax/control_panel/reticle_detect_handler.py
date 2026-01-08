@@ -122,7 +122,8 @@ class ReticleDetecthandler(QWidget):
         self.reticleCalibrationLabel.setText("")
         self.triangulate_btn.setChecked(False)
 
-        self.model.reset_stage_calib_info()
+        # TODO Test for camera-pairs logic
+        #self.model.reset_stage_calib_info()
         self.model.reset_all_triangulation_partners()
 
         # Enable triangulate_btn button
