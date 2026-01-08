@@ -544,6 +544,7 @@ class StageListener(QObject):
             "transM_bregma_to_local": bregma_mm,
             "arc_angle_global": calib_info.arc_angle_global,
             "arc_angle_bregma": calib_info.arc_angle_bregma,
+            "trajectory_file_path": calib_info.trajectory_file,
         }
 
     def _snapshot_stage(self):
