@@ -306,7 +306,6 @@ class ProbeCalibration(QObject):
         Recalculates and updates the 'expected' global coordinates (global_exp)
         using vectorized operations for better performance.
         """
-        print("Updating transformed global points in batch...")
         if sn is None:
             logger.error("Serial number is None.")
             return
@@ -614,10 +613,22 @@ class ProbeCalibration(QObject):
         else:
             transM = self.transM_LR
 
-        self.transM_info.emit(sn, transM, error, np.array([x_diff, y_diff, z_diff]))  # update into model
+        distance_travel = np.array([x_diff, y_diff, z_diff])
+        self.update_stage_info_to_model_process(sn, transM, error, distance_travel)
+        self.transM_info.emit(sn, transM, error, distance_travel)  # update into model
 
         if save_to_csv:
             self._save_transM_to_csv(file_name)
+
+    def update_stage_info_to_model_process(self, stage_id, transM, L2_err, dist_travel) -> None:
+        stage_info = self.model.get_stage_calib_info(stage_id)
+        if stage_info is None:
+            logger.warning(f"No calibration info found for stage {stage_id}.")
+            return
+
+        stage_info.transM = transM
+        stage_info.L2_err = L2_err
+        stage_info.dist_travel = dist_travel
 
     def _save_df_to_csv(self, df: pd.DataFrame, file_name: str) -> str:
         """
@@ -789,9 +800,6 @@ class ProbeCalibration(QObject):
             return True
 
         return False
-
-    def _register_file(self, sn):
-        self.model.get_stage_calib_info(sn)
 
     def complete_calibration(self, sn, df):
         """
