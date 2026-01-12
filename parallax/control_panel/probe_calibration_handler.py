@@ -180,8 +180,8 @@ class ProbeCalibrationHandler(QWidget):
     def reticle_detection_status_change(self):
         """Updates the reticle detection status and performs actions based on the new status."""
         # TODO Test for camera-pairs logic
-        #if self.model.reticle_detection_status == "default":
-        #    self.probe_detect_default_status()
+        #if self.model.reticle_detection_status == "default":  # noqa: E265
+        #    self.probe_detect_default_status()                # noqa: E265
         if self.model.reticle_detection_status == "accepted":
             self.enable_probe_calibration_btn()
 
@@ -588,7 +588,7 @@ class ProbeCalibrationHandler(QWidget):
             logger.warning(f"No calibration info found for stage {stage_id}.")
             return
 
-        stage_info.detection_status = self.probe_detection_status
+        self.update_detection_status_to_model(stage_id)
         stage_info.transM = self.transM
         stage_info.L2_err = self.L2_err
         stage_info.dist_travel = self.dist_travel
@@ -600,6 +600,14 @@ class ProbeCalibrationHandler(QWidget):
         stage_info.transM_bregma = self.transMbs
         stage_info.arc_angle_global = self.arc_angle_global
         stage_info.arc_angle_bregma = self.arc_angle_bregma
+
+    def update_detection_status_to_model(self, stage_id) -> None:
+        stage_info = self.model.get_stage_calib_info(stage_id)
+        if stage_info is None:
+            logger.warning(f"No calibration info found for stage {stage_id}.")
+            return
+
+        stage_info.detection_status = self.probe_detection_status
 
     def _update_probe_angle(self):
         """
@@ -701,8 +709,7 @@ class ProbeCalibrationHandler(QWidget):
         self.moving_stage_id = moving_stage_id
 
         if self.moving_stage_id == self.selected_stage_id:
-            self.update_stage_info_to_model(self.selected_stage_id)  # Update model info during 'process' status
-
+            self.update_detection_status_to_model(self.selected_stage_id)
             # Update UIs
             self.transform_info_handler.display(self.selected_stage_id)
             self._update_xyz(moving_stage_id)
@@ -847,7 +854,6 @@ class ProbeCalibrationHandler(QWidget):
         """
         self.calib_x.setStyleSheet("color: white;" "background-color: black;")
         self.calib_y.setStyleSheet("color: white;" "background-color: black;")
-
         self.calib_z.setStyleSheet("color: white;" "background-color: black;")
 
     def update_stage_info(self, info):

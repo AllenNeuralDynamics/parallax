@@ -69,26 +69,6 @@ parallax/
 │               └── superglue_indoor.pth
 ```
 
-### Optional: Enable Yolo for probe tracking (must insatalled for 4 shanks tracking)
-1. Clone the repository if it hasn't been done already.
-```bash
-git clone https://github.com/AllenNeuralDynamics/parallax.git
-```
-2. Install
-TBD
-
-3. Download pretrained model
-TBD
-
-4. Verify your folder structure looks like this:
-```bash
-parallax/
-├── external/
-│   └── Yolo/
-│       ├── download_checkpoints.sh
-│       ├── ....pt
-```
-
 ### For developers:
 1. Clone the repository:
 ```bash
