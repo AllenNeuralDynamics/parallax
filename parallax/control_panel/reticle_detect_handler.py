@@ -1,9 +1,13 @@
-""" Reticle detection handler for the Parallax control panel."""
+"""Reticle detection handler for the Parallax control panel."""
+
 import logging
 import os
-from PyQt5.QtCore import QTimer, pyqtSignal
-from PyQt5.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget, QAction
-from PyQt5.uic import loadUi
+
+from PyQt6.QtCore import QTimer, pyqtSignal
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
+from PyQt6.uic import loadUi
+
 from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
 
@@ -13,9 +17,10 @@ logger.setLevel(logging.WARNING)
 
 class ReticleDetecthandler(QWidget):
     """Handles reticle detection and calibration in the Parallax control panel."""
+
     reticleDetectionStatusChanged = pyqtSignal()
 
-    def __init__(self, model, screen_widgets, filter, actionTriangulate: QAction=None):
+    def __init__(self, model, screen_widgets, filter, actionTriangulate: QAction = None):
         """
         Args:
             stage_widget (StageWidget): Reference to the parent StageWidget instance.
@@ -25,7 +30,7 @@ class ReticleDetecthandler(QWidget):
         self.screen_widgets = screen_widgets
         self.filter = filter  # TODO move filter to screen widget
         self.actionTriangulate = actionTriangulate
-        self.camera_handler = StereoCameraHandler(model, self.screen_widgets)
+        self.camera_handler = StereoCameraHandler(model)
 
         # UI
         loadUi(os.path.join(ui_dir, "reticle_calib.ui"), self)
@@ -46,9 +51,7 @@ class ReticleDetecthandler(QWidget):
         # Hide Accept and Reject Button in Reticle Detection
         self.acceptButton.hide()
         self.rejectButton.hide()
-        self.acceptButton.clicked.connect(
-            self._reticle_detect_accept_detected_status
-        )
+        self.acceptButton.clicked.connect(self._reticle_detect_accept_detected_status)
         self.rejectButton.clicked.connect(self.reticle_detect_default_status)
         self.get_pos_x_from_user_timer = QTimer()
         self.get_pos_x_from_user_timer.timeout.connect(self._check_positive_x_axis)
@@ -61,7 +64,7 @@ class ReticleDetecthandler(QWidget):
         elif self.model.reticle_detection_status == "accepted":
             self.triangulate_btn.setChecked(True)
             self._check_positive_x_axis()
-            #self._reticle_detect_accept_detected_status()
+            # self._reticle_detect_accept_detected_status()
         elif self.model.reticle_detection_status == "detected":
             self.triangulate_btn.setChecked(True)
             self._reticle_detect_detected_status()
@@ -119,9 +122,9 @@ class ReticleDetecthandler(QWidget):
         self.reticleCalibrationLabel.setText("")
         self.triangulate_btn.setChecked(False)
 
-        self.model.reset_stage_calib_info()
-        self.model.reset_stereo_calib_instance()
-        self.model.reset_camera_extrinsic()
+        # TODO Test for camera-pairs logic
+        #self.model.reset_stage_calib_info()  # noqa: E265
+        self.model.reset_all_triangulation_partners()
 
         # Enable triangulate_btn button
         if not self.triangulate_btn.isEnabled():
@@ -159,10 +162,7 @@ class ReticleDetecthandler(QWidget):
         self.rejectButton.hide()
 
         # Check at least two screens are detected.
-        valid_intrinsics = [
-            sn for sn in self.model.get_visible_camera_sns()
-            if self.model.get_camera_intrinsic(sn)
-        ]
+        valid_intrinsics = [sn for sn in self.model.get_visible_camera_sns() if self.model.get_camera_params(sn)]
 
         if len(valid_intrinsics) < 2:
             msg = "At least two screens are required for Triangulation."
@@ -172,10 +172,7 @@ class ReticleDetecthandler(QWidget):
         # UI
         if self.triangulate_btn.isEnabled():
             self.triangulate_btn.setEnabled(False)
-        self.triangulate_btn.setStyleSheet(
-            "color: gray;"
-            "background-color: #ffaaaa;"
-        )
+        self.triangulate_btn.setStyleSheet("color: gray;" "background-color: #ffaaaa;")
 
         msg = f"{valid_intrinsics}"
         logger.debug(f"Stereo Cameras: {msg}")
@@ -203,10 +200,7 @@ class ReticleDetecthandler(QWidget):
             self.triangulate_btn.setEnabled(False)
 
         # Change the button to brown.
-        self.triangulate_btn.setStyleSheet(
-            "color: white;"
-            "background-color: #bc9e44;"
-        )
+        self.triangulate_btn.setStyleSheet("color: white;" "background-color: #bc9e44;")
 
     def _reticle_overwrite_popup_window(self):
         """
@@ -215,18 +209,18 @@ class ReticleDetecthandler(QWidget):
         Returns:
             bool: True if the user chooses to overwrite, False otherwise.
         """
-        message = ("Are you sure you want to overwrite the current reticle position?")
+        message = "Are you sure you want to overwrite the current reticle position?"
         logger.debug("Are you sure you want to overwrite the current reticle position?")
         response = QMessageBox.warning(
             self,
             "Reticle Detection",
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
 
         # Check which button was clicked
-        if response == QMessageBox.Yes:
+        if response == QMessageBox.StandardButton.Yes:
             logger.debug("User clicked Yes.")
             return True
         else:
@@ -245,7 +239,6 @@ class ReticleDetecthandler(QWidget):
             None
         """
 
-
         if self._is_positive_x_axis_detected():
             if self.get_pos_x_from_user_timer.isActive():
                 self.get_pos_x_from_user_timer.stop()  # Stop the timer if the positive x-axis has been detected
@@ -262,10 +255,7 @@ class ReticleDetecthandler(QWidget):
             logger.debug(f"1 self.filter: {self.filter}")
 
             # Change the button to green.
-            self.triangulate_btn.setStyleSheet(
-                "color: white;"
-                "background-color: #84c083;"
-            )
+            self.triangulate_btn.setStyleSheet("color: white;" "background-color: #84c083;")
 
             # Send the signal to update the reticle detection status
             if self.model.reticle_detection_status != "accepted":
@@ -286,9 +276,9 @@ class ReticleDetecthandler(QWidget):
         """
         if self.coords_detected_screens is None:
             self.coords_detected_screens = self._get_coords_detected_screens()
-        detected = set(self.coords_detected_screens)    # Reticle detected screens
-        visible = set(self.model.get_visible_camera_sns())    # Visible screnens
-        candidates = detected & visible             # cameras that are both detected and currently visible
+        detected = set(self.coords_detected_screens)  # Reticle detected screens
+        visible = set(self.model.get_visible_camera_sns())  # Visible screnens
+        candidates = detected & visible  # cameras that are both detected and currently visible
 
         pos_x_detected = {sn for sn in candidates if self.model.get_pos_x(sn) is not None}
         logger.debug("\nCandidates cameras:", candidates)
@@ -320,7 +310,7 @@ class ReticleDetecthandler(QWidget):
         Returns:
             None
         """
-        message = ("Click positive x-axis on each screen")
+        message = "Click positive x-axis on each screen"
         QMessageBox.warning(self, "Calibration", message)
 
     def _get_coords_detected_screens(self):

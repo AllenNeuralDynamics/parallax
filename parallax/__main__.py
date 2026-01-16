@@ -1,13 +1,17 @@
 """
 Parallax: A GUI application for controlling hardware devices.
 """
+
 import atexit
-from PyQt5.QtWidgets import QApplication
+import sys
+
+from PyQt6.QtWidgets import QApplication
+
+from . import __version__
+from .config.cli import parse_args, print_arg_info
+from .config.config_path import PARALLAX_ASCII, setup_logging
 from .main_window import MainWindow
 from .model import Model
-from .config.config_path import setup_logging, PARALLAX_ASCII
-from .config.cli import parse_args, print_arg_info
-from . import __version__
 
 # Main function to run the Parallax application
 if __name__ == "__main__":
@@ -23,7 +27,7 @@ if __name__ == "__main__":
     setup_logging()
 
     # Initialize the Qt application
-    app = QApplication([])
+    app = QApplication(sys.argv)
 
     # Initialize the model and main window
     model = Model(args)

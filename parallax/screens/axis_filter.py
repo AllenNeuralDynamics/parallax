@@ -7,10 +7,12 @@ clicked by the user on the screen.
 
 import logging
 import time
+
 import cv2
 import numpy as np
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
-from parallax.cameras.calibration_camera import CalibrationCamera
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
+
+from parallax.cameras.calibration_camera import calibrate_camera, get_debug_points
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ class AxisFilter(QObject):
 
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, object)  # (x_coords, y_coords, CameraParams)
 
     class Worker(QObject):
         """
@@ -39,7 +41,7 @@ class AxisFilter(QObject):
 
         finished = pyqtSignal()
         frame_processed = pyqtSignal(object)
-        found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+        found_coords = pyqtSignal(np.ndarray, np.ndarray, object)
 
         def __init__(self, name, model):
             """
@@ -57,7 +59,6 @@ class AxisFilter(QObject):
             self.frame = None
             self.reticle_coords = self.model.get_coords_axis(self.name)
             self.pos_x = None
-            self.calibrationCamera = CalibrationCamera(self.name)
 
         def update_frame(self, frame):
             """Update the frame to be processed.
@@ -142,13 +143,16 @@ class AxisFilter(QObject):
 
             # sort the reticle points and register to the model
             self.sort_reticle_points()
-            ret, mtx, dist, rvecs, tvecs = self.calibrationCamera.calibrate_camera(
-                    self.reticle_coords[0], self.reticle_coords[1]
+            ret, params = calibrate_camera(
+                self.reticle_coords[0],
+                self.reticle_coords[1],
+                camera_model_name=self.model.get_camera_device_model(self.name),
             )
             if ret:
-                self.found_coords.emit(
-                        self.reticle_coords[0], self.reticle_coords[1], mtx, dist, rvecs, tvecs
-                )
+                # Add debug coords to the model
+                debug_points = get_debug_points(params.rvec, params.tvec, params.mtx, params.dist)
+                self.model.add_coords_for_debug(self.name, debug_points)
+                self.found_coords.emit(self.reticle_coords[0], self.reticle_coords[1], params)
 
         def reset_pos_x(self):
             """Reset the position of the x-axis (pos_x) in the model."""

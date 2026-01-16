@@ -4,16 +4,17 @@ and control stage movements. It includes functionality for managing stage intera
 reticle adjustments, and issuing commands for stage movement.
 """
 
-import os
 import logging
-import numpy as np
-from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton, QLabel, QMessageBox
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
+import os
 
-from parallax.utils.coords_converter import CoordsConverter
-from parallax.stages.stage_controller import StageController
+import numpy as np
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QGroupBox, QLabel, QLineEdit, QMessageBox, QPushButton, QWidget
+from PyQt6.uic import loadUi
+
 from parallax.config.config_path import ui_dir
+from parallax.stages.stage_controller import StageController
+from parallax.utils.coords_converter import global_to_local, local_to_global
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -43,8 +44,13 @@ class Calculator(QWidget):
 
         self.ui = loadUi(os.path.join(ui_dir, "calc.ui"), self)
         self.setWindowTitle("Calculator")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
-                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint  # include if you want it
+            | Qt.WindowType.WindowCloseButtonHint
+        )
 
         self.add_stage_groupbox()  # Add group boxes for each stage dynamically
         self.reticle_selector.currentIndexChanged.connect(self._setCurrentReticle)
@@ -52,7 +58,7 @@ class Calculator(QWidget):
         self.model.add_calc_instance(self)
 
     def add_stage_groupbox(self):
-        """ Adds group boxes for each stage dynamically based on the number of stages in the model. """
+        """Adds group boxes for each stage dynamically based on the number of stages in the model."""
         self._create_stage_groupboxes()
         self._connect_clear_buttons()
         self._connect_move_stage_buttons()
@@ -87,7 +93,7 @@ class Calculator(QWidget):
         if not reticle_name or "Proj" in reticle_name:
             return
         # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
-        self.reticle = reticle_name.split('(')[-1].strip(')')
+        self.reticle = reticle_name.split("(")[-1].strip(")")
         self._change_global_label()
 
         # Clear fields for all enabled stages
@@ -122,7 +128,7 @@ class Calculator(QWidget):
                         continue
                     self._enable(stage_sn)
                     push_button.clicked.connect(self._create_convert_function(stage_sn))
-            else:   # Block calc functions for uncalibrated stages
+            else:  # Block calc functions for uncalibrated stages
                 self._disable(stage_sn)
 
     def _create_convert_function(self, stage_sn):
@@ -162,11 +168,15 @@ class Calculator(QWidget):
         logger.debug(f"User Input (Local): {self.reticle}")
         trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
-            local_pts_ret = CoordsConverter.global_to_local(self.model, sn, global_pts, self.reticle)
+            if global_pts is not None:
+                global_pts = np.asarray(global_pts, dtype=float)
+            local_pts_ret = global_to_local(self.model, sn, global_pts, self.reticle)
             if local_pts_ret is not None:
                 self._show_local_pts_result(sn, local_pts_ret)
         elif trans_type == "local_to_global":
-            global_pts_ret = CoordsConverter.local_to_global(self.model, sn, local_pts, self.reticle)
+            if local_pts is not None:
+                local_pts = np.asarray(local_pts, dtype=float)
+            global_pts_ret = local_to_global(self.model, sn, local_pts, self.reticle)
             if global_pts_ret is not None:
                 self._show_global_pts_result(sn, global_pts_ret)
         else:
@@ -211,6 +221,7 @@ class Calculator(QWidget):
             list: The local points or None.
             list: The global points or None.
         """
+
         def is_valid_number(s):
             """
             Checks if a given string can be converted to a float.
@@ -302,7 +313,7 @@ class Calculator(QWidget):
 
             # Set the visible title of the QGroupBox to sn
             group_box.setTitle(f"{sn}")
-            group_box.setAlignment(Qt.AlignRight)  # title alignment to the right
+            group_box.setAlignment(Qt.AlignmentFlag.AlignRight)  # title alignment to the right
 
             # Append _{sn} to the QGroupBox object name
             group_box.setObjectName(f"groupBox_{sn}")
@@ -343,9 +354,7 @@ class Calculator(QWidget):
             move_type (str): The type of move (e.g., "stopAll").
         """
         print("Stopping all stages.")
-        command = {
-            "move_type": move_type
-        }
+        command = {"move_type": move_type}
         self.stage_controller.request(command)
 
     def _create_stage_function(self, stage_sn):
@@ -374,7 +383,7 @@ class Calculator(QWidget):
             # Move request is in mm, so divide by 1000
             x = float(self.findChild(QLineEdit, f"localX_{stage_sn}").text()) / 1000
             y = float(self.findChild(QLineEdit, f"localY_{stage_sn}").text()) / 1000
-            z = 15.0  # Z is inverted in the server.
+            z = 0  # Z is inverted in the server.
         except ValueError as e:
             logger.warning(f"Invalid input for stage {stage_sn}: {e}")
             return  # Optionally handle the error gracefully (e.g., show a message to the user)
@@ -390,24 +399,14 @@ class Calculator(QWidget):
             return  # User canceled the move
 
         # If the user confirms, proceed with moving the stage
-        command = {
-            "stage_sn": stage_sn,
-            "move_type": "stepMode",
-            "stepMode": 0   # 0 for coarse, 1 for fine
-        }
+        command = {"stage_sn": stage_sn, "move_type": "stepMode", "stepMode": 0}  # 0 for coarse, 1 for fine
         self.stage_controller.request(command)
 
-        command = {
-            "stage_sn": stage_sn,
-            "move_type": "moveXY0",
-            "x": x,
-            "y": y,
-            "z": z
-        }
+        command = {"stage_sn": stage_sn, "move_type": "moveXY0", "x": x, "y": y, "z": z}
         self.stage_controller.request(command)
         print(f"Moving stage {stage_sn} to ({np.round(x*1000)}, {np.round(y*1000)}, 0)")
 
-    def _is_z_safe_pos(self, stage_sn, x, y, z):
+    def _is_z_safe_pos(self, stage_sn, x, y, z=0):
         """
         Check if the Z=15 position is safe for the stage. (z=15 is the top of the stage)
 
@@ -421,22 +420,22 @@ class Calculator(QWidget):
             bool: True if the Z position is safe, False otherwise.
         """
         # Z is inverted in the server
-        local_pts_z15 = [float(x) * 1000, float(y) * 1000, float(15.0 - z) * 1000]  # Should be top of the stage
-        local_pts_z0 = [float(x) * 1000, float(y) * 1000, 15.0 * 1000]  # Should be bottom
+        local_pts_top = np.array([x * 1000, y * 1000, z * 1000], dtype=float)  # Should be top of the stage
+        local_pts_bottom = np.array([x * 1000, y * 1000, 15.0 * 1000], dtype=float)  # Should be bottom
 
         for sn in self.model.stages.keys():
             if sn != stage_sn:
                 continue
             try:
                 # Apply transformations to get global points for Z=15 and Z=0
-                global_pts_z15 = CoordsConverter.local_to_global(self.model, stage_sn, local_pts_z15)
-                global_pts_z0 = CoordsConverter.local_to_global(self.model, stage_sn, local_pts_z0)
+                global_pts_top = local_to_global(self.model, stage_sn, local_pts_top)
+                local_pts_bottom = local_to_global(self.model, stage_sn, local_pts_bottom)
 
-                if global_pts_z15 is None or global_pts_z0 is None:
+                if global_pts_top is None or local_pts_bottom is None:
                     return False  # Transformation failed, return False
 
-                # Ensure that Z=15 is higher than Z=0 and Z=15 is positive
-                if global_pts_z15[2] > global_pts_z0[2] and global_pts_z15[2] > 0:
+                # Ensure that top is higher than bottom and top is positive
+                if global_pts_top[2] > local_pts_bottom[2] and global_pts_top[2] > 0:
                     return True
 
             except Exception as e:
@@ -462,10 +461,10 @@ class Calculator(QWidget):
             self,
             "Move Stage Confirmation",
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
-        return response == QMessageBox.Yes
+        return response == QMessageBox.StandardButton.Yes
 
     def _connect_clear_buttons(self):
         """

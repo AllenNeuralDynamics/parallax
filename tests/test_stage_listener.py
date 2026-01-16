@@ -1,24 +1,24 @@
 # tests/test_stage_listener.py
-import pytest
 from unittest.mock import Mock, patch
 
+import pytest
+
+# Assuming these imports work in your env
+from helper import mock_get_request, model, stage_server_txt
+
 from parallax.stages.stage_listener import StageListener
-from helper import model, stage_server_txt, mock_get_request
 
 
 def make_worker_payload_from_helper(src):
     """
     Convert the helper's stage_server_txt (which separates 'Stage' and 'ProbeArray')
-    into the shape Worker.fetchData() expects:
-      - Probes > 0
-      - SelectedProbe is a valid index
-      - ProbeArray[i] contains Stage_X/Y/Z (not only in 'Stage' array)
+    into the shape Worker.fetchData() expects.
     """
-    payload = dict(src)  # shallow copy ok (we overwrite nested dicts below)
+    payload = dict(src)
     payload["Probes"] = 1
     payload["SelectedProbe"] = 0
 
-    probe = dict(src["ProbeArray"][0])  # copy
+    probe = dict(src["ProbeArray"][0])
     # Pull coordinates from Stage[0] into ProbeArray[0]
     stage0 = src["Stage"][0]
     probe["Stage_X"] = stage0["Stage_X"]
@@ -32,7 +32,7 @@ def make_worker_payload_from_helper(src):
 @pytest.fixture(scope="function")
 def stage_listener(model):
     """StageListener with a mocked UI and a seeded model.stages entry."""
-    # Minimal stage_ui mock that exposes the methods StageListener uses:
+    # Minimal stage_ui mock
     stage_ui = Mock()
     stage_ui.ui = Mock()
     stage_ui.ui.snapshot_btn = Mock()
@@ -46,26 +46,23 @@ def stage_listener(model):
     # Build listener
     sl = StageListener(model, stage_ui, actionSaveInfo=None)
     sl.init_probe_calib_label(Mock())
-
-    # ✅ Seed a stage object for SN0001 so handleDataChange() can write into it
     sn = "SN0001"
     stage_obj = Mock()
     stage_obj.sn = sn
-    # defaults; handleDataChange() will overwrite these
+    # Defaults
     stage_obj.stage_x = 0
     stage_obj.stage_y = 0
     stage_obj.stage_z = 0
     stage_obj.stage_x_global = 0
     stage_obj.stage_y_global = 0
     stage_obj.stage_z_global = 0
-
-    # Model needs the expected structure: { sn: {"obj": <stage>} }
+    stage_obj.stage_bregma = {}
+    # Model setup
     sl.model.stages = {sn: {"obj": stage_obj}}
-
-    # Also ensure probeDetectors exists to avoid attribute errors in other paths
     sl.model.probeDetectors = []
 
     return sl
+
 
 # ----------------------------
 # Tests
@@ -76,6 +73,7 @@ def test_fetch_data(mock_get, stage_listener):
     payload = make_worker_payload_from_helper(stage_server_txt)
     mock_get.return_value = mock_get_request(payload)
 
+    # Run the worker method
     stage_listener.worker.fetchData()
 
     mock_get.assert_called_once_with("http://localhost:8080/", timeout=1)
@@ -91,7 +89,7 @@ def test_stage_moving_status(mock_get, stage_listener):
 
     # Two probe detectors attached
     stage_listener.model.probeDetectors = [Mock(), Mock()]
-    mock_probe = payload["ProbeArray"][payload["SelectedProbe"]]  # contains SerialNumber
+    mock_probe = payload["ProbeArray"][payload["SelectedProbe"]]
 
     stage_listener.stageMovingStatus(mock_probe)
 
@@ -109,7 +107,6 @@ def test_stage_not_moving_status(mock_get, stage_listener):
     stage_listener.model.probeDetectors = [Mock(), Mock()]
     mock_probe = payload["ProbeArray"][payload["SelectedProbe"]]
 
-    # The method uses worker.last_move_detected_time + IDLE_TIME
     expected_ts = stage_listener.worker.last_move_detected_time + stage_listener.worker.IDLE_TIME
 
     stage_listener.stageNotMovingStatus(mock_probe)

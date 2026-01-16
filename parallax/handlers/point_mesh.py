@@ -1,313 +1,157 @@
 """
 This module defines the `PointMesh` class, which provides a 3D visualization of point meshes
 for trajectory analysis. The widget integrates with Plotly to render 3D plots and allows users
-to interact with the displayed points via a PyQt5 interface.
-
-The class is designed to visualize different sets of points, including local, global, and
-bundle-adjusted (BA) coordinates, which are loaded from a CSV file. Users can toggle the
-visibility of these point sets using dynamically generated buttons in the UI.
-
-Key Features:
--------------
-- Parses a CSV file containing trajectory point data.
-- Converts local points to global coordinates using provided transformation matrices.
-- Supports both original and bundle-adjusted transformation matrices.
-- Visualizes point sets in a 3D Plotly plot embedded within a PyQt5 widget.
-- Allows users to toggle visibility of different point sets using buttons.
-- Responsive resizing and dynamic updating of the plot.
-
-Usage:
-------
-The `PointMesh` class should be instantiated with the necessary transformation matrices and
-point data, after which it can be shown using the `show()` method. The UI allows users to
-interact with the point sets and visualize their trajectories in 3D.
-
-Example:
---------
-# Instantiate the PointMesh widget
-point_mesh_widget = PointMesh(model, file_path, sn, transM)
-
-# Show the widget
-point_mesh_widget.show()
+to interact with the displayed points via a PyQt6 interface.
 """
 
-import os
 import logging
+import os
+
 import pandas as pd
 import plotly.graph_objs as go
-from PyQt5.QtWidgets import QWidget, QPushButton
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtCore import Qt
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QPushButton, QWidget, QMessageBox
+from PyQt6.uic import loadUi
+
 from parallax.config.config_path import ui_dir
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-class PointMesh(QWidget):
-    """
-    A widget that provides a 3D visualization of point meshes for trajectory analysis,
-    integrating with Plotly for rendering and allowing users to interact with the displayed points.
-    """
 
-    def __init__(self, model, file_path, sn, transM, transM_BA=None, calib_completed=False):
-        """
-        Initializes the PointMesh widget.
-
+class PointMeshWidget(QWidget):
+    """
+    A standalone widget that renders the 3D Plotly graph for a stage.
+    """
+    def __init__(self, file_path, sn):
+        """initializes the PointMeshWidget.
         Parameters:
-        model (object): The model containing the point data and bundle adjustment settings.
-        file_path (str): Path to the CSV file containing the point data.
-        sn (str): The serial number (identifier) for the stage.
-        transM (np.ndarray): Transformation matrix for local-to-global conversion.
-        transM_BA (np.ndarray, optional): Transformation matrix after bundle adjustment.
-        calib_completed (bool, optional): Flag indicating if calibration is completed.
+        file_path (str): Path to the CSV file containing trajectory data.
+        sn (str): The serial number of the stage.
+        transM (np.ndarray): The transformation matrix to convert local points to global coordinates.
         """
-
         super().__init__()
 
-        # Store parameters and set default values for attributes
-        self.model = model
         self.file_path = file_path
         self.sn = sn
-        self.calib_completed = calib_completed
         self.web_view = None
 
-        # Initialize transformation matrices, translation vectors
-        self.R, self.R_BA = {}, {}
-        self.T, self.T_BA = {}, {}
-        self.S, self.S_BA = {}, {}
+        # Data Containers
         self.points_dict = {}
-        self.traces = {}  # Plotly trace objects
+        self.traces = {}
         self.colors = {}
 
-        # Bind resize event to method for responsive layout
+        # Bind events
         self.resizeEvent = self._on_resize
 
-        # Register this instance with the model
-        self.model.add_point_mesh_instance(self)
-
-        # Load the UI file and set window title
+        # UI Setup
         self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
-        self.setWindowTitle(f"{self.sn} - Trajectory 3D View ")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
-                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowTitle(f"{self.sn} - Trajectory 3D View")
+        self.setWindowFlags(
+            Qt.WindowType.Window |
+            Qt.WindowType.WindowMinimizeButtonHint |
+            Qt.WindowType.WindowMaximizeButtonHint |
+            Qt.WindowType.WindowCloseButtonHint
+        )
 
-        # Initialize the widget
-        self._set_transM(transM)
-
-        # Apply transformation matrix from bundle adjustment if available
-        if transM_BA is not None and \
-                self.model.bundle_adjustment and self.calib_completed:
-            self.set_transM_BA(transM_BA)
-
-        # Parse the CSV file and initialize the UI
+        # Initialize
         self._parse_csv()
-        self._init_buttons()
-
-    def show(self):
-        """
-        Show the PointMesh widget.
-        """
-        logger.debug("[PointMesh] show() called")
         self._init_ui()
+        self._init_buttons()
         self._update_canvas()
-        super().show()  # Show the widget
-        logger.debug("[PointMesh] show() complete")
 
     def _init_ui(self):
-        """
-        Initialize the UI components.
-        """
+        """Initializes the QWebEngineView."""
+        # Safety check: close existing if for some reason it exists
+        print("Initializing UI Web View")
         if self.web_view is not None:
             self.web_view.close()
+
         self.web_view = QWebEngineView(self)
         self.ui.verticalLayout1.addWidget(self.web_view)
-        logger.debug("[PointMesh] Web view initialized")
-
-    def _set_transM(self, transM):
-        """
-        Set the transformation matrix, translation vector for the stage.
-
-        Parameters:
-        transM (np.ndarray): Transformation matrix for local-to-global conversion.
-        """
-        self.R[self.sn] = transM[:3, :3]
-        self.T[self.sn] = transM[:3, 3]
-
-    def set_transM_BA(self, transM):
-        """
-        Sets the transformation matrix after bundle adjustment.
-
-        Parameters:
-        transM (np.ndarray): Bundle-adjusted transformation matrix.
-        """
-        self.R_BA[self.sn] = transM[:3, :3]
-        self.T_BA[self.sn] = transM[:3, 3]
 
     def _parse_csv(self):
-        """
-        Parses the CSV file to extract point data for the given stage serial number (sn).
-        It stores the parsed points into `points_dict` for visualization.
-        """
-        self.df = pd.read_csv(self.file_path)
-        self.df = self.df[self.df["sn"] == self.sn]  # filter by sn
+        """Parses the CSV file and populates the points_dict with transformed points."""
+        if not self.file_path or not os.path.exists(self.file_path):
+            raise FileNotFoundError(f"Trajectory file not found: {self.file_path}")
 
-        # Extract local points and convert them to global coordinates
-        self.local_pts_org = self.df[['local_x', 'local_y', 'local_z']].values
-        self.local_pts = self._local_to_global(self.local_pts_org, self.R[self.sn], self.T[self.sn])
-        self.points_dict['local_pts'] = self.local_pts
+        df = pd.read_csv(self.file_path)
+        # Filter by SN if the CSV contains multiple stages
+        if "sn" in df.columns:
+            df = df[df["sn"] == self.sn]
 
-        # Extract global points
-        self.global_pts = self.df[['global_x', 'global_y', 'global_z']].values
-        self.points_dict['global_pts'] = self.global_pts
+        if df.empty:
+            raise ValueError(f"No data found in CSV for stage {self.sn}")
 
-        # Extract mean global points
-        if self.model.bundle_adjustment and self.calib_completed:
-            self.m_global_pts = self.df[['m_global_x', 'm_global_y', 'm_global_z']].values
-            self.points_dict['m_global_pts'] = self.m_global_pts
+        # Process Global Points (Reference)
+        if all(col in df.columns for col in ["global_x", "global_y", "global_z"]):
+            self.points_dict["global_pts"] = df[["global_x", "global_y", "global_z"]].values
+        if all(col in df.columns for col in ["global_x_exp", "global_y_exp", "global_z_exp"]):
+            self.points_dict["transformed_pts"] = df[["global_x_exp", "global_y_exp", "global_z_exp"]].values
 
-            self.opt_global_pts = self.df[['opt_x', 'opt_y', 'opt_z']].values
-            self.points_dict['opt_global_pts'] = self.opt_global_pts
-
-            self.local_pts_BA = self._local_to_global(
-                self.local_pts_org, self.R_BA[self.sn], self.T_BA[self.sn], self.S_BA[self.sn])
-            self.points_dict['local_pts_BA'] = self.local_pts_BA
-
-        # Assign unique colors to each key
-        color_list = ['red', 'blue', 'green', 'cyan', 'magenta']
-        for i, key in enumerate(self.points_dict.keys()):
-            self.colors[key] = color_list[i % len(color_list)]
-
-    def _local_to_global(self, local_pts, R, t):
-        """
-        Converts local points to global coordinates using the transformation matrix.
-
-        Parameters:
-        local_pts (np.ndarray): Local coordinates of the points.
-        R (np.ndarray): Rotation matrix for transformation.
-        t (np.ndarray): Translation vector for transformation.
-
-        Returns:
-        np.ndarray: Transformed global coordinates.
-        """
-        global_coords_exp = R @ local_pts.T + t.reshape(-1, 1)
-        return global_coords_exp.T
+        # Assign colors
+        self.colors["global_pts"] = "red"
+        self.colors["transformed_pts"] = "blue"
 
     def _init_buttons(self):
-        """
-        Initializes the buttons for toggling the visibility of each point set in the 3D plot.
-        """
+        """Initializes buttons for toggling point sets."""
         self.buttons = {}
-
-        # Create a button for each point set in points_dict
         for key in self.points_dict.keys():
-            button_name = self._get_button_name(key)
-            button = QPushButton(f'{button_name}')
+            btn_name = "Stage (Transformed)" if key == "transformed_pts" else "Global (Reference)"
+
+            button = QPushButton(btn_name)
             button.setCheckable(True)
+            button.setChecked(True)
             button.setMaximumWidth(200)
-            button.clicked.connect(lambda checked, key=key: self._update_plot(key, checked))
+
+            # Use default argument k=key to capture the value in the lambda
+            button.clicked.connect(lambda checked, k=key: self._update_plot(k, checked))
+
             self.ui.verticalLayout2.addWidget(button)
             self.buttons[key] = button
 
-        # Default the selected point sets to display based on bundle adjustment status
-        if self.model.bundle_adjustment and self.calib_completed:
-            keys_to_check = ['local_pts_BA', 'opt_global_pts']
-        else:
-            keys_to_check = ['local_pts', 'global_pts']
-
-        # Automatically check and display the default point sets
-        for key in keys_to_check:
-            self.buttons[key].setChecked(True)
+            # Draw initially
             self._draw_specific_points(key)
 
-    def _get_button_name(self, key):
-        """
-        Returns a user-friendly name for the given point set key.
-
-        Parameters:
-        key (str): The key for the point set in points_dict.
-
-        Returns:
-        str: The display name for the point set.
-        """
-        if key == 'local_pts':
-            return 'stage'
-        elif key == 'local_pts_BA':
-            return 'stage (BA)'
-        elif key == 'global_pts':
-            return 'global'
-        elif key == 'm_global_pts':
-            return 'global (mean)'
-        elif key == 'opt_global_pts':
-            return 'global (BA)'
-        else:
-            return key  # Default to the key if no match
-
     def _update_plot(self, key, checked):
-        """
-        Updates the 3D plot by adding or removing the points for a specific key based on button state.
-
+        """Updates the plot based on button toggle.
         Parameters:
-        key (str): The key for the point set in points_dict.
-        checked (bool): Whether the button is checked (points should be displayed).
+        key (str): The key identifying the set of points to update.
+        checked (bool): Whether the button is checked (show points) or not (hide points).
         """
         if checked:
             self._draw_specific_points(key)
         else:
-            self._remove_points_from_plot(key)
-        self._update_canvas()
-
-    def _remove_points_from_plot(self, key):
-        """
-        Removes a specific point set from the plot.
-
-        Parameters:
-        key (str): The key for the point set in points_dict.
-        """
-        if key in self.points_dict:
-            del self.traces[key]  # Remove the corresponding trace from the plot
+            if key in self.traces:
+                del self.traces[key]
         self._update_canvas()
 
     def _draw_specific_points(self, key):
-        """
-        Draws a specific point set on the 3D plot.
-
+        """Draws the specified set of points on the 3D plot.
         Parameters:
-        key (str): The key for the point set in points_dict.
+        key (str): The key identifying the set of points to draw.
         """
         pts = self.points_dict[key]
-        x_rounded = [round(x, 0) for x in pts[:, 0]]
-        y_rounded = [round(y, 0) for y in pts[:, 1]]
-        z_rounded = [round(z, 0) for z in pts[:, 2]]
-
-        # Create a 3D scatter plot for the given point set
+        name_map = {"transformed_pts": "Stage (Transformed)", "global_pts": "Global (Reference)"}
         scatter = go.Scatter3d(
-            x=x_rounded, y=y_rounded, z=z_rounded,
-            mode='markers+lines',
-            marker=dict(size=2, color=self.colors[key]),
-            name=self._get_button_name(key),
-            hoverinfo='x+y+z'
+            x=pts[:, 0], y=pts[:, 1], z=pts[:, 2],
+            mode="markers+lines",
+            marker=dict(size=3, color=self.colors.get(key, "green")),
+            name=name_map.get(key, key),
+            hoverinfo="x+y+z"
         )
-        self.traces[key] = scatter  # Store the trace in self.traces
+        self.traces[key] = scatter
 
     def _update_canvas(self):
-        """
-        Renders the 3D plot with the current set of points and updates the Plotly canvas.
-        """
         data = list(self.traces.values())
         layout = go.Layout(
-            scene=dict(
-                xaxis_title='X',
-                yaxis_title='Y',
-                zaxis_title='Z'
-            ),
-            margin=dict(l=0, r=0, b=0, t=0)
+            scene=dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z"),
+            margin=dict(l=0, r=0, b=0, t=0),
+            legend=dict(x=0, y=1)
         )
         fig = go.Figure(data=data, layout=layout)
-
-        # Convert the Plotly figure to HTML and display it in the web view
-        html_content = fig.to_html(include_plotlyjs='cdn')
-        self.web_view.setHtml(html_content)
-        logger.debug("[PointMesh] Canvas updated with new plot")
+        self.web_view.setHtml(fig.to_html(include_plotlyjs="cdn"))
 
     def _on_resize(self, event):
         """
@@ -316,11 +160,64 @@ class PointMesh(QWidget):
         Parameters:
         event (QResizeEvent): The resize event triggered by resizing the window.
         """
-        new_size = event.size()
+        if self.web_view is None:
+            return
 
-        # Resize the web view and update the canvas
-        self.web_view.resize(new_size.width(), new_size.height())
+        sz = event.size()
+
+        # Now it is safe to access self.web_view
+        self.web_view.resize(sz.width(), sz.height())
+
+        # Ensure UI elements exist before resizing them too
+        if hasattr(self, 'ui') and hasattr(self.ui, 'horizontalLayoutWidget'):
+            self.ui.horizontalLayoutWidget.resize(sz.width(), sz.height())
+
         self._update_canvas()
 
-        # Resize the horizontal layout widget
-        self.ui.horizontalLayoutWidget.resize(new_size.width(), new_size.height())
+
+class PointMesh:
+    """
+    Static helper class to display 3D trajectories.
+    """
+    # Keep references to windows so Python doesn't garbage collect them
+    _active_windows = []
+
+    def __init__(self):
+        raise NotImplementedError("PointMesh is a static helper class.")
+
+    @staticmethod
+    def show(stage_sn: str, trajectory_file: str):
+        """
+        Extracts data from the stage dictionary and opens the 3D view.
+        Args:
+            stage_sn (str): The serial number of the stage.
+            trajectory_file (str): Path to the trajectory CSV file.
+        ️"""
+        logger.info(f"Displaying trajectory for stage: {stage_sn}")
+
+        try:
+            widget = PointMeshWidget(
+                file_path=trajectory_file,
+                sn=stage_sn
+            )
+            widget.show()
+            PointMesh._active_windows.append(widget)
+            PointMesh._active_windows = [w for w in PointMesh._active_windows if w.isVisible()]
+
+        except Exception as e:
+            logger.error(f"Failed to launch 3D view for {stage_sn}: {e}")
+            QMessageBox.warning(None, "Trajectory Data Error", f"Could not load trajectory for {stage_sn}:\n\n{e}")
+
+    @staticmethod
+    def close_all():
+        """
+        Force closes all active 3D trajectory windows.
+        Call this from the main window's closeEvent.
+        """
+        for widget in PointMesh._active_windows:
+            try:
+                widget.close()
+            except Exception as e:
+                logger.error(f"Error closing window: {e}")
+
+        PointMesh._active_windows.clear()

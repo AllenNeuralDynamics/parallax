@@ -26,11 +26,27 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QWidget{
-background-color: rgb(58, 58, 58);
-color: #FFFFFF;
-font: 8pt;
-}</string>
+   <string notr="true">
+QWidget{
+  background-color: rgb(58, 58, 58);
+  color: #FFFFFF;
+  font: 8pt;
+}
+QRadioButton::indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 6px;
+}
+QRadioButton::indicator:checked {
+  background-color: #E54D50;
+  border: 1px solid #FFAD00;
+}
+QRadioButton::indicator:unchecked {
+  background-color: #FFFFFF;
+  border: 1px solid #FFFFFF;
+}
+
+</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="verticalSpacing">
@@ -68,7 +84,6 @@ font: 8pt;
      <property name="font">
       <font>
        <pointsize>8</pointsize>
-       <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
       </font>

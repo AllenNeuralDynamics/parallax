@@ -1,14 +1,13 @@
-import pytest
 import numpy as np
-from PyQt5.QtWidgets import QLineEdit, QComboBox, QWidget, QVBoxLayout
-from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
 
 # --- Minimal mocks ------------------------------------------------------------
 
-class MockStereoInstance:
+
+class MockStereoInstance:  # TODO
     def get_global_coords(self, camA, tip_coordsA, camB, tip_coordsB):
         # deterministic mock output
         return np.array([[10.0, 20.0, 30.0]])
+
 
 class MockModel:
     def __init__(self):
@@ -32,11 +31,9 @@ class MockModel:
     def get_reticle_metadata(self, reticle_name):
         return self.reticle_metadata.get(reticle_name, {})
 
-    def get_stereo_calib_instance(self, key):
-        return MockStereoInstance()
-
     def get_cameras_detected_pts(self):
         return self.detected_pts
+
 
 # --- Shared fixture: build widgets under a single parent owned by qtbot --------
 

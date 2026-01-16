@@ -1,6 +1,7 @@
 """
 Parallax CLI Configuration
 """
+
 import argparse
 
 

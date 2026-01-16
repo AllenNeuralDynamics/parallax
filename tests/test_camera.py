@@ -1,9 +1,9 @@
 # tests/camera.py
-import numpy as np
 import cv2
-import pytest
+import numpy as np
 
 from parallax.cameras.camera import MockCamera
+
 
 def test_mock_camera_default_frame_dimensions():
     """
@@ -15,6 +15,7 @@ def test_mock_camera_default_frame_dimensions():
     assert frame is not None
     assert frame.shape[0] == 3000  # height
     assert frame.shape[1] == 4000  # width
+
 
 def test_mock_camera_color_image_has_three_channels(tmp_path):
     """

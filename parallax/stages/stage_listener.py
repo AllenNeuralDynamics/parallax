@@ -1,20 +1,22 @@
 """
 Provides classes to manage stage data fetching, representation, and updates in microscopy
-applications, using PyQt5 for threading and signals, and requests for HTTP requests.
+applications, using PyQt6 for threading and signals, and requests for HTTP requests.
 """
-import os
+
 import json
 import logging
+import os
 import time
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 import numpy as np
 import requests
-from datetime import datetime
-from typing import Optional, Dict, Any
-from dataclasses import dataclass
+from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
+from PyQt6.QtWidgets import QFileDialog
 
-from PyQt5.QtCore import QObject, QThread, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QFileDialog
-from parallax.utils.coords_converter import CoordsConverter
+from parallax.utils.coords_converter import apply_reticle_adjustments, local_to_global
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -55,6 +57,7 @@ class StageInfo:
 @dataclass
 class Stage:
     """Represents an individual stage with its properties."""
+
     sn: str
     name: Optional[str] = None
     stage_x: Optional[float] = None
@@ -63,6 +66,7 @@ class Stage:
     stage_x_global: Optional[float] = None
     stage_y_global: Optional[float] = None
     stage_z_global: Optional[float] = None
+    stage_bregma: Optional[dict] = None
     stage_x_offset: float = 0.0
     stage_y_offset: float = 0.0
     stage_z_offset: float = 0.0
@@ -86,7 +90,7 @@ class Stage:
             yaw=None,
             pitch=None,
             roll=None,
-            shank_cnt=1
+            shank_cnt=1,
         )
 
 
@@ -94,12 +98,13 @@ class Worker(QObject):
     """Fetch stage data at regular intervals and emit signals when data changes
     or significant movement is detected."""
 
-    dataChanged = pyqtSignal(dict)      # Emitted when stage data changes.
-    stage_moving = pyqtSignal(dict)     # Emitted when a stage is moving.
+    dataChanged = pyqtSignal(dict)  # Emitted when stage data changes.
+    stage_moving = pyqtSignal(dict)  # Emitted when a stage is moving.
     stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving for a certain time.
     LOW_FREQ_INTERVAL = 500  # Interval for low frequency data fetching (in ms).
     HIGH_FREQ_INTERVAL = 100  # Interval for high frequency data fetching (in ms).
     IDLE_TIME = 0.5
+    MOVE_DETECT_THRESHOLD = 0.002  # Threshold to detect movement (in mm).
 
     def __init__(self, url):
         """Initialize worker thread"""
@@ -187,7 +192,7 @@ class Worker(QObject):
                 self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
             if change_detected and self.curr_interval == self.LOW_FREQ_INTERVAL:
-                # Swith to high freq mode
+                # Switch to high freq mode
                 logger.debug("high freq mode")
                 self.curr_interval = self.HIGH_FREQ_INTERVAL
                 self.stop()
@@ -220,7 +225,7 @@ class Worker(QObject):
             # Check stage is move more than 10um in any axis
             last_pos = self.stages.get(stage_sn)
             if last_pos:
-                if any(abs(c - l) >= 0.001 for c, l in zip(curr_pos, last_pos)):
+                if any(abs(c - l) >= self.MOVE_DETECT_THRESHOLD for c, l in zip(curr_pos, last_pos)):
                     self.last_move_detected_time = time.time()
                     return True
         return False
@@ -257,7 +262,7 @@ class StageListener(QObject):
         self.transM_dict = {}
         self.snapshot_folder_path = None
         self.stages_info = {}
-        self.probeCalibrationLabel =  None
+        self.probeCalibrationLabel = None  # TODO
 
         # Connect the snapshot button
         self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
@@ -285,8 +290,9 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         sn = probe["SerialNumber"]
-        #stage = self.model.stages.get(sn)  # Check if the stage is in the model's stages
-        stage = self.model.stages.get(sn).get("obj", None)
+        stage = (self.model.stages.get(sn, {}) or {}).get("obj")
+        is_calib = (self.model.stages.get(sn, {}) or {}).get("is_calib")
+        calib_info = (self.model.stages.get(sn, {}) or {}).get("calib_info")
         if not stage:
             return
 
@@ -301,31 +307,66 @@ class StageListener(QObject):
         stage.stage_y_offset = probe.get("Stage_YOffset", 0) * 1000  # Convert to um
         stage.stage_z_offset = 15000 - (probe.get("Stage_ZOffset", 0) * 1000)  # Convert to um
         local_pts = np.array([local_x, local_y, local_z])
-        global_pts = CoordsConverter.local_to_global(self.model, sn, local_pts)
-        if global_pts is not None:
-            stage.stage_x_global = global_pts[0]
-            stage.stage_y_global = global_pts[1]
-            stage.stage_z_global = global_pts[2]
+        if is_calib:
+            global_pts = local_to_global(self.model, sn, local_pts)
+            if global_pts is not None:
+                stage.stage_x_global = global_pts[0]
+                stage.stage_y_global = global_pts[1]
+                stage.stage_z_global = global_pts[2]
 
+        if is_calib:
+            bregma_pts = {}
+            for reticle in self.model.reticle_metadata.keys():
+                bregma_pt = apply_reticle_adjustments(self.model, global_pts, reticle=reticle)
+                # bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
+                # print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
+                if bregma_pt is not None:
+                    # make JSON-safe now
+                    bregma_pts[reticle] = (
+                        np.asarray(bregma_pt, dtype=float)
+                        .reshape(
+                            3,
+                        )
+                        .tolist()
+                    )
+
+            stage.stage_bregma = bregma_pts
+
+        # Update stage UI
         # Stage is currently selected one, update into UI
         if sn == self.stage_ui.get_selected_stage_sn():
-            self.stage_ui.updateStageLocalCoords()          # Update local coords into UI
-            if global_pts is not None:                      # If stage is calibrated,
-                self.stage_ui.updateStageGlobalCoords()     # update global coords into UI
+            self.stage_ui.updateStageLocalCoords()  # Update local coords into UI
+            if is_calib:
+                self.stage_ui.updateStageGlobalCoords()  # update global coords into UI
 
         # Update stage info
-        self._update_stages_info(stage)
+        self._update_stages_info(stage, is_calib, calib_info)
 
-    def _update_stages_info(self, stage):
-        """Update stage info.
-
-        Args:
-            stage (Stage): Stage object.
-        """
-        if stage is None:
+    def _update_stages_info(self, stage, is_calib, calib_info):
+        """Update stage info without clobbering existing fields and with sane conditions."""
+        if stage is None or not getattr(stage, "sn", None):
             return
 
-        self.stages_info[stage.sn] = self._get_stage_info_json(stage)
+        # Start from existing info; merge in fresh stage fields instead of overwriting.
+        info = self.stages_info.get(stage.sn, {}).copy()
+        base = self._get_stage_info_json(stage) or {}
+        info.update(base)
+
+        prev_is_calib = info.get("is_calibrated")
+        status_changed = (prev_is_calib is None) or (bool(is_calib) != prev_is_calib)
+
+        if status_changed:
+            logger.debug(f"State changed from {prev_is_calib} to {is_calib} for stage {stage.sn}")
+            # Always keep this boolean up to date
+            info["is_calibrated"] = bool(is_calib)
+            if is_calib and calib_info is not None:
+                info["calib_info"] = self._get_calib_info_json(calib_info)
+                logger.debug(f"Stage {stage.sn} calibrated: {info['calib_info']}")
+            else:
+                info["calib_info"] = None
+                logger.debug(f"Stage {stage.sn} uncalibrated")
+
+        self.stages_info[stage.sn] = info
 
     def requestUpdateGlobalDataTransformM(self, sn, transM):
         """
@@ -348,7 +389,7 @@ class StageListener(QObject):
             - Clears `transM_dict`, removing all stored transformation matrices.
             - Triggers a UI update to reset the display of global coordinates to default values.
         """
-        if sn is None:  # Not specified, clear all (Use case: reticle Dection is reset)
+        if sn is None:  # Not specified, clear all (Use case: Detection Dection is reset)
             self.transM_dict = {}
         else:
             if self.transM_dict.get(sn) is not None:
@@ -396,7 +437,7 @@ class StageListener(QObject):
         }
 
         # Update model's stage global coordinates
-        moving_stage = self.model.stages.get(sn).get("obj", None)
+        moving_stage = (self.model.stages.get(sn, {}) or {}).get("obj")
         if moving_stage is not None:
             moving_stage.stage_x_global = global_coords_x
             moving_stage.stage_y_global = global_coords_y
@@ -411,6 +452,7 @@ class StageListener(QObject):
             if self.probeCalibrationLabel:
                 msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
                 self.probeCalibrationLabel.setText(msg)
+            # Update only globalCoords
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.
@@ -438,10 +480,26 @@ class StageListener(QObject):
         sx, sy, sz = stage.stage_x, stage.stage_y, stage.stage_z
         gx, gy, gz = stage.stage_x_global, stage.stage_y_global, stage.stage_z_global
         ox, oy, oz = stage.stage_x_offset, stage.stage_y_offset, stage.stage_z_offset
+        stage_bregma = stage.stage_bregma
 
         def _val_mm(v):
             """Convert value to mm."""
             return round(v * 0.001, 4) if v is not None else None
+
+        def _vec_mm(v):
+            """3-vector (np/list) in µm -> [mm, mm, mm] (rounded)."""
+            if v is None:
+                return None
+            arr = np.asarray(v, dtype=float).reshape(-1)
+            if arr.size < 3:
+                return None
+            return [round(arr[0] * 0.001, 4), round(arr[1] * 0.001, 4), round(arr[2] * 0.001, 4)]
+
+        def _bregma_mm(b):
+            """Dict of reticle -> 3-vector in µm -> mm dict."""
+            if not b:
+                return None
+            return {str(k): _vec_mm(v) for k, v in b.items() if v is not None}
 
         return {
             "sn": stage.sn,
@@ -452,21 +510,52 @@ class StageListener(QObject):
             "global_X": _val_mm(gx),
             "global_Y": _val_mm(gy),
             "global_Z": _val_mm(gz),
-            "relative_X": _val_mm(sx - ox),
-            "relative_Y": _val_mm(sy - oy),
-            "relative_Z": _val_mm(sz - oz),
+            "bregma": _bregma_mm(stage_bregma),
+            "relative_X": _val_mm(sx - ox) if sx is not None and ox is not None else None,
+            "relative_Y": _val_mm(sy - oy) if sy is not None and oy is not None else None,
+            "relative_Z": _val_mm(sz - oz) if sz is not None and oz is not None else None,
             "yaw": stage.yaw,
             "pitch": stage.pitch,
             "roll": stage.roll,
-            "shank_cnt": stage.shank_cnt,
+        }
+
+    def _get_calib_info_json(self, calib_info):
+        def _to_list(x):
+            return None if x is None else np.asarray(x).tolist()
+
+        def _to_mm(M):
+            if M is None:
+                return None
+            A = np.asarray(M, float).copy()
+            A[:3, 3] /= 1000.0  # µm -> mm  # TODO replace to mm in entire Parallax model
+            return A.tolist()
+
+        transM_mm = _to_mm(calib_info.transM)
+        bregma_mm = {k: _to_mm(v) for k, v in (calib_info.transM_bregma or {}).items()} or None
+
+        return {
+            "detection_status": calib_info.detection_status,
+            "transM_global_to_local": transM_mm,
+            "L2_error": calib_info.L2_err,
+            "distance_travelled": _to_list(calib_info.dist_travel),
+            "status_x": calib_info.status_x,
+            "status_y": calib_info.status_y,
+            "status_z": calib_info.status_z,
+            "transM_bregma_to_local": bregma_mm,
+            "arc_angle_global": calib_info.arc_angle_global,
+            "arc_angle_bregma": calib_info.arc_angle_bregma,
+            "trajectory_file_path": calib_info.trajectory_file,
         }
 
     def _snapshot_stage(self):
         """Snapshot the current stage info. Handler for the stage snapshot button."""
         selected_sn = self.stage_ui.get_selected_stage_sn()
         now = datetime.now().astimezone()
-        info = {"timestamp": now.isoformat(timespec='milliseconds'),
-                "selected_sn": selected_sn, "probes:": self.stages_info}
+        info = {
+            "timestamp": now.isoformat(timespec="milliseconds"),
+            "selected_sn": selected_sn,
+            "probes:": self.stages_info,
+        }
 
         # If no folder is set, default to the "Documents" directory
         if self.snapshot_folder_path is None:
@@ -475,10 +564,7 @@ class StageListener(QObject):
         # Open save file dialog, defaulting to the last used folder
         now_fmt = now.strftime("%Y-%m-%dT%H%M%S%z")
         file_path, _ = QFileDialog.getSaveFileName(
-            None,
-            "Save Stage Info",
-            os.path.join(self.snapshot_folder_path, f"{now_fmt}.json"),
-            "JSON Files (*.json)"
+            None, "Save Stage Info", os.path.join(self.snapshot_folder_path, f"{now_fmt}.json"), "JSON Files (*.json)"
         )
 
         if not file_path:  # User canceled the dialog

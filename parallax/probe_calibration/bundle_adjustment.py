@@ -8,10 +8,11 @@ The BALOptimizer class performs optimization on the Bundle Adjustment problem, u
 the reprojection error through optimization of camera parameters and 3D points.
 """
 
+import logging
+
+import cv2
 import numpy as np
 import pandas as pd
-import cv2
-import logging
 from scipy.optimize import leastsq
 
 # Set logger name
@@ -68,14 +69,14 @@ class BALProblem:
 
     def _set_camera_list(self):
         """Set the list of cameras from the parsed data."""
-        cameras = pd.concat([self.df['cam0'], self.df['cam1']]).unique()
+        cameras = pd.concat([self.df["cam0"], self.df["cam1"]]).unique()
         self.list_cameras = [str(camera) for camera in cameras]
 
     def _set_points(self):
         """Set the unique 3D points from the parsed data."""
-        unique_df = self.df.drop_duplicates(subset=['m_global_x', 'm_global_y', 'm_global_z'])
-        self.points = np.array(unique_df[['m_global_x', 'm_global_y', 'm_global_z']].values)
-        self.local_pts = np.array(unique_df[['local_x', 'local_y', 'local_z']].values)
+        unique_df = self.df.drop_duplicates(subset=["m_global_x", "m_global_y", "m_global_z"])
+        self.points = np.array(unique_df[["m_global_x", "m_global_y", "m_global_z"]].values)
+        self.local_pts = np.array(unique_df[["local_x", "local_y", "local_z"]].values)
 
     def _set_observations(self):
         """
@@ -92,24 +93,26 @@ class BALProblem:
 
         # Iterate through the DataFrame to collect observations
         for _, row in self.df.iterrows():
-            cam0, pt0 = str(row['cam0']), row['pt0']
-            cam1, pt1 = str(row['cam1']), row['pt1']
+            cam0, pt0 = str(row["cam0"]), row["pt0"]
+            cam1, pt1 = str(row["cam1"]), row["pt1"]
 
             # Find the point index corresponding to the average global coordinates
-            m_global_x, m_global_y, m_global_z = row['m_global_x'], row['m_global_y'], row['m_global_z']
-            point_index = np.where((self.points[:, 0] == m_global_x) &
-                                   (self.points[:, 1] == m_global_y) &
-                                   (self.points[:, 2] == m_global_z))[0][0]
+            m_global_x, m_global_y, m_global_z = row["m_global_x"], row["m_global_y"], row["m_global_z"]
+            point_index = np.where(
+                (self.points[:, 0] == m_global_x)
+                & (self.points[:, 1] == m_global_y)
+                & (self.points[:, 2] == m_global_z)
+            )[0][0]
 
             # Add observations for cam0
             if pd.notna(pt0):
-                pt0_coords = np.array(list(map(float, pt0.strip('()').split(','))))
+                pt0_coords = np.array(list(map(float, pt0.strip("()").split(","))))
                 camera_index = camera_id_to_index[cam0]
                 self.observations.append([camera_index, point_index, pt0_coords[0], pt0_coords[1]])
 
             # Add observations for cam1
             if pd.notna(pt1):
-                pt1_coords = np.array(list(map(float, pt1.strip('()').split(','))))
+                pt1_coords = np.array(list(map(float, pt1.strip("()").split(","))))
                 camera_index = camera_id_to_index[cam1]
                 self.observations.append([camera_index, point_index, pt1_coords[0], pt1_coords[1]])
 
@@ -123,14 +126,14 @@ class BALProblem:
         The global 3D coordinates are averaged for each unique local coordinate set and stored in the DataFrame.
         """
         # Group by 'ts_local_coords' and calculate the mean for 'global_x', 'global_y', and 'global_z'
-        grouped = self.df.groupby('ts_local_coords')[['global_x', 'global_y', 'global_z']].mean()
-        grouped = grouped.rename(columns={'global_x': 'm_global_x', 'global_y': 'm_global_y', 'global_z': 'm_global_z'})
+        grouped = self.df.groupby("ts_local_coords")[["global_x", "global_y", "global_z"]].mean()
+        grouped = grouped.rename(columns={"global_x": "m_global_x", "global_y": "m_global_y", "global_z": "m_global_z"})
 
         # Merge the averaged columns back into the original DataFrame
-        self.df = self.df.merge(grouped, on='ts_local_coords', how='left')
+        self.df = self.df.merge(grouped, on="ts_local_coords", how="left")
 
         # Create a mapping of ts_local_coords to index in the averaged points
-        self.df['point_index'] = self.df.groupby('ts_local_coords').ngroup()
+        self.df["point_index"] = self.df.groupby("ts_local_coords").ngroup()
 
         # Write the updated DataFrame back to the CSV file
         self.df.to_csv(self.file_path, index=False)
@@ -144,7 +147,7 @@ class BALProblem:
         """
         # Drop duplicate rows based on 'ts_local_coords', 'global_x', 'global_y', 'global_z' columns
         logger.debug(f"Original rows: {self.df.shape[0]}")
-        self.df = self.df.drop_duplicates(subset=['ts_local_coords', 'global_x', 'global_y', 'global_z'])
+        self.df = self.df.drop_duplicates(subset=["ts_local_coords", "global_x", "global_y", "global_z"])
         logger.debug(f"Unique rows: {self.df.shape[0]}")
 
     def _set_camera_params(self):
@@ -158,7 +161,7 @@ class BALProblem:
         self.cameras_params = []
 
         for camera_name in self.list_cameras:
-            intrinsic = self.model.get_camera_intrinsic(camera_name)
+            intrinsic = self.model.get_camera_params(camera_name)
             if intrinsic is None:
                 logger.warning("Intrinsic parameters not found for camera %s", camera_name)
                 continue
@@ -173,11 +176,10 @@ class BALProblem:
             R = rvec.ravel()
             t = tvec.ravel()
 
-            camera_param = np.array([
-                R[0], R[1], R[2],       # Rotation
-                t[0], t[1], t[2],       # Translation
-                f, k1, k2, p1, p2, k3   # Intrinsics
-            ], dtype=np.float64)
+            camera_param = np.array(
+                [R[0], R[1], R[2], t[0], t[1], t[2], f, k1, k2, p1, p2, k3],  # Rotation  # Translation  # Intrinsics
+                dtype=np.float64,
+            )
             self.cameras_params.append(camera_param)
 
     def get_camera_params(self, i):
@@ -229,7 +231,7 @@ class BALOptimizer:
         residuals = []
         n_cams = len(self.bal_problem.list_cameras)
         n_pts = len(self.bal_problem.points)
-        camera_params = params[:12 * n_cams].reshape(n_cams, 12)
+        camera_params = params[: 12 * n_cams].reshape(n_cams, 12)
         points = params[12 * n_cams:].reshape(n_pts, 3)
 
         for obs in self.bal_problem.observations:
@@ -241,9 +243,7 @@ class BALOptimizer:
             rvec = np.array(camera[:3])
             tvec = np.array(camera[3:6])
             focal = camera[6]
-            mtx = np.array([[focal, 0.0, 2000.0],
-                            [0.0, focal, 1500.0],
-                            [0.0, 0.0, 1.0]], dtype=np.float32)
+            mtx = np.array([[focal, 0.0, 2000.0], [0.0, focal, 1500.0], [0.0, 0.0, 1.0]], dtype=np.float32)
 
             k1, k2, p1, p2, k3 = camera[7:12]
             dist = np.array([k1, k2, p1, p2, k3], dtype=np.float32)
@@ -270,8 +270,9 @@ class BALOptimizer:
             before and after the optimization.
         """
         # Initial parameters vector
-        initial_params = np.hstack([param.ravel()
-                                   for param in self.bal_problem.cameras_params] + [self.bal_problem.points.ravel()])
+        initial_params = np.hstack(
+            [param.ravel() for param in self.bal_problem.cameras_params] + [self.bal_problem.points.ravel()]
+        )
 
         # Perform optimization using leastsq
         result = leastsq(self.residuals, initial_params, full_output=True)
@@ -280,7 +281,7 @@ class BALOptimizer:
         # Extract Optimize camera parameters and points
         n_cams = len(self.bal_problem.list_cameras)
         n_pts = len(self.bal_problem.points)
-        self.opt_camera_params = opt_params[:12 * n_cams].reshape(n_cams, 12)
+        self.opt_camera_params = opt_params[: 12 * n_cams].reshape(n_cams, 12)
         self.opt_points = opt_params[12 * n_cams:].reshape(n_pts, 3)
 
         if print_result:
@@ -306,8 +307,8 @@ class BALOptimizer:
                 logger.debug(f"opt : {self.opt_points[i]}")
 
         # Map optimized points to the original DataFrame rows
-        opt_points_df = pd.DataFrame(self.opt_points, columns=['opt_x', 'opt_y', 'opt_z'])
-        self.bal_problem.df = self.bal_problem.df.join(opt_points_df, on='point_index', rsuffix='_opt')
+        opt_points_df = pd.DataFrame(self.opt_points, columns=["opt_x", "opt_y", "opt_z"])
+        self.bal_problem.df = self.bal_problem.df.join(opt_points_df, on="point_index", rsuffix="_opt")
 
         # Save the updated DataFrame to the CSV file
         self.bal_problem.df.to_csv(self.bal_problem.file_path, index=False)

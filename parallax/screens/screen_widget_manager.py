@@ -1,24 +1,22 @@
 import logging
 import os
-from PyQt5.QtWidgets import (
-    QGroupBox,
-    QVBoxLayout,
-    QWidget,
-    QHBoxLayout,
-    QMdiSubWindow,
-    QMdiArea,
-    QMenu,
-    QMainWindow,
+
+from PyQt6.QtCore import QObject, Qt, QTimer
+from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtWidgets import (
     QDockWidget,
+    QGroupBox,
+    QHBoxLayout,
+    QMainWindow,
+    QMenu,
+    QVBoxLayout,
 )
-from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtCore import Qt, QTimer, QEvent, QObject
 
-from parallax.screens.screen_widget import ScreenWidget
-from parallax.screens.screen_setting import ScreenSetting
-from parallax.screens.reticle_detect_widget import ReticleDetectWidget
 from parallax.config.config_path import ui_dir
-
+from parallax.screens.probe_detect_widget import ProbeDetectWidget
+from parallax.screens.reticle_detect_widget import ReticleDetectWidget
+from parallax.screens.screen_setting import ScreenSetting
+from parallax.screens.screen_widget import ScreenWidget
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +47,7 @@ class ScreenWidgetManager(QObject):
         self.model.refresh_camera = True
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get('visible', False):
+            if self.model.cameras.get(sn, {}).get("visible", False):
                 screen.start_acquisition_camera()
                 logger.debug("Camera acquisition started for:", sn)
 
@@ -64,16 +62,25 @@ class ScreenWidgetManager(QObject):
 
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get('visible', False):
+            if self.model.cameras.get(sn, {}).get("visible", False):
                 screen.stop_acquisition_camera()
                 logger.debug("Camera acquisition stopped for:", sn)
 
     def _refresh_screens(self):
         """Refresh only visible screens."""
         for screen in self.screen_widgets:
-            sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get('visible', False):
-                screen.refresh()
+            sn = None  # Initialize sn before the try block
+            try:
+                sn = screen.camera.name(sn_only=True)
+            except AttributeError as e:
+                logger.debug("Could not retrieve camera name from screen: %s", str(e))
+                continue
+            except Exception as e:
+                logger.error("Unexpected error retrieving SN: %s", str(e))
+                continue
+
+            if sn and self.model.cameras.get(sn, {}).get("visible", False):
+                screen.refresh()  # This is the slow part
 
     def _toggle_streaming(self, on: bool, sn: str):
         """Start or stop streaming for a specific camera based on visibility toggle."""
@@ -107,7 +114,7 @@ class ScreenWidgetManager(QObject):
         layout = QVBoxLayout(group_box)
 
         sn = list(self.model.cameras.keys())[screen_index]
-        camera = self.model.cameras[sn]['obj']
+        camera = self.model.cameras[sn]["obj"]
 
         # Screen
         screen = ScreenWidget(camera, model=self.model, parent=group_box)
@@ -117,16 +124,18 @@ class ScreenWidgetManager(QObject):
         # Bottom row with buttons
         screen_setting = ScreenSetting(parent=group_box, model=self.model, screen=screen)
         reticle_detector = ReticleDetectWidget(parent=group_box, model=self.model, screen=screen)
+        probe_detector = ProbeDetectWidget(parent=group_box, model=self.model, screen=screen)
         button_row = QHBoxLayout()
-        button_row.setAlignment(Qt.AlignLeft)
+        button_row.setAlignment(Qt.AlignmentFlag.AlignLeft)
         button_row.addWidget(screen_setting.settingButton)
         button_row.addWidget(reticle_detector.detectButton)
+        button_row.addWidget(probe_detector.detectButton)
         layout.addLayout(button_row)
 
         # Create QDockWidget
         dock = QDockWidget(name, self.main_window)
         dock.setWidget(group_box)
-        dock.setAllowedAreas(Qt.LeftDockWidgetArea)
+        dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
         dock.setObjectName(name)
         dock.setFloating(False)
         dock.setMinimumWidth(300)
@@ -143,7 +152,7 @@ class ScreenWidgetManager(QObject):
             self._toggle_streaming(visible, sn)
 
         dock.visibilityChanged.connect(sync_action_to_dock_visibility)
-        self.main_window.addDockWidget(Qt.LeftDockWidgetArea, dock)
+        self.main_window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock)
 
         self.screen_widgets.append(screen)
         self.dock_widgets.append((name, dock))

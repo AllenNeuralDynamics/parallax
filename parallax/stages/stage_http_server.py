@@ -2,11 +2,12 @@
 This module provides a StageHttpServer class that manages an HTTP server for controlling
 and querying the state of a stage controller. It uses aiohttp for asynchronous handling of HTTP requests.
 """
-import logging
-import json
+
 import asyncio
+import json
+import logging
 import threading
-from PyQt5.QtCore import QObject
+
 from aiohttp import web
 
 from .stage_controller import StageController
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class StageHttpServer(QObject):
+class StageHttpServer:
     """Manages the Stage HTTP Server using aiohttp (Fully Async)"""
 
     def __init__(self, model, stages_info, port=8081):
@@ -61,7 +62,7 @@ class StageHttpServer(QObject):
             data = await request.json()
             logger.info(f"PUT request received:\n{json.dumps(data, indent=2)}")
 
-            # Offlaod CPU work to a thread
+            # Offload CPU work to a thread
             loop = asyncio.get_running_loop()
             # Offload to thread pool executor
             result = await loop.run_in_executor(None, self.stage_controller.request, data)

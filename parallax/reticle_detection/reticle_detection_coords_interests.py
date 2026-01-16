@@ -1,4 +1,3 @@
-
 """
 Provides functionality to detect and analyze points of interest on reticle lines in images,
 employing line fitting and orientation determination techniques suitable
@@ -8,15 +7,15 @@ for microscopy image analysis tasks.
 import logging
 
 import numpy as np
-from PyQt5.QtCore import QObject
+from PyQt6.QtCore import QObject
 from scipy.stats import linregress
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+# Set the logging level for PyQt6.uic.uiparser/properties to WARNING, to ignore DEBUG messages
+logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
 
 
 class ReticleDetectCoordsInterest(QObject):
@@ -74,9 +73,7 @@ class ReticleDetectCoordsInterest(QObject):
         x_center, y_center = center
         for i in range(-5, 6):  # Range from -5 to 5
             for j in range(-5, 6):  # Range from -5 to 5
-                test_center = np.array(
-                    [x_center + i, y_center + j], dtype=coords.dtype
-                )
+                test_center = np.array([x_center + i, y_center + j], dtype=coords.dtype)
                 result = np.where((coords == test_center).all(axis=1))
                 if len(result[0]) > 0:  # Check if the element was found
                     return result[0][0]  # Return the first occurrence index
@@ -150,8 +147,10 @@ class ReticleDetectCoordsInterest(QObject):
         if pixels_in_lines[0] is None or pixels_in_lines[1] is None:
             return False, None, None
 
-        if len(pixels_in_lines[0]) < self.n_interest_pixels * 2 + 1 \
-                or len(pixels_in_lines[1]) < self.n_interest_pixels * 2 + 1:
+        if (
+            len(pixels_in_lines[0]) < self.n_interest_pixels * 2 + 1
+            or len(pixels_in_lines[1]) < self.n_interest_pixels * 2 + 1
+        ):
             return False, None, None
 
         coords_interest = []

@@ -1,0 +1,122 @@
+{
+  "ProbeFineTipDetector": {
+    "preprocessing": {
+      "gaussian_blur": {
+        "kernel_size": [7, 7],
+        "sigma": 0
+      },
+      "laplacian": {
+        "ddepth": "CV_64F",
+        "enable": true
+      },
+      "threshold": {
+        "type": "OTSU",
+        "threshold_value": 0,
+        "max_value": 255
+      }
+    },
+    "validation": {
+      "boundary_check": {
+        "enable": true,
+        "max_contours": 2
+      }
+    },
+    "corner_detection": {
+      "harris": {
+        "block_size": 7,
+        "ksize": 5,
+        "k": 0.1,
+        "threshold_factor": 0.3
+      }
+    },
+    "tip_refinement": {
+      "l2_offset": 5,
+      "enable_offset": true
+    },
+    "debug": {
+      "save_images": true,
+      "circle_radius": 5,
+      "circle_color": [0, 255, 0],
+      "circle_thickness": -1
+    }
+  },
+  "ProbeImageProcessor": {
+    "preprocessing": {
+      "clahe": {
+        "clip_limit": 2.0,
+        "tile_grid_size": [8, 8],
+        "enable": true
+      },
+      "unsharp_mask": {
+        "enable": true,
+        "gaussian_blur": {
+          "kernel_size": [0, 0],
+          "sigma": 1.0
+        },
+        "weight_original": 1.6,
+        "weight_blur": -0.6,
+        "gamma": 0
+      },
+      "adaptive_threshold": {
+        "max_value": 255,
+        "adaptive_method": "ADAPTIVE_THRESH_GAUSSIAN_C",
+        "threshold_type": "THRESH_BINARY_INV",
+        "block_size": 101,
+        "c": 10
+      },
+      "canny": {
+        "enable": true,
+        "pre_blur": {
+          "kernel_size": [9, 9],
+          "sigma": 2
+        },
+        "low_threshold": 150,
+        "high_threshold": 250,
+        "aperture_size": 5
+      },
+      "morphology": {
+        "enable": true,
+        "operation": "MORPH_CLOSE",
+        "kernel_type": "MORPH_RECT",
+        "kernel_size": [3, 3],
+        "iterations": 1
+      }
+    },
+    "line_detection": {
+      "hough": {
+        "rho": 1,
+        "theta": "pi/180",
+        "threshold": 80,
+        "min_line_length": 150,
+        "max_line_gap": 5
+      },
+      "point_tolerance": 5.0,
+      "line_mask": {
+        "line_thickness": 3,
+        "color": 255
+      }
+    },
+    "mask_operations": {
+      "dilation": {
+        "kernel_size": [5, 5],
+        "iterations": 1
+      }
+    },
+    "coordinate_conversion": {
+      "default_size": {
+        "width": 512,
+        "height": 512
+      }
+    },
+    "bbox": {
+      "default_padding": 10
+    },
+    "debug": {
+      "save_intermediate_images": true,
+      "line_color": [0, 255, 0],
+      "line_thickness": 3,
+      "point_color": [0, 0, 255],
+      "point_radius": 4
+    }
+  }
+}

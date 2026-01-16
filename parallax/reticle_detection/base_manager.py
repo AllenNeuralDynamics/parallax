@@ -1,17 +1,23 @@
 """Base manager for reticle detection workers."""
-from PyQt5.QtCore import QObject, pyqtSignal, QThreadPool, QRunnable, pyqtSlot
-from parallax.config.config_path import debug_img_dir
-import time
-import numpy as np
-import cv2
+
 import logging
 import math
+import time
 from enum import Enum
+
+import cv2
+import numpy as np
+from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+
+from parallax.config.config_path import debug_img_dir
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class DetectionResult(Enum):
     """Enum for detection results."""
+
     STOPPED = -1
     FAILED = 0
     SUCCESS = 1
@@ -19,16 +25,18 @@ class DetectionResult(Enum):
 
 class DrawWorkerSignal(QObject):
     """Signals for the DrawWorker."""
+
     finished = pyqtSignal()
     frame_processed = pyqtSignal(object)
 
 
 class BaseDrawWorker(QRunnable):
     """Base worker for drawing reticle detection results on frames."""
+
     def __init__(self, name):
         """Initialize the worker with a name."""
         super().__init__()
-        self.signals = (DrawWorkerSignal())
+        self.signals = DrawWorkerSignal()
         self.name = name
         self.running = False
         self.new = False
@@ -189,17 +197,19 @@ class BaseDrawWorker(QRunnable):
 
 class ProcessWorkerSignal(QObject):
     """Signals for the ProcessWorker."""
+
     finished = pyqtSignal()
-    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, object)  # x_coords, y_coords, CameraParams
     state = pyqtSignal(str)  # "Found", "Failed", "Stopped", "InProcess"
 
 
 class BaseProcessWorker(QRunnable):
     """Base worker for processing frames to detect reticle coordinates."""
+
     def __init__(self, name):
         """Initialize the worker with a name."""
         super().__init__()
-        self.signals = (ProcessWorkerSignal())
+        self.signals = ProcessWorkerSignal()
         self.name = name
         self.frame = None
         self.running = False
@@ -257,14 +267,16 @@ class BaseProcessWorker(QRunnable):
 
 class BaseReticleManager(QObject):
     """Base manager for reticle detection workers."""
+
     name = "None"
     frame_processed = pyqtSignal(object)
-    found_coords = pyqtSignal(np.ndarray, np.ndarray, np.ndarray, np.ndarray, tuple, tuple)
+    found_coords = pyqtSignal(np.ndarray, np.ndarray, object)  # x_coords, y_coords, CameraParams
     finished = pyqtSignal()
 
-    def __init__(self, name, WorkerClass, ProcessWorkerClass):
+    def __init__(self, model, name, WorkerClass, ProcessWorkerClass):
         """Initialize the reticle manager with worker classes and a name."""
         super().__init__()
+        self.model = model
         self.name = name
         self.WorkerClass = WorkerClass
         self.worker = None
@@ -280,7 +292,7 @@ class BaseReticleManager(QObject):
 
     def _init_process_thread(self):
         """Initialize the process worker thread."""
-        self.processWorker = self.processWorkerClass(self.name)
+        self.processWorker = self.processWorkerClass(self.model, self.name)
         self.processWorker.signals.finished.connect(self._onProcessThreadFinished)
         self.processWorker.signals.found_coords.connect(self.found_coords)
         self.processWorker.signals.state.connect(self._state)
@@ -317,7 +329,7 @@ class BaseReticleManager(QObject):
             self._state("Stopped")  # Stop the draw worker. processWoker is already stopped
 
         # State: InProgress
-        self._state("Stopping")  # Both Draw and Process worker were in progres. DrawWorker draw progress.
+        self._state("Stopping")
         if self.processWorker:
             self.processWorker.stop_running()  # Stop the processWorker. After finishing, stop the DrawWorker
 

@@ -13,15 +13,17 @@ Key features:
 - Provides methods for retrieving global coordinates with specific reticle adjustments.
 """
 
-import os
-import logging
 import json
+import logging
+import os
+
 import numpy as np
-from scipy.spatial.transform import Rotation
-from PyQt5.QtWidgets import QWidget, QGroupBox, QLineEdit, QPushButton
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import Qt
-from parallax.config.config_path import ui_dir, reticle_metadata_file
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QGroupBox, QLineEdit, QPushButton, QWidget
+from PyQt6.uic import loadUi
+
+from parallax.config.config_path import reticle_metadata_file, ui_dir
+from parallax.utils.rotations import define_euler_rotation
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -57,8 +59,13 @@ class ReticleMetadata(QWidget):
         self.ui = loadUi(os.path.join(ui_dir, "reticle_metadata.ui"), self)
         self.default_size = self.size()
         self.setWindowTitle("Reticle Metadata")
-        self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint |
-                            Qt.WindowMaximizeButtonHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(
+            self.windowFlags()
+            | Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
 
         self.groupboxes = {}  # Change from list to dictionary
         self.reticles = {}
@@ -67,6 +74,7 @@ class ReticleMetadata(QWidget):
         self.ui.add_btn.clicked.connect(self._add_groupbox)
         self.ui.update_btn.clicked.connect(self._update_reticle_info)
 
+        # Update reticle selector
         self.model.add_reticle_metadata_instance(self)
 
     def load_metadata_from_file(self):
@@ -82,18 +90,19 @@ class ReticleMetadata(QWidget):
             Exception: If there is an error reading the metadata file, logs the error.
         """
         if not os.path.exists(reticle_metadata_file):
-            logger.info("No existing metadata file found. Starting fresh.")
+            logger.debug("No existing metadata file found. Starting fresh.")
             return
 
         try:
-            with open(reticle_metadata_file, 'r') as json_file:
+            with open(reticle_metadata_file, "r") as json_file:
                 reticle_data = json.load(json_file)
             if reticle_data:
                 self._create_groupbox_from_metadata(reticle_data)
                 for group_box in self.groupboxes.values():
                     self._update_reticles(group_box)
                 self._update_to_reticle_selector()
-
+            else:
+                logger.debug("Metadata json file is empty. Starting fresh.")
         except Exception as e:
             logger.error(f"Error reading metadata file: {e}")
 
@@ -106,6 +115,7 @@ class ReticleMetadata(QWidget):
                 return  # Do not add a new groupbox if it already exists
 
             self._populate_groupbox(name, reticle_info)
+            logger.debug(f"Created groupbox for reticle: {name}")
 
     def _add_groupbox(self):
         """This method creates new groupboxes with an alphabet name."""
@@ -334,7 +344,7 @@ class ReticleMetadata(QWidget):
 
         # Save the updated groupbox information to file
         try:
-            with open(reticle_metadata_file, 'w') as json_file:
+            with open(reticle_metadata_file, "w") as json_file:
                 json.dump(reticle_info_list, json_file, indent=4)
             print(f"Metadata successfully saved to {reticle_metadata_file}")
         except Exception as e:
@@ -384,51 +394,14 @@ class ReticleMetadata(QWidget):
 
         rotmat = np.eye(3)
         if offset_rot != 0:
-            rotmat = (
-                Rotation.from_euler("z", offset_rot, degrees=True)
-                .as_matrix()
-                .squeeze()
-            )
+            rotmat = define_euler_rotation(0, 0, offset_rot, degrees=True).as_matrix()  # CCW
 
         self.reticles[name] = {
             "rot": offset_rot,
             "rotmat": rotmat,
             "offset_x": offset_x,
             "offset_y": offset_y,
-            "offset_z": offset_z
+            "offset_z": offset_z,
         }
         # Register the reticle in the model
         self.model.add_reticle_metadata(name, self.reticles[name])
-
-    def get_global_coords_with_offset(self, reticle_name, global_pts):
-        """
-        Get the global coordinates of a point after applying the reticle's rotation and offsets.
-
-        Args:
-            reticle_name (str): The name of the reticle.
-            global_pts (numpy.ndarray): The original global coordinates (3D point).
-
-        Returns:
-            tuple: The transformed global coordinates (global_x, global_y, global_z).
-        """
-        if reticle_name not in self.reticles.keys():
-            raise ValueError(f"Reticle '{reticle_name}' not found in reticles dictionary.")
-
-        reticle = self.reticles[reticle_name]
-        reticle_rot = reticle.get("rot", 0)
-        reticle_rotmat = reticle.get("rotmat", np.eye(3))  # Default to identity matrix if not found
-        reticle_offset = np.array([
-            reticle.get("offset_x", global_pts[0]),
-            reticle.get("offset_y", global_pts[1]),
-            reticle.get("offset_z", global_pts[2])
-        ])
-
-        if reticle_rot != 0:
-            # Transpose because points are row vectors
-            global_pts = global_pts @ reticle_rotmat.T
-        global_pts = global_pts + reticle_offset
-
-        global_x = np.round(global_pts[0], 1)
-        global_y = np.round(global_pts[1], 1)
-        global_z = np.round(global_pts[2], 1)
-        return global_x, global_y, global_z

@@ -1,59 +1,48 @@
 import numpy as np
 import pytest
-from parallax.probe_calibration.coords_transformation import RotationTransformation
 
-@pytest.fixture
-def transformer():
-    return RotationTransformation()
+from parallax.utils.transforms import fit_params
 
-def test_roll(transformer):
-    # Test roll rotation around the x-axis
-    input_matrix = np.identity(3)
-    roll_angle = np.pi / 4  # 45 degrees
-    expected_output = np.array([[1, 0, 0],
-                                [0, np.sqrt(2) / 2, -np.sqrt(2) / 2],
-                                [0, np.sqrt(2) / 2, np.sqrt(2) / 2]])
-    output = transformer.roll(input_matrix, roll_angle)
-    assert np.allclose(output, expected_output), "Roll transformation failed."
+# --- Test for Optimization/Fit ---
 
-def test_pitch(transformer):
-    # Test pitch rotation around the y-axis
-    input_matrix = np.identity(3)
-    pitch_angle = np.pi / 6  # 30 degrees
-    expected_output = np.array([[np.sqrt(3) / 2, 0, 0.5],
-                                [0, 1, 0],
-                                [-0.5, 0, np.sqrt(3) / 2]])
-    output = transformer.pitch(input_matrix, pitch_angle)
-    assert np.allclose(output, expected_output), "Pitch transformation failed."
 
-def test_yaw(transformer):
-    # Test yaw rotation around the z-axis
-    input_matrix = np.identity(3)
-    yaw_angle = np.pi / 3  # 60 degrees
-    expected_output = np.array([[0.5, -np.sqrt(3) / 2, 0],
-                                [np.sqrt(3) / 2, 0.5, 0],
-                                [0, 0, 1]])
-    output = transformer.yaw(input_matrix, yaw_angle)
-    assert np.allclose(output, expected_output), "Yaw transformation failed."
+def test_fit_params_translation_only():
+    """
+    Test fitting parameters when only a known translation exists (R=I, t=[-1, -1, -1]).
+    """
+    # Use points that define a tetrahedron (or at least a plane) to prevent rotation ambiguity
+    global_pts_Nx3 = np.array(
+        [
+            [10, 0, 0],  # Point on X axis
+            [0, 10, 0],  # Point on Y axis
+            [0, 0, 10],  # Point on Z axis
+            [0, 0, 0],  # Origin
+        ],
+        dtype=float,
+    )
 
-def test_extract_angles(transformer):
-    # Test extraction of roll, pitch, yaw from rotation matrix
-    rotation_matrix = transformer.combineAngles(np.pi / 4, np.pi / 6, np.pi / 3)
-    roll, pitch, yaw = transformer.extractAngles(rotation_matrix)
+    # Create measured points by applying the expected translation: [-1, -1, -1]
+    # measured = global + t
+    expected_origin = np.array([-1.0, -1.0, -1.0])
+    measured_pts_Nx3 = global_pts_Nx3 + expected_origin
 
-    assert np.isclose(roll, np.pi / 4), f"Expected roll to be {np.pi / 4}, got {roll}"
-    assert np.isclose(pitch, np.pi / 6), f"Expected pitch to be {np.pi / 6}, got {pitch}"
-    assert np.isclose(yaw, np.pi / 3), f"Expected yaw to be {np.pi / 3}, got {yaw}"
+    expected_R = np.identity(3)
 
-def test_fit_params(transformer):
-    # Test fitting parameters for transformation
-    measured_pts = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]])
-    global_pts = np.array([[2, 3, 4], [5, 6, 7], [8, 9, 10], [11, 12, 13]])
+    # Perform the fit
+    origin, rotation_matrix, avg_err = fit_params(measured_pts_Nx3.T, global_pts_Nx3.T)
 
-    origin, rotation_matrix, avg_err = transformer.fit_params(measured_pts, global_pts)
-    
-    # Expected values based on the simplified test data
-    expected_origin = np.array([1, 1, 1])
+    # Check assertions
+    assert np.allclose(origin, expected_origin, atol=1e-5), f"Origin fit failed. Got: {origin}"
+    assert np.allclose(rotation_matrix, expected_R, atol=1e-5), "Rotation matrix was not Identity."
+    assert avg_err < 1e-5
 
-    assert np.allclose(origin, expected_origin), f"Expected origin {expected_origin}, got {origin}"
-    assert avg_err < 1e-7, f"Expected avg error to be near 0, got {avg_err}"
+
+def test_fit_params_insufficient_data():
+    """Test that fit_params fails gracefully if fewer than 3 points are provided."""
+    # Define 2 points (Nx3)
+    measured_pts = np.array([[1, 2, 3], [4, 5, 6]])
+    global_pts = np.array([[2, 3, 4], [5, 6, 7]])
+
+    # Transpose to 3xN (result is 3x2) to match expected input format
+    with pytest.raises(ValueError, match="At least three points are required"):
+        fit_params(measured_pts.T, global_pts.T)

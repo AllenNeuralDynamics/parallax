@@ -14,13 +14,16 @@ Classes:
     StageController: Manages the stage movement, status retrieval, and interaction with
     external systems through HTTP requests.
 """
-import logging
-import requests
+
 import json
-import numpy as np
+import logging
 from typing import Optional
-from PyQt5.QtCore import QObject, QTimer
-from parallax.utils.coords_converter import CoordsConverter
+
+import numpy as np
+import requests
+from PyQt6.QtCore import QObject, QTimer
+
+from parallax.utils.coords_converter import global_to_local
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -55,29 +58,26 @@ class StageController(QObject):
         # Command form are defined in the MPM stage controller software
         self.probeStepMode_command = {
             "PutId": "ProbeStepMode",
-            "Probe": 0,         # Default value, will be updated dynamically
-            "StepMode": 0       # StepMode=0 (for Coarse), =1 (for Fine), =2 (for Insertion)
+            "Probe": 0,  # Default value, will be updated dynamically
+            "StepMode": 0,  # StepMode=0 (for Coarse), =1 (for Fine), =2 (for Insertion)
         }
 
         # Unit: mm
         self.probeMotion_command = {
             "PutId": "ProbeMotion",
-            "Probe": 0,          # Probe=0 (for probe A), =1 (for Probe B), etc. Dynamically Updated.
-            "Absolute": 1,       # Absolute=0 (for relative move), =1 (for absolute target)
-            "Stereotactic": 0,   # Stereotactic=0 (for local [stage] coordinates) =1 (for stereotactic)
-            "AxisMask": 7       # AxisMask=1 (for X), =2 (for Y), =4 (for Z) or any combination (e.g. 7 for XYZ)
+            "Probe": 0,  # Probe=0 (for probe A), =1 (for Probe B), etc. Dynamically Updated.
+            "Absolute": 1,  # Absolute=0 (for relative move), =1 (for absolute target)
+            "Stereotactic": 0,  # Stereotactic=0 (for local [stage] coordinates) =1 (for stereotactic)
+            "AxisMask": 7,  # AxisMask=1 (for X), =2 (for Y), =4 (for Z) or any combination (e.g. 7 for XYZ)
         }
-        self.probeStop_command = {
-            "PutId": "ProbeStop",
-            "Probe": 0           # Default value, will be updated dynamically
-        }
+        self.probeStop_command = {"PutId": "ProbeStop", "Probe": 0}  # Default value, will be updated dynamically
 
         # Unit: µm
         self.insertion_command = {
             "PutId": "ProbeInsertion",
-            "Probe": 0,          # Probe index, will be updated dynamically
-            "Distance": 0,       # Default value, will be updated dynamically (µm)
-            "Rate": 0            # Default value, will be updated dynamically (in µm/minute)
+            "Probe": 0,  # Probe index, will be updated dynamically
+            "Distance": 0,  # Default value, will be updated dynamically (µm)
+            "Rate": 0,  # Default value, will be updated dynamically (in µm/minute)
         }
 
     def request(self, command: dict) -> None:
@@ -164,7 +164,7 @@ class StageController(QObject):
         move_type = command.get("move_type")
         if move_type == "stopAll":
             # Stop the timer if it's active
-            if hasattr(self, 'timer') and self.timer.isActive():
+            if hasattr(self, "timer") and self.timer.isActive():
                 self.timer.stop()
                 logger.info("Timer stopped. Outside SW may be interrupting.")
 
@@ -206,7 +206,9 @@ class StageController(QObject):
         if probe_index is None:
             return
 
-        logger.info(f"Move request received: {stage_sn}-{move_type}", )
+        logger.info(
+            f"Move request received: {stage_sn}-{move_type}",
+        )
         if move_type == "moveXY0":
             if self.timer.isActive():
                 logger.warning("A Z movement is already in progress. Cancelling it for the new request.")
@@ -217,15 +219,11 @@ class StageController(QObject):
             self._update_move_command(probe_index, x=None, y=None, z=15.0)
             self._send_command(self.probeMotion_command)
 
-            self._z_move_context = {
-                "probe_index": probe_index,
-                "target_z": 15.0,
-                "command": command
-            }
+            self._z_move_context = {"probe_index": probe_index, "target_z": 15.0, "command": command}
             self.timer_count = 0
             self.timer.start()
         elif move_type == "moveXYZ":
-            x = command.get("x")    # Unit is mm
+            x = command.get("x")  # Unit is mm
             y = command.get("y")
             z = command.get("z")
             if x is None or y is None or z is None:
@@ -234,20 +232,15 @@ class StageController(QObject):
 
             if command.get("world", None) == "global":
                 # coords_converter unit is um, so convert mm to µm
-                global_pts_um = np.array([x*1000, y*1000, z*1000], dtype=float)
-                local_pts_um = CoordsConverter.global_to_local(self.model, stage_sn, global_pts_um)
+                global_pts_um = np.array([x * 1000, y * 1000, z * 1000], dtype=float)
+                local_pts_um = global_to_local(self.model, stage_sn, global_pts_um)
                 if local_pts_um is None:
                     logger.warning(f"Failed to convert global coordinates to local for stage {stage_sn}.")
                     return
                 # Convert local points from µm to mm for the command
                 command["x"], command["y"], command["z"] = (local_pts_um / 1000).tolist()
 
-            self._update_move_command(
-                                        probe_index,
-                                        x=command["x"],
-                                        y=command["y"],
-                                        z=15.0-command["z"]
-                                    )
+            self._update_move_command(probe_index, x=command["x"], y=command["y"], z=15.0 - command["z"])
             # Move the probe
             self._send_command(self.probeMotion_command)
 
@@ -387,6 +380,6 @@ class StageController(QObject):
         Args:
             command (dict): The command to send as a JSON object.
         """
-        headers = {'Content-Type': 'application/json'}
+        headers = {"Content-Type": "application/json"}
         requests.put(self.model.stage_listener_url, data=json.dumps(command), headers=headers)
         logger.info(f"Command sent: {json.dumps(command, indent=2)}")

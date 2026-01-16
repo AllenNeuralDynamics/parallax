@@ -4,7 +4,7 @@ including the main window, UI elements,
 camera and stage management, and recording functionality.
 
 Modules imported:
-- PyQt5 modules for building the graphical user interface.
+- PyQt6 modules for building the graphical user interface.
 - Other libraries and modules necessary for the application's functionality.
 
 Classes:
@@ -15,27 +15,27 @@ import logging
 import os
 import webbrowser
 
-from PyQt5.QtCore import QStandardPaths
-from PyQt5.QtGui import QFont, QFontDatabase
-# Import required PyQt5 modules and other libraries
-from PyQt5.QtWidgets import (QApplication, QFileDialog,
-                             QMainWindow, QSplitter, QMessageBox)
-from PyQt5.uic import loadUi
+from PyQt6.QtCore import QStandardPaths
+from PyQt6.QtGui import QFont, QFontDatabase
 
-from parallax.handlers.recording_manager import RecordingManager
-from parallax.control_panel.control_panel import ControlPanel
+# Import required PyQt6 modules and other libraries
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QSplitter
+from PyQt6.uic import loadUi
+
+from parallax.config.config_path import fira_font_dir, ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
+from parallax.control_panel.control_panel import ControlPanel
+from parallax.handlers.point_mesh import PointMesh
+from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
-from parallax.config.config_path import ui_dir, fira_font_dir
-from ui.resources import rc
-
+from ui.resources import rc  # noqa
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt5.uic.uiparser/properties
-logging.getLogger("PyQt5.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt5.uic.properties").setLevel(logging.WARNING)
+# Set the logging level for PyQt6.uic.uiparser/properties
+logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
+logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
 
 
 # Main application window
@@ -60,9 +60,7 @@ class MainWindow(QMainWindow):
 
         # Update camera information
         self.refresh_cameras()
-        logger.debug(
-            f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}"
-        )
+        logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
 
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
@@ -72,9 +70,11 @@ class MainWindow(QMainWindow):
         self._set_font()
 
         # Load existing user preferences
-        _, self.dir, width, height = (UserSettingsManager.load_mainWindow_settings())
+        _, self.dir, width, height = UserSettingsManager.load_mainWindow_settings()
         if width is not None and height is not None:
             self.resize(width, height)
+        if self.dir is None or not os.path.exists(self.dir):
+            self.dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
 
         # Attach directory selection event handler for saving files
         self.actionDir.triggered.connect(self.dir_setting_handler)
@@ -83,46 +83,38 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
-        self.control_panel = ControlPanel(self.model,
-                                          self.screen_widget_manager.screen_widgets,
-                                          self.actionServer,
-                                          self.actionSaveInfo,
-                                          self.actionTrajectory,
-                                          self.actionCalculator,
-                                          self.actionTriangulate,
-                                          self.actionReticlesMetadata
-                                        )
+        self.control_panel = ControlPanel(
+            self.model,
+            self.screen_widget_manager.screen_widgets,
+            self.actionServer,
+            self.actionSaveInfo,
+            self.actionTrajectory,
+            self.actionCalculator,
+            self.actionTriangulate,
+            self.actionReticlesMetadata,
+        )
 
         # Add to splitter
         splitter = QSplitter()
-        #splitter.addWidget(scroll_area)
+        # splitter.addWidget(scroll_area)
         splitter.addWidget(self.control_panel)
         self.verticalLayout.addWidget(splitter)
 
         # Streaming button. If toggled, start camera acquisition
         self.actionStreaming.triggered.connect(self.start_button_handler)
 
-        # Fetch the default documents directory path
-        self.dir = QStandardPaths.writableLocation(QStandardPaths.DocumentsLocation)
-
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
         self.actionSnapshot.triggered.connect(
-            lambda: self.recordingManager.save_last_image(
-                self.dir, self.screen_widget_manager.screen_widgets
-            )
+            lambda: self.recordingManager.save_last_image(self.dir, self.screen_widget_manager.screen_widgets)
         )
-        self.actionRecording.triggered.connect(
-            self.record_button_handler
-        )  # Recording video button
+        self.actionRecording.triggered.connect(self.record_button_handler)  # Recording video button
 
         # Toggle start button on init
         self.start_button_handler()
 
         # actionDocumentation
-        self.actionDocumentation.triggered.connect(
-            lambda: webbrowser.open("https://parallax.readthedocs.io/")
-        )
+        self.actionDocumentation.triggered.connect(lambda: webbrowser.open("https://parallax.readthedocs.io/"))
 
         self.actionContactSupport.triggered.connect(
             lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
@@ -135,16 +127,16 @@ class MainWindow(QMainWindow):
         Returns:
             bool: True if the user confirms the restore, False otherwise.
         """
-        message = ("Restore previous session?")
+        message = "Restore previous session?"
         response = QMessageBox.warning(
             self,
             "Session Restore",
             message,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,  # default
         )
 
-        if response == QMessageBox.Yes:
+        if response == QMessageBox.StandardButton.Yes:
             logger.debug("User clicked Yes.")
             return True
         else:
@@ -162,6 +154,8 @@ class MainWindow(QMainWindow):
             self.model.load_stage_config()
             self.control_panel.reticle_handler.apply_reticle_detection_status()
             self.control_panel.probe_calib_handler.apply_probe_calibration_status()
+            print(" Restored session info to cameras:", list(self.model.cameras.keys()))
+            print(" Restored session info to stages:", list(self.model.stages.keys()))
         else:
             # Clear yaml file
             self.model.clear_session_config()
@@ -238,10 +232,15 @@ class MainWindow(QMainWindow):
         This is a crucial function for users who need to save data or configurations, as it provides a
         simple and intuitive way to specify the location where files should be saved.
         """
+        # Open a dialog and capture the result in a temporary variable
+        new_dir = QFileDialog.getExistingDirectory(self, "Select Directory", self.dir)
 
-        # Open a dialog to allow the user to select a directory
-        self.dir =  QFileDialog.getExistingDirectory(self, "Select Directory", self.dir)
-        print("Selected directory:", self.dir)
+        # Only update self.dir if new_dir is not empty (i.e., user didn't cancel)
+        if new_dir:
+            self.dir = new_dir
+            print("Selected directory:", self.dir)
+        else:
+            print("Selection canceled. Keeping previous:", self.dir)
 
     def save_user_configs(self):
         """
@@ -266,8 +265,8 @@ class MainWindow(QMainWindow):
         Args:
             event (QCloseEvent): The close event triggered when the widget is closed.
         """
-        self.model.close_all_point_meshes()
         self.model.close_clac_instance()
         self.model.close_reticle_metadata_instance()
         self.model.close_stage_ipconfig_instance()
+        PointMesh.close_all()
         event.accept()
