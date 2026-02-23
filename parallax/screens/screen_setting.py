@@ -187,18 +187,7 @@ class ScreenSetting(QWidget):
             microscopeGrp.setObjectName(customName)
 
     def _setup_sn(self):
-        """Setup the serial number (S/N) settings in the settings menu."""
-        # S/N
-        # Add the list of cameras (serial number) in ComboBox
-        for sn in self.model.cameras.keys():
-            self.settingMenu.snComboBox.addItem(sn)
-
-        # Select the sn for the current screen
-        index = self.settingMenu.snComboBox.findText(self.sn)
-        if index >= 0:
-            self.settingMenu.snComboBox.setCurrentIndex(index)
-        else:
-            logger.error("SN not found in the list")
+        self.settingMenu.snLabel.setText(self.sn)
 
     def _get_setting_menu(self, parent):
         """Initialize the settings menu UI from the .ui file."""

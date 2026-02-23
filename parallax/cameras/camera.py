@@ -112,6 +112,7 @@ class PySpinCamera(BaseCamera):
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
+        self.last_capture_time = time.time()
         self.last_image = None
 
         self.video_output = None
