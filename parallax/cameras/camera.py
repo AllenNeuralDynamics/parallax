@@ -15,7 +15,7 @@ from parallax.cameras.camera_base_binding import BaseCamera
 # Initialize the logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-supported_camera_models = ["BFS-U3-120S4C", "BFS-U3-04S2M"]
+supported_camera_models = ["Blackfly S BFS-U3-120S4C", "Blackfly S BFS-U3-04S2M"]  # TODO move to config
 
 # Check for the availability of the PySpin library
 try:
@@ -78,7 +78,8 @@ class PySpinCamera(BaseCamera):
         for i in range(ncameras):
             camera_pyspin = cls.pyspin_cameras.GetByIndex(i)
             camera = PySpinCamera(camera_pyspin)
-            if camera is not None:
+            print("camera.device_model: ", camera.device_model)
+            if camera is not None and camera.device_model in supported_camera_models:
                 cls.cameras.append(camera)
             else:
                 camera.stop(clean=True)
