@@ -125,7 +125,7 @@ class ScreenSetting(QWidget):
         """Setup white balance settings in the settings menu."""
         # W/B
         settingLayout = self.settingMenu.layout()
-        settingLayout.addWidget(self.settingMenu.wbAuto, 5, 1, 2, 1)
+        settingLayout.addWidget(self.settingMenu.wbAuto, 10, 1, 2, 1)
 
     def _color_channel(self):
         """Setup color channel settings in the settings menu."""

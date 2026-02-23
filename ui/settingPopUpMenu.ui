@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>285</width>
-    <height>200</height>
+    <width>264</width>
+    <height>210</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -36,7 +36,7 @@ font: 8pt;
    <property name="verticalSpacing">
     <number>1</number>
    </property>
-   <item row="4" column="3">
+   <item row="6" column="4">
     <widget class="QLabel" name="expNum">
      <property name="text">
       <string>16</string>
@@ -46,7 +46,7 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="5" column="2">
+   <item row="8" column="3">
     <widget class="QSlider" name="gainSlider">
      <property name="maximum">
       <number>27</number>
@@ -56,6 +56,19 @@ font: 8pt;
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <widget class="QPushButton" name="frAuto">
+     <property name="maximumSize">
+      <size>
+       <width>15</width>
+       <height>15</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>♦</string>
      </property>
     </widget>
    </item>
@@ -72,7 +85,7 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="6" column="2">
+   <item row="10" column="3">
     <widget class="QSlider" name="wbSliderRed">
      <property name="minimum">
       <number>25</number>
@@ -91,7 +104,7 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="6" column="0">
+   <item row="10" column="0">
     <widget class="QLabel" name="wbLabelRed">
      <property name="maximumSize">
       <size>
@@ -140,7 +153,29 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="7" column="0">
+   <item row="6" column="3">
+    <widget class="QSlider" name="expSlider">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>250</number>
+     </property>
+     <property name="value">
+      <number>16</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="11" column="0">
     <widget class="QLabel" name="wbLabelBlue">
      <property name="maximumSize">
       <size>
@@ -153,34 +188,21 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="5" column="1">
-    <widget class="QPushButton" name="gainAuto">
-     <property name="maximumSize">
-      <size>
-       <width>15</width>
-       <height>15</height>
-      </size>
-     </property>
-     <property name="text">
-      <string>♦</string>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="3">
+   <item row="10" column="4">
     <widget class="QLabel" name="wbNumRed">
      <property name="text">
       <string>1.2</string>
      </property>
     </widget>
    </item>
-   <item row="7" column="3">
+   <item row="11" column="4">
     <widget class="QLabel" name="wbNumBlue">
      <property name="text">
       <string>2.8</string>
      </property>
     </widget>
    </item>
-   <item row="0" column="1" colspan="3">
+   <item row="0" column="1" colspan="4">
     <widget class="QLineEdit" name="customName">
      <property name="minimumSize">
       <size>
@@ -200,27 +222,21 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="8" column="1">
-    <widget class="QPushButton" name="gammaAuto">
-     <property name="maximumSize">
-      <size>
-       <width>15</width>
-       <height>15</height>
-      </size>
-     </property>
-     <property name="text">
-      <string>♦</string>
-     </property>
-    </widget>
-   </item>
-   <item row="8" column="3">
+   <item row="12" column="4">
     <widget class="QLabel" name="gammaNum">
      <property name="text">
       <string>1.0</string>
      </property>
     </widget>
    </item>
-   <item row="7" column="2">
+   <item row="5" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Frame Rate:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="11" column="3">
     <widget class="QSlider" name="wbSliderBlue">
      <property name="minimum">
       <number>25</number>
@@ -236,20 +252,7 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="4" column="1">
-    <widget class="QPushButton" name="expAuto">
-     <property name="maximumSize">
-      <size>
-       <width>15</width>
-       <height>15</height>
-      </size>
-     </property>
-     <property name="text">
-      <string>♦</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0">
+   <item row="6" column="0">
     <widget class="QLabel" name="expLabel">
      <property name="maximumSize">
       <size>
@@ -262,7 +265,7 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="5" column="0">
+   <item row="8" column="0">
     <widget class="QLabel" name="gainLabel">
      <property name="maximumSize">
       <size>
@@ -275,7 +278,7 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="8" column="2">
+   <item row="12" column="3">
     <widget class="QSlider" name="gammaSlider">
      <property name="minimum">
       <number>30</number>
@@ -297,7 +300,20 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="8" column="0">
+   <item row="6" column="1">
+    <widget class="QPushButton" name="expAuto">
+     <property name="maximumSize">
+      <size>
+       <width>15</width>
+       <height>15</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>♦</string>
+     </property>
+    </widget>
+   </item>
+   <item row="12" column="0">
     <widget class="QLabel" name="gammaLabel">
      <property name="maximumSize">
       <size>
@@ -307,6 +323,13 @@ font: 8pt;
      </property>
      <property name="text">
       <string>Gamma:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="3">
+    <widget class="QSlider" name="frSlider">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
     </widget>
    </item>
@@ -333,8 +356,32 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="6" column="1">
-    <widget class="QPushButton" name="wbAuto">
+   <item row="8" column="4">
+    <widget class="QLabel" name="gainNum">
+     <property name="text">
+      <string>25</string>
+     </property>
+     <property name="textFormat">
+      <enum>Qt::PlainText</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1" colspan="4">
+    <widget class="QLabel" name="snLabel">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="4">
+    <widget class="QLabel" name="frNum">
+     <property name="text">
+      <string>10</string>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="1">
+    <widget class="QPushButton" name="gainAuto">
      <property name="maximumSize">
       <size>
        <width>15</width>
@@ -346,42 +393,29 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="4" column="2">
-    <widget class="QSlider" name="expSlider">
-     <property name="minimumSize">
+   <item row="12" column="1">
+    <widget class="QPushButton" name="gammaAuto">
+     <property name="maximumSize">
       <size>
-       <width>0</width>
-       <height>0</height>
+       <width>15</width>
+       <height>15</height>
       </size>
      </property>
-     <property name="minimum">
-      <number>1</number>
-     </property>
-     <property name="maximum">
-      <number>250</number>
-     </property>
-     <property name="value">
-      <number>16</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+     <property name="text">
+      <string>♦</string>
      </property>
     </widget>
    </item>
-   <item row="5" column="3">
-    <widget class="QLabel" name="gainNum">
-     <property name="text">
-      <string>25</string>
+   <item row="11" column="1">
+    <widget class="QPushButton" name="wbAuto">
+     <property name="maximumSize">
+      <size>
+       <width>15</width>
+       <height>15</height>
+      </size>
      </property>
-     <property name="textFormat">
-      <enum>Qt::PlainText</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1" colspan="3">
-    <widget class="QLabel" name="snLabel">
      <property name="text">
-      <string/>
+      <string>♦</string>
      </property>
     </widget>
    </item>
