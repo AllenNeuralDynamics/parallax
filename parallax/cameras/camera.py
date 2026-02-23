@@ -78,7 +78,6 @@ class PySpinCamera(BaseCamera):
         for i in range(ncameras):
             camera_pyspin = cls.pyspin_cameras.GetByIndex(i)
             camera = PySpinCamera(camera_pyspin)
-            print("camera.device_model: ", camera.device_model)
             if camera is not None and camera.device_model in supported_camera_models:
                 cls.cameras.append(camera)
             else:
