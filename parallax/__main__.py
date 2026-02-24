@@ -1,3 +1,4 @@
+# parallax/__main__.py
 """
 Parallax: A GUI application for controlling hardware devices.
 """

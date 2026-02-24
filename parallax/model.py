@@ -1,3 +1,4 @@
+# parallax/model.py
 """
 The Model class is the core component for managing cameras, stages, and calibration data.
 It provides methods for scanning and initializing cameras and stages, managing calibration data.
@@ -8,10 +9,7 @@ their initialization, configuration, and transformations between local and globa
 
 from collections import OrderedDict
 from typing import Optional
-
 import numpy as np
-from PyQt6.QtCore import QObject
-
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
@@ -19,7 +17,7 @@ from parallax.control_panel.probe_calibration_handler import StageCalibrationInf
 from parallax.stages.stage_listener import Stage, StageInfo
 
 
-class Model(QObject):
+class Model:
     """Model class to handle cameras, stages, and calibration data."""
 
     def __init__(self, args=None, version="V2"):
@@ -29,7 +27,6 @@ class Model(QObject):
             version (str): The version of the model, typically used for camera setup.
             bundle_adjustment (bool): Whether to enable bundle adjustment for calibration.
         """
-        QObject.__init__(self)
         # args from command line
         self.version = version
         self.dummy = getattr(args, "dummy", False)
