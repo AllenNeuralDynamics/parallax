@@ -129,19 +129,19 @@ class ScreenWidget(pg.GraphicsView):
             self._set_data(placeholder_data)
 
     def _generate_stopped_message_image(self):
-        img = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        h = self.height if self.height is not None else 1080
+        w = self.width if self.width is not None else 1920
+        img = np.zeros((h, w, 3), dtype=np.uint8)
 
         message = "Camera not running. Check the connection."
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 3
-        thickness = 5
+        font_scale = 1.5  # Reduced scale slightly to ensure it fits common screens
+        thickness = 3
 
-        # Get text size to center it
-        (text_width, text_height), _ = cv2.getTextSize(message, font, font_scale, thickness)
-        x = (self.width - text_width) // 2
-        y = (self.height + text_height) // 2
-
-        cv2.putText(img, message, (x, y), font, font_scale, (255, 0, 0), thickness)
+        (text_width, text_height), baseline = cv2.getTextSize(message, font, font_scale, thickness)
+        x = max(0, (w - text_width) // 2)
+        y = max(0, (h + text_height) // 2)
+        cv2.putText(img, message, (x, y), font, font_scale, (0, 0, 255), thickness)
 
         return img
 
@@ -256,6 +256,8 @@ class ScreenWidget(pg.GraphicsView):
                 self.camera.set_wb("Red", val)
             elif setting == "wbBlue":
                 self.camera.set_wb("Blue", val)
+            elif setting == "fps":
+                self.camera.set_frame_rate(val)
 
     def get_camera_setting(self, setting):
         """Get the specified camera setting value.
@@ -279,6 +281,8 @@ class ScreenWidget(pg.GraphicsView):
                 val = self.camera.get_wb("Red")
             elif setting == "wbBlue":
                 val = self.camera.get_wb("Blue")
+            elif setting == "fps":
+                val = self.camera.get_frame_rate()
             print("setting:", setting, "val:", val)
         return val
 

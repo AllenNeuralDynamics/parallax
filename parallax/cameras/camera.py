@@ -139,6 +139,15 @@ class PySpinCamera(BaseCamera):
             return None
         print(self.device_model, self.device_color_type, self.name(sn_only=True))
 
+        try:
+            self._init_camera_settings()  # TODO Move to JSON
+            self.camera_info()
+        except Exception as e:
+            print(f"Error initializing camera settings: {e}")
+
+    def _init_camera_settings(self):
+        """Initialize camera settings, including buffer handling mode, white balance, exposure, gain, gamma, and pixel format.
+        """
         # set BufferHandlingMode to NewestOnly (necessary to update the image)
         s_nodemap = self.camera.GetTLStreamNodeMap()
         node_bufferhandling_mode = PySpin.CEnumerationPtr(s_nodemap.GetNode("StreamBufferHandlingMode"))
@@ -177,8 +186,23 @@ class PySpinCamera(BaseCamera):
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
         self.node_gamma.SetValue(0.8)
 
+        # set frame rate
+        self.node_framerate_enable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("AcquisitionFrameRateEnable"))
+        self.node_framerate_enable_mode.SetValue(True)  # Default: frame rate enable off
+        self.node_resulting_fps = PySpin.CFloatPtr(self.node_map.GetNode("AcquisitionResultingFrameRate"))
+        print("Current Frame Rate: ", self.node_resulting_fps.GetValue())
+        self.node_framerate = PySpin.CFloatPtr(self.node_map.GetNode("AcquisitionFrameRate"))
+        if PySpin.IsWritable(self.node_framerate):
+            self.node_framerate.SetValue(30.0)  # Default: Set frame rate to 30 fps
+
+        # Read current value to make sure the camera is updated with the new settings
+
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
+        current_entry = node_pixelformat.GetCurrentEntry()
+        current_format_str = current_entry.GetName() if current_entry else ""
+        print(f"Current Pixel Format: {current_format_str}")  # EnumEntry_PixelFormat_BayerRG8
+
         self.pixelformat = None
         if self.device_color_type == "Mono":
             self.pixelformat = "Mono"
@@ -188,8 +212,6 @@ class PySpinCamera(BaseCamera):
             self.pixelformat = "BayerRG8"
             entry_pixelformat_bayerRG8 = node_pixelformat.GetEntryByName("BayerRG8")
             node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
-
-        self.camera_info()
 
     def set_wb(self, channel, wb=1.2):
         """
@@ -240,6 +262,41 @@ class PySpinCamera(BaseCamera):
             self.node_gamma.SetValue(gamma)
         except Exception as e:
             logger.error(f"An error occurred while setting the gamma: {e}")
+
+    def set_frame_rate(self, fps: float):
+            """
+            Sets the target acquisition frame rate in Hertz.
+            """
+            try:
+                if PySpin.IsWritable(self.node_framerate_enable_mode):
+                    if not self.node_framerate_enable_mode.GetValue():
+                        self.node_framerate_enable_mode.SetValue(True)
+
+                # Set the target value
+                if PySpin.IsWritable(self.node_framerate):
+
+                    # Only write if the change is significant (>= 1)
+                    if abs(self.node_framerate.GetValue() - fps) >= 1:
+                        self.node_framerate.SetValue(fps)
+                        logger.info(f"Target FPS updated to {fps:.2f}")
+                else:
+                    logger.warning("AcquisitionFrameRate node is not writable.")
+
+            except Exception as e:
+                logger.error(f"Error setting frame rate: {e}")
+
+    def get_frame_rate(self) -> float:
+        """
+        Returns the actual resulting frame rate from the hardware.
+        """
+        try:
+            if PySpin.IsReadable(self.node_resulting_fps):
+                return self.node_resulting_fps.GetValue()
+        except Exception as e:
+            logger.error(f"Could not read resulting frame rate: {e}")
+        
+        # Fallback to the target value or a default
+        return 0.0
 
     def disable_gamma(self):
         """

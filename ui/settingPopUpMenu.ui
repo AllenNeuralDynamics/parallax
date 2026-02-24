@@ -60,7 +60,7 @@ font: 8pt;
     </widget>
    </item>
    <item row="5" column="1">
-    <widget class="QPushButton" name="frAuto">
+    <widget class="QPushButton" name="fpsAuto">
      <property name="maximumSize">
       <size>
        <width>15</width>
@@ -153,28 +153,6 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="6" column="3">
-    <widget class="QSlider" name="expSlider">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
-     <property name="minimum">
-      <number>1</number>
-     </property>
-     <property name="maximum">
-      <number>250</number>
-     </property>
-     <property name="value">
-      <number>16</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
    <item row="11" column="0">
     <widget class="QLabel" name="wbLabelBlue">
      <property name="maximumSize">
@@ -232,7 +210,7 @@ font: 8pt;
    <item row="5" column="0">
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Frame Rate:</string>
+      <string>FPS:</string>
      </property>
     </widget>
    </item>
@@ -261,7 +239,7 @@ font: 8pt;
       </size>
      </property>
      <property name="text">
-      <string>Exposure:</string>
+      <string>Exposure (ms):</string>
      </property>
     </widget>
    </item>
@@ -327,7 +305,13 @@ font: 8pt;
     </widget>
    </item>
    <item row="5" column="3">
-    <widget class="QSlider" name="frSlider">
+    <widget class="QSlider" name="fpsSlider">
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>30</number>
+     </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -356,6 +340,19 @@ font: 8pt;
      </property>
     </widget>
    </item>
+   <item row="11" column="1">
+    <widget class="QPushButton" name="wbAuto">
+     <property name="maximumSize">
+      <size>
+       <width>15</width>
+       <height>15</height>
+      </size>
+     </property>
+     <property name="text">
+      <string>♦</string>
+     </property>
+    </widget>
+   </item>
    <item row="8" column="4">
     <widget class="QLabel" name="gainNum">
      <property name="text">
@@ -374,9 +371,9 @@ font: 8pt;
     </widget>
    </item>
    <item row="5" column="4">
-    <widget class="QLabel" name="frNum">
+    <widget class="QLabel" name="fpsNum">
      <property name="text">
-      <string>10</string>
+      <string>1</string>
      </property>
     </widget>
    </item>
@@ -406,16 +403,25 @@ font: 8pt;
      </property>
     </widget>
    </item>
-   <item row="11" column="1">
-    <widget class="QPushButton" name="wbAuto">
-     <property name="maximumSize">
+   <item row="6" column="3">
+    <widget class="QSlider" name="expSlider">
+     <property name="minimumSize">
       <size>
-       <width>15</width>
-       <height>15</height>
+       <width>0</width>
+       <height>0</height>
       </size>
      </property>
-     <property name="text">
-      <string>♦</string>
+     <property name="minimum">
+      <number>1</number>
+     </property>
+     <property name="maximum">
+      <number>250</number>
+     </property>
+     <property name="value">
+      <number>16</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
     </widget>
    </item>

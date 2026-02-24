@@ -39,13 +39,22 @@ class ScreenSetting(QWidget):
 
     def _setup_settingMenu(self):
         """Setup the settings menu with all necessary controls."""
-        self._setup_sn()
-        self._custom_name()
-        self._exposure()
-        self._gain()
-        self._gamma()
-        self._white_balance()
-        self._color_channel()
+        try:
+            # Grouping these together as they are critical for UI population
+            self._setup_sn()
+            self._custom_name()
+            self._framerate()
+            self._exposure()
+            self._gain()
+            self._gamma()
+            self._white_balance()
+            self._color_channel()
+            
+        except AttributeError as e:
+            logger.error(f"UI setup failed: Camera missing expected attribute. {e}")
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during settings menu setup: {e}")
+            # Optionally: show a message box to the user here since it's a UI element
 
     def _show_settings_menu(self, is_checked):
         """Show or hide the settings menu based on the button toggle state."""
@@ -62,12 +71,104 @@ class ScreenSetting(QWidget):
             self.settings_refresh_timer.stop()
             self.settingMenu.hide()
 
+    def _frameratea(self):
+        """Setup framerate settings in the settings menu with dynamic updates."""
+        def on_fps_changed():
+            target_val = self.settingMenu.fpsSlider.value()
+            self.screen.set_camera_setting(setting="fps", val=target_val)
+            actual_fps = self.screen.get_camera_setting(setting="fps")
+            if actual_fps is not None:
+                self.settingMenu.fpsNum.setNum(int(actual_fps))
+                UserSettingsManager.update_user_configs_settingMenu(
+                    self.parent, "fps", actual_fps
+                )
+                if actual_fps < (target_val - 0.5):
+                    self.settingMenu.fpsNum.setStyleSheet("color: red;")
+                else:
+                    self.settingMenu.fpsNum.setStyleSheet("color: white;")
+
+        # Connect the slider to the update function
+        self.settingMenu.fpsSlider.valueChanged.connect(on_fps_changed)
+
+        # Initial UI sync when menu opens
+        current_fps = self.screen.get_camera_setting(setting="fps")
+        if current_fps is not None:
+            self.settingMenu.fpsSlider.setValue(int(current_fps))
+            self.settingMenu.fpsNum.setNum(int(current_fps))
+
+    def _framerate(self):
+        """Setup framerate settings with a delay-aware sync."""
+        def on_slider_moving():
+            """Fast feedback: Update the number label immediately while sliding."""
+            self.settingMenu.fpsNum.setNum(self.settingMenu.fpsSlider.value())
+            # Keep it black/white while sliding to avoid flickering
+            self.settingMenu.fpsNum.setStyleSheet("color: white;")
+
+        def on_sync_with_hardware():
+            """Slow feedback: Only sync with camera once the user lets go."""
+            target_val = self.settingMenu.fpsSlider.value()
+            
+            # 1. Update hardware
+            self.screen.set_camera_setting(setting="fps", val=target_val)
+            
+            # 2. Get the ACTUAL resulting FPS from the camera
+            actual_fps = self.screen.get_camera_setting(setting="fps")
+            
+            if actual_fps is not None:
+                self.settingMenu.fpsNum.setNum(int(actual_fps))
+                
+                # Update configs
+                UserSettingsManager.update_user_configs_settingMenu(
+                    self.parent, "fps", actual_fps
+                )
+                
+                # Check for REAL bottlenecking (Resulting FPS vs Requested)
+                if actual_fps < (target_val - 0.5):
+                    self.settingMenu.fpsNum.setStyleSheet("color: red;")
+                else:
+                    self.settingMenu.fpsNum.setStyleSheet("color: white;")
+
+        # Connect signals
+        # Update number label in real-time for 'feel'
+        self.settingMenu.fpsSlider.valueChanged.connect(on_slider_moving)
+        
+        # Sync with hardware only when sliding stops to handle hardware delay
+        self.settingMenu.fpsSlider.sliderReleased.connect(on_sync_with_hardware)
+
+        # Initial UI sync
+        current_fps = self.screen.get_camera_setting(setting="fps")
+        if current_fps is not None:
+            self.settingMenu.fpsSlider.setValue(int(current_fps))
+            self.settingMenu.fpsNum.setNum(int(current_fps))
+
+        self.settingMenu.fpsAuto.clicked.connect(
+            lambda: self.settingMenu.fpsSlider.setEnabled(not self.settingMenu.fpsSlider.isEnabled())
+        )
+        self.settingMenu.fpsAuto.clicked.connect(
+            lambda: UserSettingsManager.update_user_configs_settingMenu(
+                self.parent, "fpsAuto", self.settingMenu.fpsSlider.isEnabled()
+            )
+        )
+
     def _exposure(self):
         """Setup exposure settings in the settings menu."""
+        def on_exposure_changed():
+            # Get the ACTUAL resulting FPS from the camera
+            actual_fps = self.screen.get_camera_setting(setting="fps")
+            if actual_fps is not None:
+                # Update the numeric label with the hardware reality
+                self.settingMenu.fpsNum.setNum(int(actual_fps))
+                # Update persistent user configs
+                UserSettingsManager.update_user_configs_settingMenu(
+                    self.parent, "fps", actual_fps
+                )
+                self.settingMenu.fpsNum.setStyleSheet("color: white;")
+
         # Exposure
         self.settingMenu.expSlider.valueChanged.connect(
             lambda: self.screen.set_camera_setting(setting="exposure", val=self.settingMenu.expSlider.value() * 1000)
         )
+        self.settingMenu.expSlider.valueChanged.connect(on_exposure_changed)
         self.settingMenu.expSlider.valueChanged.connect(
             lambda: self.settingMenu.expNum.setNum(self.settingMenu.expSlider.value())
         )
@@ -165,7 +266,7 @@ class ScreenSetting(QWidget):
         """Setup custom name settings in the settings menu."""
         # Custom name
         customName = UserSettingsManager.load_settings_item(self.sn, "customName")
-        customName = customName if customName else self.parent.objectName()
+        customName = customName if customName else self.parent.objectName()  # Same as S/N by default
         self.settingMenu.customName.setText(customName)
         self._update_groupbox_name(self.parent, customName)
 
