@@ -28,11 +28,20 @@ if __name__ == "__main__":
     # Set up logging
     setup_logging()
 
+    # Load configuration
+    config = ConfigManager()
+    if not config.is_valid:
+        print("\n" + "="*50)
+        print("CRITICAL ERROR: Configuration Validation Failed!")
+        print(f"Please check your settings at: {config.path}")
+        print("The application will not launch until these errors are fixed.")
+        print("="*50 + "\n")
+        sys.exit(1)  # Exit with error code
+
     # Initialize the Qt application
     app = QApplication(sys.argv)
 
     # Initialize the model and main window
-    config = ConfigManager()
     model = Model(args, config=config)
     main_window = MainWindow(model)
     main_window.show()
