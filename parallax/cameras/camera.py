@@ -170,6 +170,7 @@ class PySpinCamera(BaseCamera):
         self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
         self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
         self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
+        self.node_expauto_mode_once = self.node_expauto_mode.GetEntryByName("Once")
         self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())  # Default: Auto mode on
         self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
 
@@ -177,6 +178,7 @@ class PySpinCamera(BaseCamera):
         self.node_gainauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("GainAuto"))
         self.node_gainauto_mode_off = self.node_gainauto_mode.GetEntryByName("Off")
         self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName("Continuous")
+        self.node_gainauto_mode_once = self.node_gainauto_mode.GetEntryByName("Once")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
         self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())  # Default: Auto mode on
 
@@ -317,6 +319,23 @@ class PySpinCamera(BaseCamera):
         except Exception as e:
             logger.error(f"An error occurred while setting the gain: {e}")
 
+    def set_gain_auto(self, mode):
+        """
+        Sets the gain of the camera to auto mode based on the camera's current setting.
+
+        Args:
+        - mode (str): The auto mode to set for gain (e.g., "Once", "Off", "Continuous").
+        """
+        try:
+            if mode == "Once":
+                self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_once.GetValue())
+            elif mode == "Off":
+                self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_off.GetValue())
+            elif mode == "Continuous":
+                self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())
+        except Exception as e:
+            logger.error(f"An error occurred while setting the gain auto mode: {e}")
+
     def get_gain(self):
         """
         Get the gain of the camera for the auto mode.
@@ -339,10 +358,28 @@ class PySpinCamera(BaseCamera):
         - expTime (int): The desired exposure time in microseconds.
         """
         try:
+            # TODO 
             self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())  # Return back to manual mode
             self.node_exptime.SetValue(expTime)
         except Exception as e:
             logger.error(f"An error occurred while setting the exposure: {e}")
+
+    def set_exposure_auto(self, mode):
+        """
+        Sets the exposure time of the camera to auto mode based on the camera's current setting.
+
+        Args:
+        - mode (str): The auto mode to set for exposure (e.g., "Once", "Off", "Continuous").
+        """
+        try:
+            if mode == "Once":
+                self.node_expauto_mode.SetIntValue(self.node_expauto_mode_once.GetValue())
+            elif mode == "Off":
+                self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())
+            elif mode == "Continuous":
+                self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())
+        except Exception as e:
+            logger.error(f"An error occurred while setting the exposure auto mode: {e}")
 
     def get_exposure(self):
         """
