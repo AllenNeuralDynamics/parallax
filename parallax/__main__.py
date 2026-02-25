@@ -7,11 +7,10 @@ import atexit
 import sys
 
 from PyQt6.QtWidgets import QApplication
-
 from . import __version__
 from .config.cli import parse_args, print_arg_info
 from .config.config_path import PARALLAX_ASCII, setup_logging
-from .config.config_manager import ConfigManager
+from .config.user_setting_manager import UserSettingsManager
 from .main_window import MainWindow
 from .model import Model
 
@@ -29,14 +28,7 @@ if __name__ == "__main__":
     setup_logging()
 
     # Load configuration
-    config = ConfigManager()
-    if not config.is_valid:
-        print("\n" + "="*50)
-        print("CRITICAL ERROR: Configuration Validation Failed!")
-        print(f"Please check your settings at: {config.path}")
-        print("The application will not launch until these errors are fixed.")
-        print("="*50 + "\n")
-        sys.exit(1)  # Exit with error code
+    config = UserSettingsManager.load_and_validate()
 
     # Initialize the Qt application
     app = QApplication(sys.argv)

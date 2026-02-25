@@ -1,3 +1,4 @@
+# parallax/config/user_setting_manager.py
 """
 Manages user settings for a PyQt6-based application.
 
@@ -15,152 +16,101 @@ import json
 import logging
 import os
 from dataclasses import asdict, is_dataclass
+import sys
 
 import numpy as np
 import yaml
 
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.config_path import session_file, settings_file
+from parallax.config.schemas import AppSchema
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-
 class UserSettingsManager:
-    "UserSettingsManager class"
-
+    """
+    Manages user settings with strict Pydantic validation.
+    Unified source for Camera and GUI configurations.
+    """
     settings_file = settings_file
 
     @classmethod
-    def load_settings(cls):
+    def load_and_validate(cls) -> AppSchema:
         """
-        Load user settings from a JSON file specified by settings_file.
+        The 'Gatekeeper' method for __main__.py.
+        Loads YAML and performs strict validation.
+        Exits the app if validation fails.
+        """
+        if not os.path.exists(cls.settings_file):
+            logger.warning(f"Config missing at {cls.settings_file}. Generating defaults.")
+            # Return a default schema if file doesn't exist yet
+            return AppSchema(cameras={})
 
-        Returns:
-            dict: A dictionary containing the loaded settings. Returns an empty
-            dictionary if the settings file does not exist or cannot be read.
-        """
-        if os.path.exists(cls.settings_file):
+        try:
             with open(cls.settings_file, "r") as file:
-                return json.load(file)
-        return {}
+                data = yaml.safe_load(file) or {}
+            
+            # --- The Validation Step ---
+            validated_settings = AppSchema(**data)
+            return validated_settings
+
+        except Exception as e:
+            # Failure printout for the terminal
+            print("\n" + "!"*60)
+            print("CRITICAL CONFIGURATION ERROR")
+            print(f"File: {cls.settings_file}")
+            print(f"Error: {e}")
+            print("!"*60 + "\n")
+
+            logger.critical(f"App launch aborted due to config error: {e}")
+            sys.exit(1) # Stop the app launch immediately
 
     @classmethod
-    def save_settings(cls, settings):
-        """
-        Save the given settings dictionary to the settings JSON file.
-
-        Parameters:
-            settings (dict): The settings dictionary to save.
-        """
-        with open(cls.settings_file, "w") as file:
-            json.dump(settings, file, indent=4)
-
-    @classmethod
-    def save_user_configs(cls, nColumn, directory, width, height):
-        """
-        Save user configurations to the settings JSON file.
-
-        Parameters:
-            nColumn (int): The number of columns in the UI layout.
-            directory (str): The directory path for saving files.
-            width (int): The width of the main window.
-            height (int): The height of the main window.
-
-        This method updates the settings with the provided configurations and saves them
-        back to the JSON file.
-        """
-        settings = cls.load_settings()
-        settings["main"] = {
-            "nColumn": nColumn,
-            "directory": directory,
-            "width": width,
-            "height": height,
-        }
-        cls.save_settings(settings)
+    def save_settings(cls, settings: AppSchema):
+        """Persists the validated AppSchema back to YAML."""
+        try:
+            data = settings.model_dump()
+            with open(cls.settings_file, "w") as file:
+                yaml.dump(data, file, default_flow_style=False, sort_keys=False)
+        except Exception as e:
+            logger.error(f"Failed to save settings: {e}")
 
     @classmethod
-    def load_mainWindow_settings(cls):
+    def update_camera_config(cls, sn: str, item: str, val: any):
         """
-        Load settings for the main window from the settings JSON file.
+        Used by the UI to update a specific hardware setting.
+        Re-validates before saving to ensure 'val' is the correct type.
+        """
+        settings = cls.load_and_validate()
 
-        Returns:
-            tuple: Contains the number of columns (int), directory path (str),
-            width (int), and height (int) of the main window. If the settings
-            file or the "main" section does not exist, default values are returned.
-        """
-        settings = cls.load_settings()
-        if "main" in settings:
-            main_settings = settings["main"]
-            nColumn = main_settings.get("nColumn", 1)
-            directory = main_settings.get("directory", None)
-            width = main_settings.get("width", 1400)
-            height = main_settings.get("height", 1000)
-            return nColumn, directory, width, height
+        if sn in settings.cameras:
+            # Use setattr to update the Pydantic model field
+            setattr(settings.cameras[sn], item, val)
+            cls.save_settings(settings)
         else:
-            logger.debug("load_mainWindow_settings: Settings file not found.")
-            return 1, None, 1400, 1000
+            logger.error(f"Attempted to update unknown camera: {sn}")
 
     @classmethod
-    def load_settings_item(cls, category, item=None):
-        """
-        Retrieve a specific item or all items from a category within the settings.
-
-        Parameters:
-            category (str): The category of settings to retrieve.
-            item (Optional[str]): The specific item to retrieve from the category.
-            If None, all items in the category are returned.
-
-        Returns:
-            The requested settings item(s). Returns None if the category or item does not exist.
-        """
-        settings = cls.load_settings()
-        if category in settings:
-            if item is not None:
-                if item in settings[category]:
-                    return settings[category][item]
-                else:
-                    logger.debug(f"load_settings_item: Item '{item}' not found in settings.")
-                    return None
-            return settings[category]
-        else:
-            logger.debug(f"load_settings_item: Section '{category}' not found in settings.")
-            return None
+    def load_gui_settings(cls):
+        """Compatibility helper for MainWindow initialization."""
+        settings = cls.load_and_validate()
+        g = settings.gui
+        # Returns: nColumn (default 1), directory, width, height
+        return 1, g.directory, g.width, g.height
 
     @classmethod
-    def update_user_configs_settingMenu(cls, microscopeGrp, item, val):
+    def save_gui_settings(cls, directory, width, height):
         """
-        Update and save a specific setting for a microscope group in the settings JSON file.
-
-        Parameters:
-            microscopeGrp (QGroupBox): The group box representing the microscope settings in the UI.
-            item (str): The name of the setting to be updated (e.g., 'exposure', 'gain').
-            val (int/float/str): The new value for the setting.
-
-        This method locates the screen associated with the given microscope group box, retrieves
-        the camera's serial number, and updates the setting specified by 'item' with the new value
-        'val' in the settings JSON file.
+        Updates GUI settings within the AppSchema and saves to YAML.
         """
-
-        from parallax.screens.screen_widget import ScreenWidget  # Local import to avoid circular
-
-        # Find the screen within this microscopeGrp
-        screen = microscopeGrp.findChild(ScreenWidget, "Screen")
-
-        # Display the S/N of camera
-        sn = screen.get_camera_name()
-
-        settings = cls.load_settings()
-
-        # Update settings with values from the settingMenu of current screen
-        if sn not in settings:
-            settings[sn] = {}
-        settings[sn][item] = val
-
-        # Write updated settings back to file
-        cls.save_settings(settings)
+        app_settings = cls.load_and_validate()
+        app_settings.gui.directory = directory
+        app_settings.gui.width = width
+        app_settings.gui.height = height
+        cls.save_settings(app_settings)
 
 
 class BaseConfigManager:

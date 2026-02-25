@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         self._set_font()
 
         # Load existing user preferences
-        _, self.dir, width, height = UserSettingsManager.load_mainWindow_settings()
+        _, self.dir, width, height = UserSettingsManager.load_gui_settings()
         if width is not None and height is not None:
             self.resize(width, height)
         if self.dir is None or not os.path.exists(self.dir):
@@ -238,6 +238,7 @@ class MainWindow(QMainWindow):
         # Only update self.dir if new_dir is not empty (i.e., user didn't cancel)
         if new_dir:
             self.dir = new_dir
+            self.save_user_configs()  # Save the new directory to user settings
             print("Selected directory:", self.dir)
         else:
             print("Selection canceled. Keeping previous:", self.dir)
@@ -246,14 +247,14 @@ class MainWindow(QMainWindow):
         """
         Saves user configuration settings to a persistent storage.
 
-        This method retrieves current configuration values from the UI, including
-        the number of columns (nColumn), directory path (directory), and the window's
-        width and height. It then passes these values to the `save_user_configs` method
-        of the `user_setting` object to be saved.
+        This method retrieves current configuration values from the UI
+        directory path (directory), and the window's
+        width and height. It then passes these values to the `save_gui_settings` method
+        of the `UserSettingsManager` object to be saved.
         """
         width = self.width()
         height = self.height()
-        UserSettingsManager.save_user_configs(0, self.dir, width, height)
+        UserSettingsManager.save_gui_settings(self.dir, width, height)
 
     def closeEvent(self, event):
         """
