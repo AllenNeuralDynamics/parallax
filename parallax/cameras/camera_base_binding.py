@@ -105,6 +105,22 @@ class BaseCamera(ABC):
         """
         return -1
 
+    def get_frame_rate(self) -> float:
+        """
+        Gets the current frame rate of the camera.
+        Returns:
+        - float: The current frame rate in frames per second.
+        """
+        return -1.0
+
+    def set_frame_rate(self, frame_rate: float) -> None:
+        """
+        Gets the current frame rate of the camera.
+        Returns:
+        - float: The current frame rate in frames per second.
+        """
+        return
+
     def get_last_capture_time(self, millisecond: bool = False) -> str:
         """
         Returns the timestamp of the last captured image in a formatted string.
