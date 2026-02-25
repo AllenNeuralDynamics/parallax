@@ -12,12 +12,10 @@ Example:
     UserSettingsManager.save_user_configs(nColumn, directory, width, height)
 """
 
-import json
 import logging
 import os
 from dataclasses import asdict, is_dataclass
 import sys
-
 import numpy as np
 import yaml
 
