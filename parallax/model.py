@@ -20,7 +20,7 @@ from parallax.stages.stage_listener import Stage, StageInfo
 class Model:
     """Model class to handle cameras, stages, and calibration data."""
 
-    def __init__(self, args=None, version="V2"):
+    def __init__(self, args=None, config=None, version="V2"):
         """Initialize the Model object.
 
         Args:
@@ -29,6 +29,7 @@ class Model:
         """
         # args from command line
         self.version = version
+        self.config = config
         self.dummy = getattr(args, "dummy", False)
         self.test = getattr(args, "test", False)
         self.bundle_adjustment = getattr(args, "bundle_adjustment", False)

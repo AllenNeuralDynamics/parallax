@@ -1,3 +1,4 @@
+# parallax/config/config_path.py
 """
 This module defines the paths used in the project and sets up logging.
 """
@@ -34,6 +35,7 @@ debug_img_dir.mkdir(parents=True, exist_ok=True)
 # File paths
 session_file = data_dir / "session.yaml"
 settings_file = data_dir / "settings.json"
+camera_settings_file = data_dir / "camera_settings.yaml"
 stage_server_config_file = data_dir / "stage_server_config.json"
 reticle_metadata_file = data_dir / "reticle_metadata.json"
 img_processing_config_file = project_root / "parallax" / "config" / "image_processing_config.json"
@@ -75,7 +77,6 @@ palette_tips = [
     (0, 100, 50),
     (0, 255, 0),
 ]
-
 
 # Logging setup
 def setup_logging():

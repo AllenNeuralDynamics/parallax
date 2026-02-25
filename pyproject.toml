@@ -33,7 +33,8 @@ dependencies = [
     "pyyaml",
     "SimpleITK",
     "ultralytics>=8.2.0",
-    "torch>=2.3.0"
+    "torch>=2.3.0",
+    "pydantic"
    ]
  
 [tool.setuptools.packages.find]
