@@ -70,6 +70,9 @@ font: 8pt;
      <property name="text">
       <string>♦</string>
      </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
     </widget>
    </item>
    <item row="1" column="0">
@@ -307,10 +310,10 @@ font: 8pt;
    <item row="5" column="3">
     <widget class="QSlider" name="fpsSlider">
      <property name="minimum">
-      <number>1</number>
+      <number>2</number>
      </property>
      <property name="maximum">
-      <number>30</number>
+      <number>31</number>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

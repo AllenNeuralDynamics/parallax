@@ -1,312 +1,136 @@
-"""Screen settings widget for controlling microscope camera settings."""
-
 import logging
 import os
-
-from PyQt6.QtCore import QCoreApplication, QPoint, QTimer
-from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import QFileDialog, QPushButton, QToolButton, QWidget
+from PyQt6.QtCore import QPoint
+from PyQt6.QtWidgets import QWidget, QFileDialog, QPushButton, QToolButton
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
+from parallax.config.schemas import CameraSettings
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class ScreenSetting(QWidget):
-    """Settings menu widget to control a microscope screen."""
-
     def __init__(self, parent, model, screen):
-        """Initialize the ScreenSetting with a parent, model, and screen."""
         super().__init__()
-        # Add setting button
         self.model = model
         self.parent = parent
         self.screen = screen
-        self.sn = self.screen.get_camera_name()  # self.sn can be updated on runtime when camera is changed
+        self.sn = self.screen.get_camera_name()
 
-        # Init
-        self.settingButton = self._get_setting_button(self.parent)
-        self.settingMenu = self._get_setting_menu(self.parent)
-        self._setup_settingMenu()  # S/N, Exposure, Gain, Gamma, White Balance
-        self.settings_refresh_timer = QTimer()  # Refreshing the settingMenu while it is toggled
-        self.settings_refresh_timer.timeout.connect(self._update_setting_menu)
+        # Live reference to the model's camera settings
+        self.camera_setting = self.model.config.cameras.get(self.sn)
+        if self.camera_setting is None:
+            # Create default if missing and add to model
+            self.camera_setting = CameraSettings(customName=self.sn, fps=30, exposureTime_ms=15, 
+                                               gain=0, gamma=100, wbRed=100, wbBlue=100, exp=100,
+                                               exposureAuto="Continuous", gainAuto="Continuous", wbAuto="Off")
+            self.model.config.cameras[self.sn] = self.camera_setting
 
-        self._update_setting_menu()
-        self.settingButton.toggled.connect(lambda checked: self._show_settings_menu(checked))
+        self.settingButton = self._get_setting_button(self.parent)  # UI - Button
+        self.settingMenu = self._get_setting_menu(self.parent)  # UI - Menu
+        self._setup_settingMenu()  # Singal connections and initial values
+        self._update_ui_from_model() # Initial sync to ensure UI reflects current model state
+        self.settingButton.toggled.connect(self._handle_menu_toggle)
 
-    def _setup_settingMenu(self):
-        """Setup the settings menu with all necessary controls."""
-        try:
-            # Grouping these together as they are critical for UI population
-            self._setup_sn()
-            self._custom_name()
-            self._framerate()
-            self._exposure()
-            self._gain()
-            self._gamma()
-            self._white_balance()
-            self._color_channel()
-            
-        except AttributeError as e:
-            logger.error(f"UI setup failed: Camera missing expected attribute. {e}")
-        except Exception as e:
-            logger.error(f"An unexpected error occurred during settings menu setup: {e}")
-            # Optionally: show a message box to the user here since it's a UI element
-
-    def _show_settings_menu(self, is_checked):
-        """Show or hide the settings menu based on the button toggle state."""
+    def _handle_menu_toggle(self, is_checked):
         if is_checked:
-            self.settings_refresh_timer.start(500)  # Update setting menu every 500ms
-            # Show the setting menu next to setting button
-            button_pos_global = self.settingButton.mapToGlobal(QPoint(0, 0))
-            parent_pos_global = self.parent.mapToGlobal(QPoint(0, 0))
-            menu_x = button_pos_global.x() + self.settingButton.width() - parent_pos_global.x()
-            menu_y = button_pos_global.y() - self.settingMenu.height() - parent_pos_global.y()
-            self.settingMenu.move(menu_x, menu_y)
+            self._update_ui_from_model()
+            # Position logic
+            btn_pos = self.settingButton.mapToGlobal(QPoint(0, 0))
+            parent_pos = self.parent.mapToGlobal(QPoint(0, 0))
+            self.settingMenu.move(btn_pos.x() + self.settingButton.width() - parent_pos.x(),
+                                  btn_pos.y() - self.settingMenu.height() - parent_pos.y())
             self.settingMenu.show()
         else:
-            self.settings_refresh_timer.stop()
             self.settingMenu.hide()
+            # Final sync and Save to disk
+            self._sync_ui_to_model()
+            UserSettingsManager.save_settings(self.model.config)
 
-    def _frameratea(self):
-        """Setup framerate settings in the settings menu with dynamic updates."""
-        def on_fps_changed():
-            target_val = self.settingMenu.fpsSlider.value()
-            self.screen.set_camera_setting(setting="fps", val=target_val)
-            actual_fps = self.screen.get_camera_setting(setting="fps")
-            if actual_fps is not None:
-                self.settingMenu.fpsNum.setNum(int(actual_fps))
-                UserSettingsManager.update_user_configs_settingMenu(
-                    self.parent, "fps", actual_fps
-                )
-                if actual_fps < (target_val - 0.5):
-                    self.settingMenu.fpsNum.setStyleSheet("color: red;")
-                else:
-                    self.settingMenu.fpsNum.setStyleSheet("color: white;")
+    def _update_ui_from_model(self):
+        """Syncs GUI to the current Model state."""
+        if not self.camera_setting: return
+        self.settingMenu.fpsSlider.blockSignals(True)
+        self.settingMenu.fpsSlider.setValue(int(self.camera_setting.fps))
+        self.settingMenu.fpsNum.setNum(int(self.camera_setting.fps))
+        self.settingMenu.fpsSlider.blockSignals(False)
+        self.settingMenu.customName.setText(self.camera_setting.customName)
+        # TODO
 
-        # Connect the slider to the update function
-        self.settingMenu.fpsSlider.valueChanged.connect(on_fps_changed)
+    def _sync_ui_to_model(self):
+        """Pushes current UI values into the live Model reference."""
+        if not self.camera_setting: return
+        self.camera_setting.customName = self.settingMenu.customName.text()
+        self.camera_setting.fps = float(self.settingMenu.fpsSlider.value())
+        self.camera_setting.exposureTime_ms = float(self.settingMenu.expSlider.value())
+        self.camera_setting.gain = float(self.settingMenu.gainSlider.value())
+        self.camera_setting.gamma = int(self.settingMenu.gammaSlider.value())
 
-        # Initial UI sync when menu opens
-        current_fps = self.screen.get_camera_setting(setting="fps")
-        if current_fps is not None:
-            self.settingMenu.fpsSlider.setValue(int(current_fps))
-            self.settingMenu.fpsNum.setNum(int(current_fps))
-
-    def _framerate(self):
-        """Setup framerate settings with a delay-aware sync."""
-        def on_slider_moving():
-            """Fast feedback: Update the number label immediately while sliding."""
-            self.settingMenu.fpsNum.setNum(self.settingMenu.fpsSlider.value())
-            # Keep it black/white while sliding to avoid flickering
-            self.settingMenu.fpsNum.setStyleSheet("color: white;")
-
-        def on_sync_with_hardware():
-            """Slow feedback: Only sync with camera once the user lets go."""
-            target_val = self.settingMenu.fpsSlider.value()
-            
-            # 1. Update hardware
-            self.screen.set_camera_setting(setting="fps", val=target_val)
-            
-            # 2. Get the ACTUAL resulting FPS from the camera
-            actual_fps = self.screen.get_camera_setting(setting="fps")
-            
-            if actual_fps is not None:
-                self.settingMenu.fpsNum.setNum(int(actual_fps))
-                
-                # Update configs
-                UserSettingsManager.update_user_configs_settingMenu(
-                    self.parent, "fps", actual_fps
-                )
-                
-                # Check for REAL bottlenecking (Resulting FPS vs Requested)
-                if actual_fps < (target_val - 0.5):
-                    self.settingMenu.fpsNum.setStyleSheet("color: red;")
-                else:
-                    self.settingMenu.fpsNum.setStyleSheet("color: white;")
-
-        # Connect signals
-        # Update number label in real-time for 'feel'
-        self.settingMenu.fpsSlider.valueChanged.connect(on_slider_moving)
-        
-        # Sync with hardware only when sliding stops to handle hardware delay
-        self.settingMenu.fpsSlider.sliderReleased.connect(on_sync_with_hardware)
-
-        # Initial UI sync
-        current_fps = self.screen.get_camera_setting(setting="fps")
-        if current_fps is not None:
-            self.settingMenu.fpsSlider.setValue(int(current_fps))
-            self.settingMenu.fpsNum.setNum(int(current_fps))
-
-        self.settingMenu.fpsAuto.clicked.connect(
-            lambda: self.settingMenu.fpsSlider.setEnabled(not self.settingMenu.fpsSlider.isEnabled())
-        )
-        self.settingMenu.fpsAuto.clicked.connect(
-            lambda: UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "fpsAuto", self.settingMenu.fpsSlider.isEnabled()
-            )
-        )
-
-    def _exposure(self):
-        """Setup exposure settings in the settings menu."""
-        def on_exposure_changed():
-            # Get the ACTUAL resulting FPS from the camera
-            actual_fps = self.screen.get_camera_setting(setting="fps")
-            if actual_fps is not None:
-                # Update the numeric label with the hardware reality
-                self.settingMenu.fpsNum.setNum(int(actual_fps))
-                # Update persistent user configs
-                UserSettingsManager.update_user_configs_settingMenu(
-                    self.parent, "fps", actual_fps
-                )
-                self.settingMenu.fpsNum.setStyleSheet("color: white;")
-
-        # Exposure
-        self.settingMenu.expSlider.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(setting="exposure", val=self.settingMenu.expSlider.value() * 1000)
-        )
-        self.settingMenu.expSlider.valueChanged.connect(on_exposure_changed)
-        self.settingMenu.expSlider.valueChanged.connect(
-            lambda: self.settingMenu.expNum.setNum(self.settingMenu.expSlider.value())
-        )
-        self.settingMenu.expSlider.valueChanged.connect(
-            lambda: UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "exp", self.settingMenu.expSlider.value()
-            )
-        )
-        self.settingMenu.expAuto.clicked.connect(
-            lambda: self.settingMenu.expSlider.setValue(int(self.screen.get_camera_setting(setting="exposure") / 1000))
-        )
-
-    def _gamma(self):
-        """Setup gamma settings in the settings menu."""
-        # Gamma
-        self.settingMenu.gammaSlider.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(setting="gamma", val=self.settingMenu.gammaSlider.value() / 100)
-        )
-        self.settingMenu.gammaSlider.valueChanged.connect(
-            lambda: self.settingMenu.gammaNum.setText("{:.2f}".format(self.settingMenu.gammaSlider.value() / 100))
-        )
-        self.settingMenu.gammaSlider.valueChanged.connect(
-            lambda: UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "gamma", self.settingMenu.gammaSlider.value()
-            )
-        )
-        self.settingMenu.gammaAuto.clicked.connect(
-            lambda: self.settingMenu.gammaSlider.setEnabled(not self.settingMenu.gammaSlider.isEnabled())
-        )
-        self.settingMenu.gammaAuto.clicked.connect(
-            lambda: UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "gammaAuto", self.settingMenu.gammaSlider.isEnabled()
-            )
-        )
-
-    def _gain(self):
-        """Setup gain settings in the settings menu."""
-        # Gain
-        self.settingMenu.gainSlider.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(setting="gain", val=self.settingMenu.gainSlider.value())
-        )
-        self.settingMenu.gainSlider.valueChanged.connect(
-            lambda: self.settingMenu.gainNum.setNum(self.settingMenu.gainSlider.value())
-        )
-        self.settingMenu.gainSlider.valueChanged.connect(
-            lambda: UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "gain", self.settingMenu.gainSlider.value()
-            )
-        )
-        self.settingMenu.gainAuto.clicked.connect(
-            lambda: self.settingMenu.gainSlider.setValue(int(self.screen.get_camera_setting(setting="gain")))
-        )
-
-    def _white_balance(self):
-        """Setup white balance settings in the settings menu."""
-        # W/B
-        settingLayout = self.settingMenu.layout()
-        settingLayout.addWidget(self.settingMenu.wbAuto, 10, 1, 2, 1)
-
-    def _color_channel(self):
-        """Setup color channel settings in the settings menu."""
-        # Blue Channel
-        self.settingMenu.wbSliderBlue.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(setting="wbBlue", val=self.settingMenu.wbSliderBlue.value() / 100)
-        )
-        self.settingMenu.wbSliderBlue.valueChanged.connect(
-            lambda: self.settingMenu.wbNumBlue.setText("{:.2f}".format(self.settingMenu.wbSliderBlue.value() / 100))
-        )
-        self.settingMenu.wbSliderBlue.valueChanged.connect(
-            lambda: UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "wbBlue", self.settingMenu.wbSliderBlue.value()
-            )
-        )
-        self.settingMenu.wbAuto.clicked.connect(
-            lambda: self.settingMenu.wbSliderBlue.setValue(int(self.screen.get_camera_setting(setting="wbBlue") * 100))
-        )
-
-        # Red Channel
-        self.settingMenu.wbSliderRed.valueChanged.connect(
-            lambda: self.screen.set_camera_setting(setting="wbRed", val=self.settingMenu.wbSliderRed.value() / 100)
-        )
-        self.settingMenu.wbSliderRed.valueChanged.connect(
-            lambda: self.settingMenu.wbNumRed.setText("{:.2f}".format(self.settingMenu.wbSliderRed.value() / 100))
-        )
-        self.settingMenu.wbSliderRed.valueChanged.connect(
-            lambda: UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "wbRed", self.settingMenu.wbSliderRed.value()
-            )
-        )
-        self.settingMenu.wbAuto.clicked.connect(
-            lambda: self.settingMenu.wbSliderRed.setValue(int(self.screen.get_camera_setting(setting="wbRed") * 100))
-        )
-
-    def _custom_name(self):
-        """Setup custom name settings in the settings menu."""
-        # Custom name
-        customName = UserSettingsManager.load_settings_item(self.sn, "customName")
-        customName = customName if customName else self.parent.objectName()  # Same as S/N by default
-        self.settingMenu.customName.setText(customName)
-        self._update_groupbox_name(self.parent, customName)
-
-        # Update GroupBox name
-        # Name) If custom name is changed, change the groupBox name.
-        self.settingMenu.customName.textChanged.connect(
-            lambda: self._update_groupbox_name(self.parent, self.settingMenu.customName.text())
-        )
-        self.settingMenu.customName.textChanged.connect(
-            lambda: UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "customName", self.settingMenu.customName.text()
-            )
-        )
-
-    def _update_groupbox_name(self, microscopeGrp, customName):
-        """Update the group box name with the custom name."""
-        if customName:
-            microscopeGrp.setTitle(customName)
-            microscopeGrp.setObjectName(customName)
+    def _setup_settingMenu(self):
+        self._setup_sn()
+        self._setup_custom_name()
+        self._setup_framerate()
+        self._setup_exposure()
+        #self._setup_gain()
+        #self._setup_gamma()
+        #self._sedtup_white_balance()
+        #self._setup_color_channel()
 
     def _setup_sn(self):
         self.settingMenu.snLabel.setText(self.sn)
 
+    def _setup_custom_name(self):
+        # Update gui when user types
+        self.settingMenu.customName.textChanged.connect(
+            lambda text: self._update_groupbox_name(self.parent, text)
+        )
+
+    def _setup_framerate(self):
+        def on_sync():
+            val = self.settingMenu.fpsSlider.value()
+            self.screen.set_camera_setting("fps", val)
+            self.camera_setting.fps = float(val)
+            # Bottleneck check
+            actual = self.screen.get_camera_setting("fps")
+            self.settingMenu.fpsNum.setStyleSheet("color: red;" if actual < val - 0.5 else "color: white;")
+
+        self.settingMenu.fpsSlider.valueChanged.connect(lambda v: self.settingMenu.fpsNum.setNum(v))
+        self.settingMenu.fpsSlider.sliderReleased.connect(on_sync)
+
+    def _setup_exposure(self):
+        def on_sync():
+            val = self.settingMenu.expSlider.value()
+            self.screen.set_camera_setting("exposure", val * 1000)
+            self.camera_setting.exposureTime_ms = float(val)
+            self.settingMenu.expNum.setNum(val)
+
+        self.settingMenu.expSlider.sliderReleased.connect(on_sync)
+        self.settingMenu.expAuto.clicked.connect(self._toggle_exposure_auto)
+
+    def _toggle_exposure_auto(self):
+        current = self.camera_setting.exposureAuto
+        new_mode = "Off" if current == "Continuous" else "Continuous"
+        self.camera_setting.exposureAuto = new_mode
+        self.screen.set_camera_auto_setting("exposure", new_mode)
+        self.settingMenu.expSlider.setEnabled(new_mode == "Off")
+
+    def _update_groupbox_name(self, groupbox, name):
+        groupbox.setTitle(name)
+
     def _get_setting_menu(self, parent):
-        """Initialize the settings menu UI from the .ui file."""
-        # Initialize the settings menu UI from the .ui file
-        settingMenu = QWidget(parent)
-        setting_ui = os.path.join(ui_dir, "settingPopUpMenu.ui")
-        loadUi(setting_ui, settingMenu)
-        settingMenu.setObjectName("SettingsMenu")
-        settingMenu.hide()  # Hide the menu by default
-        self._add_btn_for_dummy(settingMenu)
-        return settingMenu
+        menu = QWidget(parent)
+        loadUi(os.path.join(ui_dir, "settingPopUpMenu.ui"), menu)
+        menu.hide()
+        if self.model.dummy:
+            self._add_btn_for_dummy(menu)
+        return menu
 
     def _add_btn_for_dummy(self, settingMenu):
         """Add a button for dummy data if the model is in dummy mode."""
-        if self.model.dummy:
-            dummy_btn = QPushButton("...", settingMenu)
-            dummy_btn.setMaximumWidth(50)
-            dummy_btn.clicked.connect(self._open_file_dialog)
+        dummy_btn = QPushButton("?", settingMenu)
+        dummy_btn.setMaximumWidth(20)
+        dummy_btn.clicked.connect(self._open_file_dialog)
 
     def _open_file_dialog(self):
         """Open a file dialog to select an image or video for the mock camera."""
@@ -322,63 +146,8 @@ class ScreenSetting(QWidget):
             self.screen.mock_cam_set_data(file_path)
 
     def _get_setting_button(self, parent):
-        """Create and return the settings button for the screen."""
         btn = QToolButton(parent)
-        btn.setObjectName("Setting")
-        font_grpbox = QFont()  # TODO move to config file
-        font_grpbox.setPointSize(8)
-        btn.setFont(font_grpbox)
         btn.setCheckable(True)
-        btn.setText(QCoreApplication.translate("MainWindow", "SETTINGS \u25ba", None))
+        btn.setText("SETTINGS \u25ba")
         return btn
-
-    def _update_setting_menu(self):
-        """Update the settings menu with the current camera settings."""
-        # update sn
-        self.sn = self.screen.get_camera_name()
-
-        # Load the saved settings
-        saved_settings = UserSettingsManager.load_settings_item(self.sn)
-        if saved_settings:
-            # If saved settings are found, update the sliders in the settings menu with the saved values
-            self.settingMenu.expSlider.setValue(int(saved_settings.get("exp", 15)))
-            self.settingMenu.gainSlider.setValue(int(saved_settings.get("gain", 20)))
-
-            # Gamma
-            gammaAuto = saved_settings.get("gammaAuto", None)
-            if gammaAuto is True:
-                self.settingMenu.gammaSlider.setEnabled(True)
-                self.settingMenu.gammaSlider.setValue(int(saved_settings.get("gamma", 100)))
-            elif gammaAuto is False:
-                self.settingMenu.gammaSlider.setEnabled(False)
-            else:
-                pass
-
-            # W/B
-            if self.screen.get_camera_color_type() == "Color":
-                self.settingMenu.wbAuto.setDisabled(False)
-                self.settingMenu.wbSliderRed.setDisabled(False)
-                self.settingMenu.wbSliderBlue.setDisabled(False)
-                self.settingMenu.wbSliderRed.setValue(
-                    # saved_settings.get("wbRed", 1.2)
-                    saved_settings.get("wbRed", 120)
-                )
-                self.settingMenu.wbSliderBlue.setValue(
-                    # saved_settings.get("wbBlue", 2.8)
-                    saved_settings.get("wbBlue", 280)
-                )
-            elif self.screen.get_camera_color_type() == "Mono":
-                self.settingMenu.wbAuto.setDisabled(True)
-                self.settingMenu.wbSliderRed.setDisabled(True)
-                self.settingMenu.wbSliderBlue.setDisabled(True)
-                self.settingMenu.wbNumRed.setText("--")
-                self.settingMenu.wbNumBlue.setText("--")
-
-        else:
-            self.settingMenu.gainAuto.click()
-            self.settingMenu.wbAuto.click()
-            self.settingMenu.expAuto.click()
-            UserSettingsManager.update_user_configs_settingMenu(self.parent, "gammaAuto", True)
-            UserSettingsManager.update_user_configs_settingMenu(
-                self.parent, "gamma", self.settingMenu.gammaSlider.value()
-            )
+    

@@ -236,6 +236,13 @@ class ScreenWidget(pg.GraphicsView):
         """display image from data"""
         self.image_item.setImage(data, autoLevels=False)
 
+    def set_camera_auto_setting(self, setting, mode):
+        """Set the camera setting to auto mode based on the camera's current setting."""
+        if setting == "exposure":
+            self.camera.set_exposure_auto(mode)
+        elif setting == "gain":
+            self.camera.set_gain_auto(mode)
+
     def set_camera_setting(self, setting, val):
         """
         Set the camera settings. (exposure, gain, gamma, wb)
