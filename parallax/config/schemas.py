@@ -6,7 +6,7 @@ from pathlib import Path
 # ----- Pydantic Schemas for Camera Settings Validation -----
 class CameraSettings(BaseModel):
     # Match the order of your camera_settings.yaml
-    customName: str
+    customName: str = ""
     frameRateEnable: bool = True
     fps: float = Field(ge=1.0, le=200.0)
     exposureAuto: Literal["Off", "Once", "Continuous"]
