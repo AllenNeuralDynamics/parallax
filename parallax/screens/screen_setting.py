@@ -30,39 +30,46 @@ class ScreenSetting(QWidget):
         self.settingButton = self._get_setting_button(self.parent)  # UI - Button
         self.settingMenu = self._get_setting_menu(self.parent)  # UI - Menu
         self._setup_settingMenu()  # Singal connections and initial values
-        #self._update_ui_from_model() # model --> Gui on init
+        self._update_ui_from_model() # model --> Gui & Camera on init
         self.settingButton.toggled.connect(self._handle_menu_toggle)
 
     def _handle_menu_toggle(self, is_checked):
-        if is_checked:
-            # TODO - open (Disk -> Camera & Model & GUI sync)
-            self._update_ui_from_model()
-            # Position logic
-            btn_pos = self.settingButton.mapToGlobal(QPoint(0, 0))
-            parent_pos = self.parent.mapToGlobal(QPoint(0, 0))
-            self.settingMenu.move(btn_pos.x() + self.settingButton.width() - parent_pos.x(),
-                                  btn_pos.y() - self.settingMenu.height() - parent_pos.y())
-            self.settingMenu.show()
-        else:
-            # TODO - close (Model -> Disk) 
-            # During Change, Model sync to Camera in real-time, so no need to sync on close)
-            self.settingMenu.hide()
-            # Final sync and Save to disk
-            self._sync_ui_to_model()
-            UserSettingsManager.save_settings(self.model.config)
+        try:
+            if is_checked:
+                #self._update_ui_from_model()
+                # Position logic
+                btn_pos = self.settingButton.mapToGlobal(QPoint(0, 0))
+                parent_pos = self.parent.mapToGlobal(QPoint(0, 0))
+                self.settingMenu.move(btn_pos.x() + self.settingButton.width() - parent_pos.x(),
+                                    btn_pos.y() - self.settingMenu.height() - parent_pos.y())
+                self.settingMenu.show()
+            else:
+                self.settingMenu.hide()
+                print("camera_setting fps:", self.camera_setting.fps)
+                print("fps:", self.model.config.cameras[self.sn].fps)
+                UserSettingsManager.save_settings(self.model.config)
+        except Exception as e:
+            logger.error(f"Error toggling settings menu: {e}")
 
     def _update_ui_from_model(self):
-        """Syncs GUI to the current Model state."""
+        """Syncs all GUI widgets to the current Model state while blocking recursive signals."""
         if not self.camera_setting:
             return
-        # fps
-        self.settingMenu.fpsSlider.blockSignals(True)
-        self.settingMenu.fpsSlider.setValue(int(self.camera_setting.fps))
-        self.settingMenu.fpsNum.setNum(int(self.camera_setting.fps))
-        self.settingMenu.fpsSlider.blockSignals(False)
-
+        # --- Custom Name ---
         self.settingMenu.customName.setText(self.camera_setting.customName)
-        # TODO
+        # --- Framerate (FPS) ---
+        self.settingMenu.fpsSlider.setValue(int(self.camera_setting.fps))
+        self.settingMenu.fpsSlider.sliderReleased.emit()
+        # --- Exposure ---
+        self.settingMenu.expSlider.setValue(int(self.camera_setting.exposureTime_ms))
+        # --- Gain ---
+        self.settingMenu.gainSlider.setValue(int(self.camera_setting.gain))
+        # --- Gamma ---
+        self.settingMenu.gammaSlider.setValue(int(self.camera_setting.gamma))
+        # --- White Balance (Color Channels) ---
+        self.settingMenu.wbSliderRed.setValue(int(self.camera_setting.wbRed))
+        self.settingMenu.wbSliderBlue.setValue(int(self.camera_setting.wbBlue))
+
 
     def _sync_ui_to_model(self):
         """Pushes current UI values into the live Model reference."""
@@ -77,13 +84,13 @@ class ScreenSetting(QWidget):
         # Should sync "GUI & camera(HW) & model state"
         self._setup_sn()
         self._setup_custom_name()
-        self._setup_framerate()
         self._setup_exposure()
         self._setup_gain()
         self._setup_gamma()
         #self._setup_gamma_auto()
         self._setup_white_balance_auto()
         self._setup_color_channel()
+        self._setup_framerate()
 
     def _setup_sn(self):
         self.camera_setting.customName = self.sn  # update model
@@ -102,6 +109,7 @@ class ScreenSetting(QWidget):
             actual_val = self.screen.get_camera_setting("fps")
             # Update the actual fps value from camera
             self.camera_setting.fps = float(actual_val)  # Update model
+            print("Requested FPS:", val, "Actual FPS from camera:", actual_val, self.camera_setting.fps)
             # Update slider to actual value. User can see actual fps value from slider.
             self.settingMenu.fpsSlider.setValue(int(actual_val)) # Update GUI
         self.settingMenu.fpsSlider.valueChanged.connect(lambda v: self.settingMenu.fpsNum.setNum(v)) # Update GUI
@@ -119,7 +127,7 @@ class ScreenSetting(QWidget):
     def _setup_gamma(self):
         def on_sync():
             val = self.settingMenu.gammaSlider.value()
-            self.screen.set_camera_setting("gamma", val)  # Update Camera
+            self.screen.set_camera_setting("gamma", val/100.0)  # Update Camera
             self.camera_setting.gamma = int(val)  # Update model
             self.settingMenu.gammaNum.setNum(val)  # Update GUI
         self.settingMenu.gainSlider.valueChanged.connect(on_sync)
@@ -132,14 +140,14 @@ class ScreenSetting(QWidget):
     def _setup_color_channel(self):
         def on_sync_blue():
             val = self.settingMenu.wbSliderBlue.value()
-            self.screen.set_camera_setting("wbBlue", val)  # Update Camera
+            self.screen.set_camera_setting("wbBlue", val/100.0)  # Update Camera
             self.camera_setting.wbBlue = int(val)  # Update model
-            self.settingMenu.wbSliderBlue.setNum(val)  # Update GUI
+            self.settingMenu.wbNumBlue.setNum(val)  # Update GUI
         def on_sync_red():
             val = self.settingMenu.wbSliderRed.value()
-            self.screen.set_camera_setting("wbRed", val)  # Update Camera
+            self.screen.set_camera_setting("wbRed", val/100.0)  # Update Camera
             self.camera_setting.wbRed = int(val)  # Update model
-            self.settingMenu.wbSliderRed.setNum(val)  # Update GUI
+            self.settingMenu.wbNumRed.setNum(val)  # Update GUI
         self.settingMenu.wbSliderBlue.valueChanged.connect(on_sync_blue)
         self.settingMenu.wbSliderRed.valueChanged.connect(on_sync_red)
 
