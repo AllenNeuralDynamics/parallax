@@ -7,6 +7,9 @@ import numpy as np
 
 class BaseSettings(ABC):
     """Abstract base class for camera settings."""
+    def __init__(self):
+        pass
+
     def set_wb(self, channel: str, wb: float = 1.2) -> None:
         """
         Sets the white balance for a specific channel.
