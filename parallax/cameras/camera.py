@@ -6,11 +6,12 @@ import logging
 import os
 import threading
 import time
-
 import cv2
 import numpy as np
 
 from parallax.cameras.camera_base_binding import BaseCamera
+from parallax.cameras.settings import MockSettings, PySpinSettings
+
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
@@ -107,11 +108,12 @@ class PySpinCamera(BaseCamera):
         Parameters:
         - camera_pyspin: The underlying PySpin camera object.
         """
-        self.running = False
         self.camera = camera_pyspin
+        self.running = False
         self.tldnm = self.camera.GetTLDeviceNodeMap()
         self.camera.Init()
         self.node_map = self.camera.GetNodeMap()
+        self.settings = PySpinSettings(self.node_map)
         self.last_capture_time = time.time()
         self.last_image = None
 
@@ -695,8 +697,10 @@ class MockCamera(BaseCamera):
 
     def __init__(self):
         """Initialize the mock camera with default settings"""
+        super().__init__()
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
+        self.settings = MockSettings()
 
         self.random_data = np.random.randint(0, 255, size=(5, 3000, 4000), dtype="ubyte")
         self.data = None  # For image input

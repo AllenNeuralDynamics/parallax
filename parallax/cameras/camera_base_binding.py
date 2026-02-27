@@ -1,54 +1,12 @@
+# parallax/cameras/camera_base_binding.py
 """Camera Base Binding"""
 
 import datetime
 from abc import ABC, abstractmethod
-
 import numpy as np
 
-
-class BaseCamera(ABC):
-    """
-    Abstract base class for camera operations.
-    Defines the interface expected from all camera types.
-    """
-
-    @abstractmethod
-    def name(self, sn_only: bool = False) -> str:
-        """Returns the name (sn) of the camera"""
-
-    @abstractmethod
-    def get_last_image_data(self) -> np.ndarray:
-        """
-        Returns the last captured image data as a numpy array.
-        Returns:
-        - np.ndarray: The last captured image data.
-        """
-        ...
-
-    def stop(self, clean: bool = False) -> None:
-        """
-        Stops the camera acquisition and optionally cleans up resources.
-        Args:
-        - clean (bool): If True, perform cleanup operations.
-        """
-        ...
-
-    def save_last_image(self, filepath: str, isTimestamp: bool = False, custom_name: str = "Camera_") -> None:
-        """
-        Saves the last captured image to a specified file path.
-        Args:
-        - filepath (str): The path where the image will be saved.
-        - isTimestamp (bool): If True, appends a timestamp to the filename.
-        - custom_name (str): Custom name prefix for the saved image.
-        """
-        ...
-
-    def begin_continuous_acquisition(self) -> None:
-        """
-        Begins continuous image acquisition from the camera.
-        """
-        ...
-
+class BaseSettings(ABC):
+    """Abstract base class for camera settings."""
     def set_wb(self, channel: str, wb: float = 1.2) -> None:
         """
         Sets the white balance for a specific channel.
@@ -115,11 +73,58 @@ class BaseCamera(ABC):
 
     def set_frame_rate(self, frame_rate: float) -> None:
         """
-        Gets the current frame rate of the camera.
-        Returns:
-        - float: The current frame rate in frames per second.
+        Sets the frame rate of the camera.
+        Args:
+        - frame_rate (float): The frame rate to set in frames per second.
         """
         return
+
+
+class BaseCamera(ABC):
+    """
+    Abstract base class for camera operations.
+    Defines the interface expected from all camera types.
+    """
+    def __init__(self):
+        # Every camera implementation must assign an instance of BaseSettings here
+        self.settings: BaseSettings = None
+
+    @abstractmethod
+    def name(self, sn_only: bool = False) -> str:
+        """Returns the name (sn) of the camera"""
+
+    @abstractmethod
+    def get_last_image_data(self) -> np.ndarray:
+        """
+        Returns the last captured image data as a numpy array.
+        Returns:
+        - np.ndarray: The last captured image data.
+        """
+        ...
+
+    def stop(self, clean: bool = False) -> None:
+        """
+        Stops the camera acquisition and optionally cleans up resources.
+        Args:
+        - clean (bool): If True, perform cleanup operations.
+        """
+        ...
+
+    def save_last_image(self, filepath: str, isTimestamp: bool = False, custom_name: str = "Camera_") -> None:
+        """
+        Saves the last captured image to a specified file path.
+        Args:
+        - filepath (str): The path where the image will be saved.
+        - isTimestamp (bool): If True, appends a timestamp to the filename.
+        - custom_name (str): Custom name prefix for the saved image.
+        """
+        ...
+
+    def begin_continuous_acquisition(self) -> None:
+        """
+        Begins continuous image acquisition from the camera.
+        """
+        ...
 
     def get_last_capture_time(self, millisecond: bool = False) -> str:
         """
