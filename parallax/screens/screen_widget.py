@@ -238,10 +238,13 @@ class ScreenWidget(pg.GraphicsView):
 
     def set_camera_auto_setting(self, setting, mode):
         """Set the camera setting to auto mode based on the camera's current setting."""
-        if setting == "exposure":
-            self.camera.set_exposure_auto(mode)
-        elif setting == "gain":
-            self.camera.set_gain_auto(mode)
+        try:
+            if setting == "exposure":
+                self.camera.settings.set_exposure_auto(mode)
+            elif setting == "gain":
+                self.camera.settings.set_gain_auto(mode)
+        except Exception as e:
+            logger.error(f"An error occurred while setting the camera auto setting: {e}")
 
     def set_camera_setting(self, setting, val):
         """
@@ -252,19 +255,22 @@ class ScreenWidget(pg.GraphicsView):
         wb (float): The desired white balance value. min:1.8, max:2.5
         gamma (float): The desired gamma value. min:0.25 max:1.25
         """
-        if self.camera:
-            if setting == "exposure":
-                self.camera.set_exposure(val)
-            elif setting == "gain":
-                self.camera.set_gain(val)
-            elif setting == "gamma":
-                self.camera.set_gamma(val)
-            elif setting == "wbRed":
-                self.camera.set_wb("Red", val)
-            elif setting == "wbBlue":
-                self.camera.set_wb("Blue", val)
-            elif setting == "fps":
-                self.camera.set_frame_rate(val)
+        try:
+            if self.camera:
+                if setting == "exposure":
+                    self.camera.settings.set_exposure(val)
+                elif setting == "gain":
+                    self.camera.settings.set_gain(val)
+                elif setting == "gamma":
+                    self.camera.settings.set_gamma(val)
+                elif setting == "wbRed":
+                    self.camera.settings.set_wb("Red", val)
+                elif setting == "wbBlue":
+                    self.camera.set_wb("Blue", val)
+                elif setting == "fps":
+                    self.camera.set_frame_rate(val)
+        except Exception as e:
+            logger.error(f"An error occurred while setting the camera setting: {e}")
 
     def get_camera_setting(self, setting):
         """Get the specified camera setting value.
@@ -276,22 +282,26 @@ class ScreenWidget(pg.GraphicsView):
         Returns:
             float: The value of the specified camera setting.
         """
-        val = 0
-        if self.camera:
-            if setting == "exposure":
-                val = self.camera.get_exposure()
-            elif setting == "gain":
-                val = self.camera.get_gain()
-            elif setting == "gamma":
-                self.camera.disable_gamma()
-            elif setting == "wbRed":
-                val = self.camera.get_wb("Red")
-            elif setting == "wbBlue":
-                val = self.camera.get_wb("Blue")
-            elif setting == "fps":
-                val = self.camera.get_frame_rate()
-            print("setting:", setting, "val:", val)
-        return val
+        try:
+            val = 0
+            if self.camera:
+                if setting == "exposure":
+                    val = self.camera.settings.get_exposure()
+                elif setting == "gain":
+                    val = self.camera.settings.get_gain()
+                elif setting == "gamma":
+                    self.camera.settings.disable_gamma()
+                elif setting == "wbRed":
+                    val = self.camera.settings.get_wb("Red")
+                elif setting == "wbBlue":
+                    val = self.camera.settings.get_wb("Blue")
+                elif setting == "fps":
+                    val = self.camera.settings.get_frame_rate()
+                print("setting:", setting, "val:", val)
+            return val
+        except Exception as e:
+            logger.error(f"An error occurred while getting the camera setting: {e}")
+            return None
 
     def get_camera_color_type(self):
         """Get the color type of the camera.

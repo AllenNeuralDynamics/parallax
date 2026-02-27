@@ -108,10 +108,11 @@ class ScreenSetting(QWidget):
             self.screen.set_camera_setting("fps", val)  # Update camera
             actual_val = self.screen.get_camera_setting("fps")
             # Update the actual fps value from camera
-            self.camera_setting.fps = float(actual_val)  # Update model
-            print("Requested FPS:", val, "Actual FPS from camera:", actual_val, self.camera_setting.fps)
-            # Update slider to actual value. User can see actual fps value from slider.
-            self.settingMenu.fpsSlider.setValue(int(actual_val)) # Update GUI
+            if actual_val is not None:
+                self.camera_setting.fps = float(actual_val)  # Update model
+                print("Requested FPS:", val, "Actual FPS from camera:", actual_val, self.camera_setting.fps)
+                # Update slider to actual value. User can see actual fps value from slider.
+                self.settingMenu.fpsSlider.setValue(int(actual_val)) # Update GUI
         self.settingMenu.fpsSlider.valueChanged.connect(lambda v: self.settingMenu.fpsNum.setNum(v)) # Update GUI
         # Due to the HW delay, we only sync on slider release.
         self.settingMenu.fpsSlider.sliderReleased.connect(on_sync)
