@@ -6,81 +6,107 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 class BaseSettings(ABC):
-    """Abstract base class for camera settings."""
-    def __init__(self):
-        pass
-
-    def set_wb(self, channel: str, wb: float = 1.2) -> None:
-        """
-        Sets the white balance for a specific channel.
-        """
-        ...
-
-    def get_wb(self, channel: str) -> float:
-        """
-        Gets the white balance for a specific channel.
-        Args:
-        - channel (str): The channel for which to get the white balance.
-        Returns:
-        - float: The white balance value for the specified channel.
-        """
-        return -1.0
-
-    def set_gamma(self, gamma: float = 1.0) -> None:
-        """
-        Sets the gamma correction value for the camera.
-        Args:
-        - gamma (float): The gamma value to set.
-        """
-        ...
-
-    def set_gain(self, gain: int = 10) -> None:
-        """
-        Sets the gain for the camera.
-        Args:
-        - gain (int): The gain value to set.
-        """
-        ...
-
-    def get_gain(self) -> int:
-        """
-        Gets the current gain value of the camera.
-        Returns:
-        - int: The current gain value.
-        """
-        return -1
-
-    def set_exposure(self, expTime: int = 16000) -> None:
-        """
-        Sets the exposure time for the camera.
-        Args:
-        - expTime (int): The exposure time in microseconds.
-        """
-        ...
-
-    def get_exposure(self) -> int:
-        """
-        Gets the current exposure time of the camera.
-        Returns:
-        - int: The current exposure time in microseconds.
-        """
-        return -1
-
+    """
+    Abstract base class for camera settings.
+    """
+    # ------------------------------------------------------------------
+    # 1. FRAME RATE
+    # ------------------------------------------------------------------
     def get_frame_rate(self) -> float:
-        """
-        Gets the current frame rate of the camera.
-        Returns:
-        - float: The current frame rate in frames per second.
-        """
+        """Gets the actual resulting frame rate."""
         return -1.0
+
+    def get_frame_rate_enable(self) -> bool:
+        """Returns True if manual frame rate is enabled."""
+        return False
 
     def set_frame_rate(self, frame_rate: float) -> None:
-        """
-        Sets the frame rate of the camera.
-        Args:
-        - frame_rate (float): The frame rate to set in frames per second.
-        """
-        return
+        """Sets the target frame rate in FPS."""
+        pass
+
+    def set_frame_rate_enable(self, enabled: bool) -> None:
+        """Enables or disables manual frame rate control."""
+        pass
+
+    # ------------------------------------------------------------------
+    # 2. EXPOSURE
+    # ------------------------------------------------------------------
+    def get_exposure(self) -> float:
+        """Gets the current exposure time in microseconds."""
+        return -1.0
+
+    def get_exposure_auto_mode(self) -> str:
+        """Gets the current auto exposure mode ('Off', 'Once', 'Continuous')."""
+        return "Unknown"
+
+    def set_exposure(self, expTime: float = 16000.0) -> None:
+        """Sets the manual exposure time in microseconds."""
+        pass
+
+    def set_exposure_auto_mode(self, mode: str) -> None:
+        """Sets auto exposure mode."""
+        pass
+
+    def get_exposure_time_lower_limit(self) -> float:
+        """Returns the minimum allowed exposure time."""
+        return -1.0
+
+    # ------------------------------------------------------------------
+    # 3. GAIN
+    # ------------------------------------------------------------------
+    def get_gain(self) -> float:
+        """Gets the current gain value."""
+        return -1.0
+
+    def get_gain_auto_mode(self) -> str:
+        """Gets the current auto gain mode ('Off', 'Once', 'Continuous')."""
+        return "Unknown"
+
+    def set_gain(self, gain: float = 10.0) -> None:
+        """Sets the manual gain value."""
+        pass
+
+    def set_gain_auto_mode(self, mode: str) -> None:
+        """Sets auto gain mode."""
+        pass
+
+    # ------------------------------------------------------------------
+    # 4. WHITE BALANCE
+    # ------------------------------------------------------------------
+    def get_wb(self, channel: str) -> float:
+        """Gets the white balance value for the specified channel ('Red' or 'Blue')."""
+        return -1.0
+
+    def get_wb_auto_mode(self) -> str:
+        """Returns the current white balance auto mode ('Off', 'Continuous')."""
+        return "Unknown"
+
+    def set_wb(self, channel: str, wb: float = 1.2) -> None:
+        """Sets the white balance for a specific channel."""
+        pass
+
+    def set_wb_auto_mode(self, mode: str) -> None:
+        """Sets the white balance auto mode."""
+        pass
+
+    # ------------------------------------------------------------------
+    # 5. GAMMA
+    # ------------------------------------------------------------------
+    def get_gamma(self) -> float:
+        """Gets the current gamma value."""
+        return -1.0
+
+    def get_gamma_enable(self) -> bool:
+        """Returns True if gamma is enabled."""
+        return False
+
+    def set_gamma(self, gamma: float = 1.0) -> None:
+        """Sets the gamma correction value."""
+        pass
+
+    def set_gamma_enable(self, enabled: bool) -> None:
+        """Enables or disables gamma correction."""
+        pass
 
 
 class BaseCamera(ABC):

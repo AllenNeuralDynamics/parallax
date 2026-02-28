@@ -27,7 +27,7 @@ class PySpinSettings(BaseSettings):
 
         try:
             self._setup_buffer()
-            self._setup_exposure
+            self._setup_exposure()
             self._setup_white_balance()
             self._setup_gain()
             self._setup_gamma()
@@ -55,7 +55,7 @@ class PySpinSettings(BaseSettings):
 
     def _setup_white_balance(self):
         # Set White Balance
-        if self.device_color_type is not "Color":
+        if self.device_color_type != "Color":
             return
         self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
         self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
@@ -111,59 +111,212 @@ class PySpinSettings(BaseSettings):
             node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
 
     # ------------------------------------------------------------------
-    # fps, exp, gain, wb (blue/red), gamma
-
+    # 1. FRAME RATE
+    # ------------------------------------------------------------------
     def get_frame_rate(self) -> float:
         """Returns the actual resulting frame rate from the hardware."""
         try:
-            # We use the resulting FPS node as it reflects real-world throughput
             if PySpin.IsAvailable(self.node_resulting_fps) and PySpin.IsReadable(self.node_resulting_fps):
                 return float(self.node_resulting_fps.GetValue())
         except Exception as e:
             logger.error(f"Could not read resulting frame rate for {self.sn}: {e}")
         return -1.0
 
+    def get_frame_rate_enable(self) -> bool:
+        """Returns True if the manual acquisition frame rate is enabled."""
+        try:
+            if PySpin.IsReadable(self.node_framerate_enable_mode):
+                return self.node_framerate_enable_mode.GetValue()
+        except Exception as e:
+            logger.error(f"Error reading frame rate enable for {self.sn}: {e}")
+        return False
+
+    def set_frame_rate(self, fps: float):
+        """Sets the target acquisition frame rate in Hertz only if manual control is enabled."""
+        try:
+            if PySpin.IsReadable(self.node_framerate_enable_mode):
+                if not self.node_framerate_enable_mode.GetValue():
+                    logger.error(f"Cannot set frame rate: AcquisitionFrameRateEnable is Off for {self.sn}.")
+                    return
+            if PySpin.IsWritable(self.node_framerate):
+                # Only write if the change is significant to avoid unnecessary bus traffic
+                if abs(self.node_framerate.GetValue() - fps) >= 0.1:
+                    self.node_framerate.SetValue(float(fps))
+                    logger.info(f"Target FPS updated to {fps:.2f} for {self.sn}")
+            else:
+                logger.warning(f"AcquisitionFrameRate node is not writable for {self.sn}")
+        except Exception as e:
+            logger.error(f"Error setting frame rate: {e}")
+
+    def set_frame_rate_enable(self, enabled: bool):
+        """Enables or disables manual control of the acquisition frame rate."""
+        try:
+            if PySpin.IsWritable(self.node_framerate_enable_mode):
+                self.node_framerate_enable_mode.SetValue(enabled)
+        except Exception as e:
+            logger.error(f"Error setting frame rate enable: {e}")
+
+    # ------------------------------------------------------------------
+    # 2. EXPOSURE
+    # ------------------------------------------------------------------
+
     def get_exposure(self) -> float:
-        """
-        Returns the actual exposure time from the hardware.
-        """
+        """Returns the actual exposure time from the hardware."""
         try:
             if PySpin.IsReadable(self.node_exptime):
-                return self.node_exptime.GetValue()
-            else:
-                logger.warning(f"Exposure node is not readable for camera {self.sn}")
-                return -1.0
+                return float(self.node_exptime.GetValue())
         except Exception as e:
             logger.error(f"Failed to get exposure for {self.sn}: {e}")
-            return -1.0
+        return -1.0
+
+    def get_exposure_auto_mode(self) -> str:
+        """Returns the current auto exposure mode ('Off', 'Once', 'Continuous')."""
+        try:
+            if PySpin.IsReadable(self.node_expauto_mode):
+                return self.node_expauto_mode.GetCurrentEntry().GetSymbolic()
+        except Exception as e:
+            logger.error(f"Error reading exposure auto mode for {self.sn}: {e}")
+        return "Unknown"
+
+    def set_exposure(self, expTime: int = 16000):
+        """Sets manual exposure time only if Auto Exposure is already Off."""
+        try:
+            current_mode = self.get_exposure_auto_mode()
+            if current_mode != "Off":
+                logger.error(f"Cannot set manual exposure: Camera is currently in {current_mode} mode.")
+                return
+            if PySpin.IsWritable(self.node_exptime):
+                self.node_exptime.SetValue(float(expTime))
+                logger.info(f"Manual exposure set to {expTime} us.")
+            else:
+                logger.warning("ExposureTime node is not writable (Check if camera is initialized).")
+        except Exception as e:
+            logger.error(f"Error in set_exposure: {e}")
+
+    def set_exposure_auto_mode(self, mode: str):
+        """Sets the auto exposure mode ('Off', 'Once', 'Continuous')."""
+        try:
+            if PySpin.IsWritable(self.node_expauto_mode):
+                entry = self.node_expauto_mode.GetEntryByName(mode)
+                if PySpin.IsReadable(entry):
+                    self.node_expauto_mode.SetIntValue(entry.GetValue())
+        except Exception as e:
+            logger.error(f"Error setting exposure auto mode: {e}")
+
+    # ------------------------------------------------------------------
+    # 3. GAIN
+    # ------------------------------------------------------------------
 
     def get_gain(self) -> float:
         """Returns the actual gain from the hardware."""
         try:
             if PySpin.IsAvailable(self.node_gain) and PySpin.IsReadable(self.node_gain):
                 return float(self.node_gain.GetValue())
-            else:
-                logger.warning(f"Gain node not readable for camera {self.sn}")
         except Exception as e:
             logger.error(f"Failed to get gain for {self.sn}: {e}")
         return -1.0
 
+    def get_gain_auto_mode(self) -> str:
+        """Returns the current auto gain mode ('Off', 'Once', 'Continuous')."""
+        try:
+            if PySpin.IsReadable(self.node_gainauto_mode):
+                return self.node_gainauto_mode.GetCurrentEntry().GetSymbolic()
+        except Exception as e:
+            logger.error(f"Error reading gain auto mode for {self.sn}: {e}")
+        return "Unknown"
+
+    def set_gain(self, gain: float = 20.0):
+        """Sets manual gain only if GainAuto is already Off."""
+        try:
+            if PySpin.IsReadable(self.node_gainauto_mode):
+                current_mode = self.node_gainauto_mode.GetCurrentEntry().GetSymbolic()
+                if current_mode != "Off":
+                    logger.error(f"Cannot set manual gain: GainAuto is currently in {current_mode} mode.")
+                    return
+
+            if PySpin.IsWritable(self.node_gain):
+                # Only update if the value actually changes to save bandwidth
+                if abs(self.node_gain.GetValue() - gain) > 0.01:
+                    self.node_gain.SetValue(float(gain))
+                    logger.info(f"Manual gain set to {gain:.2f} dB for {self.sn}")
+            else:
+                logger.warning(f"Gain node is not writable for camera {self.sn}")
+
+        except Exception as e:
+            logger.error(f"Error in set_gain: {e}")
+
+    def set_gain_auto_mode(self, mode: str):
+        """Sets the auto gain mode ('Off', 'Once', 'Continuous')."""
+        try:
+            if PySpin.IsWritable(self.node_gainauto_mode):
+                entry = self.node_gainauto_mode.GetEntryByName(mode)
+                if PySpin.IsReadable(entry):
+                    self.node_gainauto_mode.SetIntValue(entry.GetValue())
+        except Exception as e:
+            logger.error(f"Error setting gain auto mode: {e}")
+
+    # ------------------------------------------------------------------
+    # 4. WHITE BALANCE
+    # ------------------------------------------------------------------
+    def get_wb_auto_mode(self) -> str:
+        """Returns the current white balance auto mode ('Off', 'Once', 'Continuous')."""
+        try:
+            if PySpin.IsReadable(self.node_wbauto_mode):
+                return self.node_wbauto_mode.GetCurrentEntry().GetSymbolic()
+        except Exception as e:
+            logger.error(f"Error reading white balance auto mode for {self.sn}: {e}")
+        return "Unknown"
+    
+    def set_wb_auto_mode(self, mode: str):
+        """Sets the white balance auto mode ('Off', 'Continuous')."""
+        try:
+            if PySpin.IsWritable(self.node_wbauto_mode):
+                entry = self.node_wbauto_mode.GetEntryByName(mode)
+                if PySpin.IsReadable(entry):
+                    self.node_wbauto_mode.SetIntValue(entry.GetValue())
+                    logger.info(f"White Balance Auto Mode set to {mode} for {self.sn}")
+        except Exception as e:
+            logger.error(f"Error setting white balance auto mode: {e}")
+            
     def get_wb(self, channel: str) -> float:
-        """
-        Returns the white balance ratio for the specified channel ('Red' or 'Blue').
-        """
+        """Returns the white balance ratio for the specified channel ('Red' or 'Blue')."""
         if self.device_color_type != "Color":
             return -1.0
         try:
+            # Must select the channel before reading the ratio
             if channel == "Red":
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
             elif channel == "Blue":
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
+            
             if PySpin.IsAvailable(self.node_wb) and PySpin.IsReadable(self.node_wb):
                 return float(self.node_wb.GetValue())
         except Exception as e:
             logger.error(f"Failed to get white balance for {channel}: {e}")
         return -1.0
+
+    def set_wb(self, channel: str, wb: float = 1.2):
+        """Sets the white balance ratio only if BalanceWhiteAuto is already Off."""
+        try:
+            if self.device_color_type != "Color":
+                return
+            if self.get_wb_auto_mode() != "Off":
+                logger.error(f"Cannot set manual WB: BalanceWhiteAuto is not Off for {self.sn}")
+                return
+            if PySpin.IsWritable(self.node_balanceratio_mode):
+                if channel == "Red":
+                    self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
+                elif channel == "Blue":
+                    self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
+                if PySpin.IsWritable(self.node_wb):
+                    self.node_wb.SetValue(float(wb))
+                    logger.info(f"Manual WB {channel} set to {wb} for {self.sn}")
+        except Exception as e:
+            logger.error(f"Error setting manual white balance ({channel}): {e}")
+
+    # ------------------------------------------------------------------
+    # 5. GAMMA
+    # ------------------------------------------------------------------
 
     def get_gamma(self) -> float:
         """Returns the current gamma value."""
@@ -175,21 +328,6 @@ class PySpinSettings(BaseSettings):
         except Exception as e:
             logger.error(f"Failed to get gamma for {self.sn}: {e}")
         return -1.0
-    
-    # ------------ Get automode status for gain and exposure -------------
-    # get frame rate enable status
-    # get exposure auto mode (off, once, continuous)
-    # get gain auto mode (off, once, continuous)
-    # get gamma enable status
-    #  
-    def get_frame_rate_enable(self) -> bool:
-        """Returns True if the manual acquisition frame rate is enabled."""
-        try:
-            if PySpin.IsReadable(self.node_framerate_enable_mode):
-                return self.node_framerate_enable_mode.GetValue()
-        except Exception as e:
-            logger.error(f"Error reading frame rate enable for {self.sn}: {e}")
-        return False
 
     def get_gamma_enable(self) -> bool:
         """Returns True if gamma correction is enabled."""
@@ -200,204 +338,58 @@ class PySpinSettings(BaseSettings):
             logger.error(f"Error reading gamma enable for {self.sn}: {e}")
         return False
 
-    def get_exposure_auto_mode(self) -> str:
-        """Returns the current auto exposure mode ('Off', 'Once', 'Continuous')."""
+    def set_gamma(self, gamma: float = 1.0):
+        """Sets the gamma correction value only if GammaEnable is already True."""
         try:
-            if PySpin.IsReadable(self.node_expauto_mode):
-                return self.node_expauto_mode.GetCurrentEntry().GetSymbolic()
+            if not self.get_gamma_enable():
+                logger.error(f"Cannot set gamma: GammaEnable is False for {self.sn}.")
+                return
+            if PySpin.IsWritable(self.node_gamma):
+                self.node_gamma.SetValue(float(gamma))
+                logger.info(f"Gamma set to {gamma} for {self.sn}")
+            else:
+                logger.error(f"Gamma node is not writable for camera {self.sn}")
         except Exception as e:
-            logger.error(f"Error reading exposure auto mode for {self.sn}: {e}")
-        return "Unknown"
+            logger.error(f"Error setting gamma value: {e}")
 
-    def get_gain_auto_mode(self) -> str:
-        """Returns the current auto gain mode ('Off', 'Once', 'Continuous')."""
+    def set_gamma_enable(self, enabled: bool):
+        """Enables or disables gamma correction (Matches Frame Rate Enable pattern)."""
         try:
-            if PySpin.IsReadable(self.node_gainauto_mode):
-                return self.node_gainauto_mode.GetCurrentEntry().GetSymbolic()
+            if PySpin.IsWritable(self.node_gammaenable_mode):
+                self.node_gammaenable_mode.SetValue(enabled)
+                logger.info(f"Gamma enable set to {enabled} for {self.sn}")
+            else:
+                logger.error(f"GammaEnable node is not writable for {self.sn}")
         except Exception as e:
-            logger.error(f"Error reading gain auto mode for {self.sn}: {e}")
-        return "Unknown"
-
-    # ------------------------------ Camera Settings API ------------------------------
-    def set_wb(self, channel, wb=1.2):
-        """
-        Sets the white balance of the camera.
-
-        Args:
-        - wb (float): The desired white balance value. min:1.8, max:2.5
-        """
-        try:
-            if self.device_color_type == "Color":
-                self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_off.GetValue())
-                if channel == "Red":
-                    self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
-                    self.node_wb.SetValue(wb)
-                elif channel == "Blue":
-                    self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
-                    self.node_wb.SetValue(wb)
-        except Exception as e:
-            logger.error(f"An error occurred while setting the white balance: {e}")
-
-
-    def set_gamma(self, gamma=1.0):
-        """
-        Sets the gamma correction of the camera.
-
-        Args:
-        - gamma (float): The desired gamma value. min:0.25 max:1.25
-        """
-        try:
-            self.node_gammaenable_mode.SetValue(True)
-            self.node_gamma.SetValue(gamma)
-        except Exception as e:
-            logger.error(f"An error occurred while setting the gamma: {e}")
-
-    def set_frame_rate(self, fps: float):
-            """
-            Sets the target acquisition frame rate in Hertz.
-            """
-            try:
-                if PySpin.IsWritable(self.node_framerate_enable_mode):
-                    if not self.node_framerate_enable_mode.GetValue():
-                        self.node_framerate_enable_mode.SetValue(True)
-
-                # Set the target value
-                if PySpin.IsWritable(self.node_framerate):
-
-                    # Only write if the change is significant (>= 1)
-                    if abs(self.node_framerate.GetValue() - fps) >= 1:
-                        self.node_framerate.SetValue(fps)
-                        logger.info(f"Target FPS updated to {fps:.2f}")
-                else:
-                    logger.warning("AcquisitionFrameRate node is not writable.")
-
-            except Exception as e:
-                logger.error(f"Error setting frame rate: {e}")
-
-
-    def disable_gamma(self):
-        """
-        Disable the gamma of the camera.
-        """
-        self.node_gammaenable_mode.SetValue(False)
-
-    def set_gain(self, gain=20.0):
-        """
-        Sets the gain of the camera.
-
-        Args:
-        - gain (float): The desired gain value. min:0, max:27.0
-        """
-        try:
-            self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_off.GetValue())
-            self.node_gain.SetValue(gain)
-        except Exception as e:
-            logger.error(f"An error occurred while setting the gain: {e}")
-
-    def set_gain_auto(self, mode):
-        """
-        Sets the gain of the camera to auto mode based on the camera's current setting.
-
-        Args:
-        - mode (str): The auto mode to set for gain (e.g., "Once", "Off", "Continuous").
-        """
-        try:
-            if mode == "Once":
-                self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_once.GetValue())
-            elif mode == "Off":
-                self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_off.GetValue())
-            elif mode == "Continuous":
-                self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())
-        except Exception as e:
-            logger.error(f"An error occurred while setting the gain auto mode: {e}")
-
-    def get_gain(self):
-        """
-        Get the gain of the camera for the auto mode.
-        """
-        initial_val = self.node_gain.GetValue()
-        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())  # Set continuous for mono camera
-
-        time.sleep(0.5)  # Wait for a short period
-        updated_val = self.node_gain.GetValue()
-        if updated_val != initial_val:
-            return updated_val  # Return the updated value if there's a change
-
-        return initial_val  # Return the initial value if no change is detected
-
-    def set_exposure(self, expTime=16000):
-        """
-        Sets the exposure time of the camera.
-
-        Args:
-        - expTime (int): The desired exposure time in microseconds.
-        """
-        try:
-            # TODO 
-            self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())  # Return back to manual mode
-            self.node_exptime.SetValue(expTime)
-        except Exception as e:
-            logger.error(f"An error occurred while setting the exposure: {e}")
-
-    def set_exposure_auto(self, mode):
-        """
-        Sets the exposure time of the camera to auto mode based on the camera's current setting.
-
-        Args:
-        - mode (str): The auto mode to set for exposure (e.g., "Once", "Off", "Continuous").
-        """
-        try:
-            if mode == "Once":
-                self.node_expauto_mode.SetIntValue(self.node_expauto_mode_once.GetValue())
-            elif mode == "Off":
-                self.node_expauto_mode.SetIntValue(self.node_expauto_mode_off.GetValue())
-            elif mode == "Continuous":
-                self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())
-        except Exception as e:
-            logger.error(f"An error occurred while setting the exposure auto mode: {e}")
-
-
+            logger.error(f"Error setting gamma enable: {e}")
 
 class MockSettings(BaseSettings):
+    """
+    A minimal implementation that satisfies the BaseSettings contract 
+    without actually doing anything.
+    """
     def __init__(self):
-        # State variables for Mock environment
-        self.fps = 30.0
-        self.fps_enabled = True
-        self.exposure = 16000.0
-        self.exposure_auto = "Continuous"
-        self.gain = 10.0
-        self.gain_auto = "Continuous"
-        self.gamma = 0.8
-        self.gamma_enabled = True
-        self.wb_red = 1.2
-        self.wb_blue = 1.4
-        self.device_color_type = "Color"
-        print("MockSettings initialized with default states.")
+        pass
+    def set_wb(self, channel, wb=1.2): pass
+    def get_wb(self, channel): return 1.0
 
-    # --- Getters ---
-    def get_frame_rate(self) -> float: return self.fps
-    def get_frame_rate_enable(self) -> bool: return self.fps_enabled
-    def get_exposure(self) -> float: return self.exposure
-    def get_exposure_auto_mode(self) -> str: return self.exposure_auto
-    def get_exposure_time_lower_limit(self) -> float: return 1.0
-    def get_gain(self) -> float: return self.gain
-    def get_gain_auto_mode(self) -> str: return self.gain_auto
-    def get_gamma(self) -> float: return self.gamma
-    def get_gamma_enable(self) -> bool: return self.gamma_enabled
-    def get_wb(self, channel: str) -> float: 
-        return self.wb_red if channel == "Red" else self.wb_blue
+    def set_gamma(self, gamma=1.0): pass
+    def get_gamma(self): return 1.0
+    def set_gamma_enable(self, enabled): pass
+    def get_gamma_enable(self): return True
 
-    # --- Setters ---
-    def set_frame_rate(self, fps: float): self.fps = fps
-    def set_exposure(self, value: float): 
-        self.exposure_auto = "Off"
-        self.exposure = value
-    def set_exposure_auto(self, mode: str): self.exposure_auto = mode
-    def set_gain(self, value: float): 
-        self.gain_auto = "Off"
-        self.gain = value
-    def set_gain_auto(self, mode: str): self.gain_auto = mode
-    def set_gamma(self, value: float): self.gamma = value
-    def set_wb(self, channel: str, value: float):
-        if channel == "Red": self.wb_red = value
-        else: self.wb_blue = value
+    def set_gain(self, gain=10.0): pass
+    def get_gain(self): return 10.0
+    def set_gain_auto_mode(self, mode): pass
+    def get_gain_auto_mode(self): return "Off"
+
+    def set_exposure(self, expTime=16000): pass
+    def get_exposure(self): return 16000.0
+    def set_exposure_auto_mode(self, mode): pass
+    def get_exposure_auto_mode(self): return "Off"
+    def get_exposure_time_lower_limit(self): return 1.0
+
+    def set_frame_rate(self, frame_rate): pass
+    def get_frame_rate(self): return 30.0
+    def set_frame_rate_enable(self, enabled): pass
+    def get_frame_rate_enable(self): return True
