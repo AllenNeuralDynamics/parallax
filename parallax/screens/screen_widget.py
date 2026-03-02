@@ -266,9 +266,9 @@ class ScreenWidget(pg.GraphicsView):
                 elif setting == "wbRed":
                     self.camera.settings.set_wb("Red", val)
                 elif setting == "wbBlue":
-                    self.camera.set_wb("Blue", val)
+                    self.camera.settings.set_wb("Blue", val)
                 elif setting == "fps":
-                    self.camera.set_frame_rate(val)
+                    self.camera.settings.set_frame_rate(val)
         except Exception as e:
             logger.error(f"An error occurred while setting the camera setting: {e}")
 

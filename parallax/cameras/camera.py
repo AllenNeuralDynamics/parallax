@@ -27,7 +27,7 @@ except ImportError:
     logger.warning("Could not import PySpin.")
 
 
-def list_cameras(dummy=False):
+def list_cameras(dummy=False, n_mocks=0):
     """
     List available cameras.
 
@@ -38,9 +38,17 @@ def list_cameras(dummy=False):
     - list: List of available PySpin cameras.
     """
     cameras = []
-    if not dummy:
+    if dummy:
+        # Return mock cameras for testing
+        for i in range(n_mocks):
+            cameras.append(MockCamera())
+    else:
+        # Return actual hardware cameras
         if PySpin is not None:
-            cameras.extend(PySpinCamera.list_cameras())
+            try:
+                cameras.extend(PySpinCamera.list_cameras())
+            except Exception as e:
+                logger.error(f"Error listing PySpin cameras: {e}")
     return cameras
 
 def close_cameras():

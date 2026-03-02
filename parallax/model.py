@@ -156,27 +156,9 @@ class Model:
         """Initialize stages by clearing the current stages and calibration data."""
         self.stages = {}
 
-    def add_mock_cameras(self):
-        """Add mock cameras for testing purposes.
-
-        Args:
-            n (int): The number of mock cameras to add.
-        """
-        for _ in range(self.nMockCameras):
-            cam = MockCamera()
-            sn = cam.name(sn_only=True)
-            self.cameras[sn] = {
-                "obj": cam,
-                "visible": True,
-                "device_model": cam.device_model,
-                "is_triangulation_candidate": False,
-                "probe_detect_algorithm": "yolo",
-            }
-        print(" Cameras:", list(self.cameras.keys()))
-
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
-        cams = list_cameras(dummy=self.dummy)
+        cams = list_cameras(dummy=self.dummy, n_mocks=self.nMockCameras)
         for cam in cams:
             sn = cam.name(sn_only=True)
             self.cameras[sn] = {
@@ -193,6 +175,7 @@ class Model:
         print(" Cameras:", list(self.cameras.keys()))
 
     def initialize_camera_settings(self, cam, sn):
+        print("Initializing settings for camera:", sn)
         camera_config = self.config.cameras.get(sn)
         if camera_config is None:
             # Create default if missing and add to model
@@ -225,6 +208,7 @@ class Model:
             # 2. Sync Frame Rate
             camera_config.frameRateEnable = cam_settings.get_frame_rate_enable()
             camera_config.fps = cam_settings.get_frame_rate()
+            print("Reading settings - fps:", camera_config.fps)
 
             # 3. Sync Exposure (Convert us from HW back to ms for Schema)
             hw_exposure_us = cam_settings.get_exposure()
@@ -264,6 +248,7 @@ class Model:
             cam_settings.set_frame_rate_enable(camera_config.frameRateEnable)
             if camera_config.frameRateEnable:
                 cam_settings.set_frame_rate(camera_config.fps)
+            print("Applying settings - fps:", camera_config.fps)
 
             # 2. Exposure
             # Set mode first. If 'Continuous', manual 'set_exposure' will be ignored by the logic in PySpinSettings.
