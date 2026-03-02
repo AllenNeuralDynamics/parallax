@@ -1,3 +1,4 @@
+# parallax/cameras/camera.py
 """
 PySpinCamera: A class to interface with cameras using the PySpin library.
 """
@@ -26,7 +27,7 @@ except ImportError:
     logger.warning("Could not import PySpin.")
 
 
-def list_cameras(dummy=False, version="V1"):
+def list_cameras(dummy=False):
     """
     List available cameras.
 
@@ -36,22 +37,16 @@ def list_cameras(dummy=False, version="V1"):
     Returns:
     - list: List of available PySpin cameras.
     """
-    # Init version, V1: original, V2: WIP with new GUI
-    global VERSION
-    VERSION = version
-
     cameras = []
     if not dummy:
         if PySpin is not None:
             cameras.extend(PySpinCamera.list_cameras())
     return cameras
 
-
 def close_cameras():
     """Close all available cameras."""
     if PySpin is not None:
         PySpinCamera.close_cameras()
-
 
 class PySpinCamera(BaseCamera):
     """

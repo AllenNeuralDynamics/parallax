@@ -9,18 +9,20 @@ their initialization, configuration, and transformations between local and globa
 
 from collections import OrderedDict
 from typing import Optional
+from venv import logger
 import numpy as np
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.stages.stage_listener import Stage, StageInfo
+from parallax.config.schemas import CameraSettings
 
 
 class Model:
     """Model class to handle cameras, stages, and calibration data."""
 
-    def __init__(self, args=None, config=None, version="V2"):
+    def __init__(self, args=None, config=None):
         """Initialize the Model object.
 
         Args:
@@ -28,7 +30,6 @@ class Model:
             bundle_adjustment (bool): Whether to enable bundle adjustment for calibration.
         """
         # args from command line
-        self.version = version
         self.config = config
         self.dummy = getattr(args, "dummy", False)
         self.test = getattr(args, "test", False)
@@ -175,7 +176,7 @@ class Model:
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
-        cams = list_cameras(version=self.version)
+        cams = list_cameras(dummy=self.dummy)
         for cam in cams:
             sn = cam.name(sn_only=True)
             self.cameras[sn] = {
@@ -185,10 +186,67 @@ class Model:
                 "is_triangulation_candidate": False,
                 "probe_detect_algorithm": "yolo",
             }
+            self.initialize_camera_settings(cam, sn)
 
         self.nPySpinCameras = sum(isinstance(cam["obj"], PySpinCamera) for cam in self.cameras.values())
         self.nMockCameras = sum(isinstance(cam["obj"], MockCamera) for cam in self.cameras.values())
         print(" Cameras:", list(self.cameras.keys()))
+
+    def initialize_camera_settings(self, cam, sn):
+        camera_config = self.config.cameras.get(sn)
+        if camera_config is None:
+            # Create default if missing and add to model
+            # TODO Add rule for schema
+            camera_config = CameraSettings(customName=sn, fps=30, exposureTime_ms=15,
+                                               gain=0, gamma=100, wbRed=100, wbBlue=100, exp=100,
+                                               exposureAuto="Continuous", gainAuto="Continuous", wbAuto="Off")
+            self.config.cameras[sn] = camera_config
+        self._apply_setting_to_camera(cam.settings, camera_config)
+
+    def _apply_setting_to_camera(self, cam_settings, camera_config):
+        """
+        Maps the Pydantic camera_config values to the hardware abstraction layer (PySpinSettings).
+        """
+        try:
+            logger.info(f"Applying settings for camera: {camera_config.customName}")
+            # 1. Frame Rate
+            cam_settings.set_frame_rate_enable(camera_config.frameRateEnable)
+            if camera_config.frameRateEnable:
+                cam_settings.set_frame_rate(camera_config.fps)
+
+            # 2. Exposure
+            # Set mode first. If 'Continuous', manual 'set_exposure' will be ignored by the logic in PySpinSettings.
+            cam_settings.set_exposure_auto_mode(camera_config.exposureAuto)
+            if camera_config.exposureAuto == "Off":
+                # Convert ms (from schema) to us (hardware standard)
+                exposure_us = int(camera_config.exposureTime_ms * 1000)
+                cam_settings.set_exposure(exposure_us)
+
+            # 3. Gain
+            cam_settings.set_gain_auto_mode(camera_config.gainAuto)
+            if camera_config.gainAuto == "Off":
+                cam_settings.set_gain(camera_config.gain)
+
+            # 4. White Balance (Only for Color Cameras)
+            cam_settings.set_wb_auto_mode(camera_config.wbAuto)
+            if camera_config.wbAuto == "Off":
+                # Assuming schema wbRed/wbBlue are integers (0-1024),
+                # convert to the float ratio (usually 0.0 to ~4.0) expected by hardware
+                cam_settings.set_wb("Red", camera_config.wbRed / 100.0)
+                cam_settings.set_wb("Blue", camera_config.wbBlue / 100.0)
+
+            # 5. Gamma
+            cam_settings.set_gamma_enable(camera_config.gammaEnable)
+            if camera_config.gammaEnable:
+                # Assuming schema gamma 100 = 1.0 hardware value
+                gamma_val = camera_config.gamma / 100.0
+                cam_settings.set_gamma(gamma_val)
+
+            logger.info(f"Settings successfully applied to {camera_config.customName}")
+
+        except Exception as e:
+            logger.error(f"Failed to apply settings to camera {camera_config.customName}: {e}")
+
 
     def load_camera_config(self):
         CameraConfigManager.load_from_yaml(self)

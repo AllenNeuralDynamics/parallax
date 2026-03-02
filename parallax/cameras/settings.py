@@ -25,6 +25,7 @@ class PySpinSettings(BaseSettings):
         self.node_gamma = None
         self.node_framerate = None
 
+        # Set up nodes
         try:
             self._setup_buffer()
             self._setup_exposure()
@@ -38,7 +39,7 @@ class PySpinSettings(BaseSettings):
             print(f"Error initializing camera settings: {e}")
 
     def _setup_buffer(self):
-        # set BufferHandlingMode to NewestOnly (necessary to update the image)
+        # set BufferHandlingMode to NewestOnly to prevent queue buildup and latency
         node_bufferhandling_mode = PySpin.CEnumerationPtr(self.stream_nodemap.GetNode("StreamBufferHandlingMode"))
         node_newestonly = node_bufferhandling_mode.GetEntryByName("NewestOnly")
         node_newestonly_mode = node_newestonly.GetValue()
@@ -51,7 +52,7 @@ class PySpinSettings(BaseSettings):
         self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
         self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
         self.node_expauto_mode_once = self.node_expauto_mode.GetEntryByName("Once")
-        self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())  # Default: Auto mode on
+        #self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())  # Default: Auto mode on
 
     def _setup_white_balance(self):
         # Set White Balance
@@ -60,7 +61,7 @@ class PySpinSettings(BaseSettings):
         self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
         self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
         self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName("Continuous")
-        self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue())  # Default: Auto mode on
+        #self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue())  # Default: Auto mode on
 
         self.node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
         self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
@@ -74,24 +75,23 @@ class PySpinSettings(BaseSettings):
         self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName("Continuous")
         self.node_gainauto_mode_once = self.node_gainauto_mode.GetEntryByName("Once")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
-        self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())  # Default: Auto mode on
+        #self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())  # Default: Auto mode on
 
     def _setup_gamma(self):
         # set gamma
         self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
         self.node_gammaenable_mode.SetValue(True)  # Default: Gammal Enable on
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
-        self.node_gamma.SetValue(0.8)
+        #self.node_gamma.SetValue(0.8)
 
     def _setup_framerate(self):
         # set frame rate
         self.node_framerate_enable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("AcquisitionFrameRateEnable"))
         self.node_framerate_enable_mode.SetValue(True)  # Default: frame rate enable off
         self.node_resulting_fps = PySpin.CFloatPtr(self.node_map.GetNode("AcquisitionResultingFrameRate"))
-        print("Current Frame Rate: ", self.node_resulting_fps.GetValue())
         self.node_framerate = PySpin.CFloatPtr(self.node_map.GetNode("AcquisitionFrameRate"))
-        if PySpin.IsWritable(self.node_framerate):
-            self.node_framerate.SetValue(30.0)  # Default: Set frame rate to 30 fps
+        #if PySpin.IsWritable(self.node_framerate):
+        #    self.node_framerate.SetValue(30.0)  # Default: Set frame rate to 30 fps
 
     def _setup_pixel_format(self):
         # set pixel format
@@ -99,7 +99,6 @@ class PySpinSettings(BaseSettings):
         current_entry = node_pixelformat.GetCurrentEntry()
         current_format_str = current_entry.GetName() if current_entry else ""
         print(f"Current Pixel Format: {current_format_str}")  # EnumEntry_PixelFormat_BayerRG8
-
         self.pixelformat = None
         if self.device_color_type == "Mono":
             self.pixelformat = "Mono"

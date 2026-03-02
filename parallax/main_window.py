@@ -1,3 +1,4 @@
+# parallax/main_window.py
 """
 This script defines the main components of the application
 including the main window, UI elements,
