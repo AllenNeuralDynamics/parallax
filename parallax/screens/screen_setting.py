@@ -20,12 +20,6 @@ class ScreenSetting(QWidget):
 
         # Live reference to the model's camera settings
         self.camera_setting = self.model.config.cameras.get(self.sn)
-        if self.camera_setting is None:
-            # Create default if missing and add to model
-            self.camera_setting = CameraSettings(customName=self.sn, fps=30, exposureTime_ms=15, 
-                                               gain=0, gamma=100, wbRed=100, wbBlue=100, exp=100,
-                                               exposureAuto="Continuous", gainAuto="Continuous", wbAuto="Off")
-            self.model.config.cameras[self.sn] = self.camera_setting
 
         self.settingButton = self._get_setting_button(self.parent)  # UI - Button
         self.settingMenu = self._get_setting_menu(self.parent)  # UI - Menu

@@ -364,31 +364,50 @@ class PySpinSettings(BaseSettings):
 
 class MockSettings(BaseSettings):
     """
-    A minimal implementation that satisfies the BaseSettings contract 
-    without actually doing anything.
+    A functional Mock implementation that stores state.
+    Used to verify that initialize_camera_settings correctly
+    syncs between the Pydantic model and hardware abstraction.
     """
     def __init__(self):
-        pass
-    def set_wb(self, channel, wb=1.2): pass
-    def get_wb(self, channel): return 1.0
+        # Default internal state
+        self._wb_auto_mode = "Off"
+        self._wb_red = 1.0
+        self._wb_blue = 1.0
+        self._gamma_enable = True
+        self._gamma = 1.0
+        self._gain_auto_mode = "Off"
+        self._gain = 10.0
+        self._exposure_auto_mode = "Off"
+        self._exposure = 16000.0
+        self._frame_rate_enable = True
+        self._frame_rate = 30.0
 
-    def set_gamma(self, gamma=1.0): pass
-    def get_gamma(self): return 1.0
-    def set_gamma_enable(self, enabled): pass
-    def get_gamma_enable(self): return True
-
-    def set_gain(self, gain=10.0): pass
-    def get_gain(self): return 10.0
-    def set_gain_auto_mode(self, mode): pass
-    def get_gain_auto_mode(self): return "Off"
-
-    def set_exposure(self, expTime=16000): pass
-    def get_exposure(self): return 16000.0
-    def set_exposure_auto_mode(self, mode): pass
-    def get_exposure_auto_mode(self): return "Off"
+    # --- White Balance ---
+    def get_wb_auto_mode(self): return self._wb_auto_mode
+    def set_wb_auto_mode(self, mode): self._wb_auto_mode = mode
+    def get_wb(self, channel):
+        return self._wb_red if channel == "Red" else self._wb_blue
+    def set_wb(self, channel, wb=1.2):
+        if channel == "Red": self._wb_red = float(wb)
+        else: self._wb_blue = float(wb)
+    # --- Gamma ---
+    def get_gamma(self): return self._gamma
+    def set_gamma(self, gamma=1.0): self._gamma = float(gamma)
+    def get_gamma_enable(self): return self._gamma_enable
+    def set_gamma_enable(self, enabled): self._gamma_enable = bool(enabled)
+    # --- Gain ---
+    def get_gain(self): return self._gain
+    def set_gain(self, gain=10.0): self._gain = float(gain)
+    def get_gain_auto_mode(self): return self._gain_auto_mode
+    def set_gain_auto_mode(self, mode): self._gain_auto_mode = mode
+    # --- Exposure ---
+    def get_exposure(self): return self._exposure
+    def set_exposure(self, expTime=16000): self._exposure = float(expTime)
+    def get_exposure_auto_mode(self): return self._exposure_auto_mode
+    def set_exposure_auto_mode(self, mode): self._exposure_auto_mode = mode
     def get_exposure_time_lower_limit(self): return 1.0
-
-    def set_frame_rate(self, frame_rate): pass
-    def get_frame_rate(self): return 30.0
-    def set_frame_rate_enable(self, enabled): pass
-    def get_frame_rate_enable(self): return True
+    # --- Frame Rate ---
+    def get_frame_rate(self): return self._frame_rate
+    def set_frame_rate(self, frame_rate): self._frame_rate = float(frame_rate)
+    def get_frame_rate_enable(self): return self._frame_rate_enable
+    def set_frame_rate_enable(self, enabled): self._frame_rate_enable = bool(enabled)

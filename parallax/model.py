@@ -201,7 +201,58 @@ class Model:
                                                gain=0, gamma=100, wbRed=100, wbBlue=100, exp=100,
                                                exposureAuto="Continuous", gainAuto="Continuous", wbAuto="Off")
             self.config.cameras[sn] = camera_config
+        # Apply settings to camera hardware
         self._apply_setting_to_camera(cam.settings, camera_config)
+        # Read from hardware to update to model
+        self._read_camera_settings(cam.settings, sn)
+
+    def _read_camera_settings(self, cam_settings, sn):
+        """
+        Reads the current hardware state and updates the local configuration model.
+        This ensures the UI and config stay in sync with Auto-Exposure/Gain/WB.
+        """
+        camera_config = self.config.cameras.get(sn)
+        if not camera_config:
+            logger.error(f"No configuration found for camera {sn} during read.")
+            return
+
+        try:
+            # 1. Sync Modes (Auto vs Manual)
+            camera_config.exposureAuto = cam_settings.get_exposure_auto_mode()
+            camera_config.gainAuto = cam_settings.get_gain_auto_mode()
+            camera_config.wbAuto = cam_settings.get_wb_auto_mode()
+
+            # 2. Sync Frame Rate
+            camera_config.frameRateEnable = cam_settings.get_frame_rate_enable()
+            camera_config.fps = cam_settings.get_frame_rate()
+
+            # 3. Sync Exposure (Convert us from HW back to ms for Schema)
+            hw_exposure_us = cam_settings.get_exposure()
+            if hw_exposure_us > 0:
+                camera_config.exposureTime_ms = hw_exposure_us / 1000.0
+
+            # 4. Sync Gain
+            hw_gain = cam_settings.get_gain()
+            if hw_gain >= 0:
+                camera_config.gain = hw_gain
+
+            # 5. Sync White Balance (Convert ratio back to schema int 0-1024)
+            # Assuming schema 100 = 1.0 ratio
+            if camera_config.wbAuto == "Off":
+                camera_config.wbRed = int(cam_settings.get_wb("Red") * 100)
+                camera_config.wbBlue = int(cam_settings.get_wb("Blue") * 100)
+
+            # 6. Sync Gamma
+            camera_config.gammaEnable = cam_settings.get_gamma_enable()
+            hw_gamma = cam_settings.get_gamma()
+            if hw_gamma > 0:
+                camera_config.gamma = int(hw_gamma * 100)
+
+            logger.info(f"Successfully synced model with hardware for {sn}")
+
+        except Exception as e:
+            logger.error(f"Error reading hardware settings for {sn}: {e}")
+
 
     def _apply_setting_to_camera(self, cam_settings, camera_config):
         """
