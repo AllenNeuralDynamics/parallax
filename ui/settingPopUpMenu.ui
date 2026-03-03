@@ -262,10 +262,10 @@ font: 8pt;
    <item row="12" column="3">
     <widget class="QSlider" name="gammaSlider">
      <property name="minimum">
-      <number>30</number>
+      <number>25</number>
      </property>
      <property name="maximum">
-      <number>125</number>
+      <number>400</number>
      </property>
      <property name="singleStep">
       <number>1</number>
