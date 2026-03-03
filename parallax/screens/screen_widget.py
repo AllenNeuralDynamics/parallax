@@ -1,3 +1,4 @@
+# parallax/screens/screen_widget.py
 """
 Provides ScreenWidget for image interaction in microscopy apps, supporting image display,
 point selection, and zooming. It integrates with probe and reticle detection managers
@@ -112,6 +113,13 @@ class ScreenWidget(pg.GraphicsView):
         self.model.add_probe_detector(self.probeDetector)
         self.probeDetector.frame_processed.connect(self.set_image_from_data)
         self.probeDetector.found_coords.connect(self.found_probe_coords)
+
+    @property
+    def camera_hw(self):
+        """Direct access to the camera hardware settings."""
+        if self.camera and hasattr(self.camera, 'settings'):
+            return self.camera.settings
+        return None
 
     def refresh(self):
         """
@@ -235,73 +243,6 @@ class ScreenWidget(pg.GraphicsView):
     def set_image_from_data(self, data):
         """display image from data"""
         self.image_item.setImage(data, autoLevels=False)
-
-    def set_camera_auto_setting(self, setting, mode):
-        """Set the camera setting to auto mode based on the camera's current setting."""
-        try:
-            if setting == "exposure":
-                self.camera.settings.set_exposure_auto(mode)
-            elif setting == "gain":
-                self.camera.settings.set_gain_auto(mode)
-        except Exception as e:
-            logger.error(f"An error occurred while setting the camera auto setting: {e}")
-
-    def set_camera_setting(self, setting, val):
-        """
-        Set the camera settings. (exposure, gain, gamma, wb)
-
-        exposure (int): min: 90,000(10fps) max: 250,000(4fps)
-        gain (float): The desired gain value. min:0, max:27.0
-        wb (float): The desired white balance value. min:1.8, max:2.5
-        gamma (float): The desired gamma value. min:0.25 max:1.25
-        """
-        try:
-            if self.camera:
-                if setting == "exposure":
-                    self.camera.settings.set_exposure(val)
-                elif setting == "gain":
-                    self.camera.settings.set_gain(val)
-                elif setting == "gamma":
-                    self.camera.settings.set_gamma(val)
-                elif setting == "wbRed":
-                    self.camera.settings.set_wb("Red", val)
-                elif setting == "wbBlue":
-                    self.camera.settings.set_wb("Blue", val)
-                elif setting == "fps":
-                    self.camera.settings.set_frame_rate(val)
-        except Exception as e:
-            logger.error(f"An error occurred while setting the camera setting: {e}")
-
-    def get_camera_setting(self, setting):
-        """Get the specified camera setting value.
-
-        Args:
-            setting (str): The camera setting to retrieve.
-                Possible values: "exposure", "gain", "gamma", "wbRed", "wbBlue".
-
-        Returns:
-            float: The value of the specified camera setting.
-        """
-        try:
-            val = 0
-            if self.camera:
-                if setting == "exposure":
-                    val = self.camera.settings.get_exposure()
-                elif setting == "gain":
-                    val = self.camera.settings.get_gain()
-                elif setting == "gamma":
-                    self.camera.settings.disable_gamma()
-                elif setting == "wbRed":
-                    val = self.camera.settings.get_wb("Red")
-                elif setting == "wbBlue":
-                    val = self.camera.settings.get_wb("Blue")
-                elif setting == "fps":
-                    val = self.camera.settings.get_frame_rate()
-                print("setting:", setting, "val:", val)
-            return val
-        except Exception as e:
-            logger.error(f"An error occurred while getting the camera setting: {e}")
-            return None
 
     def get_camera_color_type(self):
         """Get the color type of the camera.

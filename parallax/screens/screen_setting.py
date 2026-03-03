@@ -1,6 +1,6 @@
 import logging
 import os
-from PyQt6.QtCore import QPoint
+from PyQt6.QtCore import QPoint, QTimer
 from PyQt6.QtWidgets import QWidget, QFileDialog, QPushButton, QToolButton
 from PyQt6.uic import loadUi
 
@@ -17,53 +17,116 @@ class ScreenSetting(QWidget):
         self.parent = parent
         self.screen = screen
         self.sn = self.screen.get_camera_name()
+        print("screen sn:", self.sn)
+        self.hw = self.screen.camera_hw
 
         # Live reference to the model's camera settings
         self.model_config = self.model.config.cameras.get(self.sn)
 
         self.settingButton = self._get_setting_button(self.parent)  # UI - Button
         self.settingMenu = self._get_setting_menu(self.parent)  # UI - Menu
-        self._setup_settingMenu()  # Singal connections and initial values
+        self._setup_signals()  # Signal connections and initial values
         self._update_ui_from_model() # model --> Gui & Camera on init
-        self.settingButton.toggled.connect(self._handle_menu_toggle)
+        self.settingButton.toggled.connect(self._handle_menu_visibility)
 
-    def _handle_menu_toggle(self, is_checked):
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.setInterval(200)  # Refresh every 200ms (5Hz)
+        self.refresh_timer.timeout.connect(self._periodic_sync)
+        print("ScreenSetting initialized for camera:", self.sn)
+
+    def _handle_menu_visibility(self, is_visible):
+        print("Toggling settings menu. Visible:", is_visible)
         try:
-            if is_checked:
-                #self._update_ui_from_model()
-                # Position logic
-                btn_pos = self.settingButton.mapToGlobal(QPoint(0, 0))
+            if is_visible:
+                self._periodic_sync()
+                btn_pos = self.settingButton.mapToGlobal(QPoint(0, 0)) # Position logic
                 parent_pos = self.parent.mapToGlobal(QPoint(0, 0))
                 self.settingMenu.move(btn_pos.x() + self.settingButton.width() - parent_pos.x(),
                                     btn_pos.y() - self.settingMenu.height() - parent_pos.y())
                 self.settingMenu.show()
+                self.refresh_timer.start()
             else:
+                self.refresh_timer.stop()
                 self.settingMenu.hide()
                 print("camera_setting fps:", self.model_config.fps)
                 print("fps:", self.model.config.cameras[self.sn].fps)
-                UserSettingsManager.save_settings(self.model.config)
+                #UserSettingsManager.save_settings(self.model.config)
         except Exception as e:
             logger.error(f"Error toggling settings menu: {e}")
 
+    def _periodic_sync(self):
+        """The combined loop: HW -> Model -> UI"""
+        if not self.hw or not self.model_config:
+            return
+        self._sync_hw_to_model()
+        self._update_ui_from_model()
+
+    def _sync_hw_to_model(self):
+        """
+        Pulls current values from hardware and updates the Pydantic model.
+        """
+        if not self.hw or not self.model_config:
+            logger.warning(f"Sync failed: Hardware or Model reference missing for {self.sn}")
+            return
+        try:
+            # 1. Sync Modes
+            self.model_config.exposureAuto = self.hw.get_exposure_auto_mode()
+            self.model_config.gainAuto = self.hw.get_gain_auto_mode()
+            self.model_config.wbAuto = self.hw.get_wb_auto_mode()
+            # 2. Sync Frame Rate
+            self.model_config.frameRateEnable = self.hw.get_frame_rate_enable()
+            self.model_config.fps = self.hw.get_frame_rate()  # Actual fps
+            # 3. Sync Exposure (Convert us back to ms for Pydantic)
+            hw_exp = self.hw.get_exposure()
+            if hw_exp > 0:
+                self.model_config.exposureTime_ms = hw_exp / 1000.0
+            # 4. Sync Gain
+            hw_gain = self.hw.get_gain()
+            if hw_gain >= 0:
+                self.model_config.gain = hw_gain
+            # 5. Sync White Balance (Convert float ratio to int 0-1024)
+            # Assuming 100 = 1.0 ratio based on your schema logic
+            self.model_config.wbRed = int(self.hw.get_wb("Red") * 100)
+            self.model_config.wbBlue = int(self.hw.get_wb("Blue") * 100)
+            # 6. Sync Gamma
+            self.model_config.gammaEnable = self.hw.get_gamma_enable()
+            hw_gamma = self.hw.get_gamma()
+            if hw_gamma > 0:
+                self.model_config.gamma = int(hw_gamma * 100)
+            logger.debug(f"Hardware state synced to model for {self.sn}")
+        except Exception as e:
+            logger.error(f"Failed to sync hardware to model for {self.sn}: {e}")
+
     def _update_ui_from_model(self):
-        """Syncs all GUI widgets to the current Model state while blocking recursive signals."""
+        """Updates all GUI elements to match the current Pydantic model state."""
         if not self.model_config:
             return
-        # --- Custom Name ---
-        self.settingMenu.customName.setText(self.model_config.customName)
-        # --- Framerate (FPS) ---
-        self.settingMenu.fpsSlider.setValue(int(self.model_config.fps))
-        self.settingMenu.fpsSlider.sliderReleased.emit()
-        # --- Exposure ---
-        self.settingMenu.expSlider.setValue(int(self.model_config.exposureTime_ms))
-        # --- Gain ---
-        self.settingMenu.gainSlider.setValue(int(self.model_config.gain))
-        # --- Gamma ---
-        self.settingMenu.gammaSlider.setValue(int(self.model_config.gamma))
-        # --- White Balance (Color Channels) ---
-        self.settingMenu.wbSliderRed.setValue(int(self.model_config.wbRed))
-        self.settingMenu.wbSliderBlue.setValue(int(self.model_config.wbBlue))
 
+        # Block signals temporarily to prevent infinite loops during UI refresh
+        self.settingMenu.blockSignals(True)
+        print("Updating UI from model for camera:", self.sn)
+        # FPS
+        self.settingMenu.fpsSlider.setEnabled(self.model_config.frameRateEnable)
+        self.settingMenu.fpsSlider.setValue(int(self.model_config.fps))
+        #self.settingMenu.fpsNum.setNum(int(self.model_config.fps))
+        # Exposure  
+        self.settingMenu.expSlider.setEnabled(self.model_config.exposureAuto == "off")
+        self.settingMenu.expSlider.setValue(int(self.model_config.exposureTime_ms))
+        self.settingMenu.expNum.setNum(int(self.model_config.exposureTime_ms))
+        # Gain
+        self.settingMenu.gainSlider.setEnabled(self.model_config.gainAuto == "off")
+        self.settingMenu.gainSlider.setValue(int(self.model_config.gain))
+        self.settingMenu.gainNum.setNum(int(self.model_config.gain))
+        # White Balance & Gamma
+        self.settingMenu.wbSliderRed.setEnabled(self.model_config.wbAuto == "off")
+        self.settingMenu.wbSliderBlue.setEnabled(self.model_config.wbAuto == "off")
+        self.settingMenu.wbSliderRed.setValue(self.model_config.wbRed)
+        self.settingMenu.wbSliderBlue.setValue(self.model_config.wbBlue)
+        self.settingMenu.gammaSlider.setValue(self.model_config.gamma)
+        # gamma
+        self.settingMenu.gammaSlider.setEnabled(self.model_config.gammaEnable)
+        self.settingMenu.gammaSlider.setValue(int(self.model_config.gamma))
+        self.settingMenu.blockSignals(False)
 
     def _sync_ui_to_model(self):
         """Pushes current UI values into the live Model reference."""
@@ -74,17 +137,21 @@ class ScreenSetting(QWidget):
         self.model_config.gain = float(self.settingMenu.gainSlider.value())
         self.model_config.gamma = int(self.settingMenu.gammaSlider.value())
 
-    def _setup_settingMenu(self):
+    def _setup_signals(self):
         # Should sync "GUI & camera(HW) & model state"
         self._setup_sn()
         self._setup_custom_name()
+        self._setup_fps_enable()
+        self._setup_fps()
+        self._setup_exposure_auto()
         self._setup_exposure()
+        self._setup_gain_auto()
         self._setup_gain()
-        self._setup_gamma()
-        #self._setup_gamma_auto()
+        self._setup_white_balance_auto_btn()
         self._setup_white_balance_auto()
-        self._setup_color_channel()
-        self._setup_framerate()
+        self._setup_white_balance()
+        self._setup_gamma_enable()
+        self._setup_gamma()
 
     def _setup_sn(self):
         #self.model_config.customName = self.sn  # update model
@@ -96,79 +163,136 @@ class ScreenSetting(QWidget):
             self._update_groupbox_name(self.parent, text)  # update GUI
         self.settingMenu.customName.textChanged.connect(on_name_changed)
 
-    def _setup_framerate(self):
+    def _setup_fps_enable(self):
+        """Initializes the FPS manual control toggle."""
         def on_sync():
+            """Handles hardware and model sync when FPS toggle changes."""
+            new_state = not self.model_config.frameRateEnable
+            self.hw.set_frame_rate_enable(new_state)
+            if new_state:     # if frame rate is enabled, switch exp and gain to 'continuous' mode
+                self.hw.set_exposure_auto_mode("Continuous")
+                self.hw.set_gain_auto_mode("Continuous")
+        # Connect the signal (No parentheses here!)
+        self.settingMenu.fpsAuto.clicked.connect(on_sync)
+
+    def _setup_fps(self):
+        def on_sync_release():
             val = self.settingMenu.fpsSlider.value()
-            self.screen.set_camera_setting("fps", val)  # Update camera
-            actual_val = self.screen.get_camera_setting("fps")
-            # Update the actual fps value from camera
-            if actual_val is not None:
-                self.model_config.fps = float(actual_val)  # Update model
-                print("Requested FPS:", val, "Actual FPS from camera:", actual_val, self.model_config.fps)
-                # Update slider to actual value. User can see actual fps value from slider.
-                self.settingMenu.fpsSlider.setValue(int(actual_val)) # Update GUI
-        self.settingMenu.fpsSlider.valueChanged.connect(lambda v: self.settingMenu.fpsNum.setNum(v)) # Update GUI
-        # Due to the HW delay, we only sync on slider release.
-        self.settingMenu.fpsSlider.sliderReleased.connect(on_sync)
+            if self.hw:
+                self.hw.set_frame_rate(val)
+        def on_sync_change():
+            val = self.settingMenu.fpsSlider.value()
+            self.settingMenu.fpsNum.setNum(val)  # Update GUI immediately on slider change
+        self.settingMenu.fpsSlider.sliderReleased.connect(on_sync_release)
+        self.settingMenu.fpsSlider.valueChanged.connect(on_sync_change)
 
-    def _setup_gain(self):
+    def _setup_exposure_auto(self):
         def on_sync():
-            val = self.settingMenu.gainSlider.value()
-            self.screen.set_camera_setting("gain", val)  # Update Camera
-            self.model_config.gain = float(val)  # Update model
-            self.settingMenu.gainNum.setNum(val)  # Update GUI
-        self.settingMenu.gainSlider.valueChanged.connect(on_sync)
-
-    def _setup_gamma(self):
-        def on_sync():
-            val = self.settingMenu.gammaSlider.value()
-            self.screen.set_camera_setting("gamma", val/100.0)  # Update Camera
-            self.model_config.gamma = int(val)  # Update model
-            self.settingMenu.gammaNum.setNum(val)  # Update GUI
-        self.settingMenu.gainSlider.valueChanged.connect(on_sync)
-
-    def _setup_white_balance_auto(self):
-        settingLayout = self.settingMenu.layout()
-        settingLayout.addWidget(self.settingMenu.wbAuto, 10, 1, 2, 1)
-        # TODO Setup actual W/B controls and sync
-
-    def _setup_color_channel(self):
-        def on_sync_blue():
-            val = self.settingMenu.wbSliderBlue.value()
-            self.screen.set_camera_setting("wbBlue", val/100.0)  # Update Camera
-            self.model_config.wbBlue = int(val)  # Update model
-            self.settingMenu.wbNumBlue.setNum(val)  # Update GUI
-        def on_sync_red():
-            val = self.settingMenu.wbSliderRed.value()
-            self.screen.set_camera_setting("wbRed", val/100.0)  # Update Camera
-            self.model_config.wbRed = int(val)  # Update model
-            self.settingMenu.wbNumRed.setNum(val)  # Update GUI
-        self.settingMenu.wbSliderBlue.valueChanged.connect(on_sync_blue)
-        self.settingMenu.wbSliderRed.valueChanged.connect(on_sync_red)
-
-    def _setup_white_balance(self):
-        def on_sync():
-            val = self.settingMenu.gammaSlider.value()
-            self.screen.set_camera_setting("gamma", val)
-            self.model_config.gamma = int(val)
-        self.settingMenu.gammaSlider.valueChanged.connect(lambda v: self.settingMenu.gammaNum.setNum(v))
-        self.settingMenu.gainSlider.valueChanged.connect(on_sync)
+            # If fps is enabled, do nothing. (mode is continouse and slide is disabled)
+            if self.model_config.frameRateEnable:
+                return
+            new_state = "Off" if self.model_config.exposureAuto == "Continuous" else "Continuous"
+            if new_state == "Continuous":
+                self.hw.set_exposure_auto_mode("Continuous")
+                self.settingMenu.expSlider.setEnabled(False)
+            elif new_state == "Off":
+                self.hw.set_exposure_auto_mode("Off")
+                self.settingMenu.expSlider.setEnabled(True)
+        self.settingMenu.expAuto.clicked.connect(on_sync)
 
     def _setup_exposure(self):
-        def on_sync():
+        def on_sync_release():
             val = self.settingMenu.expSlider.value()
-            self.screen.set_camera_setting("exposure", val * 1000)  # Update Camera
-            self.model_config.exposureTime_ms = float(val)  # Update model
-            self.settingMenu.expNum.setNum(val)  # Update GUI
-        self.settingMenu.expSlider.valueChanged.connect(on_sync)
-        #self.settingMenu.expAuto.clicked.connect(self._toggle_exposure_auto)
+            if self.hw:
+                self.hw.set_exposure(val * 1000)
+        def on_sync_change():
+            val = self.settingMenu.expSlider.value()
+            self.settingMenu.expNum.setNum(val)  # Update GUI immediately on slider change
+        self.settingMenu.expSlider.sliderReleased.connect(on_sync_release)
+        self.settingMenu.expSlider.valueChanged.connect(on_sync_change)
 
-    def _toggle_exposure_auto(self):
-        current = self.model_config.exposureAuto
-        new_mode = "Off" if current == "Continuous" else "Continuous"
-        self.model_config.exposureAuto = new_mode
-        self.screen.set_camera_auto_setting("exposure", new_mode)
-        self.settingMenu.expSlider.setEnabled(new_mode == "Off")
+    def _setup_gain_auto(self):
+        def on_sync():
+            # If fps is enabled, do nothing. (mode is continouse and slide is disabled)
+            if self.model_config.frameRateEnable:
+                return
+            new_state = "Off" if self.model_config.gainAuto == "Continuous" else "Continuous"
+            if new_state == "Continuous":
+                self.hw.set_gain_auto_mode("Continuous")
+                self.settingMenu.gainSlider.setEnabled(False)
+            elif new_state == "Off":
+                self.hw.set_gain_auto_mode("Off")
+                self.settingMenu.gainSlider.setEnabled(True)
+        self.settingMenu.gainAuto.clicked.connect(on_sync)
+
+    def _setup_gain(self):
+        def on_sync_release():
+            val = self.settingMenu.gainSlider.value()
+            if self.hw:
+                self.hw.set_gain(val)
+        def on_sync_change():
+            val = self.settingMenu.gainSlider.value()
+            self.settingMenu.gainNum.setNum(val)  # Update GUI immediately on slider change
+        self.settingMenu.gainSlider.sliderReleased.connect(on_sync_release)
+        self.settingMenu.gainSlider.valueChanged.connect(on_sync_change)
+
+    def _setup_white_balance_auto_btn(self):
+        settingLayout = self.settingMenu.layout()
+        settingLayout.addWidget(self.settingMenu.wbAuto, 10, 1, 2, 1)
+
+    def _setup_white_balance_auto(self):
+        def on_sync():
+            new_state = "Off" if self.model_config.wbAuto == "Continuous" else "Continuous"
+            if new_state == "Continuous":
+                self.hw.set_wb_auto_mode("Continuous")
+                self.settingMenu.wbSliderRed.setEnabled(False)
+                self.settingMenu.wbSliderBlue.setEnabled(False)
+            elif new_state == "Off":
+                self.hw.set_wb_auto_mode("Off")
+                self.settingMenu.wbSliderRed.setEnabled(True)
+                self.settingMenu.wbSliderBlue.setEnabled(True)
+        self.settingMenu.wbAuto.clicked.connect(on_sync)
+
+    def _setup_white_balance(self):
+        """Individual logic for Red and Blue sliders (HW Sync on Release)."""
+        def on_change_red(val):
+            # Immediate UI feedback only
+            self.settingMenu.wbNumRed.setNum(val)
+        def on_release_red():
+            if self.hw:
+                val = self.settingMenu.wbSliderRed.value()
+                self.hw.set_wb("Red", val / 100.0)
+        def on_change_blue(val):
+            self.settingMenu.wbNumBlue.setNum(val)
+        def on_release_blue():
+            if self.hw:
+                val = self.settingMenu.wbSliderBlue.value()
+                self.hw.set_wb("Blue", val / 100.0)
+        self.settingMenu.wbSliderRed.valueChanged.connect(on_change_red)
+        self.settingMenu.wbSliderRed.sliderReleased.connect(on_release_red)
+        self.settingMenu.wbSliderBlue.valueChanged.connect(on_change_blue)
+        self.settingMenu.wbSliderBlue.sliderReleased.connect(on_release_blue)
+
+        """Initializes the FPS manual control toggle."""
+    def _setup_gamma_enable(self):
+        def on_sync():
+            """Handles hardware and model sync when gamma toggle changes."""
+            new_state = not self.model_config.gammaEnable
+            self.hw.set_gamma_enable(new_state)
+        # Connect the signal (No parentheses here!)
+        self.settingMenu.gammaAuto.clicked.connect(on_sync)
+
+    def _setup_gamma(self):
+        def on_sync_release():
+            val = self.settingMenu.gammaSlider.value()
+            if self.hw:
+                self.hw.set_gamma(val)
+        def on_sync_change():
+            val = self.settingMenu.gammaSlider.value()
+            self.settingMenu.gammaNum.setNum(val)
+        self.settingMenu.gammaSlider.sliderReleased.connect(on_sync_release)
+        self.settingMenu.gammaSlider.valueChanged.connect(on_sync_change)
+
 
     def _update_groupbox_name(self, groupbox, name):
         groupbox.setTitle(name)
@@ -204,5 +328,6 @@ class ScreenSetting(QWidget):
         btn = QToolButton(parent)
         btn.setCheckable(True)
         btn.setText("SETTINGS \u25ba")
+        btn.setMinimumSize(80, 25)
         return btn
     

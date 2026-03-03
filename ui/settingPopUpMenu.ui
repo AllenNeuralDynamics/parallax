@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>264</width>
-    <height>210</height>
+    <height>207</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -292,6 +292,9 @@ font: 8pt;
      <property name="text">
       <string>♦</string>
      </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
     </widget>
    </item>
    <item row="12" column="0">
@@ -354,6 +357,9 @@ font: 8pt;
      <property name="text">
       <string>♦</string>
      </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
     </widget>
    </item>
    <item row="8" column="4">
@@ -391,6 +397,9 @@ font: 8pt;
      <property name="text">
       <string>♦</string>
      </property>
+     <property name="checkable">
+      <bool>false</bool>
+     </property>
     </widget>
    </item>
    <item row="12" column="1">
@@ -403,6 +412,9 @@ font: 8pt;
      </property>
      <property name="text">
       <string>♦</string>
+     </property>
+     <property name="checkable">
+      <bool>false</bool>
      </property>
     </widget>
    </item>

@@ -1,3 +1,4 @@
+# parallax/screens/screen_widget_manager.py
 import logging
 import os
 

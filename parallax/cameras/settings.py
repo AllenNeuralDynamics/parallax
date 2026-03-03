@@ -11,6 +11,7 @@ except ImportError:
     PySpin = None
     logger.warning("Could not import PySpin.")
 
+
 class PySpinSettings(BaseSettings):
     def __init__(self, sn, node_map, s_notemap, device_color_type):
         self.sn = sn
