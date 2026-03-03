@@ -8,21 +8,21 @@ class CameraSettings(BaseModel):
     # Match the order of your camera_settings.yaml
     customName: str = ""
     # fps
-    frameRateEnable: bool = True
-    fps: float = Field(ge=1.0, le=32.0)
+    frameRateEnable: bool = False
+    fps: float = Field(default=31.0, ge=1.0, le=32.0)
     # exposure
-    exposureAuto: Literal["Off", "Once", "Continuous"]
-    exposureTime_ms: float = Field(ge=0.01, le=30000.0)
+    exposureAuto: Literal["Off", "Once", "Continuous"] = "Continuous"
+    exposureTime_ms: float = Field(default=14.9, ge=0.01, le=30000.0)
     # gain
-    gainAuto: Literal["Off", "Once", "Continuous"]
-    gain: float = Field(ge=0.0, le=27.05)
+    gainAuto: Literal["Off", "Once", "Continuous"] = "Continuous"
+    gain: float = Field(default=18.03, ge=0.0, le=27.05)
     # white balance
-    wbAuto: Literal["Off", "Once", "Continuous"]
-    wbBlue: int = Field(ge=0, le=400)
-    wbRed: int = Field(ge=0, le=400)
+    wbAuto: Literal["Off", "Once", "Continuous"] = "Continuous"
+    wbBlue: int = Field(default=183, ge=0, le=400)
+    wbRed: int = Field(default=110, ge=0, le=400)
     # gamma
     gammaEnable: bool = True
-    gamma: int = Field(ge=0, le=400)
+    gamma: int = Field(default=80, ge=0, le=400)
 
     @model_validator(mode='after')
     def validate_auto_modes_for_fps(self) -> 'CameraSettings':

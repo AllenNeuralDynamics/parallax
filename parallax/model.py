@@ -178,11 +178,7 @@ class Model:
         print("Initializing settings for camera:", sn)
         camera_config = self.config.cameras.get(sn)
         if camera_config is None:
-            # Create default if missing and add to model
-            # TODO Add rule for schema
-            camera_config = CameraSettings(customName=sn, fps=30, exposureTime_ms=15,
-                                               gain=0, gamma=100, wbRed=100, wbBlue=100, exp=100,
-                                               exposureAuto="Continuous", gainAuto="Continuous", wbAuto="Off")
+            camera_config = CameraSettings(customName=sn)
             self.config.cameras[sn] = camera_config
         # Apply settings to camera hardware
         self._apply_setting_to_camera(cam.settings, camera_config)
