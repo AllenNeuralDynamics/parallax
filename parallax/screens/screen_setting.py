@@ -26,7 +26,6 @@ class ScreenSetting(QWidget):
         self.settingButton = self._get_setting_button(self.parent)  # UI - Button
         self.settingMenu = self._get_setting_menu(self.parent)  # UI - Menu
         self._setup_signals()  # Signal connections and initial values
-        self._update_ui_from_model() # model --> Gui & Camera on init
         self.settingButton.toggled.connect(self._handle_menu_visibility)
 
         self.refresh_timer = QTimer(self)
@@ -50,7 +49,7 @@ class ScreenSetting(QWidget):
                 self.settingMenu.hide()
                 print("camera_setting fps:", self.model_config.fps)
                 print("fps:", self.model.config.cameras[self.sn].fps)
-                #UserSettingsManager.save_settings(self.model.config)
+                UserSettingsManager.save_settings(self.model.config)
         except Exception as e:
             logger.error(f"Error toggling settings menu: {e}")
 
@@ -111,17 +110,14 @@ class ScreenSetting(QWidget):
         if not self.settingMenu.fpsSlider.isSliderDown():
             self.settingMenu.fpsSlider.setEnabled(self.model_config.frameRateEnable)
             self.settingMenu.fpsSlider.setValue(round(self.model_config.fps))
-            #self.settingMenu.fpsNum.setNum(int(self.model_config.fps))
         # Exposure
         if not self.settingMenu.expSlider.isSliderDown():
             self.settingMenu.expSlider.setEnabled(self.model_config.exposureAuto == "Off")
             self.settingMenu.expSlider.setValue(round(self.model_config.exposureTime_ms))
-            #self.settingMenu.expNum.setNum(int(self.model_config.exposureTime_ms))
         # Gain
         if not self.settingMenu.gainSlider.isSliderDown():
             self.settingMenu.gainSlider.setEnabled(self.model_config.gainAuto == "Off")
             self.settingMenu.gainSlider.setValue(round(self.model_config.gain))
-            #self.settingMenu.gainNum.setNum(int(self.model_config.gain))
         # White Balance
         if not self.settingMenu.wbSliderRed.isSliderDown():
             self.settingMenu.wbSliderRed.setEnabled(self.model_config.wbAuto == "Off")

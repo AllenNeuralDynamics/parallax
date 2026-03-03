@@ -70,7 +70,8 @@ class UserSettingsManager:
     def save_settings(cls, settings: AppSchema):
         """Persists the validated AppSchema back to YAML."""
         try:
-            data = settings.model_dump()
+            validated_settings = settings.model_validate(settings)
+            data = validated_settings.model_dump()
             with open(cls.settings_file, "w") as file:
                 yaml.dump(data, file, default_flow_style=False, sort_keys=False)
         except Exception as e:
