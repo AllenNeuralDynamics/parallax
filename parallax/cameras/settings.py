@@ -62,6 +62,7 @@ class PySpinSettings(BaseSettings):
         self.node_wbauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceWhiteAuto"))
         self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
         self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName("Continuous")
+        self.node_wbauto_mode_once = self.node_wbauto_mode.GetEntryByName("Once")
         #self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue())  # Default: Auto mode on
 
         self.node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))

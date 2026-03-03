@@ -73,6 +73,7 @@ class ScreenSetting(QWidget):
             self.model_config.exposureAuto = self.hw.get_exposure_auto_mode()
             self.model_config.gainAuto = self.hw.get_gain_auto_mode()
             self.model_config.wbAuto = self.hw.get_wb_auto_mode()
+
             # 2. Sync Frame Rate
             self.model_config.frameRateEnable = self.hw.get_frame_rate_enable()
             self.model_config.fps = self.hw.get_frame_rate()  # Actual fps
@@ -90,10 +91,11 @@ class ScreenSetting(QWidget):
             self.model_config.wbBlue = int(self.hw.get_wb("Blue") * 100)
             # 6. Sync Gamma
             self.model_config.gammaEnable = self.hw.get_gamma_enable()
-            hw_gamma = self.hw.get_gamma()
-            if hw_gamma > 0:
-                self.model_config.gamma = int(hw_gamma * 100)
-            logger.debug(f"Hardware state synced to model for {self.sn}")
+            if self.model_config.gammaEnable:
+                hw_gamma = self.hw.get_gamma()
+                if hw_gamma > 0:
+                    self.model_config.gamma = int(hw_gamma * 100)
+                logger.debug(f"Hardware state synced to model for {self.sn}")
         except Exception as e:
             logger.error(f"Failed to sync hardware to model for {self.sn}: {e}")
 
@@ -104,44 +106,34 @@ class ScreenSetting(QWidget):
 
         # Block signals temporarily to prevent infinite loops during UI refresh
         self.settingMenu.blockSignals(True)
-        print("Updating UI from model for camera:", self.sn)
         # FPS
         # Only update the slider position if the user isn't touching it
         if not self.settingMenu.fpsSlider.isSliderDown():
             self.settingMenu.fpsSlider.setEnabled(self.model_config.frameRateEnable)
-            self.settingMenu.fpsSlider.setValue(int(self.model_config.fps))
+            self.settingMenu.fpsSlider.setValue(round(self.model_config.fps))
             #self.settingMenu.fpsNum.setNum(int(self.model_config.fps))
         # Exposure
         if not self.settingMenu.expSlider.isSliderDown():
-            self.settingMenu.expSlider.setEnabled(self.model_config.exposureAuto == "off")
-            self.settingMenu.expSlider.setValue(int(self.model_config.exposureTime_ms))
+            self.settingMenu.expSlider.setEnabled(self.model_config.exposureAuto == "Off")
+            self.settingMenu.expSlider.setValue(round(self.model_config.exposureTime_ms))
             #self.settingMenu.expNum.setNum(int(self.model_config.exposureTime_ms))
         # Gain
         if not self.settingMenu.gainSlider.isSliderDown():
-            self.settingMenu.gainSlider.setEnabled(self.model_config.gainAuto == "off")
-            self.settingMenu.gainSlider.setValue(int(self.model_config.gain))
+            self.settingMenu.gainSlider.setEnabled(self.model_config.gainAuto == "Off")
+            self.settingMenu.gainSlider.setValue(round(self.model_config.gain))
             #self.settingMenu.gainNum.setNum(int(self.model_config.gain))
-        # White Balance & Gamma
+        # White Balance
         if not self.settingMenu.wbSliderRed.isSliderDown():
-            self.settingMenu.wbSliderRed.setEnabled(self.model_config.wbAuto == "off")
+            self.settingMenu.wbSliderRed.setEnabled(self.model_config.wbAuto == "Off")
             self.settingMenu.wbSliderRed.setValue(self.model_config.wbRed)
         if not self.settingMenu.wbSliderBlue.isSliderDown():
             self.settingMenu.wbSliderBlue.setValue(self.model_config.wbBlue)
-            self.settingMenu.wbSliderBlue.setEnabled(self.model_config.wbAuto == "off")
+            self.settingMenu.wbSliderBlue.setEnabled(self.model_config.wbAuto == "Off")
         # gamma
         if not self.settingMenu.gammaSlider.isSliderDown():
             self.settingMenu.gammaSlider.setEnabled(self.model_config.gammaEnable)
-            self.settingMenu.gammaSlider.setValue(int(self.model_config.gamma))
+            self.settingMenu.gammaSlider.setValue(round(self.model_config.gamma))
         self.settingMenu.blockSignals(False)
-
-    def _sync_ui_to_model(self):
-        """Pushes current UI values into the live Model reference."""
-        if not self.camera_setting: return
-        self.model_config.customName = self.settingMenu.customName.text()
-        self.model_config.fps = float(self.settingMenu.fpsSlider.value())
-        self.model_config.exposureTime_ms = float(self.settingMenu.expSlider.value())
-        self.model_config.gain = float(self.settingMenu.gainSlider.value())
-        self.model_config.gamma = int(self.settingMenu.gammaSlider.value())
 
     def _setup_signals(self):
         # Should sync "GUI & camera(HW) & model state"
@@ -248,7 +240,9 @@ class ScreenSetting(QWidget):
 
     def _setup_white_balance_auto(self):
         def on_sync():
+            current_mode = self.model_config.wbAuto
             new_state = "Off" if self.model_config.wbAuto == "Continuous" else "Continuous"
+            print(f"User Click -> Toggle WB Auto: {current_mode} -> {new_state}")
             if new_state == "Continuous":
                 self.hw.set_wb_auto_mode("Continuous")
                 self.settingMenu.wbSliderRed.setEnabled(False)
@@ -294,11 +288,10 @@ class ScreenSetting(QWidget):
             if self.hw:
                 self.hw.set_gamma(val)
         def on_sync_change():
-            val = self.settingMenu.gammaSlider.value()
-            self.settingMenu.gammaNum.setNum(val)
+            val = self.settingMenu.gammaSlider.value()/100.0
+            self.settingMenu.gammaNum.setText(f"{val:.1f}")
         self.settingMenu.gammaSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.gammaSlider.valueChanged.connect(on_sync_change)
-
 
     def _update_groupbox_name(self, groupbox, name):
         groupbox.setTitle(name)

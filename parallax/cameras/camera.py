@@ -147,7 +147,7 @@ class PySpinCamera(BaseCamera):
         # Settings
         self.node_map = self.camera.GetNodeMap()
         self.s_nodemap = self.camera.GetTLStreamNodeMap()
-        self.settings = PySpinSettings(sn, self.node_map, self.s_nodemap, camera_color_type)
+        self.settings = PySpinSettings(sn, self.node_map, self.s_nodemap, self.device_color_type)
 
         try:
             self.camera_info()
