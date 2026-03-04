@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from PyQt6.QtCore import Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QPushButton, QWidget, QMessageBox
+from PyQt6.QtWidgets import QMessageBox, QPushButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir

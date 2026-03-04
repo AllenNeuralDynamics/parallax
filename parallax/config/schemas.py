@@ -1,7 +1,8 @@
 # parallax/config/schemas.py
-from pydantic import BaseModel, Field, model_validator
-from typing import Dict, Literal
 from pathlib import Path
+from typing import Dict, Literal
+
+from pydantic import BaseModel, Field, model_validator
 
 # ----- Pydantic Schemas for Camera Settings Validation -----
 

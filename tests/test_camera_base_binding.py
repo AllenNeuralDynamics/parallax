@@ -6,6 +6,7 @@ import pytest
 
 from parallax.cameras.camera_base_binding import BaseCamera, BaseSettings
 
+
 class DummySettings(BaseSettings):
     """Concrete implementation of BaseSettings for testing."""
     pass

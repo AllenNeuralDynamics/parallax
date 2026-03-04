@@ -1,5 +1,6 @@
 # parallax/cameras/settings.py
 import logging
+
 from parallax.cameras.camera_base_binding import BaseSettings
 
 logger = logging.getLogger(__name__)

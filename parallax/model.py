@@ -10,13 +10,15 @@ their initialization, configuration, and transformations between local and globa
 from collections import OrderedDict
 from typing import Optional
 from venv import logger
+
 import numpy as np
+
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
+from parallax.config.schemas import CameraSettings
 from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.stages.stage_listener import Stage, StageInfo
-from parallax.config.schemas import CameraSettings
 
 
 class Model:

@@ -14,8 +14,9 @@ Example:
 
 import logging
 import os
-from dataclasses import asdict, is_dataclass
 import sys
+from dataclasses import asdict, is_dataclass
+
 import numpy as np
 import yaml
 

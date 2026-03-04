@@ -7,6 +7,7 @@ import atexit
 import sys
 
 from PyQt6.QtWidgets import QApplication
+
 from . import __version__
 from .config.cli import parse_args, print_arg_info
 from .config.config_path import PARALLAX_ASCII, setup_logging

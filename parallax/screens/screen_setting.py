@@ -1,7 +1,8 @@
 import logging
 import os
+
 from PyQt6.QtCore import QPoint, QTimer
-from PyQt6.QtWidgets import QWidget, QFileDialog, QPushButton, QToolButton
+from PyQt6.QtWidgets import QFileDialog, QPushButton, QToolButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
