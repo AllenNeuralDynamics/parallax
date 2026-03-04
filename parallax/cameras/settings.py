@@ -417,7 +417,7 @@ class MockSettings(BaseSettings):
     def set_gain_auto_mode(self, mode): self._gain_auto_mode = mode
     # --- Exposure ---
     def get_exposure(self): return self._exposure
-    def set_exposure(self, expTime=16000): self._exposure = float(expTime)
+    def set_exposure(self, expTime_us=16000): self._exposure = float(expTime_us)
     def get_exposure_auto_mode(self): return self._exposure_auto_mode
     def set_exposure_auto_mode(self, mode): self._exposure_auto_mode = mode
     def get_exposure_time_lower_limit(self): return 1.0

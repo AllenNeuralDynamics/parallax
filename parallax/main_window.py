@@ -71,7 +71,7 @@ class MainWindow(QMainWindow):
         self._set_font()
 
         # Load existing user preferences
-        _, self.dir, width, height = UserSettingsManager.load_gui_settings()
+        self.dir, width, height = UserSettingsManager.load_gui_settings()
         if width is not None and height is not None:
             self.resize(width, height)
         if self.dir is None or not os.path.exists(self.dir):

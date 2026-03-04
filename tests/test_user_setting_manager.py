@@ -83,7 +83,7 @@ def test_save_and_load_settings_roundtrip(tmp_settings_file):
 
 def test_save_user_configs_and_load_main_window(tmp_settings_file, tmp_path):
     UserSettingsManager.save_gui_settings(str(tmp_path), 1024, 768)
-    _, directory, width, height = UserSettingsManager.load_gui_settings()
+    directory, width, height = UserSettingsManager.load_gui_settings()
     assert width == 1024
     assert directory == str(tmp_path)
 

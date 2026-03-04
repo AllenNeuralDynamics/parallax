@@ -99,8 +99,7 @@ class UserSettingsManager:
         """Compatibility helper for MainWindow initialization."""
         settings = cls.load_and_validate()
         g = settings.gui
-        # Returns: nColumn (default 1), directory, width, height
-        return 1, g.directory, g.width, g.height
+        return g.directory, g.width, g.height
 
     @classmethod
     def save_gui_settings(cls, directory, width, height):
