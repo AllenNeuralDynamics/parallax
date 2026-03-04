@@ -9,7 +9,7 @@ from parallax.control_panel.transform_info_handler import TransformInfoHandler
 # -------------------------------------------------------------------------
 # BYPASS CLASS
 # -------------------------------------------------------------------------
-class TestableHandler(TransformInfoHandler):
+class MockTransformHandler(TransformInfoHandler):
     """
     A wrapper class that bypasses the real __init__.
     This prevents QWidget creation, loadUi calls, and font setting.
@@ -66,7 +66,7 @@ def handler(mock_model):
     selector.currentText.return_value = "Global"
 
     # Use our bypass class instead of the real one
-    handler = TestableHandler(mock_model, selector)
+    handler = MockTransformHandler(mock_model, selector)
     return handler
 
 

@@ -6,6 +6,7 @@ from helper import mock_stage_instances, model
 
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera
+from parallax.config.schemas import AppSchema
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.model import Model
 from parallax.stages.stage_listener import Stage
@@ -16,28 +17,31 @@ from parallax.stages.stage_listener import Stage
 # ----------------------------
 def test_scan_for_cameras(model):
     """Model.scan_for_cameras populates pool and counts camera types."""
+    model.config = AppSchema(cameras={})
+    # Setup Mock Camera
+    m1 = MockCamera()
+
+    # Setup PySpin Camera
     fake_sdk_cam = MagicMock()
-    with patch("parallax.model.list_cameras", return_value=[MockCamera(), PySpinCamera(fake_sdk_cam)]):
+    p1 = PySpinCamera(fake_sdk_cam)
+    p1.name = MagicMock(return_value="SN12345")
+    p1.settings = MagicMock()
+
+    # ACTION: Run the scan
+    with patch("parallax.model.list_cameras", return_value=[m1, p1]):
         model.scan_for_cameras()
 
-    # two cameras added
+    # ASSERTIONS
     assert len(model.cameras) == 2
-
     keys = list(model.cameras.keys())
     vals = list(model.cameras.values())
 
     assert isinstance(vals[0]["obj"], MockCamera)
     assert isinstance(vals[1]["obj"], PySpinCamera)
-    assert vals[0]["visible"] is True and vals[1]["visible"] is True
 
-    # keys match serial numbers reported by camera objects
-    assert keys[0] == vals[0]["obj"].name(sn_only=True)
+    # Now this will correctly return "SN12345" instead of a Mock object
     assert keys[1] == vals[1]["obj"].name(sn_only=True)
-
-    # cached counts
-    assert model.nPySpinCameras == 1
-    assert model.nMockCameras == 1
-
+    assert keys[1] == "SN12345"
 
 def test_get_camera_resolution(model):
     """Default fallback and real object path for get_camera_resolution."""

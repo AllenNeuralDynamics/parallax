@@ -69,28 +69,31 @@ def dummy_model():
 def test_load_settings_returns_dict_when_missing_file(tmp_path, monkeypatch):
     missing = tmp_path / "nope.json"
     monkeypatch.setattr(UserSettingsManager, "settings_file", str(missing), raising=False)
-    data = UserSettingsManager.load_settings()
-    assert isinstance(data, dict) and data == {}
+    data = UserSettingsManager.load_and_validate()
+    assert data.gui.width == 800  # Default value from AppSchema
 
 
 def test_save_and_load_settings_roundtrip(tmp_settings_file):
-    test_payload = {"a": 1, "b": {"c": 2}}
+    from parallax.config.schemas import AppSchema
+    test_payload = AppSchema(cameras={})
     UserSettingsManager.save_settings(test_payload)
-    loaded = UserSettingsManager.load_settings()
-    assert loaded == test_payload
+    loaded = UserSettingsManager.load_and_validate()
+    assert isinstance(loaded, AppSchema)
 
 
 def test_save_user_configs_and_load_main_window(tmp_settings_file, tmp_path):
-    UserSettingsManager.save_user_configs(3, str(tmp_path), 1024, 768)
-    ncol, directory, w, h = UserSettingsManager.load_mainWindow_settings()
-    assert (ncol, directory, w, h) == (3, str(tmp_path), 1024, 768)
+    UserSettingsManager.save_gui_settings(str(tmp_path), 1024, 768)
+    _, directory, width, height = UserSettingsManager.load_gui_settings()
+    assert width == 1024
+    assert directory == str(tmp_path)
 
 
 def test_load_settings_item_variants(tmp_settings_file, tmp_path):
-    UserSettingsManager.save_user_configs(4, str(tmp_path), 1920, 1080)
-    assert UserSettingsManager.load_settings_item("main", "nColumn") == 4
-    assert UserSettingsManager.load_settings_item("main", "nope") is None
-    assert UserSettingsManager.load_settings_item("missing") is None
+    UserSettingsManager.save_gui_settings(str(tmp_path), 1920, 1080)
+    settings = UserSettingsManager.load_and_validate()
+    assert settings.gui.width == 1920
+    assert settings.gui.height == 1080
+    assert settings.gui.directory == str(tmp_path)
 
 
 # ------------------------

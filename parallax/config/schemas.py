@@ -41,5 +41,5 @@ class GUISettings(BaseModel):
 
 # ----- Main App Schema Combining Both Camera and GUI Settings -----
 class AppSchema(BaseModel):
-    cameras: Dict[str, CameraSettings]
+    cameras: Dict[str, CameraSettings] = Field(default_factory=dict)
     gui: GUISettings = Field(default_factory=GUISettings)
