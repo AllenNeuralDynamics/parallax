@@ -172,10 +172,8 @@ class Model:
 
         self.nPySpinCameras = sum(isinstance(cam["obj"], PySpinCamera) for cam in self.cameras.values())
         self.nMockCameras = sum(isinstance(cam["obj"], MockCamera) for cam in self.cameras.values())
-        print(" Cameras:", list(self.cameras.keys()))
 
     def initialize_camera_settings(self, cam, sn):
-        print("Initializing settings for camera:", sn)
         camera_config = self.config.cameras.get(sn)
         if camera_config is None:
             camera_config = CameraSettings(customName=sn)
@@ -204,7 +202,6 @@ class Model:
             # 2. Sync Frame Rate
             camera_config.frameRateEnable = cam_settings.get_frame_rate_enable()
             camera_config.fps = cam_settings.get_frame_rate()
-            print("Reading settings - fps:", camera_config.fps)
 
             # 3. Sync Exposure (Convert us from HW back to ms for Schema)
             hw_exposure_us = cam_settings.get_exposure()
@@ -244,7 +241,6 @@ class Model:
             cam_settings.set_frame_rate_enable(camera_config.frameRateEnable)
             if camera_config.frameRateEnable:
                 cam_settings.set_frame_rate(camera_config.fps)
-            print("Applying settings - fps:", camera_config.fps)
 
             # 2. Exposure
             # Set mode first. If 'Continuous', manual 'set_exposure' will be ignored by the logic in PySpinSettings.

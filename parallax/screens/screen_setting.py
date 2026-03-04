@@ -31,10 +31,8 @@ class ScreenSetting(QWidget):
         self.refresh_timer = QTimer(self)
         self.refresh_timer.setInterval(200)  # Refresh every 200ms (5Hz)
         self.refresh_timer.timeout.connect(self._periodic_sync)
-        print("ScreenSetting initialized for camera:", self.sn)
 
     def _handle_menu_visibility(self, is_visible):
-        print("Toggling settings menu. Visible:", is_visible)
         try:
             if is_visible:
                 self._periodic_sync()
@@ -47,8 +45,6 @@ class ScreenSetting(QWidget):
             else:
                 self.refresh_timer.stop()
                 self.settingMenu.hide()
-                print("camera_setting fps:", self.model_config.fps)
-                print("fps:", self.model.config.cameras[self.sn].fps)
                 UserSettingsManager.save_settings(self.model.config)
         except Exception as e:
             logger.error(f"Error toggling settings menu: {e}")

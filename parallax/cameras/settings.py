@@ -99,7 +99,6 @@ class PySpinSettings(BaseSettings):
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
         current_entry = node_pixelformat.GetCurrentEntry()
         current_format_str = current_entry.GetName() if current_entry else ""
-        print(f"Current Pixel Format: {current_format_str}")  # EnumEntry_PixelFormat_BayerRG8
         self.pixelformat = None
         if self.device_color_type == "Mono":
             self.pixelformat = "Mono"
