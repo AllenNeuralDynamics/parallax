@@ -230,7 +230,6 @@ class Model:
         except Exception as e:
             logger.error(f"Error reading hardware settings for {sn}: {e}")
 
-
     def _apply_setting_to_camera(self, cam_settings, camera_config):
         """
         Maps the Pydantic camera_config values to the hardware abstraction layer (PySpinSettings).
@@ -274,7 +273,6 @@ class Model:
 
         except Exception as e:
             logger.error(f"Failed to apply settings to camera {camera_config.customName}: {e}")
-
 
     def load_camera_config(self):
         CameraConfigManager.load_from_yaml(self)

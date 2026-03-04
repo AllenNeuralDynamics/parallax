@@ -51,10 +51,12 @@ def list_cameras(dummy=False, n_mocks=0):
                 logger.error(f"Error listing PySpin cameras: {e}")
     return cameras
 
+
 def close_cameras():
     """Close all available cameras."""
     if PySpin is not None:
         PySpinCamera.close_cameras()
+
 
 class PySpinCamera(BaseCamera):
     """

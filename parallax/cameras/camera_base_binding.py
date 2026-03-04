@@ -5,6 +5,7 @@ import datetime
 from abc import ABC, abstractmethod
 import numpy as np
 
+
 class BaseSettings(ABC):
     """
     Abstract base class for camera settings.
@@ -12,6 +13,7 @@ class BaseSettings(ABC):
     # ------------------------------------------------------------------
     # 1. FRAME RATE
     # ------------------------------------------------------------------
+
     def get_frame_rate(self) -> float:
         """Gets the actual resulting frame rate."""
         return -1.0
@@ -118,6 +120,7 @@ class BaseCamera(ABC):
     Abstract base class for camera operations.
     Defines the interface expected from all camera types.
     """
+
     def __init__(self):
         # Every camera implementation must assign an instance of BaseSettings here
         self.settings: BaseSettings = None

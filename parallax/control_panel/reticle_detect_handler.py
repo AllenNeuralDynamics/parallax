@@ -123,7 +123,7 @@ class ReticleDetecthandler(QWidget):
         self.triangulate_btn.setChecked(False)
 
         # TODO Test for camera-pairs logic
-        #self.model.reset_stage_calib_info()  # noqa: E265
+        # self.model.reset_stage_calib_info()  # noqa: E265
         self.model.reset_all_triangulation_partners()
 
         # Enable triangulate_btn button

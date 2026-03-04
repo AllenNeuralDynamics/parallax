@@ -6,9 +6,9 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 from parallax.config.user_setting_manager import UserSettingsManager
-from parallax.config.schemas import CameraSettings
 
 logger = logging.getLogger(__name__)
+
 
 class ScreenSetting(QWidget):
     def __init__(self, parent, model, screen):
@@ -17,7 +17,6 @@ class ScreenSetting(QWidget):
         self.parent = parent
         self.screen = screen
         self.sn = self.screen.get_camera_name()
-        print("screen sn:", self.sn)
         self.hw = self.screen.camera_hw
 
         # Live reference to the model's camera settings
@@ -36,10 +35,10 @@ class ScreenSetting(QWidget):
         try:
             if is_visible:
                 self._periodic_sync()
-                btn_pos = self.settingButton.mapToGlobal(QPoint(0, 0)) # Position logic
+                btn_pos = self.settingButton.mapToGlobal(QPoint(0, 0))  # Position logic
                 parent_pos = self.parent.mapToGlobal(QPoint(0, 0))
                 self.settingMenu.move(btn_pos.x() + self.settingButton.width() - parent_pos.x(),
-                                    btn_pos.y() - self.settingMenu.height() - parent_pos.y())
+                                      btn_pos.y() - self.settingMenu.height() - parent_pos.y())
                 self.settingMenu.show()
                 self.refresh_timer.start()
             else:
@@ -143,7 +142,7 @@ class ScreenSetting(QWidget):
         self._setup_gamma()
 
     def _setup_sn(self):
-        #self.model_config.customName = self.sn  # update model
+        # self.model_config.customName = self.sn  # update model
         self.settingMenu.snLabel.setText(self.sn)  # update GUI
 
     def _setup_custom_name(self):
@@ -171,6 +170,7 @@ class ScreenSetting(QWidget):
             if self.hw:
                 self.hw.set_exposure_time_upper_limit(upper_limit_us)
                 self.hw.set_frame_rate(fps)
+
         def on_sync_change():
             fps = self.settingMenu.fpsSlider.value()
             self.settingMenu.fpsNum.setNum(fps)  # Update GUI immediately on slider change
@@ -195,7 +195,8 @@ class ScreenSetting(QWidget):
         def on_sync_release():
             val_ms = self.settingMenu.expSlider.value()
             if self.hw:
-                self.hw.set_exposure(expTime_us=float(val_ms*1000))
+                self.hw.set_exposure(expTime_us=float(val_ms * 1000))
+
         def on_sync_change():
             val_ms = self.settingMenu.expSlider.value()
             self.settingMenu.expNum.setNum(val_ms)  # Update GUI immediately on slider change
@@ -221,6 +222,7 @@ class ScreenSetting(QWidget):
             val = self.settingMenu.gainSlider.value()
             if self.hw:
                 self.hw.set_gain(val)
+
         def on_sync_change():
             val = self.settingMenu.gainSlider.value()
             self.settingMenu.gainNum.setNum(val)  # Update GUI immediately on slider change
@@ -251,12 +253,15 @@ class ScreenSetting(QWidget):
         def on_change_red(val):
             # Immediate UI feedback only
             self.settingMenu.wbNumRed.setNum(val)
+
         def on_release_red():
             if self.hw:
                 val = self.settingMenu.wbSliderRed.value()
                 self.hw.set_wb("Red", val / 100.0)
+
         def on_change_blue(val):
             self.settingMenu.wbNumBlue.setNum(val)
+
         def on_release_blue():
             if self.hw:
                 val = self.settingMenu.wbSliderBlue.value()
@@ -267,6 +272,7 @@ class ScreenSetting(QWidget):
         self.settingMenu.wbSliderBlue.sliderReleased.connect(on_release_blue)
 
         """Initializes the FPS manual control toggle."""
+
     def _setup_gamma_enable(self):
         def on_sync():
             """Handles hardware and model sync when gamma toggle changes."""
@@ -277,11 +283,12 @@ class ScreenSetting(QWidget):
 
     def _setup_gamma(self):
         def on_sync_release():
-            val = self.settingMenu.gammaSlider.value()/100.0
+            val = self.settingMenu.gammaSlider.value() / 100.0
             if self.hw:
                 self.hw.set_gamma(val)
+
         def on_sync_change():
-            val = self.settingMenu.gammaSlider.value()/100.0
+            val = self.settingMenu.gammaSlider.value() / 100.0
             self.settingMenu.gammaNum.setText(f"{val:.1f}")
         self.settingMenu.gammaSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.gammaSlider.valueChanged.connect(on_sync_change)
@@ -322,4 +329,3 @@ class ScreenSetting(QWidget):
         btn.setText("SETTINGS \u25ba")
         btn.setMinimumSize(80, 25)
         return btn
-    

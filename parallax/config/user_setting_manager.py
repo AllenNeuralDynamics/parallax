@@ -28,6 +28,7 @@ from parallax.control_panel.probe_calibration_handler import StageCalibrationInf
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 class UserSettingsManager:
     """
     Manages user settings with strict Pydantic validation.
@@ -50,21 +51,21 @@ class UserSettingsManager:
         try:
             with open(cls.settings_file, "r") as file:
                 data = yaml.safe_load(file) or {}
-            
+
             # --- The Validation Step ---
             validated_settings = AppSchema(**data)
             return validated_settings
 
         except Exception as e:
             # Failure printout for the terminal
-            print("\n" + "!"*60)
+            print("\n" + "!" * 60)
             print("CRITICAL CONFIGURATION ERROR")
             print(f"File: {cls.settings_file}")
             print(f"Error: {e}")
-            print("!"*60 + "\n")
+            print("!" * 60 + "\n")
 
             logger.critical(f"App launch aborted due to config error: {e}")
-            sys.exit(1) # Stop the app launch immediately
+            sys.exit(1)  # Stop the app launch immediately
 
     @classmethod
     def save_settings(cls, settings: AppSchema):

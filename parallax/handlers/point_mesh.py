@@ -24,6 +24,7 @@ class PointMeshWidget(QWidget):
     """
     A standalone widget that renders the 3D Plotly graph for a stage.
     """
+
     def __init__(self, file_path, sn):
         """initializes the PointMeshWidget.
         Parameters:

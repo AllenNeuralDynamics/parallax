@@ -78,6 +78,8 @@ palette_tips = [
 ]
 
 # Logging setup
+
+
 def setup_logging():
     """Set up logging to file."""
     logger = logging.getLogger()

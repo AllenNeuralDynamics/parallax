@@ -99,7 +99,7 @@ class ProbeDetector:
             numpy.ndarray: Neighboring gradients.
         """
         gradient_index = np.where(self.angle_step_bins == target_angle)[0][0]
-        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index+3]
+        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index + 3]
         return neighboring_gradients
 
     def _contour_preprocessing(self, img, thresh=20, remove_noise=True, noise_threshold=1):

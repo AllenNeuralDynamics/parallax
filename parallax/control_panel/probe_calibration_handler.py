@@ -180,7 +180,7 @@ class ProbeCalibrationHandler(QWidget):
     def reticle_detection_status_change(self):
         """Updates the reticle detection status and performs actions based on the new status."""
         # TODO Test for camera-pairs logic
-        #if self.model.reticle_detection_status == "default":  # noqa: E265
+        # if self.model.reticle_detection_status == "default":  # noqa: E265
         #    self.probe_detect_default_status()                # noqa: E265
         if self.model.reticle_detection_status == "accepted":
             self.enable_probe_calibration_btn()

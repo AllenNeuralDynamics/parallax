@@ -225,4 +225,4 @@ class StageUI(QWidget):
         if self.model.reticle_detection_status == "default":
             pass
             # TODO Test for camera-pairs logic
-            #self.updateStageGlobalCoords_default()  # noqa: E265
+            # self.updateStageGlobalCoords_default()  # noqa: E265

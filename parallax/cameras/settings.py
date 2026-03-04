@@ -57,7 +57,8 @@ class PySpinSettings(BaseSettings):
 
     def _setup_exposure_limit(self):
         # set exposure time upper limit (if supported by camera)
-        self.node_auto_exptime_upper_limit = PySpin.CFloatPtr(self.node_map.GetNode("AutoExposureExposureTimeUpperLimit")) 
+        self.node_auto_exptime_upper_limit = PySpin.CFloatPtr(
+            self.node_map.GetNode("AutoExposureExposureTimeUpperLimit"))
 
     def _setup_white_balance(self):
         # Set White Balance
@@ -274,7 +275,7 @@ class PySpinSettings(BaseSettings):
         except Exception as e:
             logger.error(f"Error reading white balance auto mode for {self.sn}: {e}")
         return "Unknown"
-    
+
     def set_wb_auto_mode(self, mode: str):
         """Sets the white balance auto mode ('Off', 'Continuous')."""
         try:
@@ -285,7 +286,7 @@ class PySpinSettings(BaseSettings):
                     logger.info(f"White Balance Auto Mode set to {mode} for {self.sn}")
         except Exception as e:
             logger.error(f"Error setting white balance auto mode: {e}")
-            
+
     def get_wb(self, channel: str) -> float:
         """Returns the white balance ratio for the specified channel ('Red' or 'Blue')."""
         if self.device_color_type != "Color":
@@ -296,7 +297,7 @@ class PySpinSettings(BaseSettings):
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_red.GetValue())
             elif channel == "Blue":
                 self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
-            
+
             if PySpin.IsAvailable(self.node_wb) and PySpin.IsReadable(self.node_wb):
                 return float(self.node_wb.GetValue())
         except Exception as e:
@@ -371,12 +372,14 @@ class PySpinSettings(BaseSettings):
         except Exception as e:
             logger.error(f"Error setting gamma enable: {e}")
 
+
 class MockSettings(BaseSettings):
     """
     A functional Mock implementation that stores state.
     Used to verify that initialize_camera_settings correctly
     syncs between the Pydantic model and hardware abstraction.
     """
+
     def __init__(self):
         # Default internal state
         self._wb_auto_mode = "Off"
@@ -394,11 +397,15 @@ class MockSettings(BaseSettings):
     # --- White Balance ---
     def get_wb_auto_mode(self): return self._wb_auto_mode
     def set_wb_auto_mode(self, mode): self._wb_auto_mode = mode
+
     def get_wb(self, channel):
         return self._wb_red if channel == "Red" else self._wb_blue
+
     def set_wb(self, channel, wb=1.2):
-        if channel == "Red": self._wb_red = float(wb)
-        else: self._wb_blue = float(wb)
+        if channel == "Red":
+            self._wb_red = float(wb)
+        else:
+            self._wb_blue = float(wb)
     # --- Gamma ---
     def get_gamma(self): return self._gamma
     def set_gamma(self, gamma=1.0): self._gamma = float(gamma)

@@ -4,6 +4,8 @@ from typing import Dict, Literal
 from pathlib import Path
 
 # ----- Pydantic Schemas for Camera Settings Validation -----
+
+
 class CameraSettings(BaseModel):
     # Match the order of your camera_settings.yaml
     customName: str = ""
@@ -33,6 +35,8 @@ class CameraSettings(BaseModel):
         return self
 
 # ----- Pydantic Schema for GUI Settings Validation -----
+
+
 class GUISettings(BaseModel):
     # Default to User/Documents using pathlib
     directory: str = Field(default_factory=lambda: str(Path.home() / "Documents"))
@@ -40,6 +44,8 @@ class GUISettings(BaseModel):
     height: int = Field(default=600, ge=100)
 
 # ----- Main App Schema Combining Both Camera and GUI Settings -----
+
+
 class AppSchema(BaseModel):
     cameras: Dict[str, CameraSettings] = Field(default_factory=dict)
     gui: GUISettings = Field(default_factory=GUISettings)
