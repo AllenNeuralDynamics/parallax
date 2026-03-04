@@ -99,8 +99,6 @@ class PySpinSettings(BaseSettings):
     def _setup_pixel_format(self):
         # set pixel format
         node_pixelformat = PySpin.CEnumerationPtr(self.node_map.GetNode("PixelFormat"))
-        current_entry = node_pixelformat.GetCurrentEntry()
-        current_format_str = current_entry.GetName() if current_entry else ""
         self.pixelformat = None
         if self.device_color_type == "Mono":
             self.pixelformat = "Mono"
