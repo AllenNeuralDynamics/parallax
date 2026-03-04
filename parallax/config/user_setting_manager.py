@@ -20,6 +20,7 @@ from dataclasses import asdict, is_dataclass
 import numpy as np
 import yaml
 
+from parallax.cameras import settings
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.config_path import session_file, settings_file
 from parallax.config.schemas import AppSchema
@@ -39,23 +40,13 @@ class UserSettingsManager:
 
     @classmethod
     def load_and_validate(cls) -> AppSchema:
-        """
-        The 'Gatekeeper' method for __main__.py.
-        Loads YAML and performs strict validation.
-        Exits the app if validation fails.
-        """
         if not os.path.exists(cls.settings_file):
-            logger.warning(f"Config missing at {cls.settings_file}. Generating defaults.")
-            # Return a default schema if file doesn't exist yet
-            return AppSchema(cameras={})
+            return AppSchema()
 
         try:
             with open(cls.settings_file, "r") as file:
                 data = yaml.safe_load(file) or {}
-
-            # --- The Validation Step ---
-            validated_settings = AppSchema(**data)
-            return validated_settings
+            return AppSchema(**data)
 
         except Exception as e:
             # Failure printout for the terminal
@@ -72,8 +63,8 @@ class UserSettingsManager:
     def save_settings(cls, settings: AppSchema):
         """Persists the validated AppSchema back to YAML."""
         try:
-            validated_settings = settings.model_validate(settings)
-            data = validated_settings.model_dump()
+            # No need to re-validate if it's already an AppSchema object
+            data = settings.model_dump()
             with open(cls.settings_file, "w") as file:
                 yaml.dump(data, file, default_flow_style=False, sort_keys=False)
         except Exception as e:
@@ -86,13 +77,14 @@ class UserSettingsManager:
         Re-validates before saving to ensure 'val' is the correct type.
         """
         settings = cls.load_and_validate()
-
         if sn in settings.cameras:
-            # Use setattr to update the Pydantic model field
-            setattr(settings.cameras[sn], item, val)
-            cls.save_settings(settings)
+            try:
+                setattr(settings.cameras[sn], item, val)
+                cls.save_settings(settings)
+            except Exception as e:
+                logger.error(f"Validation failed for {item}={val}: {e}")
         else:
-            logger.error(f"Attempted to update unknown camera: {sn}")
+            logger.error(f"Unknown camera: {sn}")
 
     @classmethod
     def load_gui_settings(cls):
