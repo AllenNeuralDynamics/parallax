@@ -20,7 +20,6 @@ from dataclasses import asdict, is_dataclass
 import numpy as np
 import yaml
 
-from parallax.cameras import settings
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.config_path import session_file, settings_file
 from parallax.config.schemas import AppSchema
