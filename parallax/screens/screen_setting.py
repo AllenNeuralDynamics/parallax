@@ -77,9 +77,8 @@ class ScreenSetting(QWidget):
             self.model_config.frameRateEnable = self.hw.get_frame_rate_enable()
             self.model_config.fps = self.hw.get_frame_rate()  # Actual fps
             # 3. Sync Exposure (Convert us back to ms for Pydantic)
-            hw_exp = self.hw.get_exposure()
-            if hw_exp > 0:
-                self.model_config.exposureTime_ms = hw_exp / 1000.0
+            hw_exp_us = self.hw.get_exposure()
+            self.model_config.exposureTime_ms = hw_exp_us / 1000.0
             # 4. Sync Gain
             hw_gain = self.hw.get_gain()
             if hw_gain >= 0:
@@ -171,12 +170,14 @@ class ScreenSetting(QWidget):
 
     def _setup_fps(self):
         def on_sync_release():
-            val = self.settingMenu.fpsSlider.value()
+            fps = self.settingMenu.fpsSlider.value()
+            upper_limit_us = float(1000000 / fps)
             if self.hw:
-                self.hw.set_frame_rate(val)
+                self.hw.set_exposure_time_upper_limit(upper_limit_us)
+                self.hw.set_frame_rate(fps)
         def on_sync_change():
-            val = self.settingMenu.fpsSlider.value()
-            self.settingMenu.fpsNum.setNum(val)  # Update GUI immediately on slider change
+            fps = self.settingMenu.fpsSlider.value()
+            self.settingMenu.fpsNum.setNum(fps)  # Update GUI immediately on slider change
         self.settingMenu.fpsSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.fpsSlider.valueChanged.connect(on_sync_change)
 
@@ -196,12 +197,12 @@ class ScreenSetting(QWidget):
 
     def _setup_exposure(self):
         def on_sync_release():
-            val = self.settingMenu.expSlider.value()
+            val_ms = self.settingMenu.expSlider.value()
             if self.hw:
-                self.hw.set_exposure(val * 1000)
+                self.hw.set_exposure(expTime_us=float(val_ms*1000))
         def on_sync_change():
-            val = self.settingMenu.expSlider.value()
-            self.settingMenu.expNum.setNum(val)  # Update GUI immediately on slider change
+            val_ms = self.settingMenu.expSlider.value()
+            self.settingMenu.expNum.setNum(val_ms)  # Update GUI immediately on slider change
         self.settingMenu.expSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.expSlider.valueChanged.connect(on_sync_change)
 

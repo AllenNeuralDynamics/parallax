@@ -51,6 +51,10 @@ class BaseSettings(ABC):
         """Returns the minimum allowed exposure time."""
         return -1.0
 
+    def set_exposure_time_lower_limit(self, lower_limit: float) -> None:
+        """Sets the minimum allowed exposure time."""
+        pass
+
     # ------------------------------------------------------------------
     # 3. GAIN
     # ------------------------------------------------------------------

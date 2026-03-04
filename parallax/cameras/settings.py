@@ -25,11 +25,13 @@ class PySpinSettings(BaseSettings):
         self.node_gain = None
         self.node_gamma = None
         self.node_framerate = None
+        self.node_auto_exptime_upper_limit = None
 
         # Set up nodes
         try:
             self._setup_buffer()
             self._setup_exposure()
+            self._setup_exposure_limit()
             self._setup_white_balance()
             self._setup_gain()
             self._setup_gamma()
@@ -46,14 +48,17 @@ class PySpinSettings(BaseSettings):
         node_newestonly_mode = node_newestonly.GetValue()
         node_bufferhandling_mode.SetIntValue(node_newestonly_mode)
 
-    def _setup_exposure(self):  #TODO
+    def _setup_exposure(self):
         # set exposure time
         self.node_expauto_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("ExposureAuto"))
         self.node_exptime = PySpin.CFloatPtr(self.node_map.GetNode("ExposureTime"))
         self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
         self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
         self.node_expauto_mode_once = self.node_expauto_mode.GetEntryByName("Once")
-        #self.node_expauto_mode.SetIntValue(self.node_expauto_mode_on.GetValue())  # Default: Auto mode on
+
+    def _setup_exposure_limit(self):
+        # set exposure time upper limit (if supported by camera)
+        self.node_auto_exptime_upper_limit = PySpin.CFloatPtr(self.node_map.GetNode("AutoExposureExposureTimeUpperLimit")) 
 
     def _setup_white_balance(self):
         # Set White Balance
@@ -63,7 +68,6 @@ class PySpinSettings(BaseSettings):
         self.node_wbauto_mode_off = self.node_wbauto_mode.GetEntryByName("Off")
         self.node_wbauto_mode_on = self.node_wbauto_mode.GetEntryByName("Continuous")
         self.node_wbauto_mode_once = self.node_wbauto_mode.GetEntryByName("Once")
-        #self.node_wbauto_mode.SetIntValue(self.node_wbauto_mode_on.GetValue())  # Default: Auto mode on
 
         self.node_balanceratio_mode = PySpin.CEnumerationPtr(self.node_map.GetNode("BalanceRatioSelector"))
         self.node_wb = PySpin.CFloatPtr(self.node_map.GetNode("BalanceRatio"))
@@ -77,14 +81,12 @@ class PySpinSettings(BaseSettings):
         self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName("Continuous")
         self.node_gainauto_mode_once = self.node_gainauto_mode.GetEntryByName("Once")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
-        #self.node_gainauto_mode.SetIntValue(self.node_gainauto_mode_on.GetValue())  # Default: Auto mode on
 
     def _setup_gamma(self):
         # set gamma
         self.node_gammaenable_mode = PySpin.CBooleanPtr(self.node_map.GetNode("GammaEnable"))
         self.node_gammaenable_mode.SetValue(True)  # Default: Gammal Enable on
         self.node_gamma = PySpin.CFloatPtr(self.node_map.GetNode("Gamma"))
-        #self.node_gamma.SetValue(0.8)
 
     def _setup_framerate(self):
         # set frame rate
@@ -92,8 +94,6 @@ class PySpinSettings(BaseSettings):
         self.node_framerate_enable_mode.SetValue(True)  # Default: frame rate enable off
         self.node_resulting_fps = PySpin.CFloatPtr(self.node_map.GetNode("AcquisitionResultingFrameRate"))
         self.node_framerate = PySpin.CFloatPtr(self.node_map.GetNode("AcquisitionFrameRate"))
-        #if PySpin.IsWritable(self.node_framerate):
-        #    self.node_framerate.SetValue(30.0)  # Default: Set frame rate to 30 fps
 
     def _setup_pixel_format(self):
         # set pixel format
@@ -179,7 +179,7 @@ class PySpinSettings(BaseSettings):
             logger.error(f"Error reading exposure auto mode for {self.sn}: {e}")
         return "Unknown"
 
-    def set_exposure(self, expTime: int = 16000):
+    def set_exposure(self, expTime_us: float = 16000):
         """Sets manual exposure time only if Auto Exposure is already Off."""
         try:
             current_mode = self.get_exposure_auto_mode()
@@ -187,8 +187,8 @@ class PySpinSettings(BaseSettings):
                 logger.error(f"Cannot set manual exposure: Camera is currently in {current_mode} mode.")
                 return
             if PySpin.IsWritable(self.node_exptime):
-                self.node_exptime.SetValue(float(expTime))
-                logger.info(f"Manual exposure set to {expTime} us.")
+                self.node_exptime.SetValue(expTime_us)
+                logger.info(f"Manual exposure set to {expTime_us} us.")
             else:
                 logger.warning("ExposureTime node is not writable (Check if camera is initialized).")
         except Exception as e:
@@ -203,6 +203,15 @@ class PySpinSettings(BaseSettings):
                     self.node_expauto_mode.SetIntValue(entry.GetValue())
         except Exception as e:
             logger.error(f"Error setting exposure auto mode: {e}")
+
+    def set_exposure_time_upper_limit(self, upper_limit_us: float):
+        """Sets the lower limit for exposure time if supported by the camera."""
+        try:
+            if PySpin.IsWritable(self.node_auto_exptime_upper_limit):
+                self.node_auto_exptime_upper_limit.SetValue(upper_limit_us)
+                logger.info(f"Exposure time upper limit set to {upper_limit_us} us for {self.sn}")
+        except Exception as e:
+            logger.error(f"Error setting exposure time lower limit: {e}")
 
     # ------------------------------------------------------------------
     # 3. GAIN
@@ -408,6 +417,7 @@ class MockSettings(BaseSettings):
     def get_exposure_auto_mode(self): return self._exposure_auto_mode
     def set_exposure_auto_mode(self, mode): self._exposure_auto_mode = mode
     def get_exposure_time_lower_limit(self): return 1.0
+    def set_exposure_time_upper_limit(self, upper_limit): pass  # Not implemented in mock
     # --- Frame Rate ---
     def get_frame_rate(self): return self._frame_rate
     def set_frame_rate(self, frame_rate): self._frame_rate = float(frame_rate)
