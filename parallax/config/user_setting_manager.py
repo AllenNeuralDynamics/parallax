@@ -16,6 +16,7 @@ import logging
 import os
 import sys
 from dataclasses import asdict, is_dataclass
+from typing import Optional
 
 import numpy as np
 import yaml
@@ -111,87 +112,56 @@ class UserSettingsManager:
 
 class SessionManager:
     session_file = session_file
+    _data: Optional[SessionSchema] = None  # Class-level cache (saved data)
 
     @classmethod
     def load(cls) -> SessionSchema:
-        """Loads YAML and returns a validated Pydantic object."""
-        if not os.path.exists(cls.session_file):
-            return SessionSchema()
+        """
+        Loads from disk ONLY if _data is empty.
+        Otherwise, returns the already saved data.
+        """
+        # If we've already loaded once, return the cached data
+        if cls._data is not None:
+            return cls._data
 
-        with open(cls.session_file, "r") as f:
-            raw_data = yaml.safe_load(f) or {}
-            
-        # Nesting check: If your YAML starts with 'model:', extract it
-        data = raw_data.get("model", raw_data)
-        return SessionSchema.model_validate(data)
+        # If the file doesn't exist, initialize with defaults and save immediately
+        if not os.path.exists(cls.session_file):
+            cls._data = SessionSchema()
+            return cls._data
+
+        try:
+            with open(cls.session_file, "r") as f:
+                raw_data = yaml.safe_load(f) or {}
+            data = raw_data.get("model", raw_data)
+            # Save into class variable during load
+            cls._data = SessionSchema.model_validate(data)
+            return cls._data
+        except Exception as e:
+            logger.error(f"Failed to load session: {e}")
+            cls._data = SessionSchema()
+            return cls._data
 
     @classmethod
     def save_session(cls, session_obj: SessionSchema):
-        """Saves the Pydantic object back to YAML."""
-        # Use model_dump(mode='json') to auto-convert NumPy/Path objects to lists/strings
+        """Saves the object to disk and updates the class-level saved data."""
+        cls._data = session_obj  # Keep the cache updated
         data = {"model": json.loads(session_obj.model_dump_json())}
-        
         os.makedirs(os.path.dirname(cls.session_file), exist_ok=True)
         with open(cls.session_file, "w") as f:
-            yaml.safe_dump(data, f, sort_keys=False)
+            yaml.safe_dump(data, f, sort_keys=False, default_flow_style=False)
 
     @classmethod
     def instantiate(cls, model) -> None:
-        logger.debug("[CameraConfigManager] Loading YAML camera config")
-        data = cls.load()
         """
-        cam_configs = data.get("model", {}).get("cameras", {})
-
-        for sn, camera in model.cameras.items():
-            if sn not in cam_configs:
+        No disk access here. Just pulls the saved data from the class variable.
+        """
+        # Pull from the already-loaded class variable
+        # model.session has the SessionSchema object loaded from disk (or defaults)
+        for sn in model.get_list_of_camera_sns():  # Get actual camera SNs from the model
+            if sn not in model.session.cameras.keys():
+                logger.debug(f"[SessionManager] No session data for camera '{sn}'; skipping.")
                 continue
-            cam_cfg = cam_configs[sn]
-
-            # Basic fields
-            for key in [
-                "visible",
-                "coords_axis",
-                "coords_debug",
-                "pos_x",
-                "device_model",
-                "is_triangulation_candidate",
-            ]:
-                if key not in cam_cfg or cam_cfg[key] is None:
-                    continue
-                if key == "pos_x":
-                    camera[key] = tuple(cam_cfg[key])
-                elif key in ("coords_axis", "coords_debug"):
-                    camera[key] = np.array(cam_cfg[key])
-                else:
-                    camera[key] = cam_cfg[key]
-
-            # Intrinsic
-            intr = cam_cfg.get("params", {})
-            if intr:
-                mtx = np.asarray(intr.get("mtx"), dtype=np.float64) if intr.get("mtx") is not None else None
-                dist = np.asarray(intr.get("dist"), dtype=np.float64) if intr.get("dist") is not None else None
-
-                # Accept rvec/tvec in any of: [3], [3,1], (3,), (1,3)
-                def _vec3(v):
-                    if v is None:
-                        return None
-                    a = np.asarray(v, dtype=np.float64).reshape(-1)
-                    if a.size != 3:
-                        raise ValueError(f"rvec/tvec must have 3 elements, got {a.shape}")
-                    return a.reshape(3, 1)  # OpenCV-friendly (3,1)
-
-                rvec = _vec3(intr.get("rvec"))  # cv2.calibrateCamera return format
-                tvec = _vec3(intr.get("tvec"))
-
-                camera_params = CameraParams(
-                    mtx=mtx,
-                    dist=dist,
-                    rvec=rvec,
-                    tvec=tvec,
-                )
-                # Store as the object (not nested dicts/tuples)
-                camera["params"] = camera_params
-        """
+            model.camera_data[sn] = model.session.cameras[sn]
 
 # -------------------------
 
@@ -305,10 +275,10 @@ class CameraConfigManager(BaseConfigManager):
     def load_from_yaml(cls, model) -> None:
         logger.debug("[CameraConfigManager] Loading YAML camera config")
         data = cls._load_yaml()
-        cam_configs = data.get("model", {}).get("cameras", {})
+        cam_configs = data.get("model", {}).get("cameras", {})  # session data
 
-        for sn, camera in model.cameras.items():
-            if sn not in cam_configs:
+        for sn, camera in model.cameras.items():  # actual instances
+            if sn not in cam_configs:  # if new camera not in session, skip
                 continue
             cam_cfg = cam_configs[sn]
 

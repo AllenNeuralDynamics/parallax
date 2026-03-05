@@ -33,7 +33,7 @@ class Model:
         """
         # args from command line
         self.config = config
-        self.session = session
+        self.session = session  # SessionSchema
         self.dummy = getattr(args, "dummy", False)
         self.test = getattr(args, "test", False)
         self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
@@ -48,6 +48,7 @@ class Model:
 
         # cameras
         self.refresh_camera = False  # Status of camera streaming
+        self.camera_data = OrderedDict()
         self.cameras = OrderedDict()
         """
         self.cameras[sn] = {
@@ -158,6 +159,10 @@ class Model:
             if data.visible and sn in self.camera_instances
         ]
 
+    def is_camera_visible(self, sn):
+        """Check if a camera is marked as visible in the session."""
+        return self.cameras.get(sn, {}).get("visible", False)
+
     def get_visible_camera_sns(self):
         return [sn for sn, v in self.cameras.items() if v["visible"]]
 
@@ -169,12 +174,17 @@ class Model:
         """Initialize stages by clearing the current stages and calibration data."""
         self.stages = {}
 
+    def get_list_of_camera_sns(self):
+        """Get a list of all camera serial numbers."""
+        return list(self.camera_instances.keys())
+
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
         cams = list_cameras(dummy=self.dummy, n_mocks=self.nMockCameras)
         for cam in cams:
             sn = cam.name(sn_only=True)
             self.camera_instances[sn] = cam
+
             self.cameras[sn] = {
                 "obj": cam,
                 "visible": True,
@@ -182,7 +192,8 @@ class Model:
                 "is_triangulation_candidate": False,
                 "probe_detect_algorithm": "yolo",
             }
-            self.initialize_camera_settings(cam, sn)
+
+            self.initialize_camera_settings(cam, sn)  # fps, britness, gain, wb, gamma
 
         self.nPySpinCameras = sum(isinstance(cam, PySpinCamera) for cam in self.camera_instances.values())
         self.nMockCameras = sum(isinstance(cam, MockCamera) for cam in self.camera_instances.values())
@@ -289,7 +300,7 @@ class Model:
             logger.error(f"Failed to apply settings to camera {camera_config.customName}: {e}")
 
     def load_camera_config(self):
-        CameraConfigManager.load_from_yaml(self)
+        #CameraConfigManager.load_from_yaml(self)
         SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
 
     def save_camera_config(self, sn):
@@ -680,6 +691,13 @@ class Model:
             coords (list): The axis coordinates to be added.
         """
         self.cameras[sn]["coords_axis"] = coords
+
+    def get_calibrated_camera_sns(self) -> list[str]:
+        """Returns a list of serial numbers for cameras with axis coordinates."""
+        return [
+            sn for sn, data in self.camera_data.items()
+            if data.coords_axis is not None
+        ]
 
     def get_coords_axis(self, sn):
         """Get axis coordinates for a specific camera.

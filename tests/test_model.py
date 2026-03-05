@@ -32,9 +32,9 @@ def test_scan_for_cameras(model):
         model.scan_for_cameras()
 
     # ASSERTIONS
-    assert len(model.cameras) == 2
-    keys = list(model.cameras.keys())
-    vals = list(model.cameras.values())
+    assert len(model.camera_data) == 2
+    keys = list(model.camera_data.keys())
+    vals = list(model.camera_data.values())
 
     assert isinstance(vals[0]["obj"], MockCamera)
     assert isinstance(vals[1]["obj"], PySpinCamera)

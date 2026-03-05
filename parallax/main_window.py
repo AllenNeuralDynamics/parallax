@@ -155,7 +155,7 @@ class MainWindow(QMainWindow):
             self.model.load_stage_config()
             self.control_panel.reticle_handler.apply_reticle_detection_status()
             self.control_panel.probe_calib_handler.apply_probe_calibration_status()
-            print(" Restored session info to cameras:", list(self.model.cameras.keys()))
+            print(" Restored session info to cameras:", list(self.model.camera_data.keys()))
             print(" Restored session info to stages:", list(self.model.stages.keys()))
         else:
             # Clear yaml file

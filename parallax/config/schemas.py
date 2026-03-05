@@ -134,25 +134,59 @@ class StageSessionSchema(BaseModel):
     is_calib: bool = False
     calib_info: StageCalibrationSchema
 
-# --- Camera Parameters Schema ---
 class CameraParamsSchema(BaseModel):
-    mtx: Optional[Any] = None  # TODO -shape
-    dist: Optional[Any] = None
-    rvec: Optional[Any] = None
-    tvec: Optional[Any] = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    @field_validator("mtx", "dist", "rvec", "tvec", mode="before")
+    mtx: Optional[Any] = None   # Expected: (3, 3)
+    dist: Optional[Any] = None  # Expected: (1, N) or (N,)
+    rvec: Optional[Any] = None  # Expected: (3, 1)
+    tvec: Optional[Any] = None  # Expected: (3, 1)
+
+    @field_validator("mtx", "dist", mode="before")
     @classmethod
-    def validate_numpy(cls, v):
-        return to_numpy(v)
+    def validate_matrices(cls, v):
+        if v is None:
+            return None
+        return np.asarray(v, dtype=np.float64)
+
+    @field_validator("rvec", "tvec", mode="before")
+    @classmethod
+    def validate_vectors(cls, v):
+        """
+        Replaces the old _vec3 helper.
+        Ensures 3 elements and reshapes to (3, 1) for OpenCV compatibility.
+        """
+        if v is None:
+            return None
+        arr = np.asarray(v, dtype=np.float64).reshape(-1)
+        if arr.size != 3:
+            raise ValueError(f"Vector must have 3 elements, got {arr.size}")
+        return arr.reshape(3, 1)
 
 class CameraSessionSchema(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     visible: bool = True
     device_model: Optional[str] = None
     is_triangulation_candidate: bool = False
-    pos_x: Optional[List[float]] = None # List of coordinate paths
+    probe_detect_algorithm: Optional[str] = "yolo"  # TODO: 'opencv' or 'yolo'
     coords_axis: Optional[List[List[List[float]]]] = None
+    coords_debug: Optional[List[List[float]]] = None
+    pos_x: Optional[List[float]] = None # List of coordinate paths
     params: Optional[CameraParamsSchema] = None
+
+    @field_validator("coords_axis", "coords_debug", mode="before")
+    @classmethod
+    def to_numpy(cls, v):
+        if isinstance(v, list):
+            return np.array(v)
+        return v
+
+    @field_validator("pos_x", mode="before")
+    @classmethod
+    def to_tuple(cls, v):
+        if isinstance(v, list):
+            return tuple(v)
+        return v
 
 # --- Main Session Schema ---
 class SessionSchema(BaseModel):
