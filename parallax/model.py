@@ -112,71 +112,9 @@ class Model:
         # clicked pts, max len = 2 for triangulation
         self.clicked_pts = OrderedDict()
 
-    def set_selected_stage_sn(self, stage_sn):
-        """Update the selected stage in the UI.
-
-        Args:
-            stage_sn (str): The serial number of the stage to select.
-        """
-        self.selected_stage_sn = stage_sn
-
-    def get_selected_stage_sn(self):
-        """Get the currently selected stage in the UI.
-
-        Returns:
-            str: The serial number of the currently selected stage.
-        """
-        return self.selected_stage_sn
-
-    def set_probe_detect_algorithms(self, camera_sn, algorithms):
-        """Add probe detection algorithms to the model.
-
-        Args:
-            camera_sn (str): The serial number of the camera.
-            algorithms (str): The detection algorithm to set ('opencv' or 'yolo').
-        """
-        if camera_sn in self.cameras:
-            self.cameras[camera_sn]["probe_detect_algorithm"] = algorithms
-
-    def get_probe_detect_algorithms(self, camera_sn):
-        """Get probe detection algorithms for a specific camera.
-
-        Args:
-            camera_sn (str): The serial number of the camera.
-        Returns:
-            str: The detection algorithm used by the camera ('opencv' or 'yolo').
-        """
-        return self.cameras.get(camera_sn, {}).get("probe_detect_algorithm", "yolo")
-
-    def get_camera(self, sn):
-        return self.camera_instances.get(sn)
-    
-    def get_visible_cameras(self):
-        """Returns live objects for cameras marked as visible in the session."""
-        return [
-            self.camera_instances[sn]
-            for sn, data in self.cameras.items() 
-            if data.visible and sn in self.camera_instances
-        ]
-
-    def is_camera_visible(self, sn):
-        """Check if a camera is marked as visible in the session."""
-        return self.cameras.get(sn, {}).get("visible", False)
-
-    def get_visible_camera_sns(self):
-        return [sn for sn, v in self.cameras.items() if v["visible"]]
-
-    def set_camera_visibility(self, sn, visible):
-        if sn in self.cameras:
-            self.cameras[sn]["visible"] = visible
-
-    def init_stages(self):
-        """Initialize stages by clearing the current stages and calibration data."""
-        self.stages = {}
-
-    def get_list_of_camera_sns(self):
-        """Get a list of all camera serial numbers."""
-        return list(self.camera_instances.keys())
+    # =========================
+    # Init - Scanning for HWs
+    # =========================
 
     def scan_for_cameras(self):
         """Scan and detect all available cameras."""
@@ -198,167 +136,6 @@ class Model:
         self.nPySpinCameras = sum(isinstance(cam, PySpinCamera) for cam in self.camera_instances.values())
         self.nMockCameras = sum(isinstance(cam, MockCamera) for cam in self.camera_instances.values())
 
-    def initialize_camera_settings(self, cam, sn):
-        camera_config = self.config.cameras.get(sn)
-        if camera_config is None:
-            camera_config = CameraSettings(customName=sn)
-            self.config.cameras[sn] = camera_config
-        # Apply settings to camera hardware
-        self._apply_setting_to_camera(cam.settings, camera_config)
-        # Read from hardware to update to model
-        self._read_camera_settings(cam.settings, sn)
-
-    def _read_camera_settings(self, cam_settings, sn):
-        """
-        Reads the current hardware state and updates the local configuration model.
-        This ensures the UI and config stay in sync with Auto-Exposure/Gain/WB.
-        """
-        camera_config = self.config.cameras.get(sn)
-        if not camera_config:
-            logger.error(f"No configuration found for camera {sn} during read.")
-            return
-
-        try:
-            # 1. Sync Modes (Auto vs Manual)
-            camera_config.exposureAuto = cam_settings.get_exposure_auto_mode()
-            camera_config.gainAuto = cam_settings.get_gain_auto_mode()
-            camera_config.wbAuto = cam_settings.get_wb_auto_mode()
-
-            # 2. Sync Frame Rate
-            camera_config.frameRateEnable = cam_settings.get_frame_rate_enable()
-            camera_config.fps = cam_settings.get_frame_rate()
-
-            # 3. Sync Exposure (Convert us from HW back to ms for Schema)
-            hw_exposure_us = cam_settings.get_exposure()
-            if hw_exposure_us > 0:
-                camera_config.exposureTime_ms = hw_exposure_us / 1000.0
-
-            # 4. Sync Gain
-            hw_gain = cam_settings.get_gain()
-            if hw_gain >= 0:
-                camera_config.gain = hw_gain
-
-            # 5. Sync White Balance (Convert ratio back to schema int 0-1024)
-            # Assuming schema 100 = 1.0 ratio
-            if camera_config.wbAuto == "Off":
-                camera_config.wbRed = int(cam_settings.get_wb("Red") * 100)
-                camera_config.wbBlue = int(cam_settings.get_wb("Blue") * 100)
-
-            # 6. Sync Gamma
-            camera_config.gammaEnable = cam_settings.get_gamma_enable()
-            hw_gamma = cam_settings.get_gamma()
-            if hw_gamma > 0:
-                camera_config.gamma = int(hw_gamma * 100)
-
-            logger.info(f"Successfully synced model with hardware for {sn}")
-
-        except Exception as e:
-            logger.error(f"Error reading hardware settings for {sn}: {e}")
-
-    def _apply_setting_to_camera(self, cam_settings, camera_config):
-        """
-        Maps the Pydantic camera_config values to the hardware abstraction layer (PySpinSettings).
-        """
-        try:
-            logger.info(f"Applying settings for camera: {camera_config.customName}")
-            # 1. Frame Rate
-            cam_settings.set_frame_rate_enable(camera_config.frameRateEnable)
-            if camera_config.frameRateEnable:
-                cam_settings.set_frame_rate(camera_config.fps)
-
-            # 2. Exposure
-            # Set mode first. If 'Continuous', manual 'set_exposure' will be ignored by the logic in PySpinSettings.
-            cam_settings.set_exposure_auto_mode(camera_config.exposureAuto)
-            if camera_config.exposureAuto == "Off":
-                # Convert ms (from schema) to us (hardware standard)
-                exposure_us = int(camera_config.exposureTime_ms * 1000)
-                cam_settings.set_exposure(exposure_us)
-
-            # 3. Gain
-            cam_settings.set_gain_auto_mode(camera_config.gainAuto)
-            if camera_config.gainAuto == "Off":
-                cam_settings.set_gain(camera_config.gain)
-
-            # 4. White Balance (Only for Color Cameras)
-            cam_settings.set_wb_auto_mode(camera_config.wbAuto)
-            if camera_config.wbAuto == "Off":
-                # Assuming schema wbRed/wbBlue are integers (0-1024),
-                # convert to the float ratio (usually 0.0 to ~4.0) expected by hardware
-                cam_settings.set_wb("Red", camera_config.wbRed / 100.0)
-                cam_settings.set_wb("Blue", camera_config.wbBlue / 100.0)
-
-            # 5. Gamma
-            cam_settings.set_gamma_enable(camera_config.gammaEnable)
-            if camera_config.gammaEnable:
-                # Assuming schema gamma 100 = 1.0 hardware value
-                gamma_val = camera_config.gamma / 100.0
-                cam_settings.set_gamma(gamma_val)
-
-            logger.info(f"Settings successfully applied to {camera_config.customName}")
-
-        except Exception as e:
-            logger.error(f"Failed to apply settings to camera {camera_config.customName}: {e}")
-
-    def load_camera_config(self):
-        #CameraConfigManager.load_from_yaml(self)
-        SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
-
-    def save_camera_config(self, sn):
-        CameraConfigManager.save_to_yaml(self, sn)
-
-    def load_session_config(self):
-        SessionConfigManager.load_from_yaml(self)
-
-    def save_session_config(self):
-        SessionConfigManager.save_to_yaml(self)
-
-    def clear_session_config(self):
-        SessionConfigManager.clear_yaml()
-
-    def save_stage_config(self, stage_sn):
-        StageConfigManager.save_to_yaml(self, stage_sn)
-
-    def load_stage_config(self):
-        StageConfigManager.load_from_yaml(self)
-
-    def set_camera_triangulation_status(self, camera_sn, status: bool):
-        """
-        Set the calibration status for a specific stage.
-        """
-        if camera_sn is None:
-            raise ValueError("camera_sn cannot be None")
-        if camera_sn in self.cameras:
-            self.cameras[camera_sn]["is_triangulation_candidate"] = status
-            self.save_camera_config(camera_sn)
-
-    def get_camera_triangulation_candidate(self) -> list[str]:
-        """
-        Get a list of cameras that are marked as triangulation candidates.
-        """
-        return [sn for sn, cam in self.cameras.items() if cam.get("is_triangulation_candidate", False)]
-
-    def reset_all_triangulation_partners(self):
-        """
-        Resets the 'is_triangulation_candidate' status to False for all known cameras.
-        """
-        for camera_sn in self.cameras:
-            self.cameras[camera_sn]["is_triangulation_candidate"] = False
-            self.save_camera_config(camera_sn)
-
-    def get_camera_resolution(self, camera_sn):
-        camera = self.cameras.get(camera_sn, {}).get("obj", None)
-        if camera:
-            return (camera.width, camera.height)
-        return (4000, 3000)
-
-    def set_stage_listener_url(self, url):
-        """Set the URL for the stage listener.
-
-        Args:
-            url (str): The URL to set for the stage listener.
-        """
-        self.stage_listener_url = url
-
     def refresh_stages(self):
         """Search for connected stages"""
         self.scan_for_usb_stages()
@@ -376,6 +153,39 @@ class Model:
             calib_info = StageCalibrationInfo()
             self.add_stage(stage, calib_info)
         print("  Stages:", list(self.stages.keys()))
+
+
+    # =========================
+    # Stages
+    # =========================
+    def init_stages(self):
+        """Initialize stages by clearing the current stages and calibration data."""
+        self.stages = {}
+
+    def set_selected_stage_sn(self, stage_sn):
+        """Update the selected stage in the UI.
+
+        Args:
+            stage_sn (str): The serial number of the stage to select.
+        """
+        self.selected_stage_sn = stage_sn
+
+    def get_selected_stage_sn(self):
+        """Get the currently selected stage in the UI.
+
+        Returns:
+            str: The serial number of the currently selected stage.
+        """
+        return self.selected_stage_sn
+
+
+    def set_stage_listener_url(self, url):
+        """Set the URL for the stage listener.
+
+        Args:
+            url (str): The URL to set for the stage listener.
+        """
+        self.stage_listener_url = url
 
     def add_stage(self, stage, calib_info):
         """Add a stage to the model.
@@ -396,6 +206,9 @@ class Model:
         """
         return self.stage_instances.get(sn)
 
+    # =========================
+    # Stages calibration
+    # =========================
     def get_stage_calib_info(self, stage_sn) -> Optional[StageCalibrationInfo]:
         """Get calibration information for a specific stage."""
         return self.stages.get(stage_sn, {}).get("calib_info", None)
@@ -411,41 +224,6 @@ class Model:
             self.stages[sn]["is_calib"] = False
             self.stages[sn]["calib_info"] = StageCalibrationInfo()
             self.save_stage_config(sn)
-
-    def add_pts(self, camera_name, pts):
-        """Add detected points for a camera.
-
-        Args:
-            camera_name (str): The name of the camera.
-            pts (tuple): The detected points.
-        """
-        if len(self.clicked_pts) == 2 and camera_name not in self.clicked_pts:
-            # Remove the oldest entry (first added item)
-            self.clicked_pts.popitem(last=False)
-        self.clicked_pts[camera_name] = pts
-
-    def get_pts(self, camera_name):
-        """Retrieve points for a specific camera.
-
-        Args:
-            camera_name (str): The name of the camera.
-
-        Returns:
-            tuple: The points detected by the camera.
-        """
-        return self.clicked_pts.get(camera_name)
-
-    def get_cameras_detected_pts(self):
-        """Get the cameras that detected points.
-
-        Returns:
-            OrderedDict: Cameras and their corresponding detected points.
-        """
-        return self.clicked_pts
-
-    def reset_pts(self):
-        """Reset all detected points."""
-        self.clicked_pts = OrderedDict()
 
     def add_transform(self, stage_sn, transform: np.ndarray):
         """
@@ -590,6 +368,207 @@ class Model:
         """
         return self.stages.get(stage_sn, {}).get("is_calib", False)
 
+    # =========================
+    # Cameras
+    # =========================
+
+    def get_camera(self, sn):
+        return self.camera_instances.get(sn)
+    
+    def get_visible_cameras(self):
+        """Returns live objects for cameras marked as visible in the session."""
+        return [
+            self.camera_instances[sn]
+            for sn, data in self.cameras.items() 
+            if data.visible and sn in self.camera_instances
+        ]
+
+    def is_camera_visible(self, sn):
+        """Check if a camera is marked as visible in the session."""
+        return self.cameras.get(sn, {}).get("visible", False)
+
+    def get_visible_camera_sns(self):
+        return [sn for sn, v in self.cameras.items() if v["visible"]]
+
+    def set_camera_visibility(self, sn, visible):
+        if sn in self.cameras:
+            self.cameras[sn]["visible"] = visible
+
+    def get_list_of_camera_sns(self):
+        """Get a list of all camera serial numbers."""
+        return list(self.camera_instances.keys())
+
+    def get_camera_device_model(self, sn):
+        """Get device model for a specific camera.
+
+        Args:
+            sn (str): The name of the camera.
+
+        Returns:
+            list: The axis coordinates for the given camera.
+        """
+        return self.cameras[sn].get("device_model", "MockCamera")
+
+    # =========================
+    # Cameras - Settings (fps, exposure, gain, white balance, gamma)
+    # =========================
+
+    def initialize_camera_settings(self, cam, sn):
+        camera_config = self.config.cameras.get(sn)
+        if camera_config is None:
+            camera_config = CameraSettings(customName=sn)
+            self.config.cameras[sn] = camera_config
+        # Apply settings to camera hardware
+        self._apply_setting_to_camera(cam.settings, camera_config)
+        # Read from hardware to update to model
+        self._read_camera_settings(cam.settings, sn)
+
+    def _read_camera_settings(self, cam_settings, sn):
+        """
+        Reads the current hardware state and updates the local configuration model.
+        This ensures the UI and config stay in sync with Auto-Exposure/Gain/WB.
+        """
+        camera_config = self.config.cameras.get(sn)
+        if not camera_config:
+            logger.error(f"No configuration found for camera {sn} during read.")
+            return
+
+        try:
+            # 1. Sync Modes (Auto vs Manual)
+            camera_config.exposureAuto = cam_settings.get_exposure_auto_mode()
+            camera_config.gainAuto = cam_settings.get_gain_auto_mode()
+            camera_config.wbAuto = cam_settings.get_wb_auto_mode()
+
+            # 2. Sync Frame Rate
+            camera_config.frameRateEnable = cam_settings.get_frame_rate_enable()
+            camera_config.fps = cam_settings.get_frame_rate()
+
+            # 3. Sync Exposure (Convert us from HW back to ms for Schema)
+            hw_exposure_us = cam_settings.get_exposure()
+            if hw_exposure_us > 0:
+                camera_config.exposureTime_ms = hw_exposure_us / 1000.0
+
+            # 4. Sync Gain
+            hw_gain = cam_settings.get_gain()
+            if hw_gain >= 0:
+                camera_config.gain = hw_gain
+
+            # 5. Sync White Balance (Convert ratio back to schema int 0-1024)
+            # Assuming schema 100 = 1.0 ratio
+            if camera_config.wbAuto == "Off":
+                camera_config.wbRed = int(cam_settings.get_wb("Red") * 100)
+                camera_config.wbBlue = int(cam_settings.get_wb("Blue") * 100)
+
+            # 6. Sync Gamma
+            camera_config.gammaEnable = cam_settings.get_gamma_enable()
+            hw_gamma = cam_settings.get_gamma()
+            if hw_gamma > 0:
+                camera_config.gamma = int(hw_gamma * 100)
+
+            logger.info(f"Successfully synced model with hardware for {sn}")
+
+        except Exception as e:
+            logger.error(f"Error reading hardware settings for {sn}: {e}")
+
+    def _apply_setting_to_camera(self, cam_settings, camera_config):
+        """
+        Maps the Pydantic camera_config values to the hardware abstraction layer (PySpinSettings).
+        """
+        try:
+            logger.info(f"Applying settings for camera: {camera_config.customName}")
+            # 1. Frame Rate
+            cam_settings.set_frame_rate_enable(camera_config.frameRateEnable)
+            if camera_config.frameRateEnable:
+                cam_settings.set_frame_rate(camera_config.fps)
+
+            # 2. Exposure
+            # Set mode first. If 'Continuous', manual 'set_exposure' will be ignored by the logic in PySpinSettings.
+            cam_settings.set_exposure_auto_mode(camera_config.exposureAuto)
+            if camera_config.exposureAuto == "Off":
+                # Convert ms (from schema) to us (hardware standard)
+                exposure_us = int(camera_config.exposureTime_ms * 1000)
+                cam_settings.set_exposure(exposure_us)
+
+            # 3. Gain
+            cam_settings.set_gain_auto_mode(camera_config.gainAuto)
+            if camera_config.gainAuto == "Off":
+                cam_settings.set_gain(camera_config.gain)
+
+            # 4. White Balance (Only for Color Cameras)
+            cam_settings.set_wb_auto_mode(camera_config.wbAuto)
+            if camera_config.wbAuto == "Off":
+                # Assuming schema wbRed/wbBlue are integers (0-1024),
+                # convert to the float ratio (usually 0.0 to ~4.0) expected by hardware
+                cam_settings.set_wb("Red", camera_config.wbRed / 100.0)
+                cam_settings.set_wb("Blue", camera_config.wbBlue / 100.0)
+
+            # 5. Gamma
+            cam_settings.set_gamma_enable(camera_config.gammaEnable)
+            if camera_config.gammaEnable:
+                # Assuming schema gamma 100 = 1.0 hardware value
+                gamma_val = camera_config.gamma / 100.0
+                cam_settings.set_gamma(gamma_val)
+
+            logger.info(f"Settings successfully applied to {camera_config.customName}")
+
+        except Exception as e:
+            logger.error(f"Failed to apply settings to camera {camera_config.customName}: {e}")
+
+    def get_camera_resolution(self, camera_sn):
+        camera = self.cameras.get(camera_sn, {}).get("obj", None)
+        if camera:
+            return (camera.width, camera.height)
+        return (4000, 3000)
+
+    # =========================
+    # probe detection
+    # =========================
+    def set_probe_detect_algorithms(self, camera_sn, algorithms):
+        """Add probe detection algorithms to the model.
+
+        Args:
+            camera_sn (str): The serial number of the camera.
+            algorithms (str): The detection algorithm to set ('opencv' or 'yolo').
+        """
+        if camera_sn in self.cameras:
+            self.cameras[camera_sn]["probe_detect_algorithm"] = algorithms
+
+    def get_probe_detect_algorithms(self, camera_sn):
+        """Get probe detection algorithms for a specific camera.
+
+        Args:
+            camera_sn (str): The serial number of the camera.
+        Returns:
+            str: The detection algorithm used by the camera ('opencv' or 'yolo').
+        """
+        return self.cameras.get(camera_sn, {}).get("probe_detect_algorithm", "yolo")
+
+    def load_camera_config(self):
+        #CameraConfigManager.load_from_yaml(self)
+        SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
+
+    def save_camera_config(self, sn):
+        CameraConfigManager.save_to_yaml(self, sn)
+
+    def load_session_config(self):
+        SessionConfigManager.load_from_yaml(self)
+
+    def save_session_config(self):
+        SessionConfigManager.save_to_yaml(self)
+
+    def clear_session_config(self):
+        SessionConfigManager.clear_yaml()
+
+    def save_stage_config(self, stage_sn):
+        StageConfigManager.save_to_yaml(self, stage_sn)
+
+    def load_stage_config(self):
+        StageConfigManager.load_from_yaml(self)
+
+    # =========================
+    # Reticle Metadata
+    # =========================
+
     def add_reticle_metadata(self, reticle_name, metadata):
         """Add reticle metadata.
 
@@ -623,6 +602,23 @@ class Model:
         """Reset transformation matrix between local to global coordinates."""
         self.reticle_metadata = {}
 
+    def add_reticle_metadata_instance(self, instance):
+        """Add a reticle metadata instance.
+
+        Args:
+            instance (object): The reticle metadata instance to add.
+        """
+        self.reticle_metadata_instance = instance
+
+    def close_reticle_metadata_instance(self):
+        """Close the reticle metadata instance."""
+        if self.reticle_metadata_instance is not None:
+            self.reticle_metadata_instance.close()
+            self.calc_instance = None
+
+    # =========================
+    # Probe Detectors
+    # =========================
     def add_probe_detector(self, probeDetector):
         """Add a probe detector.
 
@@ -630,6 +626,38 @@ class Model:
             probeDetector: The probe detector object to add.
         """
         self.probeDetectors.append(probeDetector)
+
+    # =========================
+    # Cameras - Triangulation
+    # =========================
+
+    def set_camera_triangulation_status(self, camera_sn, status: bool):
+        """
+        Set the calibration status for a specific stage.
+        """
+        if camera_sn is None:
+            raise ValueError("camera_sn cannot be None")
+        if camera_sn in self.cameras:
+            self.cameras[camera_sn]["is_triangulation_candidate"] = status
+            self.save_camera_config(camera_sn)
+
+    def get_camera_triangulation_candidate(self) -> list[str]:
+        """
+        Get a list of cameras that are marked as triangulation candidates.
+        """
+        return [sn for sn, cam in self.cameras.items() if cam.get("is_triangulation_candidate", False)]
+
+    def reset_all_triangulation_partners(self):
+        """
+        Resets the 'is_triangulation_candidate' status to False for all known cameras.
+        """
+        for camera_sn in self.cameras:
+            self.cameras[camera_sn]["is_triangulation_candidate"] = False
+            self.save_camera_config(camera_sn)
+
+    # =========================
+    # Camera calibration - Intrinsic and Extrinsic parameters
+    # =========================
 
     def reset_coords_intrinsic_extrinsic(self, sn=None):
         """Reset all or specific camera's coordinates, intrinsic, and extrinsic parameters.
@@ -655,34 +683,7 @@ class Model:
                 self.cameras[sn]["params"] = None
                 self.set_camera_triangulation_status(sn, False)
 
-    def add_pos_x(self, sn, pt):
-        """Add position for the x-axis for a specific camera.
-
-        Args:
-            sn (str): The name of the camera.
-            pt: The position of the x-axis.
-        """
-        if sn in self.cameras:
-            self.cameras[sn]["pos_x"] = pt
-
-            print("pos_x: ", self.cameras[sn]["pos_x"])
-
-    def get_pos_x(self, sn):
-        """Get the position for the x-axis of a specific camera.
-
-        Args:
-            camera_name (str): The name of the camera.
-
-        Returns:
-            The position of the x-axis for the camera, or None.
-        """
-        return self.cameras.get(sn, {}).get("pos_x")
-
-    def reset_pos_x(self):
-        """Reset all x-axis positions."""
-        for cam in self.cameras.values():
-            cam["pos_x"] = None
-
+    
     def add_coords_axis(self, sn, coords):
         """Add axis coordinates for a specific camera.
 
@@ -709,18 +710,7 @@ class Model:
             list: The axis coordinates for the given camera.
         """
         return self.cameras[sn].get("coords_axis")
-
-    def get_camera_device_model(self, sn):
-        """Get device model for a specific camera.
-
-        Args:
-            sn (str): The name of the camera.
-
-        Returns:
-            list: The axis coordinates for the given camera.
-        """
-        return self.cameras[sn].get("device_model", "MockCamera")
-
+    
     def reset_coords_axis(self):
         """Reset axis coordinates for all cameras."""
         for cam in self.cameras.values():
@@ -773,9 +763,75 @@ class Model:
         """
         return self.cameras[sn].get("params", None)
 
-    def clean(self):
-        """Clean up and close all camera connections."""
-        close_cameras()
+    # =========================
+    # points
+    # =========================
+    def add_pts(self, camera_name, pts):
+        """Add detected points for a camera.
+
+        Args:
+            camera_name (str): The name of the camera.
+            pts (tuple): The detected points.
+        """
+        if len(self.clicked_pts) == 2 and camera_name not in self.clicked_pts:
+            # Remove the oldest entry (first added item)
+            self.clicked_pts.popitem(last=False)
+        self.clicked_pts[camera_name] = pts
+
+    def get_pts(self, camera_name):
+        """Retrieve points for a specific camera.
+
+        Args:
+            camera_name (str): The name of the camera.
+
+        Returns:
+            tuple: The points detected by the camera.
+        """
+        return self.clicked_pts.get(camera_name)
+
+    def get_cameras_detected_pts(self):
+        """Get the cameras that detected points.
+
+        Returns:
+            OrderedDict: Cameras and their corresponding detected points.
+        """
+        return self.clicked_pts
+
+    def reset_pts(self):
+        """Reset all detected points."""
+        self.clicked_pts = OrderedDict()
+
+    # =========================
+    # positive x-axis definition
+    # =========================
+
+    def add_pos_x(self, sn, pt):
+        """Add position for the x-axis for a specific camera.
+
+        Args:
+            sn (str): The name of the camera.
+            pt: The position of the x-axis.
+        """
+        if sn in self.cameras:
+            self.cameras[sn]["pos_x"] = pt
+
+            print("pos_x: ", self.cameras[sn]["pos_x"])
+
+    def get_pos_x(self, sn):
+        """Get the position for the x-axis of a specific camera.
+
+        Args:
+            camera_name (str): The name of the camera.
+
+        Returns:
+            The position of the x-axis for the camera, or None.
+        """
+        return self.cameras.get(sn, {}).get("pos_x")
+    
+    def reset_pos_x(self):
+        """Reset all x-axis positions."""
+        for cam in self.cameras.values():
+            cam["pos_x"] = None
 
     def save_all_camera_frames(self):
         """Save the current frames from all cameras."""
@@ -784,6 +840,10 @@ class Model:
                 filename = "camera%d_%s.png" % (i, camera.get_last_capture_time())
                 camera.save_last_image(filename)
                 self.msg_log.post("Saved camera frame: %s" % filename)
+
+    # =========================
+    # Calculator instance
+    # =========================
 
     def add_calc_instance(self, instance):
         """Add a calculator instance.
@@ -799,19 +859,9 @@ class Model:
             self.calc_instance.close()
             self.calc_instance = None
 
-    def add_reticle_metadata_instance(self, instance):
-        """Add a reticle metadata instance.
-
-        Args:
-            instance (object): The reticle metadata instance to add.
-        """
-        self.reticle_metadata_instance = instance
-
-    def close_reticle_metadata_instance(self):
-        """Close the reticle metadata instance."""
-        if self.reticle_metadata_instance is not None:
-            self.reticle_metadata_instance.close()
-            self.calc_instance = None
+    # =========================
+    # stage IP configuration
+    # =========================
 
     def add_stage_ipconfig_instance(self, instance):
         """Add a stage IP configuration instance.
@@ -826,3 +876,13 @@ class Model:
         if self.stage_ipconfig_instance is not None:
             self.stage_ipconfig_instance.close()
             self.stage_ipconfig_instance = None
+
+
+    # =========================
+    # Close and Clean
+    # =========================
+
+    def clean(self):
+        """Clean up and close all camera connections."""
+        close_cameras()
+
