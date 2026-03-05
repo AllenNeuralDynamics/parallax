@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QApplication
 from . import __version__
 from .config.cli import parse_args, print_arg_info
 from .config.config_path import PARALLAX_ASCII, setup_logging
-from .config.user_setting_manager import UserSettingsManager
+from .config.user_setting_manager import SessionManager, UserSettingsManager
 from .main_window import MainWindow
 from .model import Model
 
@@ -29,13 +29,15 @@ if __name__ == "__main__":
     setup_logging()
 
     # Load configuration
-    config = UserSettingsManager.load_and_validate()
+    config = UserSettingsManager.load()
+    session = SessionManager.load()
+    print(f"Loaded session: {session}")
 
     # Initialize the Qt application
     app = QApplication(sys.argv)
 
     # Initialize the model and main window
-    model = Model(args, config=config)
+    model = Model(args, config=config, session=session)
     main_window = MainWindow(model)
     main_window.show()
     main_window.ask_session_restore()
@@ -44,3 +46,4 @@ if __name__ == "__main__":
     # Clean up on exit
     atexit.register(model.clean)
     atexit.register(main_window.save_user_configs)
+    #atexit.register(SessionManager.save_session, session)

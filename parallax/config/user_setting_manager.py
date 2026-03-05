@@ -19,10 +19,11 @@ from dataclasses import asdict, is_dataclass
 
 import numpy as np
 import yaml
+import json
 
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.config_path import session_file, settings_file
-from parallax.config.schemas import AppSchema
+from parallax.config.schemas import AppSchema, SessionSchema
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 
 # Set logger name
@@ -38,7 +39,7 @@ class UserSettingsManager:
     settings_file = settings_file
 
     @classmethod
-    def load_and_validate(cls) -> AppSchema:
+    def load(cls) -> AppSchema:
         if not os.path.exists(cls.settings_file):
             return AppSchema()
 
@@ -75,7 +76,7 @@ class UserSettingsManager:
         Used by the UI to update a specific hardware setting.
         Re-validates before saving to ensure 'val' is the correct type.
         """
-        settings = cls.load_and_validate()
+        settings = cls.load()
         if sn in settings.cameras:
             try:
                 setattr(settings.cameras[sn], item, val)
@@ -88,7 +89,7 @@ class UserSettingsManager:
     @classmethod
     def load_gui_settings(cls):
         """Compatibility helper for MainWindow initialization."""
-        settings = cls.load_and_validate()
+        settings = cls.load()
         g = settings.gui
         return g.directory, g.width, g.height
 
@@ -97,12 +98,102 @@ class UserSettingsManager:
         """
         Updates GUI settings within the AppSchema and saves to YAML.
         """
-        app_settings = cls.load_and_validate()
+        app_settings = cls.load()
         app_settings.gui.directory = directory
         app_settings.gui.width = width
         app_settings.gui.height = height
         cls.save_settings(app_settings)
 
+# =========================
+# SessionManager
+# =========================
+
+
+class SessionManager:
+    session_file = session_file
+
+    @classmethod
+    def load(cls) -> SessionSchema:
+        """Loads YAML and returns a validated Pydantic object."""
+        if not os.path.exists(cls.session_file):
+            return SessionSchema()
+
+        with open(cls.session_file, "r") as f:
+            raw_data = yaml.safe_load(f) or {}
+            
+        # Nesting check: If your YAML starts with 'model:', extract it
+        data = raw_data.get("model", raw_data)
+        return SessionSchema.model_validate(data)
+
+    @classmethod
+    def save_session(cls, session_obj: SessionSchema):
+        """Saves the Pydantic object back to YAML."""
+        # Use model_dump(mode='json') to auto-convert NumPy/Path objects to lists/strings
+        data = {"model": json.loads(session_obj.model_dump_json())}
+        
+        os.makedirs(os.path.dirname(cls.session_file), exist_ok=True)
+        with open(cls.session_file, "w") as f:
+            yaml.safe_dump(data, f, sort_keys=False)
+
+    @classmethod
+    def instantiate(cls, model) -> None:
+        logger.debug("[CameraConfigManager] Loading YAML camera config")
+        data = cls.load()
+        """
+        cam_configs = data.get("model", {}).get("cameras", {})
+
+        for sn, camera in model.cameras.items():
+            if sn not in cam_configs:
+                continue
+            cam_cfg = cam_configs[sn]
+
+            # Basic fields
+            for key in [
+                "visible",
+                "coords_axis",
+                "coords_debug",
+                "pos_x",
+                "device_model",
+                "is_triangulation_candidate",
+            ]:
+                if key not in cam_cfg or cam_cfg[key] is None:
+                    continue
+                if key == "pos_x":
+                    camera[key] = tuple(cam_cfg[key])
+                elif key in ("coords_axis", "coords_debug"):
+                    camera[key] = np.array(cam_cfg[key])
+                else:
+                    camera[key] = cam_cfg[key]
+
+            # Intrinsic
+            intr = cam_cfg.get("params", {})
+            if intr:
+                mtx = np.asarray(intr.get("mtx"), dtype=np.float64) if intr.get("mtx") is not None else None
+                dist = np.asarray(intr.get("dist"), dtype=np.float64) if intr.get("dist") is not None else None
+
+                # Accept rvec/tvec in any of: [3], [3,1], (3,), (1,3)
+                def _vec3(v):
+                    if v is None:
+                        return None
+                    a = np.asarray(v, dtype=np.float64).reshape(-1)
+                    if a.size != 3:
+                        raise ValueError(f"rvec/tvec must have 3 elements, got {a.shape}")
+                    return a.reshape(3, 1)  # OpenCV-friendly (3,1)
+
+                rvec = _vec3(intr.get("rvec"))  # cv2.calibrateCamera return format
+                tvec = _vec3(intr.get("tvec"))
+
+                camera_params = CameraParams(
+                    mtx=mtx,
+                    dist=dist,
+                    rvec=rvec,
+                    tvec=tvec,
+                )
+                # Store as the object (not nested dicts/tuples)
+                camera["params"] = camera_params
+        """
+
+# -------------------------
 
 class BaseConfigManager:
     """Shared utilities for all ConfigManagers."""

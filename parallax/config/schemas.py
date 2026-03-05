@@ -1,8 +1,8 @@
 # parallax/config/schemas.py
 from pathlib import Path
-from typing import Dict, Literal
-
-from pydantic import BaseModel, Field, model_validator
+from typing import Dict, List, Optional, Any, Literal
+import numpy as np
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 # ----- Pydantic Schemas for Camera Settings Validation -----
 
@@ -50,3 +50,131 @@ class GUISettings(BaseModel):
 class AppSchema(BaseModel):
     cameras: Dict[str, CameraSettings] = Field(default_factory=dict)
     gui: GUISettings = Field(default_factory=GUISettings)
+
+
+# -------------------- session schema --------------------
+# --- Helper for NumPy Conversion ---
+def to_numpy(v: Any) -> Any:
+    if isinstance(v, list):
+        return np.array(v)
+    return v
+
+def to_list(v: Any) -> Any:
+    if isinstance(v, np.ndarray):
+        return v.tolist()
+    return v
+
+# --- Stage Schemas ---
+class StageObjSchema(BaseModel):
+    # Primary Key
+    sn: str
+    # Basic Info
+    name: Optional[str] = None
+    shank_cnt: Optional[int] = 1
+    # Raw Stage Coordinates
+    stage_x: Optional[float] = 0.0
+    stage_y: Optional[float] = 0.0
+    stage_z: Optional[float] = 0.0
+    # Global/World Coordinates
+    stage_x_global: Optional[float] = None
+    stage_y_global: Optional[float] = None
+    stage_z_global: Optional[float] = None
+    # Offset Coordinates
+    stage_x_offset: Optional[float] = None
+    stage_y_offset: Optional[float] = None
+    stage_z_offset: Optional[float] = None
+    # Bregma & Orientation
+    stage_bregma: Optional[str] = None
+    yaw: Optional[float] = None
+    pitch: Optional[float] = None
+    roll: Optional[float] = None
+
+class ArcAngle(BaseModel):
+    rx: float
+    ry: float
+    rz: float
+
+class StageCalibrationSchema(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    # --- Required ---
+    detection_status: str  # Must be provided (e.g., "accepted", "default")
+    # --- Optional Transformation Data ---
+    transM: Optional[Any] = None  # 4x4 Numpy array
+    transM_bregma: Optional[Dict[str, List[List[float]]]] = None
+    # Rotation angles
+    arc_angle_global: Optional[ArcAngle] = None
+    arc_angle_bregma: Optional[Dict[str, ArcAngle]] = None
+    # --- Error & Tracking Metrics ---
+    L2_err: Optional[float] = None
+    dist_travel: Optional[Any] = None
+    # Axes Status Flags (maps to true/false in YAML)
+    status_x: Optional[bool] = None
+    status_y: Optional[bool] = None
+    status_z: Optional[bool] = None
+    trajectory_file: Optional[str] = None
+    # --- Optional Bounds Tracking ---
+    min_x: Optional[float] = None
+    max_x: Optional[float] = None
+    min_y: Optional[float] = None
+    max_y: Optional[float] = None
+    min_z: Optional[float] = None
+    max_z: Optional[float] = None
+    min_gx: Optional[float] = None
+    max_gx: Optional[float] = None
+    min_gy: Optional[float] = None
+    max_gy: Optional[float] = None
+    # --- Validators ---
+    @field_validator("transM", "dist_travel", mode="before")
+    @classmethod
+    def validate_numpy(cls, v):
+        return to_numpy(v)
+
+class StageSessionSchema(BaseModel):
+    obj: StageObjSchema
+    is_calib: bool = False
+    calib_info: StageCalibrationSchema
+
+# --- Camera Parameters Schema ---
+class CameraParamsSchema(BaseModel):
+    mtx: Optional[Any] = None  # TODO -shape
+    dist: Optional[Any] = None
+    rvec: Optional[Any] = None
+    tvec: Optional[Any] = None
+
+    @field_validator("mtx", "dist", "rvec", "tvec", mode="before")
+    @classmethod
+    def validate_numpy(cls, v):
+        return to_numpy(v)
+
+class CameraSessionSchema(BaseModel):
+    visible: bool = True
+    device_model: Optional[str] = None
+    is_triangulation_candidate: bool = False
+    pos_x: Optional[List[float]] = None # List of coordinate paths
+    coords_axis: Optional[List[List[List[float]]]] = None
+    params: Optional[CameraParamsSchema] = None
+
+# --- Main Session Schema ---
+class SessionSchema(BaseModel):
+    reticle_detection_status: str = "default"  # options: default, detected, accepted
+    stages: Dict[str, StageSessionSchema] = Field(default_factory=dict)
+    cameras: Dict[str, CameraSessionSchema] = Field(default_factory=dict) # Simplified for brevity
+
+"""
+self.cameras[sn] = {
+    'obj': cam,
+    'visible': True,
+    'device_model': cam.device_model,
+    'is_triangulation_candidate' : False,
+    'probe_detect_algorithm': 'opencv',  # 'opencv' or 'yolo'
+    'coords_axis': None,
+    'coords_debug': None,
+    'pos_x': None,
+    'params': {
+        'mtx': None,
+        'dist': None,
+        'rvec': None,
+        'tvec': None
+    }
+}
+"""

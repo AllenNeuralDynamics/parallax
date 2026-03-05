@@ -16,7 +16,7 @@ import numpy as np
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.config.schemas import CameraSettings
-from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
+from parallax.config.user_setting_manager import SessionManager, CameraConfigManager, SessionConfigManager, StageConfigManager
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.stages.stage_listener import Stage, StageInfo
 
@@ -24,7 +24,7 @@ from parallax.stages.stage_listener import Stage, StageInfo
 class Model:
     """Model class to handle cameras, stages, and calibration data."""
 
-    def __init__(self, args=None, config=None):
+    def __init__(self, args=None, config=None, session=None):
         """Initialize the Model object.
 
         Args:
@@ -33,12 +33,18 @@ class Model:
         """
         # args from command line
         self.config = config
+        self.session = session
         self.dummy = getattr(args, "dummy", False)
         self.test = getattr(args, "test", False)
         self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
         self.reticle_detection = getattr(args, "reticle_detection", "default")
         self.nMockCameras = getattr(args, "nCameras", 1)
         self.nPySpinCameras = 0
+        self.nMockCameras = 0
+
+        # Instances
+        self.camera_instances = {}  # {sn: PySpinCamera/MockCamera}
+        self.stage_instances = {}  # {sn: Stage
 
         # cameras
         self.refresh_camera = False  # Status of camera streaming
@@ -142,10 +148,15 @@ class Model:
         return self.cameras.get(camera_sn, {}).get("probe_detect_algorithm", "yolo")
 
     def get_camera(self, sn):
-        return self.cameras.get(sn, {}).get("obj", None)
-
+        return self.camera_instances.get(sn)
+    
     def get_visible_cameras(self):
-        return [v["obj"] for v in self.cameras.values() if v["visible"]]
+        """Returns live objects for cameras marked as visible in the session."""
+        return [
+            self.camera_instances[sn]
+            for sn, data in self.cameras.items() 
+            if data.visible and sn in self.camera_instances
+        ]
 
     def get_visible_camera_sns(self):
         return [sn for sn, v in self.cameras.items() if v["visible"]]
@@ -163,6 +174,7 @@ class Model:
         cams = list_cameras(dummy=self.dummy, n_mocks=self.nMockCameras)
         for cam in cams:
             sn = cam.name(sn_only=True)
+            self.camera_instances[sn] = cam
             self.cameras[sn] = {
                 "obj": cam,
                 "visible": True,
@@ -172,8 +184,8 @@ class Model:
             }
             self.initialize_camera_settings(cam, sn)
 
-        self.nPySpinCameras = sum(isinstance(cam["obj"], PySpinCamera) for cam in self.cameras.values())
-        self.nMockCameras = sum(isinstance(cam["obj"], MockCamera) for cam in self.cameras.values())
+        self.nPySpinCameras = sum(isinstance(cam, PySpinCamera) for cam in self.camera_instances.values())
+        self.nMockCameras = sum(isinstance(cam, MockCamera) for cam in self.camera_instances.values())
 
     def initialize_camera_settings(self, cam, sn):
         camera_config = self.config.cameras.get(sn)
@@ -278,6 +290,7 @@ class Model:
 
     def load_camera_config(self):
         CameraConfigManager.load_from_yaml(self)
+        SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
 
     def save_camera_config(self, sn):
         CameraConfigManager.save_to_yaml(self, sn)
@@ -347,6 +360,8 @@ class Model:
         self.init_stages()
         for instance in instances:
             stage = Stage.from_info(info=instance)
+            sn = stage.sn
+            self.stage_instances[sn] = stage
             calib_info = StageCalibrationInfo()
             self.add_stage(stage, calib_info)
         print("  Stages:", list(self.stages.keys()))
@@ -359,16 +374,16 @@ class Model:
         """
         self.stages[stage.sn] = {"obj": stage, "is_calib": False, "calib_info": calib_info}
 
-    def get_stage(self, stage_sn):
+    def get_stage(self, sn):
         """Retrieve a stage by its serial number.
 
         Args:
-            stage_sn (str): The serial number of the stage.
+            sn (str): The serial number of the stage.
 
         Returns:
             Stage: The stage object corresponding to the given serial number.
         """
-        return self.stages.get(stage_sn, {}).get("obj", None)
+        return self.stage_instances.get(sn)
 
     def get_stage_calib_info(self, stage_sn) -> Optional[StageCalibrationInfo]:
         """Get calibration information for a specific stage."""

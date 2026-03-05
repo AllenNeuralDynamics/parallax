@@ -116,7 +116,7 @@ class ScreenWidgetManager(QObject):
         layout = QVBoxLayout(group_box)
 
         # Screen
-        camera = self.model.cameras[sn]["obj"]
+        camera = self.model.get_camera(sn)
         screen = ScreenWidget(camera, model=self.model, parent=group_box)
         screen.setObjectName("Screen")
         layout.addWidget(screen)
