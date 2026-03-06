@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox,
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import fira_font_dir, ui_dir
-from parallax.config.user_setting_manager import UserSettingsManager
+from parallax.config.user_setting_manager import SessionManager, UserSettingsManager
 from parallax.control_panel.control_panel import ControlPanel
 from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.recording_manager import RecordingManager
@@ -111,9 +111,6 @@ class MainWindow(QMainWindow):
         )
         self.actionRecording.triggered.connect(self.record_button_handler)  # Recording video button
 
-        # Toggle start button on init
-        self.start_button_handler()
-
         # actionDocumentation
         self.actionDocumentation.triggered.connect(lambda: webbrowser.open("https://parallax.readthedocs.io/"))
 
@@ -149,17 +146,24 @@ class MainWindow(QMainWindow):
         Asks the user if they want to restore the previous session.
         """
         if self._session_restore_popup_window():
-            # Restore coinfigs
+            self.model.load_session()
             self.model.load_camera_config()
             self.model.load_session_config()
             self.model.load_stage_config()
             self.control_panel.reticle_handler.apply_reticle_detection_status()
             self.control_panel.probe_calib_handler.apply_probe_calibration_status()
-            print(" Restored session info to cameras:", list(self.model.camera_data.keys()))
-            print(" Restored session info to stages:", list(self.model.stages.keys()))
+            print(" Restored session info to cameras:", list(self.model.session.cameras.keys()))
+            print(" Restored session info to stages:", list(self.model.session.stages.keys()))
         else:
             # Clear yaml file
             self.model.clear_session_config()
+
+        # Set the camera visibility to True
+        for sn in self.model.get_list_of_camera_sns():
+            print("Setting camera visibility to True for", sn)
+            print("Before:", self.model.session.cameras[sn].visible)
+            self.model.set_camera_visibility(sn, True)
+            print("After:", self.model.session.cameras[sn].visible)
 
     def _set_font(self):
         """

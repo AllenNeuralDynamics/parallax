@@ -37,9 +37,8 @@ class ScreenWidgetManager(QObject):
         self.refresh_timer = QTimer()
 
         self.main_window.setDockNestingEnabled(True)
-        n_cams = len(self.model.camera_instances)
-        for i in range(n_cams):
-            self._add_screen_dock(i)
+        for sn in self.model.get_list_of_camera_sns():
+            self._add_screen_dock(sn)
 
         self._device_menu()
 
@@ -103,8 +102,7 @@ class ScreenWidgetManager(QObject):
                 screen.stop_acquisition_camera()
                 logger.debug("Camera acquisition stopped for:", sn)
 
-    def _add_screen_dock(self, screen_index: int):
-        sn = list(self.model.get_list_of_camera_sns())[screen_index]
+    def _add_screen_dock(self, sn):
         print("Adding screen dock for camera SN:", sn)  # Debug statement to verify SN retrieval
         name = str(sn)
         group_box = QGroupBox(name)

@@ -23,7 +23,7 @@ from parallax.stages.stage_listener import Stage, StageInfo
 class Model:
     """Model class to handle cameras, stages, and calibration data."""
 
-    def __init__(self, args=None, config=None, session=None):
+    def __init__(self, args=None, config=None):
         """Initialize the Model object.
 
         Args:
@@ -32,14 +32,13 @@ class Model:
         """
         # args from command line
         self.config = config
-        self.session = session  # SessionSchema
+        self.session = None  # SessionSchema. Initialize after pop-up
         self.dummy = getattr(args, "dummy", False)
         self.test = getattr(args, "test", False)
         self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
         self.reticle_detection = getattr(args, "reticle_detection", "default")
         self.nMockCameras = getattr(args, "nCameras", 1)
         self.nPySpinCameras = 0
-        self.nMockCameras = 0
 
         # Instances
         self.camera_instances = {}  # {sn: PySpinCamera/MockCamera}
@@ -47,26 +46,6 @@ class Model:
 
         # cameras
         self.refresh_camera = False  # Status of camera streaming
-        #self.session.cameras = OrderedDict()
-        #self.cameras = OrderedDict()
-        """
-        self.cameras[sn] = {
-            'obj': cam,
-            'visible': True,
-            'device_model': cam.device_model,
-            'is_triangulation_candidate' : False,
-            'probe_detect_algorithm': 'opencv',  # 'opencv' or 'yolo'
-            'coords_axis': None,
-            'coords_debug': None,
-            'pos_x': None,
-            'params': {
-                'mtx': None,
-                'dist': None,
-                'rvec': None,
-                'tvec': None
-            }
-        }
-        """
         # Session Config
         self.reticle_detection_status = "default"  # options: default, detected, accepted
 
@@ -120,17 +99,8 @@ class Model:
         cams = list_cameras(dummy=self.dummy, n_mocks=self.nMockCameras)
         for cam in cams:
             sn = cam.name(sn_only=True)
+            print("Found camera SN:", sn)  # Debug statement to verify SN retrieval
             self.camera_instances[sn] = cam
-
-            """
-            self.cameras[sn] = {
-                "obj": cam,
-                "visible": True,
-                "device_model": cam.device_model,
-                "is_triangulation_candidate": False,
-                "probe_detect_algorithm": "yolo",
-            }"""
-
             self.initialize_camera_settings(cam, sn)  # fps, britness, gain, wb, gamma
 
         self.nPySpinCameras = sum(isinstance(cam, PySpinCamera) for cam in self.camera_instances.values())
@@ -394,6 +364,8 @@ class Model:
 
     def set_camera_visibility(self, sn: str, visible: bool):
         """Updates visibility in the schema and triggers a session save."""
+        if self.session is None:
+            return
         if sn in self.session.cameras:
             self.session.cameras[sn].visible = visible
 
@@ -402,7 +374,10 @@ class Model:
         Get a list of all camera serial numbers defined in the session.
         Using session keys ensures the UI shows all expected cameras.
         """
-        return list(self.camera_instances.keys())  # TODO
+        if self.session is None:
+            return list(self.camera_instances.keys())  # Fallback to live cameras if session is not loaded
+        print("self.session.cameras.keys(), ", self.session.cameras.keys())
+        return list(self.session.cameras.keys())
 
     def get_camera_device_model(self, sn: str) -> str:
         """
@@ -835,6 +810,15 @@ class Model:
     # =========================
     # Configurations - Load and Save
     # =========================
+
+    def load_session(self):
+        """Load the session for the model.
+
+        Args:
+            session: The session object to set for the model.
+        """
+        # Restore coinfigs
+        self.session = SessionManager.load()
 
     def load_camera_config(self):
         #CameraConfigManager.load_from_yaml(self)

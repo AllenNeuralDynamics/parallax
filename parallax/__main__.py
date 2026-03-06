@@ -30,17 +30,18 @@ if __name__ == "__main__":
 
     # Load configuration
     config = UserSettingsManager.load()
-    session = SessionManager.load()
-    #print(f"Loaded session: {session}")
 
     # Initialize the Qt application
     app = QApplication(sys.argv)
 
     # Initialize the model and main window
-    model = Model(args, config=config, session=session)
+    model = Model(args, config=config)
     main_window = MainWindow(model)
     main_window.show()
     main_window.ask_session_restore()
+    print(" -- Session Loaded -- ")
+    main_window.start_button_handler()
+    print(" -- Streaming started -- ")
     app.exec()
 
     # Clean up on exit

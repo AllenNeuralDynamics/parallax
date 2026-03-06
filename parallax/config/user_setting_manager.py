@@ -160,21 +160,6 @@ class SessionManager:
             yaml.safe_dump(data, f, sort_keys=False, default_flow_style=False)
 
     @classmethod
-    def instantiate_(cls, model) -> None:
-        """
-        No disk access here. Just pulls the saved data from the class variable.
-        """
-        # Pull from the already-loaded class variable
-        # model.session has the SessionSchema object loaded from disk (or defaults)
-        print("Physical camera SNs in model:", list(model.camera_instances.keys()))
-        for sn in model.camera_instances.keys():  # Get actual camera SNs from the model
-            if sn not in model.session.cameras.keys():
-                logger.debug(f"[SessionManager] No session data for camera '{sn}'; skipping.")
-                continue
-            model.camera_data[sn] = model.session.cameras[sn]
-        print("Session cameras loaded into model:", list(model.camera_data.keys()))
-
-    @classmethod
     def instantiate(cls, model) -> None:
         """
         Syncs the SessionSchema with physical hardware.
@@ -199,13 +184,9 @@ class SessionManager:
             # Initialize with a fresh schema
             model.session.cameras[sn] = CameraSessionSchema(device_model=model.get_camera_device_model(sn))
 
-        # Link the model to the reconciled data
-        model.camera_data = model.session.cameras
-        model.stage_data = model.session.stages
-
         # Optional: Save the cleaned-up state immediately
         # cls.save_session(session)
-        print("Final reconciled session cameras:", list(model.camera_data.keys()))
+        print("Final reconciled session cameras:", list(model.session.cameras.keys()))
 
 # -------------------------
 

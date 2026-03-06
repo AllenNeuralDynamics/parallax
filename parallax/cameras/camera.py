@@ -42,13 +42,12 @@ def list_cameras(dummy=False, n_mocks=0):
         # Return mock cameras for testing
         for i in range(n_mocks):
             cameras.append(MockCamera())
-    else:
-        # Return actual hardware cameras
-        if PySpin is not None:
-            try:
-                cameras.extend(PySpinCamera.list_cameras())
-            except Exception as e:
-                logger.error(f"Error listing PySpin cameras: {e}")
+    # Return actual hardware cameras
+    if PySpin is not None:
+        try:
+            cameras.extend(PySpinCamera.list_cameras())
+        except Exception as e:
+            logger.error(f"Error listing PySpin cameras: {e}")
     return cameras
 
 
