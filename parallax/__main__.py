@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # Load configuration
     config = UserSettingsManager.load()
     session = SessionManager.load()
-    print(f"Loaded session: {session}")
+    #print(f"Loaded session: {session}")
 
     # Initialize the Qt application
     app = QApplication(sys.argv)

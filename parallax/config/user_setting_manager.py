@@ -16,7 +16,7 @@ import logging
 import os
 import sys
 from dataclasses import asdict, is_dataclass
-from typing import Optional
+from typing import Dict, Optional
 
 import numpy as np
 import yaml
@@ -24,7 +24,7 @@ import json
 
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.config_path import session_file, settings_file
-from parallax.config.schemas import AppSchema, SessionSchema
+from parallax.config.schemas import AppSchema, SessionSchema, CameraSessionSchema
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 
 # Set logger name
@@ -143,25 +143,69 @@ class SessionManager:
 
     @classmethod
     def save_session(cls, session_obj: SessionSchema):
-        """Saves the object to disk and updates the class-level saved data."""
-        cls._data = session_obj  # Keep the cache updated
-        data = {"model": json.loads(session_obj.model_dump_json())}
+        """Saves the object to disk. Safely handles both Dict and Pydantic objects."""
+        cls._data = session_obj
+
+        # Check if it's a Pydantic object or a dict
+        if hasattr(session_obj, "model_dump_json"):
+            # Use Pydantic's built-in conversion
+            json_data = session_obj.model_dump_json()
+            data = {"model": json.loads(json_data)}
+        else:
+            # It's already a dict, just use it
+            data = {"model": session_obj}
+
         os.makedirs(os.path.dirname(cls.session_file), exist_ok=True)
         with open(cls.session_file, "w") as f:
             yaml.safe_dump(data, f, sort_keys=False, default_flow_style=False)
 
     @classmethod
-    def instantiate(cls, model) -> None:
+    def instantiate_(cls, model) -> None:
         """
         No disk access here. Just pulls the saved data from the class variable.
         """
         # Pull from the already-loaded class variable
         # model.session has the SessionSchema object loaded from disk (or defaults)
-        for sn in model.get_list_of_camera_sns():  # Get actual camera SNs from the model
+        print("Physical camera SNs in model:", list(model.camera_instances.keys()))
+        for sn in model.camera_instances.keys():  # Get actual camera SNs from the model
             if sn not in model.session.cameras.keys():
                 logger.debug(f"[SessionManager] No session data for camera '{sn}'; skipping.")
                 continue
             model.camera_data[sn] = model.session.cameras[sn]
+        print("Session cameras loaded into model:", list(model.camera_data.keys()))
+
+    @classmethod
+    def instantiate(cls, model) -> None:
+        """
+        Syncs the SessionSchema with physical hardware.
+        Removes missing cameras and adds new ones.
+        """
+        #session = cls.load()
+        #model.session = session
+
+        physical_sns = set(model.camera_instances.keys())  # {B, C, D}
+        session_sns = set(model.session.cameras.keys())    # {A, B, C}
+
+        # Remove cameras that are in session but NOT physically connected (A)
+        to_remove = session_sns - physical_sns
+        for sn in to_remove:
+            logger.info(f"[SessionManager] Removing camera {sn} from session (not connected).")
+            del model.session.cameras[sn]
+
+        # Add cameras that are physical but NOT in session (D)
+        to_add = physical_sns - session_sns
+        for sn in to_add:
+            logger.info(f"[SessionManager] Adding new camera {sn} to session.")
+            # Initialize with a fresh schema
+            model.session.cameras[sn] = CameraSessionSchema(device_model=model.get_camera_device_model(sn))
+
+        # Link the model to the reconciled data
+        model.camera_data = model.session.cameras
+        model.stage_data = model.session.stages
+
+        # Optional: Save the cleaned-up state immediately
+        # cls.save_session(session)
+        print("Final reconciled session cameras:", list(model.camera_data.keys()))
 
 # -------------------------
 

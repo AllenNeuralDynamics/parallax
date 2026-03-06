@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Literal
 import numpy as np
-from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator, field_serializer
 
 # ----- Pydantic Schemas for Camera Settings Validation -----
 
@@ -129,6 +129,13 @@ class StageCalibrationSchema(BaseModel):
     def validate_numpy(cls, v):
         return to_numpy(v)
 
+    # This handles the conversion TO list when saving
+    @field_serializer("transM", "dist_travel")
+    def serialize_numpy(self, v: Any, _info):
+        if isinstance(v, np.ndarray):
+            return v.tolist()
+        return v
+
 class StageSessionSchema(BaseModel):
     obj: StageObjSchema
     is_calib: bool = False
@@ -163,6 +170,13 @@ class CameraParamsSchema(BaseModel):
             raise ValueError(f"Vector must have 3 elements, got {arr.size}")
         return arr.reshape(3, 1)
 
+    @field_serializer("mtx", "dist", "rvec", "tvec")
+    def serialize_numpy(self, v: Any, _info):
+        if isinstance(v, np.ndarray):
+            return v.tolist()
+        return v
+
+
 class CameraSessionSchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     visible: bool = True
@@ -180,12 +194,16 @@ class CameraSessionSchema(BaseModel):
         if isinstance(v, list):
             return np.array(v)
         return v
-
     @field_validator("pos_x", mode="before")
     @classmethod
     def to_tuple(cls, v):
         if isinstance(v, list):
             return tuple(v)
+        return v
+    @field_serializer("coords_axis", "coords_debug")
+    def serialize_numpy(self, v: Any, _info):
+        if isinstance(v, np.ndarray):
+            return v.tolist()
         return v
 
 # --- Main Session Schema ---
