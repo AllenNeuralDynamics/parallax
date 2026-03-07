@@ -250,7 +250,7 @@ class StageListener(QObject):
         """Initialize Stage Listener object"""
         super().__init__()
         self.model = model
-        self.worker = Worker(self.model.stage_listener_url)
+        self.worker = Worker(self.model.config.pathfinder_server.url)
         self.thread = QThread()
         self.stage_ui = stage_ui
         self.actionSaveInfo = actionSaveInfo
@@ -278,7 +278,7 @@ class StageListener(QObject):
     def update_url(self):
         """Update the URL for the worker."""
         # Update URL
-        self.worker.update_url(self.model.stage_listener_url)
+        self.worker.update_url(self.model.config.pathfinder_server.url)
 
     def init_probe_calib_label(self, probe_calib_label):
         self.probeCalibrationLabel = probe_calib_label

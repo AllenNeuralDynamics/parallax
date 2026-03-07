@@ -6,10 +6,6 @@ Key Functionalities:
 - Persistent storage of user preferences in a JSON format.
 - Dynamic update of settings based on user interface interactions.
 - Logging of operational messages for error handling and debugging.
-
-Example:
-    nColumn, directory, width, height = UserSettingsManager.load_mainWindow_settings()
-    UserSettingsManager.save_user_configs(nColumn, directory, width, height)
 """
 
 import logging
@@ -33,77 +29,68 @@ logger.setLevel(logging.WARNING)
 
 
 class UserSettingsManager:
-    """
-    Manages user settings with strict Pydantic validation.
-    Unified source for Camera and GUI configurations.
-    """
     settings_file = settings_file
+    _data: Optional[AppSchema] = None  # The class-level cache
 
     @classmethod
     def load(cls) -> AppSchema:
+        """
+        Loads from disk ONLY if _data is None.
+        Subsequent calls return the cached memory object.
+        """
+        if cls._data is not None:
+            return cls._data
+
         if not os.path.exists(cls.settings_file):
-            return AppSchema()
+            cls._data = AppSchema()
+            return cls._data
 
         try:
             with open(cls.settings_file, "r") as file:
-                data = yaml.safe_load(file) or {}
-            return AppSchema(**data)
+                raw_data = yaml.safe_load(file) or {}
+            # Validate and cache the result
+            cls._data = AppSchema(**raw_data)
+            return cls._data
 
         except Exception as e:
-            # Failure printout for the terminal
             print("\n" + "!" * 60)
             print("CRITICAL CONFIGURATION ERROR")
             print(f"File: {cls.settings_file}")
             print(f"Error: {e}")
             print("!" * 60 + "\n")
-
             logger.critical(f"App launch aborted due to config error: {e}")
-            sys.exit(1)  # Stop the app launch immediately
+            sys.exit(1)
 
     @classmethod
     def save_settings(cls, settings: AppSchema):
-        """Persists the validated AppSchema back to YAML."""
+        """Persists to YAML and updates the cache."""
         try:
-            # No need to re-validate if it's already an AppSchema object
+            cls._data = settings
             data = settings.model_dump()
             with open(cls.settings_file, "w") as file:
                 yaml.dump(data, file, default_flow_style=False, sort_keys=False)
         except Exception as e:
             logger.error(f"Failed to save settings: {e}")
 
-    @classmethod
-    def update_camera_config(cls, sn: str, item: str, val: any):
-        """
-        Used by the UI to update a specific hardware setting.
-        Re-validates before saving to ensure 'val' is the correct type.
-        """
-        settings = cls.load()
-        if sn in settings.cameras:
-            try:
-                setattr(settings.cameras[sn], item, val)
-                cls.save_settings(settings)
-            except Exception as e:
-                logger.error(f"Validation failed for {item}={val}: {e}")
-        else:
-            logger.error(f"Unknown camera: {sn}")
-
-    @classmethod
-    def load_gui_settings(cls):
-        """Compatibility helper for MainWindow initialization."""
-        settings = cls.load()
-        g = settings.gui
-        return g.directory, g.width, g.height
+    # --- Optimized Helpers (No disk access) ---
 
     @classmethod
     def save_gui_settings(cls, directory, width, height):
-        """
-        Updates GUI settings within the AppSchema and saves to YAML.
-        """
-        app_settings = cls.load()
+        """Updates cache and saves to disk without reloading."""
+        app_settings = cls.load() # Returns cached _data
         app_settings.gui.directory = directory
         app_settings.gui.width = width
         app_settings.gui.height = height
         cls.save_settings(app_settings)
+
+    @classmethod
+    def save_pathfinder_server_settings(cls, ip, port):
+        """Updates cache and saves to disk without reloading."""
+        app_settings = cls.load() # Returns cached _data
+        app_settings.pathfinder_server.ip = ip
+        app_settings.pathfinder_server.port = port
+        cls.save_settings(app_settings)
+
 
 # =========================
 # SessionManager
@@ -165,8 +152,6 @@ class SessionManager:
         Syncs the SessionSchema with physical hardware.
         Removes missing cameras and adds new ones.
         """
-        #session = cls.load()
-        #model.session = session
 
         physical_sns = set(model.camera_instances.keys())  # {B, C, D}
         session_sns = set(model.session.cameras.keys())    # {A, B, C}

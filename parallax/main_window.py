@@ -63,19 +63,17 @@ class MainWindow(QMainWindow):
         self.refresh_cameras()
         logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
 
+        # Update Stage information
+        self.refresh_stages()
+        logger.debug(f"nStages: {self.model.nStages}")
+
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
         loadUi(ui, self)
 
-        # set font
         self._set_font()
-
-        # Load existing user preferences
-        self.dir, width, height = UserSettingsManager.load_gui_settings()
-        if width is not None and height is not None:
-            self.resize(width, height)
-        if self.dir is None or not os.path.exists(self.dir):
-            self.dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        self.dir = self.model.config.gui.directory
+        self.resize(self.model.config.gui.width, self.model.config.gui.height)
 
         # Attach directory selection event handler for saving files
         self.actionDir.triggered.connect(self.dir_setting_handler)
@@ -84,7 +82,7 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
-        self.control_panel = ControlPanel(
+        self.control_panel = ControlPanel(  # init staages
             self.model,
             self.screen_widget_manager.screen_widgets,
             self.actionServer,

@@ -39,9 +39,7 @@ if __name__ == "__main__":
     main_window = MainWindow(model)
     main_window.show()
     main_window.ask_session_restore()
-    print(" -- Session Loaded -- ")
     main_window.start_button_handler()
-    print(" -- Streaming started -- ")
     app.exec()
 
     # Clean up on exit

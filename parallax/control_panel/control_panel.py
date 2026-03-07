@@ -133,8 +133,8 @@ class ControlPanel(QWidget):
         """
         logger.debug("Initializing stages...")
         # refresh the stage using server IP address
-        self.stage_server_ipconfig.update_url(init=True)
-        self.stage_server_ipconfig.refresh_stages()  # Update stages to model
+        #self.stage_server_ipconfig.update_url(init=True)
+        #self.stage_server_ipconfig.refresh_stages()  # Update stages to model
 
         # Set Stage UI
         self.stageUI = StageUI(self)  # TODO Move UI into StageUI

@@ -37,8 +37,10 @@ class Model:
         self.test = getattr(args, "test", False)
         self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
         self.reticle_detection = getattr(args, "reticle_detection", "default")
+
         self.nMockCameras = getattr(args, "nCameras", 1)
         self.nPySpinCameras = 0
+        self.nStages = 0
 
         # Instances
         self.camera_instances = {}  # {sn: PySpinCamera/MockCamera}
@@ -78,7 +80,6 @@ class Model:
             }
         }
         """
-        self.stage_listener_url = None
         self.stage_ipconfig_instance = None
 
         # probe detector
@@ -113,7 +114,8 @@ class Model:
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
         print("Scanning for USB stages...")
-        stage_info = StageInfo(self.stage_listener_url)
+        print("self.config.pathfinder_server.url: ", self.config.pathfinder_server.url)
+        stage_info = StageInfo(self.config.pathfinder_server.url)
         instances = stage_info.get_instances()
         self.init_stages()
         for instance in instances:
@@ -122,6 +124,7 @@ class Model:
             self.stage_instances[sn] = stage
             calib_info = StageCalibrationInfo()
             self.add_stage(stage, calib_info)
+        self.nStages = len(self.stage_instances)
         print("  Stages:", list(self.stages.keys()))
 
 
@@ -147,15 +150,6 @@ class Model:
             str: The serial number of the currently selected stage.
         """
         return self.selected_stage_sn
-
-
-    def set_stage_listener_url(self, url):
-        """Set the URL for the stage listener.
-
-        Args:
-            url (str): The URL to set for the stage listener.
-        """
-        self.stage_listener_url = url
 
     def add_stage(self, stage, calib_info):
         """Add a stage to the model.
@@ -835,7 +829,7 @@ class Model:
         SessionManager.save_session(self.session)
 
     def clear_session_config(self):
-        SessionConfigManager.clear_yaml()
+        SessionConfigManager.clear_yaml()  # TODO
 
     def save_stage_config(self, stage_sn):
         StageConfigManager.save_to_yaml(self, stage_sn)
