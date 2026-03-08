@@ -30,7 +30,7 @@ def model():
     from parallax.model import Model
 
     m = Model(_build_args())
-    m.stage_listener_url = "http://localhost:8080/"
+    m.config.pathfinder_server.url = "http://localhost:8080/"
     return m
 
 

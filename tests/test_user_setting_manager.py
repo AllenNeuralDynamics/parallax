@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 import yaml
 
+from parallax.config.schemas import AppSchema
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.user_setting_manager import (
     CameraConfigManager,
@@ -65,36 +66,76 @@ def dummy_model():
 # UserSettingsManager Tests
 # ------------------------
 
+@pytest.fixture(autouse=True)
+def clean_manager_state():
+    """
+    Automatically resets the UserSettingsManager memory cache 
+    before and after every single test.
+    """
+    UserSettingsManager._data = None
+    yield
+    UserSettingsManager._data = None
 
-def test_load_settings_returns_dict_when_missing_file(tmp_path, monkeypatch):
-    missing = tmp_path / "nope.json"
-    monkeypatch.setattr(UserSettingsManager, "settings_file", str(missing), raising=False)
-    data = UserSettingsManager.load_and_validate()
-    assert data.gui.width == 800  # Default value from AppSchema
+def test_load_settings_returns_default_when_missing_file(tmp_path, monkeypatch):
+    # Setup: Point to a non-existent file
+    missing_file = tmp_path / "settings.yaml"
+    monkeypatch.setattr(UserSettingsManager, "settings_file", str(missing_file))
+    
+    # Act: Load (should trigger creation of default AppSchema)
+    data = UserSettingsManager.load()
+    
+    # Assert
+    assert data.gui.width == 800  # Default value
+    assert data.pathfinder_server.port == 8000
+    assert UserSettingsManager._data is not None # Cache should be populated
 
-
-def test_save_and_load_settings_roundtrip(tmp_settings_file):
-    from parallax.config.schemas import AppSchema
-    test_payload = AppSchema(cameras={})
+def test_save_and_load_settings_roundtrip(tmp_path):
+    # Setup
+    test_file = tmp_path / "roundtrip.yaml"
+    UserSettingsManager.settings_file = str(test_file)
+    
+    # Act
+    test_payload = AppSchema()
+    test_payload.gui.width = 1234
     UserSettingsManager.save_settings(test_payload)
-    loaded = UserSettingsManager.load_and_validate()
+    
+    # Force clear cache to test actual disk read
+    UserSettingsManager._data = None
+    loaded = UserSettingsManager.load()
+    
+    # Assert
+    assert loaded.gui.width == 1234
     assert isinstance(loaded, AppSchema)
 
-
-def test_save_user_configs_and_load_main_window(tmp_settings_file, tmp_path):
-    UserSettingsManager.save_gui_settings(str(tmp_path), 1024, 768)
-    directory, width, height = UserSettingsManager.load_gui_settings()
-    assert width == 1024
-    assert directory == str(tmp_path)
-
-
-def test_load_settings_item_variants(tmp_settings_file, tmp_path):
+def test_save_gui_settings_updates_cache_and_disk(tmp_path):
+    # Setup
+    test_file = tmp_path / "gui_test.yaml"
+    UserSettingsManager.settings_file = str(test_file)
+    
+    # Act
     UserSettingsManager.save_gui_settings(str(tmp_path), 1920, 1080)
-    settings = UserSettingsManager.load_and_validate()
-    assert settings.gui.width == 1920
-    assert settings.gui.height == 1080
-    assert settings.gui.directory == str(tmp_path)
+    
+    # Check memory cache immediately
+    assert UserSettingsManager._data.gui.width == 1920
+    assert UserSettingsManager._data.gui.directory == str(tmp_path)
+    
+    # Check disk by reloading
+    UserSettingsManager._data = None
+    reloaded = UserSettingsManager.load()
+    assert reloaded.gui.height == 1080
 
+def test_save_pathfinder_server_settings(tmp_path):
+    # Setup
+    test_file = tmp_path / "server_test.yaml"
+    UserSettingsManager.settings_file = str(test_file)
+    
+    # Act
+    UserSettingsManager.save_pathfinder_server_settings("http://192.168.1.50", 9000)
+    
+    # Assert
+    settings = UserSettingsManager.load()
+    assert settings.pathfinder_server.ip == "http://192.168.1.50"
+    assert settings.pathfinder_server.port == 9000
 
 # ------------------------
 # SessionConfigManager Tests

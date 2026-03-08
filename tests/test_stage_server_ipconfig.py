@@ -14,9 +14,9 @@ TEST_JSON_CONFIG_PATH = os.path.join(TEST_DATA_DIR, "test_stage_server_config.js
 @pytest.fixture
 def mock_model():
     model = MagicMock()
-    model.set_stage_listener_url = MagicMock()
     model.refresh_stages = MagicMock()
     model.add_stage_ipconfig_instance = MagicMock()
+    model.config.pathfinder_server.url = "http://localhost:8080/"
     return model
 
 
