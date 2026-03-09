@@ -14,9 +14,9 @@ import numpy as np
 
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.config.schemas import CameraSettings
+from parallax.config.config_manager import ConfigManager
 from parallax.session.session_state import CameraParams, StageCalibration
 from parallax.session.session_manager import SessionManager
-from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.stages.stage_listener import Stage, StageInfo
 
@@ -613,7 +613,7 @@ class Model:
         if camera_sn in self.session.cameras:
             # Direct attribute access on the Pydantic model
             self.session.cameras[camera_sn].is_triangulation_candidate = status
-            self.save_session_config()
+            self.save_session()
 
     def get_camera_triangulation_candidate(self) -> list[str]:
         """
@@ -632,7 +632,7 @@ class Model:
             cam.is_triangulation_candidate = False
             
         # Save once after the loop for efficiency
-        self.save_session_config()
+        self.save_session()
 
     # =========================
     # Camera calibration - Intrinsic and Extrinsic parameters
@@ -661,7 +661,7 @@ class Model:
             cam.params = None
             self.set_camera_triangulation_status(sn, False)
         
-        self.save_session_config()
+        self.save_session()
 
     def add_coords_axis(self, sn, coords):
         """Add axis coordinates for a specific camera."""
@@ -693,7 +693,7 @@ class Model:
         if sn in self.session.cameras:
             # Pydantic will validate this against CameraParamsSchema
             self.session.cameras[sn].params = camera_params
-            self.save_session_config()
+            self.save_session()
 
     def get_camera_params(self, sn) -> Optional[CameraParams]:
         """Get intrinsic camera parameters for a specific camera."""
@@ -831,21 +831,9 @@ class Model:
         #CameraConfigManager.load_from_yaml(self)
         SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
 
-    def save_camera_config(self, sn):
-        CameraConfigManager.save_to_yaml(self, sn)
+    def save_config(self):
+        ConfigManager.save_to_yaml(self, self.config)
 
-    def load_session_config(self):
-        SessionConfigManager.load_from_yaml(self)
-
-    def save_session_config(self):
+    def save_session(self):
         #SessionConfigManager.save_to_yaml(self)
         SessionManager.save_session(self.session)
-
-    def clear_session_config(self):
-        SessionConfigManager.clear_yaml()  # TODO
-
-    def save_stage_config(self, stage_sn):
-        StageConfigManager.save_to_yaml(self, stage_sn)
-
-    def load_stage_config(self):
-        StageConfigManager.load_from_yaml(self)

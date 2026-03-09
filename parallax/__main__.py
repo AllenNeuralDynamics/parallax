@@ -44,5 +44,5 @@ if __name__ == "__main__":
 
     # Clean up on exit
     atexit.register(model.clean)
-    atexit.register(main_window.save_user_configs)
+    atexit.register(model.save_user_configs)
     #atexit.register(SessionManager.save_session, session)

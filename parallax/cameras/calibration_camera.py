@@ -21,14 +21,6 @@ from parallax.session.session_state import CameraParams
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-"""
-Example usage:
-success, camera_params = calibrate_camera(
-    x_axis=x_coords,
-    y_axis=y_coords,
-    device_model_name="Blackfly S BFS-U3-120S4C"
-)
-"""
 
 def calibrate_camera(
     x_axis: Union[np.ndarray, List[Tuple[int, int]]],  # accepts list or np.ndarray (N,2)

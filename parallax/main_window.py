@@ -15,16 +15,14 @@ Classes:
 import logging
 import os
 import webbrowser
-
-from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtGui import QFont, QFontDatabase
 
 # Import required PyQt6 modules and other libraries
 from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QSplitter
 from PyQt6.uic import loadUi
 
+from parallax.config.config_manager import ConfigManager
 from parallax.config.config_path import fira_font_dir, ui_dir
-from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.control_panel.control_panel import ControlPanel
 from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.recording_manager import RecordingManager
@@ -240,19 +238,6 @@ class MainWindow(QMainWindow):
             print("Selected directory:", self.dir)
         else:
             print("Selection canceled. Keeping previous:", self.dir)
-
-    def save_user_configs(self):
-        """
-        Saves user configuration settings to a persistent storage.
-
-        This method retrieves current configuration values from the UI
-        directory path (directory), and the window's
-        width and height. It then passes these values to the `save_gui_settings` method
-        of the `UserSettingsManager` object to be saved.
-        """
-        width = self.width()
-        height = self.height()
-        UserSettingsManager.save_gui_settings(self.dir, width, height)
 
     def closeEvent(self, event):
         """

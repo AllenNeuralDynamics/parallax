@@ -6,7 +6,6 @@ from PyQt6.QtWidgets import QFileDialog, QPushButton, QToolButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
-from parallax.config.user_setting_manager import UserSettingsManager
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,8 @@ class ScreenSetting(QWidget):
             else:
                 self.refresh_timer.stop()
                 self.settingMenu.hide()
-                UserSettingsManager.save_settings(self.model.config)
+                # TODO Change the visibility
+                self.model.save_config()
         except Exception as e:
             logger.error(f"Error toggling settings menu: {e}")
 
