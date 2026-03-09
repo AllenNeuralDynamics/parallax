@@ -66,21 +66,3 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to save settings: {e}")
 
-    # --- Optimized Helpers (No disk access) ---
-
-    @classmethod
-    def save_gui_settings(cls, directory, width, height):
-        """Updates cache and saves to disk without reloading."""
-        app_settings = cls.load() # Returns cached _data
-        app_settings.gui.directory = directory
-        app_settings.gui.width = width
-        app_settings.gui.height = height
-        cls.save_settings(app_settings)
-
-    @classmethod
-    def save_pathfinder_server_settings(cls, ip, port):
-        """Updates cache and saves to disk without reloading."""
-        app_settings = cls.load() # Returns cached _data
-        app_settings.pathfinder_server.ip = ip
-        app_settings.pathfinder_server.port = port
-        cls.save_settings(app_settings)

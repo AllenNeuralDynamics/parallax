@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
         self.verticalLayout.addWidget(splitter)
 
         # Streaming button. If toggled, start camera acquisition
-        self.actionStreaming.triggered.connect(self.start_button_handler)
+        self.actionStreaming.triggered.connect(self.start_streaming)
 
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
@@ -142,10 +142,7 @@ class MainWindow(QMainWindow):
         Asks the user if they want to restore the previous session.
         """
         if self._session_restore_popup_window():
-            self.model.load_session()
-            self.model.load_camera_config()
-            self.model.load_session_config()
-            self.model.load_stage_config()
+            self.model.instantiate_session()
             self.control_panel.reticle_handler.apply_reticle_detection_status()
             self.control_panel.probe_calib_handler.apply_probe_calibration_status()
             print(" Restored session info to cameras:", list(self.model.session.cameras.keys()))
@@ -198,7 +195,7 @@ class MainWindow(QMainWindow):
         else:
             self.recordingManager.stop_recording(self.screen_widget_manager.screen_widgets)
 
-    def start_button_handler(self):
+    def start_streaming(self):
         """
         Handles the actionStreaming toggle.
         Starts or stops camera acquisition and image refreshing depending on the action's checked state.

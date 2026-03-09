@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class StageInfo:
+class PathfinderServer:
     """Retrieve and manage information about the stages."""
 
     def __init__(self, url: str):
@@ -271,7 +271,7 @@ class StageListener(QObject):
 
     def start(self):
         """Start the stage listener."""
-        if len(self.model.stages) != 0:
+        if self.model.nStages != 0:
             self.worker.moveToThread(self.thread)
             self.thread.start()
 
@@ -290,9 +290,9 @@ class StageListener(QObject):
             probe (dict): Probe data.
         """
         sn = probe["SerialNumber"]
-        stage = (self.model.stages.get(sn, {}) or {}).get("obj")
-        is_calib = (self.model.stages.get(sn, {}) or {}).get("is_calib")
-        calib_info = (self.model.stages.get(sn, {}) or {}).get("calib_info")
+        stage = self.model.get_stage(sn)
+        is_calib = self.model.get_stage_calib_status(sn)
+        calib_info = self.model.get_stage_calib_info(sn)
         if not stage:
             return
 
@@ -437,7 +437,7 @@ class StageListener(QObject):
         }
 
         # Update model's stage global coordinates
-        moving_stage = (self.model.stages.get(sn, {}) or {}).get("obj")
+        moving_stage = self.model.get_stage(sn)
         if moving_stage is not None:
             moving_stage.stage_x_global = global_coords_x
             moving_stage.stage_y_global = global_coords_y

@@ -149,7 +149,7 @@ class TransformInfoHandler(QWidget):
 
     def display(self, stage_id):
         # We use self.setVisible because 'self' IS the info_widget from the UI file
-        if not stage_id or stage_id not in self.model.stages:
+        if not stage_id or stage_id not in self.model.get_list_of_stage_sns():
             self.setVisible(False)
             return
 
@@ -230,12 +230,8 @@ class TransformInfoHandler(QWidget):
             self.rz_label.setText("-")
 
     def _get_transM_from_model(self, stage_id, reticle_name):
-        stage_info = self.model.stages.get(stage_id)
-        if not stage_info:
-            return None
-
         # Check if calibrated
-        calib_info = stage_info.get("calib_info")
+        calib_info = self.model.get_stage_calib_info(stage_id)
         # if not stage_info.get('is_calib') or calib_info is None:
         if calib_info is None:
             return None

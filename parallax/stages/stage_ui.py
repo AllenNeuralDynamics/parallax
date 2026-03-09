@@ -79,8 +79,8 @@ class StageUI(QWidget):
     def update_stage_selector(self):
         """Update the stage selector with available stages."""
         self.ui.stage_selector.clear()
-        for stage in self.model.stages.keys():
-            self.ui.stage_selector.addItem("Probe " + stage, stage)
+        for stage_sn in self.model.get_list_of_stage_sns():
+            self.ui.stage_selector.addItem("Probe " + stage_sn, stage_sn)
 
     def get_current_stage_id(self):
         """Get the ID of the currently selected stage.
@@ -117,7 +117,7 @@ class StageUI(QWidget):
         """Update the displayed stage serial number."""
         stage_id = self.get_current_stage_id()
         if stage_id:
-            self.selected_stage = self.model.stages.get(stage_id).get("obj", None)
+            self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
                 self.ui.stage_sn.setText(" " + self.selected_stage.sn)
                 self.model.set_selected_stage_sn(self.selected_stage.sn)
@@ -128,7 +128,7 @@ class StageUI(QWidget):
         """Update the displayed local coordinates of the selected stage."""
         stage_id = self.get_current_stage_id()
         if stage_id:
-            self.selected_stage = self.model.stages.get(stage_id).get("obj", None)
+            self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
                 # unit is µm
                 self.ui.local_coords_x.setText(str(self.selected_stage.stage_x))

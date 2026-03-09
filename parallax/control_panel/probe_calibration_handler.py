@@ -18,6 +18,7 @@ from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle, is_sane_4shanks
+from parallax.session.session_state import ArcAngle
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
 
@@ -34,7 +35,7 @@ class StageCalibrationInfo:
     detection_status: str = "default"  # options: default, process, accepted
     transM: Optional[np.ndarray] = None
     transM_bregma: Optional[dict] = None
-    arc_angle_global: Optional[tuple] = None
+    arc_angle_global: Optional[ArcAngle] = None
     arc_angle_bregma: Optional[dict] = None
     L2_err: Optional[float] = None
     dist_travel: Optional[np.ndarray] = None
@@ -467,7 +468,7 @@ class ProbeCalibrationHandler(QWidget):
             # update global coords. Set  to '-' on UI
             self.stageListener.requestClearGlobalDataTransformM(sn=sn)
         else:  # Reset all probel calibration status
-            for sn in self.model.stages.keys():
+            for sn in self.model.get_list_of_stage_sns():
                 self.probeCalibration.clear(sn)
                 self.stageListener.requestClearGlobalDataTransformM(sn=sn)
 
@@ -572,11 +573,21 @@ class ProbeCalibrationHandler(QWidget):
         if self.arc_angle_bregma is None:
             self.arc_angle_bregma = {}
         for reticle_name, transMb in self.transMbs.items():
-            self.arc_angle_bregma[reticle_name] = get_rx_ry(transMb)  # {"rx":..., "ry":...} | None
-            if self.arc_angle_global.get("rz", None) is not None:
-                self.arc_angle_bregma[reticle_name]["rz"] = get_spin_bregma(
-                    spin_global=self.arc_angle_global["rz"],
-                    reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0),
+            # Get the rx/ry values
+            angles_dict = get_rx_ry(transMb) # Expected: {"rx": 0.1, "ry": 0.2}
+            if angles_dict:
+                # Handle the RZ calculation
+                rz_val = 0.0
+                if self.arc_angle_global and self.arc_angle_global.rz is not None:
+                    rz_val = get_spin_bregma(
+                        spin_global=self.arc_angle_global.rz,
+                        reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0),
+                    )
+                # Create the ArcAngle object and store it in the dictionary
+                self.arc_angle_bregma[reticle_name] = ArcAngle(
+                    rx=angles_dict.get("rx", 0.0),
+                    ry=angles_dict.get("ry", 0.0),
+                    rz=rz_val
                 )
 
     def update_stage_info_to_model(self, stage_id) -> None:
@@ -814,13 +825,12 @@ class ProbeCalibrationHandler(QWidget):
             logger.warning("View Trajectory: No stage selected.")
             return
 
-        if self.selected_stage_id not in self.model.stages:
+        if self.selected_stage_id not in self.model.get_list_of_stage_sns():
             logger.error(f"View Trajectory: Stage ID '{self.selected_stage_id}' not found in model.")
             return
 
         try:
-            stage = self.model.stages[self.selected_stage_id]
-            calib_info = stage.get("calib_info")
+            calib_info = self.model.get_stage_calib_info(self.selected_stage_id)
             if not calib_info:
                 logger.error(f"No calibration info found for {self.selected_stage_id}")
                 return

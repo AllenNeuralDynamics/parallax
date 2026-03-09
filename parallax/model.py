@@ -6,7 +6,7 @@ It provides methods for scanning and initializing cameras and stages, managing c
 This class integrates various hardware components such as cameras and stages and handles
 their initialization, configuration, and transformations between local and global coordinates.
 """
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 from collections import OrderedDict
 from venv import logger
 
@@ -15,16 +15,16 @@ import numpy as np
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.config.schemas import CameraSettings
 from parallax.config.config_manager import ConfigManager
-from parallax.session.session_state import CameraParams, StageCalibration
+from parallax.session.session_state import CameraParams, StageCalibration, ArcAngle
 from parallax.session.session_manager import SessionManager
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
-from parallax.stages.stage_listener import Stage, StageInfo
+from parallax.stages.stage_listener import PathfinderServer, Stage
 
 
 class Model:
     """Model class to handle cameras, stages, and calibration data."""
 
-    def __init__(self, args=None, config=None):
+    def __init__(self, args=None, config=None, session=None):
         """Initialize the Model object.
 
         Args:
@@ -33,7 +33,7 @@ class Model:
         """
         # args from command line
         self.config = config
-        self.session = None  # SessionSchema. Initialize after pop-up
+        self.session = session  # SessionSchema. Initialize after pop-up
         self.dummy = getattr(args, "dummy", False)
         self.test = getattr(args, "test", False)
         self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
@@ -60,27 +60,6 @@ class Model:
 
         # stage
         self.selected_stage_sn = None
-        self.stages = {}  # Dictionary to hold stage instances
-        """
-        stages[sn] = {
-            'obj' : Stage(stage_info=instance),
-            'is_calib': False,
-            'calib_info': StageCalibrationInfo(
-                    detection_status: str = "default"  # options: default, process, accepted
-                    transM: Optional[np.ndarray] = None
-                    transM_bregma: Optional[dict] = None
-                    arc_angle_global: Optional[dict] = None
-                    arc_angle_bregma: Optional[dict] = None
-                    L2_err: Optional[float] = None
-                    dist_travel: Optional[np.ndarray] = None
-                    status_x: Optional[str] = None
-                    status_y: Optional[str] = None
-                    status_z: Optional[str] = None
-                    trajectory_file: Optional[str] = None
-                )
-            }
-        }
-        """
         self.stage_ipconfig_instance = None
 
         # probe detector
@@ -115,10 +94,8 @@ class Model:
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
         print("Scanning for USB stages...")
-        print("self.config.pathfinder_server.url: ", self.config.pathfinder_server.url)
-        stage_info = StageInfo(self.config.pathfinder_server.url)
-        instances = stage_info.get_instances()
-        self.init_stages()
+        server = PathfinderServer(self.config.pathfinder_server.url)
+        instances = server.get_instances()
         for instance in instances:
             stage = Stage.from_info(info=instance)
             sn = stage.sn
@@ -132,9 +109,12 @@ class Model:
     # =========================
     # Stages
     # =========================
-    def init_stages(self):
-        """Initialize stages by clearing the current stages and calibration data."""
-        self.stages = {}
+    def get_list_of_stage_sns(self) -> list[str]:
+        """
+        Get a list of all stage serial numbers defined in the session.
+        Using session keys ensures the UI shows all expected stages.
+        """
+        return list(self.stage_instances.keys())
 
     def set_selected_stage_sn(self, stage_sn):
         """Update the selected stage in the UI.
@@ -152,14 +132,6 @@ class Model:
         """
         return self.selected_stage_sn
 
-    def add_stage(self, stage, calib_info):
-        """Add a stage to the model.
-
-        Args:
-            stage: Stage object to add to the model.
-        """
-        self.stages[stage.sn] = {"obj": stage, "is_calib": False, "calib_info": calib_info}
-
     def get_stage(self, sn):
         """Retrieve a stage by its serial number.
 
@@ -171,179 +143,109 @@ class Model:
         """
         return self.stage_instances.get(sn)
 
+
     # =========================
     # Stages calibration
     # =========================
-    def get_stage_calib_info(self, stage_sn) -> Optional[StageCalibration]:
+    def get_stage_calib_info(self, stage_sn: str) -> Optional[StageCalibration]:
         """Get calibration information for a specific stage."""
-        #return self.stages.get(stage_sn, {}).get("calib_info", None)
         stage_session = self.session.stages.get(stage_sn)
         return stage_session.calib_info if stage_session else None
 
-    def reset_stage_calib_info_(self, sn=None):
-        """Reset stage calibration info for all stages."""
-        if sn is None:
-            for sn, stage in self.stages.items():
-                stage["is_calib"] = False
-                stage["calib_info"] = StageCalibrationInfo()
-                self.save_stage_config(sn)
-        else:
-            self.stages[sn]["is_calib"] = False
-            self.stages[sn]["calib_info"] = StageCalibrationInfo()
-            self.save_stage_config(sn)
+    def get_stage_calib_status(self, stage_sn: str) -> bool:
+        """Get calibration status for a specific stage."""
+        stage_session = self.session.stages.get(stage_sn)
+        return stage_session.is_calib if stage_session else False
 
-    def reset_stage_calib_info(self, sn=None):
+    def reset_stage_calib_info(self, sn: Optional[str] = None):
         """Reset stage calibration info for all stages or a specific one."""
         sns = [sn] if sn else list(self.session.stages.keys())
         for s_id in sns:
-            if s_id in self.session.stages:
-                stage = self.session.stages[s_id]
-                stage.is_calib = False
+            stage_session = self.session.stages.get(s_id)
+            if stage_session:
+                stage_session.is_calib = False
                 # Re-initialize with default schema
-                stage.calib_info = StageCalibration(detection_status="default")
+                stage_session.calib_info = StageCalibration(detection_status="default")
 
-    def add_transform(self, stage_sn, transform: np.ndarray):
+    def add_transform(self, stage_sn: str, transform: np.ndarray):
         """
         Add transformation matrix for a stage to convert local coordinates to global coordinates.
         """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            print(f"add_transform: stage '{stage_sn}' not found")
+        stage_session = self.session.stages.get(stage_sn)
+        if not stage_session or not stage_session.calib_info:
+            print(f"add_transform: stage '{stage_sn}' not found or uninitialized")
             return
 
-        calib = stage.get("calib_info")
-        if not calib:
-            print(f"add_transform: stage '{stage_sn}' has no calibration info")
-            return
+        stage_session.calib_info.transM = transform
 
-        calib.transM = transform
+    def get_transform(self, stage_sn: str) -> Optional[np.ndarray]:
+        """Get the transformation matrix for a specific stage."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session and stage_session.calib_info:
+            return stage_session.calib_info.transM
+        return None
 
-    def get_transform_(self, stage_sn):
-        """
-        Get the transformation matrix for a specific stage.
-        Returns None if missing.
-        """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            return None
-        calib = stage.get("calib_info")
-        return calib.transM if calib else None
+    def get_L2_err(self, stage_sn: str) -> Optional[float]:
+        """Get the L2 error for a specific stage."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session and stage_session.calib_info:
+            return stage_session.calib_info.L2_err
+        return None
 
-    def get_L2_err(self, stage_sn):
-        """
-        Get the L2 error for a specific stage.
-        """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            return None
-        calib = stage.get("calib_info")
-        return calib.L2_err if calib else None
+    def get_L2_travel(self, stage_sn: str) -> Any:
+        """Get the L2 travel for a specific stage."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session and stage_session.calib_info:
+            return stage_session.calib_info.dist_travel
+        return None
 
-    def get_L2_travel(self, stage_sn):
-        """
-        Get the L2 travel for a specific stage.
-        """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            return None
-        calib = stage.get("calib_info")
-        return calib.dist_travel if calib else None
+    def get_transM_bregma(self, stage_sn: str) -> Optional[Dict]:
+        """Get the transformation matrix from bregma for a specific stage."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session and stage_session.calib_info:
+            return stage_session.calib_info.transM_bregma
+        return None
 
-    def get_transM_bregma(self, stage_sn):
-        """
-        Get the transformation matrix from bregma for a specific stage.
-        Returns None if missing.
-        """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            return None
-        calib = stage.get("calib_info")
-        return calib.transM_bregma if calib else None
-
-    def get_arc_angle_global(self, stage_sn):
-        """
-        Get the arc angles in global coordinates for a specific stage.
-        Returns None if missing.
-        """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            return None
-        calib = stage.get("calib_info")
-        return calib.arc_angle_global if calib else None
+    def get_arc_angle_global(self, stage_sn: str) -> Optional[ArcAngle]:
+        """Get the arc angles in global coordinates."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session and stage_session.calib_info:
+            return stage_session.calib_info.arc_angle_global
+        return None
 
     def set_arc_angle_global(self, stage_sn: str, arc_angle_global: dict):
-        """
-        Set the arc angles in global coordinates for a specific stage.
-        Args:
-            stage_sn (str): The serial number of the stage.
-            arc_angle_global (dict): The arc angles to set in global coordinates.
-            arc_angle_global = {
-                'rx': float,
-                'ry': float,
-                'rz': float
-            }
-        """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            return
-        calib = stage.get("calib_info")
-        if calib:
-            calib.arc_angle_global = arc_angle_global
+        """Set the arc angles in global coordinates using a dictionary."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session and stage_session.calib_info:
+            # Pydantic allows validation via the dict
+            stage_session.calib_info.arc_angle_global = ArcAngle(**arc_angle_global)
 
-    def get_arc_angle_bregma(self, stage_sn):
-        """
-        Get the arc angles in bregma coordinates for a specific stage.
-        Returns None if missing.
-        """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            return None
-        calib = stage.get("calib_info")
-        return calib.arc_angle_bregma if calib else None
+    def get_arc_angle_bregma(self, stage_sn: str) -> Optional[Dict[str, ArcAngle]]:
+        """Get the arc angles in bregma coordinates."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session and stage_session.calib_info:
+            return stage_session.calib_info.arc_angle_bregma
+        return None
 
     def set_arc_angle_bregma(self, stage_sn: str, arc_angle_bregma: dict):
-        """
-        Set the arc angles in bregma coordinates for a specific stage.
-        Args:
-            stage_sn (str): The serial number of the stage.
-            arc_angle_bregma (dict): The arc angles to set in bregma
-            arc_angle_bregma = {'reticle_name': {
-                'rx': float,
-                'ry': float,
-                'rz': float
-            }, ...}
-        """
-        stage = self.stages.get(stage_sn)
-        if not stage:
-            return
-        calib = stage.get("calib_info")
-        if calib:
-            calib.arc_angle_bregma = arc_angle_bregma
+        """Set the arc angles in bregma coordinates."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session and stage_session.calib_info:
+            # Maps the dict of dicts to a dict of ArcAngle objects
+            stage_session.calib_info.arc_angle_bregma = {
+                k: ArcAngle(**v) for k, v in arc_angle_bregma.items()
+            }
 
-    def set_calibration_status(self, stage_sn, status: bool):
-        """
-        Set the calibration status for a specific stage.
-        """
-        if stage_sn in self.stages:
-            self.stages[stage_sn]["is_calib"] = status
+    def set_calibration_status(self, stage_sn: str, status: bool):
+        """Set the calibration status for a specific stage."""
+        stage_session = self.session.stages.get(stage_sn)
+        if stage_session:
+            stage_session.is_calib = status
 
-        self.save_stage_config(stage_sn)
-
-    def is_stage_calibrated(self, stage_sn):
-        if stage_sn in self.stages:
-            return self.stages[stage_sn]["is_calib"]
-        return False
-
-    def is_calibrated(self, stage_sn):
-        """Check if a specific stage is calibrated.
-
-        Args:
-            stage_sn (str): The serial number of the stage.
-
-        Returns:
-            bool: The calibration status of the stage.
-        """
-        return self.stages.get(stage_sn, {}).get("is_calib", False)
+    def is_calibrated(self, stage_sn: str) -> bool:
+        """Check if a specific stage is calibrated."""
+        stage_session = self.session.stages.get(stage_sn)
+        return stage_session.is_calib if stage_session else False
 
     # =========================
     # Cameras
@@ -381,10 +283,7 @@ class Model:
         Get a list of all camera serial numbers defined in the session.
         Using session keys ensures the UI shows all expected cameras.
         """
-        if self.session is None:
-            return list(self.camera_instances.keys())  # Fallback to live cameras if session is not loaded
-        print("self.session.cameras.keys(), ", self.session.cameras.keys())
-        return list(self.session.cameras.keys())
+        return list(self.camera_instances.keys())
 
     def get_camera_device_model(self, sn: str) -> str:
         """
@@ -813,27 +712,25 @@ class Model:
         """Clean up and close all camera connections."""
         close_cameras()
 
-
     # =========================
     # Configurations - Load and Save
     # =========================
-
-    def load_session(self):
-        """Load the session for the model.
-
-        Args:
-            session: The session object to set for the model.
-        """
-        # Restore coinfigs
-        self.session = SessionManager.load()
-
-    def load_camera_config(self):
-        #CameraConfigManager.load_from_yaml(self)
-        SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
-
     def save_config(self):
-        ConfigManager.save_to_yaml(self, self.config)
+        #ConfigManager.save_settings(self.config)
+        pass
+
+    # =========================
+    # Session - Load, Save, and Instantiate
+    # =========================
 
     def save_session(self):
         #SessionConfigManager.save_to_yaml(self)
-        SessionManager.save_session(self.session)
+        #SessionManager.save_session(self.session)
+        pass
+
+    def instantiate_session(self):
+        SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
+
+
+
+

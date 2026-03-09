@@ -68,7 +68,7 @@ class Calculator(QWidget):
         Resets the stage group boxes by removing all dynamically created ones and re-adding them.
         """
         # Find and remove all QGroupBox widgets that start with "groupBox_"
-        for stage_sn in list(self.model.stages.keys()):
+        for stage_sn in list(self.model.get_list_of_stage_sns()):
             group_box = self.findChild(QGroupBox, f"groupBox_{stage_sn}")
             if group_box:
                 self.ui.verticalLayout_QBox.removeWidget(group_box)
@@ -97,7 +97,7 @@ class Calculator(QWidget):
         self._change_global_label()
 
         # Clear fields for all enabled stages
-        for stage_sn in self.model.stages.keys():
+        for stage_sn in self.model.get_list_of_stage_sns():
             group_box = self.findChild(QGroupBox, f"groupBox_{stage_sn}")
             if group_box is not None and group_box.isEnabled():  # Check if the stage's QGroupBox is enabled
                 self._clear_fields(stage_sn)
@@ -118,7 +118,7 @@ class Calculator(QWidget):
         If the stage is calibrated, the corresponding button is enabled, and the conversion function is connected.
         """
 
-        for stage_sn in self.model.stages.keys():
+        for stage_sn in self.model.get_list_of_stage_sns():
             if self.model.is_calibrated(stage_sn):
                 transM = self.model.get_transform(stage_sn)
                 if transM is not None:
@@ -306,7 +306,7 @@ class Calculator(QWidget):
         Creates group boxes dynamically for each stage based on the number of stages in the model.
         """
         # Loop through the number of stages and create copies of groupBoxStage
-        for sn in self.model.stages.keys():
+        for sn in self.model.get_list_of_stage_sns():
             # Load the QGroupBox from the calc_QGroupBox.ui file
             group_box = QGroupBox(self)
             loadUi(os.path.join(ui_dir, "calc_QGroupBox.ui"), group_box)
@@ -341,7 +341,7 @@ class Calculator(QWidget):
         if stop_button:
             stop_button.clicked.connect(lambda: self._stop_stage("stopAll"))
 
-        for stage_sn in self.model.stages.keys():
+        for stage_sn in self.model.get_list_of_stage_sns():
             moveXY_button = self.findChild(QPushButton, f"moveStageXY_{stage_sn}")
             if moveXY_button:
                 moveXY_button.clicked.connect(self._create_stage_function(stage_sn))
@@ -423,7 +423,7 @@ class Calculator(QWidget):
         local_pts_top = np.array([x * 1000, y * 1000, z * 1000], dtype=float)  # Should be top of the stage
         local_pts_bottom = np.array([x * 1000, y * 1000, 15.0 * 1000], dtype=float)  # Should be bottom
 
-        for sn in self.model.stages.keys():
+        for sn in self.model.get_list_of_stage_sns():
             if sn != stage_sn:
                 continue
             try:
@@ -470,7 +470,7 @@ class Calculator(QWidget):
         """
         Connects the 'clear' buttons for each stage to the function that clears the input fields.
         """
-        for stage_sn in self.model.stages.keys():
+        for stage_sn in self.model.get_list_of_stage_sns():
             clear_button = self.findChild(QPushButton, f"ClearBtn_{stage_sn}")
             if clear_button:
                 clear_button.clicked.connect(self._create_clear_function(stage_sn))
