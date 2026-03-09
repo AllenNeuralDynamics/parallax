@@ -9,13 +9,13 @@ Classes:
 """
 
 import logging
-from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 
 import parallax.config.config_calibration as cfg
+from parallax.session.session_state import CameraParams
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -29,15 +29,6 @@ success, camera_params = calibrate_camera(
     device_model_name="Blackfly S BFS-U3-120S4C"
 )
 """
-
-
-@dataclass
-class CameraParams:
-    mtx: Optional[np.ndarray] = None  # (3,3) float64
-    dist: Optional[np.ndarray] = None  # (N,) or (1,N) float64
-    rvec: Optional[np.ndarray] = None  # (3,1) float64
-    tvec: Optional[np.ndarray] = None  # (3,1) float64
-
 
 def calibrate_camera(
     x_axis: Union[np.ndarray, List[Tuple[int, int]]],  # accepts list or np.ndarray (N,2)

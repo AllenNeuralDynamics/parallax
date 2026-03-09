@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QApplication
 from . import __version__
 from .config.cli import parse_args, print_arg_info
 from .config.config_path import PARALLAX_ASCII, setup_logging
-from .config.user_setting_manager import SessionManager, UserSettingsManager
+from .config.config_manager import ConfigManager
 from .main_window import MainWindow
 from .model import Model
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     setup_logging()
 
     # Load configuration
-    config = UserSettingsManager.load()
+    config = ConfigManager.load()
 
     # Initialize the Qt application
     app = QApplication(sys.argv)

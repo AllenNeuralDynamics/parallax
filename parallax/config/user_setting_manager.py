@@ -20,7 +20,7 @@ import json
 
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.config_path import session_file, settings_file
-from parallax.config.schemas import AppSchema, SessionSchema, CameraSessionSchema, StageSessionSchema
+from parallax.config.schemas import AppSchema
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 
 # Set logger name
@@ -92,100 +92,6 @@ class UserSettingsManager:
         cls.save_settings(app_settings)
 
 
-# =========================
-# SessionManager
-# =========================
-
-
-class SessionManager:
-    session_file = session_file
-    _data: Optional[SessionSchema] = None  # Class-level cache (saved data)
-
-    @classmethod
-    def load(cls) -> SessionSchema:
-        """
-        Loads from disk ONLY if _data is empty.
-        Otherwise, returns the already saved data.
-        """
-        # If we've already loaded once, return the cached data
-        if cls._data is not None:
-            return cls._data
-
-        # If the file doesn't exist, initialize with defaults and save immediately
-        if not os.path.exists(cls.session_file):
-            cls._data = SessionSchema()
-            return cls._data
-
-        try:
-            with open(cls.session_file, "r") as f:
-                raw_data = yaml.safe_load(f) or {}
-            data = raw_data.get("model", raw_data)
-            # Save into class variable during load
-            cls._data = SessionSchema.model_validate(data)
-            return cls._data
-        except Exception as e:
-            logger.error(f"Failed to load session: {e}")
-            cls._data = SessionSchema()
-            return cls._data
-
-    @classmethod
-    def save_session(cls, session_obj: SessionSchema):
-        """Saves the object to disk. Safely handles both Dict and Pydantic objects."""
-        cls._data = session_obj
-
-        # Check if it's a Pydantic object or a dict
-        if hasattr(session_obj, "model_dump_json"):
-            # Use Pydantic's built-in conversion
-            json_data = session_obj.model_dump_json()
-            data = {"model": json.loads(json_data)}
-        else:
-            # It's already a dict, just use it
-            data = {"model": session_obj}
-
-        os.makedirs(os.path.dirname(cls.session_file), exist_ok=True)
-        with open(cls.session_file, "w") as f:
-            yaml.safe_dump(data, f, sort_keys=False, default_flow_style=False)
-
-    @classmethod
-    def instantiate(cls, model) -> None:
-        """
-        Syncs the SessionSchema with physical hardware.
-        Removes missing cameras and adds new ones.
-        """
-        # cameras 
-        physical_sns = set(model.camera_instances.keys())  # {B, C, D}
-        session_sns = set(model.session.cameras.keys())    # {A, B, C}
-
-        # Remove cameras that are in session but NOT physically connected (A)
-        to_remove = session_sns - physical_sns
-        for sn in to_remove:
-            logger.info(f"[SessionManager] Removing camera {sn} from session (not connected).")
-            del model.session.cameras[sn]
-
-        # Add cameras that are physical but NOT in session (D)
-        to_add = physical_sns - session_sns
-        for sn in to_add:
-            logger.info(f"[SessionManager] Adding new camera {sn} to session.")
-            # Initialize with a fresh schema
-            model.session.cameras[sn] = CameraSessionSchema(device_model=model.get_camera_device_model(sn))
-
-        # Optional: Save the cleaned-up state immediately
-        # cls.save_session(session)
-        print("Final reconciled session cameras:", list(model.session.cameras.keys()))
-
-        # stages
-        physical_sns = set(model.stage_instances.keys())  # {B, C, D}
-        session_sns = set(model.session.stages.keys())    # {A, B, C}
-        print(f"physical: {physical_sns}, session: {session_sns}")
-        to_remove = session_sns - physical_sns
-        for sn in to_remove:
-            logger.info(f"[SessionManager] Removing stage {sn} from session (not connected).")
-            del model.session.stages[sn]
-        to_add = physical_sns - session_sns
-        for sn in to_add:
-            logger.info(f"[SessionManager] Adding new stage {sn} to session.")
-            # Initialize with a fresh schema
-            model.session.stages[sn] = StageSessionSchema()
 
 # -------------------------
 

@@ -12,10 +12,11 @@ from venv import logger
 
 import numpy as np
 
-from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
-from parallax.config.schemas import CameraSettings, CameraParamsSchema
-from parallax.config.user_setting_manager import SessionManager, CameraConfigManager, SessionConfigManager, StageConfigManager
+from parallax.config.schemas import CameraSettings
+from parallax.session.session_state import CameraParams, StageCalibration
+from parallax.session.session_manager import SessionManager
+from parallax.config.user_setting_manager import CameraConfigManager, SessionConfigManager, StageConfigManager
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.stages.stage_listener import Stage, StageInfo
 
@@ -173,11 +174,13 @@ class Model:
     # =========================
     # Stages calibration
     # =========================
-    def get_stage_calib_info(self, stage_sn) -> Optional[StageCalibrationInfo]:
+    def get_stage_calib_info(self, stage_sn) -> Optional[StageCalibration]:
         """Get calibration information for a specific stage."""
-        return self.stages.get(stage_sn, {}).get("calib_info", None)
+        #return self.stages.get(stage_sn, {}).get("calib_info", None)
+        stage_session = self.session.stages.get(stage_sn)
+        return stage_session.calib_info if stage_session else None
 
-    def reset_stage_calib_info(self, sn=None):
+    def reset_stage_calib_info_(self, sn=None):
         """Reset stage calibration info for all stages."""
         if sn is None:
             for sn, stage in self.stages.items():
@@ -188,6 +191,16 @@ class Model:
             self.stages[sn]["is_calib"] = False
             self.stages[sn]["calib_info"] = StageCalibrationInfo()
             self.save_stage_config(sn)
+
+    def reset_stage_calib_info(self, sn=None):
+        """Reset stage calibration info for all stages or a specific one."""
+        sns = [sn] if sn else list(self.session.stages.keys())
+        for s_id in sns:
+            if s_id in self.session.stages:
+                stage = self.session.stages[s_id]
+                stage.is_calib = False
+                # Re-initialize with default schema
+                stage.calib_info = StageCalibration(detection_status="default")
 
     def add_transform(self, stage_sn, transform: np.ndarray):
         """
@@ -205,7 +218,7 @@ class Model:
 
         calib.transM = transform
 
-    def get_transform(self, stage_sn):
+    def get_transform_(self, stage_sn):
         """
         Get the transformation matrix for a specific stage.
         Returns None if missing.
@@ -675,14 +688,14 @@ class Model:
         cam = self.session.cameras.get(sn)
         return cam.coords_debug if cam else None
 
-    def add_camera_params(self, sn, camera_params: CameraParamsSchema):
+    def add_camera_params(self, sn, camera_params: CameraParams):
         """Add camera parameters for a specific camera."""
         if sn in self.session.cameras:
             # Pydantic will validate this against CameraParamsSchema
             self.session.cameras[sn].params = camera_params
             self.save_session_config()
 
-    def get_camera_params(self, sn) -> Optional[CameraParamsSchema]:
+    def get_camera_params(self, sn) -> Optional[CameraParams]:
         """Get intrinsic camera parameters for a specific camera."""
         cam = self.session.cameras.get(sn)
         return cam.params if cam else None
