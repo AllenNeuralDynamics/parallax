@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox,
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import fira_font_dir, ui_dir
-from parallax.config.user_setting_manager import SessionManager, UserSettingsManager
+from parallax.config.user_setting_manager import UserSettingsManager
 from parallax.control_panel.control_panel import ControlPanel
 from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.recording_manager import RecordingManager

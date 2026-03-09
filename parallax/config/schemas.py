@@ -153,9 +153,9 @@ class StageCalibrationSchema(BaseModel):
         return v
 
 class StageSessionSchema(BaseModel):
-    obj: StageObjSchema
+    obj: StageObjSchema = None
     is_calib: bool = False
-    calib_info: StageCalibrationSchema
+    calib_info: StageCalibrationSchema = None
 
 class CameraParamsSchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -221,6 +221,11 @@ class CameraSessionSchema(BaseModel):
         if isinstance(v, np.ndarray):
             return v.tolist()
         return v
+
+
+
+
+
 
 # --- Main Session Schema ---
 class SessionSchema(BaseModel):

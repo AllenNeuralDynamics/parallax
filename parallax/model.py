@@ -122,10 +122,10 @@ class Model:
             stage = Stage.from_info(info=instance)
             sn = stage.sn
             self.stage_instances[sn] = stage
-            calib_info = StageCalibrationInfo()
-            self.add_stage(stage, calib_info)
+            #calib_info = StageCalibrationInfo()
+            #self.add_stage(stage, calib_info)
         self.nStages = len(self.stage_instances)
-        print("  Stages:", list(self.stages.keys()))
+        print("  Stages:", list(self.stage_instances.keys()))
 
 
     # =========================

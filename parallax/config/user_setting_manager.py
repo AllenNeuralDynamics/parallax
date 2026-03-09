@@ -20,7 +20,7 @@ import json
 
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.config.config_path import session_file, settings_file
-from parallax.config.schemas import AppSchema, SessionSchema, CameraSessionSchema
+from parallax.config.schemas import AppSchema, SessionSchema, CameraSessionSchema, StageSessionSchema
 from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 
 # Set logger name
@@ -152,7 +152,7 @@ class SessionManager:
         Syncs the SessionSchema with physical hardware.
         Removes missing cameras and adds new ones.
         """
-
+        # cameras 
         physical_sns = set(model.camera_instances.keys())  # {B, C, D}
         session_sns = set(model.session.cameras.keys())    # {A, B, C}
 
@@ -172,6 +172,20 @@ class SessionManager:
         # Optional: Save the cleaned-up state immediately
         # cls.save_session(session)
         print("Final reconciled session cameras:", list(model.session.cameras.keys()))
+
+        # stages
+        physical_sns = set(model.stage_instances.keys())  # {B, C, D}
+        session_sns = set(model.session.stages.keys())    # {A, B, C}
+        print(f"physical: {physical_sns}, session: {session_sns}")
+        to_remove = session_sns - physical_sns
+        for sn in to_remove:
+            logger.info(f"[SessionManager] Removing stage {sn} from session (not connected).")
+            del model.session.stages[sn]
+        to_add = physical_sns - session_sns
+        for sn in to_add:
+            logger.info(f"[SessionManager] Adding new stage {sn} to session.")
+            # Initialize with a fresh schema
+            model.session.stages[sn] = StageSessionSchema()
 
 # -------------------------
 
