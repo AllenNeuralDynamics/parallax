@@ -547,7 +547,7 @@ class ProbeCalibrationHandler(QWidget):
             bregma_angles = get_rx_ry(transMb)  # Expected: ArcAngle
             if bregma_angles:
                 # 2. Handle the RZ (Spin) calculation
-                rz_val = 0.0
+                rz_val = None
                 if self.arc_angle_global and self.arc_angle_global.rz is not None:
                     # Get rotation offset from model metadata
                     reticle_meta = self.model.reticle_metadata.get(reticle_name, {})

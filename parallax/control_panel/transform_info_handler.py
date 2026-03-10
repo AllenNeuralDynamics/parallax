@@ -75,21 +75,19 @@ class TransformInfoHandler(QWidget):
     def _update_flip_rz_to_model(self, stage_id):
         # Update Global
         arc_angle_global = self.model.get_arc_angle_global(stage_id)
-        if arc_angle_global and "rz" in arc_angle_global:
-            arc_angle_global["rz"] = self._get_flip_rz_angle(arc_angle_global["rz"])
+        if arc_angle_global and arc_angle_global.rz is not None:
+            arc_angle_global.rz = self._get_flip_rz_angle(arc_angle_global.rz)
             self.model.set_arc_angle_global(stage_id, arc_angle_global)
 
         # Update Bregma
         arc_angle_bregma = self.model.get_arc_angle_bregma(stage_id)
         if arc_angle_bregma:
-            for reticle in arc_angle_bregma:
-                if "rz" in arc_angle_bregma[reticle]:
-                    current = arc_angle_bregma[reticle]["rz"]
-                    arc_angle_bregma[reticle]["rz"] = self._get_flip_rz_angle(current)
-            # save the whole updated dict back to the model
+            for reticle_obj in arc_angle_bregma.values():
+                if reticle_obj.rz is not None:
+                    reticle_obj.rz = self._get_flip_rz_angle(reticle_obj.rz)
+            # Save the updated object-filled dict back to the model
             self.model.set_arc_angle_bregma(stage_id, arc_angle_bregma)
 
-        # Mark as modified to trigger auto-save or JSON update
         self.model.set_calibration_status(stage_id, True)
 
     def _update_manual_rz_to_model(self, stage_id, new_angle):
@@ -100,15 +98,15 @@ class TransformInfoHandler(QWidget):
 
         arc_angle_global = self.model.get_arc_angle_global(stage_id)
         arc_angle_bregma = self.model.get_arc_angle_bregma(stage_id)
-        if not arc_angle_global or "rz" not in arc_angle_global:
+        if not arc_angle_global or "rz" or arc_angle_global.rz is None:
             return
 
         # Calculate Difference
         diff_angle = 0.0
         if reticle_name == "global":
-            diff_angle = new_angle - arc_angle_global["rz"]
+            diff_angle = new_angle - arc_angle_global.rz
         elif arc_angle_bregma and reticle_name in arc_angle_bregma:
-            current_local_rz = arc_angle_bregma[reticle_name].get("rz", 0.0)
+            current_local_rz = arc_angle_bregma[reticle_name].rz or 0.0
             diff_angle = new_angle - current_local_rz
         else:
             return
@@ -118,10 +116,10 @@ class TransformInfoHandler(QWidget):
 
         # Bregma
         if arc_angle_bregma:
-            for reticle in arc_angle_bregma:
-                if "rz" in arc_angle_bregma[reticle]:
-                    new_val = arc_angle_bregma[reticle]["rz"] + diff_angle
-                    arc_angle_bregma[reticle]["rz"] = self._normalize_angle(new_val)
+            for reticle_obj in arc_angle_bregma.values():
+                if reticle_obj.rz is not None:
+                    new_val = reticle_obj.rz + diff_angle
+                    reticle_obj.rz = self._normalize_angle(new_val)
 
         # Save back to model
         self.model.set_arc_angle_global(stage_id, arc_angle_global)
@@ -218,16 +216,11 @@ class TransformInfoHandler(QWidget):
         except (TypeError, ValueError, IndexError, AttributeError):
             self.travel_label.setText("-")
 
-        # 4. Angles
-        angles = info.get("arc_angle", {})
-        if isinstance(angles, dict):
-            self.rx_label.setText(f"{angles.get('rx', 0):.2f}°" if angles.get("rx") is not None else "-")
-            self.ry_label.setText(f"{angles.get('ry', 0):.2f}°" if angles.get("ry") is not None else "-")
-            self.rz_label.setText(f"{angles.get('rz', 0):.2f}°" if angles.get("rz") is not None else "-")
-        else:
-            self.rx_label.setText("-")
-            self.ry_label.setText("-")
-            self.rz_label.setText("-")
+        angles = info.get("arc_angle")  # This is  an ArcAngle object
+        if angles and hasattr(angles, 'rx'):
+            self.rx_label.setText(f"{angles.rx:.2f}°" if angles.rx is not None else "-")
+            self.ry_label.setText(f"{angles.ry:.2f}°" if angles.ry is not None else "-")
+            self.rz_label.setText(f"{angles.rz:.2f}°" if angles.rz is not None else "-")
 
     def _get_transM_from_model(self, stage_id, reticle_name):
         # Check if calibrated

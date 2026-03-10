@@ -103,7 +103,6 @@ class ScreenWidgetManager(QObject):
                 logger.debug("Camera acquisition stopped for:", sn)
 
     def _add_screen_dock(self, sn):
-        print("Adding screen dock for camera SN:", sn)  # Debug statement to verify SN retrieval
         name = str(sn)
         group_box = QGroupBox(name)
         group_box.setObjectName(name)

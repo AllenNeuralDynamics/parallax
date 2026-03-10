@@ -180,25 +180,20 @@ class StageUI(QWidget):
             return
 
         stage_id = self.get_current_stage_id()
-        print("ui: Updating global coordinates for stage:", stage_id)
         if stage_id:
             self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
                 x = self.selected_stage.stage_x_global
                 y = self.selected_stage.stage_y_global
                 z = self.selected_stage.stage_z_global
-                print("Updating global coordinates for stage:", stage_id)
-                print(f"  Global coords: ({x}, {y}, {z})")
                 if x is not None and y is not None and z is not None:
                     global_pts = np.array([x, y, z], dtype=float)
                     # If reticle is with offset, get the global coordinates with offset
                     if self.reticle != "Global coords":
                         try:
                             bregma_pts = apply_reticle_adjustments(self.model, global_pts, self.reticle)
-                            print(f"  Applied reticle adjustments for reticle {self.reticle}: ({bregma_pts[0]}, {bregma_pts[1]}, {bregma_pts[2]})")
                             x, y, z = bregma_pts
                         except Exception as e:
-                            print("  Error applying reticle adjustments: ", e)
                             logger.error(f"Error applying reticle adjustments: {e}")
 
                     # Update into UI, unit is µm
@@ -206,7 +201,6 @@ class StageUI(QWidget):
                         self.ui.global_coords_x.setText(str(x))
                         self.ui.global_coords_y.setText(str(y))
                         self.ui.global_coords_z.setText(str(z))
-                        print(f"  Global coords on UI: ({x}, {y}, {z})")
                 else:
                     self.updateStageGlobalCoords_default()
 
@@ -220,8 +214,6 @@ class StageUI(QWidget):
         self.ui.global_coords_x.setText("-")
         self.ui.global_coords_y.setText("-")
         self.ui.global_coords_z.setText("-")
-        print(f"  Global coords on UI default: (-, -, -)")
-
 
     def reticle_detection_status_change(self):
         """

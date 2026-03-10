@@ -84,9 +84,9 @@ class StageObj(BaseModel):
         )
 
 class ArcAngle(BaseModel):
-    rx: float = 0.0
-    ry: float = 0.0
-    rz: float = 0.0
+    rx: Optional[float] = None
+    ry: Optional[float] = None
+    rz: Optional[float] = None
 
 class StageCalibration(BaseModel):
     model_config = ConfigDict(

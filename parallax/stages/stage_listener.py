@@ -272,7 +272,6 @@ class StageListener(QObject):
                 stage.stage_x_global = global_pts[0]
                 stage.stage_y_global = global_pts[1]
                 stage.stage_z_global = global_pts[2]
-                print("  Updated global coords: ", stage.stage_x_global, stage.stage_y_global, stage.stage_z_global)
 
         if is_calib:
             bregma_pts = {}
@@ -296,10 +295,8 @@ class StageListener(QObject):
         # Stage is currently selected one, update into UI
         if sn == self.stage_ui.get_selected_stage_sn():
             self.stage_ui.updateStageLocalCoords()  # Update local coords into UI
-            print(f"  Local coords on UI: ({stage.stage_x}, {stage.stage_y}, {stage.stage_z})")
             if is_calib:
                 self.stage_ui.updateStageGlobalCoords()  # update global coords into UI
-                print("  Global coords on UI: ", stage.stage_x_global, stage.stage_y_global, stage.stage_z_global)
 
         # Update stage info
         #self._update_stages_info(stage, is_calib, calib_info) # TODO

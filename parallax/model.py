@@ -221,14 +221,12 @@ class Model:
             return stage_session.calib_info.arc_angle_bregma
         return None
 
-    def set_arc_angle_bregma(self, stage_sn: str, arc_angle_bregma: dict):
-        """Set the arc angles in bregma coordinates."""
+    def set_arc_angle_bregma(self, stage_sn: str, arc_angle_bregma: Dict[str, ArcAngle]):
+        """Set the arc angles in bregma coordinates (expects Dict of ArcAngle objects)."""
         stage_session = self.session.stages.get(stage_sn)
         if stage_session and stage_session.calib_info:
-            # Maps the dict of dicts to a dict of ArcAngle objects
-            stage_session.calib_info.arc_angle_bregma = {
-                k: ArcAngle(**v) for k, v in arc_angle_bregma.items()
-            }
+            # Pydantic's validate_assignment will handle the type checking here
+            stage_session.calib_info.arc_angle_bregma = arc_angle_bregma
 
     def set_calibration_status(self, stage_sn: str, status: bool):
         """Set the calibration status for a specific stage."""
