@@ -83,10 +83,6 @@ class Model:
         self.nPySpinCameras = sum(isinstance(cam, PySpinCamera) for cam in self.camera_instances.values())
         self.nMockCameras = sum(isinstance(cam, MockCamera) for cam in self.camera_instances.values())
 
-    def refresh_stages(self):
-        """Search for connected stages"""
-        self.scan_for_usb_stages()
-
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
         print("Scanning for USB stages...")

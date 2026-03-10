@@ -138,7 +138,7 @@ class StageServerIPConfig(QWidget):
         Refreshes the stage server using the configured IP address and port.
         """
         logger.info("Refreshing stages with updated server configuration.")
-        self.model.refresh_stages()
+        self.model.scan_for_usb_stages()
         
     def show(self):
         """
