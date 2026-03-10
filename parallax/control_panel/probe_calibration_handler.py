@@ -18,43 +18,12 @@ from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.reticle_metadata import ReticleMetadata
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle, is_sane_4shanks
-from parallax.session.session_state import ArcAngle
+from parallax.session.session_state import ArcAngle, StageCalibration
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
-
-@dataclass
-class StageCalibrationInfo:
-    """
-    Holds the probe calibration information.
-    """
-
-    detection_status: str = "default"  # options: default, process, accepted
-    transM: Optional[np.ndarray] = None
-    transM_bregma: Optional[dict] = None
-    arc_angle_global: Optional[ArcAngle] = None
-    arc_angle_bregma: Optional[dict] = None
-    L2_err: Optional[float] = None
-    dist_travel: Optional[np.ndarray] = None
-    status_x: Optional[str] = None
-    status_y: Optional[str] = None
-    status_z: Optional[str] = None
-    trajectory_file: Optional[str] = None
-
-    # Movement tracking
-    min_x: float = float("inf")
-    max_x: float = float("-inf")
-    min_y: float = float("inf")
-    max_y: float = float("-inf")
-    min_z: float = float("inf")
-    max_z: float = float("-inf")
-    min_gx: float = float("inf")
-    max_gx: float = float("-inf")
-    min_gy: float = float("inf")
-    max_gy: float = float("-inf")
+logger.setLevel(logging.DEBUG)
 
 
 class ProbeCalibrationHandler(QWidget):
@@ -181,9 +150,9 @@ class ProbeCalibrationHandler(QWidget):
     def reticle_detection_status_change(self):
         """Updates the reticle detection status and performs actions based on the new status."""
         # TODO Test for camera-pairs logic
-        # if self.model.reticle_detection_status == "default":  # noqa: E265
+        # if self.model.session.reticle_detection_status == "default":  # noqa: E265
         #    self.probe_detect_default_status()                # noqa: E265
-        if self.model.reticle_detection_status == "accepted":
+        if self.model.session.reticle_detection_status == "accepted":
             self.enable_probe_calibration_btn()
 
     def enable_probe_calibration_btn(self):
@@ -445,7 +414,7 @@ class ProbeCalibrationHandler(QWidget):
 
         self.transform_info_handler.setVisible(False)
         self.probe_calibration_btn.setChecked(False)
-        if self.model.reticle_detection_status == "default":
+        if self.model.session.reticle_detection_status == "default":
             self.probe_calibration_btn.setEnabled(False)
 
         if self.filter == "probe_detection":
@@ -592,7 +561,7 @@ class ProbeCalibrationHandler(QWidget):
 
     def update_stage_info_to_model(self, stage_id) -> None:
         """
-        Update the stored StageCalibrationInfo for a stage with the current object's values.
+        Update the stored StageCalibration for a stage with the current object's values.
         """
         stage_info = self.model.get_stage_calib_info(stage_id)
         if stage_info is None:
@@ -867,7 +836,7 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_z.setStyleSheet("color: white;" "background-color: black;")
 
     def update_stage_info(self, info):
-        if isinstance(info, StageCalibrationInfo):
+        if isinstance(info, StageCalibration):
             self.transM = info.transM
             self.transMbs = info.transM_bregma
             self.L2_err = info.L2_err
@@ -903,7 +872,7 @@ class ProbeCalibrationHandler(QWidget):
         # Load the current stage's calibration info
         info = self.model.get_stage_calib_info(curr_stage_id)
         logger.debug(f"Loaded stage {curr_stage_id} info: {info}")
-        if isinstance(info, StageCalibrationInfo):
+        if isinstance(info, StageCalibration):
             self.update_stage_info(info)
             probe_detection_status = info.detection_status
         else:

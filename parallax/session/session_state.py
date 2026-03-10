@@ -1,12 +1,13 @@
 # parallax/session/session_state.py
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Literal
 import numpy as np
 from pydantic import (
     BaseModel,
     Field,
     ConfigDict,
     field_validator,
-    field_serializer
+    field_serializer,
+    model_validator
 )
 
 # -------------------- session schema --------------------
@@ -46,57 +47,127 @@ class StageObj(BaseModel):
     pitch: Optional[float] = None
     roll: Optional[float] = None
 
+    @classmethod
+    def from_info(cls, info: Dict[str, Any]) -> "StageObj":
+        """
+        Create a Stage from a stage_info dictionary.
+        Converts units from mm (input) to μm (internal).
+        Applies Z-axis inversion logic: 15000 - (Z * 1000).
+        """
+        # Extract base values to avoid repeating .get() logic
+        raw_x = info.get("Stage_X", 0.0)
+        raw_y = info.get("Stage_Y", 0.0)
+        raw_z = info.get("Stage_Z", 0.0)
+        
+        off_x = info.get("Stage_XOffset", 0.0)
+        off_y = info.get("Stage_YOffset", 0.0)
+        off_z = info.get("Stage_ZOffset", 0.0)
+
+        return cls(
+            sn=str(info.get("SerialNumber", "")),
+            name=info.get("Id"),
+            # Transformation: mm to μm
+            stage_x=raw_x * 1000,
+            stage_y=raw_y * 1000,
+            # Inverted Z-axis logic (15mm limit)
+            stage_z=15000.0 - (raw_z * 1000),
+            
+            stage_x_offset=off_x * 1000,
+            stage_y_offset=off_y * 1000,
+            stage_z_offset=15000.0 - (off_z * 1000),
+            
+            # Default assignments
+            shank_cnt=info.get("ShankCount", 1),
+            yaw=info.get("Yaw"),
+            pitch=info.get("Pitch"),
+            roll=info.get("Roll")
+        )
+
 class ArcAngle(BaseModel):
-    rx: float
-    ry: float
-    rz: float
+    rx: float = 0.0
+    ry: float = 0.0
+    rz: float = 0.0
 
 class StageCalibration(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    # --- Required ---
-    detection_status: str  # Must be provided (e.g., "accepted", "default")
-    # --- Optional Transformation Data ---
-    transM: Optional[Any] = None  # 4x4 Numpy array
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        validate_assignment=True  # Important: runs validators on updating a single field
+    )
+
+    # --- Required / Metadata ---
+    detection_status: str = "default" 
+    trajectory_file: Optional[str] = None
+
+    # --- Transformation Data ---
+    transM: Optional[Any] = None  # Expected 4x4 Numpy array
     transM_bregma: Optional[Dict[str, List[List[float]]]] = None
+
     # Rotation angles
     arc_angle_global: Optional[ArcAngle] = None
     arc_angle_bregma: Optional[Dict[str, ArcAngle]] = None
+
     # --- Error & Tracking Metrics ---
     L2_err: Optional[float] = None
     dist_travel: Optional[Any] = None
-    # Axes Status Flags (maps to true/false in YAML)
+
+    # Flags mapping to YAML (True/False)
     status_x: Optional[bool] = None
     status_y: Optional[bool] = None
     status_z: Optional[bool] = None
-    trajectory_file: Optional[str] = None
-    # --- Optional Bounds Tracking ---
-    min_x: Optional[float] = None
-    max_x: Optional[float] = None
-    min_y: Optional[float] = None
-    max_y: Optional[float] = None
-    min_z: Optional[float] = None
-    max_z: Optional[float] = None
-    min_gx: Optional[float] = None
-    max_gx: Optional[float] = None
-    min_gy: Optional[float] = None
-    max_gy: Optional[float] = None
+
+    # --- Bounds Tracking (Defaulted to Inf for logic checks) ---
+    min_x: float = Field(default=float("inf"))
+    max_x: float = Field(default=float("-inf"))
+    min_y: float = Field(default=float("inf"))
+    max_y: float = Field(default=float("-inf"))
+    min_z: float = Field(default=float("inf"))
+    max_z: float = Field(default=float("-inf"))
+    
+    min_gx: float = Field(default=float("inf"))
+    max_gx: float = Field(default=float("-inf"))
+    min_gy: float = Field(default=float("inf"))
+    max_gy: float = Field(default=float("-inf"))
+
     # --- Validators ---
     @field_validator("transM", "dist_travel", mode="before")
     @classmethod
-    def validate_numpy(cls, v):
+    def validate_numpy(cls, v: Any):
+        if v is None:
+            return None
+        # Uses your existing to_numpy helper
         return to_numpy(v)
 
-    # This handles the conversion TO list when saving
+    # --- Serializers (Prevents crashes when saving to YAML/JSON) ---
     @field_serializer("transM", "dist_travel")
     def serialize_numpy(self, v: Any, _info):
         if isinstance(v, np.ndarray):
             return v.tolist()
         return v
 
+    @field_serializer("min_x", "max_x", "min_y", "max_y", "min_z", "max_z", 
+                      "min_gx", "max_gx", "min_gy", "max_gy")
+    def serialize_float(self, v: float, _info):
+        """Converts infinity to None for clean YAML/JSON output."""
+        if np.isinf(v):
+            return None
+        return v
+
 class StageSession(BaseModel):
-    obj: StageObj = None
     is_calib: bool = False
-    calib_info: StageCalibration = None
+    calib_info: Optional[StageCalibration] = None
+
+    @model_validator(mode="after")
+    def sync_calibration_state(self) -> "StageSession":
+        """
+        Strict state enforcement:
+        1. If calib_info is None, is_calib MUST be False.
+        2. If calib_info exists, is_calib is True.
+        """
+        if self.calib_info is None:
+            self.is_calib = False
+        else:
+            self.is_calib = True
+        return self
 
 class CameraParams(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -166,25 +237,6 @@ class CameraSession(BaseModel):
 
 # --- Main Session Schema ---
 class Session(BaseModel):
-    reticle_detection_status: str = "default"  # options: default, detected, accepted
+    reticle_detection_status: Literal["default", "detected", "accepted"] = "default"
     stages: Dict[str, StageSession] = Field(default_factory=dict)
     cameras: Dict[str, CameraSession] = Field(default_factory=dict) # Simplified for brevity
-
-"""
-self.cameras[sn] = {
-    'obj': cam,
-    'visible': True,
-    'device_model': cam.device_model,
-    'is_triangulation_candidate' : False,
-    'probe_detect_algorithm': 'opencv',  # 'opencv' or 'yolo'
-    'coords_axis': None,
-    'coords_debug': None,
-    'pos_x': None,
-    'params': {
-        'mtx': None,
-        'dist': None,
-        'rvec': None,
-        'tvec': None
-    }
-}
-"""

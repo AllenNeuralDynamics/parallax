@@ -14,11 +14,9 @@ import numpy as np
 
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.config.schemas import CameraSettings
-from parallax.config.config_manager import ConfigManager
-from parallax.session.session_state import CameraParams, StageCalibration, ArcAngle
+from parallax.session.session_state import CameraParams, StageCalibration, ArcAngle, StageObj
 from parallax.session.session_manager import SessionManager
-from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
-from parallax.stages.stage_listener import PathfinderServer, Stage
+from parallax.stages.stage_listener import PathfinderServer
 
 
 class Model:
@@ -49,8 +47,6 @@ class Model:
 
         # cameras
         self.refresh_camera = False  # Status of camera streaming
-        # Session Config
-        self.reticle_detection_status = "default"  # options: default, detected, accepted
 
         # Calculator
         self.calc_instance = None
@@ -97,11 +93,9 @@ class Model:
         server = PathfinderServer(self.config.pathfinder_server.url)
         instances = server.get_instances()
         for instance in instances:
-            stage = Stage.from_info(info=instance)
+            stage = StageObj.from_info(info=instance)
             sn = stage.sn
             self.stage_instances[sn] = stage
-            #calib_info = StageCalibrationInfo()
-            #self.add_stage(stage, calib_info)
         self.nStages = len(self.stage_instances)
         print("  Stages:", list(self.stage_instances.keys()))
 
@@ -173,7 +167,7 @@ class Model:
         """
         stage_session = self.session.stages.get(stage_sn)
         if not stage_session or not stage_session.calib_info:
-            print(f"add_transform: stage '{stage_sn}' not found or uninitialized")
+            logger.debug(f"add_transform: stage '{stage_sn}' not found or uninitialized")
             return
 
         stage_session.calib_info.transM = transform

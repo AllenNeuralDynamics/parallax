@@ -285,7 +285,7 @@ class ReticleMetadata(QWidget):
         # Clear and reset the reticle_selector
         self.reticle_selector.clear()
         self.reticle_selector.addItem("Global coords")
-        if self.model.reticle_detection_status == "accepted":
+        if self.model.session.reticle_detection_status == "accepted":
             self.reticle_selector.addItem("Proj Global coords")
 
     def _update_to_file(self):

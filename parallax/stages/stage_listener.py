@@ -7,15 +7,14 @@ import json
 import logging
 import os
 import time
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Optional
 
 import numpy as np
 import requests
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import QFileDialog
 
+from parallax.session.session_state import StageObj
 from parallax.utils.coords_converter import apply_reticle_adjustments, local_to_global
 
 # Set logger name
@@ -52,46 +51,6 @@ class PathfinderServer:
             logger.debug(f"Stage HttpServer not enabled: {e}")
 
         return stages
-
-
-@dataclass
-class Stage:
-    """Represents an individual stage with its properties."""
-
-    sn: str
-    name: Optional[str] = None
-    stage_x: Optional[float] = None
-    stage_y: Optional[float] = None
-    stage_z: Optional[float] = None
-    stage_x_global: Optional[float] = None
-    stage_y_global: Optional[float] = None
-    stage_z_global: Optional[float] = None
-    stage_bregma: Optional[dict] = None
-    stage_x_offset: float = 0.0
-    stage_y_offset: float = 0.0
-    stage_z_offset: float = 0.0
-    yaw: Optional[float] = None
-    pitch: Optional[float] = None
-    roll: Optional[float] = None
-    shank_cnt: int = 1
-
-    @classmethod
-    def from_info(cls, info: Dict[str, Any]) -> "Stage":
-        """Create a Stage from a stage_info dictionary."""
-        return cls(
-            sn=info["SerialNumber"],
-            name=info["Id"],
-            stage_x=info["Stage_X"] * 1000,
-            stage_y=info["Stage_Y"] * 1000,
-            stage_z=15000 - info["Stage_Z"] * 1000,
-            stage_x_offset=info.get("Stage_XOffset", 0) * 1000,
-            stage_y_offset=info.get("Stage_YOffset", 0) * 1000,
-            stage_z_offset=15000 - (info.get("Stage_ZOffset", 0) * 1000),
-            yaw=None,
-            pitch=None,
-            roll=None,
-            shank_cnt=1,
-        )
 
 
 class Worker(QObject):
@@ -313,6 +272,7 @@ class StageListener(QObject):
                 stage.stage_x_global = global_pts[0]
                 stage.stage_y_global = global_pts[1]
                 stage.stage_z_global = global_pts[2]
+                print("  Updated global coords: ", stage.stage_x_global, stage.stage_y_global, stage.stage_z_global)
 
         if is_calib:
             bregma_pts = {}
@@ -336,11 +296,13 @@ class StageListener(QObject):
         # Stage is currently selected one, update into UI
         if sn == self.stage_ui.get_selected_stage_sn():
             self.stage_ui.updateStageLocalCoords()  # Update local coords into UI
+            print(f"  Local coords on UI: ({stage.stage_x}, {stage.stage_y}, {stage.stage_z})")
             if is_calib:
                 self.stage_ui.updateStageGlobalCoords()  # update global coords into UI
+                print("  Global coords on UI: ", stage.stage_x_global, stage.stage_y_global, stage.stage_z_global)
 
         # Update stage info
-        self._update_stages_info(stage, is_calib, calib_info)
+        #self._update_stages_info(stage, is_calib, calib_info) # TODO
 
     def _update_stages_info(self, stage, is_calib, calib_info):
         """Update stage info without clobbering existing fields and with sane conditions."""
@@ -394,12 +356,13 @@ class StageListener(QObject):
         else:
             if self.transM_dict.get(sn) is not None:
                 self.transM_dict.pop(sn)
+
+        print("  Request from stage listner ", sn)
         self.stage_ui.updateStageGlobalCoords_default()
         logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
-        """Handle changes in global stage data and emit calibration update if selected."""
-
+        
         # Convert global coordinates to microns
         global_coords_x = round(global_coords[0][0] * 1000, 1)
         global_coords_y = round(global_coords[0][1] * 1000, 1)
@@ -414,7 +377,7 @@ class StageListener(QObject):
                 "Stage_Y": float(stage["stage_y"]),
                 "Stage_Z": float(stage["stage_z"]),
             }
-            self.stage_global_data = Stage(stage_info)
+            self.stage_global_data = StageObj.from_info(stage_info)
 
         # Update stage_global_data
         self.sn = sn
@@ -453,6 +416,7 @@ class StageListener(QObject):
                 msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
                 self.probeCalibrationLabel.setText(msg)
             # Update only globalCoords
+
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.

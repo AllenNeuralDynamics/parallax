@@ -1,3 +1,4 @@
+# parallax/utils/coords_converter.py
 """
 This module provides helpers for converting between local, global, and bregma
 coordinates using rigid transformation matrices.
@@ -287,11 +288,11 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
 
     Returns rounded (1x3) bregma coordinates or None if unavailable.
     """
-    calib_info = (model.stages.get(sn, {}) or {}).get("calib_info")
+    calib_info = model.get_stage_calib_info(sn)
     if calib_info is None:
         logger.warning(f"Stage {sn} is not calibrated.")
         return None
-    transMbs = getattr(calib_info, "transM_bregma", None)
+    transMbs = model.get_transM_bregma(sn)  # Could be a single matrix or a dict of reticle→matrix
     if transMbs is None:
         logger.warning(f"No transM_bregma on stage {sn}.")
         return None
