@@ -541,23 +541,23 @@ class ProbeCalibrationHandler(QWidget):
         # Update arc angles in bregma frame
         if self.arc_angle_bregma is None:
             self.arc_angle_bregma = {}
+
         for reticle_name, transMb in self.transMbs.items():
-            # Get the rx/ry values
-            angles_dict = get_rx_ry(transMb) # Expected: {"rx": 0.1, "ry": 0.2}
-            if angles_dict:
-                # Handle the RZ calculation
+            # 1. Get the rx/ry values (This now returns an ArcAngle object)
+            bregma_angles = get_rx_ry(transMb)  # Expected: ArcAngle
+            if bregma_angles:
+                # 2. Handle the RZ (Spin) calculation
                 rz_val = 0.0
                 if self.arc_angle_global and self.arc_angle_global.rz is not None:
+                    # Get rotation offset from model metadata
+                    reticle_meta = self.model.reticle_metadata.get(reticle_name, {})
+                    reticle_rot = reticle_meta.get("rot", 0.0)
                     rz_val = get_spin_bregma(
                         spin_global=self.arc_angle_global.rz,
-                        reticle_rot=self.model.reticle_metadata[reticle_name].get("rot", 0.0),
+                        reticle_rot=reticle_rot
                     )
-                # Create the ArcAngle object and store it in the dictionary
-                self.arc_angle_bregma[reticle_name] = ArcAngle(
-                    rx=angles_dict.get("rx", 0.0),
-                    ry=angles_dict.get("ry", 0.0),
-                    rz=rz_val
-                )
+                bregma_angles.rz = rz_val
+                self.arc_angle_bregma[reticle_name] = bregma_angles
 
     def update_stage_info_to_model(self, stage_id) -> None:
         """
@@ -588,23 +588,19 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         stage_info.detection_status = self.probe_detection_status
-
+    
     def _update_probe_angle(self):
-        """
-        Updates probe angle information. Returns True if successfully calculated or
-        skipped (Single Shank). Returns False if the process should be retried
-        (data not yet ready or PCA failed).
-        """
         if self.arc_angle_global is not None:
-            logger.debug(f"Probe ({self.selected_stage_id}) angle already available from session.")
             return
-        self.arc_angle_global = get_rx_ry(self.transM)
-
-        # update median of spin angle if available
-        if len(self.spin_angle) == 0 or self.arc_angle_global is None:
-            self.arc_angle_global["rz"] = None
-        else:
-            self.arc_angle_global["rz"] = float(np.median(self.spin_angle))
+        # Update Rx, Ry
+        angles = get_rx_ry(self.transM)  # ArcAngle object        
+        if angles is None:
+            logger.warning("Could not calculate arc angles.")
+            return
+        # Update Rz (spin) 
+        if len(self.spin_angle) > 0:
+            angles.rz = float(np.median(self.spin_angle))
+        self.arc_angle_global = angles
 
     def probe_detect_accepted_status(self, switch_probe=False):
         """
