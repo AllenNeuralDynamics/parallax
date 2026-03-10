@@ -207,12 +207,11 @@ class Model:
             return stage_session.calib_info.arc_angle_global
         return None
 
-    def set_arc_angle_global(self, stage_sn: str, arc_angle_global: dict):
-        """Set the arc angles in global coordinates using a dictionary."""
+    def set_arc_angle_global(self, stage_sn: str, arc_angle_global: ArcAngle):
+        """Set the arc angles in global coordinates."""
         stage_session = self.session.stages.get(stage_sn)
         if stage_session and stage_session.calib_info:
-            # Pydantic allows validation via the dict
-            stage_session.calib_info.arc_angle_global = ArcAngle(**arc_angle_global)
+            stage_session.calib_info.arc_angle_global = arc_angle_global
 
     def get_arc_angle_bregma(self, stage_sn: str) -> Optional[Dict[str, ArcAngle]]:
         """Get the arc angles in bregma coordinates."""

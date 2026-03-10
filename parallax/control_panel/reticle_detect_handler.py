@@ -118,7 +118,7 @@ class ReticleDetecthandler(QWidget):
         )
         if self.model.session.reticle_detection_status != "default":
             self.model.session.reticle_detection_status = "default"
-            self.model.save_session_config()
+            self.model.save_session()
         self.reticleCalibrationLabel.setText("")
         self.triangulate_btn.setChecked(False)
 
@@ -190,7 +190,7 @@ class ReticleDetecthandler(QWidget):
             self.model.session.reticle_detection_status = "detected"
 
         self.model.reset_pos_x()
-        self.model.save_session_config()
+        self.model.save_session()
         self.reticleDetectionStatusChanged.emit()
 
         # UI Updates
@@ -260,7 +260,7 @@ class ReticleDetecthandler(QWidget):
             # Send the signal to update the reticle detection status
             if self.model.session.reticle_detection_status != "accepted":
                 self.model.session.reticle_detection_status = "accepted"
-                self.model.save_session_config()
+                self.model.save_session()
             self.reticleDetectionStatusChanged.emit()
         else:
             self.coords_detected_screens = self._get_coords_detected_screens()

@@ -220,7 +220,6 @@ class StageListener(QObject):
         self.stage_global_data = None
         self.transM_dict = {}
         self.snapshot_folder_path = None
-        self.stages_info = {}
         self.probeCalibrationLabel = None  # TODO
 
         # Connect the snapshot button
@@ -251,7 +250,6 @@ class StageListener(QObject):
         sn = probe["SerialNumber"]
         stage = self.model.get_stage(sn)
         is_calib = self.model.get_stage_calib_status(sn)
-        calib_info = self.model.get_stage_calib_info(sn)
         if not stage:
             return
 
@@ -288,7 +286,6 @@ class StageListener(QObject):
                         )
                         .tolist()
                     )
-
             stage.stage_bregma = bregma_pts
 
         # Update stage UI
@@ -297,48 +294,8 @@ class StageListener(QObject):
             self.stage_ui.updateStageLocalCoords()  # Update local coords into UI
             if is_calib:
                 self.stage_ui.updateStageGlobalCoords()  # update global coords into UI
-
-        # Update stage info
-        #self._update_stages_info(stage, is_calib, calib_info) # TODO
-
-    def _update_stages_info(self, stage, is_calib, calib_info):
-        """Update stage info without clobbering existing fields and with sane conditions."""
-        if stage is None or not getattr(stage, "sn", None):
-            return
-
-        # Start from existing info; merge in fresh stage fields instead of overwriting.
-        info = self.stages_info.get(stage.sn, {}).copy()
-        base = self._get_stage_info_json(stage) or {}
-        info.update(base)
-
-        prev_is_calib = info.get("is_calibrated")
-        status_changed = (prev_is_calib is None) or (bool(is_calib) != prev_is_calib)
-
-        if status_changed:
-            logger.debug(f"State changed from {prev_is_calib} to {is_calib} for stage {stage.sn}")
-            # Always keep this boolean up to date
-            info["is_calibrated"] = bool(is_calib)
-            if is_calib and calib_info is not None:
-                info["calib_info"] = self._get_calib_info_json(calib_info)
-                logger.debug(f"Stage {stage.sn} calibrated: {info['calib_info']}")
             else:
-                info["calib_info"] = None
-                logger.debug(f"Stage {stage.sn} uncalibrated")
-
-        self.stages_info[stage.sn] = info
-
-    def requestUpdateGlobalDataTransformM(self, sn, transM):
-        """
-        Stores or updates a transformation matrix for a specific stage identified by its serial number.
-        This method updates an internal dictionary, `transM_dict`, mapping stage serial numbers to their
-        corresponding transformation matrices.
-
-        Args:
-            sn (str): The serial number of the stage.
-            transM (np.ndarray): A 4x4 numpy array representing the transformation matrix for the specified stage.
-        """
-        self.transM_dict[sn] = transM
-        logger.debug(f"requestUpdateGlobalDataTransformM {sn} {transM}")
+                self.stage_ui.updateStageGlobalCoords_default()
 
     def requestClearGlobalDataTransformM(self, sn=None):
         """
@@ -412,8 +369,6 @@ class StageListener(QObject):
             if self.probeCalibrationLabel:
                 msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
                 self.probeCalibrationLabel.setText(msg)
-            # Update only globalCoords
-
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.
@@ -436,113 +391,50 @@ class StageListener(QObject):
         for probeDetector in self.model.probeDetectors:
             probeDetector.enable_calibration(self.worker.last_move_detected_time + self.worker.IDLE_TIME, sn)
 
-    def _get_stage_info_json(self, stage):
-        """Create a JSON representation of the stage information."""
-        sx, sy, sz = stage.stage_x, stage.stage_y, stage.stage_z
-        gx, gy, gz = stage.stage_x_global, stage.stage_y_global, stage.stage_z_global
-        ox, oy, oz = stage.stage_x_offset, stage.stage_y_offset, stage.stage_z_offset
-        stage_bregma = stage.stage_bregma
-
-        def _val_mm(v):
-            """Convert value to mm."""
-            return round(v * 0.001, 4) if v is not None else None
-
-        def _vec_mm(v):
-            """3-vector (np/list) in µm -> [mm, mm, mm] (rounded)."""
-            if v is None:
-                return None
-            arr = np.asarray(v, dtype=float).reshape(-1)
-            if arr.size < 3:
-                return None
-            return [round(arr[0] * 0.001, 4), round(arr[1] * 0.001, 4), round(arr[2] * 0.001, 4)]
-
-        def _bregma_mm(b):
-            """Dict of reticle -> 3-vector in µm -> mm dict."""
-            if not b:
-                return None
-            return {str(k): _vec_mm(v) for k, v in b.items() if v is not None}
-
-        return {
-            "sn": stage.sn,
-            "name": stage.name,
-            "stage_X": _val_mm(sx),
-            "stage_Y": _val_mm(sy),
-            "stage_Z": _val_mm(sz),
-            "global_X": _val_mm(gx),
-            "global_Y": _val_mm(gy),
-            "global_Z": _val_mm(gz),
-            "bregma": _bregma_mm(stage_bregma),
-            "relative_X": _val_mm(sx - ox) if sx is not None and ox is not None else None,
-            "relative_Y": _val_mm(sy - oy) if sy is not None and oy is not None else None,
-            "relative_Z": _val_mm(sz - oz) if sz is not None and oz is not None else None,
-            "yaw": stage.yaw,
-            "pitch": stage.pitch,
-            "roll": stage.roll,
-        }
-
-    def _get_calib_info_json(self, calib_info):
-        def _to_list(x):
-            return None if x is None else np.asarray(x).tolist()
-
-        def _to_mm(M):
-            if M is None:
-                return None
-            A = np.asarray(M, float).copy()
-            A[:3, 3] /= 1000.0  # µm -> mm  # TODO replace to mm in entire Parallax model
-            return A.tolist()
-
-        transM_mm = _to_mm(calib_info.transM)
-        bregma_mm = {k: _to_mm(v) for k, v in (calib_info.transM_bregma or {}).items()} or None
-
-        return {
-            "detection_status": calib_info.detection_status,
-            "transM_global_to_local": transM_mm,
-            "L2_error": calib_info.L2_err,
-            "distance_travelled": _to_list(calib_info.dist_travel),
-            "status_x": calib_info.status_x,
-            "status_y": calib_info.status_y,
-            "status_z": calib_info.status_z,
-            "transM_bregma_to_local": bregma_mm,
-            "arc_angle_global": calib_info.arc_angle_global,
-            "arc_angle_bregma": calib_info.arc_angle_bregma,
-            "trajectory_file_path": calib_info.trajectory_file,
-        }
-
     def _snapshot_stage(self):
-        """Snapshot the current stage info. Handler for the stage snapshot button."""
+        """Snapshot the current stage info, nesting StageObj into the export."""
         selected_sn = self.stage_ui.get_selected_stage_sn()
         now = datetime.now().astimezone()
+
+        stages_output = {}
+        # Get all Serial Numbers from your model
+        for sn in self.model.get_list_of_stage_sns():
+            # Retrieve the two separate pieces of data
+            stage_obj = self.model.get_stage(sn)  # Returns the StageObj
+            session = self.model.session.stages.get(sn) # Returns StageSession
+
+            if stage_obj:
+                # Manually build the nested structure you want
+                stages_output[sn] = {
+                    "obj": stage_obj.model_dump(),
+                    "is_calib": session.is_calib if session else False,
+                    "calib_info": session.calib_info.model_dump() if session and session.calib_info else None
+                }
+
+        # Build final JSON structure
         info = {
             "timestamp": now.isoformat(timespec="milliseconds"),
             "selected_sn": selected_sn,
-            "probes:": self.stages_info,
+            "stages": stages_output,
         }
 
-        # If no folder is set, default to the "Documents" directory
+        # File Saving
         if self.snapshot_folder_path is None:
             self.snapshot_folder_path = os.path.join(os.path.expanduser("~"), "Documents")
 
-        # Open save file dialog, defaulting to the last used folder
-        now_fmt = now.strftime("%Y-%m-%dT%H%M%S%z")
         file_path, _ = QFileDialog.getSaveFileName(
-            None, "Save Stage Info", os.path.join(self.snapshot_folder_path, f"{now_fmt}.json"), "JSON Files (*.json)"
+            None, "Save Stage Info", 
+            os.path.join(self.snapshot_folder_path, f"{now.strftime('%Y%m%dT%H%M%S')}.json"), 
+            "JSON Files (*.json)"
         )
 
-        if not file_path:  # User canceled the dialog
-            print("Save canceled by user.")
-            return
+        if file_path:
+            self.snapshot_folder_path = os.path.dirname(file_path)
+            try:
+                with open(file_path, "w", encoding="utf-8") as f:
+                    json.dump(info, f, indent=4)
+                print(f"Stage info saved successfully at {file_path}")
+            except Exception as e:
+                logger.error(f"Failed to save snapshot: {e}")
 
-        # Update `snapshot_folder_path` to the selected folder
-        self.snapshot_folder_path = os.path.dirname(file_path)
 
-        # Ensure the file has the correct `.json` extension
-        if not file_path.endswith(".json"):
-            file_path += ".json"
-
-        # Write the JSON file
-        try:
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(info, f, indent=4)
-            print(f"Stage info saved at {file_path}")
-        except Exception as e:
-            print(f"Error saving stage info: {e}")

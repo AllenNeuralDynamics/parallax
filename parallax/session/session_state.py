@@ -26,26 +26,21 @@ def to_list(v: Any) -> Any:
 class StageObj(BaseModel):
     # Primary Key
     sn: str
-    # Basic Info
     name: Optional[str] = None
-    shank_cnt: Optional[int] = 1
-    # Raw Stage Coordinates
     stage_x: Optional[float] = 0.0
     stage_y: Optional[float] = 0.0
     stage_z: Optional[float] = 0.0
-    # Global/World Coordinates
     stage_x_global: Optional[float] = None
     stage_y_global: Optional[float] = None
     stage_z_global: Optional[float] = None
-    # Offset Coordinates
     stage_x_offset: Optional[float] = None
     stage_y_offset: Optional[float] = None
     stage_z_offset: Optional[float] = None
-    # Bregma & Orientation
-    stage_bregma: Optional[str] = None
+    stage_bregma: Optional[Dict[str, List[float]]] = None
     yaw: Optional[float] = None
     pitch: Optional[float] = None
     roll: Optional[float] = None
+    shank_cnt: Optional[int] = 1
 
     @classmethod
     def from_info(cls, info: Dict[str, Any]) -> "StageObj":

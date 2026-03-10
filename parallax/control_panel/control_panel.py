@@ -148,7 +148,7 @@ class ControlPanel(QWidget):
         self.probe_calib_handler.init_stages(self.stageListener, self.stageUI)
 
         # Stage Http Server
-        self.stage_http_server = StageHttpServer(self.model, self.stageListener.stages_info)
+        self.stage_http_server = StageHttpServer(self.model)
 
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""

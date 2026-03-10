@@ -131,7 +131,7 @@ class StageServerIPConfig(QWidget):
         logger.debug(f"Setting stage listener URL: {listener_url}")
         self.model.config.pathfinder_server.ip = ip
         self.model.config.pathfinder_server.port = port
-        self.model.save_session_config()
+        self.model.save_session()
 
     def refresh_stages(self):
         """
