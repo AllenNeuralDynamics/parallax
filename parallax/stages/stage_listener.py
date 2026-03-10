@@ -218,7 +218,6 @@ class StageListener(QObject):
         self.worker.stage_moving.connect(self.stageMovingStatus)
         self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
         self.stage_global_data = None
-        self.transM_dict = {}
         self.snapshot_folder_path = None
         self.probeCalibrationLabel = None  # TODO
 
@@ -296,24 +295,6 @@ class StageListener(QObject):
                 self.stage_ui.updateStageGlobalCoords()  # update global coords into UI
             else:
                 self.stage_ui.updateStageGlobalCoords_default()
-
-    def requestClearGlobalDataTransformM(self, sn=None):
-        """
-        Clears all stored transformation matrices and resets the UI to default global coordinates.
-
-        Effects:
-            - Clears `transM_dict`, removing all stored transformation matrices.
-            - Triggers a UI update to reset the display of global coordinates to default values.
-        """
-        if sn is None:  # Not specified, clear all (Use case: Detection Dection is reset)
-            self.transM_dict = {}
-        else:
-            if self.transM_dict.get(sn) is not None:
-                self.transM_dict.pop(sn)
-
-        print("  Request from stage listner ", sn)
-        self.stage_ui.updateStageGlobalCoords_default()
-        logger.debug(f"requestClearGlobalDataTransformM {self.transM_dict}")
 
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
         
@@ -423,8 +404,8 @@ class StageListener(QObject):
             self.snapshot_folder_path = os.path.join(os.path.expanduser("~"), "Documents")
 
         file_path, _ = QFileDialog.getSaveFileName(
-            None, "Save Stage Info", 
-            os.path.join(self.snapshot_folder_path, f"{now.strftime('%Y%m%dT%H%M%S')}.json"), 
+            None, "Save Stage Info",
+            os.path.join(self.snapshot_folder_path, f"{now.strftime('%Y%m%dT%H%M%S')}.json"),
             "JSON Files (*.json)"
         )
 
