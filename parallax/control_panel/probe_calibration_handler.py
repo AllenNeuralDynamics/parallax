@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QMessageBox, QPushButton, QWidget
 from PyQt6.uic import loadUi
@@ -28,6 +28,9 @@ logger.setLevel(logging.DEBUG)
 
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
+    globalDataDetected = pyqtSignal(str, dict, object, object, object, str, object, str, object)
+    clearRequested = pyqtSignal(str)
+    resetCalibRequested = pyqtSignal()
 
     def __init__(
         self,
@@ -52,7 +55,6 @@ class ProbeCalibrationHandler(QWidget):
 
         self.selected_stage_id = None
         self.stageUI = None
-        self.stageListener = None
         self.camA_best, self.camB_best = None, None
         self.camA_params, self.camB_params = None, None
 
@@ -67,7 +69,6 @@ class ProbeCalibrationHandler(QWidget):
         self.update_spin_inputs = False
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
-        # self.setMinimumSize(0, 420)
         self.setMinimumSize(0, 100)
 
         # Access probe_calibration_btn
@@ -95,16 +96,13 @@ class ProbeCalibrationHandler(QWidget):
         if self.actionReticlesMetadata is not None:
             self.actionReticlesMetadata.triggered.connect(self.reticle_button_handler)
 
-    def init_stages(self, stageListener, stageUI):
+    def init_stages(self, stageUI):
         """Initializes the probe calibration handler with stage listener and UI."""
         self.probe_calibration_btn.setEnabled(False)
         self.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
 
-        self.stageListener = stageListener
-        # self.stageListener.init_probe_calib_label(self.probeCalibrationLabel)  # TODO
         self.stageUI = stageUI
         self.selected_stage_id = self.stageUI.get_current_stage_id()
-        self.probeCalibration = ProbeCalibration(self.model, self.stageListener)
 
         # Hide X, Y, and Z Buttons in Probe Detection
         self.calib_x.hide()
@@ -113,9 +111,6 @@ class ProbeCalibrationHandler(QWidget):
         self.viewTrajectory_btn.hide()
         self.actionTrajectory.setEnabled(False)
         self.transform_info_handler.setVisible(False)
-
-        self.probeCalibration.calib_complete.connect(self.probe_detect_accepted_status)
-        self.probeCalibration.transM_info.connect(self.update_probe_calib_status)
 
         # Calculator Button
         self.calculation_btn.hide()
@@ -260,7 +255,7 @@ class ProbeCalibrationHandler(QWidget):
             logger.debug(" No valid global coordinates from triangulation.")
             return
 
-        self.stageListener.handleGlobalDataChange(
+        self.globalDataDetected.emit(
             sn_A,
             stage_A,
             global_coords,
@@ -307,16 +302,6 @@ class ProbeCalibrationHandler(QWidget):
             cam_params = self.model.get_camera_params(cam)
             detected_cam_params = self.model.get_camera_params(detected_cam)
             global_coords = triangulate(ptsA=tip, ptsB=tip_, paramsA=detected_cam_params, paramsB=cam_params)
-
-            self.stageListener.handleGlobalDataChange(  # Request probe calibration
-                sn,
-                global_coords,
-                img_ts,
-                detected_cam,
-                tip,
-                cam,
-                tip_,
-            )
 
     def probe_overwrite_popup_window(self):
         """
@@ -380,6 +365,10 @@ class ProbeCalibrationHandler(QWidget):
                 # Keep the last calibration result
                 self.probe_calibration_btn.setChecked(True)
 
+    def update_status_label(self, text):
+        """Sets the text for the probe calibration status label."""
+        self.probeCalibrationLabel.setText(text)
+
     def probe_detect_default_status_ui(self, sn=None):
         """
         Resets the probe detection UI and clears the calibration status.
@@ -433,11 +422,11 @@ class ProbeCalibrationHandler(QWidget):
 
         if sn is not None:
             # Reset the probe calibration status
-            self.probeCalibration.clear(self.selected_stage_id)
+            self.clearRequested.emit(self.selected_stage_id)
             # update global coords. Set  to '-' on UI
         else:  # Reset all probel calibration status
             for sn in self.model.get_list_of_stage_sns():
-                self.probeCalibration.clear(sn)
+                self.clearRequested.emit(self.selected_stage_id)
 
         # Set as Uncalibrated
         self.calculator.set_calc_functions()
@@ -454,11 +443,12 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_status_x, self.calib_status_y, self.calib_status_z = False, False, False
         self.arc_angle_global, self.spin_angle = None, []
         self.transM, self.L2_err, self.dist_travel = None, None, None
-        self.probeCalibration.reset_calib()
+        self.resetCalibRequested.emit()
         self.reticle_metadata.default_reticle_selector()
         self.probe_detect_default_status_ui(sn=sn)
         if sn is None:
-            self.probeCalibration.clear()
+            for sn in self.model.get_list_of_stage_sns():
+                self.clearRequested.emit(sn)
 
         if sn is not None:
             self.model.reset_stage_calib_info(sn)

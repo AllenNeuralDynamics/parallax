@@ -1,19 +1,13 @@
-"""
-Provides classes to manage stage data fetching, representation, and updates in microscopy
-applications, using PyQt6 for threading and signals, and requests for HTTP requests.
-"""
-
-import json
-import logging
-import os
+# parallax/stages/stage_listener.py
+import threading
 import time
-from datetime import datetime
-
+import logging
+import requests
+from parallax.utils.signals import Signal
+import logging
+import time
 import numpy as np
 import requests
-from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
-from PyQt6.QtWidgets import QFileDialog
-
 from parallax.session.session_state import StageObj
 from parallax.utils.coords_converter import apply_reticle_adjustments, local_to_global
 
@@ -52,53 +46,51 @@ class PathfinderServer:
 
         return stages
 
-
-class Worker(QObject):
+class Worker(threading.Thread):
     """Fetch stage data at regular intervals and emit signals when data changes
     or significant movement is detected."""
 
-    dataChanged = pyqtSignal(dict)  # Emitted when stage data changes.
-    stage_moving = pyqtSignal(dict)  # Emitted when a stage is moving.
-    stage_not_moving = pyqtSignal(dict)  # Emitted when a stage is not moving for a certain time.
-    LOW_FREQ_INTERVAL = 500  # Interval for low frequency data fetching (in ms).
-    HIGH_FREQ_INTERVAL = 100  # Interval for high frequency data fetching (in ms).
-    IDLE_TIME = 0.5
-    MOVE_DETECT_THRESHOLD = 0.002  # Threshold to detect movement (in mm).
-
     def __init__(self, url):
         """Initialize worker thread"""
-        super().__init__()
+        super().__init__(daemon=True) # daemon=True ensures thread dies when app closes
         self.url = url
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.fetchData)
+        self._stop_event = threading.Event()
+
+        # Native Python Signals
+        self.dataChanged = Signal()
+        self.stage_moving = Signal()
+        self.stage_not_moving = Signal()
+
+        self.LOW_FREQ_INTERVAL = 0.5   # 500ms
+        self.HIGH_FREQ_INTERVAL = 0.1  # 100ms
+        self.IDLE_TIME = 0.5
+        self.MOVE_DETECT_THRESHOLD = 0.002
 
         self.curr_interval = self.LOW_FREQ_INTERVAL
         self.is_error_log_printed = False
-
         self.stages = {}
         self.last_move_detected_time = time.time()
 
-    def start(self, interval=1000):
-        """Starts the data fetching at the given interval.
-
-        Args:
-            interval (int): Interval in milliseconds. Defaults to 1000.
-        """
-        self.timer.start(interval)
-
     def stop(self):
         """Stops the data fetching."""
-        self.timer.stop()
+        self._stop_event.set()
 
     def update_url(self, url):
-        """Change the URL for data fetching.
-
-        Args:
-            url (str): New URL for data fetching.
-        """
-        self.timer.stop()  # Stop the timer before updating the URL
+        """Change the URL for data fetching."""
         self.url = url
-        self.start()  # Restart the timer
+
+    def run(self):
+        """The main loop of the native thread with crash protection."""
+        logger.info("Stage Worker thread started.")
+        while not self._stop_event.is_set():
+            try:
+                self.fetchData()
+            except Exception as e:
+                # Log the error but DON'T let the loop exit
+                logger.error(f"Worker Loop Error: {e}", exc_info=True)
+                time.sleep(2) 
+            time.sleep(self.curr_interval)
+        logger.info("Stage Worker thread stopped gracefully.")
 
     def _print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
@@ -108,10 +100,7 @@ class Worker(QObject):
         print("3. Click 'Connect' on New Scale SW")
 
     def get_data(self):
-        """Fetch data from the URL.
-        Returns:
-            dict: JSON data from the server.
-        """
+        """Fetch data from the URL."""
         response = requests.get(self.url, timeout=1)
         if response.status_code != 200:
             print(f"Failed to access {self.url}. Status code: {response.status_code}")
@@ -124,7 +113,6 @@ class Worker(QObject):
                 print("\nStage is not connected to New Scale SW")
                 self._print_trouble_shooting_msg()
             return
-
         return data
 
     def fetchData(self):
@@ -134,60 +122,42 @@ class Worker(QObject):
             if data is None:
                 return
 
-            self.emit_all_stages(data)  # Update all stages
-            change_detected = self._is_any_stage_move(data)  # Check if there is any significant change
+            self.emit_all_stages(data)
+            change_detected = self._is_any_stage_move(data)
             current_time = time.time()
 
-            if (
-                not change_detected
-                and self.curr_interval == self.HIGH_FREQ_INTERVAL
-                and current_time - self.last_move_detected_time >= self.IDLE_TIME
-            ):
-                # If stage is not moving for idle_time, switch to low freq mode
-                logger.debug("low freq mode")
+            # Frequency Switching Logic
+            if (not change_detected and
+                self.curr_interval == self.HIGH_FREQ_INTERVAL and
+                current_time - self.last_move_detected_time >= self.IDLE_TIME):
                 self.curr_interval = self.LOW_FREQ_INTERVAL
-                self.stop()
-                self.start(interval=self.curr_interval)
                 self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
-            if change_detected and self.curr_interval == self.LOW_FREQ_INTERVAL:
-                # Switch to high freq mode
-                logger.debug("high freq mode")
+            elif (change_detected and 
+                  self.curr_interval == self.LOW_FREQ_INTERVAL):
                 self.curr_interval = self.HIGH_FREQ_INTERVAL
-                self.stop()
-                self.start(interval=self.curr_interval)
                 self.stage_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
             self.is_error_log_printed = False
             self.update_into_stages(data)
 
         except Exception as e:
-            # Stop the fetching data if there http server is not enabled
-            self.stop()
-            # Print the error message only once
-            if self.is_error_log_printed is False:
+            if not self.is_error_log_printed:
                 self.is_error_log_printed = True
                 print(f"\nStage HttpServer not enabled.: {e}")
                 self._print_trouble_shooting_msg()
 
     def _is_any_stage_move(self, data):
-        """Check if any stage has moved significantly.
-        Args:
-            data (dict): JSON data from the server.
-        Returns:
-            bool: True if any stage has moved significantly, False otherwise.
-        """
-        for stage in data["ProbeArray"]:
-            stage_sn = stage["SerialNumber"]
-            curr_pos = (stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"])
-
-            # Check stage is move more than 10um in any axis
-            last_pos = self.stages.get(stage_sn)
-            if last_pos:
-                if any(abs(c - l) >= self.MOVE_DETECT_THRESHOLD for c, l in zip(curr_pos, last_pos)):
-                    self.last_move_detected_time = time.time()
-                    return True
-        return False
+            """Check if any stage has moved significantly."""
+            for stage in data["ProbeArray"]:
+                stage_sn = stage["SerialNumber"]
+                curr_pos = (stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"])
+                last_pos = self.stages.get(stage_sn)
+                if last_pos:
+                    if any(abs(c - l) >= self.MOVE_DETECT_THRESHOLD for c, l in zip(curr_pos, last_pos)):
+                        self.last_move_detected_time = time.time()
+                        return True
+            return False
 
     def emit_all_stages(self, data):
         """Update all stages."""
@@ -200,45 +170,31 @@ class Worker(QObject):
             self.stages[stage["SerialNumber"]] = [stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"]]
 
 
-class StageListener(QObject):
-    """Class for listening to stage updates."""
+class StageListener:
+    """Pure Python listener using native threading and signals."""
 
-    probeCalibRequest = pyqtSignal(object, dict)
-
-    def __init__(self, model, stage_ui, actionSaveInfo=None):
-        """Initialize Stage Listener object"""
-        super().__init__()
+    def __init__(self, model):
         self.model = model
+
+        # Native Signal
+        self.probeCalibRequest = Signal()
+        self.localDataChanged = Signal()  # Emits (sn, is_calib)
+        self.globalDataChanged = Signal() # Emits (sn)
+        self.statusMessageRequested = Signal() # Define a new signal
+
+        # Native Worker Thread
         self.worker = Worker(self.model.config.pathfinder_server.url)
-        self.thread = QThread()
-        self.stage_ui = stage_ui
-        self.actionSaveInfo = actionSaveInfo
-        self.thread.started.connect(self.worker.start)
+
+        # Connect Native Signals to Native Methods
         self.worker.dataChanged.connect(self.handleDataChange)
         self.worker.stage_moving.connect(self.stageMovingStatus)
         self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
-        self.stage_global_data = None
-        self.snapshot_folder_path = None
-        self.probeCalibrationLabel = None  # TODO
-
-        # Connect the snapshot button
-        self.stage_ui.ui.snapshot_btn.clicked.connect(self._snapshot_stage)
-        if self.actionSaveInfo is not None:
-            self.actionSaveInfo.triggered.connect(self._snapshot_stage)
 
     def start(self):
-        """Start the stage listener."""
+        """Starts the native Python thread."""
         if self.model.nStages != 0:
-            self.worker.moveToThread(self.thread)
-            self.thread.start()
-
-    def update_url(self):
-        """Update the URL for the worker."""
-        # Update URL
-        self.worker.update_url(self.model.config.pathfinder_server.url)
-
-    def init_probe_calib_label(self, probe_calib_label):
-        self.probeCalibrationLabel = probe_calib_label
+            if not self.worker.is_alive():
+                self.worker.start()
 
     def handleDataChange(self, probe):
         """Handle changes in stage data.
@@ -287,14 +243,9 @@ class StageListener(QObject):
                     )
             stage.stage_bregma = bregma_pts
 
-        # Update stage UI
-        # Stage is currently selected one, update into UI
-        if sn == self.stage_ui.get_selected_stage_sn():
-            self.stage_ui.updateStageLocalCoords()  # Update local coords into UI
-            if is_calib:
-                self.stage_ui.updateStageGlobalCoords()  # update global coords into UI
-            else:
-                self.stage_ui.updateStageGlobalCoords_default()
+        self.localDataChanged.emit(sn, is_calib)
+        if is_calib:
+            self.globalDataChanged.emit(sn)
 
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
         
@@ -342,14 +293,14 @@ class StageListener(QObject):
             moving_stage.stage_z_global = global_coords_z
 
         # Emit probe calibration request if selected
-        if self.stage_ui.get_selected_stage_sn() == sn:
+        if self.model.get_selected_stage_sn == sn:
             self.probeCalibRequest.emit(self.stage_global_data, debug_info)
-            self.stage_ui.updateStageGlobalCoords()
+            self.globalDataChanged.emit(sn) # Notify that global coords updated
         else:
             print(f"Stage {sn} is not selected, skipping probe calibration request.")
             if self.probeCalibrationLabel:
                 msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-                self.probeCalibrationLabel.setText(msg)
+                self.statusMessageRequested.emit(msg)
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.
@@ -371,51 +322,4 @@ class StageListener(QObject):
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
             probeDetector.enable_calibration(self.worker.last_move_detected_time + self.worker.IDLE_TIME, sn)
-
-    def _snapshot_stage(self):
-        """Snapshot the current stage info, nesting StageObj into the export."""
-        selected_sn = self.stage_ui.get_selected_stage_sn()
-        now = datetime.now().astimezone()
-
-        stages_output = {}
-        # Get all Serial Numbers from your model
-        for sn in self.model.get_list_of_stage_sns():
-            # Retrieve the two separate pieces of data
-            stage_obj = self.model.get_stage(sn)  # Returns the StageObj
-            session = self.model.session.stages.get(sn) # Returns StageSession
-
-            if stage_obj:
-                # Manually build the nested structure you want
-                stages_output[sn] = {
-                    "obj": stage_obj.model_dump(),
-                    "is_calib": session.is_calib if session else False,
-                    "calib_info": session.calib_info.model_dump() if session and session.calib_info else None
-                }
-
-        # Build final JSON structure
-        info = {
-            "timestamp": now.isoformat(timespec="milliseconds"),
-            "selected_sn": selected_sn,
-            "stages": stages_output,
-        }
-
-        # File Saving
-        if self.snapshot_folder_path is None:
-            self.snapshot_folder_path = os.path.join(os.path.expanduser("~"), "Documents")
-
-        file_path, _ = QFileDialog.getSaveFileName(
-            None, "Save Stage Info",
-            os.path.join(self.snapshot_folder_path, f"{now.strftime('%Y%m%dT%H%M%S')}.json"),
-            "JSON Files (*.json)"
-        )
-
-        if file_path:
-            self.snapshot_folder_path = os.path.dirname(file_path)
-            try:
-                with open(file_path, "w", encoding="utf-8") as f:
-                    json.dump(info, f, indent=4)
-                print(f"Stage info saved successfully at {file_path}")
-            except Exception as e:
-                logger.error(f"Failed to save snapshot: {e}")
-
 

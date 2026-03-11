@@ -17,6 +17,7 @@ from parallax.config.config_path import stages_dir
 from parallax.probe_calibration.bundle_adjustment import BALOptimizer, BALProblem
 from parallax.utils.coords_converter import local_to_global
 from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
+from parallax.utils.signals import Signal
 from parallax.utils.transforms import fit_params
 
 # Set logger name
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class ProbeCalibration(QObject):
+
+class ProbeCalibration:
     """
     A class responsible for calibrating probe positions
     by transforming local stage coordinates to global reticle coordinates.
@@ -33,10 +35,6 @@ class ProbeCalibration(QObject):
         calib_complete: Signal emitted when the full calibration is complete.
         transM_info (str, object, float, object): Signal emitted with transformation matrix information.
     """
-
-    calib_complete = pyqtSignal()
-    transM_info = pyqtSignal(str, object, float, object)
-
     THRESHOLD_MIN_MAX = 1500
     THRESHOLD_MIN_MAX_Z = 100
     THRESHOLD_AVG_ERROR = 40
@@ -53,7 +51,7 @@ class ProbeCalibration(QObject):
         ]
     )
 
-    def __init__(self, model, stage_listener):
+    def __init__(self, model):
         """
         Initialize the ProbeCalibration object.
 
@@ -61,10 +59,11 @@ class ProbeCalibration(QObject):
             model (object): The model object containing stage information.
             stage_listener (QObject): The stage listener object for receiving stage-related events.
         """
-        super().__init__()
+        #super().__init__()
+        # Native Signals
+        self.calib_complete = Signal()
+        self.transM_info = Signal() # Will emit (sn, transM, L2_err, dist_travel)
         self.model = model
-        self.stage_listener = stage_listener
-        self.stage_listener.probeCalibRequest.connect(self.update)
         self.df = None
         self.inliers = []
         self.stage = None

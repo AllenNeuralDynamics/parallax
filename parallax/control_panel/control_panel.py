@@ -1,3 +1,4 @@
+# parallax/contro_panel/control_panel.py
 """
 This module contains the StageWidget class, which is a PyQt6 QWidget subclass for controlling
 and calibrating stages in microscopy instruments. It interacts with the application's model
@@ -18,8 +19,10 @@ from parallax.control_panel.probe_calibration_handler import ProbeCalibrationHan
 from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
 from parallax.control_panel.transform_info_handler import TransformInfoHandler
 from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
+from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.stages.stage_http_server import StageHttpServer
 from parallax.stages.stage_listener import StageListener
+from parallax.stages.stage_snapshot import StageSnapshotHandler
 from parallax.stages.stage_server_ipconfig import StageServerIPConfig
 from parallax.stages.stage_ui import StageUI
 
@@ -137,18 +140,54 @@ class ControlPanel(QWidget):
         #self.stage_server_ipconfig.refresh_stages()  # Update stages to model
 
         # Set Stage UI
-        self.stageUI = StageUI(self)  # TODO Move UI into StageUI
+        self.stageUI = StageUI(self)
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
 
         # Start refreshing stage info
-        self.stageListener = StageListener(self.model, self.stageUI, self.actionSaveInfo)
+        self.stageListener = StageListener(self.model)
+        self.stageListener.localDataChanged.connect(self._on_local_data_received)  # Update UI
+        self.stageListener.globalDataChanged.connect(self._on_global_data_received)  # Update UI
+        # Update UI - selected incorrect stage during the calibration
+        self.stageListener.statusMessageRequested.connect(self.probe_calib_handler.update_status_label)
+
+        # probe calibration
+        self.probe_calib_handler.init_stages(self.stageUI)  # UI
+        self.probe_calibration = ProbeCalibration(self.model)
+        # Logic -> UI
+        self.probe_calibration.calib_complete.connect(self.probe_calib_handler.probe_detect_accepted_status)
+        self.probe_calibration.transM_info.connect(self.probe_calib_handler.update_probe_calib_status)
+        # UI -> Logic
+        self.probe_calib_handler.clearRequested.connect(self.probe_calibration.clear)
+        self.probe_calib_handler.resetCalibRequested.connect(self.probe_calibration.reset_calib)
+
+        # Connect hardware events to the calibration logic
+        self.stageListener.probeCalibRequest.connect(self.probe_calibration.update)
+        self.probe_calib_handler.globalDataDetected.connect(self.stageListener.handleGlobalDataChange)  # TODO Move handleGlobalDataChange here
         self.stageListener.start()
-        self.probe_calib_handler.init_stages(self.stageListener, self.stageUI)
+
+        # snapshot
+        self.snapshot_handler = StageSnapshotHandler(self.model)
+        self.stageUI.ui.snapshot_btn.clicked.connect(self.snapshot_handler.take_snapshot)  # From snapshot button
+        if self.actionSaveInfo is not None:  # from Menu
+            self.actionSaveInfo.triggered.connect(self.snapshot_handler.take_snapshot)
 
         # Stage Http Server
         self.stage_http_server = StageHttpServer(self.model)
+
+    def _on_local_data_received(self, sn, is_calib):
+        """Bridge method to update UI when local data changes."""
+        if sn == self.stageUI.get_selected_stage_sn():
+            if is_calib:
+                self.stageUI.updateStageLocalCoords()
+            else:
+                self.stageUI.updateStageGlobalCoords_default()
+
+    def _on_global_data_received(self, sn):
+        """Bridge method to update UI when global data changes."""
+        if sn == self.stageUI.get_selected_stage_sn():
+            self.stageUI.updateStageGlobalCoords()
 
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""
