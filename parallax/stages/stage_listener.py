@@ -182,6 +182,9 @@ class StageListener:
         self.globalDataChanged = Signal() # Emits (sn)
         self.statusMessageRequested = Signal() # Define a new signal
 
+        # TODO
+        self.stage_global_data = None
+
         # Native Worker Thread
         self.worker = Worker(self.model.config.pathfinder_server.url)
 
@@ -248,7 +251,6 @@ class StageListener:
             self.globalDataChanged.emit(sn)
 
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
-        
         # Convert global coordinates to microns
         global_coords_x = round(global_coords[0][0] * 1000, 1)
         global_coords_y = round(global_coords[0][1] * 1000, 1)
@@ -298,9 +300,8 @@ class StageListener:
             self.globalDataChanged.emit(sn) # Notify that global coords updated
         else:
             print(f"Stage {sn} is not selected, skipping probe calibration request.")
-            if self.probeCalibrationLabel:
-                msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-                self.statusMessageRequested.emit(msg)
+            msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
+            self.statusMessageRequested.emit(msg)
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.
