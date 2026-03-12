@@ -369,7 +369,8 @@ class ProbeCalibrationHandler(QWidget):
 
     def update_status_label(self, text):
         """Sets the text for the probe calibration status label."""
-        self.probeCalibrationLabel.setText(text)
+        print(f"Probe Calibration Status: {text}")
+        #self.probeCalibrationLabel.setText(text)
 
     def probe_detect_default_status_ui(self, sn=None):
         """

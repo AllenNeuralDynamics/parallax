@@ -8,6 +8,7 @@ import datetime
 import logging
 import os
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -300,7 +301,7 @@ class ProbeCalibration:
 
         return transM
 
-    def _write_transformed_global_points(self, sn: str, file_path: str):
+    def _write_transformed_global_points(self, sn: str, file_path: Path):
         """
         Recalculates and updates the 'expected' global coordinates (global_exp)
         using vectorized operations for better performance.
@@ -427,18 +428,22 @@ class ProbeCalibration:
         else:
             return False
 
-    def _update_trajectory_file(self, sn: str, file_path: str):
+    def _update_trajectory_file(self, sn: str, file_path: Optional[Path]):
         """
         Updates the trajectory file path in the calibration info for the given stage serial number.
         Args:
             sn (str): The serial number of the stage.
-            file_path (str): The path to the trajectory file.
+            file_path (Path): The path to the trajectory file.
         """
         calib_info = self.model.get_stage_calib_info(sn)
         if calib_info is None:
             logger.error(f"Calibration info not found for stage {sn}")
             return
-        calib_info.trajectory_file = file_path
+
+        if file_path is not None:
+            calib_info.trajectory_file = str(file_path)
+        else:
+            calib_info.trajectory_file = None
 
     def _update_min_max_x_y_z(self, stage):
         """
