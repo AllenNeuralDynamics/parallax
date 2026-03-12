@@ -32,8 +32,6 @@ if __name__ == "__main__":
     # Load configuration
     config = ConfigManager.load()
     session = SessionManager.load()
-    print("\n\nconfig: ", config)
-    print("\n\nsession: ", session)
 
     # Initialize the Qt application
     app = QApplication(sys.argv)
@@ -47,7 +45,7 @@ if __name__ == "__main__":
     app.exec()
 
     # Clean up on exit
-    atexit.register(model.clean)
     atexit.register(model.save_config)
     atexit.register(model.save_session)
+    atexit.register(model.clean)
     #atexit.register(SessionManager.save_session, session)
