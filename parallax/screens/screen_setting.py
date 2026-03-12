@@ -44,7 +44,7 @@ class ScreenSetting(QWidget):
             else:
                 self.refresh_timer.stop()
                 self.settingMenu.hide()
-                # TODO Change the visibility
+                # TODO Change the visibility in model
                 self.model.save_config()
         except Exception as e:
             logger.error(f"Error toggling settings menu: {e}")

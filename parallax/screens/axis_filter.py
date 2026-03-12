@@ -83,7 +83,7 @@ class AxisFilter(QObject):
             pos_x = self.model.get_pos_x(self.name)
             if pos_x is not None:
                 logger.info(f"{self.name} pos_x: {pos_x}")
-                cv2.circle(self.frame, pos_x, 15, (255, 0, 0), -1)
+                cv2.circle(self.frame, tuple(pos_x), 15, (255, 0, 0), -1)
 
             self.frame_processed.emit(self.frame)
 
@@ -105,21 +105,23 @@ class AxisFilter(QObject):
             if self.pos_x is None or self.reticle_coords is None:
                 return
 
-            if self.pos_x == tuple(self.reticle_coords[0][0]):
+            print("posetive x-axis point:", self.pos_x)
+            if np.array_equal(self.pos_x, self.reticle_coords[0][0]):
                 self.reticle_coords[0] = self.reticle_coords[0][::-1]
                 self.reticle_coords[1] = self.reticle_coords[1][::-1]
-            elif self.pos_x == tuple(self.reticle_coords[1][-1]):
+            elif np.array_equal(self.pos_x, self.reticle_coords[1][-1]):
                 tmp = self.reticle_coords[1]
                 self.reticle_coords[1] = self.reticle_coords[0][::-1]
                 self.reticle_coords[0] = tmp
-            elif self.pos_x == tuple(self.reticle_coords[1][0]):
+            elif np.array_equal(self.pos_x, self.reticle_coords[1][0]):
                 tmp = self.reticle_coords[1][::-1]
                 self.reticle_coords[1] = self.reticle_coords[0]
                 self.reticle_coords[0] = tmp
             else:
                 pass
 
-            self.pos_x = tuple(self.reticle_coords[0][-1])
+            self.pos_x = self.reticle_coords[0][-1]
+            print("positve x-axis point after sorting:", self.pos_x)
             return
 
         def clicked_position(self, input_pt):
@@ -138,7 +140,6 @@ class AxisFilter(QObject):
 
             # Finding the closest point to pt
             self.pos_x = min(pts, key=lambda pt: self.squared_distance(pt, input_pt))
-            self.pos_x = tuple(self.pos_x)
             self.model.add_pos_x(self.name, self.pos_x)
 
             # sort the reticle points and register to the model
@@ -157,7 +158,6 @@ class AxisFilter(QObject):
         def reset_pos_x(self):
             """Reset the position of the x-axis (pos_x) in the model."""
             self.pos_x = None
-            self.model.reset_pos_x()
             logger.debug("reset pos_x")
 
         def stop_running(self):

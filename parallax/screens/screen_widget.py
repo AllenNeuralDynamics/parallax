@@ -197,7 +197,7 @@ class ScreenWidget(pg.GraphicsView):
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
         self.reticleDetectorCNN.process(data)
-        self.probeDetector.process(data, self.camera.get_last_capture_time())
+        self.probeDetector.process(data, self.camera.get_last_capture_timestamp())
 
     def is_camera(self):
         """
