@@ -295,11 +295,12 @@ class StageListener:
             moving_stage.stage_z_global = global_coords_z
 
         # Emit probe calibration request if selected
-        if self.model.get_selected_stage_sn == sn:
+        if self.model.get_selected_stage_sn() == sn:
             self.probeCalibRequest.emit(self.stage_global_data, debug_info)
             self.globalDataChanged.emit(sn) # Notify that global coords updated
         else:
             print(f"Stage {sn} is not selected, skipping probe calibration request.")
+            print(" model_get_selected_stage_sn: ", self.model.get_selected_stage_sn())
             msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
             self.statusMessageRequested.emit(msg)
 
