@@ -7,7 +7,8 @@ from pydantic import (
     ConfigDict,
     field_validator,
     field_serializer,
-    model_validator
+    model_validator,
+    model_serializer
 )
 
 # -------------------- session schema --------------------
@@ -151,18 +152,22 @@ class StageSession(BaseModel):
     is_calib: bool = False
     calib_info: Optional[StageCalibration] = None
 
+    # ENFORCE ON LOAD (When reading from YAML)
     @model_validator(mode="after")
-    def sync_calibration_state(self) -> "StageSession":
-        """
-        Strict state enforcement:
-        1. If calib_info is None, is_calib MUST be False.
-        2. If calib_info exists, is_calib is True.
-        """
-        if self.calib_info is None:
-            self.is_calib = False
-        else:
-            self.is_calib = True
+    def enforce_rule_on_load(self) -> "StageSession":
+        # If the session says it's not calibrated, wipe any leftover data
+        if self.is_calib is False:
+            self.calib_info = None
         return self
+
+    # ENFORCE ON SAVE (When writing to YAML)
+    @model_serializer(mode="wrap")
+    def enforce_rule_on_save(self, handler):
+        dumped_data = handler(self)
+        # If it's not calibrated when saving, ensure calib_info is null in the YAML
+        if dumped_data.get("is_calib") is False:
+            dumped_data["calib_info"] = None
+        return dumped_data
 
 class CameraParams(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -195,6 +200,7 @@ class CameraParams(BaseModel):
 
     @field_serializer("mtx", "dist", "rvec", "tvec")
     def serialize_numpy(self, v: Any, _info):
+        """Converts internal numpy arrays to lists for JSON/YAML storage."""
         if isinstance(v, np.ndarray):
             return v.tolist()
         return v
@@ -206,27 +212,24 @@ class CameraSession(BaseModel):
     device_model: Optional[str] = None
     is_triangulation_candidate: bool = False
     probe_detect_algorithm: Optional[str] = "yolo"  # TODO: 'opencv' or 'yolo'
-    coords_axis: Optional[List[List[List[float]]]] = None
-    coords_debug: Optional[List[List[float]]] = None
-    pos_x: Optional[List[float]] = None # List of coordinate paths
+    coords_axis: Optional[Any] = None
+    coords_debug: Optional[Any] = None
+    pos_x: Optional[Any] = None
     params: Optional[CameraParams] = None
 
-    @field_validator("coords_axis", "coords_debug", mode="before")
+    @field_validator("coords_axis", "coords_debug", "pos_x", mode="before")
     @classmethod
     def to_numpy(cls, v):
         if isinstance(v, list):
             return np.array(v)
         return v
-    @field_validator("pos_x", mode="before")
-    @classmethod
-    def to_tuple(cls, v):
-        if isinstance(v, list):
-            return tuple(v)
-        return v
-    @field_serializer("coords_axis", "coords_debug")
+
+    @field_serializer("coords_axis", "coords_debug", "pos_x")
     def serialize_numpy(self, v: Any, _info):
         if isinstance(v, np.ndarray):
             return v.tolist()
+        if isinstance(v, list):
+            return [item.tolist() if isinstance(item, np.ndarray) else item for item in v]
         return v
 
 

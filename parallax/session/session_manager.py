@@ -13,13 +13,32 @@ import os
 from typing import Optional
 import yaml
 import json
+import numpy as np
 
 from parallax.config.config_path import session_file
 from parallax.session.session_state import Session, CameraSession, StageSession
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
+
+
+# =========================
+# Custom YAML Dumper
+# =========================
+
+class CleanDumper(yaml.SafeDumper):
+    """Custom YAML Dumper to handle NumPy types cleanly."""
+    def represent_data(self, data):
+        # If it's a numpy array or scalar, convert to python native
+        if isinstance(data, np.ndarray):
+            return self.represent_list(data.tolist())
+        if isinstance(data, (np.int64, np.int32, np.int16, np.int8)):
+            return self.represent_int(int(data))
+        if isinstance(data, (np.float64, np.float32)):
+            return self.represent_float(float(data))
+        return super().represent_data(data)
+
 
 # =========================
 # SessionManager
@@ -59,21 +78,27 @@ class SessionManager:
 
     @classmethod
     def save_session(cls, session_obj: Session):
-        """Saves the object to disk. Safely handles both Dict and Pydantic objects."""
-        cls._data = session_obj
+        """Saves session to disk, converting NumPy arrays to clean YAML lists."""
+        try:
+            cls._data = session_obj
+            print("Saving session with data:", session_obj)  # Debug print to verify structure before saving
+            data = session_obj.model_dump(mode='json')
 
-        # Check if it's a Pydantic object or a dict
-        if hasattr(session_obj, "model_dump_json"):
-            # Use Pydantic's built-in conversion
-            json_data = session_obj.model_dump_json()
-            data = {"model": json.loads(json_data)}
-        else:
-            # It's already a dict, just use it
-            data = {"model": session_obj}
+            # Wrap it under a 'model' key to match the expected YAML structure
+            output_data = {"model": data}
+            logger.debug(output_data)
 
-        os.makedirs(os.path.dirname(cls.session_file), exist_ok=True)
-        with open(cls.session_file, "w") as f:
-            yaml.safe_dump(data, f, sort_keys=False, default_flow_style=False)
+            with open(cls.session_file, "w") as file:
+                yaml.dump(
+                    output_data, 
+                    file, 
+                    Dumper=CleanDumper, 
+                    default_flow_style=False, 
+                    sort_keys=False
+                )
+            logger.debug(f"Session successfully saved to {cls.session_file}")
+        except Exception as e:
+            logger.error(f"Failed to save session: {e}")
 
     @classmethod
     def instantiate(cls, model) -> None:
@@ -81,6 +106,10 @@ class SessionManager:
         Syncs the SessionSchema with physical hardware.
         Removes missing cameras and adds new ones.
         """
+        if getattr(model, 'session', None) is None:
+            logger.info("[SessionManager] Creating a fresh session configuration.")
+            model.session = Session()
+
         # cameras 
         physical_sns = set(model.camera_instances.keys())  # {B, C, D}
         session_sns = set(model.session.cameras.keys())    # {A, B, C}
