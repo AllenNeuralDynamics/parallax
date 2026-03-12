@@ -123,10 +123,12 @@ class ReticleDetection:
             logger.debug("points for rasac line detection are less than 10")
             return False, inlier_lines, inlier_pixels
 
-        max_trials = 7000
+        max_trials = 500
         residual_threshold = 2
-        counter = 50
+        counter = 20
         while len(inlier_lines) < 2 and counter > 0:
+            counter -= 1
+            logger.debug(f"{self.name} ransac_detect_lines - counter: {counter}, len(inlier_lines): {len(inlier_lines)}")
             if not running_flag():
                 logger.debug(f"{self.name} ransac_detect_lines - stop running while searching for lines..")
                 return False, [], []
@@ -146,23 +148,20 @@ class ReticleDetection:
                 inlier_pixels.append(inlier_points)
                 inlier_lines.append(model_robust)
                 centroids = centroids[~inliers]
-                max_trials = 7000
                 residual_threshold = 2
-                counter = 50  # Reset counter
             else:
-                max_trials += 2000  # if not found, run RASAC again
-                counter -= 1
                 if residual_threshold <= 15:
                     residual_threshold += 1
                 continue
 
         # Draw the centroids for debug
-        """
-        for points in inlier_pixels:
-            for point in points:
-                cv2.circle(img_color, (int(point[0]), int(point[1])), 1, (0, 0, 255), -1)  # Draw green circles
-        cv2.imwrite("debug/centroid.jpg", img_color)
-        """
+        # if logger level is debug
+        if logger.isEnabledFor(logging.DEBUG):
+            img_debug = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR).copy()
+            for points in inlier_pixels:
+                for point in points:
+                    cv2.circle(img_debug, (int(point[0]), int(point[1])), 5, (0, 0, 255), -1)  # Draw green circles
+            cv2.imwrite(f"debug/centroid_{counter}.jpg", img_debug)
 
         return len(inlier_lines) == 2, inlier_lines, inlier_pixels
 
@@ -595,6 +594,21 @@ class ReticleDetection:
         else:
             return
 
+    def get_masked_img(self, img, running_flag=lambda: True):
+        bg = self._preprocess_image(img)
+        self._draw_debug(bg, [], "0_bg")
+        if not running_flag():
+            logger.debug(f"{self.name} get_coords - stop running after preprocessing")
+            return False, bg, [], []
+
+        masked = self._apply_mask(bg)
+        self._draw_debug(masked, [], "1_bg")
+        if not running_flag():
+            logger.debug(f"{self.name} get_coords - stop running after masking")
+            return False, bg, [], []
+
+        return True, masked, [], []
+
     def get_coords(self, img, running_flag=lambda: True):
         """Detect coordinates using morphological operations.
 
@@ -608,19 +622,7 @@ class ReticleDetection:
                 - inliner_lines (list): List of inlier line models.
                 - inliner_lines_pixels (list): List of inlier pixel coordinates for each line.
         """
-        bg = self._preprocess_image(img)
-        self._draw_debug(bg, [], "0_bg")
-        if not running_flag():
-            logger.debug(f"{self.name} get_coords - stop running after preprocessing")
-            return False, bg, [], []
-
-        masked = self._apply_mask(bg)
-        self._draw_debug(masked, [], "1_bg")
-        if not running_flag():
-            logger.debug(f"{self.name} get_coords - stop running after masking")
-            return False, bg, [], []
-
-        ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(masked, running_flag)
+        ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(img, running_flag)
         self._draw_debug(bg, pixels_in_lines, "2_detect_morph")
         logger.debug(f"{self.name} nLines: {len(pixels_in_lines)}")
         if not running_flag():
@@ -632,14 +634,14 @@ class ReticleDetection:
             logger.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}")
             self._draw_debug(bg, pixels_in_lines, "3_refine_pixels")
             if not running_flag():
-                logger.debug("{self.name} get_coords - stop running after refine_pixels")
+                logger.debug(f"{self.name} get_coords - stop running after refine_pixels")
                 return False, bg, [], []
 
             bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
             logger.debug(f"{self.name} interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
             self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
             if not running_flag():
-                logger.debug("{self.name} get_coords - stop running after add_missing_pixels")
+                logger.debug(f"{self.name} get_coords - stop running after add_missing_pixels")
                 return False, bg, [], []
 
         return ret, bg, inliner_lines, pixels_in_lines

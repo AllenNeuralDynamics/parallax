@@ -7,18 +7,14 @@ for microscopy image analysis tasks.
 import logging
 
 import numpy as np
-from PyQt6.QtCore import QObject
 from scipy.stats import linregress
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt6.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
-class ReticleDetectCoordsInterest(QObject):
+class ReticleDetectCoordsInterest:
     """Class for detecting coordinates of interest in reticle lines."""
 
     def __init__(self):
