@@ -3,6 +3,7 @@
 
 import datetime
 from abc import ABC, abstractmethod
+import time
 
 import numpy as np
 
@@ -191,3 +192,7 @@ class BaseCamera(ABC):
                 dt.minute,
                 dt.second,
             )
+
+    def get_last_capture_timestamp(self) -> float:
+        """Returns a raw float for mathematical operations (RANSAC/Sync)"""
+        return float(time.time())

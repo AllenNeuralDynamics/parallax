@@ -74,7 +74,12 @@ def calibrate_camera(
     distancesA = [np.linalg.norm(vec) for vec in tvecs]
     logger.debug(f"Distance from camera to world center: {np.mean(distancesA)}")
 
-    return ret, CameraParams(mtx, dist, rvecs[0], tvecs[0])
+    return ret, CameraParams(
+        mtx=mtx,
+        dist=dist,
+        rvec=rvecs[0],
+        tvec=tvecs[0]
+    )
 
 
 def _get_changed_data_format(x_axis, y_axis):
