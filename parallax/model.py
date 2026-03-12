@@ -16,6 +16,7 @@ from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, lis
 from parallax.config.schemas import CameraSettings
 from parallax.session.session_state import CameraParams, StageCalibration, ArcAngle, StageObj
 from parallax.session.session_manager import SessionManager
+from parallax.config.config_manager import ConfigManager
 from parallax.stages.stage_listener import PathfinderServer
 
 
@@ -277,8 +278,10 @@ class Model:
         Get device model for a specific camera from the schema.
         Defaults to 'MockCamera' if the SN is not found.
         """
-        cam = self.session.cameras.get(sn)
-        return cam.device_model if cam and cam.device_model else "MockCamera"
+        cam = self.get_camera(sn)
+        if cam and getattr(cam, 'device_model', None):
+            return cam.device_model
+        return "MockCamera"
     
     def get_camera_resolution(self, camera_sn: str) -> tuple[int, int]:
         """
@@ -499,7 +502,7 @@ class Model:
         if camera_sn in self.session.cameras:
             # Direct attribute access on the Pydantic model
             self.session.cameras[camera_sn].is_triangulation_candidate = status
-            self.save_session()
+        self.save_session()
 
     def get_camera_triangulation_candidate(self) -> list[str]:
         """
@@ -516,8 +519,6 @@ class Model:
         """
         for sn, cam in self.session.cameras.items():
             cam.is_triangulation_candidate = False
-            
-        # Save once after the loop for efficiency
         self.save_session()
 
     # =========================
@@ -579,7 +580,7 @@ class Model:
         if sn in self.session.cameras:
             # Pydantic will validate this against CameraParamsSchema
             self.session.cameras[sn].params = camera_params
-            self.save_session()
+        self.save_session()
 
     def get_camera_params(self, sn) -> Optional[CameraParams]:
         """Get intrinsic camera parameters for a specific camera."""
@@ -703,21 +704,24 @@ class Model:
     # Configurations - Load and Save
     # =========================
     def save_config(self):
-        #ConfigManager.save_settings(self.config)
-        pass
+        print("Saving config...")
+        ConfigManager.save_settings(self.config)
 
     # =========================
     # Session - Load, Save, and Instantiate
     # =========================
 
     def save_session(self):
-        #SessionConfigManager.save_to_yaml(self)
-        #SessionManager.save_session(self.session)
-        pass
+        print("Saving session...")
+        SessionManager.save_session(self.session)
 
     def instantiate_session(self):
         SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
 
+    def clear_session_config(self):
+        """Clear the session configuration and reset all related data."""
+        self.session = None
+        self.instantiate_session()
 
 
 
