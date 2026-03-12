@@ -12,7 +12,7 @@ from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ReticleDetecthandler(QWidget):
@@ -59,6 +59,7 @@ class ReticleDetecthandler(QWidget):
         self.coords_detected_screens = None
 
     def apply_reticle_detection_status(self):
+        print("model.session.reticle_detection_status:", self.model.session.reticle_detection_status)
         if self.model.session.reticle_detection_status == "default":
             self.reticle_detect_default_status()
         elif self.model.session.reticle_detection_status == "accepted":
@@ -118,7 +119,7 @@ class ReticleDetecthandler(QWidget):
         )
         if self.model.session.reticle_detection_status != "default":
             self.model.session.reticle_detection_status = "default"
-            self.model.save_session()
+
         self.reticleCalibrationLabel.setText("")
         self.triangulate_btn.setChecked(False)
 
@@ -281,9 +282,9 @@ class ReticleDetecthandler(QWidget):
         candidates = detected & visible  # cameras that are both detected and currently visible
 
         pos_x_detected = {sn for sn in candidates if self.model.get_pos_x(sn) is not None}
-        logger.debug("\nCandidates cameras:", candidates)
-        logger.debug("visible cameras:", visible)
-        logger.debug("Detected cameras with positive x-axis:", pos_x_detected)
+        logger.debug(f"\nCandidates cameras: {candidates}")
+        logger.debug(f"Visible cameras: {visible}")
+        logger.debug(f"Detected cameras with positive x-axis: {pos_x_detected}")
 
         return candidates == pos_x_detected
 

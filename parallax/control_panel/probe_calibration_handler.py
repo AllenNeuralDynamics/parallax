@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QMessageBox, QPushButton, QWidget
+from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.cameras.calibration_camera import triangulate
@@ -95,6 +95,8 @@ class ProbeCalibrationHandler(QWidget):
         self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector_comboBox)
         if self.actionReticlesMetadata is not None:
             self.actionReticlesMetadata.triggered.connect(self.reticle_button_handler)
+
+        self.probeCalibrationLabel = self.findChild(QLabel, "probeCalibrationLabel")
 
     def init_stages(self, stageUI):
         """Initializes the probe calibration handler with stage listener and UI."""
