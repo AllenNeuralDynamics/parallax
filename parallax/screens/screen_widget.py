@@ -285,7 +285,7 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
         camera_name = self.get_camera_name()
-        print(f"Clicked position on {camera_name}: ({pos[0]}, {pos[1]})")
+        print(f"Clicked position on {camera_name}: {pos}")
         self.selected.emit(camera_name, pos)
 
     def _zoom_out(self):

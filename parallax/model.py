@@ -629,13 +629,13 @@ class Model:
     # =========================
     # positive x-axis definition
     # =========================
-    def add_pos_x(self, sn: str, pt):
+    def add_pos_x(self, sn: str, pt: list):
         """
         Add position for the x-axis for a specific camera.
         
         Args:
             sn (str): The serial number of the camera.
-            pt: The position (usually a list or tuple of coordinates).
+            pt: The position (usually a list of coordinates).
         """
         if sn in self.session.cameras:
             # Pydantic validator will convert this to a tuple automatically

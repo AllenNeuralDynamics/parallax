@@ -105,7 +105,6 @@ class AxisFilter(QObject):
             if self.pos_x is None or self.reticle_coords is None:
                 return
 
-            print("posetive x-axis point:", self.pos_x)
             if np.array_equal(self.pos_x, self.reticle_coords[0][0]):
                 self.reticle_coords[0] = self.reticle_coords[0][::-1]
                 self.reticle_coords[1] = self.reticle_coords[1][::-1]
@@ -121,7 +120,6 @@ class AxisFilter(QObject):
                 pass
 
             self.pos_x = self.reticle_coords[0][-1]
-            print("positve x-axis point after sorting:", self.pos_x)
             return
 
         def clicked_position(self, input_pt):

@@ -7,9 +7,7 @@ from helper import mock_stage_instances, model
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera
 from parallax.config.schemas import AppSchema
-from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
 from parallax.model import Model
-from parallax.stages.stage_listener import Stage
 
 
 # ----------------------------
@@ -70,7 +68,7 @@ def test_visibility_helpers(model):
 # ----------------------------
 # Stage discovery
 # ----------------------------
-@patch("parallax.stages.stage_listener.StageInfo.get_instances", return_value=mock_stage_instances(2))
+@patch("parallax.stages.stage_listener.PathfinderServer.get_instances", return_value=mock_stage_instances(2))
 def test_scan_for_usb_stages(mock_get_instances, model):
     """Model.scan_for_usb_stages builds Stage entries with default calib info."""
     model.scan_for_usb_stages()
@@ -105,7 +103,7 @@ def test_stage_calibration_flow(model, monkeypatch):
     def fake_stage_save(_model, _sn):
         called["sn"] = _sn
 
-    monkeypatch.setattr("parallax.config.user_setting_manager.StageConfigManager.save_to_yaml", fake_stage_save)
+    monkeypatch.setattr("parallax.config.config_manager.ConfigManager.save_to_yaml", fake_stage_save)
 
     s = MagicMock(spec=Stage)
     s.sn = "S1"
@@ -138,7 +136,7 @@ def test_stage_calibration_flow(model, monkeypatch):
 def test_reset_stage_calib_info(model, monkeypatch):
     calls = []
     monkeypatch.setattr(
-        "parallax.config.user_setting_manager.StageConfigManager.save_to_yaml", lambda _m, sn: calls.append(sn)
+        "parallax.config.config_manager.ConfigManager.save_to_yaml", lambda _m, sn: calls.append(sn)
     )
     s1 = MagicMock(spec=Stage)
     s1.sn = "S1"
@@ -196,7 +194,7 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
     # Mock the save_to_yaml method to verify it gets called
     called = {}
     monkeypatch.setattr(
-        "parallax.config.user_setting_manager.CameraConfigManager.save_to_yaml",
+        "parallax.config.config_manager.ConfigManager.save_to_yaml",
         lambda _m, s: called.setdefault("sn", s),
     )
 
