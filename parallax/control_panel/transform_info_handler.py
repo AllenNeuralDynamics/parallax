@@ -183,6 +183,7 @@ class TransformInfoHandler(QWidget):
             self.rz_label.setReadOnly(not is_calibrated)
 
     def _display_ui(self, info):
+        print("display_ui: ", info)
         # 1. Update Title
         conver_to = "Global" if info.get("reticle") == "global" else f"Bregma ({info.get('reticle')})"
         self.transM_title_label.setText(f"Local <-> {conver_to}")
@@ -207,20 +208,26 @@ class TransformInfoHandler(QWidget):
         l2 = info.get("l2_err")
         self.l2_label.setText(f"{l2:.2f} µm" if l2 is not None else "-")
 
-        try:
-            travel = info.get("dist_travel")
-            tx = int(travel[0])
-            ty = int(travel[1])
-            tz = int(travel[2])
-            self.travel_label.setText(f"x: {tx} µm, y: {ty} µm, z: {tz} µm")
-        except (TypeError, ValueError, IndexError, AttributeError):
+        travel = info.get("dist_travel")
+        if travel is not None and len(travel) >= 3:
+            try:
+                tx, ty, tz = int(travel[0]), int(travel[1]), int(travel[2])
+                self.travel_label.setText(f"x: {tx} µm, y: {ty} µm, z: {tz} µm")
+            except (ValueError, TypeError):
+                self.travel_label.setText("-")
+        else:
             self.travel_label.setText("-")
 
-        angles = info.get("arc_angle")  # This is  an ArcAngle object
+        # 5. Arc Angles
+        angles = info.get("arc_angle")  # This is an ArcAngle object
         if angles and hasattr(angles, 'rx'):
             self.rx_label.setText(f"{angles.rx:.2f}°" if angles.rx is not None else "-")
             self.ry_label.setText(f"{angles.ry:.2f}°" if angles.ry is not None else "-")
             self.rz_label.setText(f"{angles.rz:.2f}°" if angles.rz is not None else "-")
+        else:
+            self.rx_label.setText("-")
+            self.ry_label.setText("-")
+            self.rz_label.setText("-")
 
     def _get_transM_from_model(self, stage_id, reticle_name):
         # Check if calibrated

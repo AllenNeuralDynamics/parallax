@@ -455,8 +455,16 @@ class ProbeCalibrationHandler(QWidget):
 
         if sn is not None:
             self.model.reset_stage_calib_info(sn)
+            self.model.reset_stage_obj_info(sn)
         else:
-            self.model.reset_stage_calib_info()
+            for sn in self.model.get_list_of_stage_sns():
+                self.model.reset_stage_calib_info(sn)
+                self.model.reset_stage_obj_info(sn)
+
+        print(f"default - obj, {self.model.get_stage(sn)}")
+        print(f"default - is_calib, {self.model.is_calibrated(sn)}")
+        print(f"default - calib, {self.model.get_stage_calib_info(sn)}")
+        
 
     def probe_detect_process_status(self):
         """
@@ -497,6 +505,7 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_y.show()
         self.calib_z.show()
         self._set_visible_gadget(visible=False)
+        print(f"probe_detect_process_status: ", self.model.session.stages)
         self.transform_info_handler.display(self.selected_stage_id)
 
         # message

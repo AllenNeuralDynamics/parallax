@@ -178,8 +178,7 @@ class StageListener:
 
         # Native Signal
         self.probeCalibRequest = Signal()
-        self.localDataChanged = Signal()  # Emits (sn, is_calib)
-        self.globalDataChanged = Signal() # Emits (sn)
+        self.localDataChanged = Signal()  # Emits (sn)
         self.statusMessageRequested = Signal() # Define a new signal
 
         # TODO
@@ -246,9 +245,7 @@ class StageListener:
                     )
             stage.stage_bregma = bregma_pts
 
-        self.localDataChanged.emit(sn, is_calib)
-        if is_calib:
-            self.globalDataChanged.emit(sn)
+        self.localDataChanged.emit(sn)
 
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
         # Convert global coordinates to microns
@@ -297,7 +294,6 @@ class StageListener:
         # Emit probe calibration request if selected
         if self.model.get_selected_stage_sn() == sn:
             self.probeCalibRequest.emit(self.stage_global_data, debug_info)
-            self.globalDataChanged.emit(sn) # Notify that global coords updated
         else:
             print(f"Stage {sn} is not selected, skipping probe calibration request.")
             print(" model_get_selected_stage_sn: ", self.model.get_selected_stage_sn())

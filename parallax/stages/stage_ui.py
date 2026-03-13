@@ -175,14 +175,13 @@ class StageUI(QWidget):
     def updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""
         if self.reticle == "Proj":
-            # Do no update global coordinates if reticle is Proj
-            # Update global coordinates (projection) from screen_coords_mapper
             return
 
         stage_id = self.get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
+                # Display when 
                 x = self.selected_stage.stage_x_global
                 y = self.selected_stage.stage_y_global
                 z = self.selected_stage.stage_z_global
@@ -195,6 +194,8 @@ class StageUI(QWidget):
                             x, y, z = bregma_pts
                         except Exception as e:
                             logger.error(f"Error applying reticle adjustments: {e}")
+                            self.updateStageGlobalCoords_default()
+                            return
 
                     # Update into UI, unit is µm
                     if x is not None and y is not None and z is not None:

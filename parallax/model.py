@@ -134,6 +134,11 @@ class Model:
         """
         return self.stage_instances.get(sn)
 
+    def reset_stage_obj_info(self, sn: str):
+        self.stage_instances.get(sn).stage_x_global = None
+        self.stage_instances.get(sn).stage_y_global = None
+        self.stage_instances.get(sn).stage_z_global = None
+        self.stage_instances.get(sn).stage_bregma = None
 
     # =========================
     # Stages calibration
@@ -148,15 +153,12 @@ class Model:
         stage_session = self.session.stages.get(stage_sn)
         return stage_session.is_calib if stage_session else False
 
-    def reset_stage_calib_info(self, sn: Optional[str] = None):
+    def reset_stage_calib_info(self, sn: str):
         """Reset stage calibration info for all stages or a specific one."""
-        sns = [sn] if sn else list(self.session.stages.keys())
-        for s_id in sns:
-            stage_session = self.session.stages.get(s_id)
-            if stage_session:
-                stage_session.is_calib = False
-                # Re-initialize with default schema
-                stage_session.calib_info = StageCalibration(detection_status="default")
+        stage_session = self.session.stages.get(sn)
+        if stage_session:
+            stage_session.is_calib = False
+            stage_session.calib_info = StageCalibration()
 
     def add_transform(self, stage_sn: str, transform: np.ndarray):
         """

@@ -139,16 +139,14 @@ class ControlPanel(QWidget):
         #self.stage_server_ipconfig.update_url(init=True)
         #self.stage_server_ipconfig.refresh_stages()  # Update stages to model
 
-        # Set Stage UI
+        # Set Stage UI and connect signals with other UIs
         self.stageUI = StageUI(self)
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
-        self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
 
         # Start refreshing stage info
         self.stageListener = StageListener(self.model)
         self.stageListener.localDataChanged.connect(self._on_local_data_received)  # Update UI
-        self.stageListener.globalDataChanged.connect(self._on_global_data_received)  # Update UI
         # Update UI - selected incorrect stage during the calibration
         self.stageListener.statusMessageRequested.connect(self.probe_calib_handler.update_status_label)
 
@@ -176,17 +174,10 @@ class ControlPanel(QWidget):
         # Stage Http Server
         self.stage_http_server = StageHttpServer(self.model)
 
-    def _on_local_data_received(self, sn, is_calib):
+    def _on_local_data_received(self, sn):
         """Bridge method to update UI when local data changes."""
         if sn == self.stageUI.get_selected_stage_sn():
-            if is_calib:
-                self.stageUI.updateStageLocalCoords()
-            else:
-                self.stageUI.updateStageGlobalCoords_default()
-
-    def _on_global_data_received(self, sn):
-        """Bridge method to update UI when global data changes."""
-        if sn == self.stageUI.get_selected_stage_sn():
+            self.stageUI.updateStageLocalCoords()
             self.stageUI.updateStageGlobalCoords()
 
     def refresh_stages(self):
