@@ -1,3 +1,4 @@
+# parallax/stages/stage_ui.py
 """
 Defines StageUI, a PyQt6 QWidget for showing and updating stage information in the UI,
 including serial numbers and coordinates. It interacts with the model to reflect

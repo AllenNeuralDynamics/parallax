@@ -98,7 +98,7 @@ class TransformInfoHandler(QWidget):
 
         arc_angle_global = self.model.get_arc_angle_global(stage_id)
         arc_angle_bregma = self.model.get_arc_angle_bregma(stage_id)
-        if not arc_angle_global or "rz" or arc_angle_global.rz is None:
+        if not arc_angle_global or arc_angle_global.rz is None:
             return
 
         # Calculate Difference
@@ -112,7 +112,7 @@ class TransformInfoHandler(QWidget):
             return
 
         # Global
-        arc_angle_global["rz"] = self._normalize_angle(arc_angle_global["rz"] + diff_angle)
+        arc_angle_global.rz = self._normalize_angle(arc_angle_global.rz + diff_angle)
 
         # Bregma
         if arc_angle_bregma:

@@ -306,8 +306,6 @@ class PySpinCamera(BaseCamera):
             else "{}.png".format(custom_name)
         )
         full_path = os.path.join(filepath, image_name)
-        logger.debug(f"Saving image to {full_path}")
-        print(f"Saving image to {full_path}")
 
         # Save the image
         try:
@@ -315,9 +313,11 @@ class PySpinCamera(BaseCamera):
             if image_converted is not None:
                 # Convert the image from RGB to BGR
                 image_converted = cv2.cvtColor(image_converted, cv2.COLOR_RGB2BGR)
+                logger.debug(f"Saving image to {full_path}")
+                print(f"Saving image to {full_path}")
                 cv2.imwrite(full_path, image_converted)
             else:
-                logger.error("Image not found or couldn't be retrieved.")
+                logger.error(f"{self.name(sn_only=True)} - Image not found or couldn't be retrieved.")
         except Exception as e:
             logger.error(f"An error occurred while saving the image: {e}")
 
