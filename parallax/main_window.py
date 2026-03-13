@@ -80,15 +80,15 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
-        self.control_panel = ControlPanel(  # init staages
-            self.model,
-            self.screen_widget_manager.screen_widgets,
-            self.actionServer,
-            self.actionSaveInfo,
-            self.actionTrajectory,
-            self.actionCalculator,
-            self.actionTriangulate,
-            self.actionReticlesMetadata,
+        self.control_panel = ControlPanel(  # init stages
+            model = self.model,
+            screen_widgets = self.screen_widget_manager.screen_widgets,
+            actionServer = self.actionServer,
+            actionSaveInfo = self.actionSaveInfo,
+            actionTrajectory = self.actionTrajectory,
+            actionCalculator = self.actionCalculator,
+            actionTriangulate = self.actionTriangulate,
+            actionReticlesMetadata = self.actionReticlesMetadata,
         )
 
         # Add to splitter
@@ -109,7 +109,6 @@ class MainWindow(QMainWindow):
 
         # actionDocumentation
         self.actionDocumentation.triggered.connect(lambda: webbrowser.open("https://parallax.readthedocs.io/"))
-
         self.actionContactSupport.triggered.connect(
             lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
         )

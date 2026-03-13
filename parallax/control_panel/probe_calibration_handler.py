@@ -188,7 +188,6 @@ class ProbeCalibrationHandler(QWidget):
 
         return lowest_idx
 
-
     def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
         # Convert global coordinates to microns
         global_coords_x = round(global_coords[0][0] * 1000, 1)
