@@ -52,8 +52,7 @@ def print_arg_info(args):
         print("\nWarning: --num-mock-cameras is only valid in dummy mode.")
 
     if args.dummy:
-        print("\nRunning in dummy mode; hardware devices not accessible.")
-        print(f"Simulating {args.nCameras} mock camera(s).")
+        print(f"  Simulating {args.nCameras} mock camera(s).")
     if args.bundle_adjustment:
         print("\nBundle adjustment feature enabled.")
     if args.test:

@@ -236,9 +236,7 @@ class ProbeCalibrationHandler(QWidget):
             self.probeCalibRequest.emit(self.stage_global_data, debug_info)
         else:
             print(f"Stage {sn} is not selected, skipping probe calibration request.")
-            print(" model_get_selected_stage_sn: ", self.model.get_selected_stage_sn())
-            #msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-            #self.statusMessageRequested.emit(msg)
+            # TODO popup Qmessages for warning or show into UI.
 
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
@@ -419,11 +417,6 @@ class ProbeCalibrationHandler(QWidget):
                 # Keep the last calibration result
                 self.probe_calibration_btn.setChecked(True)
 
-    def update_status_label(self, text):
-        """Sets the text for the probe calibration status label."""
-        print(f"Probe Calibration Status: {text}")
-        #self.probeCalibrationLabel.setText(text)
-
     def probe_detect_default_status_ui(self, sn=None):
         """
         Resets the probe detection UI and clears the calibration status.
@@ -513,11 +506,6 @@ class ProbeCalibrationHandler(QWidget):
                 self.model.reset_stage_calib_info(sn)
                 self.model.reset_stage_obj_info(sn)
 
-        print(f"default - obj, {self.model.get_stage(sn)}")
-        print(f"default - is_calib, {self.model.is_calibrated(sn)}")
-        print(f"default - calib, {self.model.get_stage_calib_info(sn)}")
-        
-
     def probe_detect_process_status(self):
         """
         Updates the UI and internal state to reflect that the probe detection process is underway.
@@ -557,7 +545,6 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_y.show()
         self.calib_z.show()
         self._set_visible_gadget(visible=False)
-        print(f"probe_detect_process_status: ", self.model.session.stages)
         self.transform_info_handler.display(self.selected_stage_id)
 
         # message

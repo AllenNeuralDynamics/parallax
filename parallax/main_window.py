@@ -152,10 +152,7 @@ class MainWindow(QMainWindow):
 
         # Set the camera visibility to True
         for sn in self.model.get_list_of_camera_sns():
-            print("Setting camera visibility to True for", sn)
-            print("Before:", self.model.session.cameras[sn].visible)
             self.model.set_camera_visibility(sn, True)
-            print("After:", self.model.session.cameras[sn].visible)
 
     def _set_font(self):
         """

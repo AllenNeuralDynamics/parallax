@@ -77,7 +77,6 @@ class Model:
         cams = list_cameras(dummy=self.dummy, n_mocks=self.nMockCameras)
         for cam in cams:
             sn = cam.name(sn_only=True)
-            print("Found camera SN:", sn)  # Debug statement to verify SN retrieval
             self.camera_instances[sn] = cam
             self.initialize_camera_settings(cam, sn)  # fps, britness, gain, wb, gamma
 
@@ -718,6 +717,7 @@ class Model:
         SessionManager.save_session(self.session)
 
     def instantiate_session(self):
+        print("\nLoading previous session..")
         SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
 
     def clear_session_config(self):

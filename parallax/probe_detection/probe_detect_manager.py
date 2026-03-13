@@ -215,8 +215,6 @@ class DrawWorker(QRunnable):
         """
         Draw the probe tip on the frame.
         """
-        #
-        # print(" Drawing tip/base coords:", self.tip_coords, self.base_coords)
         if self.tip_coords is not None and self.frame is not None:
             cv2.circle(self.frame, self.tip_coords, 5, self.tip_coords_color, -1)
 

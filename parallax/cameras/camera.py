@@ -143,7 +143,7 @@ class PySpinCamera(BaseCamera):
             print("Not supported camera type.")
             return None
         sn = self.name(sn_only=True)
-        print(self.device_model, self.device_color_type, sn)
+        print(f"  {sn}: {self.device_model} {self.device_color_type}")
 
         # Settings
         self.node_map = self.camera.GetNodeMap()

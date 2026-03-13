@@ -129,7 +129,6 @@ class ScreenWidget(pg.GraphicsView):
             data = self.camera.get_last_image_data()
             if data is None:
                 logger.warning(f"{self.camera_name} - No data received from camera.")
-                print(f"{self.camera_name} - No data received from camera.")
                 return
             self._set_data(data)
         else:

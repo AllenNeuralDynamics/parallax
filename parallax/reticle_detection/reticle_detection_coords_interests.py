@@ -114,7 +114,6 @@ class ReticleDetectCoordsInterest:
         # Temp solution: first coords of X axis is left side to first coords of Y axis.
         min_x_value_line0 = min(pixels_in_lines[0], key=lambda x: x[0])
         min_x_value_line1 = min(pixels_in_lines[1], key=lambda x: x[0])
-        # print(min_x_value_line0, min_x_value_line1)
         if min_x_value_line0[0] < min_x_value_line1[0]:
             x_axis, y_axis = pixels_in_lines[0], pixels_in_lines[1]
         else:

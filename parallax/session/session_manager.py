@@ -12,7 +12,6 @@ import logging
 import os
 from typing import Optional
 import yaml
-import json
 import numpy as np
 
 from parallax.config.config_path import session_file
@@ -81,7 +80,6 @@ class SessionManager:
         """Saves session to disk, converting NumPy arrays to clean YAML lists."""
         try:
             cls._data = session_obj
-            print("Saving session with data:", session_obj)  # Debug print to verify structure before saving
             data = session_obj.model_dump(mode='json')
 
             # Wrap it under a 'model' key to match the expected YAML structure
@@ -127,14 +125,9 @@ class SessionManager:
             # Initialize with a fresh schema
             model.session.cameras[sn] = CameraSession(device_model=model.get_camera_device_model(sn))
 
-        # Optional: Save the cleaned-up state immediately
-        # cls.save_session(session)
-        print("Final reconciled session cameras:", list(model.session.cameras.keys()))
-
         # stages
         physical_sns = set(model.stage_instances.keys())  # {B, C, D}
         session_sns = set(model.session.stages.keys())    # {A, B, C}
-        print(f"physical: {physical_sns}, session: {session_sns}")
         to_remove = session_sns - physical_sns
         for sn in to_remove:
             logger.info(f"[SessionManager] Removing stage {sn} from session (not connected).")

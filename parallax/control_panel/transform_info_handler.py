@@ -183,7 +183,6 @@ class TransformInfoHandler(QWidget):
             self.rz_label.setReadOnly(not is_calibrated)
 
     def _display_ui(self, info):
-        print("display_ui: ", info)
         # 1. Update Title
         conver_to = "Global" if info.get("reticle") == "global" else f"Bregma ({info.get('reticle')})"
         self.transM_title_label.setText(f"Local <-> {conver_to}")
