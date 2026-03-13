@@ -91,6 +91,7 @@ def setup_calculator(qtbot, monkeypatch):
     model = MagicMock()
     model.stages = {"stage1": {}, "stage2": {}}  # keys drive groupbox creation
     model.transforms = {}  # 4x4 homogenous transforms
+    model.get_list_of_stage_sns.return_value = ["stage1", "stage2"]
 
     def is_calibrated(sn):
         # Only stage1 is calibrated in tests
