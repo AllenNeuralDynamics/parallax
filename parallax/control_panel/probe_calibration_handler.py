@@ -16,9 +16,8 @@ from parallax.config.config_path import ui_dir
 from parallax.handlers.calculator import Calculator
 from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.reticle_metadata import ReticleMetadata
-from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.probe_detection.utils.probe_spin_detector import get_spin_angle, is_sane_4shanks
-from parallax.session.session_state import ArcAngle, StageCalibration
+from parallax.session.session_state import StageCalibration, StageObj
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
 
@@ -28,7 +27,7 @@ logger.setLevel(logging.DEBUG)
 
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
-    globalDataDetected = pyqtSignal(str, dict, object, object, object, str, object, str, object)
+    probeCalibRequest = pyqtSignal(StageObj, dict)  # Emits stage global data and debug info
     clearRequested = pyqtSignal(str)
     resetCalibRequested = pyqtSignal()
 
@@ -53,6 +52,7 @@ class ProbeCalibrationHandler(QWidget):
         self.actionReticlesMetadata = actionReticlesMetadata
         self.transform_info_handler = transform_info_handler
 
+        self.stage_global_data = None
         self.selected_stage_id = None
         self.stageUI = None
         self.camA_best, self.camB_best = None, None
@@ -188,6 +188,59 @@ class ProbeCalibrationHandler(QWidget):
 
         return lowest_idx
 
+
+    def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
+        # Convert global coordinates to microns
+        global_coords_x = round(global_coords[0][0] * 1000, 1)
+        global_coords_y = round(global_coords[0][1] * 1000, 1)
+        global_coords_z = round(global_coords[0][2] * 1000, 1)
+
+        # Initialize stage_global_data if needed
+        if self.stage_global_data is None:
+            stage_info = {
+                "SerialNumber": sn,
+                "Id": None,
+                "Stage_X": float(stage["stage_x"]),
+                "Stage_Y": float(stage["stage_y"]),
+                "Stage_Z": float(stage["stage_z"]),
+            }
+            self.stage_global_data = StageObj.from_info(stage_info)
+
+        # Update stage_global_data
+        self.stage_global_data.sn = sn
+        self.stage_global_data.stage_x = float(stage["stage_x"])
+        self.stage_global_data.stage_y = float(stage["stage_y"])
+        self.stage_global_data.stage_z = float(stage["stage_z"])
+        self.stage_global_data.stage_x_global = global_coords_x
+        self.stage_global_data.stage_y_global = global_coords_y
+        self.stage_global_data.stage_z_global = global_coords_z
+
+        # Debug info to track image capture and local coordinates
+        debug_info = {
+            "ts_local_coords": stage_ts,
+            "ts_img_captured": ts_img_captured,
+            "cam0": cam0,
+            "pt0": pt0,
+            "cam1": cam1,
+            "pt1": pt1,
+        }
+
+        # Update model's stage global coordinates
+        moving_stage = self.model.get_stage(sn)
+        if moving_stage is not None:
+            moving_stage.stage_x_global = global_coords_x
+            moving_stage.stage_y_global = global_coords_y
+            moving_stage.stage_z_global = global_coords_z
+
+        # Emit probe calibration request if selected
+        if self.model.get_selected_stage_sn() == sn:
+            self.probeCalibRequest.emit(self.stage_global_data, debug_info)
+        else:
+            print(f"Stage {sn} is not selected, skipping probe calibration request.")
+            print(" model_get_selected_stage_sn: ", self.model.get_selected_stage_sn())
+            #msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
+            #self.statusMessageRequested.emit(msg)
+
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
         for screen in self.screen_widgets:
@@ -257,16 +310,16 @@ class ProbeCalibrationHandler(QWidget):
             logger.debug(" No valid global coordinates from triangulation.")
             return
 
-        self.globalDataDetected.emit(
-            sn_A,
-            stage_A,
-            global_coords,
-            stage_ts_A,
-            img_ts_A,
-            self.camA_best,
-            tip_A,
-            self.camB_best,
-            tip_B,
+        self.handleGlobalDataChange(
+            sn=sn_A,
+            stage=stage_A,
+            global_coords=global_coords,
+            stage_ts=stage_ts_A,
+            ts_img_captured=img_ts_A,
+            cam0=self.camA_best,
+            pt0=tip_A,
+            cam1=self.camB_best,
+            pt1=tip_B,
         )
         logger.debug(f"=====\n s: {stage_ts_A} i: {img_ts_A}\n")
         logger.debug(f"({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")

@@ -66,15 +66,10 @@ class StageUI(QWidget):
             # If signals are not connected, ignore the error
             pass
 
-    def get_selected_stage_sn(self):
-        """Get the serial number of the selected stage.
-
-        Returns:
-            str or None: The serial number of the selected stage, or None if no stage is selected.
-        """
-        if self.selected_stage is not None:
-            return self.selected_stage.sn
-        return None
+    def update_stage_coords(self, stage_sn):
+        if stage_sn == self.get_current_stage_id():
+            self.updateStageLocalCoords()
+            self.updateStageGlobalCoords()
 
     def update_stage_selector(self):
         """Update the stage selector with available stages."""

@@ -144,11 +144,9 @@ class ControlPanel(QWidget):
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
 
-        # Start refreshing stage info
+        # Start refreshing stage info 
         self.stageListener = StageListener(self.model)
-        self.stageListener.localDataChanged.connect(self._on_local_data_received)  # Update UI
-        # Update UI - selected incorrect stage during the calibration
-        self.stageListener.statusMessageRequested.connect(self.probe_calib_handler.update_status_label)
+        self.stageListener.localDataChanged.connect(self.stageUI.update_stage_coords)  # Update UI
 
         # probe calibration
         self.probe_calib_handler.init_stages(self.stageUI)  # UI
@@ -159,10 +157,7 @@ class ControlPanel(QWidget):
         # UI -> Logic
         self.probe_calib_handler.clearRequested.connect(self.probe_calibration.clear)
         self.probe_calib_handler.resetCalibRequested.connect(self.probe_calibration.reset_calib)
-
-        # Connect hardware events to the calibration logic
-        self.stageListener.probeCalibRequest.connect(self.probe_calibration.update)
-        self.probe_calib_handler.globalDataDetected.connect(self.stageListener.handleGlobalDataChange)  # TODO Move handleGlobalDataChange here
+        self.probe_calib_handler.probeCalibRequest.connect(self.probe_calibration.update)
         self.stageListener.start()
 
         # snapshot
@@ -173,12 +168,6 @@ class ControlPanel(QWidget):
 
         # Stage Http Server
         self.stage_http_server = StageHttpServer(self.model)
-
-    def _on_local_data_received(self, sn):
-        """Bridge method to update UI when local data changes."""
-        if sn == self.stageUI.get_selected_stage_sn():
-            self.stageUI.updateStageLocalCoords()
-            self.stageUI.updateStageGlobalCoords()
 
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""

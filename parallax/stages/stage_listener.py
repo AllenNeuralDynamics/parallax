@@ -177,12 +177,7 @@ class StageListener:
         self.model = model
 
         # Native Signal
-        self.probeCalibRequest = Signal()
         self.localDataChanged = Signal()  # Emits (sn)
-        self.statusMessageRequested = Signal() # Define a new signal
-
-        # TODO
-        self.stage_global_data = None
 
         # Native Worker Thread
         self.worker = Worker(self.model.config.pathfinder_server.url)
@@ -246,59 +241,6 @@ class StageListener:
             stage.stage_bregma = bregma_pts
 
         self.localDataChanged.emit(sn)
-
-    def handleGlobalDataChange(self, sn, stage, global_coords, stage_ts, ts_img_captured, cam0, pt0, cam1, pt1):
-        # Convert global coordinates to microns
-        global_coords_x = round(global_coords[0][0] * 1000, 1)
-        global_coords_y = round(global_coords[0][1] * 1000, 1)
-        global_coords_z = round(global_coords[0][2] * 1000, 1)
-
-        # Initialize stage_global_data if needed
-        if self.stage_global_data is None:
-            stage_info = {
-                "SerialNumber": sn,
-                "Id": None,
-                "Stage_X": float(stage["stage_x"]),
-                "Stage_Y": float(stage["stage_y"]),
-                "Stage_Z": float(stage["stage_z"]),
-            }
-            self.stage_global_data = StageObj.from_info(stage_info)
-
-        # Update stage_global_data
-        self.sn = sn
-        self.stage_global_data.sn = sn
-        self.stage_global_data.stage_x = float(stage["stage_x"])
-        self.stage_global_data.stage_y = float(stage["stage_y"])
-        self.stage_global_data.stage_z = float(stage["stage_z"])
-        self.stage_global_data.stage_x_global = global_coords_x
-        self.stage_global_data.stage_y_global = global_coords_y
-        self.stage_global_data.stage_z_global = global_coords_z
-
-        # Debug info to track image capture and local coordinates
-        debug_info = {
-            "ts_local_coords": stage_ts,
-            "ts_img_captured": ts_img_captured,
-            "cam0": cam0,
-            "pt0": pt0,
-            "cam1": cam1,
-            "pt1": pt1,
-        }
-
-        # Update model's stage global coordinates
-        moving_stage = self.model.get_stage(sn)
-        if moving_stage is not None:
-            moving_stage.stage_x_global = global_coords_x
-            moving_stage.stage_y_global = global_coords_y
-            moving_stage.stage_z_global = global_coords_z
-
-        # Emit probe calibration request if selected
-        if self.model.get_selected_stage_sn() == sn:
-            self.probeCalibRequest.emit(self.stage_global_data, debug_info)
-        else:
-            print(f"Stage {sn} is not selected, skipping probe calibration request.")
-            print(" model_get_selected_stage_sn: ", self.model.get_selected_stage_sn())
-            msg = "<span style='color:yellow;'><small>Moving probe not selected.<br></small></span>"
-            self.statusMessageRequested.emit(msg)
 
     def stageMovingStatus(self, probe):
         """Handle stage moving status.
