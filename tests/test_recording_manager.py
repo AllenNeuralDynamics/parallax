@@ -66,9 +66,12 @@ def test_save_last_image_not_visible(recording_manager, mock_screen_widget, mock
     """Test that invisible cameras are NOT saved."""
     save_path = str(tmpdir)
     screen_widgets = [mock_screen_widget]
-
     sn = "MockCamera123"
-    mock_model.cameras = {sn: {"visible": False}}
+
+    mock_model.is_camera_visible.return_value = False
+    mock_model.get_visible_camera_sns.return_value = []
+    mock_screen_widget.isVisible.return_value = False
+    mock_screen_widget.camera_sn = sn
 
     # Call the method
     recording_manager.save_last_image(save_path, screen_widgets)
