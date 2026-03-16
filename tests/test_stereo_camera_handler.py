@@ -16,7 +16,7 @@ class TestStereoCameraHandler:
         model.get_visible_camera_sns.return_value = ["A", "B"]
         model.get_calibrated_camera_sns.return_value = ["A"]
         model.get_camera_triangulation_candidate.return_value = ["A"]
-        
+
         # Default side effects
         model.is_camera_visible.side_effect = lambda sn: sn in ["A", "B"]
         model.is_camera_calibrated.side_effect = lambda sn: sn == "A"
@@ -41,12 +41,14 @@ class TestStereoCameraHandler:
 
         # Mock parameters and coordinates for 'A'
         def get_params_side_effect(sn):
-            if sn == "A": return CameraParams()
+            if sn == "A":
+                return CameraParams()
             return None # B is visible but has no params
         model.get_camera_params.side_effect = get_params_side_effect
 
         def get_coords_side_effect(sn):
-            if sn == "A": return np.zeros((10, 2))
+            if sn == "A":
+                return np.zeros((10, 2))
             return None
         model.get_coords_axis.side_effect = get_coords_side_effect
 

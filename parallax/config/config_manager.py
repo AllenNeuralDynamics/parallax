@@ -11,7 +11,8 @@ Key Functionalities:
 import logging
 import os
 import sys
-from typing import  Optional
+from typing import Optional
+
 import yaml
 
 from parallax.config.config_path import settings_file

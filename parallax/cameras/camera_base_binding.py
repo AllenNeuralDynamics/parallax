@@ -2,8 +2,8 @@
 """Camera Base Binding"""
 
 import datetime
-from abc import ABC, abstractmethod
 import time
+from abc import ABC, abstractmethod
 
 import numpy as np
 

@@ -177,7 +177,7 @@ class StageUI(QWidget):
         if stage_id:
             self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
-                # Display when 
+                # Display when
                 x = self.selected_stage.stage_x_global
                 y = self.selected_stage.stage_y_global
                 z = self.selected_stage.stage_z_global

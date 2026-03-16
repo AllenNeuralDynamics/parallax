@@ -1,7 +1,8 @@
-import os
 import json
 import logging
+import os
 from datetime import datetime
+
 from PyQt6.QtWidgets import QFileDialog
 
 # Set up logging
@@ -48,21 +49,21 @@ class StageSnapshotHandler:
             self.snapshot_folder_path = os.path.join(os.path.expanduser("~"), "Documents")
 
         initial_path = os.path.join(
-            self.snapshot_folder_path, 
+            self.snapshot_folder_path,
             f"{now_dt.strftime('%Y%m%dT%H%M%S')}.json"
         )
 
         file_path, _ = QFileDialog.getSaveFileName(
-            None, 
-            "Save Stage Info", 
-            initial_path, 
+            None,
+            "Save Stage Info",
+            initial_path,
             "JSON Files (*.json)"
         )
 
         if file_path:
             # Update folder for next time
             self.snapshot_folder_path = os.path.dirname(file_path)
-            
+
             if not file_path.lower().endswith(".json"):
                 file_path += ".json"
 

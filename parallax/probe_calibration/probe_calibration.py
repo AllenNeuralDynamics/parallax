@@ -12,7 +12,6 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import QObject, pyqtSignal
 
 from parallax.config.config_path import stages_dir
 from parallax.probe_calibration.bundle_adjustment import BALOptimizer, BALProblem

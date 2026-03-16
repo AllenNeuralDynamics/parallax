@@ -4,6 +4,7 @@ import math
 from typing import Optional
 
 import numpy as np
+
 from parallax.session.session_state import ArcAngle
 
 # Set logger name
@@ -34,22 +35,22 @@ def get_spin_bregma(spin_global: float, reticle_rot: float) -> Optional[float]:
 def get_rx_ry(transM: Optional[np.ndarray]) -> Optional["ArcAngle"]:
     """
     Converts a 4x4 transformation matrix into an ArcAngle object.
-    
+
     Returns:
         ArcAngle | None: Object with rx, ry, and rz=0.0.
     """
     if transM is None:
         return None
-        
+
     z_axis = _find_probe_insertion_vector(transM)
     if z_axis is None:
         return None
-        
+
     angles_dict = _vector_to_arc_angles(z_axis)
-    
+
     if angles_dict is None:
         return None
-        
+
 
     return ArcAngle(
         rx=angles_dict["rx"],

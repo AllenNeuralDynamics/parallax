@@ -2,7 +2,6 @@
 
 import logging
 import os
-from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -627,16 +626,16 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         stage_info.detection_status = self.probe_detection_status
-    
+
     def _update_probe_angle(self):
         if self.arc_angle_global is not None:
             return
         # Update Rx, Ry
-        angles = get_rx_ry(self.transM)  # ArcAngle object        
+        angles = get_rx_ry(self.transM)  # ArcAngle object
         if angles is None:
             logger.warning("Could not calculate arc angles.")
             return
-        # Update Rz (spin) 
+        # Update Rz (spin)
         if len(self.spin_angle) > 0:
             angles.rz = float(np.median(self.spin_angle))
         self.arc_angle_global = angles

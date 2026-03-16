@@ -1,5 +1,4 @@
 # tests/test_stage_widget.py
-from PyQt6 import QtWebEngineWidgets
 from unittest.mock import Mock
 
 import pytest

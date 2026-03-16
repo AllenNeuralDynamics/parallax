@@ -22,8 +22,8 @@ from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.stages.stage_http_server import StageHttpServer
 from parallax.stages.stage_listener import StageListener
-from parallax.stages.stage_snapshot import StageSnapshotHandler
 from parallax.stages.stage_server_ipconfig import StageServerIPConfig
+from parallax.stages.stage_snapshot import StageSnapshotHandler
 from parallax.stages.stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
@@ -144,7 +144,7 @@ class ControlPanel(QWidget):
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
 
-        # Start refreshing stage info 
+        # Start refreshing stage info
         self.stageListener = StageListener(self.model)
         self.stageListener.localDataChanged.connect(self.stageUI.update_stage_coords)  # Update UI
 

@@ -121,7 +121,7 @@ class StageServerIPConfig(QWidget):
     def _set_stage_listener_url(self, ip, port):
         """
         Sets the stage listener URL by combining the IP and port.
-        return ip, port 
+        return ip, port
         Args:
             ip (str): The IP address.
             port (str): The port number.
@@ -139,7 +139,7 @@ class StageServerIPConfig(QWidget):
         """
         logger.info("Refreshing stages with updated server configuration.")
         self.model.scan_for_usb_stages()
-        
+
     def show(self):
         """
         Displays the Stage Server IP Configuration widget.

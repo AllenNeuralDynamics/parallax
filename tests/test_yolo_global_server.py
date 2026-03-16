@@ -221,7 +221,7 @@ def test_warmup_logic(mock_yolo_lib):
     """Verify warmup runs dummy inference 3 times."""
     _, model_instance = mock_yolo_lib
 
-    worker = YoloSegmentation("TestWorker", {})
+    _ = YoloSegmentation("TestWorker", {})
     # Warmup happens in __init__
 
     # Check that track was called 3 times during init

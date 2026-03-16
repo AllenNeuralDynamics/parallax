@@ -6,17 +6,17 @@ It provides methods for scanning and initializing cameras and stages, managing c
 This class integrates various hardware components such as cameras and stages and handles
 their initialization, configuration, and transformations between local and global coordinates.
 """
-from typing import Any, Dict, Optional, Union
 from collections import OrderedDict
+from typing import Any, Dict, Optional, Union
 from venv import logger
 
 import numpy as np
 
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
-from parallax.config.schemas import CameraSettings
-from parallax.session.session_state import CameraParams, StageCalibration, ArcAngle, StageObj
-from parallax.session.session_manager import SessionManager
 from parallax.config.config_manager import ConfigManager
+from parallax.config.schemas import CameraSettings
+from parallax.session.session_manager import SessionManager
+from parallax.session.session_state import ArcAngle, CameraParams, StageCalibration, StageObj
 from parallax.stages.stage_listener import PathfinderServer
 
 
@@ -241,12 +241,12 @@ class Model:
     # =========================
     def get_camera(self, sn: str) -> Optional[Union[PySpinCamera, MockCamera]]:
         return self.camera_instances.get(sn)
-    
+
     def get_visible_cameras(self):
         """Returns live objects for cameras marked as visible in the session."""
         return [
             self.camera_instances[sn]
-            for sn, data in self.session.cameras.items() 
+            for sn, data in self.session.cameras.items()
             if data.visible and sn in self.camera_instances
         ]
 
@@ -254,7 +254,7 @@ class Model:
         """Check if a camera is marked as visible in the session."""
         # cam is a CameraSessionSchema object or None
         cam = self.session.cameras.get(sn)
-        return cam.visible if cam else False 
+        return cam.visible if cam else False
 
     def get_visible_camera_sns(self) -> list[str]:
         """Returns SNs for cameras marked as visible in the session."""
@@ -283,10 +283,10 @@ class Model:
         if cam and getattr(cam, 'device_model', None):
             return cam.device_model
         return "MockCamera"
-    
+
     def get_camera_resolution(self, camera_sn: str) -> tuple[int, int]:
         """
-        Get the resolution of a live camera instance. 
+        Get the resolution of a live camera instance.
         Returns (4000, 3000) as a default if the camera is not connected.
         """
         # Look for the live hardware object
@@ -409,7 +409,7 @@ class Model:
     def set_probe_detect_algorithms(self, camera_sn: str, algorithms: str):
         """
         Update the probe detection algorithm in the session data.
-        
+
         Args:
             camera_sn (str): The serial number of the camera.
             algorithms (str): 'opencv' or 'yolo'.
@@ -420,7 +420,7 @@ class Model:
     def get_probe_detect_algorithms(self, camera_sn: str) -> str:
         """
         Get the detection algorithm for a specific camera.
-        
+
         Returns:
             str: 'opencv' or 'yolo'. Defaults to 'yolo' if not set.
         """
@@ -499,7 +499,7 @@ class Model:
         """
         if camera_sn is None:
             raise ValueError("camera_sn cannot be None")
-            
+
         if camera_sn in self.session.cameras:
             # Direct attribute access on the Pydantic model
             self.session.cameras[camera_sn].is_triangulation_candidate = status
@@ -510,7 +510,7 @@ class Model:
         Get a list of serial numbers for cameras marked as triangulation candidates.
         """
         return [
-            sn for sn, cam in self.session.cameras.items() 
+            sn for sn, cam in self.session.cameras.items()
             if cam.is_triangulation_candidate
         ]
 
@@ -531,7 +531,7 @@ class Model:
             sn for sn, data in self.session.cameras.items()
             if data.coords_axis is not None
         ]
-    
+
     def reset_coords_intrinsic_extrinsic(self, sn=None):
         """Reset all or specific camera's coordinates, intrinsic, and extrinsic parameters."""
         if sn is None:
@@ -548,7 +548,7 @@ class Model:
             cam.pos_x = None
             cam.params = None
             self.set_camera_triangulation_status(sn, False)
-        
+
         self.save_session()
 
     def add_coords_axis(self, sn, coords):
@@ -560,7 +560,7 @@ class Model:
         """Get axis coordinates for a specific camera."""
         cam = self.session.cameras.get(sn)
         return cam.coords_axis if cam else None
-    
+
     def reset_coords_axis(self):
         """Reset axis coordinates for all cameras."""
         for cam in self.session.cameras.values():
@@ -632,7 +632,7 @@ class Model:
     def add_pos_x(self, sn: str, pt: list):
         """
         Add position for the x-axis for a specific camera.
-        
+
         Args:
             sn (str): The serial number of the camera.
             pt: The position (usually a list of coordinates).
@@ -651,7 +651,7 @@ class Model:
         """
         cam = self.session.cameras.get(sn)
         return cam.pos_x if cam else None
-    
+
     def reset_pos_x(self):
         """Reset all x-axis positions in the session."""
         for cam in self.session.cameras.values():

@@ -1,15 +1,13 @@
 # parallax/stages/stage_listener.py
+import logging
 import threading
 import time
-import logging
-import requests
-from parallax.utils.signals import Signal
-import logging
-import time
+
 import numpy as np
 import requests
-from parallax.session.session_state import StageObj
+
 from parallax.utils.coords_converter import apply_reticle_adjustments, local_to_global
+from parallax.utils.signals import Signal
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -88,7 +86,7 @@ class Worker(threading.Thread):
             except Exception as e:
                 # Log the error but DON'T let the loop exit
                 logger.error(f"Worker Loop Error: {e}", exc_info=True)
-                time.sleep(2) 
+                time.sleep(2)
             time.sleep(self.curr_interval)
         logger.info("Stage Worker thread stopped gracefully.")
 
@@ -133,7 +131,7 @@ class Worker(threading.Thread):
                 self.curr_interval = self.LOW_FREQ_INTERVAL
                 self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
-            elif (change_detected and 
+            elif (change_detected and
                   self.curr_interval == self.LOW_FREQ_INTERVAL):
                 self.curr_interval = self.HIGH_FREQ_INTERVAL
                 self.stage_moving.emit(data["ProbeArray"][data["SelectedProbe"]])

@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 
 from parallax.control_panel.transform_info_handler import TransformInfoHandler
-from parallax.session.session_state import ArcAngle, StageSession, StageCalibration
+from parallax.session.session_state import ArcAngle, StageCalibration, StageSession
+
 
 # -------------------------------------------------------------------------
 # BYPASS CLASS
@@ -46,9 +47,9 @@ class MockTransformHandler(TransformInfoHandler):
 @pytest.fixture
 def mock_model():
     """Mock the data model with Pydantic-compliant session structures."""
-    
+
     model = MagicMock()
-    
+
     # model.session.stages needs StageSession objects
     # We provide a default calibrated stage for "stage_1"
     model.session.stages = {
@@ -70,7 +71,7 @@ def mock_model():
     model.get_L2_err.return_value = 0.5
     model.get_L2_travel.return_value = 100.0
     model.is_calibrated.return_value = True
-    
+
     return model
 
 
@@ -111,7 +112,7 @@ def test_update_flip_rz_to_model(handler, mock_model):
 
     mock_model.get_arc_angle_global.return_value = ArcAngle(rz=10.0)
     mock_model.get_arc_angle_bregma.return_value = {
-        "Reticle_A": ArcAngle(rz=20.0), 
+        "Reticle_A": ArcAngle(rz=20.0),
         "Reticle_B": ArcAngle(rz=-10.0)
     }
     handler._update_flip_rz_to_model(stage_id)
@@ -123,7 +124,7 @@ def test_update_flip_rz_to_model(handler, mock_model):
     # A: 20 -> -160
     # B: -10 -> 170
     expected_bregma = {
-        "Reticle_A": ArcAngle(rz=-160.0), 
+        "Reticle_A": ArcAngle(rz=-160.0),
         "Reticle_B": ArcAngle(rz=170.0)
     }
     mock_model.set_arc_angle_bregma.assert_called_with(stage_id, expected_bregma)
@@ -145,7 +146,7 @@ def test_update_manual_rz_from_global_context(handler, mock_model):
         stage_id: StageSession(
             is_calib=True,
             calib_info=StageCalibration(
-                arc_angle_global=angle_obj, 
+                arc_angle_global=angle_obj,
                 arc_angle_bregma=bregma_angle_obj
             )
         )
@@ -153,7 +154,7 @@ def test_update_manual_rz_from_global_context(handler, mock_model):
     handler._update_manual_rz_to_model(stage_id, 30.0)
 
     assert mock_model.set_arc_angle_global.called, "The method was never called!"
-    
+
     # CHECK: Inspect what it was actually called with
     args, kwargs = mock_model.set_arc_angle_global.call_args
     assert args[0] == stage_id

@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 # Assuming these imports work in your env
-from helper import mock_get_request, model, stage_server_txt
+from helper import mock_get_request, stage_server_txt
 
 from parallax.stages.stage_listener import StageListener
 

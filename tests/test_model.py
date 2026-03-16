@@ -2,12 +2,11 @@
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from helper import mock_stage_instances, model
+from helper import mock_stage_instances
 
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera
 from parallax.config.schemas import AppSchema
-from parallax.model import Model
 
 
 # ----------------------------
@@ -55,7 +54,7 @@ def test_get_camera_resolution(model):
 def test_visibility_helpers(model):
     cam = MockCamera()
     sn = cam.name(sn_only=True)
-    
+
     model.camera_instances[sn] = cam
     model.session.cameras = {sn: MagicMock(visible=True)}
 
@@ -88,11 +87,11 @@ def test_stage_calibration_flow(model, monkeypatch):
     mock_calib_info.transM = None
     mock_calib_info.L2_err = None
     mock_calib_info.dist_travel = None
-    
+
     mock_stage_session = MagicMock()
     mock_stage_session.is_calib = False
     mock_stage_session.calib_info = mock_calib_info
-    
+
     model.session.stages = {"S1": mock_stage_session}
 
     # initial state

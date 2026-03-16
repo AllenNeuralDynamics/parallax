@@ -1,15 +1,9 @@
 # parallax/session/session_state.py
-from typing import Dict, List, Optional, Any, Literal
+from typing import Any, Dict, List, Literal, Optional
+
 import numpy as np
-from pydantic import (
-    BaseModel,
-    Field,
-    ConfigDict,
-    field_validator,
-    field_serializer,
-    model_validator,
-    model_serializer
-)
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_serializer, model_validator
+
 
 # -------------------- session schema --------------------
 # --- Helper for NumPy Conversion ---
@@ -54,7 +48,7 @@ class StageObj(BaseModel):
         raw_x = info.get("Stage_X", 0.0)
         raw_y = info.get("Stage_Y", 0.0)
         raw_z = info.get("Stage_Z", 0.0)
-        
+
         off_x = info.get("Stage_XOffset", 0.0)
         off_y = info.get("Stage_YOffset", 0.0)
         off_z = info.get("Stage_ZOffset", 0.0)
@@ -67,11 +61,11 @@ class StageObj(BaseModel):
             stage_y=raw_y * 1000,
             # Inverted Z-axis logic (15mm limit)
             stage_z=15000.0 - (raw_z * 1000),
-            
+
             stage_x_offset=off_x * 1000,
             stage_y_offset=off_y * 1000,
             stage_z_offset=15000.0 - (off_z * 1000),
-            
+
             # Default assignments
             shank_cnt=info.get("ShankCount", 1),
             yaw=info.get("Yaw"),
@@ -91,7 +85,7 @@ class StageCalibration(BaseModel):
     )
 
     # --- Required / Metadata ---
-    detection_status: str = "default" 
+    detection_status: str = "default"
     trajectory_file: Optional[str] = None
 
     # --- Transformation Data ---
@@ -118,7 +112,7 @@ class StageCalibration(BaseModel):
     max_y: float = Field(default=float("-inf"))
     min_z: float = Field(default=float("inf"))
     max_z: float = Field(default=float("-inf"))
-    
+
     min_gx: float = Field(default=float("inf"))
     max_gx: float = Field(default=float("-inf"))
     min_gy: float = Field(default=float("inf"))
@@ -140,7 +134,7 @@ class StageCalibration(BaseModel):
             return v.tolist()
         return v
 
-    @field_serializer("min_x", "max_x", "min_y", "max_y", "min_z", "max_z", 
+    @field_serializer("min_x", "max_x", "min_y", "max_y", "min_z", "max_z",
                       "min_gx", "max_gx", "min_gy", "max_gy")
     def serialize_float(self, v: float, _info):
         """Converts infinity to None for clean YAML/JSON output."""

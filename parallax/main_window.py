@@ -15,13 +15,13 @@ Classes:
 import logging
 import os
 import webbrowser
+
 from PyQt6.QtGui import QFont, QFontDatabase
 
 # Import required PyQt6 modules and other libraries
 from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QSplitter
 from PyQt6.uic import loadUi
 
-from parallax.config.config_manager import ConfigManager
 from parallax.config.config_path import fira_font_dir, ui_dir
 from parallax.control_panel.control_panel import ControlPanel
 from parallax.handlers.point_mesh import PointMesh

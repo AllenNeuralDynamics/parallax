@@ -11,11 +11,12 @@ Key Functionalities:
 import logging
 import os
 from typing import Optional
-import yaml
+
 import numpy as np
+import yaml
 
 from parallax.config.config_path import session_file
-from parallax.session.session_state import Session, CameraSession, StageSession
+from parallax.session.session_state import CameraSession, Session, StageSession
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -88,10 +89,10 @@ class SessionManager:
 
             with open(cls.session_file, "w") as file:
                 yaml.dump(
-                    output_data, 
-                    file, 
-                    Dumper=CleanDumper, 
-                    default_flow_style=False, 
+                    output_data,
+                    file,
+                    Dumper=CleanDumper,
+                    default_flow_style=False,
                     sort_keys=False
                 )
             logger.debug(f"Session successfully saved to {cls.session_file}")
@@ -108,7 +109,7 @@ class SessionManager:
             logger.info("[SessionManager] Creating a fresh session configuration.")
             model.session = Session()
 
-        # cameras 
+        # cameras
         physical_sns = set(model.camera_instances.keys())  # {B, C, D}
         session_sns = set(model.session.cameras.keys())    # {A, B, C}
 
