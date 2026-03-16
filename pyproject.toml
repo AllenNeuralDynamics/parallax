@@ -33,6 +33,7 @@ dependencies = [
     "pyyaml",
     "SimpleITK",
     "ultralytics>=8.2.0",
+    "lap>=0.5.12",
     "torch>=2.3.0",
     "pydantic"
    ]
