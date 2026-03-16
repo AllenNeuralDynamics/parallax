@@ -248,7 +248,6 @@ class ScreenSetting(QWidget):
         def on_sync():
             current_mode = self.model_config.wbAuto
             new_state = "Off" if self.model_config.wbAuto == "Continuous" else "Continuous"
-            print(f"User Click -> Toggle WB Auto: {current_mode} -> {new_state}")
             if new_state == "Continuous":
                 self.hw.set_wb_auto_mode("Continuous")
                 self.settingMenu.wbSliderRed.setEnabled(False)

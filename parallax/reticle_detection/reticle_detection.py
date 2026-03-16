@@ -15,7 +15,7 @@ from scipy.stats import linregress
 from skimage.measure import LineModelND, ransac
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ReticleDetection:

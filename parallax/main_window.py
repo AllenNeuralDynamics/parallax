@@ -144,8 +144,14 @@ class MainWindow(QMainWindow):
             self.model.instantiate_session()
             self.control_panel.reticle_handler.apply_reticle_detection_status()
             self.control_panel.probe_calib_handler.apply_probe_calibration_status()
-            print(" Restored session info to cameras:", list(self.model.session.cameras.keys()))
-            print(" Restored session info to stages:", list(self.model.session.stages.keys()))
+
+            # check cameras with session
+            calibrated_stages = []
+            for sn in self.model.get_list_of_stage_sns():
+                if self.model.is_calibrated(sn):
+                    calibrated_stages.append(sn)
+            print(" Restored session info to cameras:", self.model.get_calibrated_camera_sns())
+            print(" Restored session info to stages:", calibrated_stages)
         else:
             # Clear yaml file
             self.model.clear_session_config()
@@ -163,7 +169,6 @@ class MainWindow(QMainWindow):
         """
         self.model.config.gui.width = self.width()
         self.model.config.gui.height = self.height()
-        self.model.save_config()
 
     def _set_font(self):
         """

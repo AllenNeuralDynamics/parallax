@@ -64,7 +64,6 @@ class ReticleDetecthandler(QWidget):
         elif self.model.session.reticle_detection_status == "accepted":
             self.triangulate_btn.setChecked(True)
             self._check_positive_x_axis()
-            # self._reticle_detect_accept_detected_status()
         elif self.model.session.reticle_detection_status == "detected":
             self.triangulate_btn.setChecked(True)
             self._reticle_detect_detected_status()
