@@ -54,9 +54,8 @@ dev = ['parallax-app[linters]']
 linters = [
     'codespell',
     'coverage',
-    'flake8',
+    'ruff',
     'interrogate',
-    'isort',
     'pytest-mock'
 ]
 
@@ -86,14 +85,23 @@ source = ["parallax"]
 exclude_lines = ["if __name__ == .__main__.:", "pragma: no cover"]
 fail_under = 70
 
-[tool.isort]
-line_length = 120
-profile = "black"
-
 [tool.interrogate]
 exclude = ["setup.py", "docs", "build"]
 fail-under = 70
- 
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs",
+    "tests",
+]
+
+[tool.ruff.lint]
+# Enable Pyflakes (F), pycodestyle (E, W), and isort (I)
+select = ["F", "E", "W", "I"]
+
 [tool.codespell]
 skip = ".git,*.json,*.log"
  
