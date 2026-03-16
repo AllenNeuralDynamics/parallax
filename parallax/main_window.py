@@ -154,6 +154,17 @@ class MainWindow(QMainWindow):
         for sn in self.model.get_list_of_camera_sns():
             self.model.set_camera_visibility(sn, True)
 
+    def update_config_from_ui(self):
+        """
+        Updates the configuration based on the current state of the user interface.
+
+        This method retrieves the current width and height of the main window and updates the configuration
+        accordingly. It also saves the updated configuration to disk using the model's save_config method.
+        """
+        self.model.config.gui.width = self.width()
+        self.model.config.gui.height = self.height()
+        self.model.save_config()
+
     def _set_font(self):
         """
         Load the font for the application.

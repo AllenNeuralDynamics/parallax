@@ -45,6 +45,7 @@ if __name__ == "__main__":
     app.exec()
 
     # Clean up on exit
+    atexit.register(main_window.update_config_from_ui)
     atexit.register(model.save_config)
     atexit.register(model.save_session)
     atexit.register(model.clean)
