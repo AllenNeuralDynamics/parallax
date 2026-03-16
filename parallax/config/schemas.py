@@ -26,13 +26,14 @@ class CameraSettings(BaseModel):
     gammaEnable: bool = True
     gamma: int = Field(default=80, ge=0, le=400)
 
-    @model_validator(mode='after')
-    def validate_auto_modes_for_fps(self) -> 'CameraSettings':
+    @model_validator(mode="after")
+    def validate_auto_modes_for_fps(self) -> "CameraSettings":
         if self.frameRateEnable:
             if self.exposureAuto != "Continuous" or self.gainAuto != "Continuous":
                 self.exposureAuto = "Continuous"
                 self.gainAuto = "Continuous"
         return self
+
 
 # ----- Pydantic Schema for GUI Settings Validation -----
 class GUISettings(BaseModel):
@@ -60,4 +61,3 @@ class AppSchema(BaseModel):
     cameras: Dict[str, CameraSettings] = Field(default_factory=dict)
     gui: GUISettings = Field(default_factory=GUISettings)
     pathfinder_server: PathfinderServerSettings = Field(default_factory=PathfinderServerSettings)
-

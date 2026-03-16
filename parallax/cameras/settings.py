@@ -59,7 +59,8 @@ class PySpinSettings(BaseSettings):
     def _setup_exposure_limit(self):
         # set exposure time upper limit (if supported by camera)
         self.node_auto_exptime_upper_limit = PySpin.CFloatPtr(
-            self.node_map.GetNode("AutoExposureExposureTimeUpperLimit"))
+            self.node_map.GetNode("AutoExposureExposureTimeUpperLimit")
+        )
 
     def _setup_white_balance(self):
         # Set White Balance
@@ -394,8 +395,11 @@ class MockSettings(BaseSettings):
         self._frame_rate = 30.0
 
     # --- White Balance ---
-    def get_wb_auto_mode(self): return self._wb_auto_mode
-    def set_wb_auto_mode(self, mode): self._wb_auto_mode = mode
+    def get_wb_auto_mode(self):
+        return self._wb_auto_mode
+
+    def set_wb_auto_mode(self, mode):
+        self._wb_auto_mode = mode
 
     def get_wb(self, channel):
         return self._wb_red if channel == "Red" else self._wb_blue
@@ -405,25 +409,61 @@ class MockSettings(BaseSettings):
             self._wb_red = float(wb)
         else:
             self._wb_blue = float(wb)
+
     # --- Gamma ---
-    def get_gamma(self): return self._gamma
-    def set_gamma(self, gamma=1.0): self._gamma = float(gamma)
-    def get_gamma_enable(self): return self._gamma_enable
-    def set_gamma_enable(self, enabled): self._gamma_enable = bool(enabled)
+    def get_gamma(self):
+        return self._gamma
+
+    def set_gamma(self, gamma=1.0):
+        self._gamma = float(gamma)
+
+    def get_gamma_enable(self):
+        return self._gamma_enable
+
+    def set_gamma_enable(self, enabled):
+        self._gamma_enable = bool(enabled)
+
     # --- Gain ---
-    def get_gain(self): return self._gain
-    def set_gain(self, gain=10.0): self._gain = float(gain)
-    def get_gain_auto_mode(self): return self._gain_auto_mode
-    def set_gain_auto_mode(self, mode): self._gain_auto_mode = mode
+    def get_gain(self):
+        return self._gain
+
+    def set_gain(self, gain=10.0):
+        self._gain = float(gain)
+
+    def get_gain_auto_mode(self):
+        return self._gain_auto_mode
+
+    def set_gain_auto_mode(self, mode):
+        self._gain_auto_mode = mode
+
     # --- Exposure ---
-    def get_exposure(self): return self._exposure
-    def set_exposure(self, expTime_us=16000): self._exposure = float(expTime_us)
-    def get_exposure_auto_mode(self): return self._exposure_auto_mode
-    def set_exposure_auto_mode(self, mode): self._exposure_auto_mode = mode
-    def get_exposure_time_lower_limit(self): return 1.0
-    def set_exposure_time_upper_limit(self, upper_limit): pass  # Not implemented in mock
+    def get_exposure(self):
+        return self._exposure
+
+    def set_exposure(self, expTime_us=16000):
+        self._exposure = float(expTime_us)
+
+    def get_exposure_auto_mode(self):
+        return self._exposure_auto_mode
+
+    def set_exposure_auto_mode(self, mode):
+        self._exposure_auto_mode = mode
+
+    def get_exposure_time_lower_limit(self):
+        return 1.0
+
+    def set_exposure_time_upper_limit(self, upper_limit):
+        pass  # Not implemented in mock
+
     # --- Frame Rate ---
-    def get_frame_rate(self): return self._frame_rate
-    def set_frame_rate(self, frame_rate): self._frame_rate = float(frame_rate)
-    def get_frame_rate_enable(self): return self._frame_rate_enable
-    def set_frame_rate_enable(self, enabled): self._frame_rate_enable = bool(enabled)
+    def get_frame_rate(self):
+        return self._frame_rate
+
+    def set_frame_rate(self, frame_rate):
+        self._frame_rate = float(frame_rate)
+
+    def get_frame_rate_enable(self):
+        return self._frame_rate_enable
+
+    def set_frame_rate_enable(self, enabled):
+        self._frame_rate_enable = bool(enabled)

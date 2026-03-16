@@ -43,7 +43,7 @@ def calibrate_camera(
         params = cfg.CAMERA_CONFIGS[camera_model_name]
     except KeyError:
         raise ValueError(
-            f"Unknown camera model: {camera_model_name}. " f"Please add its configuration to config_calibration.py."
+            f"Unknown camera model: {camera_model_name}. Please add its configuration to config_calibration.py."
         )
 
     image_size = params["SIZE"]
@@ -70,16 +70,11 @@ def calibrate_camera(
     logger.debug(f"A reproj error: {ret}")
     logger.debug(f"Intrinsic: {format_mtxt}\n")
     logger.debug(f"Distortion: {format_dist}\n")
-    logger.debug(f"Focal length: {mtx[0][0]*pixel_size}")
+    logger.debug(f"Focal length: {mtx[0][0] * pixel_size}")
     distancesA = [np.linalg.norm(vec) for vec in tvecs]
     logger.debug(f"Distance from camera to world center: {np.mean(distancesA)}")
 
-    return ret, CameraParams(
-        mtx=mtx,
-        dist=dist,
-        rvec=rvecs[0],
-        tvec=tvecs[0]
-    )
+    return ret, CameraParams(mtx=mtx, dist=dist, rvec=rvecs[0], tvec=tvecs[0])
 
 
 def _get_changed_data_format(x_axis, y_axis):
@@ -355,7 +350,7 @@ def evaluate_performance(
     average_L2_distance = np.mean(euclidean_distances)
 
     if print_results:
-        print(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³")
+        print(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance * 1000, 2)} µm³")
         _evaluate_x_y_z_performance(points_3d_G, print_results=print_results)
         logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
@@ -387,4 +382,4 @@ def _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=True):
     l2_z = np.sqrt(mean_squared_diff_z)
 
     if print_results:
-        print(f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z: {np.round(l2_z*1000, 2)}µm³")
+        print(f"x: {np.round(l2_x * 1000, 2)}µm³, y: {np.round(l2_y * 1000, 2)}µm³, z: {np.round(l2_z * 1000, 2)}µm³")

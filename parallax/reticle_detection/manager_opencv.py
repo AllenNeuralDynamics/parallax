@@ -59,7 +59,9 @@ class ReticleDetectManager(BaseReticleManager):
                     return DetectionResult.STOPPED
 
                 # Attempt to get coordinates
-                success, processed_frame, _, inliner_lines = self.reticleDetector.get_coords(masked_img, lambda: self.running)
+                success, processed_frame, _, inliner_lines = self.reticleDetector.get_coords(
+                    masked_img, lambda: self.running
+                )
                 if not success:
                     # REQUIREMENT: If get_coords fails, just return fail immediately
                     logger.debug("[WARN] get_coords failed. Exiting process.")
@@ -69,7 +71,7 @@ class ReticleDetectManager(BaseReticleManager):
                 success, self.x_coords, self.y_coords = self.coordsInterests.get_coords_interest(inliner_lines)
                 if not success:
                     # If get_coords_interest fails, try the loop again
-                    logger.debug(f"[RETRY {attempt+1}] get_coords_interest failed. Retrying get_coords...")
+                    logger.debug(f"[RETRY {attempt + 1}] get_coords_interest failed. Retrying get_coords...")
                     continue
                 # If we reach here, both passed
                 detection_successful = True

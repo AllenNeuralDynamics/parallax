@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QFileDialog
 # Set up logging
 logger = logging.getLogger(__name__)
 
+
 class StageSnapshotHandler:
     """Handles gathering stage data and saving snapshots to JSON."""
 
@@ -31,7 +32,7 @@ class StageSnapshotHandler:
                 stages_output[sn] = {
                     "obj": stage_obj.model_dump(),
                     "is_calib": session.is_calib if session else False,
-                    "calib_info": session.calib_info.model_dump() if session and session.calib_info else None
+                    "calib_info": session.calib_info.model_dump() if session and session.calib_info else None,
                 }
 
         # 2. Build final JSON structure
@@ -48,17 +49,9 @@ class StageSnapshotHandler:
         if self.snapshot_folder_path is None:
             self.snapshot_folder_path = os.path.join(os.path.expanduser("~"), "Documents")
 
-        initial_path = os.path.join(
-            self.snapshot_folder_path,
-            f"{now_dt.strftime('%Y%m%dT%H%M%S')}.json"
-        )
+        initial_path = os.path.join(self.snapshot_folder_path, f"{now_dt.strftime('%Y%m%dT%H%M%S')}.json")
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            None,
-            "Save Stage Info",
-            initial_path,
-            "JSON Files (*.json)"
-        )
+        file_path, _ = QFileDialog.getSaveFileName(None, "Save Stage Info", initial_path, "JSON Files (*.json)")
 
         if file_path:
             # Update folder for next time

@@ -69,15 +69,11 @@ class StageHttpServer:
                     stages_output[sn] = {
                         "obj": stage_obj.model_dump(),
                         "is_calib": session.is_calib if session else False,
-                        "calib_info": session.calib_info.model_dump() if session and session.calib_info else None
+                        "calib_info": session.calib_info.model_dump() if session and session.calib_info else None,
                     }
 
             # 2. Build final response structure
-            info = {
-                "status": "success",
-                "selected_sn": self.model.get_selected_stage_sn(),
-                "probes": stages_output
-            }
+            info = {"status": "success", "selected_sn": self.model.get_selected_stage_sn(), "probes": stages_output}
 
             # 3. Return as JSON response
             # web.json_response automatically handles headers and serialization
@@ -85,10 +81,7 @@ class StageHttpServer:
 
         except Exception as e:
             logger.error(f"Error handling GET request: {e}")
-            return web.json_response(
-                {"status": "error", "message": str(e)},
-                status=500
-            )
+            return web.json_response({"status": "error", "message": str(e)}, status=500)
 
     async def handle_put(self, request):
         """Handle PUT request asynchronously and immediately process the command"""

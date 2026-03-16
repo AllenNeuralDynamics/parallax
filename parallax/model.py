@@ -6,6 +6,7 @@ It provides methods for scanning and initializing cameras and stages, managing c
 This class integrates various hardware components such as cameras and stages and handles
 their initialization, configuration, and transformations between local and global coordinates.
 """
+
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
 from venv import logger
@@ -94,7 +95,6 @@ class Model:
             self.stage_instances[sn] = stage
         self.nStages = len(self.stage_instances)
         print("  Stages:", list(self.stage_instances.keys()))
-
 
     # =========================
     # Stages
@@ -280,7 +280,7 @@ class Model:
         Defaults to 'MockCamera' if the SN is not found.
         """
         cam = self.get_camera(sn)
-        if cam and getattr(cam, 'device_model', None):
+        if cam and getattr(cam, "device_model", None):
             return cam.device_model
         return "MockCamera"
 
@@ -401,8 +401,6 @@ class Model:
         except Exception as e:
             logger.error(f"Failed to apply settings to camera {camera_config.customName}: {e}")
 
-
-
     # =========================
     # probe detection
     # =========================
@@ -509,10 +507,7 @@ class Model:
         """
         Get a list of serial numbers for cameras marked as triangulation candidates.
         """
-        return [
-            sn for sn, cam in self.session.cameras.items()
-            if cam.is_triangulation_candidate
-        ]
+        return [sn for sn, cam in self.session.cameras.items() if cam.is_triangulation_candidate]
 
     def reset_all_triangulation_partners(self):
         """
@@ -527,10 +522,7 @@ class Model:
     # =========================
     def get_calibrated_camera_sns(self) -> list[str]:
         """Returns a list of serial numbers for cameras with axis coordinates."""
-        return [
-            sn for sn, data in self.session.cameras.items()
-            if data.coords_axis is not None
-        ]
+        return [sn for sn, data in self.session.cameras.items() if data.coords_axis is not None]
 
     def reset_coords_intrinsic_extrinsic(self, sn=None):
         """Reset all or specific camera's coordinates, intrinsic, and extrinsic parameters."""
@@ -692,7 +684,6 @@ class Model:
             self.stage_ipconfig_instance.close()
             self.stage_ipconfig_instance = None
 
-
     # =========================
     # Close and Clean
     # =========================
@@ -718,12 +709,11 @@ class Model:
 
     def instantiate_session(self):
         print("\nLoading previous session..")
-        SessionManager.instantiate(self)  # Ensure SessionManager is instantiated with the model for session config loading
+        SessionManager.instantiate(
+            self
+        )  # Ensure SessionManager is instantiated with the model for session config loading
 
     def clear_session_config(self):
         """Clear the session configuration and reset all related data."""
         self.session = None
         self.instantiate_session()
-
-
-

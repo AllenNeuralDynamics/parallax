@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-
 class ProbeCalibration:
     """
     A class responsible for calibrating probe positions
@@ -35,6 +34,7 @@ class ProbeCalibration:
         calib_complete: Signal emitted when the full calibration is complete.
         transM_info (str, object, float, object): Signal emitted with transformation matrix information.
     """
+
     THRESHOLD_MIN_MAX = 1500
     THRESHOLD_MIN_MAX_Z = 100
     THRESHOLD_AVG_ERROR = 40
@@ -59,10 +59,10 @@ class ProbeCalibration:
             model (object): The model object containing stage information.
             stage_listener (QObject): The stage listener object for receiving stage-related events.
         """
-        #super().__init__()
+        # super().__init__()
         # Native Signals
         self.calib_complete = Signal()
-        self.transM_info = Signal() # Will emit (sn, transM, L2_err, dist_travel)
+        self.transM_info = Signal()  # Will emit (sn, transM, L2_err, dist_travel)
         self.model = model
         self.df = None
         self.inliers = []
@@ -268,8 +268,7 @@ class ProbeCalibration:
             std_l2 = np.std(l2_inliers)
 
             logger.debug(
-                f"(noise removed) -> mean: {mean_l2:.4f}, std: {std_l2:.4f}, "
-                f"kept: {len(l2_inliers)}/{len(l2_distance)}"
+                f"(noise removed) -> mean: {mean_l2:.4f}, std: {std_l2:.4f}, kept: {len(l2_inliers)}/{len(l2_distance)}"
             )
         else:
             logger.warning("All points were filtered out as outliers based on the threshold.")

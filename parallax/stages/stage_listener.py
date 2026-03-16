@@ -44,13 +44,14 @@ class PathfinderServer:
 
         return stages
 
+
 class Worker(threading.Thread):
     """Fetch stage data at regular intervals and emit signals when data changes
     or significant movement is detected."""
 
     def __init__(self, url):
         """Initialize worker thread"""
-        super().__init__(daemon=True) # daemon=True ensures thread dies when app closes
+        super().__init__(daemon=True)  # daemon=True ensures thread dies when app closes
         self.url = url
         self._stop_event = threading.Event()
 
@@ -59,7 +60,7 @@ class Worker(threading.Thread):
         self.stage_moving = Signal()
         self.stage_not_moving = Signal()
 
-        self.LOW_FREQ_INTERVAL = 0.5   # 500ms
+        self.LOW_FREQ_INTERVAL = 0.5  # 500ms
         self.HIGH_FREQ_INTERVAL = 0.1  # 100ms
         self.IDLE_TIME = 0.5
         self.MOVE_DETECT_THRESHOLD = 0.002
@@ -125,14 +126,15 @@ class Worker(threading.Thread):
             current_time = time.time()
 
             # Frequency Switching Logic
-            if (not change_detected and
-                self.curr_interval == self.HIGH_FREQ_INTERVAL and
-                current_time - self.last_move_detected_time >= self.IDLE_TIME):
+            if (
+                not change_detected
+                and self.curr_interval == self.HIGH_FREQ_INTERVAL
+                and current_time - self.last_move_detected_time >= self.IDLE_TIME
+            ):
                 self.curr_interval = self.LOW_FREQ_INTERVAL
                 self.stage_not_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
-            elif (change_detected and
-                  self.curr_interval == self.LOW_FREQ_INTERVAL):
+            elif change_detected and self.curr_interval == self.LOW_FREQ_INTERVAL:
                 self.curr_interval = self.HIGH_FREQ_INTERVAL
                 self.stage_moving.emit(data["ProbeArray"][data["SelectedProbe"]])
 
@@ -146,16 +148,16 @@ class Worker(threading.Thread):
                 self._print_trouble_shooting_msg()
 
     def _is_any_stage_move(self, data):
-            """Check if any stage has moved significantly."""
-            for stage in data["ProbeArray"]:
-                stage_sn = stage["SerialNumber"]
-                curr_pos = (stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"])
-                last_pos = self.stages.get(stage_sn)
-                if last_pos:
-                    if any(abs(c - l) >= self.MOVE_DETECT_THRESHOLD for c, l in zip(curr_pos, last_pos)):
-                        self.last_move_detected_time = time.time()
-                        return True
-            return False
+        """Check if any stage has moved significantly."""
+        for stage in data["ProbeArray"]:
+            stage_sn = stage["SerialNumber"]
+            curr_pos = (stage["Stage_X"], stage["Stage_Y"], stage["Stage_Z"])
+            last_pos = self.stages.get(stage_sn)
+            if last_pos:
+                if any(abs(curr - last) >= self.MOVE_DETECT_THRESHOLD for curr, last in zip(curr_pos, last_pos)):
+                    self.last_move_detected_time = time.time()
+                    return True
+        return False
 
     def emit_all_stages(self, data):
         """Update all stages."""
@@ -260,4 +262,3 @@ class StageListener:
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
             probeDetector.enable_calibration(self.worker.last_move_detected_time + self.worker.IDLE_TIME, sn)
-

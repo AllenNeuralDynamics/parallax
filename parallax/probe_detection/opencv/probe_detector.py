@@ -99,7 +99,7 @@ class ProbeDetector:
             numpy.ndarray: Neighboring gradients.
         """
         gradient_index = np.where(self.angle_step_bins == target_angle)[0][0]
-        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index + 3]
+        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index : gradient_index + 3]
         return neighboring_gradients
 
     def _contour_preprocessing(self, img, thresh=20, remove_noise=True, noise_threshold=1):
@@ -271,14 +271,12 @@ class ProbeDetector:
             return found_ret, highest_point, lowest_point
 
         gradient_index = gradient_index[0][0]
-        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index:gradient_index + 3]
+        neighboring_gradients = self.angle_step_bins_with_neighbor[gradient_index : gradient_index + 3]
 
         # Draw the line segments
         if line_segments is not None:
             if (len(line_segments)) >= 30:
-                logger.debug(
-                    f"{self.stage_sn}-{self.camera_sn} get_tip_hough_line_detection:: Too many line detected."
-                )
+                logger.debug(f"{self.stage_sn}-{self.camera_sn} get_tip_hough_line_detection:: Too many line detected.")
                 return found_ret, highest_point, lowest_point
 
             for line in line_segments:
@@ -318,9 +316,7 @@ class ProbeDetector:
 
         if found_ret:
             if self._is_distance_in_thres(highest_point, lowest_point):
-                logger.debug(
-                    f"{self.stage_sn}-{self.camera_sn} Distance between tip and base is too close"
-                )
+                logger.debug(f"{self.stage_sn}-{self.camera_sn} Distance between tip and base is too close")
                 return False, highest_point, lowest_point
 
             gradient_counts = Counter(self.gradients)

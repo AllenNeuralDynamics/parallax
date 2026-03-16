@@ -315,7 +315,6 @@ class OpenCVProcessWorker:
         if self.probeDetect.angle:
             # Use the processor to refine the tip based on the click
             if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
-
                 self._trigger_callback(
                     "on_tip_stopped", self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, (None, None)
                 )

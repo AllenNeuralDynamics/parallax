@@ -85,7 +85,7 @@ class StereoCameraHandler:
                     paramsB=paramsB,
                 )
                 print("\n----------------------------------------------------")
-                print(f"  camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
+                print(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
                 if err < min_err:
                     min_err = err
                     camA_best, camB_best = camA, camB
@@ -128,7 +128,7 @@ class StereoCameraHandler:
                     paramsB=paramsB,
                 )
                 print("\n--------------------------------------------------------")
-                print(f"  camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
+                print(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
 
                 # calibrationStereo.print_calibrate_stereo_results(camA, camB)
                 if err < min_err:

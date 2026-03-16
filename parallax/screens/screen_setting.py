@@ -37,8 +37,10 @@ class ScreenSetting(QWidget):
                 self._periodic_sync()
                 btn_pos = self.settingButton.mapToGlobal(QPoint(0, 0))  # Position logic
                 parent_pos = self.parent.mapToGlobal(QPoint(0, 0))
-                self.settingMenu.move(btn_pos.x() + self.settingButton.width() - parent_pos.x(),
-                                      btn_pos.y() - self.settingMenu.height() - parent_pos.y())
+                self.settingMenu.move(
+                    btn_pos.x() + self.settingButton.width() - parent_pos.x(),
+                    btn_pos.y() - self.settingMenu.height() - parent_pos.y(),
+                )
                 self.settingMenu.show()
                 self.refresh_timer.start()
             else:
@@ -150,17 +152,20 @@ class ScreenSetting(QWidget):
         def on_name_changed(text):
             self.model_config.customName = text  # update model
             self._update_groupbox_name(self.parent, text)  # update GUI
+
         self.settingMenu.customName.textChanged.connect(on_name_changed)
 
     def _setup_fps_enable(self):
         """Initializes the FPS manual control toggle."""
+
         def on_sync():
             """Handles hardware and model sync when FPS toggle changes."""
             new_state = not self.model_config.frameRateEnable
             self.hw.set_frame_rate_enable(new_state)
-            if new_state:     # if frame rate is enabled, switch exp and gain to 'continuous' mode
+            if new_state:  # if frame rate is enabled, switch exp and gain to 'continuous' mode
                 self.hw.set_exposure_auto_mode("Continuous")
                 self.hw.set_gain_auto_mode("Continuous")
+
         # Connect the signal (No parentheses here!)
         self.settingMenu.fpsAuto.clicked.connect(on_sync)
 
@@ -175,6 +180,7 @@ class ScreenSetting(QWidget):
         def on_sync_change():
             fps = self.settingMenu.fpsSlider.value()
             self.settingMenu.fpsNum.setNum(fps)  # Update GUI immediately on slider change
+
         self.settingMenu.fpsSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.fpsSlider.valueChanged.connect(on_sync_change)
 
@@ -190,6 +196,7 @@ class ScreenSetting(QWidget):
             elif new_state == "Off":
                 self.hw.set_exposure_auto_mode("Off")
                 self.settingMenu.expSlider.setEnabled(True)
+
         self.settingMenu.expAuto.clicked.connect(on_sync)
 
     def _setup_exposure(self):
@@ -201,6 +208,7 @@ class ScreenSetting(QWidget):
         def on_sync_change():
             val_ms = self.settingMenu.expSlider.value()
             self.settingMenu.expNum.setNum(val_ms)  # Update GUI immediately on slider change
+
         self.settingMenu.expSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.expSlider.valueChanged.connect(on_sync_change)
 
@@ -216,6 +224,7 @@ class ScreenSetting(QWidget):
             elif new_state == "Off":
                 self.hw.set_gain_auto_mode("Off")
                 self.settingMenu.gainSlider.setEnabled(True)
+
         self.settingMenu.gainAuto.clicked.connect(on_sync)
 
     def _setup_gain(self):
@@ -227,6 +236,7 @@ class ScreenSetting(QWidget):
         def on_sync_change():
             val = self.settingMenu.gainSlider.value()
             self.settingMenu.gainNum.setNum(val)  # Update GUI immediately on slider change
+
         self.settingMenu.gainSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.gainSlider.valueChanged.connect(on_sync_change)
 
@@ -247,10 +257,12 @@ class ScreenSetting(QWidget):
                 self.hw.set_wb_auto_mode("Off")
                 self.settingMenu.wbSliderRed.setEnabled(True)
                 self.settingMenu.wbSliderBlue.setEnabled(True)
+
         self.settingMenu.wbAuto.clicked.connect(on_sync)
 
     def _setup_white_balance(self):
         """Individual logic for Red and Blue sliders (HW Sync on Release)."""
+
         def on_change_red(val):
             # Immediate UI feedback only
             self.settingMenu.wbNumRed.setNum(val)
@@ -267,6 +279,7 @@ class ScreenSetting(QWidget):
             if self.hw:
                 val = self.settingMenu.wbSliderBlue.value()
                 self.hw.set_wb("Blue", val / 100.0)
+
         self.settingMenu.wbSliderRed.valueChanged.connect(on_change_red)
         self.settingMenu.wbSliderRed.sliderReleased.connect(on_release_red)
         self.settingMenu.wbSliderBlue.valueChanged.connect(on_change_blue)
@@ -279,6 +292,7 @@ class ScreenSetting(QWidget):
             """Handles hardware and model sync when gamma toggle changes."""
             new_state = not self.model_config.gammaEnable
             self.hw.set_gamma_enable(new_state)
+
         # Connect the signal (No parentheses here!)
         self.settingMenu.gammaAuto.clicked.connect(on_sync)
 
@@ -291,6 +305,7 @@ class ScreenSetting(QWidget):
         def on_sync_change():
             val = self.settingMenu.gammaSlider.value() / 100.0
             self.settingMenu.gammaNum.setText(f"{val:.1f}")
+
         self.settingMenu.gammaSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.gammaSlider.valueChanged.connect(on_sync_change)
 

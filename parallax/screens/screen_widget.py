@@ -117,7 +117,7 @@ class ScreenWidget(pg.GraphicsView):
     @property
     def camera_hw(self):
         """Direct access to the camera hardware settings."""
-        if self.camera and hasattr(self.camera, 'settings'):
+        if self.camera and hasattr(self.camera, "settings"):
             return self.camera.settings
         return None
 

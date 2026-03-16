@@ -219,7 +219,7 @@ class TransformInfoHandler(QWidget):
 
         # 5. Arc Angles
         angles = info.get("arc_angle")  # This is an ArcAngle object
-        if angles and hasattr(angles, 'rx'):
+        if angles and hasattr(angles, "rx"):
             self.rx_label.setText(f"{angles.rx:.2f}°" if angles.rx is not None else "-")
             self.ry_label.setText(f"{angles.ry:.2f}°" if angles.ry is not None else "-")
             self.rz_label.setText(f"{angles.rz:.2f}°" if angles.rz is not None else "-")

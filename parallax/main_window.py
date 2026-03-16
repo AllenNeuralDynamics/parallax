@@ -81,14 +81,14 @@ class MainWindow(QMainWindow):
 
         # Control Panel
         self.control_panel = ControlPanel(  # init stages
-            model = self.model,
-            screen_widgets = self.screen_widget_manager.screen_widgets,
-            actionServer = self.actionServer,
-            actionSaveInfo = self.actionSaveInfo,
-            actionTrajectory = self.actionTrajectory,
-            actionCalculator = self.actionCalculator,
-            actionTriangulate = self.actionTriangulate,
-            actionReticlesMetadata = self.actionReticlesMetadata,
+            model=self.model,
+            screen_widgets=self.screen_widget_manager.screen_widgets,
+            actionServer=self.actionServer,
+            actionSaveInfo=self.actionSaveInfo,
+            actionTrajectory=self.actionTrajectory,
+            actionCalculator=self.actionCalculator,
+            actionTriangulate=self.actionTriangulate,
+            actionReticlesMetadata=self.actionReticlesMetadata,
         )
 
         # Add to splitter

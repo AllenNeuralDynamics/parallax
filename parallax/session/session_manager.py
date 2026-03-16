@@ -27,8 +27,10 @@ logger.setLevel(logging.DEBUG)
 # Custom YAML Dumper
 # =========================
 
+
 class CleanDumper(yaml.SafeDumper):
     """Custom YAML Dumper to handle NumPy types cleanly."""
+
     def represent_data(self, data):
         # If it's a numpy array or scalar, convert to python native
         if isinstance(data, np.ndarray):
@@ -81,20 +83,14 @@ class SessionManager:
         """Saves session to disk, converting NumPy arrays to clean YAML lists."""
         try:
             cls._data = session_obj
-            data = session_obj.model_dump(mode='json')
+            data = session_obj.model_dump(mode="json")
 
             # Wrap it under a 'model' key to match the expected YAML structure
             output_data = {"model": data}
             logger.debug(output_data)
 
             with open(cls.session_file, "w") as file:
-                yaml.dump(
-                    output_data,
-                    file,
-                    Dumper=CleanDumper,
-                    default_flow_style=False,
-                    sort_keys=False
-                )
+                yaml.dump(output_data, file, Dumper=CleanDumper, default_flow_style=False, sort_keys=False)
             logger.debug(f"Session successfully saved to {cls.session_file}")
         except Exception as e:
             logger.error(f"Failed to save session: {e}")
@@ -105,13 +101,13 @@ class SessionManager:
         Syncs the SessionSchema with physical hardware.
         Removes missing cameras and adds new ones.
         """
-        if getattr(model, 'session', None) is None:
+        if getattr(model, "session", None) is None:
             logger.info("[SessionManager] Creating a fresh session configuration.")
             model.session = Session()
 
         # cameras
         physical_sns = set(model.camera_instances.keys())  # {B, C, D}
-        session_sns = set(model.session.cameras.keys())    # {A, B, C}
+        session_sns = set(model.session.cameras.keys())  # {A, B, C}
 
         # Remove cameras that are in session but NOT physically connected (A)
         to_remove = session_sns - physical_sns
@@ -128,7 +124,7 @@ class SessionManager:
 
         # stages
         physical_sns = set(model.stage_instances.keys())  # {B, C, D}
-        session_sns = set(model.session.stages.keys())    # {A, B, C}
+        session_sns = set(model.session.stages.keys())  # {A, B, C}
         to_remove = session_sns - physical_sns
         for sn in to_remove:
             logger.info(f"[SessionManager] Removing stage {sn} from session (not connected).")

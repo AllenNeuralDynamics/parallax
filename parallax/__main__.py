@@ -48,4 +48,3 @@ if __name__ == "__main__":
     atexit.register(model.save_config)
     atexit.register(model.save_session)
     atexit.register(model.clean)
-

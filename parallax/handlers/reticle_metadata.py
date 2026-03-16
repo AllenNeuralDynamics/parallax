@@ -202,7 +202,6 @@ class ReticleMetadata(QWidget):
                 and len(new_name.strip()) == 1
                 and new_name.strip().upper() in self.alphabet_status
             ):
-
                 self.alphabet_status[new_name] = 1
 
     def _remove_specific_groupbox(self, group_box):

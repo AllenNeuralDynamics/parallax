@@ -172,7 +172,7 @@ class ReticleDetecthandler(QWidget):
         # UI
         if self.triangulate_btn.isEnabled():
             self.triangulate_btn.setEnabled(False)
-        self.triangulate_btn.setStyleSheet("color: gray;" "background-color: #ffaaaa;")
+        self.triangulate_btn.setStyleSheet("color: gray;background-color: #ffaaaa;")
 
         msg = f"{valid_intrinsics}"
         logger.debug(f"Stereo Cameras: {msg}")
@@ -200,7 +200,7 @@ class ReticleDetecthandler(QWidget):
             self.triangulate_btn.setEnabled(False)
 
         # Change the button to brown.
-        self.triangulate_btn.setStyleSheet("color: white;" "background-color: #bc9e44;")
+        self.triangulate_btn.setStyleSheet("color: white;background-color: #bc9e44;")
 
     def _reticle_overwrite_popup_window(self):
         """
@@ -255,7 +255,7 @@ class ReticleDetecthandler(QWidget):
             logger.debug(f"1 self.filter: {self.filter}")
 
             # Change the button to green.
-            self.triangulate_btn.setStyleSheet("color: white;" "background-color: #84c083;")
+            self.triangulate_btn.setStyleSheet("color: white;background-color: #84c083;")
 
             # Send the signal to update the reticle detection status
             if self.model.session.reticle_detection_status != "accepted":

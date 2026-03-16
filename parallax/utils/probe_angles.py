@@ -51,11 +51,10 @@ def get_rx_ry(transM: Optional[np.ndarray]) -> Optional["ArcAngle"]:
     if angles_dict is None:
         return None
 
-
     return ArcAngle(
         rx=angles_dict["rx"],
         ry=angles_dict["ry"],
-        rz=0.0  # Placeholder, updated via spin_angle logic elsewhere
+        rz=0.0,  # Placeholder, updated via spin_angle logic elsewhere
     )
 
 

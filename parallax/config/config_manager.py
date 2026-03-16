@@ -66,4 +66,3 @@ class ConfigManager:
                 yaml.dump(data, file, default_flow_style=False, sort_keys=False)
         except Exception as e:
             logger.error(f"Failed to save settings: {e}")
-

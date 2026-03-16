@@ -1,6 +1,6 @@
-
 class Signal:
     """A simple native Python signal implementation."""
+
     def __init__(self):
         self._slots = []
 

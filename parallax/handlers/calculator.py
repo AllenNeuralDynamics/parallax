@@ -404,7 +404,7 @@ class Calculator(QWidget):
 
         command = {"stage_sn": stage_sn, "move_type": "moveXY0", "x": x, "y": y, "z": z}
         self.stage_controller.request(command)
-        print(f"Moving stage {stage_sn} to ({np.round(x*1000)}, {np.round(y*1000)}, 0)")
+        print(f"Moving stage {stage_sn} to ({np.round(x * 1000)}, {np.round(y * 1000)}, 0)")
 
     def _is_z_safe_pos(self, stage_sn, x, y, z=0):
         """

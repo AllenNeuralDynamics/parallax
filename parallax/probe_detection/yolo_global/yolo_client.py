@@ -43,4 +43,3 @@ class YOLOClient:
         """Stop the YOLO worker"""
         if self.yolo_worker:
             self.yolo_worker.stop()
-

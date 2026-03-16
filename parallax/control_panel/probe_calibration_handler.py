@@ -26,6 +26,7 @@ logger.setLevel(logging.DEBUG)
 
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
+
     probeCalibRequest = pyqtSignal(StageObj, dict)  # Emits stage global data and debug info
     clearRequested = pyqtSignal(str)
     resetCalibRequested = pyqtSignal()
@@ -285,14 +286,12 @@ class ProbeCalibrationHandler(QWidget):
             # If successful, identify the lowest shank index for filtering
             if global_coords_4shanks is not None:
                 logger.debug(f"global coords: {global_coords_4shanks}")
-                idx = self._get_lowest_shank_index(
-                    global_coords_4shanks
-                )  # Handle the parallel to the reticle surface
+                idx = self._get_lowest_shank_index(global_coords_4shanks)  # Handle the parallel to the reticle surface
                 if idx is not None:
                     # Update the main variables to ensure consistency
-                    global_coords = global_coords_4shanks[idx:idx + 1]
-                    tip_A = tip_A[idx:idx + 1]
-                    tip_B = tip_B[idx:idx + 1]
+                    global_coords = global_coords_4shanks[idx : idx + 1]
+                    tip_A = tip_A[idx : idx + 1]
+                    tip_B = tip_B[idx : idx + 1]
                     logger.debug(f" Lowest shank index: {idx}")
 
                 # Spin
@@ -350,9 +349,9 @@ class ProbeCalibrationHandler(QWidget):
             if stage_ts != stage_ts_:
                 return
 
-            cam_params = self.model.get_camera_params(cam)
-            detected_cam_params = self.model.get_camera_params(detected_cam)
-            global_coords = triangulate(ptsA=tip, ptsB=tip_, paramsA=detected_cam_params, paramsB=cam_params)
+            _cam_params = self.model.get_camera_params(cam)
+            _detected_cam_params = self.model.get_camera_params(detected_cam)
+            _ = triangulate(ptsA=tip, ptsB=tip_, paramsA=_detected_cam_params, paramsB=_cam_params)
 
     def probe_overwrite_popup_window(self):
         """
@@ -513,7 +512,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         self.probe_detection_status = "process"
-        self.probe_calibration_btn.setStyleSheet("color: white;" "background-color: #bc9e44;")
+        self.probe_calibration_btn.setStyleSheet("color: white;background-color: #bc9e44;")
         if not self.probe_calibration_btn.isChecked():
             self.probe_calibration_btn.setChecked(True)
 
@@ -590,10 +589,7 @@ class ProbeCalibrationHandler(QWidget):
                     # Get rotation offset from model metadata
                     reticle_meta = self.model.reticle_metadata.get(reticle_name, {})
                     reticle_rot = reticle_meta.get("rot", 0.0)
-                    rz_val = get_spin_bregma(
-                        spin_global=self.arc_angle_global.rz,
-                        reticle_rot=reticle_rot
-                    )
+                    rz_val = get_spin_bregma(spin_global=self.arc_angle_global.rz, reticle_rot=reticle_rot)
                 bregma_angles.rz = rz_val
                 self.arc_angle_bregma[reticle_name] = bregma_angles
 
@@ -665,7 +661,7 @@ class ProbeCalibrationHandler(QWidget):
         self.update_stage_info_to_model(self.selected_stage_id)
         self.model.set_calibration_status(self.selected_stage_id, True)
 
-        self.probe_calibration_btn.setStyleSheet("color: white;" "background-color: #84c083;")
+        self.probe_calibration_btn.setStyleSheet("color: white;background-color: #84c083;")
         if not self.probe_calibration_btn.isChecked():
             self.probe_calibration_btn.setChecked(True)
 
@@ -792,7 +788,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Change the button to green.
-        self.calib_x.setStyleSheet("color: white;" "background-color: #84c083;")
+        self.calib_x.setStyleSheet("color: white;background-color: #84c083;")
         self.calib_status_x = True
 
     def calib_y_complete(self, switch_probe=False):
@@ -803,7 +799,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Change the button to green.
-        self.calib_y.setStyleSheet("color: white;" "background-color: #84c083;")
+        self.calib_y.setStyleSheet("color: white;background-color: #84c083;")
         self.calib_status_y = True
 
     def calib_z_complete(self, switch_probe=False):
@@ -814,7 +810,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Change the button to green.
-        self.calib_z.setStyleSheet("color: white;" "background-color: #84c083;")
+        self.calib_z.setStyleSheet("color: white;background-color: #84c083;")
         self.calib_status_z = True
 
     def view_trajectory_button_handler(self):
@@ -865,9 +861,9 @@ class ProbeCalibrationHandler(QWidget):
         of the calibration buttons (X, Y, Z), indicating that they are ready for the next
         calibration process.
         """
-        self.calib_x.setStyleSheet("color: white;" "background-color: black;")
-        self.calib_y.setStyleSheet("color: white;" "background-color: black;")
-        self.calib_z.setStyleSheet("color: white;" "background-color: black;")
+        self.calib_x.setStyleSheet("color: white;background-color: black;")
+        self.calib_y.setStyleSheet("color: white;background-color: black;")
+        self.calib_z.setStyleSheet("color: white;background-color: black;")
 
     def update_stage_info(self, info):
         if isinstance(info, StageCalibration):

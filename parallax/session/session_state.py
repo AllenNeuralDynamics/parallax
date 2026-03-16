@@ -12,10 +12,12 @@ def to_numpy(v: Any) -> Any:
         return np.array(v)
     return v
 
+
 def to_list(v: Any) -> Any:
     if isinstance(v, np.ndarray):
         return v.tolist()
     return v
+
 
 # --- Stage Schemas ---
 class StageObj(BaseModel):
@@ -61,27 +63,27 @@ class StageObj(BaseModel):
             stage_y=raw_y * 1000,
             # Inverted Z-axis logic (15mm limit)
             stage_z=15000.0 - (raw_z * 1000),
-
             stage_x_offset=off_x * 1000,
             stage_y_offset=off_y * 1000,
             stage_z_offset=15000.0 - (off_z * 1000),
-
             # Default assignments
             shank_cnt=info.get("ShankCount", 1),
             yaw=info.get("Yaw"),
             pitch=info.get("Pitch"),
-            roll=info.get("Roll")
+            roll=info.get("Roll"),
         )
+
 
 class ArcAngle(BaseModel):
     rx: Optional[float] = None
     ry: Optional[float] = None
     rz: Optional[float] = None
 
+
 class StageCalibration(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
-        validate_assignment=True  # Important: runs validators on updating a single field
+        validate_assignment=True,  # Important: runs validators on updating a single field
     )
 
     # --- Required / Metadata ---
@@ -134,13 +136,13 @@ class StageCalibration(BaseModel):
             return v.tolist()
         return v
 
-    @field_serializer("min_x", "max_x", "min_y", "max_y", "min_z", "max_z",
-                      "min_gx", "max_gx", "min_gy", "max_gy")
+    @field_serializer("min_x", "max_x", "min_y", "max_y", "min_z", "max_z", "min_gx", "max_gx", "min_gy", "max_gy")
     def serialize_float(self, v: float, _info):
         """Converts infinity to None for clean YAML/JSON output."""
         if np.isinf(v):
             return None
         return v
+
 
 class StageSession(BaseModel):
     is_calib: bool = False
@@ -163,10 +165,11 @@ class StageSession(BaseModel):
             dumped_data["calib_info"] = None
         return dumped_data
 
+
 class CameraParams(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    mtx: Optional[Any] = None   # Expected: (3, 3)
+    mtx: Optional[Any] = None  # Expected: (3, 3)
     dist: Optional[Any] = None  # Expected: (1, N) or (N,)
     rvec: Optional[Any] = None  # Expected: (3, 1)
     tvec: Optional[Any] = None  # Expected: (3, 1)
@@ -231,4 +234,4 @@ class CameraSession(BaseModel):
 class Session(BaseModel):
     reticle_detection_status: Literal["default", "detected", "accepted"] = "default"
     stages: Dict[str, StageSession] = Field(default_factory=dict)
-    cameras: Dict[str, CameraSession] = Field(default_factory=dict) # Simplified for brevity
+    cameras: Dict[str, CameraSession] = Field(default_factory=dict)  # Simplified for brevity
