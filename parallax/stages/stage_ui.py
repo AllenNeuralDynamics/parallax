@@ -182,17 +182,15 @@ class StageUI(QWidget):
                 y = self.selected_stage.stage_y_global
                 z = self.selected_stage.stage_z_global
                 if x is not None and y is not None and z is not None:
-                    global_pts = np.array([x, y, z], dtype=float)
-                    # If reticle is with offset, get the global coordinates with offset
                     if self.reticle != "Global coords":
-                        try:
-                            bregma_pts = apply_reticle_adjustments(self.model, global_pts, self.reticle)
-                            x, y, z = bregma_pts
-                        except Exception as e:
-                            logger.error(f"Error applying reticle adjustments: {e}")
-                            self.updateStageGlobalCoords_default()
+                        if self.selected_stage.stage_bregma:
+                            bregma_pts = self.selected_stage.stage_bregma.get(self.reticle)
+                            if bregma_pts is not None and len(bregma_pts) == 3:
+                                x, y, z = bregma_pts
+                            else:
+                                return
+                        else:
                             return
-
                     # Update into UI, unit is µm
                     if x is not None and y is not None and z is not None:
                         self.ui.global_coords_x.setText(str(x))
