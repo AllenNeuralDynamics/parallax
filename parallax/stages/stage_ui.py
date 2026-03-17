@@ -7,11 +7,8 @@ real-time data changes.
 
 import logging
 
-import numpy as np
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QWidget
-
-from parallax.utils.coords_converter import apply_reticle_adjustments
 
 # Set logger name
 logger = logging.getLogger(__name__)
