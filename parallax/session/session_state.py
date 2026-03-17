@@ -169,25 +169,32 @@ class StageSession(BaseModel):
 class CameraParams(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    mtx: Optional[Any] = None  # Expected: (3, 3)
-    dist: Optional[Any] = None  # Expected: (1, N) or (N,)
-    rvec: Optional[Any] = None  # Expected: (3, 1)
-    tvec: Optional[Any] = None  # Expected: (3, 1)
+    mtx: Optional[np.ndarray] = None  # Expected: (3, 3)
+    dist: Optional[np.ndarray] = None  # Expected: (1, 5)
+    rvec: Optional[np.ndarray] = None  # Expected: (3, 1)
+    tvec: Optional[np.ndarray] = None  # Expected: (3, 1)
 
-    @field_validator("mtx", "dist", mode="before")
+    @field_validator("mtx", mode="before")
     @classmethod
-    def validate_matrices(cls, v):
+    def validate_mtx(cls, v):
         if v is None:
             return None
-        return np.asarray(v, dtype=np.float64)
+        arr = np.asarray(v, dtype=np.float64)
+        if arr.shape != (3, 3):
+            raise ValueError(f"Camera matrix (mtx) must be shape (3, 3), got {arr.shape}")
+        return arr
+
+    @field_validator("dist", mode="before")
+    @classmethod
+    def validate_dist(cls, v):
+        if v is None:
+            return None
+        arr = np.asarray(v, dtype=np.float64)
+        return arr.flatten()
 
     @field_validator("rvec", "tvec", mode="before")
     @classmethod
     def validate_vectors(cls, v):
-        """
-        Replaces the old _vec3 helper.
-        Ensures 3 elements and reshapes to (3, 1) for OpenCV compatibility.
-        """
         if v is None:
             return None
         arr = np.asarray(v, dtype=np.float64).reshape(-1)
@@ -196,7 +203,7 @@ class CameraParams(BaseModel):
         return arr.reshape(3, 1)
 
     @field_serializer("mtx", "dist", "rvec", "tvec")
-    def serialize_numpy(self, v: Any, _info):
+    def serialize_numpy(self, v: Optional[np.ndarray], _info) -> Optional[list]:
         """Converts internal numpy arrays to lists for JSON/YAML storage."""
         if isinstance(v, np.ndarray):
             return v.tolist()

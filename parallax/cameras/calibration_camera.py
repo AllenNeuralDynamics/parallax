@@ -56,6 +56,9 @@ def calibrate_camera(
     imgpoints, objpoints = process_reticle_points(x_axis, y_axis)
 
     # 3. Calibrate camera
+    # mtx: (3, 3) np array,
+    # dist: (1, 5) np array
+    # rvecs: tuples of (3, 1) np arrays, tvecs: tuples of (3, 1) np arrays
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
         objpoints,
         imgpoints,

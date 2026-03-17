@@ -225,7 +225,7 @@ class StageListener:
 
         if is_calib:
             bregma_pts = {}
-            for reticle in self.model.reticle_metadata.keys():
+            for reticle in self.model.reticle_metadata.reticles.keys():
                 bregma_pt = apply_reticle_adjustments(self.model, global_pts, reticle=reticle)
                 # bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
                 # print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
