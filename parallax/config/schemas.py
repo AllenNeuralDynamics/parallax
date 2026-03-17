@@ -1,8 +1,10 @@
 # parallax/config/schemas.py
+import numpy as np
 from pathlib import Path
-from typing import Dict, Literal
+from typing import Dict, List, Literal
 
-from pydantic import BaseModel, Field, computed_field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator, ConfigDict
+from parallax.utils.rotations import define_euler_rotation
 
 
 # ----- Pydantic Schemas for Camera Settings Validation -----
@@ -61,3 +63,25 @@ class AppSchema(BaseModel):
     cameras: Dict[str, CameraSettings] = Field(default_factory=dict)
     gui: GUISettings = Field(default_factory=GUISettings)
     pathfinder_server: PathfinderServerSettings = Field(default_factory=PathfinderServerSettings)
+
+
+class ReticleMetadataSchema(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    rot: float = Field(alias="lineEditRot", default=0.0)
+    offset_x: float = Field(alias="lineEditOffsetX", default=0.0)
+    offset_y: float = Field(alias="lineEditOffsetY", default=0.0)
+    offset_z: float = Field(alias="lineEditOffsetZ", default=0.0)
+
+    @property
+    def rotmat(self) -> np.ndarray:
+        """
+        Dynamically calculates the 3x3 rotation matrix in memory.
+        This will NOT be saved to the YAML file.
+        """
+        if self.rot == 0.0:
+            return np.eye(3)
+        return define_euler_rotation(0, 0, self.rot, degrees=True).as_matrix()
+
+class ReticleConfig(BaseModel):
+    reticles: Dict[str, ReticleMetadataSchema]

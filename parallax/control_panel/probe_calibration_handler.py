@@ -570,8 +570,8 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Update related to reticle metadata
-        self.reticle_metadata.load_metadata_from_file()  # self.model.reticle_metadata updated
-        self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata)
+        self.reticle_metadata.load_metadata()
+        self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata.reticles)
         if self.transMbs is None or self.arc_angle_global is None:
             return
 
@@ -587,8 +587,8 @@ class ProbeCalibrationHandler(QWidget):
                 rz_val = None
                 if self.arc_angle_global and self.arc_angle_global.rz is not None:
                     # Get rotation offset from model metadata
-                    reticle_meta = self.model.reticle_metadata.get(reticle_name, {})
-                    reticle_rot = reticle_meta.get("rot", 0.0)
+                    reticle_meta = self.model.get_reticle_metadata(reticle_name)
+                    reticle_rot = reticle_meta.rot if reticle_meta else 0.0
                     rz_val = get_spin_bregma(spin_global=self.arc_angle_global.rz, reticle_rot=reticle_rot)
                 bregma_angles.rz = rz_val
                 self.arc_angle_bregma[reticle_name] = bregma_angles

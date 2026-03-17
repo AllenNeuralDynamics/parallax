@@ -36,7 +36,7 @@ debug_img_dir.mkdir(parents=True, exist_ok=True)
 session_file = data_dir / "session.yaml"
 settings_file = data_dir / "settings.yaml"
 stage_server_config_file = data_dir / "stage_server_config.json"
-reticle_metadata_file = data_dir / "reticle_metadata.json"
+reticle_metadata_file = data_dir / "reticle_metadata.yaml"
 img_processing_config_file = project_root / "parallax" / "config" / "image_processing_config.json"
 
 # CNN-specific directories and string paths for subprocess/argparse

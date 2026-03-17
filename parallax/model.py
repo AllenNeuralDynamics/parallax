@@ -15,7 +15,8 @@ import numpy as np
 
 from parallax.cameras.camera import MockCamera, PySpinCamera, close_cameras, list_cameras
 from parallax.config.config_manager import ConfigManager
-from parallax.config.schemas import CameraSettings
+from parallax.config.reticle_manager import ReticleManager
+from parallax.config.schemas import CameraSettings, ReticleMetadataSchema
 from parallax.session.session_manager import SessionManager
 from parallax.session.session_state import ArcAngle, CameraParams, StageCalibration, StageObj
 from parallax.stages.stage_listener import PathfinderServer
@@ -24,7 +25,7 @@ from parallax.stages.stage_listener import PathfinderServer
 class Model:
     """Model class to handle cameras, stages, and calibration data."""
 
-    def __init__(self, args=None, config=None, session=None):
+    def __init__(self, args=None, config=None, session=None, reticle_metadata=None):
         """Initialize the Model object.
 
         Args:
@@ -34,6 +35,7 @@ class Model:
         # args from command line
         self.config = config
         self.session = session  # SessionSchema. Initialize after pop-up
+        self.reticle_metadata = reticle_metadata  # ReticleConfig. Initialize after loading
         self.dummy = getattr(args, "dummy", False)
         self.test = getattr(args, "test", False)
         self.bundle_adjustment = getattr(args, "bundle_adjustment", False)
@@ -62,9 +64,6 @@ class Model:
 
         # probe detector
         self.probeDetectors = []
-
-        # Reticle metadata
-        self.reticle_metadata = {}
 
         # clicked pts, max len = 2 for triangulation
         self.clicked_pts = OrderedDict()
@@ -429,38 +428,41 @@ class Model:
     # Reticle Metadata
     # =========================
 
-    def add_reticle_metadata(self, reticle_name, metadata):
-        """Add reticle metadata.
+    def add_reticle_metadata(self, reticle_name: str, metadata: ReticleMetadataSchema):
+        """Add or update reticle metadata.
 
         Args:
             reticle_name (str): The name of the reticle.
-            metadata (dict): Metadata information for the reticle.
+            metadata (ReticleMetadataSchema): Pydantic metadata object for the reticle.
         """
-        self.reticle_metadata[reticle_name] = metadata
+        self.reticle_metadata.reticles[reticle_name] = metadata
+        ReticleManager.save_reticles(self.reticle_metadata)
 
-    def get_reticle_metadata(self, reticle_name):
+    def get_reticle_metadata(self, reticle_name: str) -> Optional[ReticleMetadataSchema]:
         """Get metadata for a specific reticle.
 
         Args:
             reticle_name (str): The name of the reticle.
 
         Returns:
-            dict: Metadata information for the reticle.
+            ReticleMetadataSchema: Metadata object for the reticle, or None if missing.
         """
-        return self.reticle_metadata.get(reticle_name, None)
+        return self.reticle_metadata.reticles.get(reticle_name, None)
 
-    def remove_reticle_metadata(self, reticle_name):
+    def remove_reticle_metadata(self, reticle_name: str):
         """Remove reticle metadata.
 
         Args:
             reticle_name (str): The name of the reticle to remove.
         """
-        if reticle_name in self.reticle_metadata.keys():
-            self.reticle_metadata.pop(reticle_name, None)
+        if reticle_name in self.reticle_metadata.reticles:
+            self.reticle_metadata.reticles.pop(reticle_name)
+            ReticleManager.save_reticles(self.reticle_metadata)
 
     def reset_reticle_metadata(self):
-        """Reset transformation matrix between local to global coordinates."""
-        self.reticle_metadata = {}
+        """Clear all reticle metadata."""
+        self.reticle_metadata.reticles.clear()
+        ReticleManager.save_reticles(self.reticle_metadata)
 
     def add_reticle_metadata_instance(self, instance):
         """Add a reticle metadata instance.
