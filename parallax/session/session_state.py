@@ -218,14 +218,14 @@ class CameraSession(BaseModel):
     probe_detect_algorithm: Optional[str] = "yolo"  # TODO: 'opencv' or 'yolo'
     coords_axis: Optional[np.ndarray] = None
     coords_debug: Optional[np.ndarray] = None
-    pos_x: Optional[Any] = None
+    pos_x: Optional[np.ndarray] = None
     params: Optional[CameraParams] = None
 
     @field_validator("coords_axis", "coords_debug", "pos_x", mode="before")
     @classmethod
     def to_numpy(cls, v):
         if isinstance(v, list):
-            return np.array(v)
+            return np.array(v, dtype=np.float64)
         return v
 
     @field_serializer("coords_axis", "coords_debug", "pos_x")
