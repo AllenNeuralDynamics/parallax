@@ -34,7 +34,7 @@ if __name__ == "__main__":
     config = ConfigManager.load()
     session = SessionManager.load()
     reticle_metadata = ReticleManager.load()
-    print("reticle_metadata:", reticle_metadata)
+    print("reticle_metadat: ", reticle_metadata)
 
     # Initialize the Qt application
     app = QApplication(sys.argv)

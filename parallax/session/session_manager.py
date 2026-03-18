@@ -20,7 +20,7 @@ from parallax.session.session_state import CameraSession, Session, StageSession
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 # =========================

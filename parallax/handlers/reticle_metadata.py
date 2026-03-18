@@ -23,12 +23,11 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QGroupBox, QLineEdit, QPushButton, QWidget
 from PyQt6.uic import loadUi
 
-from parallax.config.config_path import reticle_metadata_file, ui_dir
-from parallax.utils.rotations import define_euler_rotation
+from parallax.config.config_path import ui_dir
 from parallax.config.schemas import ReticleMetadataSchema
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ReticleMetadata(QWidget):
@@ -88,7 +87,7 @@ class ReticleMetadata(QWidget):
         if reticles:
             # Pass the dictionary to your groupbox creator
             self._create_groupbox_from_metadata(reticles)
-            self._update_to_reticle_selector()
+            self.update_to_reticle_selector()
             logger.debug("Successfully loaded reticle metadata from model.")
         else:
             logger.debug("No reticle metadata found in the model. Starting fresh.")
@@ -262,9 +261,9 @@ class ReticleMetadata(QWidget):
             self.model.add_reticle_metadata(name, meta)
 
         # Reflash drop down menu
-        self._update_to_reticle_selector()
+        self.update_to_reticle_selector()
 
-    def _update_to_reticle_selector(self):
+    def update_to_reticle_selector(self):
         """
         Update the reticle selector dropdown with the latest reticle names.
         """
@@ -276,9 +275,10 @@ class ReticleMetadata(QWidget):
             self.reticle_selector.addItem(f"Global coords ({name})")
 
         # update dropdown menu with Project reticle names
-        self.reticle_selector.addItem("Proj Global coords")
-        for name in self.groupboxes.keys():
-            self.reticle_selector.addItem(f"Proj Global coords ({name})")
+        if self.model.session.reticle_detection_status == "accepted":
+            self.reticle_selector.addItem("Proj Global coords")
+            for name in self.groupboxes.keys():
+                self.reticle_selector.addItem(f"Proj Global coords ({name})")
 
     def default_reticle_selector(self):
         """
