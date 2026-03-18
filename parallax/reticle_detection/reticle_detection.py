@@ -105,14 +105,6 @@ class ReticleDetection:
         if img is None:
             return False, inlier_lines, inlier_pixels
 
-        # Draw the centroids for debug
-        """
-        if len(img.shape) == 2:  # Grayscale image
-            img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        else:  # Color image
-            img_color = img.copy()
-        """
-
         contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not running_flag():
             logger.debug(f"{self.name} ransac_detect_lines - stop running while searching for lines.")
@@ -124,8 +116,8 @@ class ReticleDetection:
             return False, inlier_lines, inlier_pixels
 
         max_trials = 500
-        residual_threshold = 2
-        counter = 20
+        residual_threshold = 5
+        counter = 30
         while len(inlier_lines) < 2 and counter > 0:
             counter -= 1
             logger.debug(
@@ -146,24 +138,38 @@ class ReticleDetection:
                 )
             inlier_points = centroids[inliers]
             if len(inlier_points) >= 20:
-                logger.debug(f"residual_threshold: {residual_threshold}")
-                inlier_pixels.append(inlier_points)
+                # 1. We have a 'seed' line. Now, let's find EVERY point
+                # in the original 'centroids' that fits this model.
+                # LineModelND.residuals(points) calculates distance to the line.
+                all_distances = model_robust.residuals(centroids)
+
+                # 2. Grab all points within 7 pixels of this infinite line
+                refined_inlier_mask = all_distances < 7.0
+                all_line_points = centroids[refined_inlier_mask]
+
+                logger.debug(f"Expanded line from {len(inlier_points)} to {len(all_line_points)} points")
+
+                # 3. Store the expanded point set
+                inlier_pixels.append(all_line_points)
                 inlier_lines.append(model_robust)
-                centroids = centroids[~inliers]
-                residual_threshold = 2
+
+                # 4. Remove ALL those points so we don't detect the same line again
+                centroids = centroids[~refined_inlier_mask]
+
+                # 5. Reset for the second line
+                residual_threshold = 5
+                counter = 30
+
+                if logger.isEnabledFor(logging.DEBUG):
+                    img_remain = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
+                    for pt in centroids:
+                        draw_pt = (int(round(pt[0])), int(round(pt[1])))
+                        cv2.circle(img_remain, draw_pt, 3, (0, 255, 255), -1)
+                    cv2.imwrite(f"debug/remaining_points_after_line_{len(inlier_lines)}.jpg", img_remain)
             else:
                 if residual_threshold <= 15:
                     residual_threshold += 1
                 continue
-
-        # Draw the centroids for debug
-        # if logger level is debug
-        if logger.isEnabledFor(logging.DEBUG):
-            img_debug = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR).copy()
-            for points in inlier_pixels:
-                for point in points:
-                    cv2.circle(img_debug, (int(point[0]), int(point[1])), 5, (0, 0, 255), -1)  # Draw green circles
-            cv2.imwrite(f"debug/centroid_{counter}.jpg", img_debug)
 
         return len(inlier_lines) == 2, inlier_lines, inlier_pixels
 
@@ -198,25 +204,28 @@ class ReticleDetection:
 
         x_intersect = (intercept2 - intercept1) / (slope1 - slope2)
         y_intersect = slope1 * x_intersect + intercept1
-        return int(round(x_intersect)), int(round(y_intersect))
+        #return int(round(x_intersect)), int(round(y_intersect))
+        return x_intersect, y_intersect
 
     def _get_center_coords_index(self, center, coords):
-        """Get the index of the center coordinates in the given coordinates.
+        """Find the index of the detected coordinate closest to the intersection."""
+        if coords is None or len(coords) == 0:
+            return None
 
-        Args:
-            center (tuple): Center coordinates (x, y).
-            coords (numpy.ndarray): Array of coordinates.
+        # 1. Calculate the distance from the math center to every detected point
+        # Center is (x, y), Coords is (N, 2)
+        distances = np.linalg.norm(coords - np.array(center), axis=1)
 
-        Returns:
-            int or None: Index of the center coordinates in the coords array, None if not found.
-        """
-        x_center, y_center = center
-        for i in range(-4, 5):
-            for j in range(-4, 5):
-                test_center = np.array([x_center + i, y_center + j])
-                result = np.where((coords == test_center).all(axis=1))
-                if len(result[0]) > 0:
-                    return result[0][0]
+        # 2. Find the index of the absolute closest point
+        min_index = np.argmin(distances)
+        min_dist = distances[min_index]
+
+        # 3. If the closest point is within 10 pixels, we've found our center!
+        if min_dist <= 10.0:
+            logger.debug(f"Center lock-on: Index {min_index} at distance {min_dist:.2f}")
+            return int(min_index)
+
+        logger.debug(f"Center coordinates not found. Closest was {min_dist:.2f}px away.")
         return None
 
     def _get_pixels_interest(self, center, coords, dist=10):
@@ -253,6 +262,7 @@ class ReticleDetection:
         line1 = self._fit_line(pixels_in_lines[0])
         line2 = self._fit_line(pixels_in_lines[1])
         center_point = self._find_intersection(line1, line2)
+        print("center_point:", center_point)
 
         coords_interest = []
         for pixels_in_line in pixels_in_lines:
@@ -318,8 +328,8 @@ class ReticleDetection:
 
             M = cv2.moments(contour)
             if M["m00"] != 0:
-                cX = int(M["m10"] / M["m00"])
-                cY = int(M["m01"] / M["m00"])
+                cX = M["m10"] / M["m00"]  # sub-pixel precision centroid calculation
+                cY = M["m01"] / M["m00"]
                 centroids.append([cX, cY])
         return centroids
 
@@ -445,7 +455,7 @@ class ReticleDetection:
                 # Otherwise, sort by y-coordinate
                 full_line_pixels = full_line_pixels[full_line_pixels[:, 1].argsort()]
 
-            full_line_pixels = np.around(full_line_pixels).astype(int)
+            #full_line_pixels = np.around(full_line_pixels).astype(int)
             refined_pixels.append(full_line_pixels)
 
             # Draw missing points
@@ -483,14 +493,14 @@ class ReticleDetection:
             proj_lengths = np.dot(to_pixels, direction) / np.linalg.norm(direction) ** 2
             proj_points = np.outer(proj_lengths, direction) + origin
 
-            proj_points = np.round(proj_points).astype(int)
+            #proj_points = np.round(proj_points).astype(int)
             refined_pixels.append(proj_points)
 
         # Draw
         for refined_pixels_per_line in refined_pixels:
             for pixel in refined_pixels_per_line:
-                pt = tuple(pixel)
-                cv2.circle(bg, pt, 3, (255, 0, 0), -1)
+                draw_pt = (int(round(pixel[0])), int(round(pixel[1])))
+                cv2.circle(bg, draw_pt, 3, (255, 0, 0), -1)
         # cv2.imwrite("debug/refined_pixels.jpg", bg)
         return bg, lines, refined_pixels
 
@@ -553,18 +563,20 @@ class ReticleDetection:
         if not running_flag():
             return False, img, [], []
 
-        # cv2.imwrite("debug/after_eroding.jpg", img)
+        if logger.isEnabledFor(logging.DEBUG):
+            cv2.imwrite("debug/after_eroding.jpg", img)
         ret, inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img, running_flag)
         logger.debug(f"n of inliner lines: {len(inliner_lines_pixels)}")
         if not running_flag():
             return False, img, [], []
 
         # Draw
-        for inliner_lines_pixel in inliner_lines_pixels:
-            for pixel in inliner_lines_pixel:
-                pt = tuple(pixel)
-                cv2.circle(img_color, pt, 1, (0, 255, 0), -1)
-        # cv2.imwrite("debug/inliner_pixels.jpg", img_color)
+        if logger.isEnabledFor(logging.DEBUG):
+            for inliner_lines_pixel in inliner_lines_pixels:
+                for pixel in inliner_lines_pixel:
+                    pt = (int(round(pixel[0])), int(round(pixel[1])))
+                    cv2.circle(img_color, pt, 1, (0, 255, 0), -1)
+            cv2.imwrite(f"debug/inliner_pixels.jpg", img_color)
 
         return ret, img, inliner_lines, inliner_lines_pixels
 
@@ -588,9 +600,11 @@ class ReticleDetection:
 
             if len(pixels_in_lines) == 2:
                 for pt in pixels_in_lines[0]:
-                    cv2.circle(img_, tuple(pt), 2, (0, 255, 0), -1)
+                    draw_pt = (int(round(pt[0])), int(round(pt[1])))
+                    cv2.circle(img_, draw_pt, 2, (0, 255, 255), -1)
                 for pt in pixels_in_lines[1]:
-                    cv2.circle(img_, tuple(pt), 1, (255, 0, 0), -1)
+                    draw_pt = (int(round(pt[0])), int(round(pt[1])))
+                    cv2.circle(img_, draw_pt, 2, (255, 0, 255), -1)
 
             cv2.imwrite(f"debug/{filename}.jpg", img_)
         else:
