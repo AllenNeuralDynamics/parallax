@@ -185,10 +185,10 @@ def get_projected_points(objpoints, rvec, tvec, mtx, dist):
         mtx (np.ndarray): Camera intrinsic matrix (3x3).
         dist (np.ndarray): Distortion coefficients (1x5).
     Returns:
-        np.ndarray: Projected 2D image points (N x 1 x 2) rounded to integer coordinates.
+        np.ndarray: Projected 2D image points (N x 1 x 2) rounded to float coordinates.
     """
     imgpoints, _ = cv2.projectPoints(objpoints, rvec, tvec, mtx, dist)
-    return np.round(imgpoints.reshape(-1, 2)).astype(np.int32)
+    return imgpoints.reshape(-1, 2)
 
 
 def get_axis_object_points(axis="x", coord_range=10, world_scale=0.2):
@@ -213,7 +213,7 @@ def get_axis_object_points(axis="x", coord_range=10, world_scale=0.2):
     else:
         raise ValueError("axis must be 'x' or 'y'")
 
-    return np.round(points * world_scale, 2)
+    return (points * world_scale).astype(np.float32)
 
 
 def get_origin_xyz(imgpoints, mtx, dist, rvecs, tvecs, center_index_x=0, axis_length=5):

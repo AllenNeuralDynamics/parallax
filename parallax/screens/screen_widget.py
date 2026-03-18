@@ -366,7 +366,6 @@ class ScreenWidget(pg.GraphicsView):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
         print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {camera_matrix.rvec}\ntvecs: {camera_matrix.tvec}")
         coords = np.array([x_coords, y_coords])
-        print(f"Reticle coords (x, y) for {self.camera_name}:\n{coords}")
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_params(self.camera_name, camera_matrix)
 

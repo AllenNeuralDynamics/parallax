@@ -573,12 +573,12 @@ class Model:
         for cam in self.session.cameras.values():
             cam.coords_axis = None
 
-    def add_coords_for_debug(self, sn, coords):
+    def add_coords_for_debug(self, sn: str, coords: np.ndarray) -> None:
         """Add debug coordinates for a specific camera."""
         if sn in self.session.cameras:
             self.session.cameras[sn].coords_debug = coords
 
-    def get_coords_for_debug(self, sn):
+    def get_coords_for_debug(self, sn: str) -> Optional[np.ndarray]:
         """Get debug coordinates for a specific camera."""
         cam = self.session.cameras.get(sn)
         return cam.coords_debug if cam else None
@@ -636,7 +636,7 @@ class Model:
     # =========================
     # positive x-axis definition
     # =========================
-    def add_pos_x(self, sn: str, pt: list):
+    def add_pos_x(self, sn: str, pt: np.ndarray):
         """
         Add position for the x-axis for a specific camera.
 

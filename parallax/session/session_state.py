@@ -217,7 +217,7 @@ class CameraSession(BaseModel):
     is_triangulation_candidate: bool = False
     probe_detect_algorithm: Optional[str] = "yolo"  # TODO: 'opencv' or 'yolo'
     coords_axis: Optional[np.ndarray] = None
-    coords_debug: Optional[Any] = None
+    coords_debug: Optional[np.ndarray] = None
     pos_x: Optional[Any] = None
     params: Optional[CameraParams] = None
 
