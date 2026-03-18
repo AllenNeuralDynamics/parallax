@@ -545,13 +545,26 @@ class Model:
 
         self.save_session()
 
-    def add_coords_axis(self, sn, coords):
-        """Add axis coordinates for a specific camera."""
+    def add_coords_axis(self, sn: str, coords: np.ndarray) -> None:
+        """
+        Add axis coordinates for a specific camera.
+
+        Args:
+            sn (str): The camera serial number or identifier.
+            coords (np.ndarray): The (2, N, 2) array containing X and Y axis pixel coordinates.
+        """
         if sn in self.session.cameras:
             self.session.cameras[sn].coords_axis = coords
 
-    def get_coords_axis(self, sn):
-        """Get axis coordinates for a specific camera."""
+    def get_coords_axis(self, sn: str) -> Optional[np.ndarray]:
+        """
+        Get axis coordinates for a specific camera.
+
+        Args:
+            sn (str): The camera serial number or identifier.
+        Returns:
+            Optional[np.ndarray]: The axis coordinates for the camera, or None if not set.
+        """
         cam = self.session.cameras.get(sn)
         return cam.coords_axis if cam else None
 

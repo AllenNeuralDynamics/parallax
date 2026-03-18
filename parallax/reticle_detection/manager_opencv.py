@@ -19,7 +19,7 @@ from parallax.reticle_detection.reticle_detection import ReticleDetection
 from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 IMG_SIZE_ORIGINAL = (4000, 3000)
 

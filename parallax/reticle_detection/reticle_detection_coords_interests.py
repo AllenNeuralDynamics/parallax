@@ -54,9 +54,10 @@ class ReticleDetectCoordsInterest:
         # Calculate intersection point
         x_intersect = (intercept2 - intercept1) / (slope1 - slope2)
         y_intersect = slope1 * x_intersect + intercept1
-        return int(round(x_intersect)), int(round(y_intersect))
+        #return int(round(x_intersect)), int(round(y_intersect))
+        return x_intersect, y_intersect
 
-    def _get_center_coords_index(self, center, coords):
+    def _get_center_coords_index_(self, center, coords):
         """Get the index of the center coordinates in the given coordinates.
 
         Args:
@@ -73,6 +74,30 @@ class ReticleDetectCoordsInterest:
                 result = np.where((coords == test_center).all(axis=1))
                 if len(result[0]) > 0:  # Check if the element was found
                     return result[0][0]  # Return the first occurrence index
+        return None
+
+    def _get_center_coords_index(self, center, coords):
+        """Find the index of the coordinate closest to the intersection."""
+        if coords is None or len(coords) == 0:
+            return None
+
+        # 1. Convert center to a numpy array for vector math
+        center_arr = np.array(center)
+
+        # 2. Calculate the Euclidean distance from the math center to every detected point
+        # This replaces the nested loops and works perfectly with floats!
+        distances = np.linalg.norm(coords - center_arr, axis=1)
+
+        # 3. Find the index of the absolute closest point
+        min_index = np.argmin(distances)
+        min_dist = distances[min_index]
+
+        # 4. Use a tolerance threshold (10.0 pixels is safe for reticles)
+        if min_dist <= 10.0:
+            logger.debug(f"Center lock-on: Index {min_index} at distance {min_dist:.2f}")
+            return int(min_index)
+
+        logger.debug(f"Center not found. Closest dot was {min_dist:.2f}px away.")
         return None
 
     def _get_pixels_interest(self, center, coords):

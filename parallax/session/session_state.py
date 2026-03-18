@@ -216,7 +216,7 @@ class CameraSession(BaseModel):
     device_model: Optional[str] = None
     is_triangulation_candidate: bool = False
     probe_detect_algorithm: Optional[str] = "yolo"  # TODO: 'opencv' or 'yolo'
-    coords_axis: Optional[Any] = None
+    coords_axis: Optional[np.ndarray] = None
     coords_debug: Optional[Any] = None
     pos_x: Optional[Any] = None
     params: Optional[CameraParams] = None
@@ -232,8 +232,6 @@ class CameraSession(BaseModel):
     def serialize_numpy(self, v: Any, _info):
         if isinstance(v, np.ndarray):
             return v.tolist()
-        if isinstance(v, list):
-            return [item.tolist() if isinstance(item, np.ndarray) else item for item in v]
         return v
 
 

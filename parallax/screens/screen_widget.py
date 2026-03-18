@@ -9,6 +9,7 @@ import logging
 
 import cv2
 import numpy as np
+from parallax.session.session_state import CameraParams
 import pyqtgraph as pg
 from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -34,8 +35,6 @@ class ScreenWidget(pg.GraphicsView):
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
     reticle_coords_detect_finished = pyqtSignal()
-    # camera name, timestamp, sn, stage_info, pixel_coords
-    # probe_coords_detected = pyqtSignal(str, float, float, str, dict, tuple, tuple)
     probe_coords_detected = pyqtSignal(str)
 
     def __init__(self, camera, model=None, parent=None):
@@ -363,10 +362,11 @@ class ScreenWidget(pg.GraphicsView):
         frame = self.probeDetector.get_frame()
         return frame
 
-    def found_reticle_coords(self, x_coords, y_coords, camera_matrix):
+    def found_reticle_coords(self, x_coords: np.ndarray, y_coords: np.ndarray, camera_matrix: CameraParams):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
         print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {camera_matrix.rvec}\ntvecs: {camera_matrix.tvec}")
-        coords = [x_coords, y_coords]
+        coords = np.array([x_coords, y_coords])
+        print(f"Reticle coords (x, y) for {self.camera_name}:\n{coords}")
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_params(self.camera_name, camera_matrix)
 

@@ -74,16 +74,20 @@ class AxisFilter(QObject):
             if self.reticle_coords is not None:
                 for reticle_coords in self.reticle_coords:
                     for pt in reticle_coords:
-                        cv2.circle(self.frame, tuple(pt), 4, (155, 155, 50), -1)
-                    first_pt = reticle_coords[0]
-                    last_pt = reticle_coords[-1]
-                    cv2.circle(self.frame, tuple(first_pt), 12, (255, 255, 0), -1)
-                    cv2.circle(self.frame, tuple(last_pt), 12, (255, 255, 0), -1)
+                        draw_pt = (int(round(pt[0])), int(round(pt[1])))
+                        cv2.circle(self.frame, draw_pt, 4, (155, 155, 50), -1)
+                    first_pt_float = reticle_coords[0]
+                    last_pt_float = reticle_coords[-1]
+                    first_pt = (int(round(first_pt_float[0])), int(round(first_pt_float[1])))
+                    last_pt = (int(round(last_pt_float[0])), int(round(last_pt_float[1])))
+                    cv2.circle(self.frame, first_pt, 12, (255, 255, 0), -1)
+                    cv2.circle(self.frame, last_pt, 12, (255, 255, 0), -1)
 
             pos_x = self.model.get_pos_x(self.name)
             if pos_x is not None:
                 logger.info(f"{self.name} pos_x: {pos_x}")
-                cv2.circle(self.frame, tuple(pos_x), 15, (255, 0, 0), -1)
+                draw_pt = (int(round(pos_x[0])), int(round(pos_x[1])))
+                cv2.circle(self.frame, draw_pt, 15, (255, 0, 0), -1)
 
             self.frame_processed.emit(self.frame)
 
