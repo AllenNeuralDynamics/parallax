@@ -246,7 +246,6 @@ class ScreenSetting(QWidget):
 
     def _setup_white_balance_auto(self):
         def on_sync():
-            current_mode = self.model_config.wbAuto
             new_state = "Off" if self.model_config.wbAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":
                 self.hw.set_wb_auto_mode("Continuous")

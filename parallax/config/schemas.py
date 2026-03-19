@@ -1,9 +1,10 @@
 # parallax/config/schemas.py
-import numpy as np
 from pathlib import Path
-from typing import Dict, List, Literal
+from typing import Dict, Literal
 
-from pydantic import BaseModel, Field, computed_field, model_validator, ConfigDict
+import numpy as np
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+
 from parallax.utils.rotations import define_euler_rotation
 
 

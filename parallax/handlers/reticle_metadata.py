@@ -222,7 +222,7 @@ class ReticleMetadata(QWidget):
         # 1. Harvest and Validate the UI input
         for org_name, group_box in list(self.groupboxes.items()):
             name = group_box.findChild(QLineEdit, "lineEditName").text().strip()
-            
+
             if not name:
                 logger.error("Error: A reticle name field is empty.")
                 return

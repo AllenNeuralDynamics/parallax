@@ -9,7 +9,6 @@ import logging
 
 import cv2
 import numpy as np
-from parallax.session.session_state import CameraParams
 import pyqtgraph as pg
 from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -19,6 +18,7 @@ from parallax.reticle_detection.manager_cnn import ReticleDetectManagerCNN
 from parallax.reticle_detection.manager_opencv import ReticleDetectManager
 from parallax.screens.axis_filter import AxisFilter
 from parallax.screens.no_filter import NoFilter
+from parallax.session.session_state import CameraParams
 
 # Set logger name
 logger = logging.getLogger(__name__)

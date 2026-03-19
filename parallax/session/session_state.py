@@ -215,7 +215,7 @@ class CameraSession(BaseModel):
     visible: bool = True
     device_model: Optional[str] = None
     is_triangulation_candidate: bool = False
-    probe_detect_algorithm: Optional[str] = "yolo"  # TODO: 'opencv' or 'yolo'
+    probe_detect_algorithm: Literal["opencv", "yolo"] = "yolo"
     coords_axis: Optional[np.ndarray] = None
     coords_debug: Optional[np.ndarray] = None
     pos_x: Optional[np.ndarray] = None

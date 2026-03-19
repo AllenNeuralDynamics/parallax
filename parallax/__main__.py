@@ -11,8 +11,8 @@ from PyQt6.QtWidgets import QApplication
 from parallax import __version__
 from parallax.config.cli import parse_args, print_arg_info
 from parallax.config.config_manager import ConfigManager
-from parallax.config.reticle_manager import ReticleManager
 from parallax.config.config_path import PARALLAX_ASCII, setup_logging
+from parallax.config.reticle_manager import ReticleManager
 from parallax.main_window import MainWindow
 from parallax.model import Model
 from parallax.session.session_manager import SessionManager
@@ -34,7 +34,6 @@ if __name__ == "__main__":
     config = ConfigManager.load()
     session = SessionManager.load()
     reticle_metadata = ReticleManager.load()
-    print("reticle_metadat: ", reticle_metadata)
 
     # Initialize the Qt application
     app = QApplication(sys.argv)

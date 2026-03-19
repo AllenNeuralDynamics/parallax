@@ -576,7 +576,7 @@ class ReticleDetection:
                 for pixel in inliner_lines_pixel:
                     pt = (int(round(pixel[0])), int(round(pixel[1])))
                     cv2.circle(img_color, pt, 1, (0, 255, 0), -1)
-            cv2.imwrite(f"debug/inliner_pixels.jpg", img_color)
+            cv2.imwrite("debug/inliner_pixels.jpg", img_color)
 
         return ret, img, inliner_lines, inliner_lines_pixels
 

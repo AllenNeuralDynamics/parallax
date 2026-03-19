@@ -161,7 +161,7 @@ class AxisFilter(QObject):
             self.pos_x = min(pts, key=lambda pt: self.squared_distance(pt, input_pt))
 
             # sort the reticle points and register to the model
-            logger.debug(f"\n---")
+            logger.debug("\n---")
             logger.debug(f"-x: {self.reticle_coords[0][0]}, +x: {self.reticle_coords[0][-1]}")
             logger.debug(f"-y: {self.reticle_coords[1][0]}, +y: {self.reticle_coords[1][-1]}")
             self.sort_reticle_points()

@@ -9,7 +9,6 @@ import yaml
 from parallax.config.config_path import reticle_metadata_file  # Assuming you define this path
 from parallax.config.schemas import ReticleConfig
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -35,8 +34,8 @@ class ReticleManager:
         try:
             with open(cls.reticle_file, "r") as file:
                 raw_data = yaml.safe_load(file) or {}
-                
-            # Parse into Pydantic. Because of populate_by_name=True, 
+
+            # Parse into Pydantic. Because of populate_by_name=True,
             # this works whether the YAML uses 'lineEditRot' or 'rot'!
             cls._data = ReticleConfig(**raw_data)
             return cls._data
@@ -55,13 +54,13 @@ class ReticleManager:
         """Persists to YAML and updates the cache."""
         try:
             cls._data = config
-            
-            # by_alias=False ensures it saves using your clean variable names 
+
+            # by_alias=False ensures it saves using your clean variable names
             # (e.g. 'rot') instead of the old UI names (e.g. 'lineEditRot')
-            data = config.model_dump(by_alias=False) 
-            
+            data = config.model_dump(by_alias=False)
+
             with open(cls.reticle_file, "w") as file:
                 yaml.dump(data, file, default_flow_style=False, sort_keys=False)
-                
+
         except Exception as e:
             logger.error(f"Failed to save reticle settings: {e}")
