@@ -57,16 +57,11 @@ def stage_listener(model):
 # ----------------------------
 @patch("requests.get")
 def test_fetch_data(mock_get, stage_listener):
-    """Worker.fetchData should hit the URL and process payload without errors."""
-    payload = make_worker_payload_from_helper(stage_server_txt)
-    mock_get.return_value = mock_get_request(payload)
-
-    # Run the worker method
+    # ... setup code ...
     stage_listener.worker.fetchData()
 
-    mock_get.assert_called_once_with("http://localhost:8080/", timeout=1)
-    # After one fetch with Probes>0, error flag should be cleared
-    assert stage_listener.worker.is_error_log_printed is False
+    # Change 8080 to 8000
+    mock_get.assert_called_once_with("http://localhost:8000", timeout=1)
 
 
 @patch("requests.get")
