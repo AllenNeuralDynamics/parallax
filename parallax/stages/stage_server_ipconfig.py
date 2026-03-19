@@ -32,8 +32,8 @@ class StageServerIPConfig(QWidget):
         """
         super().__init__()
         self.model = model
-        self.ip = self.model.config.pathfinder_server.ip
-        self.port = self.model.config.pathfinder_server.port
+        self.ip: str = self.model.config.pathfinder_server.ip
+        self.port: int = self.model.config.pathfinder_server.port
 
         self.ui = loadUi(os.path.join(ui_dir, "stage_server.ui"), self)
         self.setWindowTitle("Stage Server IP Configuration")
@@ -54,7 +54,7 @@ class StageServerIPConfig(QWidget):
         self.ui.lineEdit_port.setText(str(self.port))
         logger.info(f"Loaded Stage Server IP: {self.ip}, Port: {self.port}")
 
-    def _is_url_updated(self, ip, port):
+    def _is_url_updated(self, ip: str, port: int) -> bool:
         """
         Check if the URL and port have been updated.
 
@@ -69,16 +69,20 @@ class StageServerIPConfig(QWidget):
         logger.debug(f"New IP: {ip}, New Port: {port}")
         return self.ip != ip or self.port != port
 
-    def _get_stages_listener_url(self):
+    def _get_stages_listener_url(self) -> tuple[str, int]:
         """
         Retrieves the stage server's IP and port from the UI.
 
         Returns:
             tuple: The IP address and port as strings.
         """
-        ip = self.ui.lineEdit_ip.text().strip()
-        port = self.ui.lineEdit_port.text().strip()
-        return ip, port
+        try:
+            ip: str = self.ui.lineEdit_ip.text().strip()
+            port: int = int(self.ui.lineEdit_port.text().strip())
+            return ip, port
+        except ValueError as e:
+            # Handle non-integer ports or empty IPs
+            logger.error(f"Invalid server configuration input: {e}")
 
     def _is_valid_ip(self, ip, port):
         """
@@ -118,13 +122,13 @@ class StageServerIPConfig(QWidget):
         self._set_stage_listener_url(ip, port)
         return True
 
-    def _set_stage_listener_url(self, ip, port):
+    def _set_stage_listener_url(self, ip: str, port: int):
         """
         Sets the stage listener URL by combining the IP and port.
         return ip, port
         Args:
             ip (str): The IP address.
-            port (str): The port number.
+            port (int): The port number.
         """
         self.ip, self.port = ip, port
         listener_url = f"{self.ip}:{self.port}"

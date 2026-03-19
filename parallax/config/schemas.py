@@ -1,9 +1,9 @@
 # parallax/config/schemas.py
 from pathlib import Path
-from typing import Dict, Literal
+from typing import Any, Dict, Literal
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator, field_validator
 
 from parallax.utils.rotations import define_euler_rotation
 
@@ -50,11 +50,19 @@ class PathfinderServerSettings(BaseModel):
     ip: str = "http://localhost"  # Default URL for pathfinder server
     port: int = 8080  # Default port for pathfinder server
 
+    @field_validator('port', mode='before')
+    @classmethod
+    def ensure_int_port(cls, v: Any) -> int:
+        """Coerces string input (from UI) into an integer."""
+        if isinstance(v, str):
+            # Clean up potential whitespace or degree symbols if any
+            return int(v.strip())
+        return v
+
     @computed_field
     @property
     def url(self) -> str:
         # Automatically joins IP and Port
-        # Removes trailing slash from IP if present to avoid http://localhost/:8080
         base_ip = self.ip.rstrip("/")
         return f"{base_ip}:{self.port}"
 
