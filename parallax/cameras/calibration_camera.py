@@ -56,9 +56,6 @@ def calibrate_camera(
     imgpoints, objpoints = process_reticle_points(x_axis, y_axis)
 
     # 3. Calibrate camera
-    # mtx: (3, 3) np array,
-    # dist: (1, 5) np array
-    # rvecs: tuples of (3, 1) np arrays, tvecs: tuples of (3, 1) np arrays
     ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
         objpoints,
         imgpoints,
@@ -213,7 +210,7 @@ def get_axis_object_points(axis="x", coord_range=10, world_scale=0.2):
     else:
         raise ValueError("axis must be 'x' or 'y'")
 
-    return (points * world_scale).astype(np.float32)
+    return np.round(points * world_scale, 2)
 
 
 def get_origin_xyz(imgpoints, mtx, dist, rvecs, tvecs, center_index_x=0, axis_length=5):
