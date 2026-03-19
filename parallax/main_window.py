@@ -23,7 +23,7 @@ from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox,
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import fira_font_dir, ui_dir
-from parallax.control_panel.control_panel import ControlPanel
+from parallax.control_panel.control_panel import ControlPanel, MenuActions
 from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
@@ -80,15 +80,21 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
-        self.control_panel = ControlPanel(  # init stages
+        # Create the action bundle in menu
+        actions = MenuActions(
+            server=self.actionServer,
+            save_info=self.actionSaveInfo,
+            trajectory=self.actionTrajectory,
+            calculator=self.actionCalculator,
+            triangulate=self.actionTriangulate,
+            reticles_metadata=self.actionReticlesMetadata
+        )
+
+        # Init the control panel
+        self.control_panel = ControlPanel(
             model=self.model,
             screen_widgets=self.screen_widget_manager.screen_widgets,
-            actionServer=self.actionServer,
-            actionSaveInfo=self.actionSaveInfo,
-            actionTrajectory=self.actionTrajectory,
-            actionCalculator=self.actionCalculator,
-            actionTriangulate=self.actionTriangulate,
-            actionReticlesMetadata=self.actionReticlesMetadata,
+            actions=actions
         )
 
         # Add to splitter

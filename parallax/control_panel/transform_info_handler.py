@@ -35,6 +35,7 @@ class TransformInfoHandler(QWidget):
         self.ry_label.setFont(QFont("Courier New", 8))
         self.rz_label.setFont(QFont("Courier New", 8))
         self.travel_label.setFont(QFont("Courier New", 8))
+        self.label_info.setFont(QFont("Courier New", 8))
 
         self.setMinimumSize(0, 200)
         self.reticle_selector_comboBox.currentIndexChanged.connect(
@@ -158,6 +159,7 @@ class TransformInfoHandler(QWidget):
             return
 
         info = self._get_transM_from_model(stage_id, reticle_name)
+        print(f" stage id: {stage_id}, reticle name: {reticle_name} info: {info}")
         if info is None:
             self.setVisible(False)
             return
@@ -170,6 +172,16 @@ class TransformInfoHandler(QWidget):
         except Exception as e:
             logger.error(f"Error displaying Transform UI: {e}")
             self.setVisible(False)
+
+    def display_msg(self, message=None):
+        """Displays a simple red warning message in the info label."""
+        if not message:
+            self.label_info.clear()
+            return
+        # Red text with a bold warning prefix
+        self.setVisible(True)
+        formatted_msg = f"<span style='color: #ff4d4d;'><b>Warning:</b> {message}</span>"
+        self.label_info.setText(formatted_msg)
 
     def _update_rz_button_state(self, stage_id):
         """Syncs the rz button enabled state with the calibration status."""

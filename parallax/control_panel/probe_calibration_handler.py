@@ -21,7 +21,7 @@ from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ProbeCalibrationHandler(QWidget):
@@ -233,10 +233,11 @@ class ProbeCalibrationHandler(QWidget):
 
         # Emit probe calibration request if selected
         if self.model.get_selected_stage_sn() == sn:
+            self.transform_info_handler.display_msg()
             self.probeCalibRequest.emit(self.stage_global_data, debug_info)
         else:
-            print(f"Stage {sn} is not selected, skipping probe calibration request.")
-            # TODO popup Qmessages for warning or show into UI.
+            msg = f"{sn} is moving, skipping calibration."
+            self.transform_info_handler.display_msg(msg)
 
     @pyqtSlot(str)
     def probe_detect_on_two_screens(self, detected_cam=None):
@@ -539,6 +540,7 @@ class ProbeCalibrationHandler(QWidget):
                 screen.run_no_filter()
         self.filter = "probe_detection"
         logger.debug(f"filter: {self.filter}")
+        print(f"Start probe detection for {self.selected_stage_id}")
 
         # UI
         self.calib_x.show()
@@ -573,7 +575,7 @@ class ProbeCalibrationHandler(QWidget):
 
         # Update related to reticle metadata
         self.reticle_metadata.update_to_reticle_selector()  # update reticle selector
-        self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata.reticles)
+        self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata.reticles)  # TODO
         if self.transMbs is None or self.arc_angle_global is None:
             return
 
@@ -655,13 +657,13 @@ class ProbeCalibrationHandler(QWidget):
         self._update_probe_angle()
         logger.debug(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
 
-        # Update reticle metadata related info
-        self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
-
         # Update into model
         self.probe_detection_status = "accepted"
         self.update_stage_info_to_model(self.selected_stage_id)
         self.model.set_calibration_status(self.selected_stage_id, True)
+
+        # Update reticle metadata related info
+        self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
 
         self.probe_calibration_btn.setStyleSheet("color: white;background-color: #84c083;")
         if not self.probe_calibration_btn.isChecked():
@@ -892,6 +894,7 @@ class ProbeCalibrationHandler(QWidget):
             curr_stage_id (str): The ID of the current stage being switched to.
         """
         logger.debug(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
+        print(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
         self.selected_stage_id = curr_stage_id
         if prev_stage_id is None or curr_stage_id is None:
             return

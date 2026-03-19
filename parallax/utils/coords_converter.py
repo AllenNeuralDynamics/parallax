@@ -163,7 +163,7 @@ def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: st
     Rm = md.rotmat
     tm = np.array([md.offset_x, md.offset_y, md.offset_z], dtype=float)
 
-    global_row = rotations.apply_inverse_affine(  # TODO: Use this library function
+    global_row = rotations.apply_inverse_affine(
         pts=bregma_pts, affine_R=Rm, translation=tm
     )
     return np.array(global_row)
@@ -197,7 +197,7 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
     if not md:
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return np.array([global_pts[0], global_pts[1], global_pts[2]])
-    Rm = md.rotmat  # This triggers your awesome @property!
+    Rm = md.rotmat
     tm = np.array([md.offset_x, md.offset_y, md.offset_z], dtype=float)
 
     try:
