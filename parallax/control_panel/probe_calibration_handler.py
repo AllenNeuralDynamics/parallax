@@ -490,8 +490,7 @@ class ProbeCalibrationHandler(QWidget):
         self.arc_angle_global, self.spin_angle = None, []
         self.transM, self.L2_err, self.dist_travel = None, None, None
         self.resetCalibRequested.emit()
-        self.reticle_metadata.default_reticle_selector()
-        self.probe_detect_default_status_ui(sn=sn)
+
         if sn is None:
             for sn in self.model.get_list_of_stage_sns():
                 self.clearRequested.emit(sn)
@@ -503,6 +502,9 @@ class ProbeCalibrationHandler(QWidget):
             for sn in self.model.get_list_of_stage_sns():
                 self.model.reset_stage_calib_info(sn)
                 self.model.reset_stage_obj_info(sn)
+
+        self.probe_detect_default_status_ui(sn=sn)
+        self.reticle_metadata.update_to_reticle_selector()  # update reticle selector
 
     def probe_detect_process_status(self):
         """
@@ -570,7 +572,7 @@ class ProbeCalibrationHandler(QWidget):
             return
 
         # Update related to reticle metadata
-        self.reticle_metadata.load_metadata()
+        self.reticle_metadata.update_to_reticle_selector()  # update reticle selector
         self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata.reticles)
         if self.transMbs is None or self.arc_angle_global is None:
             return

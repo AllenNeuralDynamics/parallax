@@ -14,11 +14,9 @@ Key features:
 - Provides methods for retrieving global coordinates with specific reticle adjustments.
 """
 
-import json
 import logging
 import os
 
-import numpy as np
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QGroupBox, QLineEdit, QPushButton, QWidget
 from PyQt6.uic import loadUi
@@ -77,20 +75,15 @@ class ReticleMetadata(QWidget):
         # Update reticle selector
         self.model.add_reticle_metadata_instance(self)
 
-    def load_metadata(self):
-        """
-        Load reticle metadata directly from the application model and populate the UI.
-        """
-        # Get the dictionary of ReticleMetadataSchema objects from the model
-        reticles = self.model.reticle_metadata.reticles
 
+    def showEvent(self, event):
+        """
+        Triggered automatically whenever self.show() is called.
+        """
+        super().showEvent(event)
+        reticles = self.model.reticle_metadata.reticles
         if reticles:
-            # Pass the dictionary to your groupbox creator
             self._create_groupbox_from_metadata(reticles)
-            self.update_to_reticle_selector()
-            logger.debug("Successfully loaded reticle metadata from model.")
-        else:
-            logger.debug("No reticle metadata found in the model. Starting fresh.")
 
     def _create_groupbox_from_metadata(self, reticles_dict):
         """Create groupboxes from the model's metadata dictionary."""
@@ -271,32 +264,14 @@ class ReticleMetadata(QWidget):
         self.reticle_selector.addItem("Global coords")
 
         # update dropdown menu with reticle names
-        for name in self.groupboxes.keys():
-            self.reticle_selector.addItem(f"Global coords ({name})")
+        if self.model.is_calibrated(self.model.get_selected_stage_sn()):
+            for name in self.groupboxes.keys():
+                self.reticle_selector.addItem(f"Global coords ({name})")
 
         # update dropdown menu with Project reticle names
         if self.model.session.reticle_detection_status == "accepted":
             self.reticle_selector.addItem("Proj Global coords")
-            for name in self.groupboxes.keys():
-                self.reticle_selector.addItem(f"Proj Global coords ({name})")
+            if self.model.is_calibrated(self.model.get_selected_stage_sn()):
+                for name in self.groupboxes.keys():
+                    self.reticle_selector.addItem(f"Proj Global coords ({name})")
 
-    def default_reticle_selector(self):
-        """
-        Reset the reticle selector to its default state and clear all reticles.
-        """
-        # Iterate over the added sgroup boxes and remove each one from the layout
-        for name, group_box in self.groupboxes.items():
-            self.ui.verticalLayout.removeWidget(group_box)
-            group_box.deleteLater()  # Properly delete the widget
-        self.resize(self.default_size)
-
-        # Clear the dictionary after removing all group boxes
-        self.groupboxes.clear()
-        # Register in the model
-        self.model.reset_reticle_metadata()  # Reset model (which automatically clears and saves!)
-
-        # Clear and reset the reticle_selector
-        self.reticle_selector.clear()
-        self.reticle_selector.addItem("Global coords")
-        if self.model.session.reticle_detection_status == "accepted":
-            self.reticle_selector.addItem("Proj Global coords")
