@@ -1,5 +1,6 @@
 # tests/test_stage_widget.py
 from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtWidgets import QWidget
@@ -68,6 +69,7 @@ def patch_heavy_dependencies(monkeypatch):
         self.global_coords_y = Mock()
         self.global_coords_z = Mock()
         self.stage_server_ipconfig_btn = _DummyButton()
+        self.snapshot_btn = _DummyButton()
         return self
 
     monkeypatch.setattr("parallax.control_panel.control_panel.loadUi", fake_loadUi)
@@ -186,8 +188,15 @@ def screen_widgets():
 
 @pytest.fixture(scope="function")
 def stage_widget(qtbot, mock_model, screen_widgets):
-    from parallax.control_panel.control_panel import ControlPanel, ControlActions
-    actions = ControlActions()
+    from parallax.control_panel.control_panel import ControlPanel, MenuActions
+    actions = MenuActions(
+        server=MagicMock(),
+        save_info=MagicMock(),
+        trajectory=MagicMock(),
+        calculator=MagicMock(),
+        triangulate=MagicMock(),
+        reticles_metadata=MagicMock()
+    )
     widget = ControlPanel(mock_model, screen_widgets, actions)
     qtbot.addWidget(widget)  # safe teardown
     return widget
