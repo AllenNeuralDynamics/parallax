@@ -104,7 +104,7 @@ class ScreenCoordsMapper:
     def reticle_detection_status_change(self):
         """Change the reticle detection status and update the dropdown accordingly."""
         if self.model.session.reticle_detection_status == "accepted":
-            if hasattr(self.model, 'reticle_metadata_instance'):
+            if hasattr(self.model, "reticle_metadata_instance"):
                 self.model.reticle_metadata_instance.update_to_reticle_selector()
 
     def _apply_reticle_adjustments(self, global_pts):

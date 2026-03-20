@@ -102,7 +102,7 @@ class ProbeCalibrationHandler(QWidget):
         self.probe_calibration_btn.setEnabled(False)
         self.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
 
-        self.selected_stage_id = self.model.get_selected_stage_sn()   # TODO get it from model
+        self.selected_stage_id = self.model.get_selected_stage_sn()  # TODO get it from model
 
         # Hide X, Y, and Z Buttons in Probe Detection
         self.calib_x.hide()
@@ -929,4 +929,3 @@ class ProbeCalibrationHandler(QWidget):
         elif probe_detection_status == "accepted":
             self.apply_probe_calibration_status()
         self.probe_detection_status = probe_detection_status
-

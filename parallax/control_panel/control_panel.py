@@ -31,9 +31,11 @@ from parallax.stages.stage_ui import StageUI
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
+
 @dataclass
 class MenuActions:
     """Container for UI actions to simplify dependency injection."""
+
     server: Optional[QAction] = None
     save_info: Optional[QAction] = None
     trajectory: Optional[QAction] = None
@@ -41,15 +43,11 @@ class MenuActions:
     triangulate: Optional[QAction] = None
     reticles_metadata: Optional[QAction] = None
 
+
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
-    def __init__(
-        self,
-        model,
-        screen_widgets: List[QWidget],
-        actions: MenuActions
-    ):
+    def __init__(self, model, screen_widgets: List[QWidget], actions: MenuActions):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
@@ -71,16 +69,13 @@ class ControlPanel(QWidget):
         """Initialize sub-components (Single Source of Truth)."""
         # Handler 1: Reticle Detection
         self.reticle_handler = ReticleDetecthandler(
-            self.model,
-            self.screen_widgets,
-            self.filter,
-            self.actions.triangulate
+            self.model, self.screen_widgets, self.filter, self.actions.triangulate
         )
 
         # Handler 2: Transformation Info (Displays data from model)
         self.transform_info_handler = TransformInfoHandler(
             self.model,
-            self.reticle_selector  # PyQt Dropdown menu
+            self.reticle_selector,  # PyQt Dropdown menu
         )
 
         # Handler 3: Probe Calibration (Orchestrates the calibration flow)

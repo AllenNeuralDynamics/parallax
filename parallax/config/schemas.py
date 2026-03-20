@@ -50,7 +50,7 @@ class PathfinderServerSettings(BaseModel):
     ip: str = "http://localhost"  # Default URL for pathfinder server
     port: int = 8080  # Default port for pathfinder server
 
-    @field_validator('port', mode='before')
+    @field_validator("port", mode="before")
     @classmethod
     def ensure_int_port(cls, v: Any) -> int:
         """Coerces string input (from UI) into an integer."""
@@ -91,6 +91,7 @@ class ReticleMetadataSchema(BaseModel):
         if self.rot == 0.0:
             return np.eye(3)
         return define_euler_rotation(0, 0, self.rot, degrees=True).as_matrix()
+
 
 class ReticleConfig(BaseModel):
     reticles: Dict[str, ReticleMetadataSchema]

@@ -163,9 +163,7 @@ def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: st
     Rm = md.rotmat
     tm = np.array([md.offset_x, md.offset_y, md.offset_z], dtype=float)
 
-    global_row = rotations.apply_inverse_affine(
-        pts=bregma_pts, affine_R=Rm, translation=tm
-    )
+    global_row = rotations.apply_inverse_affine(pts=bregma_pts, affine_R=Rm, translation=tm)
     return np.array(global_row)
 
 

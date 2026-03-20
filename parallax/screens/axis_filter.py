@@ -114,9 +114,9 @@ class AxisFilter(QObject):
             # +y: self.reticle_coords[1][-1]
 
             dist_0_start = np.linalg.norm(self.reticle_coords[0][0] - self.pos_x)
-            dist_0_end   = np.linalg.norm(self.reticle_coords[0][-1] - self.pos_x)
+            dist_0_end = np.linalg.norm(self.reticle_coords[0][-1] - self.pos_x)
             dist_1_start = np.linalg.norm(self.reticle_coords[1][0] - self.pos_x)
-            dist_1_end   = np.linalg.norm(self.reticle_coords[1][-1] - self.pos_x)
+            dist_1_end = np.linalg.norm(self.reticle_coords[1][-1] - self.pos_x)
 
             min_idx = np.argmin([dist_0_start, dist_0_end, dist_1_start, dist_1_end])
 
@@ -125,15 +125,15 @@ class AxisFilter(QObject):
                 logger.debug("Clicked Start of X -> 180 degree rotation")
                 self.reticle_coords[0] = self.reticle_coords[0][::-1]
                 self.reticle_coords[1] = self.reticle_coords[1][::-1]
-            elif min_idx == 1: # Clicked End of X -> Already correct
+            elif min_idx == 1:  # Clicked End of X -> Already correct
                 logger.debug("Clicked End of X -> Already correct")
                 pass
-            elif min_idx == 2: # Clicked Start of Y -> 90 degree rotation
+            elif min_idx == 2:  # Clicked Start of Y -> 90 degree rotation
                 logger.debug("Clicked Start of Y -> 90 degree rotation")
                 tmp_x = self.reticle_coords[1][::-1].copy()
                 tmp_y = self.reticle_coords[0].copy()
                 self.reticle_coords[0], self.reticle_coords[1] = tmp_x, tmp_y
-            elif min_idx == 3: # Clicked End of Y -> -90 degree rotation
+            elif min_idx == 3:  # Clicked End of Y -> -90 degree rotation
                 logger.debug("Clicked End of Y -> -90 degree rotation")
                 tmp_x = self.reticle_coords[1].copy()
                 tmp_y = self.reticle_coords[0][::-1].copy()

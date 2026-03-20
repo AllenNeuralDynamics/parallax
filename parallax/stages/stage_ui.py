@@ -38,7 +38,7 @@ class StageUI(QWidget):
         self.ui.stage_selector.blockSignals(True)
 
         self._update_stage_selector_list()
-        self._handle_stage_change() # Initial UI state setup
+        self._handle_stage_change()  # Initial UI state setup
 
         # 2. Re-enable signals
         self.ui.stage_selector.blockSignals(False)

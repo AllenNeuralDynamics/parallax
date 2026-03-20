@@ -87,14 +87,12 @@ class MainWindow(QMainWindow):
             trajectory=self.actionTrajectory,
             calculator=self.actionCalculator,
             triangulate=self.actionTriangulate,
-            reticles_metadata=self.actionReticlesMetadata
+            reticles_metadata=self.actionReticlesMetadata,
         )
 
         # control panel - initialize handlers and connect signals
         self.control_panel = ControlPanel(
-            model=self.model,
-            screen_widgets=self.screen_widget_manager.screen_widgets,
-            actions=actions
+            model=self.model, screen_widgets=self.screen_widget_manager.screen_widgets, actions=actions
         )
 
         # Add to splitter

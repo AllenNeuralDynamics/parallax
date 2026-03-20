@@ -277,4 +277,3 @@ class ReticleMetadata(QWidget):
             if self.model.is_calibrated(self.model.get_selected_stage_sn()):
                 for name in self.groupboxes.keys():
                     self.reticle_selector.addItem(f"Proj Global coords ({name})")
-

@@ -54,7 +54,7 @@ class ReticleDetectCoordsInterest:
         # Calculate intersection point
         x_intersect = (intercept2 - intercept1) / (slope1 - slope2)
         y_intersect = slope1 * x_intersect + intercept1
-        #return int(round(x_intersect)), int(round(y_intersect))
+        # return int(round(x_intersect)), int(round(y_intersect))
         return x_intersect, y_intersect
 
     def _get_center_coords_index_(self, center, coords):

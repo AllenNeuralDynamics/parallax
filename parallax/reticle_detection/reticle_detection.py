@@ -204,7 +204,7 @@ class ReticleDetection:
 
         x_intersect = (intercept2 - intercept1) / (slope1 - slope2)
         y_intersect = slope1 * x_intersect + intercept1
-        #return int(round(x_intersect)), int(round(y_intersect))
+        # return int(round(x_intersect)), int(round(y_intersect))
         return x_intersect, y_intersect
 
     def _get_center_coords_index(self, center, coords):
@@ -455,7 +455,7 @@ class ReticleDetection:
                 # Otherwise, sort by y-coordinate
                 full_line_pixels = full_line_pixels[full_line_pixels[:, 1].argsort()]
 
-            #full_line_pixels = np.around(full_line_pixels).astype(int)
+            # full_line_pixels = np.around(full_line_pixels).astype(int)
             refined_pixels.append(full_line_pixels)
 
             # Draw missing points
@@ -493,7 +493,7 @@ class ReticleDetection:
             proj_lengths = np.dot(to_pixels, direction) / np.linalg.norm(direction) ** 2
             proj_points = np.outer(proj_lengths, direction) + origin
 
-            #proj_points = np.round(proj_points).astype(int)
+            # proj_points = np.round(proj_points).astype(int)
             refined_pixels.append(proj_points)
 
         # Draw
