@@ -159,7 +159,6 @@ class TransformInfoHandler(QWidget):
             return
 
         info = self._get_transM_from_model(stage_id, reticle_name)
-        print(f" stage id: {stage_id}, reticle name: {reticle_name} info: {info}")
         if info is None:
             self.setVisible(False)
             return
@@ -193,6 +192,16 @@ class TransformInfoHandler(QWidget):
         is_calibrated = self.model.is_calibrated(stage_id)
         if isinstance(self.rz_label, QLineEdit):
             self.rz_label.setReadOnly(not is_calibrated)
+
+    def display_default_ui(self):
+        self.R_label.setText("-")
+        self.T_label.setText("-")
+        self.rx_label.setText("-")
+        self.ry_label.setText("-")
+        self.rz_label.setText("-")
+        self.l2_label.setText("-")
+        self.travel_label.setText("-")
+        self.label_info.clear()
 
     def _display_ui(self, info):
         # 1. Update Title

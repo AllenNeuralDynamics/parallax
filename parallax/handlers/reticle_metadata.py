@@ -74,13 +74,16 @@ class ReticleMetadata(QWidget):
 
         # Update reticle selector
         self.model.add_reticle_metadata_instance(self)
-
+        self._refresh_ui_from_model()
 
     def showEvent(self, event):
         """
         Triggered automatically whenever self.show() is called.
         """
         super().showEvent(event)
+        self._refresh_ui_from_model()
+
+    def _refresh_ui_from_model(self):
         reticles = self.model.reticle_metadata.reticles
         if reticles:
             self._create_groupbox_from_metadata(reticles)
@@ -271,7 +274,6 @@ class ReticleMetadata(QWidget):
         # update dropdown menu with Project reticle names
         if self.model.session.reticle_detection_status == "accepted":
             self.reticle_selector.addItem("Proj Global coords")
-            print(f"selected stage sn: {self.model.get_selected_stage_sn()}")
             if self.model.is_calibrated(self.model.get_selected_stage_sn()):
                 for name in self.groupboxes.keys():
                     self.reticle_selector.addItem(f"Proj Global coords ({name})")

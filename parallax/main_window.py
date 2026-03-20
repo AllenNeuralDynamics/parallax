@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
             reticles_metadata=self.actionReticlesMetadata
         )
 
-        # Init the control panel
+        # control panel - initialize handlers and connect signals
         self.control_panel = ControlPanel(
             model=self.model,
             screen_widgets=self.screen_widget_manager.screen_widgets,

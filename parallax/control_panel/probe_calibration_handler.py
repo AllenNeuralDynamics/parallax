@@ -54,7 +54,6 @@ class ProbeCalibrationHandler(QWidget):
 
         self.stage_global_data = None
         self.selected_stage_id = None
-        self.stageUI = None
         self.camA_best, self.camB_best = None, None
         self.camA_params, self.camB_params = None, None
 
@@ -98,13 +97,12 @@ class ProbeCalibrationHandler(QWidget):
 
         self.probeCalibrationLabel = self.findChild(QLabel, "probeCalibrationLabel")
 
-    def init_stages(self, stageUI):
+    def init_stages(self):
         """Initializes the probe calibration handler with stage listener and UI."""
         self.probe_calibration_btn.setEnabled(False)
         self.probe_calibration_btn.clicked.connect(self.probe_detection_button_handler)
 
-        self.stageUI = stageUI
-        self.selected_stage_id = self.stageUI.get_current_stage_id()
+        self.selected_stage_id = self.model.get_selected_stage_sn()   # TODO get it from model
 
         # Hide X, Y, and Z Buttons in Probe Detection
         self.calib_x.hide()
@@ -112,7 +110,6 @@ class ProbeCalibrationHandler(QWidget):
         self.calib_z.hide()
         self.viewTrajectory_btn.hide()
         self.actionTrajectory.setEnabled(False)
-        self.transform_info_handler.setVisible(False)
 
         # Calculator Button
         self.calculation_btn.hide()
@@ -447,8 +444,7 @@ class ProbeCalibrationHandler(QWidget):
         self.hide_trajectory_btn()
         self.hide_calculation_btn()
         self.hide_reticle_metadata_btn()
-
-        self.transform_info_handler.setVisible(False)
+        self.transform_info_handler.display_default_ui()
         self.probe_calibration_btn.setChecked(False)
         if self.model.session.reticle_detection_status == "default":
             self.probe_calibration_btn.setEnabled(False)
@@ -573,8 +569,6 @@ class ProbeCalibrationHandler(QWidget):
             self.arc_angle_bregma = None
             return
 
-        # Update related to reticle metadata
-        self.reticle_metadata.update_to_reticle_selector()  # update reticle selector
         self.transMbs = get_transMs_bregma_to_local(self.transM, self.model.reticle_metadata.reticles)  # TODO
         if self.transMbs is None or self.arc_angle_global is None:
             return
@@ -653,17 +647,19 @@ class ProbeCalibrationHandler(QWidget):
             return
         if not switch_probe and self.moving_stage_id != self.selected_stage_id:
             return
-        # Update probe angle rx, ry, spin (for 4 shank probe)
+
+        # Update status
         self._update_probe_angle()
-        logger.debug(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
+        logger.debug(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}") # Update probe angle rx, ry, spin (for 4 shank probe)
+        self.probe_detection_status = "accepted"
+        self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated (reticle metadata related info)
 
         # Update into model
-        self.probe_detection_status = "accepted"
         self.update_stage_info_to_model(self.selected_stage_id)
         self.model.set_calibration_status(self.selected_stage_id, True)
 
-        # Update reticle metadata related info
-        self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated
+        # Update related to reticle metadata
+        self.reticle_metadata.update_to_reticle_selector()  # update reticle selector
 
         self.probe_calibration_btn.setStyleSheet("color: white;background-color: #84c083;")
         if not self.probe_calibration_btn.isChecked():
@@ -893,8 +889,8 @@ class ProbeCalibrationHandler(QWidget):
             prev_stage_id (str): The ID of the previous stage.
             curr_stage_id (str): The ID of the current stage being switched to.
         """
+        self.transform_info_handler.display_default_ui()
         logger.debug(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
-        print(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
         self.selected_stage_id = curr_stage_id
         if prev_stage_id is None or curr_stage_id is None:
             return
@@ -931,3 +927,4 @@ class ProbeCalibrationHandler(QWidget):
         elif probe_detection_status == "accepted":
             self.apply_probe_calibration_status()
         self.probe_detection_status = probe_detection_status
+

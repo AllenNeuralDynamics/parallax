@@ -262,3 +262,7 @@ class StageListener:
         sn = probe["SerialNumber"]
         for probeDetector in self.model.probeDetectors:
             probeDetector.enable_calibration(self.worker.last_move_detected_time + self.worker.IDLE_TIME, sn)
+
+    def update_url(self):
+        """Update the URL for the worker thread."""
+        self.worker.update_url(self.model.config.pathfinder_server.url)

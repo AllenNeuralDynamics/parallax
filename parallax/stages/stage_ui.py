@@ -30,52 +30,69 @@ class StageUI(QWidget):
         self.previous_stage_id = None
 
         # initialize UI
-        self.initialize()
+        self._initialize()
 
-        # Switch Reticle Coordinates (e.g Reticle + No Offset, Reticle + Offset..)
-        self.ui.reticle_selector.currentIndexChanged.connect(self.updateCurrentReticle)
+    def _initialize(self):
+        """Initialize the stage UI with current state."""
+        # 1. Block signals while building the list
+        self.ui.stage_selector.blockSignals(True)
 
-    def initialize(self):
-        """Initialize the stage UI with the current stage information."""
-        self.stage_selector_deactivate_actions()
-        self.update_stage_selector()
-        self.updateStageSN()
-        self.updateStageLocalCoords()
-        self.updateStageGlobalCoords()
-        self.previous_stage_id = self.get_current_stage_id()
-        self.setCurrentReticle()
-        self.stage_selector_activate_actions()
+        self._update_stage_selector_list()
+        self._handle_stage_change() # Initial UI state setup
 
-    def stage_selector_activate_actions(self):
-        """Connect signals to the stage selector."""
-        self.ui.stage_selector.currentIndexChanged.connect(self.updateStageSN)
-        self.ui.stage_selector.currentIndexChanged.connect(self.updateStageLocalCoords)
-        self.ui.stage_selector.currentIndexChanged.connect(self.updateStageGlobalCoords)
-        self.ui.stage_selector.currentIndexChanged.connect(self.sendInfoToStageWidget)
+        # 2. Re-enable signals
+        self.ui.stage_selector.blockSignals(False)
 
-    def stage_selector_deactivate_actions(self):
-        """Disconnect all signals connected to the stage selector."""
-        try:
-            self.ui.stage_selector.currentIndexChanged.disconnect(self.updateStageSN)
-            self.ui.stage_selector.currentIndexChanged.disconnect(self.updateStageLocalCoords)
-            self.ui.stage_selector.currentIndexChanged.disconnect(self.updateStageGlobalCoords)
-            self.ui.stage_selector.currentIndexChanged.disconnect(self.sendInfoToStageWidget)
-        except BaseException:
-            # If signals are not connected, ignore the error
-            pass
+        # 3. Connect to the single orchestrator
+        self.ui.stage_selector.currentIndexChanged.connect(self._handle_stage_change)
+        self.ui.reticle_selector.currentIndexChanged.connect(self._updateCurrentReticle)
 
     def update_stage_coords(self, stage_sn):
-        if stage_sn == self.get_current_stage_id():
-            self.updateStageLocalCoords()
-            self.updateStageGlobalCoords()
+        if stage_sn == self._get_current_stage_id():
+            self._updateStageLocalCoords()
+            self._updateStageGlobalCoords()
 
-    def update_stage_selector(self):
-        """Update the stage selector with available stages."""
+    def _update_stage_selector_list(self):
+        """Rebuild the dropdown items from the model."""
         self.ui.stage_selector.clear()
         for stage_sn in self.model.get_list_of_stage_sns():
-            self.ui.stage_selector.addItem("Probe " + stage_sn, stage_sn)
+            self.ui.stage_selector.addItem(f"Probe {stage_sn}", stage_sn)
 
-    def get_current_stage_id(self):
+    def _handle_stage_change(self):
+        """
+        ORCHESTRATOR: Ensures strict order of operations when stage changes.
+        """
+        # 1. Update internal Model reference first (Single Source of Truth)
+        self._updateStageSN()
+
+        # 2. Update UI Visuals
+        self._updateStageLocalCoords()
+        self._updateStageGlobalCoords()
+
+        # 3. Notify other widgets last (Downstream effects)
+        self._sendInfoToStageWidget()
+
+    def _updateStageSN(self):
+        """Syncs the selected stage SN into the model and UI label."""
+        stage_id = self._get_current_stage_id()
+        if stage_id:
+            self.selected_stage = self.model.get_stage(stage_id)
+            if self.selected_stage:
+                # Update the UI Label
+                self.ui.stage_sn.setText(f" {self.selected_stage.sn}")
+                self.model.set_selected_stage_sn(self.selected_stage.sn)
+        else:
+            self.ui.stage_sn.setText("----------")
+
+    def _sendInfoToStageWidget(self):
+        """Emits the change signal to other handlers (like ProbeCalibrationHandler)."""
+        curr_stage_id = self._get_current_stage_id()
+        # Notify handlers of the transition
+        self.prev_curr_stages.emit(self.previous_stage_id, curr_stage_id)
+        # Update tracker for the next change
+        self.previous_stage_id = curr_stage_id
+
+    def _get_current_stage_id(self):
         """Get the ID of the currently selected stage.
 
         Returns:
@@ -85,7 +102,7 @@ class StageUI(QWidget):
         stage_id = self.ui.stage_selector.itemData(currentIndex)
         return stage_id
 
-    def update_stage_widget(self, prev_stage_id, curr_stage_id):
+    def _update_stage_widget(self, prev_stage_id, curr_stage_id):
         """
         Emit a signal to notify other widgets or components about a change in the selected stage.
 
@@ -99,27 +116,16 @@ class StageUI(QWidget):
         """
         self.prev_curr_stages.emit(prev_stage_id, curr_stage_id)
 
-    def sendInfoToStageWidget(self):
+    def _sendInfoToStageWidget(self):
         """Send the selected stage information to the stage widget."""
         # Get updated stage_id
-        stage_id = self.get_current_stage_id()
-        self.update_stage_widget(self.previous_stage_id, stage_id)
+        stage_id = self._get_current_stage_id()
+        self._update_stage_widget(self.previous_stage_id, stage_id)
         self.previous_stage_id = stage_id
 
-    def updateStageSN(self):
-        """Update the displayed stage serial number."""
-        stage_id = self.get_current_stage_id()
-        if stage_id:
-            self.selected_stage = self.model.get_stage(stage_id)
-            if self.selected_stage:
-                self.ui.stage_sn.setText(" " + self.selected_stage.sn)
-                self.model.set_selected_stage_sn(self.selected_stage.sn)
-        else:
-            self.ui.stage_sn.setText("----------")
-
-    def updateStageLocalCoords(self):
+    def _updateStageLocalCoords(self):
         """Update the displayed local coordinates of the selected stage."""
-        stage_id = self.get_current_stage_id()
+        stage_id = self._get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
@@ -128,26 +134,26 @@ class StageUI(QWidget):
                 self.ui.local_coords_y.setText(str(self.selected_stage.stage_y))
                 self.ui.local_coords_z.setText(str(self.selected_stage.stage_z))
 
-    def updateCurrentReticle(self):
+    def _updateCurrentReticle(self):
         """
         Update the currently selected reticle and refresh the global coordinates display.
 
-        This method calls `setCurrentReticle` to update the currently selected reticle based on
+        This method calls `_setCurrentReticle` to update the currently selected reticle based on
         the user's selection from the reticle dropdown. If the reticle is successfully updated,
         it refreshes the displayed global coordinates for the selected stage using
         `updateStageGlobalCoords`.
         """
-        ret = self.setCurrentReticle()
+        ret = self._setCurrentReticle()
         if ret:
-            self.updateStageGlobalCoords()
+            self._updateStageGlobalCoords()
 
-    def setCurrentReticle(self):
+    def _setCurrentReticle(self):
         """
         Set the current reticle based on the user's selection in the reticle dropdown.
 
         This method retrieves the selected reticle from the reticle selector UI component. If the
         reticle name contains "Proj", it sets the reticle to "Proj" and resets the global coordinates
-        display by calling `updateStageGlobalCoords_default`. Otherwise, it extracts the reticle
+        display by calling `_updateStageGlobalCoords_default`. Otherwise, it extracts the reticle
         letter from the reticle name (e.g., "Global coords (A)") and sets it as the current reticle.
 
         Returns:
@@ -159,18 +165,18 @@ class StageUI(QWidget):
 
         if "Proj" in reticle_name:
             self.reticle = "Proj"
-            self.updateStageGlobalCoords_default()
+            self._updateStageGlobalCoords_default()
         else:
             # Extract the letter from reticle_name, assuming it has the format "Global coords (A)"
             self.reticle = reticle_name.split("(")[-1].strip(")")
         return True
 
-    def updateStageGlobalCoords(self):
+    def _updateStageGlobalCoords(self):
         """Update the displayed global coordinates of the selected stage."""
         if self.reticle == "Proj":
             return
 
-        stage_id = self.get_current_stage_id()
+        stage_id = self._get_current_stage_id()
         if stage_id:
             self.selected_stage = self.model.get_stage(stage_id)
             if self.selected_stage:
@@ -194,9 +200,9 @@ class StageUI(QWidget):
                         self.ui.global_coords_y.setText(str(y))
                         self.ui.global_coords_z.setText(str(z))
                 else:
-                    self.updateStageGlobalCoords_default()
+                    self._updateStageGlobalCoords_default()
 
-    def updateStageGlobalCoords_default(self):
+    def _updateStageGlobalCoords_default(self):
         """
         Resets the global coordinates displayed in the UI to default placeholders.
 
@@ -217,4 +223,4 @@ class StageUI(QWidget):
         if self.model.session.reticle_detection_status == "default":
             pass
             # TODO Test for camera-pairs logic
-            # self.updateStageGlobalCoords_default()  # noqa: E265
+            # self._updateStageGlobalCoords_default()  # noqa: E265

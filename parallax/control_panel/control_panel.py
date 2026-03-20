@@ -107,6 +107,12 @@ class ControlPanel(QWidget):
         # Stage Server IP Config
         self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages
 
+        # Snapshot for the stage
+        self.snapshot_handler = StageSnapshotHandler(self.model)
+
+        # Parallax's stage server 
+        self.stage_http_server = StageHttpServer(self.model)  # Stage Http Server
+
     def _setup_layouts(self):
         """Organizes sub-widgets into the main layout containers."""
         layout = self.stage_status_ui.layout()
@@ -133,6 +139,8 @@ class ControlPanel(QWidget):
         self.actions.server.triggered.connect(self.stage_server_ipconfig_btn_handler)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.refresh_stages)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.probe_calib_handler.refresh_stages)
+        self.actions.save_info.triggered.connect(self.snapshot_handler.take_snapshot)
+        self.snapshot_btn.clicked.connect(self.snapshot_handler.take_snapshot)  # UI --> snapshot
 
     def init_stages(self):
         """
@@ -150,38 +158,23 @@ class ControlPanel(QWidget):
             None
         """
         logger.debug("Initializing stages...")
-        # refresh the stage using server IP address
-        # self.stage_server_ipconfig.update_url(init=True)
-        # self.stage_server_ipconfig.refresh_stages()  # Update stages to model
-
-        # Set Stage UI and connect signals with other UIs
+        # Initialize Stage UI and Listener
         self.stageUI = StageUI(self)
+        self.stageListener = StageListener(self.model)
+        self.probe_calibration = ProbeCalibration(self.model)
+
+        # Connect signals
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
-
-        # Start refreshing stage info
-        self.stageListener = StageListener(self.model)
         self.stageListener.localDataChanged.connect(self.stageUI.update_stage_coords)  # Update UI
-
-        # probe calibration
-        self.probe_calib_handler.init_stages(self.stageUI)  # UI
-        self.probe_calibration = ProbeCalibration(self.model)
-        # Logic -> UI
-        self.probe_calibration.calib_complete.connect(self.probe_calib_handler.probe_detect_accepted_status)
-        self.probe_calibration.transM_info.connect(self.probe_calib_handler.update_probe_calib_status)
-        # UI -> Logic
-        self.probe_calib_handler.clearRequested.connect(self.probe_calibration.clear)
-        self.probe_calib_handler.resetCalibRequested.connect(self.probe_calibration.reset_calib)
-        self.probe_calib_handler.probeCalibRequest.connect(self.probe_calibration.update)
+        self.probe_calibration.calib_complete.connect(self.probe_calib_handler.probe_detect_accepted_status)  # Logic -> UI
+        self.probe_calibration.transM_info.connect(self.probe_calib_handler.update_probe_calib_status)  # Logic -> UI
+        self.probe_calib_handler.clearRequested.connect(self.probe_calibration.clear)  # UI -> Logic
+        self.probe_calib_handler.resetCalibRequested.connect(self.probe_calibration.reset_calib)  # UI -> Logic
+        self.probe_calib_handler.probeCalibRequest.connect(self.probe_calibration.update)  # UI -> Logic
+        
         self.stageListener.start()
-
-        # snapshot
-        self.snapshot_handler = StageSnapshotHandler(self.model)
-        self.stageUI.ui.snapshot_btn.clicked.connect(self.snapshot_handler.take_snapshot)  # From snapshot button
-        self.actions.save_info.triggered.connect(self.snapshot_handler.take_snapshot)
-
-        # Stage Http Server
-        self.stage_http_server = StageHttpServer(self.model)
+        self.probe_calib_handler.init_stages()
 
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""

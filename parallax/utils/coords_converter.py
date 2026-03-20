@@ -271,7 +271,6 @@ def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
         Tb = get_transM_bregma_to_local(md, transM)
         if Tb is not None:
             bregma_to_local_transMs[reticle_name] = np.asarray(Tb, dtype=float).tolist()
-            print("Computed Tb for reticle:", reticle_name)
     return bregma_to_local_transMs
 
 
