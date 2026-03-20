@@ -186,9 +186,9 @@ def screen_widgets():
 
 @pytest.fixture(scope="function")
 def stage_widget(qtbot, mock_model, screen_widgets):
-    from parallax.control_panel.control_panel import ControlPanel
-
-    widget = ControlPanel(mock_model, screen_widgets)
+    from parallax.control_panel.control_panel import ControlPanel, ControlActions
+    actions = ControlActions()
+    widget = ControlPanel(mock_model, screen_widgets, actions)
     qtbot.addWidget(widget)  # safe teardown
     return widget
 
