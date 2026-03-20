@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, Literal
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from parallax.utils.rotations import define_euler_rotation
 

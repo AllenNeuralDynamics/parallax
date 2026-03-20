@@ -9,8 +9,8 @@ initializing components, and linking user actions to calibration processes.
 
 import logging
 import os
-from typing import List, Optional
 from dataclasses import dataclass
+from typing import List, Optional
 
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
@@ -110,7 +110,7 @@ class ControlPanel(QWidget):
         # Snapshot for the stage
         self.snapshot_handler = StageSnapshotHandler(self.model)
 
-        # Parallax's stage server 
+        # Parallax's stage server
         self.stage_http_server = StageHttpServer(self.model)  # Stage Http Server
 
     def _setup_layouts(self):
@@ -172,7 +172,7 @@ class ControlPanel(QWidget):
         self.probe_calib_handler.clearRequested.connect(self.probe_calibration.clear)  # UI -> Logic
         self.probe_calib_handler.resetCalibRequested.connect(self.probe_calibration.reset_calib)  # UI -> Logic
         self.probe_calib_handler.probeCalibRequest.connect(self.probe_calibration.update)  # UI -> Logic
-        
+
         self.stageListener.start()
         self.probe_calib_handler.init_stages()
 
