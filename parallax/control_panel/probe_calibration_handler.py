@@ -650,9 +650,11 @@ class ProbeCalibrationHandler(QWidget):
 
         # Update status
         self._update_probe_angle()
-        logger.debug(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}") # Update probe angle rx, ry, spin (for 4 shank probe)
+        # Update probe angle rx, ry, spin (for 4 shank probe)
+        logger.debug(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
         self.probe_detection_status = "accepted"
-        self._apply_reticle_metadata_to_stage()  # self.transMbs, self.arc_angle_bregma updated (reticle metadata related info)
+        # self.transMbs, self.arc_angle_bregma updated (reticle metadata related info)
+        self._apply_reticle_metadata_to_stage()
 
         # Update into model
         self.update_stage_info_to_model(self.selected_stage_id)

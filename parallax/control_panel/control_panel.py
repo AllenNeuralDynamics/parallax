@@ -167,7 +167,7 @@ class ControlPanel(QWidget):
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
         self.stageListener.localDataChanged.connect(self.stageUI.update_stage_coords)  # Update UI
-        self.probe_calibration.calib_complete.connect(self.probe_calib_handler.probe_detect_accepted_status)  # Logic -> UI
+        self.probe_calibration.calib_complete.connect(self.probe_calib_handler.probe_detect_accepted_status)
         self.probe_calibration.transM_info.connect(self.probe_calib_handler.update_probe_calib_status)  # Logic -> UI
         self.probe_calib_handler.clearRequested.connect(self.probe_calibration.clear)  # UI -> Logic
         self.probe_calib_handler.resetCalibRequested.connect(self.probe_calibration.reset_calib)  # UI -> Logic
