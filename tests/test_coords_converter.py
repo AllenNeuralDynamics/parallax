@@ -1,6 +1,7 @@
 # tests/test_coords_converter.py
 import numpy as np
 
+from parallax.config.schemas import ReticleMetadataSchema
 from parallax.utils import rotations
 from parallax.utils.coords_converter import (
     apply_inverse_rigid_transform,
@@ -67,13 +68,12 @@ R_reticle = define_euler_rotation(0, 0, -90, degrees=True).as_matrix()
 t_reticle = np.array([100.0, 200.0, 300.0], dtype=float)
 RETICLE_NAME = "R_COMP"
 RETICLE_META = {
-    RETICLE_NAME: {
-        "rot": -90,
-        "rotmat": R_reticle,
-        "offset_x": 100.0,
-        "offset_y": 200.0,
-        "offset_z": 300.0,
-    }
+    RETICLE_NAME: ReticleMetadataSchema(
+        rot=-90.0,
+        offset_x=100.0,
+        offset_y=200.0,
+        offset_z=300.0
+    )
 }
 
 # 3. Define the Known Coordinates

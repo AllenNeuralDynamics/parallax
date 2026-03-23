@@ -74,16 +74,20 @@ class AxisFilter(QObject):
             if self.reticle_coords is not None:
                 for reticle_coords in self.reticle_coords:
                     for pt in reticle_coords:
-                        cv2.circle(self.frame, tuple(pt), 4, (155, 155, 50), -1)
-                    first_pt = reticle_coords[0]
-                    last_pt = reticle_coords[-1]
-                    cv2.circle(self.frame, tuple(first_pt), 12, (255, 255, 0), -1)
-                    cv2.circle(self.frame, tuple(last_pt), 12, (255, 255, 0), -1)
+                        draw_pt = (int(round(pt[0])), int(round(pt[1])))
+                        cv2.circle(self.frame, draw_pt, 4, (155, 155, 50), -1)
+                    first_pt_float = reticle_coords[0]
+                    last_pt_float = reticle_coords[-1]
+                    first_pt = (int(round(first_pt_float[0])), int(round(first_pt_float[1])))
+                    last_pt = (int(round(last_pt_float[0])), int(round(last_pt_float[1])))
+                    cv2.circle(self.frame, first_pt, 12, (255, 255, 0), -1)
+                    cv2.circle(self.frame, last_pt, 12, (255, 255, 0), -1)
 
             pos_x = self.model.get_pos_x(self.name)
             if pos_x is not None:
                 logger.info(f"{self.name} pos_x: {pos_x}")
-                cv2.circle(self.frame, pos_x, 15, (255, 0, 0), -1)
+                draw_pt = (int(round(pos_x[0])), int(round(pos_x[1])))
+                cv2.circle(self.frame, draw_pt, 15, (255, 0, 0), -1)
 
             self.frame_processed.emit(self.frame)
 
@@ -97,30 +101,46 @@ class AxisFilter(QObject):
 
         def sort_reticle_points(self):
             """
-            Sort the reticle points based on the current position of the camera.
-
-            This method sorts the reticle points in the correct order based on the
-            selected positive x-axis point and the detected coordinates.
+            Sorts reticle points into a standard [X-axis, Y-axis] order
+            where index 0 is always the X-axis and index -1 is the positive tip.
             """
             if self.pos_x is None or self.reticle_coords is None:
                 return
 
-            if self.pos_x == tuple(self.reticle_coords[0][0]):
+            # Input of reticle_coords look like
+            # -x: self.reticle_coords[0][0]
+            # +x: self.reticle_coords[0][-1]
+            # -y: self.reticle_coords[1][0]
+            # +y: self.reticle_coords[1][-1]
+
+            dist_0_start = np.linalg.norm(self.reticle_coords[0][0] - self.pos_x)
+            dist_0_end = np.linalg.norm(self.reticle_coords[0][-1] - self.pos_x)
+            dist_1_start = np.linalg.norm(self.reticle_coords[1][0] - self.pos_x)
+            dist_1_end = np.linalg.norm(self.reticle_coords[1][-1] - self.pos_x)
+
+            min_idx = np.argmin([dist_0_start, dist_0_end, dist_1_start, dist_1_end])
+
+            # Handle the 4 cases + Right-Hand Rule (RHR) internally
+            if min_idx == 0:  # Clicked Start of X -> 180 degree rotation
+                logger.debug("Clicked Start of X -> 180 degree rotation")
                 self.reticle_coords[0] = self.reticle_coords[0][::-1]
                 self.reticle_coords[1] = self.reticle_coords[1][::-1]
-            elif self.pos_x == tuple(self.reticle_coords[1][-1]):
-                tmp = self.reticle_coords[1]
-                self.reticle_coords[1] = self.reticle_coords[0][::-1]
-                self.reticle_coords[0] = tmp
-            elif self.pos_x == tuple(self.reticle_coords[1][0]):
-                tmp = self.reticle_coords[1][::-1]
-                self.reticle_coords[1] = self.reticle_coords[0]
-                self.reticle_coords[0] = tmp
-            else:
+            elif min_idx == 1:  # Clicked End of X -> Already correct
+                logger.debug("Clicked End of X -> Already correct")
                 pass
+            elif min_idx == 2:  # Clicked Start of Y -> 90 degree rotation
+                logger.debug("Clicked Start of Y -> 90 degree rotation")
+                tmp_x = self.reticle_coords[1][::-1].copy()
+                tmp_y = self.reticle_coords[0].copy()
+                self.reticle_coords[0], self.reticle_coords[1] = tmp_x, tmp_y
+            elif min_idx == 3:  # Clicked End of Y -> -90 degree rotation
+                logger.debug("Clicked End of Y -> -90 degree rotation")
+                tmp_x = self.reticle_coords[1].copy()
+                tmp_y = self.reticle_coords[0][::-1].copy()
+                self.reticle_coords[0], self.reticle_coords[1] = tmp_x, tmp_y
 
-            self.pos_x = tuple(self.reticle_coords[0][-1])
-            return
+            self.pos_x = self.reticle_coords[0][-1]
+            logger.debug(f"Sorted {self.name}: X-axis now at index 0, Positive tip: {self.pos_x}")
 
         def clicked_position(self, input_pt):
             """Get clicked position."""
@@ -137,12 +157,17 @@ class AxisFilter(QObject):
             pts = [pt1, pt2, pt3, pt4]
 
             # Finding the closest point to pt
+            input_pt = np.array(input_pt, dtype=np.float64)
             self.pos_x = min(pts, key=lambda pt: self.squared_distance(pt, input_pt))
-            self.pos_x = tuple(self.pos_x)
-            self.model.add_pos_x(self.name, self.pos_x)
 
             # sort the reticle points and register to the model
+            logger.debug("\n---")
+            logger.debug(f"-x: {self.reticle_coords[0][0]}, +x: {self.reticle_coords[0][-1]}")
+            logger.debug(f"-y: {self.reticle_coords[1][0]}, +y: {self.reticle_coords[1][-1]}")
             self.sort_reticle_points()
+            self.model.add_pos_x(self.name, self.pos_x)
+            logger.debug(f"-x: {self.reticle_coords[0][0]}, +x: {self.reticle_coords[0][-1]}")
+            logger.debug(f"-y: {self.reticle_coords[1][0]}, +y: {self.reticle_coords[1][-1]}")
             ret, params = calibrate_camera(
                 self.reticle_coords[0],
                 self.reticle_coords[1],
@@ -157,7 +182,6 @@ class AxisFilter(QObject):
         def reset_pos_x(self):
             """Reset the position of the x-axis (pos_x) in the model."""
             self.pos_x = None
-            self.model.reset_pos_x()
             logger.debug("reset pos_x")
 
         def stop_running(self):

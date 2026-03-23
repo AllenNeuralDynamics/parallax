@@ -15,7 +15,7 @@ from parallax.stages.stage_controller import StageController
 def mock_model():
     """Minimal model with the stage listener URL."""
     m = Mock()
-    m.stage_listener_url = "http://localhost:8080/"
+    m.config.pathfinder_server.url = "http://localhost:8080/"
     return m
 
 
@@ -60,7 +60,7 @@ def test_get_probe_index_uses_status_mapping(stage_controller, monkeypatch):
     status["ProbeArray"][1]["SerialNumber"] = "SN_B"
 
     def fake_get(url):
-        assert url == stage_controller.model.stage_listener_url
+        assert url == stage_controller.model.config.pathfinder_server.url
         return _MockResp(status)
 
     monkeypatch.setattr("requests.get", fake_get)

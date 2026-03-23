@@ -1,3 +1,4 @@
+# parallax/contro_panel/control_panel.py
 """
 This module contains the StageWidget class, which is a PyQt6 QWidget subclass for controlling
 and calibrating stages in microscopy instruments. It interacts with the application's model
@@ -8,6 +9,8 @@ initializing components, and linking user actions to calibration processes.
 
 import logging
 import os
+from dataclasses import dataclass
+from typing import List, Optional
 
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
@@ -18,79 +21,74 @@ from parallax.control_panel.probe_calibration_handler import ProbeCalibrationHan
 from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
 from parallax.control_panel.transform_info_handler import TransformInfoHandler
 from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
+from parallax.probe_calibration.probe_calibration import ProbeCalibration
 from parallax.stages.stage_http_server import StageHttpServer
 from parallax.stages.stage_listener import StageListener
 from parallax.stages.stage_server_ipconfig import StageServerIPConfig
+from parallax.stages.stage_snapshot import StageSnapshotHandler
 from parallax.stages.stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
+@dataclass
+class MenuActions:
+    """Container for UI actions to simplify dependency injection."""
+
+    server: Optional[QAction] = None
+    save_info: Optional[QAction] = None
+    trajectory: Optional[QAction] = None
+    calculator: Optional[QAction] = None
+    triangulate: Optional[QAction] = None
+    reticles_metadata: Optional[QAction] = None
+
+
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
-    def __init__(
-        self,
-        model,
-        screen_widgets,
-        actionServer: QAction = None,
-        actionSaveInfo: QAction = None,
-        actionTrajectory: QAction = None,
-        actionCalculator: QAction = None,
-        actionTriangulate: QAction = None,
-        actionReticlesMetadata: QAction = None,
-    ):
-        """
-        Initializes the StageWidget instance with model, UI directory, and screen widgets.
-
-        Args:
-            model (object): The data model used for storing calibration and stage information.
-            ui_dir (str): The directory path where UI files are located.
-            screen_widgets (list): A list of screen widgets for reticle and probe detection.
-        """
+    def __init__(self, model, screen_widgets: List[QWidget], actions: MenuActions):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
-        self.actionServer = actionServer
-        self.actionSaveInfo = actionSaveInfo
-        self.actionTrajectory = actionTrajectory
-        self.actionCalculator = actionCalculator
-        self.actionTriangulate = actionTriangulate
-        self.actionReticlesMetadata = actionReticlesMetadata
+        self.actions = actions
+        self.filter = "no_filter"
+
+        self._setup_ui()
+        self._init_handlers()
+        self._setup_layouts()
+        self._connect_signals()
+        self.init_stages()
+
+    def _setup_ui(self):
+        """Loads UI file and sets basic widget constraints."""
         loadUi(os.path.join(ui_dir, "stage_info.ui"), self)
         self.setMaximumWidth(350)
 
-        # Set current filter
-        self.filter = "no_filter"
-        logger.debug(f"filter: {self.filter}")
+    def _init_handlers(self):
+        """Initialize sub-components (Single Source of Truth)."""
+        # Handler 1: Reticle Detection
+        self.reticle_handler = ReticleDetecthandler(
+            self.model, self.screen_widgets, self.filter, self.actions.triangulate
+        )
 
-        self.reticle_handler = ReticleDetecthandler(model, self.screen_widgets, self.filter, self.actionTriangulate)
-        self.stage_status_ui.layout().addWidget(self.reticle_handler)
+        # Handler 2: Transformation Info (Displays data from model)
+        self.transform_info_handler = TransformInfoHandler(
+            self.model,
+            self.reticle_selector,  # PyQt Dropdown menu
+        )
 
-        self.transform_info_handler = TransformInfoHandler(self.model, self.reticle_selector)
+        # Handler 3: Probe Calibration (Orchestrates the calibration flow)
         self.probe_calib_handler = ProbeCalibrationHandler(
             self.model,
             self.screen_widgets,
             self.filter,
-            self.reticle_selector,
-            self.actionTrajectory,
-            self.actionCalculator,
-            self.actionReticlesMetadata,
-            self.transform_info_handler,
+            self.reticle_selector,  # PyQt Dropdown menu
+            actionTrajectory=self.actions.trajectory,
+            actionCalculator=self.actions.calculator,
+            actionReticlesMetadata=self.actions.reticles_metadata,
+            transform_info_handler=self.transform_info_handler,
         )
-        self.reticle_handler.reticleDetectionStatusChanged.connect(
-            self.probe_calib_handler.reticle_detection_status_change
-        )
-        self.stage_status_ui.layout().addWidget(self.probe_calib_handler)  # Add it to the placeholder's layout
-        self.stage_status_ui.layout().addWidget(self.transform_info_handler)  # Add it to the placeholder's layout
-
-        # Create a vertical spacer with expanding policy
-        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        # Add the spacer to the layout
-        self.stage_status_ui.layout().addItem(spacer)
-        # self.stage_status_ui.addItem(spacer)
 
         # Screen Coords Mapper
         self.screen_coords_mapper = ScreenCoordsMapper(
@@ -101,20 +99,43 @@ class ControlPanel(QWidget):
             self.global_coords_y,
             self.global_coords_z,
         )
+        # Stage Server IP Config
+        self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages
+
+        # Snapshot for the stage
+        self.snapshot_handler = StageSnapshotHandler(self.model)
+
+        # Parallax's stage server
+        self.stage_http_server = StageHttpServer(self.model)  # Stage Http Server
+
+    def _setup_layouts(self):
+        """Organizes sub-widgets into the main layout containers."""
+        layout = self.stage_status_ui.layout()
+        layout.addWidget(self.reticle_handler)
+        layout.addWidget(self.probe_calib_handler)
+        layout.addWidget(self.transform_info_handler)
+
+        # Push everything to the top with an expanding spacer
+        spacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        layout.addItem(spacer)
+
+    def _connect_signals(self):
+        """Connects cross-handler signals to maintain state synchronization."""
+        # Example: When a reticle is accepted, update the probe handler's state
+        self.reticle_handler.reticleDetectionStatusChanged.connect(
+            self.probe_calib_handler.reticle_detection_status_change
+        )
+
         self.reticle_handler.reticleDetectionStatusChanged.connect(
             self.screen_coords_mapper.reticle_detection_status_change
         )
 
-        # Stage Server IP Config
-        self.stage_server_ipconfig = StageServerIPConfig(self.model)  # Refresh stages
         self.stage_server_ipconfig_btn.clicked.connect(self.stage_server_ipconfig_btn_handler)
-        if self.actionServer is not None:
-            self.actionServer.triggered.connect(self.stage_server_ipconfig_btn_handler)
+        self.actions.server.triggered.connect(self.stage_server_ipconfig_btn_handler)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.refresh_stages)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.probe_calib_handler.refresh_stages)
-
-        # Initialize stages
-        self.init_stages()
+        self.actions.save_info.triggered.connect(self.snapshot_handler.take_snapshot)
+        self.snapshot_btn.clicked.connect(self.snapshot_handler.take_snapshot)  # UI --> snapshot
 
     def init_stages(self):
         """
@@ -132,23 +153,23 @@ class ControlPanel(QWidget):
             None
         """
         logger.debug("Initializing stages...")
-        # refresh the stage using server IP address
-        self.stage_server_ipconfig.update_url(init=True)
-        self.stage_server_ipconfig.refresh_stages()  # Update stages to model
+        # Initialize Stage UI and Listener
+        self.stageUI = StageUI(self)
+        self.stageListener = StageListener(self.model)
+        self.probe_calibration = ProbeCalibration(self.model)
 
-        # Set Stage UI
-        self.stageUI = StageUI(self)  # TODO Move UI into StageUI
+        # Connect signals
         self.stageUI.prev_curr_stages.connect(self.probe_calib_handler.update_stages)
-        self.selected_stage_id = self.stageUI.get_current_stage_id()
         self.reticle_handler.reticleDetectionStatusChanged.connect(self.stageUI.reticle_detection_status_change)
+        self.stageListener.localDataChanged.connect(self.stageUI.update_stage_coords)  # Update UI
+        self.probe_calibration.calib_complete.connect(self.probe_calib_handler.probe_detect_accepted_status)
+        self.probe_calibration.transM_info.connect(self.probe_calib_handler.update_probe_calib_status)  # Logic -> UI
+        self.probe_calib_handler.clearRequested.connect(self.probe_calibration.clear)  # UI -> Logic
+        self.probe_calib_handler.resetCalibRequested.connect(self.probe_calibration.reset_calib)  # UI -> Logic
+        self.probe_calib_handler.probeCalibRequest.connect(self.probe_calibration.update)  # UI -> Logic
 
-        # Start refreshing stage info
-        self.stageListener = StageListener(self.model, self.stageUI, self.actionSaveInfo)
         self.stageListener.start()
-        self.probe_calib_handler.init_stages(self.stageListener, self.stageUI)
-
-        # Stage Http Server
-        self.stage_http_server = StageHttpServer(self.model, self.stageListener.stages_info)
+        self.probe_calib_handler.init_stages()
 
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""

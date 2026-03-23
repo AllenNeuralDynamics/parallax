@@ -40,7 +40,7 @@ class StereoCameraHandler:
         Returns:
             float or None: The reprojection error from the calibration, or None if calibration could not be performed.
         """
-        valid_cams = [sn for sn, cam in self.model.cameras.items() if cam.get("coords_axis") is not None]
+        valid_cams = self.model.get_calibrated_camera_sns()
         if len(valid_cams) < 2:
             return None
 
@@ -85,7 +85,7 @@ class StereoCameraHandler:
                     paramsB=paramsB,
                 )
                 print("\n----------------------------------------------------")
-                print(f"  camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
+                print(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
                 if err < min_err:
                     min_err = err
                     camA_best, camB_best = camA, camB
@@ -128,7 +128,7 @@ class StereoCameraHandler:
                     paramsB=paramsB,
                 )
                 print("\n--------------------------------------------------------")
-                print(f"  camera pair: {camA}-{camB}, err: {np.round(err*1000, 2)} µm³")
+                print(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
 
                 # calibrationStereo.print_calibrate_stereo_results(camA, camB)
                 if err < min_err:
@@ -141,7 +141,7 @@ class StereoCameraHandler:
         cam_names, params, img_coords = [], [], []
         visible_sns = set(self.model.get_visible_camera_sns())
 
-        for sn in self.model.cameras.keys():
+        for sn in self.model.get_list_of_camera_sns():
             if sn not in visible_sns:
                 continue
 

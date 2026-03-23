@@ -7,18 +7,14 @@ for microscopy image analysis tasks.
 import logging
 
 import numpy as np
-from PyQt6.QtCore import QObject
 from scipy.stats import linregress
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-# Set the logging level for PyQt6.uic.uiparser/properties to WARNING, to ignore DEBUG messages
-logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
-logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
 
 
-class ReticleDetectCoordsInterest(QObject):
+class ReticleDetectCoordsInterest:
     """Class for detecting coordinates of interest in reticle lines."""
 
     def __init__(self):
@@ -58,9 +54,10 @@ class ReticleDetectCoordsInterest(QObject):
         # Calculate intersection point
         x_intersect = (intercept2 - intercept1) / (slope1 - slope2)
         y_intersect = slope1 * x_intersect + intercept1
-        return int(round(x_intersect)), int(round(y_intersect))
+        # return int(round(x_intersect)), int(round(y_intersect))
+        return x_intersect, y_intersect
 
-    def _get_center_coords_index(self, center, coords):
+    def _get_center_coords_index_(self, center, coords):
         """Get the index of the center coordinates in the given coordinates.
 
         Args:
@@ -77,6 +74,30 @@ class ReticleDetectCoordsInterest(QObject):
                 result = np.where((coords == test_center).all(axis=1))
                 if len(result[0]) > 0:  # Check if the element was found
                     return result[0][0]  # Return the first occurrence index
+        return None
+
+    def _get_center_coords_index(self, center, coords):
+        """Find the index of the coordinate closest to the intersection."""
+        if coords is None or len(coords) == 0:
+            return None
+
+        # 1. Convert center to a numpy array for vector math
+        center_arr = np.array(center)
+
+        # 2. Calculate the Euclidean distance from the math center to every detected point
+        # This replaces the nested loops and works perfectly with floats!
+        distances = np.linalg.norm(coords - center_arr, axis=1)
+
+        # 3. Find the index of the absolute closest point
+        min_index = np.argmin(distances)
+        min_dist = distances[min_index]
+
+        # 4. Use a tolerance threshold (10.0 pixels is safe for reticles)
+        if min_dist <= 10.0:
+            logger.debug(f"Center lock-on: Index {min_index} at distance {min_dist:.2f}")
+            return int(min_index)
+
+        logger.debug(f"Center not found. Closest dot was {min_dist:.2f}px away.")
         return None
 
     def _get_pixels_interest(self, center, coords):
@@ -118,7 +139,6 @@ class ReticleDetectCoordsInterest(QObject):
         # Temp solution: first coords of X axis is left side to first coords of Y axis.
         min_x_value_line0 = min(pixels_in_lines[0], key=lambda x: x[0])
         min_x_value_line1 = min(pixels_in_lines[1], key=lambda x: x[0])
-        # print(min_x_value_line0, min_x_value_line1)
         if min_x_value_line0[0] < min_x_value_line1[0]:
             x_axis, y_axis = pixels_in_lines[0], pixels_in_lines[1]
         else:

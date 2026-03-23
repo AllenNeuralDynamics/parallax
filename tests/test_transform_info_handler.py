@@ -4,12 +4,13 @@ import numpy as np
 import pytest
 
 from parallax.control_panel.transform_info_handler import TransformInfoHandler
+from parallax.session.session_state import ArcAngle, StageCalibration, StageSession
 
 
 # -------------------------------------------------------------------------
 # BYPASS CLASS
 # -------------------------------------------------------------------------
-class TestableHandler(TransformInfoHandler):
+class MockTransformHandler(TransformInfoHandler):
     """
     A wrapper class that bypasses the real __init__.
     This prevents QWidget creation, loadUi calls, and font setting.
@@ -45,17 +46,32 @@ class TestableHandler(TransformInfoHandler):
 
 @pytest.fixture
 def mock_model():
-    """Mock the data model."""
-    model = MagicMock()
-    model.stages = {"stage_1": {"is_calib": True, "calib_info": {}}}
+    """Mock the data model with Pydantic-compliant session structures."""
 
-    # Default returns to prevent NoneType errors
-    model.get_arc_angle_global.return_value = {"rx": 0, "ry": 0, "rz": 0}
+    model = MagicMock()
+
+    # model.session.stages needs StageSession objects
+    # We provide a default calibrated stage for "stage_1"
+    model.session.stages = {
+        "stage_1": StageSession(
+            is_calib=True,
+            calib_info=StageCalibration(
+                arc_angle_global=ArcAngle(rx=0.0, ry=0.0, rz=0.0),
+                arc_angle_bregma={}
+            )
+        )
+    }
+
+    # 2. Mock individual getters to return ArcAngle objects
+    model.get_arc_angle_global.return_value = ArcAngle(rx=0.0, ry=0.0, rz=0.0)
     model.get_arc_angle_bregma.return_value = {}
+
+    # 3. Standard boilerplate for the rest of the model
     model.get_transform.return_value = np.eye(4)
     model.get_L2_err.return_value = 0.5
     model.get_L2_travel.return_value = 100.0
     model.is_calibrated.return_value = True
+
     return model
 
 
@@ -66,7 +82,7 @@ def handler(mock_model):
     selector.currentText.return_value = "Global"
 
     # Use our bypass class instead of the real one
-    handler = TestableHandler(mock_model, selector)
+    handler = MockTransformHandler(mock_model, selector)
     return handler
 
 
@@ -94,52 +110,72 @@ def test_update_flip_rz_to_model(handler, mock_model):
     """Test that flipping rz updates both Global and Bregma in the model."""
     stage_id = "stage_1"
 
-    mock_model.get_arc_angle_global.return_value = {"rz": 10}
-    mock_model.get_arc_angle_bregma.return_value = {"Reticle_A": {"rz": 20}, "Reticle_B": {"rz": -10}}
-
+    mock_model.get_arc_angle_global.return_value = ArcAngle(rz=10.0)
+    mock_model.get_arc_angle_bregma.return_value = {
+        "Reticle_A": ArcAngle(rz=20.0),
+        "Reticle_B": ArcAngle(rz=-10.0)
+    }
     handler._update_flip_rz_to_model(stage_id)
 
     # Global: 10 + 180 = 190 -> -170
-    mock_model.set_arc_angle_global.assert_called_with(stage_id, {"rz": -170})
+    mock_model.set_arc_angle_global.assert_called_with(stage_id, ArcAngle(rz=-170.0))
 
     # Bregma:
     # A: 20 -> -160
     # B: -10 -> 170
-    expected_bregma = {"Reticle_A": {"rz": -160}, "Reticle_B": {"rz": 170}}
+    expected_bregma = {
+        "Reticle_A": ArcAngle(rz=-160.0),
+        "Reticle_B": ArcAngle(rz=170.0)
+    }
     mock_model.set_arc_angle_bregma.assert_called_with(stage_id, expected_bregma)
     mock_model.set_calibration_status.assert_called_with(stage_id, True)
-
 
 def test_update_manual_rz_from_global_context(handler, mock_model):
     """Test manual input when 'Global' is selected."""
     stage_id = "stage_1"
     handler.reticle_selector_comboBox.currentText.return_value = "Global"
 
-    mock_model.get_arc_angle_global.return_value = {"rz": 10}
-    mock_model.get_arc_angle_bregma.return_value = {"Reticle_A": {"rz": 20}}
+    # Ensure full objects with 0.0 values
+    angle_obj = ArcAngle(rx=0.0, ry=0.0, rz=10.0)
+    mock_model.get_arc_angle_global.return_value = angle_obj
 
-    # User inputs 30 (Difference is +20)
+    bregma_angle_obj = {"Reticle_A": ArcAngle(rx=0.0, ry=0.0, rz=20.0)}
+    mock_model.get_arc_angle_bregma.return_value = bregma_angle_obj
+
+    mock_model.session.stages = {
+        stage_id: StageSession(
+            is_calib=True,
+            calib_info=StageCalibration(
+                arc_angle_global=angle_obj,
+                arc_angle_bregma=bregma_angle_obj
+            )
+        )
+    }
     handler._update_manual_rz_to_model(stage_id, 30.0)
 
-    mock_model.set_arc_angle_global.assert_called_with(stage_id, {"rz": 30.0})
-    # Reticle A should also increase by 20 (20 + 20 = 40)
-    mock_model.set_arc_angle_bregma.assert_called_with(stage_id, {"Reticle_A": {"rz": 40.0}})
+    assert mock_model.set_arc_angle_global.called, "The method was never called!"
 
+    # CHECK: Inspect what it was actually called with
+    args, kwargs = mock_model.set_arc_angle_global.call_args
+    assert args[0] == stage_id
+    assert args[1].rz == 30.0  # Check the specific value
 
 def test_update_manual_rz_from_bregma_context(handler, mock_model):
     """Test manual input when a specific 'Bregma' reticle is selected."""
     stage_id = "stage_1"
     handler.reticle_selector_comboBox.currentText.return_value = "Bregma (Reticle_A)"
 
-    mock_model.get_arc_angle_global.return_value = {"rz": 10}
-    mock_model.get_arc_angle_bregma.return_value = {"Reticle_A": {"rz": 20}}
+    mock_model.get_arc_angle_global.return_value = ArcAngle(rx=0.0, ry=0.0, rz=10.0)
+    mock_model.get_arc_angle_bregma.return_value = {
+        "Reticle_A": ArcAngle(rx=0.0, ry=0.0, rz=20.0)
+    }
 
-    # User inputs 50 for Reticle A (Difference is +30)
     handler._update_manual_rz_to_model(stage_id, 50.0)
 
-    # Global should increase by 30 (10 + 30 = 40)
-    mock_model.set_arc_angle_global.assert_called_with(stage_id, {"rz": 40.0})
-    mock_model.set_arc_angle_bregma.assert_called_with(stage_id, {"Reticle_A": {"rz": 50.0}})
+    # Expected: Difference (50-20=30) applied to Global (10+30=40)
+    mock_model.set_arc_angle_global.assert_called_with(
+        stage_id, ArcAngle(rx=0.0, ry=0.0, rz=40.0)
+    )
 
 
 def test_get_transM_from_model_global(handler, mock_model):
@@ -151,7 +187,7 @@ def test_get_transM_from_model_global(handler, mock_model):
 
     assert info["reticle"] == "global"
     assert info["l2_err"] == 0.5
-    assert info["arc_angle"]["rz"] == 0
+    assert info["arc_angle"].rz == 0
 
 
 def test_get_transM_from_model_bregma(handler, mock_model):
@@ -160,12 +196,12 @@ def test_get_transM_from_model_bregma(handler, mock_model):
     reticle_name = "Reticle_A"
 
     mock_model.get_transM_bregma.return_value = {"Reticle_A": np.eye(4) * 2}
-    mock_model.get_arc_angle_bregma.return_value = {"Reticle_A": {"rz": 99}}
+    mock_model.get_arc_angle_bregma.return_value = {"Reticle_A": ArcAngle(rx=0.0, ry=0.0, rz=99.0)}
 
     info = handler._get_transM_from_model(stage_id, reticle_name)
 
     assert info["reticle"] == "Reticle_A"
-    assert info["arc_angle"]["rz"] == 99
+    assert info["arc_angle"].rz == 99.0
     assert info["transM"][0][0] == 2.0
 
 

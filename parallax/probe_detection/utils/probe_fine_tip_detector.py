@@ -375,36 +375,3 @@ class ProbeFineTipDetector:
         global_base = (local_base[0] + offset_x, local_base[1] + offset_y)
 
         return global_base
-
-
-"""
-#Module-level configuration
-def load_global_config(config_path=img_processing_config_file):
-    global _GLOBAL_CONFIG
-    try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-        _GLOBAL_CONFIG = config.get("ProbeFineTipDetector", {})
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        logger.warning(f"Could not load config file {config_path}: {e}")
-        _GLOBAL_CONFIG = ProbeFineTipDetector._get_default_config()
-
-# Initialize global config
-_GLOBAL_CONFIG = None
-load_global_config()
-"""
-
-# Example usage
-if __name__ == "__main__":
-    # Method 1: Direct class method calls (config loaded automatically)
-    # img = cv2.imread("probe_image.jpg")
-    # success, tip_coords = ProbeFineTipDetector.get_precise_tip(img, tip=(100, 100), base=(50, 50))
-
-    # Method 2: Set custom config file
-    # ProbeFineTipDetector.set_config_file("custom_config.json")
-    # success, tip_coords = ProbeFineTipDetector.get_precise_tip(img, tip=(100, 100), base=(50, 50))
-
-    # Method 3: Access configuration
-    # config = ProbeFineTipDetector.get_config()
-    # print(config)
-    pass

@@ -8,23 +8,24 @@ import datetime
 import logging
 import os
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pandas as pd
-from PyQt6.QtCore import QObject, pyqtSignal
 
 from parallax.config.config_path import stages_dir
-from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
-from parallax.utils.transforms import fit_params
-from parallax.utils.coords_converter import local_to_global
 from parallax.probe_calibration.bundle_adjustment import BALOptimizer, BALProblem
+from parallax.utils.coords_converter import local_to_global
+from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_homogeneous_transform
+from parallax.utils.signals import Signal
+from parallax.utils.transforms import fit_params
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
 
-class ProbeCalibration(QObject):
+class ProbeCalibration:
     """
     A class responsible for calibrating probe positions
     by transforming local stage coordinates to global reticle coordinates.
@@ -33,9 +34,6 @@ class ProbeCalibration(QObject):
         calib_complete: Signal emitted when the full calibration is complete.
         transM_info (str, object, float, object): Signal emitted with transformation matrix information.
     """
-
-    calib_complete = pyqtSignal()
-    transM_info = pyqtSignal(str, object, float, object)
 
     THRESHOLD_MIN_MAX = 1500
     THRESHOLD_MIN_MAX_Z = 100
@@ -53,7 +51,7 @@ class ProbeCalibration(QObject):
         ]
     )
 
-    def __init__(self, model, stage_listener):
+    def __init__(self, model):
         """
         Initialize the ProbeCalibration object.
 
@@ -61,10 +59,11 @@ class ProbeCalibration(QObject):
             model (object): The model object containing stage information.
             stage_listener (QObject): The stage listener object for receiving stage-related events.
         """
-        super().__init__()
+        # super().__init__()
+        # Native Signals
+        self.calib_complete = Signal()
+        self.transM_info = Signal()  # Will emit (sn, transM, L2_err, dist_travel)
         self.model = model
-        self.stage_listener = stage_listener
-        self.stage_listener.probeCalibRequest.connect(self.update)
         self.df = None
         self.inliers = []
         self.stage = None
@@ -269,8 +268,7 @@ class ProbeCalibration(QObject):
             std_l2 = np.std(l2_inliers)
 
             logger.debug(
-                f"(noise removed) -> mean: {mean_l2:.4f}, std: {std_l2:.4f}, "
-                f"kept: {len(l2_inliers)}/{len(l2_distance)}"
+                f"(noise removed) -> mean: {mean_l2:.4f}, std: {std_l2:.4f}, kept: {len(l2_inliers)}/{len(l2_distance)}"
             )
         else:
             logger.warning("All points were filtered out as outliers based on the threshold.")
@@ -301,7 +299,7 @@ class ProbeCalibration(QObject):
 
         return transM
 
-    def _write_transformed_global_points(self, sn: str, file_path: str):
+    def _write_transformed_global_points(self, sn: str, file_path: Path):
         """
         Recalculates and updates the 'expected' global coordinates (global_exp)
         using vectorized operations for better performance.
@@ -428,18 +426,22 @@ class ProbeCalibration(QObject):
         else:
             return False
 
-    def _update_trajectory_file(self, sn: str, file_path: str):
+    def _update_trajectory_file(self, sn: str, file_path: Optional[Path]):
         """
         Updates the trajectory file path in the calibration info for the given stage serial number.
         Args:
             sn (str): The serial number of the stage.
-            file_path (str): The path to the trajectory file.
+            file_path (Path): The path to the trajectory file.
         """
         calib_info = self.model.get_stage_calib_info(sn)
         if calib_info is None:
             logger.error(f"Calibration info not found for stage {sn}")
             return
-        calib_info.trajectory_file = file_path
+
+        if file_path is not None:
+            calib_info.trajectory_file = str(file_path)
+        else:
+            calib_info.trajectory_file = None
 
     def _update_min_max_x_y_z(self, stage):
         """

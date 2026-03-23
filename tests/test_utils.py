@@ -53,16 +53,14 @@ def test_is_point_on_crop_region():
     point_on_boundary = (50, 100)
 
     # Point on the boundary should return True
-    assert (
-        UtilsCrops.is_point_on_crop_region(point_on_boundary, top, bottom, left, right) == True
+    assert UtilsCrops.is_point_on_crop_region(
+        point_on_boundary, top, bottom, left, right
     ), "Point should be on the boundary."
 
-    # Point inside the boundary but far from the edge should return False
-    assert (
-        UtilsCrops.is_point_on_crop_region(point_inside, top, bottom, left, right) == False
+    assert not UtilsCrops.is_point_on_crop_region(
+        point_inside, top, bottom, left, right
     ), "Point should not be on the boundary."
 
-    # Point outside the boundary should return False
-    assert (
-        UtilsCrops.is_point_on_crop_region(point_outside, top, bottom, left, right) == False
+    assert not UtilsCrops.is_point_on_crop_region(
+        point_outside, top, bottom, left, right
     ), "Point should not be on the boundary."

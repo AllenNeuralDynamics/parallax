@@ -1,3 +1,4 @@
+# parallax/screens/screen_widget_manager.py
 import logging
 import os
 
@@ -36,9 +37,8 @@ class ScreenWidgetManager(QObject):
         self.refresh_timer = QTimer()
 
         self.main_window.setDockNestingEnabled(True)
-        n_cams = len(self.model.cameras)
-        for i in range(n_cams):
-            self._add_screen_dock(i)
+        for sn in self.model.get_list_of_camera_sns():
+            self._add_screen_dock(sn)
 
         self._device_menu()
 
@@ -47,7 +47,7 @@ class ScreenWidgetManager(QObject):
         self.model.refresh_camera = True
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get("visible", False):
+            if self.model.is_camera_visible(sn):
                 screen.start_acquisition_camera()
                 logger.debug("Camera acquisition started for:", sn)
 
@@ -62,7 +62,7 @@ class ScreenWidgetManager(QObject):
 
         for screen in self.screen_widgets:
             sn = screen.camera.name(sn_only=True)
-            if self.model.cameras.get(sn, {}).get("visible", False):
+            if self.model.is_camera_visible(sn):
                 screen.stop_acquisition_camera()
                 logger.debug("Camera acquisition stopped for:", sn)
 
@@ -79,13 +79,12 @@ class ScreenWidgetManager(QObject):
                 logger.error("Unexpected error retrieving SN: %s", str(e))
                 continue
 
-            if sn and self.model.cameras.get(sn, {}).get("visible", False):
+            if sn and self.model.is_camera_visible(sn):
                 screen.refresh()  # This is the slow part
 
     def _toggle_streaming(self, on: bool, sn: str):
         """Start or stop streaming for a specific camera based on visibility toggle."""
-        camera_data = self.model.cameras.get(sn, None)
-        if not camera_data:
+        if sn not in self.model.get_list_of_camera_sns():
             return  # Camera not found
 
         screen = next((s for s in self.screen_widgets if s.camera.name(sn_only=True) == sn), None)
@@ -103,8 +102,8 @@ class ScreenWidgetManager(QObject):
                 screen.stop_acquisition_camera()
                 logger.debug("Camera acquisition stopped for:", sn)
 
-    def _add_screen_dock(self, screen_index: int):
-        name = f"Microscope{screen_index + 1}"
+    def _add_screen_dock(self, sn):
+        name = str(sn)
         group_box = QGroupBox(name)
         group_box.setObjectName(name)
         group_box.setStyleSheet("background-color: rgb(25, 25, 25);")
@@ -113,10 +112,8 @@ class ScreenWidgetManager(QObject):
         group_box.setFont(font_grpbox)
         layout = QVBoxLayout(group_box)
 
-        sn = list(self.model.cameras.keys())[screen_index]
-        camera = self.model.cameras[sn]["obj"]
-
         # Screen
+        camera = self.model.get_camera(sn)
         screen = ScreenWidget(camera, model=self.model, parent=group_box)
         screen.setObjectName("Screen")
         layout.addWidget(screen)

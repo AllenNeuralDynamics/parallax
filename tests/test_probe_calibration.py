@@ -40,11 +40,11 @@ def stage_listener():
 
 
 @pytest.fixture
-def probe_calibration(model, stage_listener):
+def probe_calibration(model):
     """
     Fixture for creating a ProbeCalibration instance.
     """
-    return ProbeCalibration(model, stage_listener)
+    return ProbeCalibration(model)
 
 
 def test_probe_calibration_update(probe_calibration, sample_csv_file, monkeypatch):

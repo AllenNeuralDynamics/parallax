@@ -35,6 +35,7 @@ class TransformInfoHandler(QWidget):
         self.ry_label.setFont(QFont("Courier New", 8))
         self.rz_label.setFont(QFont("Courier New", 8))
         self.travel_label.setFont(QFont("Courier New", 8))
+        self.label_info.setFont(QFont("Courier New", 8))
 
         self.setMinimumSize(0, 200)
         self.reticle_selector_comboBox.currentIndexChanged.connect(
@@ -75,21 +76,19 @@ class TransformInfoHandler(QWidget):
     def _update_flip_rz_to_model(self, stage_id):
         # Update Global
         arc_angle_global = self.model.get_arc_angle_global(stage_id)
-        if arc_angle_global and "rz" in arc_angle_global:
-            arc_angle_global["rz"] = self._get_flip_rz_angle(arc_angle_global["rz"])
+        if arc_angle_global and arc_angle_global.rz is not None:
+            arc_angle_global.rz = self._get_flip_rz_angle(arc_angle_global.rz)
             self.model.set_arc_angle_global(stage_id, arc_angle_global)
 
         # Update Bregma
         arc_angle_bregma = self.model.get_arc_angle_bregma(stage_id)
         if arc_angle_bregma:
-            for reticle in arc_angle_bregma:
-                if "rz" in arc_angle_bregma[reticle]:
-                    current = arc_angle_bregma[reticle]["rz"]
-                    arc_angle_bregma[reticle]["rz"] = self._get_flip_rz_angle(current)
-            # save the whole updated dict back to the model
+            for reticle_obj in arc_angle_bregma.values():
+                if reticle_obj.rz is not None:
+                    reticle_obj.rz = self._get_flip_rz_angle(reticle_obj.rz)
+            # Save the updated object-filled dict back to the model
             self.model.set_arc_angle_bregma(stage_id, arc_angle_bregma)
 
-        # Mark as modified to trigger auto-save or JSON update
         self.model.set_calibration_status(stage_id, True)
 
     def _update_manual_rz_to_model(self, stage_id, new_angle):
@@ -100,28 +99,28 @@ class TransformInfoHandler(QWidget):
 
         arc_angle_global = self.model.get_arc_angle_global(stage_id)
         arc_angle_bregma = self.model.get_arc_angle_bregma(stage_id)
-        if not arc_angle_global or "rz" not in arc_angle_global:
+        if not arc_angle_global or arc_angle_global.rz is None:
             return
 
         # Calculate Difference
         diff_angle = 0.0
         if reticle_name == "global":
-            diff_angle = new_angle - arc_angle_global["rz"]
+            diff_angle = new_angle - arc_angle_global.rz
         elif arc_angle_bregma and reticle_name in arc_angle_bregma:
-            current_local_rz = arc_angle_bregma[reticle_name].get("rz", 0.0)
+            current_local_rz = arc_angle_bregma[reticle_name].rz or 0.0
             diff_angle = new_angle - current_local_rz
         else:
             return
 
         # Global
-        arc_angle_global["rz"] = self._normalize_angle(arc_angle_global["rz"] + diff_angle)
+        arc_angle_global.rz = self._normalize_angle(arc_angle_global.rz + diff_angle)
 
         # Bregma
         if arc_angle_bregma:
-            for reticle in arc_angle_bregma:
-                if "rz" in arc_angle_bregma[reticle]:
-                    new_val = arc_angle_bregma[reticle]["rz"] + diff_angle
-                    arc_angle_bregma[reticle]["rz"] = self._normalize_angle(new_val)
+            for reticle_obj in arc_angle_bregma.values():
+                if reticle_obj.rz is not None:
+                    new_val = reticle_obj.rz + diff_angle
+                    reticle_obj.rz = self._normalize_angle(new_val)
 
         # Save back to model
         self.model.set_arc_angle_global(stage_id, arc_angle_global)
@@ -149,7 +148,7 @@ class TransformInfoHandler(QWidget):
 
     def display(self, stage_id):
         # We use self.setVisible because 'self' IS the info_widget from the UI file
-        if not stage_id or stage_id not in self.model.stages:
+        if not stage_id or stage_id not in self.model.get_list_of_stage_sns():
             self.setVisible(False)
             return
 
@@ -173,6 +172,16 @@ class TransformInfoHandler(QWidget):
             logger.error(f"Error displaying Transform UI: {e}")
             self.setVisible(False)
 
+    def display_msg(self, message=None):
+        """Displays a simple red warning message in the info label."""
+        if not message:
+            self.label_info.clear()
+            return
+        # Red text with a bold warning prefix
+        self.setVisible(True)
+        formatted_msg = f"<span style='color: #ff4d4d;'><b>Warning:</b> {message}</span>"
+        self.label_info.setText(formatted_msg)
+
     def _update_rz_button_state(self, stage_id):
         """Syncs the rz button enabled state with the calibration status."""
         is_calibrated = self.model.is_calibrated(stage_id)
@@ -183,6 +192,16 @@ class TransformInfoHandler(QWidget):
         is_calibrated = self.model.is_calibrated(stage_id)
         if isinstance(self.rz_label, QLineEdit):
             self.rz_label.setReadOnly(not is_calibrated)
+
+    def display_default_ui(self):
+        self.R_label.setText("-")
+        self.T_label.setText("-")
+        self.rx_label.setText("-")
+        self.ry_label.setText("-")
+        self.rz_label.setText("-")
+        self.l2_label.setText("-")
+        self.travel_label.setText("-")
+        self.label_info.clear()
 
     def _display_ui(self, info):
         # 1. Update Title
@@ -209,33 +228,30 @@ class TransformInfoHandler(QWidget):
         l2 = info.get("l2_err")
         self.l2_label.setText(f"{l2:.2f} µm" if l2 is not None else "-")
 
-        try:
-            travel = info.get("dist_travel")
-            tx = int(travel[0])
-            ty = int(travel[1])
-            tz = int(travel[2])
-            self.travel_label.setText(f"x: {tx} µm, y: {ty} µm, z: {tz} µm")
-        except (TypeError, ValueError, IndexError, AttributeError):
+        travel = info.get("dist_travel")
+        if travel is not None and len(travel) >= 3:
+            try:
+                tx, ty, tz = int(travel[0]), int(travel[1]), int(travel[2])
+                self.travel_label.setText(f"x: {tx} µm, y: {ty} µm, z: {tz} µm")
+            except (ValueError, TypeError):
+                self.travel_label.setText("-")
+        else:
             self.travel_label.setText("-")
 
-        # 4. Angles
-        angles = info.get("arc_angle", {})
-        if isinstance(angles, dict):
-            self.rx_label.setText(f"{angles.get('rx', 0):.2f}°" if angles.get("rx") is not None else "-")
-            self.ry_label.setText(f"{angles.get('ry', 0):.2f}°" if angles.get("ry") is not None else "-")
-            self.rz_label.setText(f"{angles.get('rz', 0):.2f}°" if angles.get("rz") is not None else "-")
+        # 5. Arc Angles
+        angles = info.get("arc_angle")  # This is an ArcAngle object
+        if angles and hasattr(angles, "rx"):
+            self.rx_label.setText(f"{angles.rx:.2f}°" if angles.rx is not None else "-")
+            self.ry_label.setText(f"{angles.ry:.2f}°" if angles.ry is not None else "-")
+            self.rz_label.setText(f"{angles.rz:.2f}°" if angles.rz is not None else "-")
         else:
             self.rx_label.setText("-")
             self.ry_label.setText("-")
             self.rz_label.setText("-")
 
     def _get_transM_from_model(self, stage_id, reticle_name):
-        stage_info = self.model.stages.get(stage_id)
-        if not stage_info:
-            return None
-
         # Check if calibrated
-        calib_info = stage_info.get("calib_info")
+        calib_info = self.model.get_stage_calib_info(stage_id)
         # if not stage_info.get('is_calib') or calib_info is None:
         if calib_info is None:
             return None

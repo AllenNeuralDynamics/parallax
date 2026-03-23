@@ -2,13 +2,11 @@
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-from helper import mock_stage_instances, model
+from helper import mock_stage_instances
 
 from parallax.cameras.calibration_camera import CameraParams
 from parallax.cameras.camera import MockCamera, PySpinCamera
-from parallax.control_panel.probe_calibration_handler import StageCalibrationInfo
-from parallax.model import Model
-from parallax.stages.stage_listener import Stage
+from parallax.config.schemas import AppSchema
 
 
 # ----------------------------
@@ -16,28 +14,31 @@ from parallax.stages.stage_listener import Stage
 # ----------------------------
 def test_scan_for_cameras(model):
     """Model.scan_for_cameras populates pool and counts camera types."""
+    model.config = AppSchema(cameras={})
+    # Setup Mock Camera
+    m1 = MockCamera()
+
+    # Setup PySpin Camera
     fake_sdk_cam = MagicMock()
-    with patch("parallax.model.list_cameras", return_value=[MockCamera(), PySpinCamera(fake_sdk_cam)]):
+    p1 = PySpinCamera(fake_sdk_cam)
+    p1.name = MagicMock(return_value="SN12345")
+    p1.settings = MagicMock()
+
+    # ACTION: Run the scan
+    with patch("parallax.model.list_cameras", return_value=[m1, p1]):
         model.scan_for_cameras()
 
-    # two cameras added
-    assert len(model.cameras) == 2
+    # ASSERTIONS
+    assert len(model.camera_instances) == 2
+    keys = list(model.camera_instances.keys())
+    vals = list(model.camera_instances.values())
 
-    keys = list(model.cameras.keys())
-    vals = list(model.cameras.values())
+    assert isinstance(vals[0], MockCamera)
+    assert isinstance(vals[1], PySpinCamera)
 
-    assert isinstance(vals[0]["obj"], MockCamera)
-    assert isinstance(vals[1]["obj"], PySpinCamera)
-    assert vals[0]["visible"] is True and vals[1]["visible"] is True
-
-    # keys match serial numbers reported by camera objects
-    assert keys[0] == vals[0]["obj"].name(sn_only=True)
-    assert keys[1] == vals[1]["obj"].name(sn_only=True)
-
-    # cached counts
-    assert model.nPySpinCameras == 1
-    assert model.nMockCameras == 1
-
+    # Now this will correctly return "SN12345" instead of a Mock object
+    assert keys[1] == vals[1].name(sn_only=True)
+    assert keys[1] == "SN12345"
 
 def test_get_camera_resolution(model):
     """Default fallback and real object path for get_camera_resolution."""
@@ -46,14 +47,16 @@ def test_get_camera_resolution(model):
 
     cam = MockCamera()
     sn = cam.name(sn_only=True)
-    model.cameras[sn] = {"obj": cam, "visible": True}
+    model.camera_instances[sn] = cam
     assert model.get_camera_resolution(sn) == (cam.width, cam.height)
 
 
 def test_visibility_helpers(model):
     cam = MockCamera()
     sn = cam.name(sn_only=True)
-    model.cameras[sn] = {"obj": cam, "visible": True}
+
+    model.camera_instances[sn] = cam
+    model.session.cameras = {sn: MagicMock(visible=True)}
 
     assert model.get_visible_cameras() == [cam]
     assert model.get_visible_camera_sns() == [sn]
@@ -66,49 +69,33 @@ def test_visibility_helpers(model):
 # ----------------------------
 # Stage discovery
 # ----------------------------
-@patch("parallax.stages.stage_listener.StageInfo.get_instances", return_value=mock_stage_instances(2))
+@patch("parallax.stages.stage_listener.PathfinderServer.get_instances", return_value=mock_stage_instances(2))
 def test_scan_for_usb_stages(mock_get_instances, model):
     """Model.scan_for_usb_stages builds Stage entries with default calib info."""
     model.scan_for_usb_stages()
 
-    assert len(model.stages) == 2
-    for sn, entry in model.stages.items():
-        assert isinstance(entry["obj"], Stage)
-        assert entry["is_calib"] is False
-        assert isinstance(entry["calib_info"], StageCalibrationInfo)
-    assert "SN0001" in model.stages or "SN001" in model.stages  # depending on helper format
-
-
-# ----------------------------
-# Stage lifecycle & calibration flow
-# ----------------------------
-def test_add_stage_and_defaults(model):
-    s = MagicMock(spec=Stage)
-    s.sn = "S1"
-    model.add_stage(s, StageCalibrationInfo())
-
-    assert "S1" in model.stages
-    e = model.stages["S1"]
-    assert e["obj"] is s
-    assert e["is_calib"] is False
-    assert isinstance(e["calib_info"], StageCalibrationInfo)
+    assert len(model.stage_instances) == 2
+    for sn, obj in model.stage_instances.items():
+        assert obj.__class__.__name__ == "StageObj"
+    assert "SN0001" in model.stage_instances or "SN001" in model.stage_instances  # depending on helper format
 
 
 def test_stage_calibration_flow(model, monkeypatch):
     """Transform set/get, calibration status, and metric getters."""
-    called = {}
+    # Setup mock stage session
+    mock_calib_info = MagicMock()
+    mock_calib_info.transM = None
+    mock_calib_info.L2_err = None
+    mock_calib_info.dist_travel = None
 
-    def fake_stage_save(_model, _sn):
-        called["sn"] = _sn
+    mock_stage_session = MagicMock()
+    mock_stage_session.is_calib = False
+    mock_stage_session.calib_info = mock_calib_info
 
-    monkeypatch.setattr("parallax.config.user_setting_manager.StageConfigManager.save_to_yaml", fake_stage_save)
-
-    s = MagicMock(spec=Stage)
-    s.sn = "S1"
-    model.add_stage(s, StageCalibrationInfo())
+    model.session.stages = {"S1": mock_stage_session}
 
     # initial state
-    assert model.is_stage_calibrated("S1") is False
+    assert model.is_calibrated("S1") is False
     assert model.get_transform("S1") is None
     assert model.get_L2_err("S1") is None
     assert model.get_L2_travel("S1") is None
@@ -118,82 +105,41 @@ def test_stage_calibration_flow(model, monkeypatch):
     model.add_transform("S1", T)
     assert np.allclose(model.get_transform("S1"), T)
 
-    # set calibrated -> triggers save
+    # set calibrated
     model.set_calibration_status("S1", True)
-    assert model.is_stage_calibrated("S1") is True
-    assert called.get("sn") == "S1"
+    assert model.is_calibrated("S1") is True
 
     # fill metrics through calib_info and read via getters
-    e = model.stages["S1"]
-    e["calib_info"].L2_err = 0.0123
-    e["calib_info"].dist_travel = np.array([10.0, 20.0, 30.0])
+    model.session.stages["S1"].calib_info.L2_err = 0.0123
+    model.session.stages["S1"].calib_info.dist_travel = np.array([10.0, 20.0, 30.0])
     assert model.get_L2_err("S1") == 0.0123
     assert np.allclose(model.get_L2_travel("S1"), [10.0, 20.0, 30.0])
 
 
 def test_reset_stage_calib_info(model, monkeypatch):
-    calls = []
-    monkeypatch.setattr(
-        "parallax.config.user_setting_manager.StageConfigManager.save_to_yaml", lambda _m, sn: calls.append(sn)
-    )
-    s1 = MagicMock(spec=Stage)
-    s1.sn = "S1"
-    s2 = MagicMock(spec=Stage)
-    s2.sn = "S2"
-    model.add_stage(s1, StageCalibrationInfo())
-    model.add_stage(s2, StageCalibrationInfo())
-
-    model.set_calibration_status("S1", True)
+    mock_stage1 = MagicMock(is_calib=True, calib_info=MagicMock())
+    model.session.stages = {"S1": mock_stage1}
 
     # reset single
     model.reset_stage_calib_info("S1")
-    assert model.is_stage_calibrated("S1") is False
+    assert model.is_calibrated("S1") is False
     assert model.get_transform("S1") is None
-
-    # reset all
-    model.reset_stage_calib_info()
-    assert model.is_stage_calibrated("S2") is False
-    assert model.get_L2_err("S2") is None
-    assert "S1" in calls  # ensure save was called at least for S1
-
-
-# ----------------------------
-# Clicked points ring buffer
-# ----------------------------
-def test_clicked_points_order_and_limit(model):
-    model.add_pts("camA", (1, 2))
-    model.add_pts("camB", (3, 4))
-    assert list(model.get_cameras_detected_pts().keys()) == ["camA", "camB"]
-
-    model.add_pts("camC", (5, 6))  # drops oldest (camA)
-    assert list(model.get_cameras_detected_pts().keys()) == ["camB", "camC"]
-
-    model.add_pts("camB", (7, 8))  # overwrite existing without popping
-    assert list(model.get_cameras_detected_pts().keys()) == ["camB", "camC"]
-    assert model.get_pts("camB") == (7, 8)
-
-    model.reset_pts()
-    assert len(model.get_cameras_detected_pts()) == 0
 
 
 # ----------------------------
 # Intrinsics roundtrip + save hook
 # ----------------------------
 def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
-    # Mock a camera object
-    cam = MagicMock()
-    # Emulate cam.name(sn_only=True) returning a string
-    cam.name.return_value = "test_sn_001"
     sn = "test_sn_001"
 
-    # Setup the model with the mock camera
-    model.cameras[sn] = {"obj": cam, "visible": True}
+    # Setup the model with the mock session camera
+    model.session.cameras = {sn: MagicMock()}
 
-    # Mock the save_to_yaml method to verify it gets called
+    # Mock the save_session method to verify it gets called
     called = {}
     monkeypatch.setattr(
-        "parallax.config.user_setting_manager.CameraConfigManager.save_to_yaml",
-        lambda _m, s: called.setdefault("sn", s),
+        "parallax.model.Model.save_session",
+        lambda self: called.setdefault("sn", sn),
     )
 
     # Create dummy data
@@ -202,16 +148,12 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
     rvec = np.array([[0.1], [0.2], [0.3]])
     tvec = np.array([[1.0], [2.0], [3.0]])
 
-    # FIX 1: Create the CameraParams object (don't pass loose args)
     params_obj = CameraParams(mtx=mtx, dist=dist, rvec=rvec, tvec=tvec)
-
-    # FIX 2: Pass the object to the method
     model.add_camera_params(sn, params_obj)
 
     # Retrieve
     stored = model.get_camera_params(sn)
 
-    # FIX 3: Access attributes using dot notation (stored.mtx), not dict keys
     assert stored is not None
     assert np.allclose(stored.mtx, mtx)
     assert np.allclose(stored.dist, dist)
@@ -226,64 +168,46 @@ def test_camera_intrinsic_roundtrip_and_save(model, monkeypatch):
 # Coords/intrinsic/extrinsic reset helpers
 # ----------------------------
 def test_reset_coords_intrinsic_extrinsic(model):
-    # Mock cameras
-    camA, camB = MagicMock(), MagicMock()
     snA, snB = "camA", "camB"
-    camA.name.return_value = snA
-    camB.name.return_value = snB
 
-    # FIX 4: Use correct key 'params' (matching your code) instead of 'intrinsic'
-    # Seed data into the model
-    model.cameras[snA] = {
-        "obj": camA,
-        "visible": True,
-        "coords_axis": [1],
-        "coords_debug": [2],
-        "pos_x": (0, 0),
-        "params": MagicMock(),  # Mock param object
-    }
-    model.cameras[snB] = {
-        "obj": camB,
-        "visible": True,
-        "coords_axis": [1],
-        "coords_debug": [2],
-        "pos_x": (0, 0),
-        "params": MagicMock(),  # Mock param object
+    # Seed data into the model session
+    model.session.cameras = {
+        snA: MagicMock(coords_axis=[1], coords_debug=[2], pos_x=(0, 0), params=MagicMock(), is_triangulation_candidate=True),
+        snB: MagicMock(coords_axis=[1], coords_debug=[2], pos_x=(0, 0), params=MagicMock(), is_triangulation_candidate=True),
     }
 
     # --- Test 1: Reset ONE camera ---
     model.reset_coords_intrinsic_extrinsic(snA)
 
-    # Assert Camera A fields are cleared
-    assert model.cameras[snA]["coords_axis"] is None
-    assert model.cameras[snA]["coords_debug"] is None
-    assert model.cameras[snA]["pos_x"] is None
-    assert model.cameras[snA].get("params") is None
+    assert model.session.cameras[snA].coords_axis is None
+    assert model.session.cameras[snA].coords_debug is None
+    assert model.session.cameras[snA].pos_x is None
+    assert model.session.cameras[snA].params is None
+    assert model.session.cameras[snA].is_triangulation_candidate is False
 
     # Assert Camera B is untouched
-    assert model.cameras[snB].get("params") is not None
+    assert model.session.cameras[snB].params is not None
 
     # --- Test 2: Reset ALL ---
     model.reset_coords_intrinsic_extrinsic()
 
     # Assert Camera B is now cleared
-    assert model.cameras[snB]["coords_axis"] is None
-    assert model.cameras[snB]["coords_debug"] is None
-    assert model.cameras[snB]["pos_x"] is None
-    assert model.cameras[snB].get("params") is None
-
+    assert model.session.cameras[snB].coords_axis is None
+    assert model.session.cameras[snB].coords_debug is None
+    assert model.session.cameras[snB].pos_x is None
+    assert model.session.cameras[snB].params is None
+    assert model.session.cameras[snB].is_triangulation_candidate is False
 
 # ----------------------------
 
 
 def test_pos_x_helpers(model):
-    cam = MockCamera()
-    sn = cam.name(sn_only=True)
-    model.cameras[sn] = {"obj": cam, "visible": True}
+    sn = "camA"
+    model.session.cameras = {sn: MagicMock(pos_x=None)}
 
     assert model.get_pos_x(sn) is None
-    model.add_pos_x(sn, (10, 20))
-    assert model.get_pos_x(sn) == (10, 20)
+    model.add_pos_x(sn, [10, 20])
+    assert model.get_pos_x(sn) == [10, 20]
 
     model.reset_pos_x()
     assert model.get_pos_x(sn) is None

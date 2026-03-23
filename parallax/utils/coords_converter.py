@@ -1,3 +1,4 @@
+# parallax/utils/coords_converter.py
 """
 This module provides helpers for converting between local, global, and bregma
 coordinates using rigid transformation matrices.
@@ -159,12 +160,10 @@ def apply_reticle_adjustments_inverse(model, bregma_pts: np.ndarray, reticle: st
     if not md:
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return np.array([bregma_pts[0], bregma_pts[1], bregma_pts[2]])
-    Rm = md.get("rotmat", np.eye(3))
-    tm = np.array([md.get("offset_x", 0.0), md.get("offset_y", 0.0), md.get("offset_z", 0.0)], dtype=float)
+    Rm = md.rotmat
+    tm = np.array([md.offset_x, md.offset_y, md.offset_z], dtype=float)
 
-    global_row = rotations.apply_inverse_affine(  # TODO: Use this library function
-        pts=bregma_pts, affine_R=Rm, translation=tm
-    )
+    global_row = rotations.apply_inverse_affine(pts=bregma_pts, affine_R=Rm, translation=tm)
     return np.array(global_row)
 
 
@@ -196,8 +195,8 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
     if not md:
         logger.warning(f"Warning: No metadata found for reticle '{reticle}'. Returning original points.")
         return np.array([global_pts[0], global_pts[1], global_pts[2]])
-    Rm = md.get("rotmat", np.eye(3))
-    tm = np.array([md.get("offset_x", 0.0), md.get("offset_y", 0.0), md.get("offset_z", 0.0)], dtype=float)
+    Rm = md.rotmat
+    tm = np.array([md.offset_x, md.offset_y, md.offset_z], dtype=float)
 
     try:
         # bregma = R @ global + t (column form)
@@ -237,10 +236,10 @@ def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
     if not md:
         logger.warning("Warning: No metadata found for reticle. Returning original points.")
         return None
-    Rm = md.get("rotmat", np.eye(3))
-    tm = np.array([md.get("offset_x", 0.0), md.get("offset_y", 0.0), md.get("offset_z", 0.0)], dtype=float)
+    Rm = md.rotmat
+    tm = np.array([md.offset_x, md.offset_y, md.offset_z], dtype=float)
 
-    R = transM[:3, :3]  # TODO
+    R = transM[:3, :3]
     t = transM[:3, 3]  # (3,)
     Rb = R @ Rm.T
     tb = t - (Rb @ tm)
@@ -270,7 +269,6 @@ def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
         Tb = get_transM_bregma_to_local(md, transM)
         if Tb is not None:
             bregma_to_local_transMs[reticle_name] = np.asarray(Tb, dtype=float).tolist()
-            print("Computed Tb for reticle:", reticle_name)
     return bregma_to_local_transMs
 
 
@@ -287,11 +285,11 @@ def local_to_bregma(model, sn: str, local_pts: np.ndarray, reticle: Optional[str
 
     Returns rounded (1x3) bregma coordinates or None if unavailable.
     """
-    calib_info = (model.stages.get(sn, {}) or {}).get("calib_info")
+    calib_info = model.get_stage_calib_info(sn)
     if calib_info is None:
         logger.warning(f"Stage {sn} is not calibrated.")
         return None
-    transMbs = getattr(calib_info, "transM_bregma", None)
+    transMbs = model.get_transM_bregma(sn)  # Could be a single matrix or a dict of reticle→matrix
     if transMbs is None:
         logger.warning(f"No transM_bregma on stage {sn}.")
         return None

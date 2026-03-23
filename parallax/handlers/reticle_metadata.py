@@ -1,3 +1,4 @@
+# parallax/handlers/reticle_metadata.py
 """
 This module provides a ReticleMetadata widget for managing and visualizing reticle metadata
 in a microscopy setup. The widget allows users to dynamically create, modify, and delete
@@ -13,20 +14,18 @@ Key features:
 - Provides methods for retrieving global coordinates with specific reticle adjustments.
 """
 
-import json
 import logging
 import os
 
-import numpy as np
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QGroupBox, QLineEdit, QPushButton, QWidget
 from PyQt6.uic import loadUi
 
-from parallax.config.config_path import reticle_metadata_file, ui_dir
-from parallax.utils.rotations import define_euler_rotation
+from parallax.config.config_path import ui_dir
+from parallax.config.schemas import ReticleMetadataSchema
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 
 
 class ReticleMetadata(QWidget):
@@ -68,7 +67,6 @@ class ReticleMetadata(QWidget):
         )
 
         self.groupboxes = {}  # Change from list to dictionary
-        self.reticles = {}
         self.alphabet_status = {chr(i): 0 for i in range(65, 91)}  # A-Z with 0 availability status
 
         self.ui.add_btn.clicked.connect(self._add_groupbox)
@@ -76,45 +74,28 @@ class ReticleMetadata(QWidget):
 
         # Update reticle selector
         self.model.add_reticle_metadata_instance(self)
+        self._refresh_ui_from_model()
 
-    def load_metadata_from_file(self):
+    def showEvent(self, event):
         """
-        Load reticle metadata from a JSON file and populate the UI.
-
-        This method attempts to read the reticle metadata from a JSON file. If the file does not exist,
-        it logs a message and starts fresh with no preloaded data. If the file exists and contains valid
-        data, it creates reticle group boxes based on the metadata, updates the internal reticle structure,
-        and refreshes the reticle selector dropdown.
-
-        Raises:
-            Exception: If there is an error reading the metadata file, logs the error.
+        Triggered automatically whenever self.show() is called.
         """
-        if not os.path.exists(reticle_metadata_file):
-            logger.debug("No existing metadata file found. Starting fresh.")
-            return
+        super().showEvent(event)
+        self._refresh_ui_from_model()
 
-        try:
-            with open(reticle_metadata_file, "r") as json_file:
-                reticle_data = json.load(json_file)
-            if reticle_data:
-                self._create_groupbox_from_metadata(reticle_data)
-                for group_box in self.groupboxes.values():
-                    self._update_reticles(group_box)
-                self._update_to_reticle_selector()
-            else:
-                logger.debug("Metadata json file is empty. Starting fresh.")
-        except Exception as e:
-            logger.error(f"Error reading metadata file: {e}")
+    def _refresh_ui_from_model(self):
+        reticles = self.model.reticle_metadata.reticles
+        if reticles:
+            self._create_groupbox_from_metadata(reticles)
 
-    def _create_groupbox_from_metadata(self, reticle_data):
-        """Create a groupbox from metadata and populate it."""
-        for reticle_info in reticle_data:
-            # name = reticle_info.get("name", "")
-            name = reticle_info.get("lineEditName", "")
+    def _create_groupbox_from_metadata(self, reticles_dict):
+        """Create groupboxes from the model's metadata dictionary."""
+        for name, meta_object in reticles_dict.items():
             if name in self.groupboxes.keys():
-                return  # Do not add a new groupbox if it already exists
+                continue  # Do not add a new groupbox if it already exists
 
-            self._populate_groupbox(name, reticle_info)
+            # Pass the name and the Pydantic object to your populate method
+            self._populate_groupbox(name, meta_object)
             logger.debug(f"Created groupbox for reticle: {name}")
 
     def _add_groupbox(self):
@@ -129,16 +110,16 @@ class ReticleMetadata(QWidget):
         self.alphabet_status[alphabet] = 1
 
         # Create an empty metadata dictionary for the new group box
-        reticle_info = {"lineEditName": alphabet}
-        self._populate_groupbox(alphabet, reticle_info)
+        new_meta = ReticleMetadataSchema()
+        self._populate_groupbox(alphabet, new_meta)
 
-    def _populate_groupbox(self, name, reticle_info):
+    def _populate_groupbox(self, name: str, metadata: ReticleMetadataSchema):
         """
         Helper method to set up a groupbox for a reticle with the given name and reticle info.
 
         Args:
             name (str): The name of the reticle (typically a single letter).
-            reticle_info (dict): A dictionary containing metadata for the reticle.
+            metadata (ReticleMetadataSchema): A Pydantic schema containing metadata for the reticle.
         """
         group_box = QGroupBox(self)
         loadUi(os.path.join(ui_dir, "reticle_QGroupBox.ui"), group_box)
@@ -151,11 +132,11 @@ class ReticleMetadata(QWidget):
         if name in self.alphabet_status:
             self.alphabet_status[name] = 1
 
-        # Populate the QLineEdit fields with the values from the metadata
-        for key, value in reticle_info.items():
-            line_edit = group_box.findChild(QLineEdit, key)
-            if line_edit:
-                line_edit.setText(value)
+        # Populate the QLineEdit fields safely from the Pydantic object
+        group_box.findChild(QLineEdit, "lineEditRot").setText(str(metadata.rot))
+        group_box.findChild(QLineEdit, "lineEditOffsetX").setText(str(metadata.offset_x))
+        group_box.findChild(QLineEdit, "lineEditOffsetY").setText(str(metadata.offset_y))
+        group_box.findChild(QLineEdit, "lineEditOffsetZ").setText(str(metadata.offset_z))
 
         # Find the QLineEdit for the reticle name and connect the signal (group box name)
         lineEditName = group_box.findChild(QLineEdit, "lineEditName")
@@ -197,13 +178,8 @@ class ReticleMetadata(QWidget):
             group_box.setTitle(f"Reticle '{new_name}'")
             group_box.setObjectName(new_name)
 
-            if (
-                new_name.strip().isalpha()
-                and len(new_name.strip()) == 1
-                and new_name.strip().upper() in self.alphabet_status
-            ):
-
-                self.alphabet_status[new_name] = 1
+            if new_name.strip().isalpha() and len(new_name.strip()) == 1:
+                self.alphabet_status[new_name.strip().upper()] = 1
 
     def _remove_specific_groupbox(self, group_box):
         """
@@ -214,19 +190,17 @@ class ReticleMetadata(QWidget):
         """
         name = group_box.findChild(QLineEdit, "lineEditName").text()
 
-        if name in self.groupboxes.keys():
+        if name in self.groupboxes:
             group_box = self.groupboxes.pop(name)  # Remove from dictionary
-            if name in self.reticles.keys():
-                self.reticles.pop(name)
-                # Register in the model
-                self.model.remove_reticle_metadata(name)
+            # Remove from model (which automatically triggers ReticleManager to save!)
+            self.model.remove_reticle_metadata(name)
             self.ui.verticalLayout.removeWidget(group_box)
             group_box.deleteLater()
 
             current_size = self.size()
             self.resize(current_size.width(), current_size.height() - 200)
 
-            if name.isalpha() and len(name) == 1 and name.upper() in self.alphabet_status:
+            if name.isalpha() and len(name) == 1:
                 self.alphabet_status[name.upper()] = 0
 
     def _find_next_available_alphabet(self):
@@ -243,14 +217,49 @@ class ReticleMetadata(QWidget):
 
     def _update_reticle_info(self):
         """
-        Update reticle information in the UI and save it to the metadata file.
+        Harvest UI data, update the Model's Pydantic objects, and trigger a save.
         """
-        self._update_to_file()
-        for group_box in self.groupboxes.values():
-            self._update_reticles(group_box)
-        self._update_to_reticle_selector()
+        names_seen = set()
+        new_data = {}
 
-    def _update_to_reticle_selector(self):
+        # 1. Harvest and Validate the UI input
+        for org_name, group_box in list(self.groupboxes.items()):
+            name = group_box.findChild(QLineEdit, "lineEditName").text().strip()
+
+            if not name:
+                logger.error("Error: A reticle name field is empty.")
+                return
+            if name in names_seen:
+                logger.error(f"Error: Duplicate name found - {name}")
+                return
+            names_seen.add(name)
+
+            try:
+                # Grab the numbers the user just typed!
+                rot = float(group_box.findChild(QLineEdit, "lineEditRot").text())
+                x = float(group_box.findChild(QLineEdit, "lineEditOffsetX").text())
+                y = float(group_box.findChild(QLineEdit, "lineEditOffsetY").text())
+                z = float(group_box.findChild(QLineEdit, "lineEditOffsetZ").text())
+            except ValueError:
+                logger.error(f"Error: Reticle '{name}' contains invalid numeric offsets.")
+                return
+
+            # Package it into your clean Pydantic schema
+            meta = ReticleMetadataSchema(rot=rot, offset_x=x, offset_y=y, offset_z=z)
+            new_data[name] = (group_box, meta)
+
+        # 2. Update the Model (This triggers your ReticleManager YAML save automatically!)
+        self.model.reticle_metadata.reticles.clear()
+        self.groupboxes.clear()
+
+        for name, (group_box, meta) in new_data.items():
+            self.groupboxes[name] = group_box
+            self.model.add_reticle_metadata(name, meta)
+
+        # Reflash drop down menu
+        self.update_to_reticle_selector()
+
+    def update_to_reticle_selector(self):
         """
         Update the reticle selector dropdown with the latest reticle names.
         """
@@ -258,150 +267,13 @@ class ReticleMetadata(QWidget):
         self.reticle_selector.addItem("Global coords")
 
         # update dropdown menu with reticle names
-        for name in self.groupboxes.keys():
-            self.reticle_selector.addItem(f"Global coords ({name})")
+        if self.model.is_calibrated(self.model.get_selected_stage_sn()):
+            for name in self.groupboxes.keys():
+                self.reticle_selector.addItem(f"Global coords ({name})")
 
         # update dropdown menu with Project reticle names
-        self.reticle_selector.addItem("Proj Global coords")
-        for name in self.groupboxes.keys():
-            self.reticle_selector.addItem(f"Proj Global coords ({name})")
-
-    def default_reticle_selector(self):
-        """
-        Reset the reticle selector to its default state and clear all reticles.
-        """
-        # Iterate over the added sgroup boxes and remove each one from the layout
-        for name, group_box in self.groupboxes.items():
-            self.ui.verticalLayout.removeWidget(group_box)
-            group_box.deleteLater()  # Properly delete the widget
-        self.resize(self.default_size)
-
-        # Clear the dictionary after removing all group boxes
-        self.groupboxes.clear()
-        self.reticles.clear()
-        # Register in the model
-        self.model.reset_reticle_metadata()
-
-        # Clear and reset the reticle_selector
-        self.reticle_selector.clear()
-        self.reticle_selector.addItem("Global coords")
-        if self.model.reticle_detection_status == "accepted":
+        if self.model.session.reticle_detection_status == "accepted":
             self.reticle_selector.addItem("Proj Global coords")
-
-    def _update_to_file(self):
-        """
-        Save the current reticle information to the metadata JSON file.
-
-        Raises:
-            ValueError: If there are empty fields or duplicate reticle names.
-        """
-        reticle_info_list = []
-        names_seen = set()
-        duplicates = False
-
-        # Create a list of original dictionary keys to avoid modification during iteration
-        original_groupbox_keys = list(self.groupboxes.keys())
-
-        # Iterate over the copied list of keys
-        for org_name in original_groupbox_keys:
-            group_box = self.groupboxes[org_name]
-            reticle_info = {}
-
-            for line_edit in group_box.findChildren(QLineEdit):
-                line_edit_value = line_edit.text().strip()
-
-                if not line_edit_value:
-                    print(f"Error: Field {line_edit.objectName()} is empty.")
-                    return
-
-                # Handle reticle name changes
-                if "lineEditName" in line_edit.objectName():
-                    if line_edit_value in names_seen:
-                        print(f"Error: Duplicate name found - {line_edit_value}")
-                        duplicates = True
-                    names_seen.add(line_edit_value)
-
-                    # Update self.groupboxes with the new name, if different from the original
-                    if org_name != line_edit_value:
-                        self.groupboxes[line_edit_value] = group_box
-                        self.groupboxes.pop(org_name)
-
-                # Validate numeric inputs
-                if line_edit.objectName() in ["lineEditRot", "lineEditOffsetX", "lineEditOffsetY", "lineEditOffsetZ"]:
-                    if not self._is_valid_number(line_edit_value):
-                        print(f"Error: {line_edit.objectName()} contains an invalid number.")
-                        return
-
-                # Store the data in reticle_info
-                reticle_info[line_edit.objectName()] = line_edit_value
-
-            # Append the info for this groupbox
-            reticle_info_list.append(reticle_info)
-
-        if duplicates:
-            print("Error: Duplicate names detected, aborting file save.")
-            return
-
-        # Save the updated groupbox information to file
-        try:
-            with open(reticle_metadata_file, "w") as json_file:
-                json.dump(reticle_info_list, json_file, indent=4)
-            print(f"Metadata successfully saved to {reticle_metadata_file}")
-        except Exception as e:
-            print(f"Error saving file: {e}")
-
-    def _is_valid_number(self, value):
-        """
-        Validate if a string value is a valid number.
-
-        Args:
-            value (str): The string to validate.
-
-        Returns:
-            bool: True if the value is a valid number, False otherwise.
-        """
-        try:
-            float(value)
-            return True
-        except ValueError:
-            return False
-
-    def _update_reticles(self, group_box):
-        """
-        Update the reticle information stored in the `self.reticles` dictionary based on user input.
-
-        Args:
-            group_box (QGroupBox): The QGroupBox containing the reticle data.
-        """
-        if not group_box:
-            print(f"Error: No groupbox found for reticle '{group_box}'.")
-            return
-
-        name = group_box.findChild(QLineEdit, "lineEditName").text()
-        offset_rot = group_box.findChild(QLineEdit, "lineEditRot").text()
-        offset_x = group_box.findChild(QLineEdit, "lineEditOffsetX").text()
-        offset_y = group_box.findChild(QLineEdit, "lineEditOffsetY").text()
-        offset_z = group_box.findChild(QLineEdit, "lineEditOffsetZ").text()
-
-        try:
-            offset_rot = float(offset_rot)
-            offset_x = float(offset_x)
-            offset_y = float(offset_y)
-            offset_z = float(offset_z)
-        except ValueError:
-            print("Error: Invalid offset values.")
-            return
-
-        rotmat = np.eye(3)
-        if offset_rot != 0:
-            rotmat = define_euler_rotation(0, 0, offset_rot, degrees=True).as_matrix()  # CCW
-
-        self.reticles[name] = {
-            "rot": offset_rot,
-            "rotmat": rotmat,
-            "offset_x": offset_x,
-            "offset_y": offset_y,
-            "offset_z": offset_z,
-        }
-        # Register the reticle in the model
-        self.model.add_reticle_metadata(name, self.reticles[name])
+            if self.model.is_calibrated(self.model.get_selected_stage_sn()):
+                for name in self.groupboxes.keys():
+                    self.reticle_selector.addItem(f"Proj Global coords ({name})")
