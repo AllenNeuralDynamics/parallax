@@ -262,7 +262,6 @@ class ReticleDetection:
         line1 = self._fit_line(pixels_in_lines[0])
         line2 = self._fit_line(pixels_in_lines[1])
         center_point = self._find_intersection(line1, line2)
-        print("center_point:", center_point)
 
         coords_interest = []
         for pixels_in_line in pixels_in_lines:

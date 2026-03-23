@@ -84,6 +84,8 @@ class StageServerIPConfig(QWidget):
             # Handle non-integer ports or empty IPs
             logger.error(f"Invalid server configuration input: {e}")
 
+            return self.ip, self.port
+
     def _is_valid_ip(self, ip, port):
         """
         Validates the IP address and port.
