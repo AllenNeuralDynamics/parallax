@@ -159,13 +159,16 @@ class ScreenSetting(QWidget):
 
     def _setup_fps_enable(self):
         """Initializes the FPS manual control toggle."""
-
         def on_sync():
             """Handles hardware and model sync when FPS toggle changes."""
             new_state = not self.model_config.frameRateEnable
             self.hw.set_frame_rate_enable(new_state)
             if new_state:  # if frame rate is enabled, switch exp and gain to 'continuous' mode
+                target_fps = self.model_config.fps
+                upper_limit_us = float(1000000 / target_fps)
+                self.hw.set_exposure_time_upper_limit(upper_limit_us)
                 self.hw.set_exposure_auto_mode("Continuous")
+                self.hw.set_frame_rate(target_fps)  # Ensure we set the desired FPS immediately
 
         # Connect the signal (No parentheses here!)
         self.settingMenu.fpsAuto.clicked.connect(on_sync)
@@ -173,19 +176,18 @@ class ScreenSetting(QWidget):
     def _setup_fps(self):
         def on_sync_release():
             fps = self.settingMenu.fpsSlider.value()
-            upper_limit_us = float(1000000 / fps)
+            exp_upper_limit_us = float(1000000 / fps)
             if self.hw:
-                self.hw.set_exposure_time_upper_limit(upper_limit_us)
+                self.hw.set_exposure_time_upper_limit(exp_upper_limit_us)
                 self.hw.set_frame_rate(fps)
-
         def on_sync_change():
             fps = self.settingMenu.fpsSlider.value()
             self.settingMenu.fpsNum.setNum(fps)  # Update GUI immediately on slider change
-
         self.settingMenu.fpsSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.fpsSlider.valueChanged.connect(on_sync_change)
 
     def _setup_exposure_auto(self):
+        self.hw.set_exposure_time_lower_limit(self.model_config.auto_exposure_lower_limit_us)
         def on_sync():
             new_state = "Off" if self.model_config.exposureAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":
@@ -203,7 +205,6 @@ class ScreenSetting(QWidget):
             val_ms = self.settingMenu.expSlider.value()
             if self.hw:
                 self.hw.set_exposure(expTime_us=float(val_ms * 1000))
-
         def on_sync_change():
             val_ms = self.settingMenu.expSlider.value()
             self.settingMenu.expNum.setNum(val_ms)  # Update GUI immediately on slider change
@@ -212,6 +213,9 @@ class ScreenSetting(QWidget):
         self.settingMenu.expSlider.valueChanged.connect(on_sync_change)
 
     def _setup_gain_auto(self):
+        # setup autogain limit
+        self.hw.set_auto_gain_lower_limit(self.model_config.auto_gain_lower_limit_db)
+        self.hw.set_auto_gain_upper_limit(self.model_config.auto_gain_upper_limit_db)
         def on_sync():
             new_state = "Off" if self.model_config.gainAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":

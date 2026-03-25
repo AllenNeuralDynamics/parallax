@@ -31,7 +31,6 @@ class PySpinSettings(BaseSettings):
         try:
             self._setup_buffer()
             self._setup_exposure()
-            self._setup_exposure_limit()
             self._setup_white_balance()
             self._setup_gain()
             self._setup_gamma()
@@ -55,11 +54,11 @@ class PySpinSettings(BaseSettings):
         self.node_expauto_mode_off = self.node_expauto_mode.GetEntryByName("Off")
         self.node_expauto_mode_on = self.node_expauto_mode.GetEntryByName("Continuous")
         self.node_expauto_mode_once = self.node_expauto_mode.GetEntryByName("Once")
-
-    def _setup_exposure_limit(self):
-        # set exposure time upper limit (if supported by camera)
         self.node_auto_exptime_upper_limit = PySpin.CFloatPtr(
             self.node_map.GetNode("AutoExposureExposureTimeUpperLimit")
+        )
+        self.node_auto_exptime_lower_limit = PySpin.CFloatPtr(
+            self.node_map.GetNode("AutoExposureExposureTimeLowerLimit")
         )
 
     def _setup_white_balance(self):
@@ -83,6 +82,8 @@ class PySpinSettings(BaseSettings):
         self.node_gainauto_mode_on = self.node_gainauto_mode.GetEntryByName("Continuous")
         self.node_gainauto_mode_once = self.node_gainauto_mode.GetEntryByName("Once")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
+        self.node_gainauto_upper_limit = PySpin.CFloatPtr(self.node_map.GetNode("AutoExposureGainUpperLimit"))
+        self.node_auto_gain_lower_limit = PySpin.CFloatPtr(self.node_map.GetNode("AutoExposureGainLowerLimit"))
 
     def _setup_gamma(self):
         # set gamma
@@ -217,6 +218,14 @@ class PySpinSettings(BaseSettings):
                 self.node_auto_exptime_upper_limit.SetValue(upper_limit_us)
                 logger.info(f"Exposure time upper limit set to {upper_limit_us} us for {self.sn}")
         except Exception as e:
+            logger.error(f"Error setting exposure time upper limit: {e}")
+
+    def set_exposure_time_lower_limit(self, lower_limit):
+        try:
+            if PySpin.IsWritable(self.node_auto_exptime_lower_limit):
+                self.node_auto_exptime_lower_limit.SetValue(lower_limit)
+                logger.info(f"Exposure time lower limit set to {lower_limit} us for {self.sn}")
+        except Exception as e:
             logger.error(f"Error setting exposure time lower limit: {e}")
 
     # ------------------------------------------------------------------
@@ -270,6 +279,23 @@ class PySpinSettings(BaseSettings):
                     self.node_gainauto_mode.SetIntValue(entry.GetValue())
         except Exception as e:
             logger.error(f"Error setting gain auto mode: {e}")
+
+    def set_auto_gain_upper_limit(self, target_limit_db):
+        """Sets the maximum gain the auto-exposure algorithm is allowed to use."""
+        try:
+            if PySpin.IsAvailable(self.node_gainauto_upper_limit) and PySpin.IsWritable(self.node_gainauto_upper_limit):
+                self.node_gainauto_upper_limit.SetValue(target_limit_db)
+                logger.info(f"Auto Gain Upper Limit set to {target_limit_db} dB")
+        except Exception as e:
+            logger.error(f"Failed to set Auto Gain Upper Limit: {e}")
+
+    def set_auto_gain_lower_limit(self, target_limit_db):
+        try:
+            if PySpin.IsAvailable(self.node_auto_gain_lower_limit) and PySpin.IsWritable(self.node_auto_gain_lower_limit):
+                self.node_auto_gain_lower_limit.SetValue(target_limit_db)
+                logger.info(f"Auto Gain Lower Limit set to {target_limit_db} dB")
+        except Exception as e:
+            logger.error(f"Failed to set Auto Gain Lower Limit: {e}")
 
     # ------------------------------------------------------------------
     # 4. WHITE BALANCE
