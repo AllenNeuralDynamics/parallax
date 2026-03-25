@@ -283,7 +283,7 @@ class PySpinSettings(BaseSettings):
     def set_auto_gain_upper_limit(self, target_limit_db):
         """Sets the maximum gain the auto-exposure algorithm is allowed to use."""
         try:
-            if PySpin.IsAvailable(self.node_gainauto_upper_limit) and PySpin.IsWritable(self.node_gainauto_upper_limit):
+            if PySpin.IsAvailable(self.node_gainauto_upper_limit):
                 self.node_gainauto_upper_limit.SetValue(target_limit_db)
                 logger.info(f"Auto Gain Upper Limit set to {target_limit_db} dB")
         except Exception as e:
@@ -291,7 +291,7 @@ class PySpinSettings(BaseSettings):
 
     def set_auto_gain_lower_limit(self, target_limit_db):
         try:
-            if PySpin.IsAvailable(self.node_auto_gain_lower_limit) and PySpin.IsWritable(self.node_auto_gain_lower_limit):
+            if PySpin.IsAvailable(self.node_auto_gain_lower_limit):
                 self.node_auto_gain_lower_limit.SetValue(target_limit_db)
                 logger.info(f"Auto Gain Lower Limit set to {target_limit_db} dB")
         except Exception as e:
