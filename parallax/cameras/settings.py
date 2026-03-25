@@ -110,6 +110,13 @@ class PySpinSettings(BaseSettings):
             entry_pixelformat_bayerRG8 = node_pixelformat.GetEntryByName("BayerRG8")
             node_pixelformat.SetIntValue(entry_pixelformat_bayerRG8.GetValue())
 
+    def invalidate_nodes(self):
+        """Invalidates all relevant nodes to ensure fresh reads from hardware."""
+        try:
+            self.node_map.InvalidateNodes()
+        except Exception as e:
+            logger.error(f"Error invalidating nodes for {self.sn}: {e}")
+
     # ------------------------------------------------------------------
     # 1. FRAME RATE
     # ------------------------------------------------------------------

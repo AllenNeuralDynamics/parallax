@@ -66,13 +66,16 @@ class ScreenSetting(QWidget):
             logger.warning(f"Sync failed: Hardware or Model reference missing for {self.sn}")
             return
         try:
+            # Invalidate nodes to ensure we get fresh values from hardware
+            self.hw.invalidate_nodes()
             # 1. Sync Modes
+            self.model_config.frameRateEnable = self.hw.get_frame_rate_enable()
             self.model_config.exposureAuto = self.hw.get_exposure_auto_mode()
             self.model_config.gainAuto = self.hw.get_gain_auto_mode()
             self.model_config.wbAuto = self.hw.get_wb_auto_mode()
+            self.model_config.gammaEnable = self.hw.get_gamma_enable()
 
             # 2. Sync Frame Rate
-            self.model_config.frameRateEnable = self.hw.get_frame_rate_enable()
             self.model_config.fps = self.hw.get_frame_rate()  # Actual fps
             # 3. Sync Exposure (Convert us back to ms for Pydantic)
             hw_exp_us = self.hw.get_exposure()
@@ -86,7 +89,6 @@ class ScreenSetting(QWidget):
             self.model_config.wbRed = int(self.hw.get_wb("Red") * 100)
             self.model_config.wbBlue = int(self.hw.get_wb("Blue") * 100)
             # 6. Sync Gamma
-            self.model_config.gammaEnable = self.hw.get_gamma_enable()
             if self.model_config.gammaEnable:
                 hw_gamma = self.hw.get_gamma()
                 if hw_gamma > 0:
@@ -164,7 +166,6 @@ class ScreenSetting(QWidget):
             self.hw.set_frame_rate_enable(new_state)
             if new_state:  # if frame rate is enabled, switch exp and gain to 'continuous' mode
                 self.hw.set_exposure_auto_mode("Continuous")
-                self.hw.set_gain_auto_mode("Continuous")
 
         # Connect the signal (No parentheses here!)
         self.settingMenu.fpsAuto.clicked.connect(on_sync)
@@ -186,9 +187,6 @@ class ScreenSetting(QWidget):
 
     def _setup_exposure_auto(self):
         def on_sync():
-            # If fps is enabled, do nothing. (mode is continouse and slide is disabled)
-            if self.model_config.frameRateEnable:
-                return
             new_state = "Off" if self.model_config.exposureAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":
                 self.hw.set_exposure_auto_mode("Continuous")
@@ -196,6 +194,7 @@ class ScreenSetting(QWidget):
             elif new_state == "Off":
                 self.hw.set_exposure_auto_mode("Off")
                 self.settingMenu.expSlider.setEnabled(True)
+                self.hw.set_frame_rate_enable(False)  # Disable frame rate control when exposure is manual
 
         self.settingMenu.expAuto.clicked.connect(on_sync)
 
@@ -214,9 +213,6 @@ class ScreenSetting(QWidget):
 
     def _setup_gain_auto(self):
         def on_sync():
-            # If fps is enabled, do nothing. (mode is continouse and slide is disabled)
-            if self.model_config.frameRateEnable:
-                return
             new_state = "Off" if self.model_config.gainAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":
                 self.hw.set_gain_auto_mode("Continuous")
