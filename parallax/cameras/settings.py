@@ -83,7 +83,7 @@ class PySpinSettings(BaseSettings):
         self.node_gainauto_mode_once = self.node_gainauto_mode.GetEntryByName("Once")
         self.node_gain = PySpin.CFloatPtr(self.node_map.GetNode("Gain"))
         self.node_gainauto_upper_limit = PySpin.CFloatPtr(self.node_map.GetNode("AutoExposureGainUpperLimit"))
-        self.node_auto_gain_lower_limit = PySpin.CFloatPtr(self.node_map.GetNode("AutoExposureGainLowerLimit"))
+        self.node_gainauto_lower_limit = PySpin.CFloatPtr(self.node_map.GetNode("AutoExposureGainLowerLimit"))
 
     def _setup_gamma(self):
         # set gamma
@@ -291,8 +291,8 @@ class PySpinSettings(BaseSettings):
 
     def set_auto_gain_lower_limit(self, target_limit_db):
         try:
-            if PySpin.IsAvailable(self.node_auto_gain_lower_limit):
-                self.node_auto_gain_lower_limit.SetValue(target_limit_db)
+            if PySpin.IsAvailable(self.node_gainauto_lower_limit):
+                self.node_gainauto_lower_limit.SetValue(target_limit_db)
                 logger.info(f"Auto Gain Lower Limit set to {target_limit_db} dB")
         except Exception as e:
             logger.error(f"Failed to set Auto Gain Lower Limit: {e}")
