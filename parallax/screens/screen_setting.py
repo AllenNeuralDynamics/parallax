@@ -226,6 +226,7 @@ class ScreenSetting(QWidget):
                 self.hw.set_auto_gain_lower_limit(self.model_config.auto_gain_lower_limit_db)
             if hasattr(self.hw, "set_auto_gain_upper_limit"):
                 self.hw.set_auto_gain_upper_limit(self.model_config.auto_gain_upper_limit_db)
+
         def on_sync():
             new_state = "Off" if self.model_config.gainAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":
