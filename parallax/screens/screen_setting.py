@@ -67,7 +67,8 @@ class ScreenSetting(QWidget):
             return
         try:
             # Invalidate nodes to ensure we get fresh values from hardware
-            self.hw.invalidate_nodes()
+            if self.hw and hasattr(self.hw, "invalidate_nodes"):
+                self.hw.invalidate_nodes()
             # 1. Sync Modes
             self.model_config.frameRateEnable = self.hw.get_frame_rate_enable()
             self.model_config.exposureAuto = self.hw.get_exposure_auto_mode()
@@ -164,14 +165,14 @@ class ScreenSetting(QWidget):
             """Handles hardware and model sync when FPS toggle changes."""
             new_state = not self.model_config.frameRateEnable
             self.hw.set_frame_rate_enable(new_state)
-            if new_state:  # if frame rate is enabled, switch exp and gain to 'continuous' mode
+            if new_state:  # if frame rate is enabled, switch exposure to auto to maintain sync and prevent user confusion
                 target_fps = self.model_config.fps
                 upper_limit_us = float(1000000 / target_fps)
                 self.hw.set_exposure_time_upper_limit(upper_limit_us)
                 self.hw.set_exposure_auto_mode("Continuous")
                 self.hw.set_frame_rate(target_fps)  # Ensure we set the desired FPS immediately
 
-        # Connect the signal (No parentheses here!)
+        # Connect the signal
         self.settingMenu.fpsAuto.clicked.connect(on_sync)
 
     def _setup_fps(self):
@@ -190,7 +191,8 @@ class ScreenSetting(QWidget):
         self.settingMenu.fpsSlider.valueChanged.connect(on_sync_change)
 
     def _setup_exposure_auto(self):
-        self.hw.set_exposure_time_lower_limit(self.model_config.auto_exposure_lower_limit_us)
+        if self.hw and hasattr(self.hw, "set_exposure_time_lower_limit"):
+            self.hw.set_exposure_time_lower_limit(self.model_config.auto_exposure_lower_limit_us)
 
         def on_sync():
             new_state = "Off" if self.model_config.exposureAuto == "Continuous" else "Continuous"
@@ -219,9 +221,11 @@ class ScreenSetting(QWidget):
 
     def _setup_gain_auto(self):
         # setup autogain limit
-        self.hw.set_auto_gain_lower_limit(self.model_config.auto_gain_lower_limit_db)
-        self.hw.set_auto_gain_upper_limit(self.model_config.auto_gain_upper_limit_db)
-
+        if self.hw:
+            if hasattr(self.hw, "set_auto_gain_lower_limit"):
+                self.hw.set_auto_gain_lower_limit(self.model_config.auto_gain_lower_limit_db)
+            if hasattr(self.hw, "set_auto_gain_upper_limit"):
+                self.hw.set_auto_gain_upper_limit(self.model_config.auto_gain_upper_limit_db)
         def on_sync():
             new_state = "Off" if self.model_config.gainAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":

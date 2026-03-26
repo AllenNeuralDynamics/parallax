@@ -34,9 +34,8 @@ class CameraSettings(BaseModel):
 
     @model_validator(mode="after")
     def validate_auto_modes_for_fps(self) -> "CameraSettings":
-        if self.frameRateEnable:
-            if self.exposureAuto != "Continuous":
-                self.exposureAuto = "Continuous"
+        if self.frameRateEnable and self.exposureAuto != "Continuous":
+            self.exposureAuto = "Continuous"
         return self
 
 

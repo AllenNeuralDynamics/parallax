@@ -78,6 +78,14 @@ class BaseSettings(ABC):
     def set_gain_auto_mode(self, mode: str) -> None:
         """Sets auto gain mode."""
         pass
+    
+    def set_auto_gain_lower_limit(self, target_limit_db: float) -> None:
+        """Sets the lower limit for gain if supported by the camera."""
+        pass
+
+    def set_auto_gain_upper_limit(self, target_limit_db: float) -> None:
+        """Sets the upper limit for gain if supported by the camera."""
+        pass
 
     # ------------------------------------------------------------------
     # 4. WHITE BALANCE
