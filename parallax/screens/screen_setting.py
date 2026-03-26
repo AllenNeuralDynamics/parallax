@@ -165,7 +165,7 @@ class ScreenSetting(QWidget):
             """Handles hardware and model sync when FPS toggle changes."""
             new_state = not self.model_config.frameRateEnable
             self.hw.set_frame_rate_enable(new_state)
-            if new_state:  # if frame rate is enabled, switch exposure to auto to maintain sync and prevent user confusion
+            if new_state:  # if frame rate is enabled, switch exposure to auto
                 target_fps = self.model_config.fps
                 upper_limit_us = float(1000000 / target_fps)
                 self.hw.set_exposure_time_upper_limit(upper_limit_us)
