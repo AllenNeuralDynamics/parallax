@@ -169,7 +169,7 @@ class PySpinSettings(BaseSettings):
     # ------------------------------------------------------------------
 
     def get_exposure(self) -> float:
-        """Returns the actual exposure time from the hardware."""
+        """Returns the actual exposure time in microseconds from the hardware."""
         try:
             if PySpin.IsReadable(self.node_exptime):
                 return float(self.node_exptime.GetValue())
@@ -222,14 +222,14 @@ class PySpinSettings(BaseSettings):
         except Exception as e:
             logger.error(f"Error setting exposure time upper limit: {e}")
 
-    def set_exposure_time_lower_limit(self, lower_limit):
+    def set_exposure_time_lower_limit(self, lower_limit_us: float):
         """Sets the lower limit for exposure time if supported by the camera."""
         try:
             if PySpin.IsAvailable(self.node_auto_exptime_lower_limit) and PySpin.IsWritable(
                 self.node_auto_exptime_lower_limit
             ):
-                self.node_auto_exptime_lower_limit.SetValue(lower_limit)
-                logger.info(f"Exposure time lower limit set to {lower_limit} us for {self.sn}")
+                self.node_auto_exptime_lower_limit.SetValue(lower_limit_us)
+                logger.info(f"Exposure time lower limit set to {lower_limit_us} us for {self.sn}")
         except Exception as e:
             logger.error(f"Error setting exposure time lower limit: {e}")
 
@@ -285,20 +285,20 @@ class PySpinSettings(BaseSettings):
         except Exception as e:
             logger.error(f"Error setting gain auto mode: {e}")
 
-    def set_auto_gain_upper_limit(self, target_limit_db):
+    def set_auto_gain_upper_limit(self, upper_limit_db):
         """Sets the maximum gain the auto-exposure algorithm is allowed to use."""
         try:
             if PySpin.IsAvailable(self.node_gainauto_upper_limit) and PySpin.IsWritable(self.node_gainauto_upper_limit):
-                self.node_gainauto_upper_limit.SetValue(target_limit_db)
-                logger.info(f"Auto Gain Upper Limit set to {target_limit_db} dB")
+                self.node_gainauto_upper_limit.SetValue(upper_limit_db)
+                logger.info(f"Auto Gain Upper Limit set to {upper_limit_db} dB")
         except Exception as e:
             logger.error(f"Failed to set Auto Gain Upper Limit: {e}")
 
-    def set_auto_gain_lower_limit(self, target_limit_db):
+    def set_auto_gain_lower_limit(self, lower_limit_db):
         try:
             if PySpin.IsAvailable(self.node_gainauto_lower_limit) and PySpin.IsWritable(self.node_gainauto_lower_limit):
-                self.node_gainauto_lower_limit.SetValue(target_limit_db)
-                logger.info(f"Auto Gain Lower Limit set to {target_limit_db} dB")
+                self.node_gainauto_lower_limit.SetValue(lower_limit_db)
+                logger.info(f"Auto Gain Lower Limit set to {lower_limit_db} dB")
         except Exception as e:
             logger.error(f"Failed to set Auto Gain Lower Limit: {e}")
 
