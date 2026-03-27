@@ -14,27 +14,32 @@ class CameraSettings(BaseModel):
     customName: str = ""
     # fps
     frameRateEnable: bool = False
-    fps: float = Field(default=31.0, ge=1.0, le=32.0)
+    fps: float = Field(default=10.0, ge=1.0, le=32.0)
     # exposure
     exposureAuto: Literal["Off", "Once", "Continuous"] = "Continuous"
-    exposureTime_ms: float = Field(default=14.9, ge=0.01, le=30000.0)
+    exposureTime_ms: float = Field(default=100.9, ge=0.01, le=501.0)
+    auto_exposure_lower_limit_ms: float = Field(default=0.01, ge=0.01, le=500.0)
+    auto_exposure_upper_limit_ms: float = Field(default=500.0, ge=0.01, le=501.0)
     # gain
     gainAuto: Literal["Off", "Once", "Continuous"] = "Continuous"
-    gain: float = Field(default=18.03, ge=0.0, le=27.05)
+    gain: float = Field(default=20.03, ge=0.0, le=27.05)
+    auto_gain_upper_limit_db: float = Field(default=27.04, ge=0.0, le=27.05)
+    auto_gain_lower_limit_db: float = Field(default=0.0, ge=0.0, le=27.045)
     # white balance
     wbAuto: Literal["Off", "Once", "Continuous"] = "Continuous"
-    wbBlue: int = Field(default=183, ge=0, le=400)
-    wbRed: int = Field(default=110, ge=0, le=400)
+    wbBlue: float = Field(default=1.83, ge=0.25, le=4.0)
+    wbRed: float = Field(default=1.10, ge=0.25, le=4.0)
     # gamma
     gammaEnable: bool = True
-    gamma: int = Field(default=80, ge=0, le=400)
+    gamma: float = Field(default=0.80, ge=0.25, le=4.0)
 
     @model_validator(mode="after")
     def validate_auto_modes_for_fps(self) -> "CameraSettings":
         if self.frameRateEnable:
-            if self.exposureAuto != "Continuous" or self.gainAuto != "Continuous":
+            # Force Exposure to Continuous if Manual FPS is on
+            if self.exposureAuto != "Continuous":
                 self.exposureAuto = "Continuous"
-                self.gainAuto = "Continuous"
+            self.auto_exposure_upper_limit_ms = 1000.0 / self.fps
         return self
 
 

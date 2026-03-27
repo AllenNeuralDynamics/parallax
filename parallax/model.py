@@ -330,26 +330,26 @@ class Model:
             camera_config.fps = cam_settings.get_frame_rate()
 
             # 3. Sync Exposure (Convert us from HW back to ms for Schema)
-            hw_exposure_us = cam_settings.get_exposure()
-            if hw_exposure_us > 0:
-                camera_config.exposureTime_ms = hw_exposure_us / 1000.0
+            if camera_config.exposureAuto == "Off":
+                hw_exposure_us = cam_settings.get_exposure()
+                if hw_exposure_us > 0:
+                    camera_config.exposureTime_ms = hw_exposure_us / 1000.0
 
             # 4. Sync Gain
             hw_gain = cam_settings.get_gain()
-            if hw_gain >= 0:
+            if hw_gain >= 0.0:
                 camera_config.gain = hw_gain
 
-            # 5. Sync White Balance (Convert ratio back to schema int 0-1024)
-            # Assuming schema 100 = 1.0 ratio
+            # 5. Sync White Balance
             if camera_config.wbAuto == "Off":
-                camera_config.wbRed = int(cam_settings.get_wb("Red") * 100)
-                camera_config.wbBlue = int(cam_settings.get_wb("Blue") * 100)
+                camera_config.wbRed = cam_settings.get_wb("Red")
+                camera_config.wbBlue = cam_settings.get_wb("Blue")
 
             # 6. Sync Gamma
             camera_config.gammaEnable = cam_settings.get_gamma_enable()
             hw_gamma = cam_settings.get_gamma()
-            if hw_gamma > 0:
-                camera_config.gamma = int(hw_gamma * 100)
+            if hw_gamma > 0.0:
+                camera_config.gamma = hw_gamma
 
             logger.info(f"Successfully synced model with hardware for {sn}")
 
@@ -383,16 +383,13 @@ class Model:
             # 4. White Balance (Only for Color Cameras)
             cam_settings.set_wb_auto_mode(camera_config.wbAuto)
             if camera_config.wbAuto == "Off":
-                # Assuming schema wbRed/wbBlue are integers (0-1024),
-                # convert to the float ratio (usually 0.0 to ~4.0) expected by hardware
-                cam_settings.set_wb("Red", camera_config.wbRed / 100.0)
-                cam_settings.set_wb("Blue", camera_config.wbBlue / 100.0)
+                cam_settings.set_wb("Red", camera_config.wbRed)
+                cam_settings.set_wb("Blue", camera_config.wbBlue)
 
             # 5. Gamma
             cam_settings.set_gamma_enable(camera_config.gammaEnable)
             if camera_config.gammaEnable:
-                # Assuming schema gamma 100 = 1.0 hardware value
-                gamma_val = camera_config.gamma / 100.0
+                gamma_val = camera_config.gamma
                 cam_settings.set_gamma(gamma_val)
 
             logger.info(f"Settings successfully applied to {camera_config.customName}")

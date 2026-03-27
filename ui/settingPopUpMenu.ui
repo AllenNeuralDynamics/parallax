@@ -427,7 +427,7 @@ font: 8pt;
       </size>
      </property>
      <property name="minimum">
-      <number>1</number>
+      <number>10</number>
      </property>
      <property name="maximum">
       <number>500</number>

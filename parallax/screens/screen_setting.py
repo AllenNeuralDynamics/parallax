@@ -66,14 +66,19 @@ class ScreenSetting(QWidget):
             logger.warning(f"Sync failed: Hardware or Model reference missing for {self.sn}")
             return
         try:
+            # Invalidate nodes to ensure we get fresh values from hardware
+            if self.hw and hasattr(self.hw, "invalidate_nodes"):
+                self.hw.invalidate_nodes()
             # 1. Sync Modes
+            self.model_config.frameRateEnable = self.hw.get_frame_rate_enable()
             self.model_config.exposureAuto = self.hw.get_exposure_auto_mode()
             self.model_config.gainAuto = self.hw.get_gain_auto_mode()
             self.model_config.wbAuto = self.hw.get_wb_auto_mode()
+            self.model_config.gammaEnable = self.hw.get_gamma_enable()
 
             # 2. Sync Frame Rate
-            self.model_config.frameRateEnable = self.hw.get_frame_rate_enable()
             self.model_config.fps = self.hw.get_frame_rate()  # Actual fps
+
             # 3. Sync Exposure (Convert us back to ms for Pydantic)
             hw_exp_us = self.hw.get_exposure()
             self.model_config.exposureTime_ms = hw_exp_us / 1000.0
@@ -81,16 +86,14 @@ class ScreenSetting(QWidget):
             hw_gain = self.hw.get_gain()
             if hw_gain >= 0:
                 self.model_config.gain = hw_gain
-            # 5. Sync White Balance (Convert float ratio to int 0-1024)
-            # Assuming 100 = 1.0 ratio based on your schema logic
-            self.model_config.wbRed = int(self.hw.get_wb("Red") * 100)
-            self.model_config.wbBlue = int(self.hw.get_wb("Blue") * 100)
+            # 5. Sync White Balance
+            self.model_config.wbRed = self.hw.get_wb("Red")
+            self.model_config.wbBlue = self.hw.get_wb("Blue")
             # 6. Sync Gamma
-            self.model_config.gammaEnable = self.hw.get_gamma_enable()
             if self.model_config.gammaEnable:
-                hw_gamma = self.hw.get_gamma()
+                hw_gamma = self.hw.get_gamma()  # 0.24 ~ 4.0
                 if hw_gamma > 0:
-                    self.model_config.gamma = int(hw_gamma * 100)
+                    self.model_config.gamma = hw_gamma
                 logger.debug(f"Hardware state synced to model for {self.sn}")
         except Exception as e:
             logger.error(f"Failed to sync hardware to model for {self.sn}: {e}")
@@ -118,14 +121,14 @@ class ScreenSetting(QWidget):
         # White Balance
         if not self.settingMenu.wbSliderRed.isSliderDown():
             self.settingMenu.wbSliderRed.setEnabled(self.model_config.wbAuto == "Off")
-            self.settingMenu.wbSliderRed.setValue(self.model_config.wbRed)
+            self.settingMenu.wbSliderRed.setValue(int(round(self.model_config.wbRed * 100)))  # Show more ticks
         if not self.settingMenu.wbSliderBlue.isSliderDown():
-            self.settingMenu.wbSliderBlue.setValue(self.model_config.wbBlue)
+            self.settingMenu.wbSliderBlue.setValue(int(round(self.model_config.wbBlue * 100)))  # Show more ticks
             self.settingMenu.wbSliderBlue.setEnabled(self.model_config.wbAuto == "Off")
         # gamma
         if not self.settingMenu.gammaSlider.isSliderDown():
             self.settingMenu.gammaSlider.setEnabled(self.model_config.gammaEnable)
-            self.settingMenu.gammaSlider.setValue(round(self.model_config.gamma))
+            self.settingMenu.gammaSlider.setValue(round(self.model_config.gamma * 100))  # Show more ticks
         self.settingMenu.blockSignals(False)
 
     def _setup_signals(self):
@@ -162,33 +165,39 @@ class ScreenSetting(QWidget):
             """Handles hardware and model sync when FPS toggle changes."""
             new_state = not self.model_config.frameRateEnable
             self.hw.set_frame_rate_enable(new_state)
-            if new_state:  # if frame rate is enabled, switch exp and gain to 'continuous' mode
+            if new_state:  # if frame rate is enabled, switch exposure to auto
+                target_fps = self.model_config.fps
+                upper_limit_us = float(1000000 / target_fps)
+                self.hw.set_exposure_time_upper_limit(upper_limit_us=upper_limit_us)
                 self.hw.set_exposure_auto_mode("Continuous")
-                self.hw.set_gain_auto_mode("Continuous")
+                self.hw.set_frame_rate(target_fps)  # Ensure we set the desired FPS immediately
 
-        # Connect the signal (No parentheses here!)
+        # Connect the signal
         self.settingMenu.fpsAuto.clicked.connect(on_sync)
 
     def _setup_fps(self):
         def on_sync_release():
             fps = self.settingMenu.fpsSlider.value()
-            upper_limit_us = float(1000000 / fps)
+            exp_upper_limit_us = float(1000000 / fps)
             if self.hw:
-                self.hw.set_exposure_time_upper_limit(upper_limit_us)
+                self.hw.set_exposure_time_upper_limit(upper_limit_us=exp_upper_limit_us)
                 self.hw.set_frame_rate(fps)
 
-        def on_sync_change():
-            fps = self.settingMenu.fpsSlider.value()
+        def on_sync_change(fps):
             self.settingMenu.fpsNum.setNum(fps)  # Update GUI immediately on slider change
 
         self.settingMenu.fpsSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.fpsSlider.valueChanged.connect(on_sync_change)
 
     def _setup_exposure_auto(self):
+        if self.hw and hasattr(self.hw, "set_exposure_time_lower_limit"):
+            lower_limit_us = self.model_config.auto_exposure_lower_limit_ms * 1000
+            self.hw.set_exposure_time_lower_limit(lower_limit_us=lower_limit_us)
+        if self.hw and hasattr(self.hw, "set_exposure_time_upper_limit"):
+            upper_limit_us = self.model_config.auto_exposure_upper_limit_ms * 1000
+            self.hw.set_exposure_time_upper_limit(upper_limit_us=upper_limit_us)
+
         def on_sync():
-            # If fps is enabled, do nothing. (mode is continouse and slide is disabled)
-            if self.model_config.frameRateEnable:
-                return
             new_state = "Off" if self.model_config.exposureAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":
                 self.hw.set_exposure_auto_mode("Continuous")
@@ -196,6 +205,7 @@ class ScreenSetting(QWidget):
             elif new_state == "Off":
                 self.hw.set_exposure_auto_mode("Off")
                 self.settingMenu.expSlider.setEnabled(True)
+                self.hw.set_frame_rate_enable(False)  # Disable frame rate control when exposure is manual
 
         self.settingMenu.expAuto.clicked.connect(on_sync)
 
@@ -205,18 +215,21 @@ class ScreenSetting(QWidget):
             if self.hw:
                 self.hw.set_exposure(expTime_us=float(val_ms * 1000))
 
-        def on_sync_change():
-            val_ms = self.settingMenu.expSlider.value()
+        def on_sync_change(val_ms):
             self.settingMenu.expNum.setNum(val_ms)  # Update GUI immediately on slider change
 
         self.settingMenu.expSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.expSlider.valueChanged.connect(on_sync_change)
 
     def _setup_gain_auto(self):
+        # setup autogain limit
+        if self.hw:
+            if hasattr(self.hw, "set_auto_gain_lower_limit"):
+                self.hw.set_auto_gain_lower_limit(lower_limit_db=self.model_config.auto_gain_lower_limit_db)
+            if hasattr(self.hw, "set_auto_gain_upper_limit"):
+                self.hw.set_auto_gain_upper_limit(upper_limit_db=self.model_config.auto_gain_upper_limit_db)
+
         def on_sync():
-            # If fps is enabled, do nothing. (mode is continouse and slide is disabled)
-            if self.model_config.frameRateEnable:
-                return
             new_state = "Off" if self.model_config.gainAuto == "Continuous" else "Continuous"
             if new_state == "Continuous":
                 self.hw.set_gain_auto_mode("Continuous")
@@ -233,8 +246,7 @@ class ScreenSetting(QWidget):
             if self.hw:
                 self.hw.set_gain(val)
 
-        def on_sync_change():
-            val = self.settingMenu.gainSlider.value()
+        def on_sync_change(val):
             self.settingMenu.gainNum.setNum(val)  # Update GUI immediately on slider change
 
         self.settingMenu.gainSlider.sliderReleased.connect(on_sync_release)
@@ -263,20 +275,20 @@ class ScreenSetting(QWidget):
 
         def on_change_red(val):
             # Immediate UI feedback only
-            self.settingMenu.wbNumRed.setNum(val)
+            self.settingMenu.wbNumRed.setText(f"{val / 100.0:.1f}")
 
         def on_release_red():
             if self.hw:
                 val = self.settingMenu.wbSliderRed.value()
-                self.hw.set_wb("Red", val / 100.0)
+                self.hw.set_wb("Red", float(val / 100.0))
 
         def on_change_blue(val):
-            self.settingMenu.wbNumBlue.setNum(val)
+            self.settingMenu.wbNumBlue.setText(f"{val / 100.0:.1f}")
 
         def on_release_blue():
             if self.hw:
                 val = self.settingMenu.wbSliderBlue.value()
-                self.hw.set_wb("Blue", val / 100.0)
+                self.hw.set_wb("Blue", float(val / 100.0))
 
         self.settingMenu.wbSliderRed.valueChanged.connect(on_change_red)
         self.settingMenu.wbSliderRed.sliderReleased.connect(on_release_red)
@@ -300,9 +312,8 @@ class ScreenSetting(QWidget):
             if self.hw:
                 self.hw.set_gamma(val)
 
-        def on_sync_change():
-            val = self.settingMenu.gammaSlider.value() / 100.0
-            self.settingMenu.gammaNum.setText(f"{val:.1f}")
+        def on_sync_change(val):
+            self.settingMenu.gammaNum.setText(f"{val / 100.0:.1f}")
 
         self.settingMenu.gammaSlider.sliderReleased.connect(on_sync_release)
         self.settingMenu.gammaSlider.valueChanged.connect(on_sync_change)
