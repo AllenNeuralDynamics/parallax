@@ -24,10 +24,10 @@ jobs:
           python -m pip install -e .[linters] --no-cache-dir
       - name: Run interrogate
         run: interrogate parallax tests
-        continue-on-error: true
-      - name: Run flake8
-        run: flake8 parallax tests
-        continue-on-error: true
+      - name: Run Ruff Check
+        run: ruff check .
+      - name: Run Ruff Format Check
+        run: ruff format --check .
 
   # Job 2: Build Documentation for PR to Main and Dev Branches
   build-docs:

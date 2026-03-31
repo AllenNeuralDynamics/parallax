@@ -21,16 +21,19 @@ def _build_args():
     args.nCameras = 1
     return args
 
-
 @pytest.fixture(scope="function")
 def model():
     """Real Model fixture (import in tests if desired):
     from tests.helper import model
     """
-    from parallax.model import Model
+    from unittest.mock import MagicMock
 
-    m = Model(_build_args())
-    m.stage_listener_url = "http://localhost:8080/"
+    from parallax.model import Model
+    # Pass MagicMocks for config and session so they aren't None
+    m = Model(_build_args(), config=MagicMock(), session=MagicMock())
+
+    m.config.pathfinder_server.url = "http://localhost:8080/"
+
     return m
 
 

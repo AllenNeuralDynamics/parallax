@@ -149,7 +149,9 @@ class YoloKeypoints:
             )
             # save image
             if debug_img_dir and logger.isEnabledFor(logging.DEBUG):
-                debug_img_path = debug_img_dir / f"{self.name}_{i}_{global_detection['class_name']}_{int(ts*1000)}.jpg"
+                debug_img_path = (
+                    debug_img_dir / f"{self.name}_{i}_{global_detection['class_name']}_{int(ts * 1000)}.jpg"
+                )
                 cv2.imwrite(str(debug_img_path), frame)
 
         except Exception as e:

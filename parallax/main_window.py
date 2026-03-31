@@ -1,3 +1,4 @@
+# parallax/main_window.py
 """
 This script defines the main components of the application
 including the main window, UI elements,
@@ -15,7 +16,6 @@ import logging
 import os
 import webbrowser
 
-from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtGui import QFont, QFontDatabase
 
 # Import required PyQt6 modules and other libraries
@@ -23,8 +23,7 @@ from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox,
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import fira_font_dir, ui_dir
-from parallax.config.user_setting_manager import UserSettingsManager
-from parallax.control_panel.control_panel import ControlPanel
+from parallax.control_panel.control_panel import ControlPanel, MenuActions
 from parallax.handlers.point_mesh import PointMesh
 from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
@@ -62,19 +61,17 @@ class MainWindow(QMainWindow):
         self.refresh_cameras()
         logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
 
+        # Update Stage information
+        self.refresh_stages()
+        logger.debug(f"nStages: {self.model.nStages}")
+
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
         loadUi(ui, self)
 
-        # set font
         self._set_font()
-
-        # Load existing user preferences
-        _, self.dir, width, height = UserSettingsManager.load_mainWindow_settings()
-        if width is not None and height is not None:
-            self.resize(width, height)
-        if self.dir is None or not os.path.exists(self.dir):
-            self.dir = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+        self.dir = self.model.config.gui.directory
+        self.resize(self.model.config.gui.width, self.model.config.gui.height)
 
         # Attach directory selection event handler for saving files
         self.actionDir.triggered.connect(self.dir_setting_handler)
@@ -83,15 +80,19 @@ class MainWindow(QMainWindow):
         self.screen_widget_manager = ScreenWidgetManager(self.model, self, self.menuDevices)
 
         # Control Panel
+        # Create the action bundle in menu
+        actions = MenuActions(
+            server=self.actionServer,
+            save_info=self.actionSaveInfo,
+            trajectory=self.actionTrajectory,
+            calculator=self.actionCalculator,
+            triangulate=self.actionTriangulate,
+            reticles_metadata=self.actionReticlesMetadata,
+        )
+
+        # control panel - initialize handlers and connect signals
         self.control_panel = ControlPanel(
-            self.model,
-            self.screen_widget_manager.screen_widgets,
-            self.actionServer,
-            self.actionSaveInfo,
-            self.actionTrajectory,
-            self.actionCalculator,
-            self.actionTriangulate,
-            self.actionReticlesMetadata,
+            model=self.model, screen_widgets=self.screen_widget_manager.screen_widgets, actions=actions
         )
 
         # Add to splitter
@@ -101,7 +102,7 @@ class MainWindow(QMainWindow):
         self.verticalLayout.addWidget(splitter)
 
         # Streaming button. If toggled, start camera acquisition
-        self.actionStreaming.triggered.connect(self.start_button_handler)
+        self.actionStreaming.triggered.connect(self.start_streaming)
 
         # Recording functions
         self.recordingManager = RecordingManager(self.model)
@@ -110,12 +111,8 @@ class MainWindow(QMainWindow):
         )
         self.actionRecording.triggered.connect(self.record_button_handler)  # Recording video button
 
-        # Toggle start button on init
-        self.start_button_handler()
-
         # actionDocumentation
         self.actionDocumentation.triggered.connect(lambda: webbrowser.open("https://parallax.readthedocs.io/"))
-
         self.actionContactSupport.triggered.connect(
             lambda: webbrowser.open("https://github.com/AllenNeuralDynamics/parallax/issues")
         )
@@ -148,17 +145,34 @@ class MainWindow(QMainWindow):
         Asks the user if they want to restore the previous session.
         """
         if self._session_restore_popup_window():
-            # Restore coinfigs
-            self.model.load_camera_config()
-            self.model.load_session_config()
-            self.model.load_stage_config()
+            self.model.instantiate_session()
             self.control_panel.reticle_handler.apply_reticle_detection_status()
             self.control_panel.probe_calib_handler.apply_probe_calibration_status()
-            print(" Restored session info to cameras:", list(self.model.cameras.keys()))
-            print(" Restored session info to stages:", list(self.model.stages.keys()))
+
+            # check cameras with session
+            calibrated_stages = []
+            for sn in self.model.get_list_of_stage_sns():
+                if self.model.is_calibrated(sn):
+                    calibrated_stages.append(sn)
+            print(" Restored session info to cameras:", self.model.get_calibrated_camera_sns())
+            print(" Restored session info to stages:", calibrated_stages)
         else:
             # Clear yaml file
             self.model.clear_session_config()
+
+        # Set the camera visibility to True
+        for sn in self.model.get_list_of_camera_sns():
+            self.model.set_camera_visibility(sn, True)
+
+    def update_config_from_ui(self):
+        """
+        Updates the configuration based on the current state of the user interface.
+
+        This method retrieves the current width and height of the main window and updates the configuration
+        accordingly. It also saves the updated configuration to disk using the model's save_config method.
+        """
+        self.model.config.gui.width = self.width()
+        self.model.config.gui.height = self.height()
 
     def _set_font(self):
         """
@@ -178,15 +192,10 @@ class MainWindow(QMainWindow):
         It adds mock cameras for testing purposes and scans for actual cameras if the application
         is not in dummy mode. This ensures that the list of available cameras is always up-to-date.
         """
-        if self.model.dummy:
-            # Add mock cameras for testing purposes
-            self.model.add_mock_cameras()
-        else:
-            # If not in dummy mode, scan for actual available cameras
-            try:
-                self.model.scan_for_cameras()
-            except Exception as e:
-                print(f" Something still holds a reference to the camera.\n {e}")
+        try:
+            self.model.scan_for_cameras()
+        except Exception as e:
+            print(f"Error refreshing cameras: {e}")
 
     def refresh_stages(self):
         """Search for connected stages"""
@@ -202,7 +211,7 @@ class MainWindow(QMainWindow):
         else:
             self.recordingManager.stop_recording(self.screen_widget_manager.screen_widgets)
 
-    def start_button_handler(self):
+    def start_streaming(self):
         """
         Handles the actionStreaming toggle.
         Starts or stops camera acquisition and image refreshing depending on the action's checked state.
@@ -238,22 +247,10 @@ class MainWindow(QMainWindow):
         # Only update self.dir if new_dir is not empty (i.e., user didn't cancel)
         if new_dir:
             self.dir = new_dir
+            self.save_user_configs()  # Save the new directory to user settings
             print("Selected directory:", self.dir)
         else:
             print("Selection canceled. Keeping previous:", self.dir)
-
-    def save_user_configs(self):
-        """
-        Saves user configuration settings to a persistent storage.
-
-        This method retrieves current configuration values from the UI, including
-        the number of columns (nColumn), directory path (directory), and the window's
-        width and height. It then passes these values to the `save_user_configs` method
-        of the `user_setting` object to be saved.
-        """
-        width = self.width()
-        height = self.height()
-        UserSettingsManager.save_user_configs(0, self.dir, width, height)
 
     def closeEvent(self, event):
         """

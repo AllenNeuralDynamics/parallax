@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from PyQt6.QtCore import Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QPushButton, QWidget, QMessageBox
+from PyQt6.QtWidgets import QMessageBox, QPushButton, QWidget
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
@@ -24,6 +24,7 @@ class PointMeshWidget(QWidget):
     """
     A standalone widget that renders the 3D Plotly graph for a stage.
     """
+
     def __init__(self, file_path, sn):
         """initializes the PointMeshWidget.
         Parameters:
@@ -49,10 +50,10 @@ class PointMeshWidget(QWidget):
         self.ui = loadUi(os.path.join(ui_dir, "point_mesh.ui"), self)
         self.setWindowTitle(f"{self.sn} - Trajectory 3D View")
         self.setWindowFlags(
-            Qt.WindowType.Window |
-            Qt.WindowType.WindowMinimizeButtonHint |
-            Qt.WindowType.WindowMaximizeButtonHint |
-            Qt.WindowType.WindowCloseButtonHint
+            Qt.WindowType.Window
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
         )
 
         # Initialize
@@ -135,11 +136,13 @@ class PointMeshWidget(QWidget):
         pts = self.points_dict[key]
         name_map = {"transformed_pts": "Stage (Transformed)", "global_pts": "Global (Reference)"}
         scatter = go.Scatter3d(
-            x=pts[:, 0], y=pts[:, 1], z=pts[:, 2],
+            x=pts[:, 0],
+            y=pts[:, 1],
+            z=pts[:, 2],
             mode="markers+lines",
             marker=dict(size=3, color=self.colors.get(key, "green")),
             name=name_map.get(key, key),
-            hoverinfo="x+y+z"
+            hoverinfo="x+y+z",
         )
         self.traces[key] = scatter
 
@@ -148,7 +151,7 @@ class PointMeshWidget(QWidget):
         layout = go.Layout(
             scene=dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z"),
             margin=dict(l=0, r=0, b=0, t=0),
-            legend=dict(x=0, y=1)
+            legend=dict(x=0, y=1),
         )
         fig = go.Figure(data=data, layout=layout)
         self.web_view.setHtml(fig.to_html(include_plotlyjs="cdn"))
@@ -169,7 +172,7 @@ class PointMeshWidget(QWidget):
         self.web_view.resize(sz.width(), sz.height())
 
         # Ensure UI elements exist before resizing them too
-        if hasattr(self, 'ui') and hasattr(self.ui, 'horizontalLayoutWidget'):
+        if hasattr(self, "ui") and hasattr(self.ui, "horizontalLayoutWidget"):
             self.ui.horizontalLayoutWidget.resize(sz.width(), sz.height())
 
         self._update_canvas()
@@ -179,6 +182,7 @@ class PointMesh:
     """
     Static helper class to display 3D trajectories.
     """
+
     # Keep references to windows so Python doesn't garbage collect them
     _active_windows = []
 
@@ -196,10 +200,7 @@ class PointMesh:
         logger.info(f"Displaying trajectory for stage: {stage_sn}")
 
         try:
-            widget = PointMeshWidget(
-                file_path=trajectory_file,
-                sn=stage_sn
-            )
+            widget = PointMeshWidget(file_path=trajectory_file, sn=stage_sn)
             widget.show()
             PointMesh._active_windows.append(widget)
             PointMesh._active_windows = [w for w in PointMesh._active_windows if w.isVisible()]

@@ -1,3 +1,4 @@
+# parallax/handlers/screen_coords_mapper.py
 """
 This module defines the ScreenCoordsMapper class, which is responsible for converting
 clicked screen coordinates from a camera view into corresponding global coordinates.
@@ -100,16 +101,11 @@ class ScreenCoordsMapper:
         logger.debug(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
         print(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
 
-    def add_global_coords_to_dropdown(self):
-        """
-        Add an entry for "Proj Global coords" to the reticle selector dropdown.
-        """
-        self.reticle_selector.addItem("Proj Global coords")
-
     def reticle_detection_status_change(self):
         """Change the reticle detection status and update the dropdown accordingly."""
-        if self.model.reticle_detection_status == "accepted":
-            self.add_global_coords_to_dropdown()
+        if self.model.session.reticle_detection_status == "accepted":
+            if hasattr(self.model, "reticle_metadata_instance"):
+                self.model.reticle_metadata_instance.update_to_reticle_selector()
 
     def _apply_reticle_adjustments(self, global_pts):
         """

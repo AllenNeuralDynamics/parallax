@@ -44,19 +44,40 @@ class ReticleDetectManager(BaseReticleManager):
         def process(self, frame):
             """Process a single frame to detect reticle coordinates."""
             # Step 1: Run detection
-            success, processed_frame, _, inliner_lines = self.reticleDetector.get_coords(frame, lambda: self.running)
+            success, masked_img, _, _ = self.reticleDetector.get_masked_img(frame, lambda: self.running)
             if not self.running:
                 return DetectionResult.STOPPED
             if not success:
                 logger.debug("[WARN] get_coords failed.")
                 return DetectionResult.FAILED
 
-            # Step 2: Analyze coordinates of interest
-            success, self.x_coords, self.y_coords = self.coordsInterests.get_coords_interest(inliner_lines)
-            if not self.running:
-                return DetectionResult.STOPPED
-            if not success:
-                logger.debug("[WARN] get_coords_interest failed.")
+            # Retry Loop
+            max_retries = 10
+            detection_successful = False
+            for attempt in range(max_retries):
+                if not self.running:
+                    return DetectionResult.STOPPED
+
+                # Attempt to get coordinates
+                success, processed_frame, _, inliner_lines = self.reticleDetector.get_coords(
+                    masked_img, lambda: self.running
+                )
+                if not success:
+                    # REQUIREMENT: If get_coords fails, just return fail immediately
+                    logger.debug("[WARN] get_coords failed. Exiting process.")
+                    return DetectionResult.FAILED
+
+                # Attempt to get coordinates of interest
+                success, self.x_coords, self.y_coords = self.coordsInterests.get_coords_interest(inliner_lines)
+                if not success:
+                    # If get_coords_interest fails, try the loop again
+                    logger.debug(f"[RETRY {attempt + 1}] get_coords_interest failed. Retrying get_coords...")
+                    continue
+                # If we reach here, both passed
+                detection_successful = True
+                break
+
+            if not detection_successful:
                 return DetectionResult.FAILED
 
             # Step 3: Camera calibration

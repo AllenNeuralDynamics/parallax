@@ -170,7 +170,7 @@ def process_axis_filter(axis_filter, test_frame, click_position, qt_application,
         time.sleep(0.1)
 
     # Check that pos_x is updated
-    assert axis_filter.worker.pos_x == expected_pos_x, f"pos_x was not set correctly for click {click_position}"
+    assert list(axis_filter.worker.pos_x) == list(expected_pos_x), f"pos_x was not set correctly for click {click_position}"
 
     # Cleanup after each case
     axis_filter.stop()

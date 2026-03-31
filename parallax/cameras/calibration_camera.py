@@ -9,34 +9,17 @@ Classes:
 """
 
 import logging
-from dataclasses import dataclass
 from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 
 import parallax.config.config_calibration as cfg
+from parallax.session.session_state import CameraParams
 
 # Set logger name
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
-
-"""
-Example usage:
-success, camera_params = calibrate_camera(
-    x_axis=x_coords,
-    y_axis=y_coords,
-    device_model_name="Blackfly S BFS-U3-120S4C"
-)
-"""
-
-
-@dataclass
-class CameraParams:
-    mtx: Optional[np.ndarray] = None  # (3,3) float64
-    dist: Optional[np.ndarray] = None  # (N,) or (1,N) float64
-    rvec: Optional[np.ndarray] = None  # (3,1) float64
-    tvec: Optional[np.ndarray] = None  # (3,1) float64
 
 
 def calibrate_camera(
@@ -60,7 +43,7 @@ def calibrate_camera(
         params = cfg.CAMERA_CONFIGS[camera_model_name]
     except KeyError:
         raise ValueError(
-            f"Unknown camera model: {camera_model_name}. " f"Please add its configuration to config_calibration.py."
+            f"Unknown camera model: {camera_model_name}. Please add its configuration to config_calibration.py."
         )
 
     image_size = params["SIZE"]
@@ -87,11 +70,11 @@ def calibrate_camera(
     logger.debug(f"A reproj error: {ret}")
     logger.debug(f"Intrinsic: {format_mtxt}\n")
     logger.debug(f"Distortion: {format_dist}\n")
-    logger.debug(f"Focal length: {mtx[0][0]*pixel_size}")
+    logger.debug(f"Focal length: {mtx[0][0] * pixel_size}")
     distancesA = [np.linalg.norm(vec) for vec in tvecs]
     logger.debug(f"Distance from camera to world center: {np.mean(distancesA)}")
 
-    return ret, CameraParams(mtx, dist, rvecs[0], tvecs[0])
+    return ret, CameraParams(mtx=mtx, dist=dist, rvec=rvecs[0], tvec=tvecs[0])
 
 
 def _get_changed_data_format(x_axis, y_axis):
@@ -199,10 +182,10 @@ def get_projected_points(objpoints, rvec, tvec, mtx, dist):
         mtx (np.ndarray): Camera intrinsic matrix (3x3).
         dist (np.ndarray): Distortion coefficients (1x5).
     Returns:
-        np.ndarray: Projected 2D image points (N x 1 x 2) rounded to integer coordinates.
+        np.ndarray: Projected 2D image points (N x 1 x 2) rounded to float coordinates.
     """
     imgpoints, _ = cv2.projectPoints(objpoints, rvec, tvec, mtx, dist)
-    return np.round(imgpoints.reshape(-1, 2)).astype(np.int32)
+    return imgpoints.reshape(-1, 2)
 
 
 def get_axis_object_points(axis="x", coord_range=10, world_scale=0.2):
@@ -367,7 +350,7 @@ def evaluate_performance(
     average_L2_distance = np.mean(euclidean_distances)
 
     if print_results:
-        print(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance*1000, 2)} µm³")
+        print(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance * 1000, 2)} µm³")
         _evaluate_x_y_z_performance(points_3d_G, print_results=print_results)
         logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
@@ -399,4 +382,4 @@ def _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=True):
     l2_z = np.sqrt(mean_squared_diff_z)
 
     if print_results:
-        print(f"x: {np.round(l2_x*1000, 2)}µm³, y: {np.round(l2_y*1000, 2)}µm³, z: {np.round(l2_z*1000, 2)}µm³")
+        print(f"x: {np.round(l2_x * 1000, 2)}µm³, y: {np.round(l2_y * 1000, 2)}µm³, z: {np.round(l2_z * 1000, 2)}µm³")

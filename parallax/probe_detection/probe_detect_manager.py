@@ -63,15 +63,13 @@ class DrawWorker(QRunnable):
         self.palette_warm = palette_warm
         self.palette_tips = palette_tips
 
-    def update_frame(self, frame, timestamp):
+    def update_frame(self, frame):
         """Update the frame and timestamp.
         Args:
             frame (numpy.ndarray): Input frame.
-            timestamp (str): Timestamp of the frame.
         """
         self.frame = frame.copy()
         self.new = True
-        self.timestamp = timestamp
 
     def _draw_reticle(self):
         """
@@ -217,8 +215,6 @@ class DrawWorker(QRunnable):
         """
         Draw the probe tip on the frame.
         """
-        #
-        # print(" Drawing tip/base coords:", self.tip_coords, self.base_coords)
         if self.tip_coords is not None and self.frame is not None:
             cv2.circle(self.frame, self.tip_coords, 5, self.tip_coords_color, -1)
 
@@ -501,13 +497,13 @@ class ProbeDetectManager(QObject):
         logger.debug(f"{self.name} YOLO thread finished")
         self.yoloProcessWorker = None
 
-    def process(self, frame, timestamp):
+    def process(self, frame, timestamp: float):
         """
         Process the frame using the worker.
 
         Args:
             frame (numpy.ndarray): Input frame.
-            timestamp (str): Timestamp of the frame.
+            timestamp (float): Timestamp of the frame.
         """
         if self.opencvProcessWorker is not None:
             self.opencvProcessWorker.update_frame(frame, timestamp)
@@ -516,7 +512,7 @@ class ProbeDetectManager(QObject):
             self.yoloProcessWorker.update_frame(frame, timestamp)
 
         if self.worker is not None:
-            self.worker.update_frame(frame, timestamp)
+            self.worker.update_frame(frame)
 
     @pyqtSlot(float, float, str, list, list)
     def found_probe(self, stage_ts, img_ts, sn, tip_coords, base_coords):

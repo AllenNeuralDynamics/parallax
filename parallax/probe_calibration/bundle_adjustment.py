@@ -232,7 +232,7 @@ class BALOptimizer:
         n_cams = len(self.bal_problem.list_cameras)
         n_pts = len(self.bal_problem.points)
         camera_params = params[: 12 * n_cams].reshape(n_cams, 12)
-        points = params[12 * n_cams:].reshape(n_pts, 3)
+        points = params[12 * n_cams :].reshape(n_pts, 3)
 
         for obs in self.bal_problem.observations:
             cam_idx, pt_idx, observed_x, observed_y = int(obs[0]), int(obs[1]), obs[2], obs[3]
@@ -282,7 +282,7 @@ class BALOptimizer:
         n_cams = len(self.bal_problem.list_cameras)
         n_pts = len(self.bal_problem.points)
         self.opt_camera_params = opt_params[: 12 * n_cams].reshape(n_cams, 12)
-        self.opt_points = opt_params[12 * n_cams:].reshape(n_pts, 3)
+        self.opt_points = opt_params[12 * n_cams :].reshape(n_pts, 3)
 
         if print_result:
             print("\n*********** Optimization completed **************")

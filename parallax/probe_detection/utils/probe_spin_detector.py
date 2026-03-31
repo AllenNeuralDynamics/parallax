@@ -138,7 +138,7 @@ def _check_consecutive_spacings(global_pts: np.ndarray, unit: str = "mm", scale:
 
         # 2. Print status
         status = "OK" if is_valid else "FAIL"
-        logger.debug(f"Distance {i}->{i+1}: {d:.4f} {unit} | Status: {status}")
+        logger.debug(f"Distance {i}->{i + 1}: {d:.4f} {unit} | Status: {status}")
 
         if not is_valid:
             all_valid = False

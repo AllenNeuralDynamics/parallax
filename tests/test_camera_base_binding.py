@@ -4,8 +4,12 @@ import datetime
 import numpy as np
 import pytest
 
-from parallax.cameras.camera_base_binding import BaseCamera
+from parallax.cameras.camera_base_binding import BaseCamera, BaseSettings
 
+
+class DummySettings(BaseSettings):
+    """Concrete implementation of BaseSettings for testing."""
+    pass
 
 def test_basecamera_is_abstract():
     # Abstract methods should prevent direct instantiation
@@ -23,6 +27,7 @@ class DummyCamera(BaseCamera):
         self.last_capture_time = ts
         self._stopped = False
         self._saved = []
+        self.settings = DummySettings()
 
     def name(self, sn_only: bool = False) -> str:
         return "DummySN" if sn_only else "DummyCam (SN DummySN)"
@@ -76,9 +81,9 @@ def test_get_last_capture_time_formats(ts):
 def test_default_getters_return_sentinels():
     cam = DummyCamera(1704067200.0)
     # BaseCamera defaults
-    assert cam.get_wb("Red") == -1.0
-    assert cam.get_gain() == -1
-    assert cam.get_exposure() == -1
+    assert cam.settings.get_wb("Red") == -1.0
+    assert cam.settings.get_gain() == -1.0
+    assert cam.settings.get_exposure() == -1.0
 
 
 def test_name_and_image_data_and_overrides():

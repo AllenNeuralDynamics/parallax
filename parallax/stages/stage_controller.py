@@ -362,7 +362,7 @@ class StageController(QObject):
     def _get_status(self) -> Optional[dict]:
         """Fetch current probe status from the stage listener."""
         try:
-            response = requests.get(self.model.stage_listener_url)
+            response = requests.get(self.model.config.pathfinder_server.url)
             response.raise_for_status()  # Raises an error for HTTP failure codes (e.g., 404, 500)
             return response.json()
         except json.JSONDecodeError:
@@ -381,5 +381,5 @@ class StageController(QObject):
             command (dict): The command to send as a JSON object.
         """
         headers = {"Content-Type": "application/json"}
-        requests.put(self.model.stage_listener_url, data=json.dumps(command), headers=headers)
+        requests.put(self.model.config.pathfinder_server.url, data=json.dumps(command), headers=headers)
         logger.info(f"Command sent: {json.dumps(command, indent=2)}")

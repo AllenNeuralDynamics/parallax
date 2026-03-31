@@ -1,3 +1,4 @@
+# parallax/screens/screen_widget.py
 """
 Provides ScreenWidget for image interaction in microscopy apps, supporting image display,
 point selection, and zooming. It integrates with probe and reticle detection managers
@@ -17,6 +18,7 @@ from parallax.reticle_detection.manager_cnn import ReticleDetectManagerCNN
 from parallax.reticle_detection.manager_opencv import ReticleDetectManager
 from parallax.screens.axis_filter import AxisFilter
 from parallax.screens.no_filter import NoFilter
+from parallax.session.session_state import CameraParams
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -33,8 +35,6 @@ class ScreenWidget(pg.GraphicsView):
     cleared = pyqtSignal()
     reticle_coords_detected = pyqtSignal()
     reticle_coords_detect_finished = pyqtSignal()
-    # camera name, timestamp, sn, stage_info, pixel_coords
-    # probe_coords_detected = pyqtSignal(str, float, float, str, dict, tuple, tuple)
     probe_coords_detected = pyqtSignal(str)
 
     def __init__(self, camera, model=None, parent=None):
@@ -113,6 +113,13 @@ class ScreenWidget(pg.GraphicsView):
         self.probeDetector.frame_processed.connect(self.set_image_from_data)
         self.probeDetector.found_coords.connect(self.found_probe_coords)
 
+    @property
+    def camera_hw(self):
+        """Direct access to the camera hardware settings."""
+        if self.camera and hasattr(self.camera, "settings"):
+            return self.camera.settings
+        return None
+
     def refresh(self):
         """
         Refresh the image displayed in the screen widget. (Continuously)
@@ -121,7 +128,6 @@ class ScreenWidget(pg.GraphicsView):
             data = self.camera.get_last_image_data()
             if data is None:
                 logger.warning(f"{self.camera_name} - No data received from camera.")
-                print(f"{self.camera_name} - No data received from camera.")
                 return
             self._set_data(data)
         else:
@@ -129,19 +135,19 @@ class ScreenWidget(pg.GraphicsView):
             self._set_data(placeholder_data)
 
     def _generate_stopped_message_image(self):
-        img = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        h = self.height if self.height is not None else 1080
+        w = self.width if self.width is not None else 1920
+        img = np.zeros((h, w, 3), dtype=np.uint8)
 
         message = "Camera not running. Check the connection."
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 3
-        thickness = 5
+        font_scale = 1.5  # Reduced scale slightly to ensure it fits common screens
+        thickness = 3
 
-        # Get text size to center it
-        (text_width, text_height), _ = cv2.getTextSize(message, font, font_scale, thickness)
-        x = (self.width - text_width) // 2
-        y = (self.height + text_height) // 2
-
-        cv2.putText(img, message, (x, y), font, font_scale, (255, 0, 0), thickness)
+        (text_width, text_height), baseline = cv2.getTextSize(message, font, font_scale, thickness)
+        x = max(0, (w - text_width) // 2)
+        y = max(0, (h + text_height) // 2)
+        cv2.putText(img, message, (x, y), font, font_scale, (0, 0, 255), thickness)
 
         return img
 
@@ -189,7 +195,7 @@ class ScreenWidget(pg.GraphicsView):
         self.axisFilter.process(data)
         self.reticleDetector.process(data)
         self.reticleDetectorCNN.process(data)
-        self.probeDetector.process(data, self.camera.last_capture_time)
+        self.probeDetector.process(data, self.camera.get_last_capture_timestamp())
 
     def is_camera(self):
         """
@@ -236,52 +242,6 @@ class ScreenWidget(pg.GraphicsView):
         """display image from data"""
         self.image_item.setImage(data, autoLevels=False)
 
-    def set_camera_setting(self, setting, val):
-        """
-        Set the camera settings. (exposure, gain, gamma, wb)
-
-        exposure (int): min: 90,000(10fps) max: 250,000(4fps)
-        gain (float): The desired gain value. min:0, max:27.0
-        wb (float): The desired white balance value. min:1.8, max:2.5
-        gamma (float): The desired gamma value. min:0.25 max:1.25
-        """
-        if self.camera:
-            if setting == "exposure":
-                self.camera.set_exposure(val)
-            elif setting == "gain":
-                self.camera.set_gain(val)
-            elif setting == "gamma":
-                self.camera.set_gamma(val)
-            elif setting == "wbRed":
-                self.camera.set_wb("Red", val)
-            elif setting == "wbBlue":
-                self.camera.set_wb("Blue", val)
-
-    def get_camera_setting(self, setting):
-        """Get the specified camera setting value.
-
-        Args:
-            setting (str): The camera setting to retrieve.
-                Possible values: "exposure", "gain", "gamma", "wbRed", "wbBlue".
-
-        Returns:
-            float: The value of the specified camera setting.
-        """
-        val = 0
-        if self.camera:
-            if setting == "exposure":
-                val = self.camera.get_exposure()
-            elif setting == "gain":
-                val = self.camera.get_gain()
-            elif setting == "gamma":
-                self.camera.disable_gamma()
-            elif setting == "wbRed":
-                val = self.camera.get_wb("Red")
-            elif setting == "wbBlue":
-                val = self.camera.get_wb("Blue")
-            print("setting:", setting, "val:", val)
-        return val
-
     def get_camera_color_type(self):
         """Get the color type of the camera.
 
@@ -324,7 +284,7 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
         camera_name = self.get_camera_name()
-        print(f"Clicked position on {camera_name}: ({pos[0]}, {pos[1]})")
+        print(f"Clicked position on {camera_name}: {pos}")
         self.selected.emit(camera_name, pos)
 
     def _zoom_out(self):
@@ -402,10 +362,10 @@ class ScreenWidget(pg.GraphicsView):
         frame = self.probeDetector.get_frame()
         return frame
 
-    def found_reticle_coords(self, x_coords, y_coords, camera_matrix):
+    def found_reticle_coords(self, x_coords: np.ndarray, y_coords: np.ndarray, camera_matrix: CameraParams):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
         print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {camera_matrix.rvec}\ntvecs: {camera_matrix.tvec}")
-        coords = [x_coords, y_coords]
+        coords = np.array([x_coords, y_coords])
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_params(self.camera_name, camera_matrix)
 

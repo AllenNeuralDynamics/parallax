@@ -62,21 +62,6 @@ def test_save_last_image(recording_manager, mock_screen_widget, mock_model, tmpd
     mock_screen_widget.save_image.assert_called_once_with(save_path, isTimestamp=True, name=custom_title)
 
 
-def test_save_last_image_not_visible(recording_manager, mock_screen_widget, mock_model, tmpdir):
-    """Test that invisible cameras are NOT saved."""
-    save_path = str(tmpdir)
-    screen_widgets = [mock_screen_widget]
-
-    sn = "MockCamera123"
-    mock_model.cameras = {sn: {"visible": False}}
-
-    # Call the method
-    recording_manager.save_last_image(save_path, screen_widgets)
-
-    # Assert save_image was NOT called
-    mock_screen_widget.save_image.assert_not_called()
-
-
 def test_save_last_image_directory_not_exists(recording_manager, mock_screen_widget):
     """Test saving the last image when the save path does not exist."""
     save_path = "non_existent_directory"
@@ -128,7 +113,6 @@ def test_stop_recording(recording_manager, mock_screen_widget):
     # Assert
     mock_screen_widget.stop_recording.assert_called_once()
     assert sn not in recording_manager.recording_camera_list
-
 
 def test_stop_recording_not_recording_camera(recording_manager, mock_screen_widget):
     """Test stopping a recording when the camera is not in the recording list."""

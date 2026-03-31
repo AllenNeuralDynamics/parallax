@@ -273,7 +273,6 @@ class OpenCVProcessWorker:
             self.stopped_first_frame = False
 
             if ret:
-                print("emit stopped", self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
                 self._trigger_callback(
                     "on_tip_stopped",
                     self.stage_ts,
@@ -296,7 +295,6 @@ class OpenCVProcessWorker:
             ret = self.currBgCmpProcess.update_cmp(self.curr_img, self.mask, self.gray_img, get_fine_tip=False)
 
             if ret:
-                print("emit moving", self.probeDetect.probe_tip_org, self.probeDetect.probe_base_org)
                 self._trigger_callback(
                     "on_tip_moving",
                     self.img_ts,
@@ -315,7 +313,6 @@ class OpenCVProcessWorker:
         if self.probeDetect.angle:
             # Use the processor to refine the tip based on the click
             if self.currPrevCmpProcess._get_precise_tip(self.gray_img, pt):
-
                 self._trigger_callback(
                     "on_tip_stopped", self.stage_ts, self.img_ts, self.sn, self.probeDetect.probe_tip_org, (None, None)
                 )

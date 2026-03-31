@@ -1,5 +1,6 @@
 # tests/test_stage_widget.py
 from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from PyQt6.QtWidgets import QWidget
@@ -68,6 +69,7 @@ def patch_heavy_dependencies(monkeypatch):
         self.global_coords_y = Mock()
         self.global_coords_z = Mock()
         self.stage_server_ipconfig_btn = _DummyButton()
+        self.snapshot_btn = _DummyButton()
         return self
 
     monkeypatch.setattr("parallax.control_panel.control_panel.loadUi", fake_loadUi)
@@ -85,6 +87,10 @@ def patch_heavy_dependencies(monkeypatch):
             super().__init__()
             self.reticle_metadata = {}
 
+            self.clearRequested = DummySignal()
+            self.resetCalibRequested = DummySignal()
+            self.probeCalibRequest = DummySignal()
+
         def reticle_detection_status_change(self, *a, **k):
             pass
 
@@ -97,13 +103,26 @@ def patch_heavy_dependencies(monkeypatch):
         def update_stages(self, *a, **k):
             pass
 
+        def probe_detect_accepted_status(self, *a, **k):
+            pass
+
+        def update_probe_calib_status(self, *a, **k):
+            pass
+
     monkeypatch.setattr("parallax.control_panel.control_panel.ReticleDetecthandler", DummyReticleDetecthandler)
     monkeypatch.setattr("parallax.control_panel.control_panel.ProbeCalibrationHandler", DummyProbeCalibrationHandler)
 
     class DummyStageUI(QWidget):
+        class _UI:
+            def __init__(self):
+                # Reuse the _DummyButton already defined in the file
+                self.snapshot_btn = _DummyButton()
+
         def __init__(self, *a, **k):
             super().__init__()
             self.prev_curr_stages = DummySignal()
+            self.update_stage_coords = Mock()
+            self.ui = self._UI()
 
         def get_current_stage_id(self):
             return "stage1"
@@ -117,13 +136,11 @@ def patch_heavy_dependencies(monkeypatch):
     monkeypatch.setattr("parallax.control_panel.control_panel.StageUI", DummyStageUI)
 
     class DummyStageListener:
-        def __init__(self, *a, **k):
-            self.stages_info = {}
+        def __init__(self, model):
+            self.model = model
+            self.localDataChanged = Mock()
 
         def start(self):
-            pass
-
-        def update_url(self):
             pass
 
     monkeypatch.setattr("parallax.control_panel.control_panel.StageListener", DummyStageListener)
@@ -171,9 +188,16 @@ def screen_widgets():
 
 @pytest.fixture(scope="function")
 def stage_widget(qtbot, mock_model, screen_widgets):
-    from parallax.control_panel.control_panel import ControlPanel
-
-    widget = ControlPanel(mock_model, screen_widgets)
+    from parallax.control_panel.control_panel import ControlPanel, MenuActions
+    actions = MenuActions(
+        server=MagicMock(),
+        save_info=MagicMock(),
+        trajectory=MagicMock(),
+        calculator=MagicMock(),
+        triangulate=MagicMock(),
+        reticles_metadata=MagicMock()
+    )
+    widget = ControlPanel(mock_model, screen_widgets, actions)
     qtbot.addWidget(widget)  # safe teardown
     return widget
 

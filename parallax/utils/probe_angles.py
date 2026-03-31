@@ -1,8 +1,11 @@
+# parallax/utils/probe_angles.py
 import logging
 import math
 from typing import Optional
 
 import numpy as np
+
+from parallax.session.session_state import ArcAngle
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -29,20 +32,30 @@ def get_spin_bregma(spin_global: float, reticle_rot: float) -> Optional[float]:
     return relative_spin_normalized
 
 
-def get_rx_ry(transM: Optional[np.ndarray]) -> Optional[dict[str, float]]:
+def get_rx_ry(transM: Optional[np.ndarray]) -> Optional["ArcAngle"]:
     """
-    transM: 4x4 transformation matrix from global or bregma to coordinates.
-    Depending on the context, the result is expressed in that coordinate system.
+    Converts a 4x4 transformation matrix into an ArcAngle object.
 
-    Returns
-    -------
-    dict[str, float] | None
-        {"rx": <deg>, "ry": <deg>} or None if transM is None/invalid.
+    Returns:
+        ArcAngle | None: Object with rx, ry, and rz=0.0.
     """
     if transM is None:
         return None
+
     z_axis = _find_probe_insertion_vector(transM)
-    return _vector_to_arc_angles(z_axis)
+    if z_axis is None:
+        return None
+
+    angles_dict = _vector_to_arc_angles(z_axis)
+
+    if angles_dict is None:
+        return None
+
+    return ArcAngle(
+        rx=angles_dict["rx"],
+        ry=angles_dict["ry"],
+        rz=0.0,  # Placeholder, updated via spin_angle logic elsewhere
+    )
 
 
 def spin_angle_from_vec(v: np.ndarray) -> float:
