@@ -490,9 +490,6 @@ class MockSettings(BaseSettings):
     def get_exposure_time_lower_limit(self):
         return 1.0
 
-    def set_exposure_time_upper_limit(self, upper_limit):
-        pass  # Not implemented in mock
-
     # --- Frame Rate ---
     def get_frame_rate(self):
         return self._frame_rate

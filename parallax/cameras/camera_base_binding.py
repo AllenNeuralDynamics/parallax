@@ -56,8 +56,12 @@ class BaseSettings(ABC):
         """Returns the minimum allowed exposure time."""
         return -1.0
 
-    def set_exposure_time_lower_limit(self, lower_limit: float) -> None:
+    def set_exposure_time_lower_limit(self, lower_limit_us: float) -> None:
         """Sets the minimum allowed exposure time."""
+        pass
+
+    def set_exposure_time_upper_limit(self, upper_limit_us: float) -> None:
+        """Sets the maximum allowed exposure time."""
         pass
 
     # ------------------------------------------------------------------
@@ -79,11 +83,11 @@ class BaseSettings(ABC):
         """Sets auto gain mode."""
         pass
 
-    def set_auto_gain_lower_limit(self, target_limit_db: float) -> None:
+    def set_auto_gain_lower_limit(self, lower_limit_db: float) -> None:
         """Sets the lower limit for gain if supported by the camera."""
         pass
 
-    def set_auto_gain_upper_limit(self, target_limit_db: float) -> None:
+    def set_auto_gain_upper_limit(self, upper_limit_db: float) -> None:
         """Sets the upper limit for gain if supported by the camera."""
         pass
 
