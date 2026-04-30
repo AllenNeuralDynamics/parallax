@@ -51,14 +51,19 @@ The SuperGluePretrainedNetwork is not included in this repository and is distrib
 Please review their [license](https://github.com/magicleap/SuperGluePretrainedNetwork) before use.
 
 Manual Setup Instructions
-1. Clone the repository if it hasn't been done already.
+Clone the repository if it hasn't been done already.
 ```bash
 git clone https://github.com/AllenNeuralDynamics/parallax.git
 cd parallax
 ```
+1. Install the required `sfm` dependency from GitHub:
+```bash
+uv pip install git+<https://github.com/AllenNeuralDynamics/sfm.git@main>
+```
 
 2. Clone the repository into the external/ folder in your Parallax project root:
 ```bash
+
 git clone https://github.com/magicleap/SuperGluePretrainedNetwork.git external/SuperGluePretrainedNetwork
 ```
 
