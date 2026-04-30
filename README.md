@@ -22,7 +22,7 @@ uv venv --python 3.10
 # On Windows: .venv\Scripts\activate
 uv pip install parallax-app
 ```
-Option B, Install via local repository (Recommanded):
+Option B, Install via local repository (Recommended):
 ```bash
 git clone http://github.com/AllenNeuralDynamics/parallax.git
 cd parallax
