@@ -41,7 +41,8 @@ dependencies = [
 parallax = "parallax.__main__:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["parallax", "ui", "img"]
+packages = ["parallax"]
+include = ["ui/**"]
 
 [tool.hatch.version]
 path = "parallax/__init__.py"
