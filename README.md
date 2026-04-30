@@ -58,12 +58,11 @@ cd parallax
 ```
 1. Install the required `sfm` dependency from GitHub:
 ```bash
-uv pip install git+<https://github.com/AllenNeuralDynamics/sfm.git@main>
+uv pip install git+https://github.com/AllenNeuralDynamics/sfm.git@main
 ```
 
 2. Clone the repository into the external/ folder in your Parallax project root:
 ```bash
-
 git clone https://github.com/magicleap/SuperGluePretrainedNetwork.git external/SuperGluePretrainedNetwork
 ```
 
