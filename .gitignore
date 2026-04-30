@@ -34,4 +34,4 @@ debug
 .coverage
 
 # Environments
-venv/
+.venv/
