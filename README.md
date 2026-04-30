@@ -24,7 +24,7 @@ uv pip install parallax-app
 ```
 Option B, Install via local repository (Recommended):
 ```bash
-git clone http://github.com/AllenNeuralDynamics/parallax.git
+git clone https://github.com/AllenNeuralDynamics/parallax.git
 cd parallax
 uv sync
 ```
