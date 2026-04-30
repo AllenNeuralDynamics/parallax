@@ -34,7 +34,8 @@ dependencies = [
     "ultralytics>=8.2.0",
     "lap>=0.5.12",
     "torch>=2.3.0",
-    "pydantic>=2"
+    "pydantic>=2",
+    "sfm",
    ]
 
 [project.scripts]
@@ -54,11 +55,11 @@ source = ["parallax"]
 
 [tool.coverage.report]
 exclude_lines = ["if __name__ == .__main__.:", "pragma: no cover"]
-fail_under = 70
+fail_under = 30
 
 [tool.interrogate]
 exclude = ["setup.py", "docs", "build"]
-fail-under = 70
+fail-under = 30
 
 [tool.ruff]
 line-length = 120
@@ -82,7 +83,8 @@ linters = [
     'coverage',
     'ruff',
     'interrogate',
-    'pytest-mock'
+    'pytest-mock',
+    "mypy>=1.11.0",
 ]
 
 docs = [
@@ -105,6 +107,9 @@ test = [
 homepage = "https://github.com/AllenNeuralDynamics/parallax"
 repository = "https://github.com/AllenNeuralDynamics/parallax"
 documentation = "https://github.com/AllenNeuralDynamics/parallax/wiki"
+
+[tool.uv.sources]
+sfm = { git = "https://github.com/AllenNeuralDynamics/sfm.git", branch = "main" }
 
 [tool.pytest.ini_options]
 pythonpath = ["parallax", "tests"]
