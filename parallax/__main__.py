@@ -17,6 +17,7 @@ from parallax.main_window import MainWindow
 from parallax.model import Model
 from parallax.session.session_manager import SessionManager
 
+
 def main():
     # Print the ASCII art
     print(f"Parallax version {__version__}")
@@ -49,6 +50,7 @@ def main():
     atexit.register(model.save_config)
     atexit.register(model.save_session)
     atexit.register(model.clean)
+
 
 # Execute when run directly as a module
 if __name__ == "__main__":
