@@ -262,6 +262,7 @@ class MainWindow(QMainWindow):
         Args:
             event (QCloseEvent): The close event triggered when the widget is closed.
         """
+        self.update_config_from_ui()
         self.model.close_clac_instance()
         self.model.close_reticle_metadata_instance()
         self.model.close_stage_ipconfig_instance()
