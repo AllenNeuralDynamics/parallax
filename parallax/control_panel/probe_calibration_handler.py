@@ -468,8 +468,8 @@ class ProbeCalibrationHandler(QWidget):
             self.clearRequested.emit(self.selected_stage_id)
             # update global coords. Set  to '-' on UI
         else:  # Reset all probel calibration status
-            for sn in self.model.get_list_of_stage_sns():
-                self.clearRequested.emit(self.selected_stage_id)
+            for stage_sn in self.model.get_list_of_stage_sns():
+                self.clearRequested.emit(stage_sn)
 
         # Set as Uncalibrated
         self.calculator.set_calc_functions()
