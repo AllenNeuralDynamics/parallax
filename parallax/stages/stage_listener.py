@@ -256,7 +256,7 @@ class StageListener:
         # Stop the current worker
         if self.worker.is_alive():
             self.worker.stop()
-            self.worker.join(timeout=1.0) # Wait for it to exit
+            self.worker.join(timeout=1.0)  # Wait for it to exit
 
         # Create a new worker with the updated URL
         new_url = self.model.config.pathfinder_server.url
