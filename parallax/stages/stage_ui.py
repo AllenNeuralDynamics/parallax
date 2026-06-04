@@ -30,9 +30,9 @@ class StageUI(QWidget):
         self.previous_stage_id = None
 
         # initialize UI
-        self._initialize()
+        self.initialize()
 
-    def _initialize(self):
+    def initialize(self):
         """Initialize the stage UI with current state."""
         # 1. Block signals while building the list
         self.ui.stage_selector.blockSignals(True)
