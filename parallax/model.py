@@ -133,10 +133,12 @@ class Model:
         return self.stage_instances.get(sn)
 
     def reset_stage_obj_info(self, sn: str):
-        self.stage_instances.get(sn).stage_x_global = None
-        self.stage_instances.get(sn).stage_y_global = None
-        self.stage_instances.get(sn).stage_z_global = None
-        self.stage_instances.get(sn).stage_bregma = None
+        stage_obj = self.stage_instances.get(sn)
+        if stage_obj is not None:
+            stage_obj.stage_x_global = None
+            stage_obj.stage_y_global = None
+            stage_obj.stage_z_global = None
+            stage_obj.stage_bregma = None
 
     # =========================
     # Stages calibration
