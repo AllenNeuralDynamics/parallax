@@ -173,11 +173,11 @@ class ControlPanel(QWidget):
 
     def refresh_stages(self):
         """Refreshes the stages using the updated server configuration."""
-        print("Refreshing stages with updated server configuration...")
         # If URL is not updated or invalid, do nothing
         if not self.stage_server_ipconfig.update_url():
             return
 
+        print("Refreshing stages with updated server configuration...")
         # refresh the stage using server IP address
         self.stage_server_ipconfig.refresh_stages()  # Update stages server url to model # models.transforms updated
         self.stageUI.initialize()
@@ -190,7 +190,6 @@ class ControlPanel(QWidget):
 
         # Update url on StageLinstener
         self.stageListener.update_url()
-        print("Stages refreshed successfully.")
 
     def stage_server_ipconfig_btn_handler(self):
         """

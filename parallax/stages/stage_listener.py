@@ -15,34 +15,21 @@ logger.setLevel(logging.WARNING)
 
 
 class PathfinderServer:
-    """Retrieve and manage information about the stages."""
+    """Utility to fetch stage information from the hardware server."""
 
     def __init__(self, url: str):
-        """Initialize StageInfo."""
         self.url = url
-        self.nStages = 0
-        self.stages_sn = []
 
     def get_instances(self) -> list:
-        """Get the instances of the stages.
-
-        Returns:
-            list: List of stage instance dicts.
-        """
-        stages = []
+        """Fetch raw list of stages from the server."""
         try:
             response = requests.get(self.url, timeout=1)
             if response.status_code == 200:
-                data = response.json()
-                self.nStages = data.get("Probes", 0)
-                for stage in data.get("ProbeArray", []):
-                    self.stages_sn.append(stage["SerialNumber"])
-                    stages.append(stage)
+                return response.json().get("ProbeArray", [])
         except Exception as e:
-            print("Stage HttpServer not enabled.")
             logger.debug(f"Stage HttpServer not enabled: {e}")
 
-        return stages
+        return []
 
 
 class Worker(threading.Thread):
@@ -77,6 +64,7 @@ class Worker(threading.Thread):
     def update_url(self, url):
         """Change the URL for data fetching."""
         self.url = url
+        self.is_error_log_printed = False
 
     def run(self):
         """The main loop of the native thread with crash protection."""
@@ -264,5 +252,27 @@ class StageListener:
             probeDetector.enable_calibration(self.worker.last_move_detected_time + self.worker.IDLE_TIME, sn)
 
     def update_url(self):
-        """Update the URL for the worker thread."""
-        self.worker.update_url(self.model.config.pathfinder_server.url)
+        """Stop the old thread and start a fresh one with the new URL."""
+        # Stop the current worker
+        if self.worker.is_alive():
+            self.worker.stop()
+            if not self.worker.join(timeout=2.0):
+                # If it doesn't join, it's safer to just update the URL
+                # rather than force-killing or starting a second thread.
+                logger.warning("Worker failed to join; falling back to URL update.")
+                self.worker.update_url(self.model.config.pathfinder_server.url)
+                return
+
+        # Create a new worker with the updated URL
+        new_url = self.model.config.pathfinder_server.url
+        self.worker = Worker(new_url)
+
+        # Re-connect the signals to the new worker
+        self.worker.dataChanged.connect(self.handleDataChange)
+        self.worker.stage_moving.connect(self.stageMovingStatus)
+        self.worker.stage_not_moving.connect(self.stageNotMovingStatus)
+
+        # Start the new worker
+        self.worker.start()
+
+        print(f"Stage Listener restarted with URL: {new_url}")
