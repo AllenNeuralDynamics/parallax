@@ -273,6 +273,9 @@ class Calculator(QWidget):
         """
         if not sn:
             return
+        if self.findChild(QGroupBox, f"groupBox_{sn}") is None:
+            print("Error: Group box not found")
+            return
         # Clear the QLineEdit for the stage
         self.findChild(QLineEdit, f"localX_{sn}").setText("")
         self.findChild(QLineEdit, f"localY_{sn}").setText("")

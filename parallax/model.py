@@ -88,11 +88,12 @@ class Model:
         print("Scanning for USB stages...")
         server = PathfinderServer(self.config.pathfinder_server.url)
         instances = server.get_instances()
+        self.stage_instances = {}  # Reset internal state before updating
         for instance in instances:
             stage = StageObj.from_info(info=instance)
-            sn = stage.sn
-            self.stage_instances[sn] = stage
+            self.stage_instances[stage.sn] = stage
         self.nStages = len(self.stage_instances)
+        self.instantiate_session()  # Sync with session after scanning
         print("  Stages:", list(self.stage_instances.keys()))
 
     # =========================
@@ -133,10 +134,12 @@ class Model:
         return self.stage_instances.get(sn)
 
     def reset_stage_obj_info(self, sn: str):
-        self.stage_instances.get(sn).stage_x_global = None
-        self.stage_instances.get(sn).stage_y_global = None
-        self.stage_instances.get(sn).stage_z_global = None
-        self.stage_instances.get(sn).stage_bregma = None
+        stage_obj = self.stage_instances.get(sn)
+        if stage_obj is not None:
+            stage_obj.stage_x_global = None
+            stage_obj.stage_y_global = None
+            stage_obj.stage_z_global = None
+            stage_obj.stage_bregma = None
 
     # =========================
     # Stages calibration
