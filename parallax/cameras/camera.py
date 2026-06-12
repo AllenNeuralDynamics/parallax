@@ -7,7 +7,7 @@ import logging
 import os
 import threading
 import time
-
+from typing import Any
 import cv2
 import numpy as np
 
@@ -37,7 +37,7 @@ def list_cameras(dummy=False, n_mocks=0):
     Returns:
     - list: List of available PySpin cameras.
     """
-    cameras = []
+    cameras: list[MockCamera | PySpinCamera] = []
     if dummy:
         # Return mock cameras for testing
         for i in range(n_mocks):
@@ -62,9 +62,9 @@ class PySpinCamera(BaseCamera):
     Represents a camera managed by the PySpin library.
     """
 
-    pyspin_cameras = None
-    pyspin_instance = None
-    cameras = []
+    pyspin_cameras: Any | None = None
+    pyspin_instance: Any | None = None
+    cameras: list["PySpinCamera"] = []
 
     @classmethod
     def list_cameras(cls):
