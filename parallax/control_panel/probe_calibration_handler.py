@@ -37,10 +37,10 @@ class ProbeCalibrationHandler(QWidget):
         screen_widgets,
         filter,
         reticle_selector,
-        actionTrajectory: QAction = None,
-        actionCalculator: QAction = None,
-        actionReticlesMetadata: QAction = None,
-        transform_info_handler: QWidget = None,
+        actionTrajectory: Optional[QAction] = None,
+        actionCalculator: Optional[QAction] = None,
+        actionReticlesMetadata: Optional[QAction] = None,
+        transform_info_handler: Optional[QWidget] = None,
     ):
         super().__init__()
         self.model = model

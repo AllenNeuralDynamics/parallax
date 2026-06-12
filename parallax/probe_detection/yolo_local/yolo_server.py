@@ -9,6 +9,7 @@ import torch
 from ultralytics import YOLO
 
 from parallax.config.config_path import debug_img_dir
+from typing import Optional
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -128,7 +129,7 @@ class YoloKeypoints:
         logger.info("YOLO segmentation worker stopped")
 
     def process_frame(
-        self, frame: np.ndarray, crop_info: dict = None, ts: float = None, global_detection: dict = None, i: int = 0
+        self, frame: np.ndarray, crop_info: Optional[dict] = None, ts: Optional[float] = None, global_detection: Optional[dict] = None, i: int = 0
     ):
         """Add frame to processing queue"""
         if not self.running:

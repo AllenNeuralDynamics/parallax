@@ -9,6 +9,7 @@ import numpy as np
 from parallax.config.config_path import debug_img_dir, img_processing_config_file
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.utils.utils import UtilsCrops
+from typing import Optional
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -472,7 +473,7 @@ class ProbeImageProcessor:
         return arr
 
     @classmethod
-    def mask_to_bbox_xyxy(cls, mask_u8: np.ndarray, img_shape=None, pad: int = None):
+    def mask_to_bbox_xyxy(cls, mask_u8: np.ndarray, img_shape=None, pad: Optional[int] = None):
         """
         Tight bbox from a uint8 mask considering ALL foreground pixels.
         Returns (left, top, right, bottom) with right/bottom EXCLUSIVE: [x1, y1, x2, y2).

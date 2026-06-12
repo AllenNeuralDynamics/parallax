@@ -10,6 +10,7 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
@@ -20,7 +21,7 @@ class ReticleDetecthandler(QWidget):
 
     reticleDetectionStatusChanged = pyqtSignal()
 
-    def __init__(self, model, screen_widgets, filter, actionTriangulate: QAction = None):
+    def __init__(self, model, screen_widgets, filter, actionTriangulate: Optional[QAction] = None):
         """
         Args:
             stage_widget (StageWidget): Reference to the parent StageWidget instance.

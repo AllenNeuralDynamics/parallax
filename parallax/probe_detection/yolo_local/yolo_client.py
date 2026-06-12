@@ -5,6 +5,7 @@ import numpy as np
 
 from parallax.probe_detection.yolo_local.utils import preprocessing
 from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
+from typing import Optional
 
 
 class YOLOClient:
@@ -37,7 +38,7 @@ class YOLOClient:
             self.logger.error(f"Error starting Simple YOLO client: {e}")
             return False
 
-    def newframe_captured(self, frame: np.ndarray, crop_info: dict = None, detection: dict = None, i_th: int = 0):
+    def newframe_captured(self, frame: np.ndarray, crop_info: Optional[dict] = None, detection: Optional[dict] = None, i_th: int = 0):
         """Put new frame at the specified FPS rate"""
         """ Dictioction """
         # Rate limit the frames sent to the YOLO worker
