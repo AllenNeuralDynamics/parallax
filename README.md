@@ -10,7 +10,7 @@ setting up and performing acute *in vivo* electrophysiology experiments.
 ## Prerequisites
 - **Python 3.10**: Required for compatibility with the Spinnaker library.
 - [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk) and Teledyne FLIR software for camera support.
-- We recommend using [`uv`](https://docs.astral.sh/uv/) for environment management.
+- [Pathfinder MPM Control Panel v.2.8 or later](https://newscaletech.com/multi-probe-micromanipulator/mpm-system-pathfinder-software/)
 
 
 ## Installation
@@ -35,7 +35,7 @@ Install the camera interface [Spinnaker SDK 4.2](https://www.teledynevisionsolut
 # Install from the **wheel file** that comes with the Spinnaker SDK ver.4.2.
 # Replace **<WHEEL_PATH>** with the *full path* to your `.whl`:
 uv pip install "<WHEEL_PATH>"
-# Example) uv pip install spinnaker_python-4.2.0.88-cp310-cp310-win_amd64.whl
+# Example) uv add spinnaker_python-4.2.0.88-cp310-cp310-win_amd64.whl
 ```
 
 ## Running Parallax
@@ -58,7 +58,7 @@ cd parallax
 ```
 1. Install the required `sfm` dependency from GitHub:
 ```bash
-uv pip install git+https://github.com/AllenNeuralDynamics/sfm.git@main
+uv add git+https://github.com/AllenNeuralDynamics/sfm.git@main
 ```
 
 2. Clone the repository into the external/ folder in your Parallax project root:

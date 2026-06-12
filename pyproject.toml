@@ -35,7 +35,9 @@ dependencies = [
     "lap>=0.5.12",
     "torch>=2.3.0",
     "pydantic>=2",
-   ]
+    "spinnaker-python",
+    "sfm",
+]
 
 [project.scripts]
 parallax = "parallax.__main__:main"
@@ -105,3 +107,7 @@ documentation = "https://github.com/AllenNeuralDynamics/parallax/wiki"
 
 [tool.pytest.ini_options]
 pythonpath = ["parallax", "tests"]
+
+[tool.uv.sources]
+spinnaker-python = { path = "../spinnaker_python-4.2.0.88-cp310-cp310-win_amd64.whl" }
+sfm = { git = "https://github.com/AllenNeuralDynamics/sfm.git", rev = "main" }

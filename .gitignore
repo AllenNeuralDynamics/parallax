@@ -24,6 +24,7 @@ external/*
 
 # Sphinx documentation
 docs/_build/
+docs/source/_autosummary/
 
 # User-specific files
 data/*
@@ -35,3 +36,6 @@ debug
 
 # Environments
 .venv/
+
+# uv lock file
+uv.lock
