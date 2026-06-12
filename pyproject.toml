@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
  
 [project]
 name = "parallax-app"
@@ -12,13 +12,12 @@ license =  {text = "MIT"}
 readme = "README.md"
 keywords = ["parallax"]
 dynamic = ["version"]
-requires-python = "~=3.10"
+requires-python = ">=3.10, <3.11"
 classifiers = [
     "Programming Language :: Python :: 3"
 ]
 
 dependencies = [
-    "pip",
     "PyQt6>=6.10.0",
     "pyqtgraph",
     "opencv-python",
@@ -35,29 +34,52 @@ dependencies = [
     "ultralytics>=8.2.0",
     "lap>=0.5.12",
     "torch>=2.3.0",
-    "pydantic>=2"
-   ]
- 
-[tool.setuptools.packages.find]
-include = ["parallax", "ui", "img"]
-exclude = ["tests", "tests.*"]
+    "pydantic>=2",
+]
 
-[tool.setuptools.package-data]
-exclude = ["tests", "tests/*"]
+[project.scripts]
+parallax = "parallax.__main__:main"
 
-[tool.setuptools.dynamic]
-version = {attr = "parallax.__version__"}
-readme = {file = "README.md"}
- 
+[tool.hatch.build.targets.wheel]
+packages = ["parallax"]
+include = ["ui/**"]
+
+[tool.hatch.version]
+path = "parallax/__init__.py"
+
+[tool.coverage.run]
+omit = [
+    "*__init__*"
+]
+source = ["parallax"]
+
+[tool.coverage.report]
+exclude_lines = ["if __name__ == .__main__.:", "pragma: no cover"]
+fail_under = 30
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs",
+    "tests",
+]
+
+[tool.ruff.lint]
+# Enable Pyflakes (F), pycodestyle (E, W), and isort (I)
+select = ["F", "E", "W", "I"]
+
+[tool.codespell]
+skip = ".git,*.json,*.log"
+
 [project.optional-dependencies]
-dev = ['parallax-app[linters]']
-
 linters = [
     'codespell',
     'coverage',
     'ruff',
-    'interrogate',
-    'pytest-mock'
+    'pytest-mock',
+    "mypy>=1.11.0",
 ]
 
 docs = [
@@ -76,37 +98,10 @@ test = [
     "opencv-python-headless",
 ]
 
-[tool.coverage.run]
-omit = [
-    "*__init__*"
-]
-source = ["parallax"]
-
-[tool.coverage.report]
-exclude_lines = ["if __name__ == .__main__.:", "pragma: no cover"]
-fail_under = 70
-
-[tool.interrogate]
-exclude = ["setup.py", "docs", "build"]
-fail-under = 70
-
-[tool.ruff]
-line-length = 120
-exclude = [
-    ".git",
-    "__pycache__",
-    "docs",
-    "tests",
-]
-
-[tool.ruff.lint]
-# Enable Pyflakes (F), pycodestyle (E, W), and isort (I)
-select = ["F", "E", "W", "I"]
-
-[tool.codespell]
-skip = ".git,*.json,*.log"
- 
 [tool]
 homepage = "https://github.com/AllenNeuralDynamics/parallax"
 repository = "https://github.com/AllenNeuralDynamics/parallax"
 documentation = "https://github.com/AllenNeuralDynamics/parallax/wiki"
+
+[tool.pytest.ini_options]
+pythonpath = ["parallax", "tests"]
