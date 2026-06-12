@@ -36,6 +36,3 @@ debug
 
 # Environments
 .venv/
-
-# uv lock file
-uv.lock
