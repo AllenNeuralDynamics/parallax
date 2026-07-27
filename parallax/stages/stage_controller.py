@@ -51,7 +51,7 @@ class StageController(QObject):
         self.timer = QTimer(self)
         self.timer.setInterval(1000)  # 1 second
         self.timer.timeout.connect(self._on_timer_timeout)
-        self._z_move_context = None  # Holds data needed for checking Z position
+        self._z_move_context: Optional[dict] = None  # Holds data needed for checking Z position
         self.timer_count = 0
 
         # These commands will be updated dynamically based on the parsed probe index
@@ -103,6 +103,17 @@ class StageController(QObject):
         else:
             logger.warning(f"Invalid move type: {move_type}")
 
+    def _extract_probe_index(self, command: dict) -> Optional[int]:
+        """
+        Helper method to extract the stage_sn from a command, validate its type,
+        and retrieve the corresponding probe index.
+        """
+        stage_sn = command.get("stage_sn")
+        if not isinstance(stage_sn, str):
+            logger.warning("Invalid or missing stage_sn.")
+            return None
+        return self._get_probe_index(stage_sn)
+
     def _stepmode_request(self, command: dict) -> None:
         """
         Handles the step mode request for the specified stage (probe).
@@ -112,7 +123,7 @@ class StageController(QObject):
             command (dict): A dictionary containing the stage serial number and step mode.
             example: {"stage_sn": "SN12345", "step_mode": 1}, (0 for Coarse, 1 for Fine, and 2 for Insertion.)
         """
-        probe_index = self._get_probe_index(command.get("stage_sn"))
+        probe_index = self._extract_probe_index(command)
         if probe_index is None:
             return
 
@@ -130,8 +141,7 @@ class StageController(QObject):
             example: {"stage_sn": "SN12345", "distance": 10.0, "rate": 1.0, "world": "global"}
         """
         # Get the probe index
-        stage_sn = command.get("stage_sn")
-        probe_index = self._get_probe_index(stage_sn)
+        probe_index = self._extract_probe_index(command)
         if probe_index is None:
             return
 
@@ -182,7 +192,7 @@ class StageController(QObject):
 
         # Send the stop command for the specified probe
         if move_type == "stop":
-            probe_index = self._get_probe_index(command.get("stage_sn"))
+            probe_index = self._extract_probe_index(command)
             if probe_index is None:
                 return
             self.probeStop_command["Probe"] = probe_index
@@ -200,9 +210,12 @@ class StageController(QObject):
         """
         move_type = command.get("move_type")
         stage_sn = command.get("stage_sn")
+        if not isinstance(stage_sn, str):
+            logger.warning("Invalid or missing stage_sn.")
+            return
 
         # Get index of the probe based on the serial number
-        probe_index = self._get_probe_index(stage_sn)
+        probe_index = self._extract_probe_index(command)
         if probe_index is None:
             return
 

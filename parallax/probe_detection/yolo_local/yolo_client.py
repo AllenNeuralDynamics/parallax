@@ -45,7 +45,7 @@ class YOLOClient:
         # if self.current_time is None or current - self.current_time > (1/self.fps):
         frame_cropped_resized, crop_info, detection = preprocessing(
             frame,  # Resized to 320x320
-            detection=detection,
+            detection=detection if detection is not None else {},
             target_size=self.dim,
             crop_info=crop_info,
             bbox_margin=self.bbox_margin,

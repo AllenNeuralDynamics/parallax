@@ -609,7 +609,7 @@ class ProbeImageProcessor:
                 if d[j] > maxd:
                     maxd = float(d[j])
                     q1, q2 = H[i], H[j]
-            if q1 is not None:
+            if q1 is not None and q2 is not None:
                 p_min, p_max = tuple(q1.astype(int)), tuple(q2.astype(int))
 
         return p_min, p_max

@@ -10,8 +10,7 @@ initializing components, and linking user actions to calibration processes.
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Optional
-
+from typing import List, Optional, Any
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
 from PyQt6.uic import loadUi
@@ -22,6 +21,7 @@ from parallax.control_panel.reticle_detect_handler import ReticleDetecthandler
 from parallax.control_panel.transform_info_handler import TransformInfoHandler
 from parallax.handlers.screen_coords_mapper import ScreenCoordsMapper
 from parallax.probe_calibration.probe_calibration import ProbeCalibration
+from parallax.screens.screen_widget import ScreenWidget
 from parallax.stages.stage_http_server import StageHttpServer
 from parallax.stages.stage_listener import StageListener
 from parallax.stages.stage_server_ipconfig import StageServerIPConfig
@@ -47,11 +47,11 @@ class MenuActions:
 class ControlPanel(QWidget):
     """A widget for stage control and calibration in a microscopy system."""
 
-    def __init__(self, model, screen_widgets: List[QWidget], actions: MenuActions):
+    def __init__(self, model: Any, screen_widgets: List[ScreenWidget], actions: MenuActions):
         super().__init__()
         self.model = model
         self.screen_widgets = screen_widgets
-        self.actions = actions
+        self.menu_actions = actions
         self.filter = "no_filter"
 
         self._setup_ui()
@@ -69,7 +69,7 @@ class ControlPanel(QWidget):
         """Initialize sub-components (Single Source of Truth)."""
         # Handler 1: Reticle Detection
         self.reticle_handler = ReticleDetecthandler(
-            self.model, self.screen_widgets, self.filter, self.actions.triangulate
+            self.model, self.screen_widgets, self.filter, self.menu_actions.triangulate
         )
 
         # Handler 2: Transformation Info (Displays data from model)
@@ -84,9 +84,9 @@ class ControlPanel(QWidget):
             self.screen_widgets,
             self.filter,
             self.reticle_selector,  # PyQt Dropdown menu
-            actionTrajectory=self.actions.trajectory,
-            actionCalculator=self.actions.calculator,
-            actionReticlesMetadata=self.actions.reticles_metadata,
+            actionTrajectory=self.menu_actions.trajectory,
+            actionCalculator=self.menu_actions.calculator,
+            actionReticlesMetadata=self.menu_actions.reticles_metadata,
             transform_info_handler=self.transform_info_handler,
         )
 
@@ -131,10 +131,10 @@ class ControlPanel(QWidget):
         )
 
         self.stage_server_ipconfig_btn.clicked.connect(self.stage_server_ipconfig_btn_handler)
-        self.actions.server.triggered.connect(self.stage_server_ipconfig_btn_handler)
+        self.menu_actions.server.triggered.connect(self.stage_server_ipconfig_btn_handler)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.refresh_stages)
         self.stage_server_ipconfig.ui.connect_btn.clicked.connect(self.probe_calib_handler.refresh_stages)
-        self.actions.save_info.triggered.connect(self.snapshot_handler.take_snapshot)
+        self.menu_actions.save_info.triggered.connect(self.snapshot_handler.take_snapshot)
         self.snapshot_btn.clicked.connect(self.snapshot_handler.take_snapshot)  # UI --> snapshot
 
     def init_stages(self):

@@ -129,7 +129,12 @@ class YoloKeypoints:
         logger.info("YOLO segmentation worker stopped")
 
     def process_frame(
-        self, frame: np.ndarray, crop_info: Optional[dict] = None, ts: Optional[float] = None, global_detection: Optional[dict] = None, i: int = 0
+        self, 
+        frame: np.ndarray,
+        crop_info: Optional[dict] = None,
+        ts: Optional[float] = None,
+        global_detection: Optional[dict] = None,
+        i: int = 0
     ):
         """Add frame to processing queue"""
         if not self.running:
@@ -145,15 +150,6 @@ class YoloKeypoints:
                     self.frame_queue.clear()
                     logger.debug(f"{self.name} {i}- Cleared frame queue due to new timestamp: {ts}")
             self.frame_queue.append((frame, crop_info, ts, global_detection, i))
-            logger.debug(
-                f"{self.name} {i} - Queue {global_detection['class_name']} Current queue size: {len(self.frame_queue)}"
-            )
-            # save image
-            if debug_img_dir and logger.isEnabledFor(logging.DEBUG):
-                debug_img_path = (
-                    debug_img_dir / f"{self.name}_{i}_{global_detection['class_name']}_{int(ts * 1000)}.jpg"
-                )
-                cv2.imwrite(str(debug_img_path), frame)
 
         except Exception as e:
             # Catch errors related to queue access/data structure

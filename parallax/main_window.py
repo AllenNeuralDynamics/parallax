@@ -15,11 +15,11 @@ Classes:
 import logging
 import os
 import webbrowser
-
-from PyQt6.QtGui import QFont, QFontDatabase
+from typing import Any
+from PyQt6.QtGui import QAction, QFont, QFontDatabase, QCloseEvent
 
 # Import required PyQt6 modules and other libraries
-from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox, QSplitter
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMenu, QMessageBox, QSplitter
 from PyQt6.uic import loadUi
 
 from parallax.config.config_path import fira_font_dir, ui_dir
@@ -46,8 +46,23 @@ class MainWindow(QMainWindow):
     and handles the user interface
     components, camera and stage management, and recording functionality.
     """
+    # These will be created by loadUi dynamically
+    actionDir: QAction
+    menuDevices: QMenu
+    actionServer: QAction
+    actionSaveInfo: QAction
+    actionTrajectory: QAction
+    actionCalculator: QAction
+    actionTriangulate: QAction
+    actionReticlesMetadata: QAction
+    verticalLayout: Any
+    actionStreaming: QAction
+    actionSnapshot: QAction
+    actionRecording: QAction
+    actionDocumentation: QAction
+    actionContactSupport: QAction
 
-    def __init__(self, model):
+    def __init__(self, model: Any) -> None:
         """
         Initialize the MainWindow.
 
@@ -252,7 +267,7 @@ class MainWindow(QMainWindow):
         else:
             print("Selection canceled. Keeping previous:", self.dir)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent | None) -> None:
         """
         Handles the widget's close event by performing cleanup actions for the model instances.
 
@@ -267,4 +282,5 @@ class MainWindow(QMainWindow):
         self.model.close_reticle_metadata_instance()
         self.model.close_stage_ipconfig_instance()
         PointMesh.close_all()
-        event.accept()
+        if event is not None:
+            event.accept()

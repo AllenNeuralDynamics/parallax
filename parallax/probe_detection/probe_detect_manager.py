@@ -390,18 +390,17 @@ class ProbeDetectManager(QObject):
         nShank = detection.get("class_name", "1shank")
         keypoints = detection.get("keypoints_orig", [])  # [x1, y1, conf1, x2, y2, conf2, ...]
 
-        tip_coords, base_coords = [], []
+        base_coords: list[list[float]] = []
+        raw_tip_coords: list[list[float]] = []
         if keypoints and len(keypoints) > 0:
             for j in range(0, len(keypoints), 3):
                 x = float(keypoints[j])
                 y = float(keypoints[j + 1])
-                tip_coords.append([x, y])  # Append simple list [x, y]
+                raw_tip_coords.append([x, y])  # Append simple list [x, y]
 
-        if tip_coords:
-            # Convert list of lists to (N, 2) array
-            tip_coords = np.array(tip_coords, dtype=np.float64)
-        else:
+        if not raw_tip_coords:
             return
+        tip_coords = np.array(raw_tip_coords, dtype=np.float64)
 
         sn = self.yoloProcessWorker.sn
         # print("sn:", sn)

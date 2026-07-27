@@ -276,14 +276,14 @@ class ProbeCalibration:
         # Return the filtered DataFrame
         return df_filtered
 
-    def _get_transM(self, local_pts: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
+    def _get_transM(self, local_pts: np.ndarray, global_pts: np.ndarray) -> Optional[np.ndarray]:
         """
         Computes the transformation matrix from local coordinates (stage) to global coordinates (reticle).
         Args:
             global_pts (np.ndarray): The global points (Nx3 numpy array).
             local_pts (np.ndarray): The local points (Nx3 numpy array).
         Returns:
-            np.ndarray: The 4x4 homogeneous transformation matrix.
+            Optional[np.ndarray]: The 4x4 homogeneous transformation matrix, or None if computation fails.
         """
 
         N_points = local_pts.shape[0]  # Number of points is the first dimension (N)

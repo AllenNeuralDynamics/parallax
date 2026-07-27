@@ -12,7 +12,7 @@ def preprocessing(
     bbox_margin: int = 30,
     mask_margin: int = 50,
     apply_mask: bool = False,
-) -> Tuple[np.ndarray, Dict]:
+) -> Tuple[np.ndarray, dict, dict]:
 
     # print("Yolo local input frame shape:", frame.shape)
     crop_info = crop_info or {}
