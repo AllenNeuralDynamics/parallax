@@ -105,3 +105,7 @@ documentation = "https://github.com/AllenNeuralDynamics/parallax/wiki"
 
 [tool.pytest.ini_options]
 pythonpath = ["parallax", "tests"]
+
+
+[tool.mypy]
+ignore_missing_imports = true

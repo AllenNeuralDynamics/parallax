@@ -321,7 +321,12 @@ class StageController(QObject):
         # Return whether the current Z value is close enough to the target
         return abs(current_z - target_z) < 0.01  # Tolerance of 10 um
 
-    def _update_move_command(self, probe_index: int, x: Optional[float] = None, y: Optional[float] = None, z: Optional[float] = None) -> None:
+    def _update_move_command(self,
+            probe_index: int,
+            x: Optional[float] = None,
+            y: Optional[float] = None,
+            z: Optional[float] = None
+        ) -> None:
         """
         Updates the motion command with the specified X, Y, and Z coordinates.
 
