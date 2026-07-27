@@ -17,7 +17,7 @@ from PyQt6.uic import loadUi
 from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class PointMeshWidget(QWidget):

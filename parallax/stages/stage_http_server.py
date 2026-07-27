@@ -14,7 +14,7 @@ from .stage_controller import StageController
 
 # Set up logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class StageHttpServer:

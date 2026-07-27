@@ -10,7 +10,6 @@ from parallax.cameras.pyspin_camera import PySpinCamera
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 # Check for the availability of the PySpin library
 try:

@@ -17,7 +17,7 @@ from parallax.stages.stage_controller import StageController
 from parallax.utils.coords_converter import global_to_local, local_to_global
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class Calculator(QWidget):

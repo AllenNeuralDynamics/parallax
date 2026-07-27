@@ -11,7 +11,7 @@ from parallax.utils.signals import Signal
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class PathfinderServer:

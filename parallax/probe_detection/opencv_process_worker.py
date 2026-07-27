@@ -11,7 +11,7 @@ from parallax.reticle_detection.mask_generator import MaskGenerator
 
 # Set logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class OpenCVProcessWorker:

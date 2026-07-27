@@ -27,7 +27,7 @@ from parallax.reticle_detection.base_manager import (
 from parallax.utils.coords_converter import get_rvec_and_tvec
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 try:
     import sfm  # noqa: F401

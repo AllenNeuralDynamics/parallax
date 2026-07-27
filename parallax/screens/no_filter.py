@@ -11,7 +11,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class NoFilter(QObject):

@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import QWidget
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class StageUI(QWidget):

@@ -22,7 +22,7 @@ from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import apply_reticle_adjustments
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class ScreenCoordsMapper:

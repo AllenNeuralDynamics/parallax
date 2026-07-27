@@ -8,7 +8,7 @@ import numpy as np
 from parallax.cameras.calibration_camera import evaluate_performance
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 # parallax/stage_widget/stereo_calibrator.py

@@ -29,7 +29,7 @@ from parallax.utils.utils import UtilsCoords, UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class CurrBgCmpProcessor:

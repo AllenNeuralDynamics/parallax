@@ -15,7 +15,7 @@ from parallax.config.config_path import debug_img_dir, img_processing_config_fil
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class ProbeFineTipDetector:

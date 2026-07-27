@@ -17,7 +17,7 @@ from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class DrawWorkerSignal(QObject):

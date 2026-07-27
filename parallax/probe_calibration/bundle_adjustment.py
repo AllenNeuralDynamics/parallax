@@ -17,7 +17,7 @@ from scipy.optimize import leastsq
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class BALProblem:

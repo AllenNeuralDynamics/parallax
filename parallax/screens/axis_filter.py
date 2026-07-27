@@ -16,7 +16,7 @@ from parallax.cameras.calibration_camera import calibrate_camera, get_debug_poin
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class AxisFilter(QObject):

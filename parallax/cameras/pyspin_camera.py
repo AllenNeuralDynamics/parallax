@@ -9,9 +9,7 @@ import cv2
 from parallax.cameras.camera_base_binding import BaseCamera
 from parallax.cameras.settings import PySpinSettings
 
-# Initialize the logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 supported_camera_models = ["Blackfly S BFS-U3-120S4C", "Blackfly S BFS-U3-04S2M"]  # TODO move to config
 
 try:
@@ -77,6 +75,7 @@ class PySpinCamera(BaseCamera):
         - camera_pyspin: The underlying PySpin camera object.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.camera = camera_pyspin
         self.running = False
         self.tldnm = self.camera.GetTLDeviceNodeMap()
@@ -172,7 +171,7 @@ class PySpinCamera(BaseCamera):
         Begins the image acquisition process in continuous mode and starts the capture loop in a separate thread.
         """
         if self.running:
-            logger.debug(f"{self.name(sn_only=True)} Camera is already running - Skipping start.")
+            self.log.debug(f"{self.name(sn_only=True)} Camera is already running - Skipping start.")
             return -1
 
         try:
@@ -184,12 +183,12 @@ class PySpinCamera(BaseCamera):
 
             # Begin Acquisition: Image acquisition must be ended when no more images are needed.
             self.camera.BeginAcquisition()
-            logger.debug(f"BeginAcquisition {self.name(sn_only=True)} ")
+            self.log.debug(f"BeginAcquisition {self.name(sn_only=True)} ")
             self.running = True
             self.capture_thread = threading.Thread(target=self.capture_loop, daemon=True)
             self.capture_thread.start()
         except Exception as e:
-            logger.error(f"An error occurred while starting the camera: {e}")
+            self.log.error(f"An error occurred while starting the camera: {e}")
 
     def capture_loop(self):
         """
@@ -198,7 +197,7 @@ class PySpinCamera(BaseCamera):
         while self.running:
             self.capture()
 
-        logger.warning(f"{self.name(sn_only=True)} Capture loop ended.")
+        self.log.warning(f"{self.name(sn_only=True)} Capture loop ended.")
 
     def capture(self):
         """
@@ -221,7 +220,7 @@ class PySpinCamera(BaseCamera):
         try:
             image = self.camera.GetNextImage(1000)
             if image.IsIncomplete():
-                logger.error(f"Image incomplete: {self.name(sn_only=True)}, Status: {image.GetImageStatus()}")
+                self.log.error(f"Image incomplete: {self.name(sn_only=True)}, Status: {image.GetImageStatus()}")
                 print(f"{self.name(sn_only=True)} Image incomplete: \n\t{image.GetImageStatus()}")
             else:
                 # Release the previous image from the buffer if it exists
@@ -232,7 +231,7 @@ class PySpinCamera(BaseCamera):
                 self.last_image = image
 
         except PySpin.SpinnakerException as e:
-            logger.error(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
+            self.log.error(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
             # Check for specific error messages
             # Spinnaker: Stream has been aborted. [-1012]
             # Spinnaker: Camera has been removed from the list and is no longer valid. [-1002]
@@ -251,7 +250,7 @@ class PySpinCamera(BaseCamera):
                     self.video_output.write(frame)
                 self.video_recording_idle.set()
         except Exception as e:
-            logger.error("An error occurred while recording the video: ", e)
+            self.log.error(f"An error occurred while recording the video: {e}")
             print(f"Error {self.name(sn_only=True)}: An error occurred while recording the video.")
 
     def save_last_image(self, filepath, isTimestamp=False, custom_name="Microscope_"):
@@ -277,13 +276,13 @@ class PySpinCamera(BaseCamera):
             if image_converted is not None:
                 # Convert the image from RGB to BGR
                 image_converted = cv2.cvtColor(image_converted, cv2.COLOR_RGB2BGR)
-                logger.debug(f"Saving image to {full_path}")
+                self.log.debug(f"Saving image to {full_path}")
                 print(f"Saving image to {full_path}")
                 cv2.imwrite(full_path, image_converted)
             else:
-                logger.error(f"{self.name(sn_only=True)} - Image not found or couldn't be retrieved.")
+                self.log.error(f"{self.name(sn_only=True)} - Image not found or couldn't be retrieved.")
         except Exception as e:
-            logger.error(f"An error occurred while saving the image: {e}")
+            self.log.error(f"An error occurred while saving the image: {e}")
 
     def get_last_image(self):
         """
@@ -339,16 +338,16 @@ class PySpinCamera(BaseCamera):
             if self.last_image is not None:
                 self.channels = self.last_image.GetNumChannels()
         except Exception as e:
-            logger.error(f"An error occurred while getting channel info: {e}")
-        logger.info(f"camera frame width: {self.width}, height: {self.width}, channels: {self.channels}")
+            self.log.error(f"An error occurred while getting channel info: {e}")
+        self.log.info(f"camera frame width: {self.width}, height: {self.height}, channels: {self.channels}")
 
         # Set frame rate equal to the current acquisition frame rate (Hz)
         nodeFramerate = PySpin.CFloatPtr(self.node_map.GetNode("AcquisitionFrameRate"))
         if (not PySpin.IsAvailable(nodeFramerate)) or (not PySpin.IsReadable(nodeFramerate)):
-            logger.error("Unable to retrieve frame rate. Aborting...")
+            self.log.error("Unable to retrieve frame rate. Aborting...")
             return -1
         self.frame_rate = nodeFramerate.GetValue()
-        logger.info(f"Frame rate to be set to {self.frame_rate}")
+        self.log.info(f"Frame rate to be set to {self.frame_rate}")
 
     def save_recording(self, filepath, isTimestamp=False, custom_name="Microscope_"):
         """
@@ -367,7 +366,7 @@ class PySpinCamera(BaseCamera):
         )
         full_path = os.path.join(filepath, video_name)
         print(f"Saving video to {full_path}")
-        logger.debug(f"Try saving video to {full_path}")
+        self.log.debug(f"Try saving video to {full_path}")
 
         # Update camera details
         self.camera_info()
@@ -385,7 +384,7 @@ class PySpinCamera(BaseCamera):
         # Wait for up to 1 second for the thread to finish cleanly
         is_clean_exit = self.video_recording_idle.wait(timeout=1.0)
         if not is_clean_exit:
-            logger.warning("Recording thread did not signal idle; forcing stop.")
+            self.log.warning("Recording thread did not signal idle; forcing stop.")
         self.video_recording_idle.clear()
         if self.video_output is not None:
             self.video_output.release()

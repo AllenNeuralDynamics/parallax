@@ -19,7 +19,6 @@ from parallax.session.session_state import CameraParams
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 def calibrate_camera(

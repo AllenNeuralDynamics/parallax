@@ -20,7 +20,7 @@ from parallax.config.schemas import AppSchema
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class ConfigManager:

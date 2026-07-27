@@ -26,7 +26,7 @@ import parallax.utils.rotations as rotations
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndarray:

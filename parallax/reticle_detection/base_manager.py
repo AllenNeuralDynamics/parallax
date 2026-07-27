@@ -12,7 +12,7 @@ from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
 from parallax.config.config_path import debug_img_dir
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class DetectionResult(Enum):

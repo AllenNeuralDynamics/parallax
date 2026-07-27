@@ -10,7 +10,7 @@ from parallax.config.config_path import reticle_metadata_file  # Assuming you de
 from parallax.config.schemas import ReticleConfig
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 class ReticleManager:

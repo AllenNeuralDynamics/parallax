@@ -22,7 +22,7 @@ from parallax.session.session_state import CameraParams
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 # Set the logging level for PyQt6.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)

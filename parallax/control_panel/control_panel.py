@@ -30,7 +30,7 @@ from parallax.stages.stage_snapshot import StageSnapshotHandler
 from parallax.stages.stage_ui import StageUI
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 
 
 @dataclass
