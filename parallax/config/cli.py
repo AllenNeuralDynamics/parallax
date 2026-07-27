@@ -13,6 +13,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--log-level",
+        default=None,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Override the console log level specified in the config file."
+    )
+
+    parser.add_argument(
         "--dummy",
         action="store_true",
         help="Dummy mode for testing without hardware",
