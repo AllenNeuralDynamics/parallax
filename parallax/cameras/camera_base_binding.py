@@ -135,6 +135,7 @@ class BaseCamera(ABC):
     Abstract base class for camera operations.
     Defines the interface expected from all camera types.
     """
+
     last_capture_time: float
 
     def __init__(self) -> None:

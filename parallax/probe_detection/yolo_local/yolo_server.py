@@ -131,7 +131,7 @@ class YoloKeypoints:
         crop_info: Optional[dict] = None,
         ts: Optional[float] = None,
         global_detection: Optional[dict] = None,
-        i: int = 0
+        i: int = 0,
     ):
         """Add frame to processing queue"""
         if not self.running:

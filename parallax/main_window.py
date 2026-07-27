@@ -47,6 +47,7 @@ class MainWindow(QMainWindow):
     and handles the user interface
     components, camera and stage management, and recording functionality.
     """
+
     # These will be created by loadUi dynamically
     actionDir: QAction
     menuDevices: QMenu

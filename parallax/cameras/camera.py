@@ -48,4 +48,3 @@ def close_cameras() -> None:
     """Close all available cameras."""
     if PySpin is not None:
         PySpinCamera.close_cameras()
-

@@ -39,11 +39,7 @@ class YOLOClient:
             return False
 
     def newframe_captured(
-        self,
-        frame: np.ndarray,
-        crop_info: Optional[dict] = None,
-        detection: Optional[dict] = None,
-        i_th: int = 0
+        self, frame: np.ndarray, crop_info: Optional[dict] = None, detection: Optional[dict] = None, i_th: int = 0
     ):
         """Put new frame at the specified FPS rate"""
         # Rate limit the frames sent to the YOLO worker
@@ -78,4 +74,3 @@ class YOLOClient:
         if self.yolo_worker:
             return self.yolo_worker.get_queue_size()
         return 0
-
