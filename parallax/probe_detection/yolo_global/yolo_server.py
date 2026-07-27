@@ -2,11 +2,11 @@ import logging
 import time
 from collections import deque
 from threading import Thread  # Using Event for better thread signaling
+from typing import Optional
 
 import numpy as np
 import torch
 from ultralytics import YOLO
-from typing import Optional
 
 
 class YoloSegmentation:

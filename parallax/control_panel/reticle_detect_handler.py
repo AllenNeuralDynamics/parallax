@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Optional
 
 from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtGui import QAction
@@ -10,7 +11,6 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 from parallax.control_panel.stereo_camera_handler import StereoCameraHandler
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

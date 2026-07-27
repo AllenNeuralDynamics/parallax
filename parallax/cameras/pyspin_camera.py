@@ -3,6 +3,7 @@ import os
 import threading
 import time
 from typing import Any
+
 import cv2
 
 from parallax.cameras.camera_base_binding import BaseCamera

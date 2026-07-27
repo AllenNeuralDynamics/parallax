@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Tuple
+from typing import Optional, Tuple
 
 import cv2
 import numpy as np

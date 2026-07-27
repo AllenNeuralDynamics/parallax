@@ -10,7 +10,8 @@ initializing components, and linking user actions to calibration processes.
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import Any, List, Optional
+
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QSizePolicy, QSpacerItem, QWidget
 from PyQt6.uic import loadUi

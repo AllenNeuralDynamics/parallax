@@ -2,14 +2,11 @@ import logging
 import time
 from collections import deque
 from threading import Thread
+from typing import Optional
 
-import cv2
 import numpy as np
 import torch
 from ultralytics import YOLO
-
-from parallax.config.config_path import debug_img_dir
-from typing import Optional
 
 # Set logger name
 logger = logging.getLogger(__name__)
@@ -129,7 +126,7 @@ class YoloKeypoints:
         logger.info("YOLO segmentation worker stopped")
 
     def process_frame(
-        self, 
+        self,
         frame: np.ndarray,
         crop_info: Optional[dict] = None,
         ts: Optional[float] = None,

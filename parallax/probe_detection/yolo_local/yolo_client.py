@@ -1,11 +1,11 @@
 import logging
 import time
+from typing import Optional
 
 import numpy as np
 
 from parallax.probe_detection.yolo_local.utils import preprocessing
 from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
-from typing import Optional
 
 
 class YOLOClient:

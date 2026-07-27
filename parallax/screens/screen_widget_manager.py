@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMenu,
     QVBoxLayout,
-    QWidget,
 )
 
 from parallax.config.config_path import ui_dir

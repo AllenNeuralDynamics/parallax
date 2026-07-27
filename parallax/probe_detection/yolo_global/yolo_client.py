@@ -1,10 +1,10 @@
 import logging
+from typing import Optional
 
 import numpy as np
 
 from parallax.probe_detection.yolo_global.utils import preprocessing
 from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation
-from typing import Optional
 
 
 class YOLOClient:

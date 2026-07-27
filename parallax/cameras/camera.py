@@ -4,15 +4,7 @@ PySpinCamera: A class to interface with cameras using the PySpin library.
 """
 
 import logging
-import os
-import threading
-import time
-from typing import Any
-import cv2
-import numpy as np
 
-from parallax.cameras.camera_base_binding import BaseCamera
-from parallax.cameras.settings import MockSettings, PySpinSettings
 from parallax.cameras.mock_camera import MockCamera
 from parallax.cameras.pyspin_camera import PySpinCamera
 

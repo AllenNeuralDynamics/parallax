@@ -1,8 +1,7 @@
 import logging
 import os
-import threading
 import time
-from typing import Any
+
 import cv2
 import numpy as np
 

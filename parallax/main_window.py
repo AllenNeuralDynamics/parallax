@@ -16,7 +16,8 @@ import logging
 import os
 import webbrowser
 from typing import Any
-from PyQt6.QtGui import QAction, QFont, QFontDatabase, QCloseEvent
+
+from PyQt6.QtGui import QAction, QCloseEvent, QFont, QFontDatabase
 
 # Import required PyQt6 modules and other libraries
 from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMenu, QMessageBox, QSplitter
