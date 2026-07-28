@@ -48,11 +48,11 @@ class ConfigManager:
             return cls._data
 
         except Exception as e:
-            self.log.info(f"\n" + "!" * 60)
-            self.log.info(f"CRITICAL CONFIGURATION ERROR")
-            self.log.info(f"File: {cls.settings_file}")
-            self.log.info(f"Error: {e}")
-            self.log.info(f"!" * 60 + "\n")
+            logger.critical(f"\n" + "!" * 60)
+            logger.critical(f"CRITICAL CONFIGURATION ERROR")
+            logger.critical(f"File: {cls.settings_file}")
+            logger.critical(f"Error: {e}")
+            logger.critical(f"!" * 60 + "\n")
             logger.critical(f"App launch aborted due to config error: {e}")
             sys.exit(1)
 

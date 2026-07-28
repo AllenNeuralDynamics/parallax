@@ -15,7 +15,6 @@ from parallax.utils.utils import UtilsCrops
 logger = logging.getLogger(__name__)
 
 
-
 class ProbeImageProcessor:
     """Class for detecting the fine tip of the probe in an image."""
 
@@ -92,7 +91,7 @@ class ProbeImageProcessor:
             "coordinate_conversion": {"default_size": {"width": 512, "height": 512}},
             "bbox": {"default_padding": 10},
             "debug": {
-                "save_intermediate_images": True,
+                "save_intermediate_images": False,
                 "line_color": [0, 255, 0],
                 "line_thickness": 3,
                 "point_color": [0, 0, 255],
@@ -732,9 +731,9 @@ if __name__ == "__main__":
     points = [(400, 900)]  # Example point in global coords
 
     if points is not None:
-        self.log.info("points:", points)
+        logger.info(f"points: {points}")
         points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
-        self.log.info("points_local:", points_local)
+        logger.info(f"points_local: {points_local}")
         mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)
 
     # Post processing Lift local mask to global

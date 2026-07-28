@@ -313,7 +313,7 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
 
     # Check for valid triangulation results (often Xh[3] being zero or near zero)
     if np.any(np.abs(Xhs[3, :]) < 1e-12):
-        self.log.info(f"Warning: Division by zero or very small w-coordinate encountered in triangulation.")
+        logger.info(f"Warning: Division by zero or very small w-coordinate encountered in triangulation.")
         # Handle by replacing near-zero w with a small epsilon
         w = Xhs[3, :]
         w[np.abs(w) < 1e-12] = 1e-12
@@ -351,7 +351,7 @@ def evaluate_performance(
     average_L2_distance = np.mean(euclidean_distances)
 
     if print_results:
-        self.log.info(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance * 1000, 2)} µm³")
+        logger.info(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance * 1000, 2)} µm³")
         _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=print_results)
         logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
@@ -383,4 +383,4 @@ def _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=True):
     l2_z = np.sqrt(mean_squared_diff_z)
 
     if print_results:
-        self.log.info(f"x: {np.round(l2_x * 1000, 2)}µm³, y: {np.round(l2_y * 1000, 2)}µm³, z: {np.round(l2_z * 1000, 2)}µm³")
+        logger.info(f"x: {np.round(l2_x * 1000, 2)}µm³, y: {np.round(l2_y * 1000, 2)}µm³, z: {np.round(l2_z * 1000, 2)}µm³")

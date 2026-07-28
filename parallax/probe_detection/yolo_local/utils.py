@@ -1,7 +1,10 @@
+import logging
 from typing import Optional, Tuple
 
 import cv2
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def preprocessing(
@@ -14,7 +17,7 @@ def preprocessing(
     apply_mask: bool = False,
 ) -> Tuple[np.ndarray, dict, dict]:
 
-    # self.log.info("Yolo local input frame shape:", frame.shape)
+    # logger.info(f"Yolo local input frame shape: {frame.shape}")
     crop_info = crop_info or {}
     # Initialize the crop_info dictionary
     crop_info["x_global_offset"] = 0
@@ -37,7 +40,7 @@ def preprocessing(
         try:
             contour = np.array(mask_poly, dtype=np.int32).reshape((-1, 1, 2))
         except Exception as e:
-            self.log.info(f"Error converting mask polygon to array: {e}")
+            logger.info(f"Error converting mask polygon to array: {e}")
             # Skip masking if the polygon data is corrupt
             contour = None
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 supported_camera_models = ["Blackfly S BFS-U3-120S4C", "Blackfly S BFS-U3-04S2M"]  # TODO move to config
 
 try:
-    import PySpin
+    import PySpin  # noqa: F401
 except ImportError:
     PySpin = None
     logger.warning("Could not import PySpin.")

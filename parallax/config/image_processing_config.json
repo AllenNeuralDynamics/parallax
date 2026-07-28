@@ -112,7 +112,7 @@
       "default_padding": 10
     },
     "debug": {
-      "save_intermediate_images": true,
+      "save_intermediate_images": false,
       "line_color": [0, 255, 0],
       "line_thickness": 3,
       "point_color": [0, 0, 255],

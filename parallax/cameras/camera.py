@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Check for the availability of the PySpin library
 try:
-    import PySpin
+    import PySpin  # noqa: F401
 except ImportError:
     PySpin = None
     logger.warning("Could not import PySpin.")

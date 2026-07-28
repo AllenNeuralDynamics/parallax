@@ -677,7 +677,7 @@ class ProbeCalibrationHandler(QWidget):
                     screen.run_no_filter()
 
             self.filter = "no_filter"
-            logger.debug(f"filter: {self.filter}")
+            self.log.debug(f"filter: {self.filter}")
 
         if self.transM is not None:
             self.transform_info_handler.display(self.selected_stage_id)
@@ -722,7 +722,7 @@ class ProbeCalibrationHandler(QWidget):
             self._update_xyz(moving_stage_id)
             self._set_visible_gadget(visible=True)
         else:
-            logger.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
+            self.log.debug(f"Update probe calib status: {self.moving_stage_id}, {self.selected_stage_id}")
 
     def _update_xyz(self, sn):
         calib_info = self.model.get_stage_calib_info(sn)
@@ -818,21 +818,21 @@ class ProbeCalibrationHandler(QWidget):
         using the `probeCalibration` object.
         """
         if not self.selected_stage_id:
-            logger.warning("View Trajectory: No stage selected.")
+            self.log.warning("View Trajectory: No stage selected.")
             return
 
         if self.selected_stage_id not in self.model.get_list_of_stage_sns():
-            logger.error(f"View Trajectory: Stage ID '{self.selected_stage_id}' not found in model.")
+            self.log.error(f"View Trajectory: Stage ID '{self.selected_stage_id}' not found in model.")
             return
 
         try:
             calib_info = self.model.get_stage_calib_info(self.selected_stage_id)
             if not calib_info:
-                logger.error(f"No calibration info found for {self.selected_stage_id}")
+                self.log.error(f"No calibration info found for {self.selected_stage_id}")
                 return
             PointMesh.show(self.selected_stage_id, calib_info.trajectory_file)
         except Exception as e:
-            logger.error(f"Failed to open 3D trajectory for '{self.selected_stage_id}': {e}")
+            self.log.error(f"Failed to open 3D trajectory for '{self.selected_stage_id}': {e}")
 
     def calculation_button_handler(self):
         """
@@ -887,7 +887,7 @@ class ProbeCalibrationHandler(QWidget):
             curr_stage_id (str): The ID of the current stage being switched to.
         """
         self.transform_info_handler.display_default_ui()
-        logger.debug(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
+        self.log.debug(f"stage_widget update_stages, prev:{prev_stage_id}, curr:{curr_stage_id}")
         self.selected_stage_id = curr_stage_id
         if prev_stage_id is None or curr_stage_id is None:
             return
@@ -895,11 +895,11 @@ class ProbeCalibrationHandler(QWidget):
         # Save the previous stage's calibration info
         self._apply_reticle_metadata_to_stage()  # Get previous stage reticle metadata info
         self.update_stage_info_to_model(prev_stage_id)  # Save previous stage info to model
-        logger.debug(f"Saved stage {prev_stage_id}")
+        self.log.debug(f"Saved stage {prev_stage_id}")
 
         # Load the current stage's calibration info
         info = self.model.get_stage_calib_info(curr_stage_id)
-        logger.debug(f"Loaded stage {curr_stage_id} info: {info}")
+        self.log.debug(f"Loaded stage {curr_stage_id} info: {info}")
         if isinstance(info, StageCalibration):
             self.update_stage_info(info)
             probe_detection_status = info.detection_status
@@ -908,7 +908,7 @@ class ProbeCalibrationHandler(QWidget):
             probe_detection_status = "default"
 
         # Go to the appropriate status based on the info
-        logger.debug(f"probe_detection_status: {probe_detection_status}")
+        self.log.debug(f"probe_detection_status: {probe_detection_status}")
         if probe_detection_status == "default":
             self.probe_detect_default_status(sn=self.selected_stage_id)  # Reset the probe detection status
         elif probe_detection_status == "process":
