@@ -6,7 +6,7 @@ from parallax.cameras.camera_base_binding import BaseSettings
 logger = logging.getLogger(__name__)
 
 try:
-    import PySpin
+    import PySpin  # noqa: F401
 except ImportError:
     PySpin = None
     logger.warning("Could not import PySpin.")

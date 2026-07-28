@@ -355,7 +355,7 @@ class ProbeImageProcessor:
             for x1, y1, x2, y2, dist in hits:
                 cv2.line(mask_result, (x1, y1), (x2, y2), color, line_thickness)
         else:
-            self.log.info(f"No line mask created.")
+            logger.info(f"No line mask created.")
             return None
 
         return mask_result
@@ -630,7 +630,8 @@ class ProbeImageProcessor:
         """
 
         if mask is None:
-            self.log.info(f"Mask is None, cannot determine probe points.")
+            logger.info(f"Mask is None, cannot determine probe points.")
+            return None, None
 
         mask = cv2.copyMakeBorder(mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0])
         dist_transform = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
@@ -714,9 +715,9 @@ class ProbeImageProcessor:
                 return "Unknown"
 
 
+"""
 # Example usage
 if __name__ == "__main__":
-    """
     # Local - Preprocessing
     # crop the global mask to get initial local mask
     mask_global = np.zeros((1080, 1920), dtype=np.uint8)  # Example global mask
