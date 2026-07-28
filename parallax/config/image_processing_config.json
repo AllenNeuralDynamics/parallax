@@ -34,7 +34,7 @@
       "enable_offset": true
     },
     "debug": {
-      "save_images": true,
+      "save_images": false,
       "circle_radius": 5,
       "circle_color": [0, 255, 0],
       "circle_thickness": -1
