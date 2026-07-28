@@ -85,7 +85,6 @@ class SessionManager:
 
             # Wrap it under a 'model' key to match the expected YAML structure
             output_data = {"model": data}
-            logger.debug(output_data)
 
             with open(cls.session_file, "w") as file:
                 yaml.dump(output_data, file, Dumper=CleanDumper, default_flow_style=False, sort_keys=False)
@@ -100,7 +99,7 @@ class SessionManager:
         Removes missing cameras and adds new ones.
         """
         if getattr(model, "session", None) is None:
-            logger.info("[SessionManager] Creating a fresh session configuration.")
+            logger.info(f"[SessionManager] Creating a fresh session configuration.")
             model.session = Session()
 
         # cameras

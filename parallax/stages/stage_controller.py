@@ -173,7 +173,7 @@ class StageController(QObject):
             # Stop the timer if it's active
             if hasattr(self, "timer") and self.timer.isActive():
                 self.timer.stop()
-                self.log.info("Timer stopped. Outside SW may be interrupting.")
+                self.log.info(f"Timer stopped. Outside SW may be interrupting.")
 
             # Get the status to retrieve all available probes
             status = self._get_status()
@@ -185,7 +185,7 @@ class StageController(QObject):
             for i, _ in enumerate(probe_array):
                 self.probeStop_command["Probe"] = i  # Set the correct probe index
                 self._send_command(self.probeStop_command)
-            self.log.info("Sent stop command to all available probes.")
+            self.log.info(f"Sent stop command to all available probes.")
 
         # Send the stop command for the specified probe
         if move_type == "stop":
@@ -273,13 +273,13 @@ class StageController(QObject):
             self.timer.stop()
             self._z_move_context = None
             self.log.warning("Timer stopped due to timeout.")
-            print(f"Warning: z axis ({target_z} um) target not reached.")
+            self.log.info(f"Warning: z axis ({target_z} um) target not reached.")
             return
 
         if self._is_z_at_target(probe_index, target_z):
             self.timer.stop()
             self._z_move_context = None
-            self.log.info("Timer stopped because Z reached the target.")
+            self.log.info(f"Timer stopped because Z reached the target.")
 
             x = command["x"]
             y = command["y"]

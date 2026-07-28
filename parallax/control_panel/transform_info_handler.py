@@ -293,7 +293,7 @@ class TransformInfoHandler(QWidget):
             self.rz_label.clearFocus()
 
         except ValueError:
-            print("Invalid input for rz angle", text_val)
+            self.log.info(f"Invalid input for rz angle: {text_val}")
             self.log.warning("Invalid input for rz angle")
             self.display(stage_id)  # Reset display to valid model value
 

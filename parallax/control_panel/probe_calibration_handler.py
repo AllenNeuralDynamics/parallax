@@ -20,9 +20,6 @@ from parallax.session.session_state import StageCalibration, StageObj
 from parallax.utils.coords_converter import get_transMs_bregma_to_local
 from parallax.utils.probe_angles import get_rx_ry, get_spin_bregma
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 
 class ProbeCalibrationHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
@@ -259,10 +256,10 @@ class ProbeCalibrationHandler(QWidget):
         if stage_ts_A != stage_ts_B:
             return
         if stage_A.get("type", "") != stage_B.get("type", ""):
-            logger.warning("Probe shank type do not match between the two cameras.")
+            self.log.warning("Probe shank type do not match between the two cameras.")
             return
         if len(tip_A) != len(tip_B):
-            logger.warning("Number of detected tips do not match between the two cameras.")
+            self.log.warning("Number of detected tips do not match between the two cameras.")
             return
 
         global_coords, global_coords_4shanks = None, None
@@ -281,14 +278,14 @@ class ProbeCalibrationHandler(QWidget):
 
             # If successful, identify the lowest shank index for filtering
             if global_coords_4shanks is not None:
-                logger.debug(f"global coords: {global_coords_4shanks}")
+                self.log.debug(f"global coords: {global_coords_4shanks}")
                 idx = self._get_lowest_shank_index(global_coords_4shanks)  # Handle the parallel to the reticle surface
                 if idx is not None:
                     # Update the main variables to ensure consistency
                     global_coords = global_coords_4shanks[idx : idx + 1]
                     tip_A = tip_A[idx : idx + 1]
                     tip_B = tip_B[idx : idx + 1]
-                    logger.debug(f" Lowest shank index: {idx}")
+                    self.log.debug(f" Lowest shank index: {idx}")
 
                 # Spin
                 angle = self._get_spin_angle(global_coords_4shanks)
@@ -298,7 +295,7 @@ class ProbeCalibrationHandler(QWidget):
             global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
 
         if global_coords is None:
-            logger.debug(" No valid global coordinates from triangulation.")
+            self.log.debug(" No valid global coordinates from triangulation.")
             return
 
         self.handleGlobalDataChange(
@@ -312,8 +309,8 @@ class ProbeCalibrationHandler(QWidget):
             cam1=self.camB_best,
             pt1=tip_B,
         )
-        logger.debug(f"=====\n s: {stage_ts_A} i: {img_ts_A}\n")
-        logger.debug(f"({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")
+        self.log.debug(f"=====\n s: {stage_ts_A} i: {img_ts_A}\n")
+        self.log.debug(f"({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")
 
     def _get_spin_angle(self, global_pts: np.ndarray) -> Optional[float]:
         # sort by global z coords (ascending)
@@ -367,10 +364,10 @@ class ProbeCalibrationHandler(QWidget):
 
         # Check which button was clicked
         if response == QMessageBox.StandardButton.Yes:
-            logger.debug("User clicked Yes.")
+            self.log.debug("User clicked Yes.")
             return True
         else:
-            logger.debug("User clicked No.")
+            self.log.debug("User clicked No.")
             return False
 
     def _is_probe_calibration_thread_available(self):
@@ -384,8 +381,8 @@ class ProbeCalibrationHandler(QWidget):
             camera_name = screen.get_camera_name()
             if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                 if screen.probeDetector.opencvProcessWorker is not None or screen.probeDetector.worker is not None:
-                    print(f" Probe calibration thread is running for camera: {camera_name}")
-                    print(f"processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}")
+                    self.log.info(f" Probe calibration thread is running for camera: {camera_name}")
+                    self.log.info(f"processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}")
                     return False
         return True
 
@@ -455,11 +452,11 @@ class ProbeCalibrationHandler(QWidget):
                 if self.model.bundle_adjustment:
                     screen.probe_coords_detected.disconnect(self.probe_detect_on_screens)
 
-                logger.debug(f"Disconnect probe_detection: {camera_name}")
+                self.log.debug(f"Disconnect probe_detection: {camera_name}")
                 screen.run_no_filter()
 
             self.filter = "no_filter"
-            logger.debug(f"filter: {self.filter}")
+            self.log.debug(f"filter: {self.filter}")
 
         if sn is not None:
             # Reset the probe calibration status
@@ -515,7 +512,7 @@ class ProbeCalibrationHandler(QWidget):
 
         self._update_best_stereo_pair()
         if self.camA_best is None or self.camB_best is None:
-            logger.debug("No valid stereo pair found for probe detection.")
+            self.log.debug("No valid stereo pair found for probe detection.")
             return
         self.camA_params = self.model.get_camera_params(self.camA_best)
         self.camB_params = self.model.get_camera_params(self.camB_best)
@@ -524,7 +521,7 @@ class ProbeCalibrationHandler(QWidget):
         for screen in self.screen_widgets:
             camera_name = screen.get_camera_name()
             if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
-                logger.debug(f"Connect `probe_detection`: {camera_name}")
+                self.log.debug(f"Connect `probe_detection`: {camera_name}")
                 if not self.model.bundle_adjustment:
                     screen.probe_coords_detected.connect(self.probe_detect_on_two_screens)
                 else:
@@ -533,8 +530,8 @@ class ProbeCalibrationHandler(QWidget):
             else:
                 screen.run_no_filter()
         self.filter = "probe_detection"
-        logger.debug(f"filter: {self.filter}")
-        print(f"Start probe detection for {self.selected_stage_id}")
+        self.log.debug(f"filter: {self.filter}")
+        self.log.info(f"Start probe detection for {self.selected_stage_id}")
 
         # UI
         self.calib_x.show()
@@ -550,15 +547,15 @@ class ProbeCalibrationHandler(QWidget):
     def _update_best_stereo_pair(self):
         candidates = self.model.get_camera_triangulation_candidate()
         if not candidates:
-            logger.debug("No valid stereo pair found")
+            self.log.debug("No valid stereo pair found")
             return
         if len(candidates) < 2:
-            logger.debug("Less than two triangulation candidates found")
+            self.log.debug("Less than two triangulation candidates found")
             return
         try:
             self.camA_best, self.camB_best = candidates[:2]
         except Exception as e:
-            logger.error(f"Error updating best stereo pair: {e}")
+            self.log.error(f"Error updating best stereo pair: {e}")
 
     def _apply_reticle_metadata_to_stage(self):
         if self.transM is None:
@@ -595,7 +592,7 @@ class ProbeCalibrationHandler(QWidget):
         """
         stage_info = self.model.get_stage_calib_info(stage_id)
         if stage_info is None:
-            logger.warning(f"No calibration info found for stage {stage_id}.")
+            self.log.warning(f"No calibration info found for stage {stage_id}.")
             return
 
         self.update_detection_status_to_model(stage_id)
@@ -614,7 +611,7 @@ class ProbeCalibrationHandler(QWidget):
     def update_detection_status_to_model(self, stage_id) -> None:
         stage_info = self.model.get_stage_calib_info(stage_id)
         if stage_info is None:
-            logger.warning(f"No calibration info found for stage {stage_id}.")
+            self.log.warning(f"No calibration info found for stage {stage_id}.")
             return
 
         stage_info.detection_status = self.probe_detection_status
@@ -625,7 +622,7 @@ class ProbeCalibrationHandler(QWidget):
         # Update Rx, Ry
         angles = get_rx_ry(self.transM)  # ArcAngle object
         if angles is None:
-            logger.warning("Could not calculate arc angles.")
+            self.log.warning("Could not calculate arc angles.")
             return
         # Update Rz (spin)
         if len(self.spin_angle) > 0:
@@ -649,7 +646,7 @@ class ProbeCalibrationHandler(QWidget):
         # Update status
         self._update_probe_angle()
         # Update probe angle rx, ry, spin (for 4 shank probe)
-        logger.debug(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
+        self.log.debug(f"{self.selected_stage_id} - arc angle: {self.arc_angle_global}")
         self.probe_detection_status = "accepted"
         # self.transMbs, self.arc_angle_bregma updated (reticle metadata related info)
         self._apply_reticle_metadata_to_stage()
@@ -672,7 +669,7 @@ class ProbeCalibrationHandler(QWidget):
             for screen in self.screen_widgets:
                 camera_name = screen.get_camera_name()
                 if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
-                    logger.debug(f"Disconnect probe_detection: {camera_name}")
+                    self.log.debug(f"Disconnect probe_detection: {camera_name}")
                     if not self.model.bundle_adjustment:
                         screen.probe_coords_detected.disconnect(self.probe_detect_on_two_screens)
                     else:

@@ -51,7 +51,7 @@ class YoloKeypoints:
 
             # Warmup the model
             self._warmup_model()
-            self.log.info("YOLO model warmup completed")
+            self.log.info(f"YOLO model warmup completed")
         except Exception as e:
             self.log.error(f"Failed to load YOLO model: {e}, running yolo in dummy mode")
             self.model = None
@@ -68,7 +68,7 @@ class YoloKeypoints:
         # Use a standard Thread
         self.worker_thread = Thread(target=self._process_frames, daemon=True)
         self.worker_thread.start()
-        self.log.info("YOLO segmentation thread started")
+        self.log.info(f"YOLO segmentation thread started")
         return True
 
     def _warmup_model(self):
@@ -76,7 +76,7 @@ class YoloKeypoints:
         if self.model is None:
             return
 
-        self.log.info("Warming up YOLO model...")
+        self.log.info(f"Warming up YOLO model...")
         warmup_start = time.time()
 
         # Cache the names immediately upon load
@@ -86,11 +86,11 @@ class YoloKeypoints:
             self.log.warning("Could not find class names attribute (self.model.names)")
 
         if not YoloKeypoints._info_printed and hasattr(self.model, "names"):
-            self.log.info("\n--- Available Model Classes for local Yolo ---")
+            self.log.info(f"\n--- Available Model Classes for local Yolo ---")
             sorted_class_names = sorted(self.model.names.items())
             for class_id, class_name in sorted_class_names:
                 self.log.info(f"    ID: {class_id} / Name: {class_name}")
-            self.log.info("-----------------------------\n")
+            self.log.info(f"-----------------------------\n")
             YoloKeypoints._info_printed = True
 
         try:
@@ -119,7 +119,7 @@ class YoloKeypoints:
         self.running = False
         if self.worker_thread:
             self.worker_thread.join(timeout=1.0)
-        self.log.info("YOLO segmentation worker stopped")
+        self.log.info(f"YOLO segmentation worker stopped")
 
     def process_frame(
         self,
@@ -325,7 +325,7 @@ class YoloKeypoints:
                 time.sleep(0.01)
                 continue
 
-        self.log.info("yolo_keypoints: Exiting loop.")
+        self.log.info(f"yolo_keypoints: Exiting loop.")
         # Check if a finished callback was provided and call it
         if self.finished_callback:
             try:

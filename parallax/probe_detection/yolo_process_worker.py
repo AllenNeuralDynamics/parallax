@@ -40,7 +40,7 @@ class YoloProcessWorker:
         try:
             CONFIG = self._load_yolo_config(yolo_config_path)
         except Exception as e:
-            print(f"Error loading YOLO config: {e}")
+            self.log.info(f"Error loading YOLO config: {e}")
             CONFIG = {}
 
         keypoints_cfg = CONFIG.get("keypoints", {})
@@ -185,7 +185,7 @@ class YoloProcessWorker:
         Compares ONLY the first keypoint (Tip) for movement.
         """
         if not detections:
-            print(f" {self.name} - No detections to compare.")
+            self.log.info(f" {self.name} - No detections to compare.")
             return detections
 
         if len(detections) == 1 and detections[0].get("id") == "manual_click":
@@ -193,7 +193,7 @@ class YoloProcessWorker:
             return detections
 
         if not self.prev_detections:
-            print(f" {self.name} - No previous to compare.")
+            self.log.info(f" {self.name} - No previous to compare.")
             self.prev_detections = detections.copy()
             return detections
 
@@ -217,7 +217,7 @@ class YoloProcessWorker:
 
                     # Calculate Euclidean distance for just the first point
                     dist = math.hypot(cx - px, cy - py)
-                    # print(f" {self.name} - Probe {curr_id} moved {dist:.2f} px")
+                    # self.log.info(f" {self.name} - Probe {curr_id} moved {dist:.2f} px")
 
                 # 4. Check Threshold
                 if dist > self.movement_threshold:
@@ -248,7 +248,7 @@ class YoloProcessWorker:
         self.log.debug(f"Local state: {self.local_client_finished}, Global state: {self.global_client_finished}")
         # Check if BOTH clients have finished
         if self.local_client_finished and self.global_client_finished:
-            self.log.info("Both YOLO clients finished. Calling main finished callback.")
+            self.log.info(f"Both YOLO clients finished. Calling main finished callback.")
             if self.finished_callback:
                 self.finished_callback()
 

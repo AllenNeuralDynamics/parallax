@@ -97,7 +97,7 @@ class ScreenCoordsMapper:
         self.ui_z.setText(str(global_z))
 
         self.log.debug(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
-        print(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
+        self.log.info(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
 
     def reticle_detection_status_change(self):
         """Change the reticle detection status and update the dropdown accordingly."""

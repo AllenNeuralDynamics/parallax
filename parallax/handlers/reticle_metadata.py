@@ -101,7 +101,7 @@ class ReticleMetadata(QWidget):
         alphabet = self._find_next_available_alphabet()
         if alphabet is None:
             self.log.warning("No available slot for reticle. All alphabets are assigned.")
-            print("No available slot for reticle.")
+            self.log.info(f"No available slot for reticle.")
             return
 
         # Mark the alphabet as used

@@ -51,7 +51,7 @@ class UtilsCoords:
                 x, y = coord
                 scaled_coords.append([int(x * scale_x), int(y * scale_y)])
             else:
-                print(f"Warning: Unexpected coordinate format {coord}. Skipping scaling.")
+                self.log.info(f"Warning: Unexpected coordinate format {coord}. Skipping scaling.")
                 scaled_coords.append(coord)  # Keep the original if format is unexpected
 
         return scaled_coords

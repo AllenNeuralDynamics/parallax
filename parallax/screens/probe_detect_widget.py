@@ -37,12 +37,12 @@ class ProbeDetectWidget(QWidget):
         self.model.set_probe_detect_algorithms(self.screen.camera_name, algorithm)
         # Run open cv default detection
         if self.settingMenu.radioButton2.isChecked():
-            print(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
+            self.log.info(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
             self.screen.set_probe_detect_algorithms("opencv")
 
         # Yolo v11 detection
         elif self.settingMenu.radioButton1.isChecked():
-            print(f"{self.screen.camera_name} - 'YoloV11' tracking selected")
+            self.log.info(f"{self.screen.camera_name} - 'YoloV11' tracking selected")
             self.screen.set_probe_detect_algorithms("yolo")
 
     def _get_setting_button(self):

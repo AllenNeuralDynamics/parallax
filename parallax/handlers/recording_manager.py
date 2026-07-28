@@ -21,7 +21,7 @@ class RecordingManager:
         """Saves the last captured image from all active camera feeds."""
         # Get the directory path where the images will be saved
         if os.path.exists(save_path):
-            print("\nSnapshot...")
+            self.log.info("\nSnapshot...")
             for screen in screen_widgets:
                 sn = screen.camera.name(sn_only=True)
                 if self.model.is_camera_visible and screen.is_camera():
@@ -32,7 +32,7 @@ class RecordingManager:
                 else:
                     self.log.debug("save_last_image) camera not found")
         else:
-            print(f"Check the saving path: {save_path}")
+            self.log.info(f"Check the saving path: {save_path}")
 
     def save_recording(self, save_path, screen_widgets):
         """
@@ -45,7 +45,7 @@ class RecordingManager:
 
         if os.path.exists(save_path):
             # Iterate through each screen widget
-            print("\nRecording... ")
+            self.log.info("\nRecording... ")
             for screen in screen_widgets:
                 sn = screen.camera.name(sn_only=True)
                 if self.model.is_camera_visible(sn) and screen.is_camera():
@@ -59,7 +59,7 @@ class RecordingManager:
                         self.recording_camera_list.append(sn)
         else:
             # If the save directory does not exist
-            print(f"Check the saving path: {save_path}")
+            self.log.info(f"Check the saving path: {save_path}")
 
     def stop_recording(self, screen_widgets):
         """

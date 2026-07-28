@@ -181,7 +181,7 @@ def test_get_projected_points(mock_params):
     imgpoints = get_projected_points(objpoints, mock_params.rvec, mock_params.tvec, mock_params.mtx, mock_params.dist)
 
     # Expected output shape: (N_points, 2) and integer coordinates
-    print(imgpoints)
+    self.log.info(imgpoints)
     assert imgpoints.shape == (2, 2)
     assert imgpoints.dtype == np.float32
 

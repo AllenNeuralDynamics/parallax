@@ -118,9 +118,6 @@ class ReticleDetection:
         counter = 30
         while len(inlier_lines) < 2 and counter > 0:
             counter -= 1
-            self.log.debug(
-                f"{self.name} ransac_detect_lines - counter: {counter}, len(inlier_lines): {len(inlier_lines)}"
-            )
             if not running_flag():
                 self.log.debug(f"{self.name} ransac_detect_lines - stop running while searching for lines..")
                 return False, [], []

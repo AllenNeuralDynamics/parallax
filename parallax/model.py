@@ -87,7 +87,7 @@ class Model:
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
-        self.log.info("Scanning for USB stages...")
+        self.log.info(f"Scanning for USB stages...")
         server = PathfinderServer(self.config.pathfinder_server.url)
         instances = server.get_instances()
         self.stage_instances = {}  # Reset internal state before updating
@@ -713,7 +713,7 @@ class Model:
     # Configurations - Load and Save
     # =========================
     def save_config(self):
-        self.log.info("Saving config...")
+        self.log.info(f"Saving config...")
         ConfigManager.save_settings(self.config)
 
     # =========================
@@ -721,11 +721,11 @@ class Model:
     # =========================
 
     def save_session(self):
-        self.log.info("Saving session...")
+        self.log.info(f"Saving session...")
         SessionManager.save_session(self.session)
 
     def instantiate_session(self):
-        self.log.info("\nLoading previous session..")
+        self.log.info(f"Loading previous session..")
         SessionManager.instantiate(
             self
         )  # Ensure SessionManager is instantiated with the model for session config loading

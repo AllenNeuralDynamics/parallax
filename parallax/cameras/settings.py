@@ -39,7 +39,7 @@ class PySpinSettings(BaseSettings):
             self._setup_pixel_format()
 
         except Exception as e:
-            print(f"Error initializing camera settings: {e}")
+            self.log.info(f"Error initializing camera settings: {e}")
 
     def _setup_buffer(self):
         # set BufferHandlingMode to NewestOnly to prevent queue buildup and latency

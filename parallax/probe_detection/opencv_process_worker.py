@@ -78,12 +78,12 @@ class OpenCVProcessWorker:
     def start_running(self):
         """Start the internal processing thread."""
         if self.running:
-            print(f"{self.name} - OpenCV Process worker thread already running")
+            self.log.info(f"{self.name} - OpenCV Process worker thread already running")
             return
         self.running = True
         self.worker_thread = threading.Thread(target=self._run_loop, daemon=True, name=f"OpenCVWorker-{self.name}")
         self.worker_thread.start()
-        print(f"{self.name} - OpenCV Process worker thread started")
+        self.log.info(f"{self.name} - OpenCV Process worker thread started")
 
     def stop_running(self):
         """Stop the processing thread."""
@@ -97,7 +97,7 @@ class OpenCVProcessWorker:
         if self.worker_thread and self.worker_thread.is_alive():
             self.worker_thread.join(timeout=1.0)
 
-        print(f"{self.name} - OpenCV Process worker thread stopped")
+        self.log.info(f"{self.name} - OpenCV Process worker thread stopped")
 
     def _run_loop(self):
         """Main loop checking for new frames."""
@@ -110,10 +110,10 @@ class OpenCVProcessWorker:
                 else:
                     time.sleep(0.01)  # Short sleep to prevent CPU hogging
             except Exception as e:
-                print(f"{self.name} - Error in run loop: {e}")
+                self.log.info(f"{self.name} - Error in run loop: {e}")
                 time.sleep(0.1)
 
-        print(f"{self.name} - OpenCV Process worker thread stopped")
+        self.log.info(f"{self.name} - OpenCV Process worker thread stopped")
         self._trigger_callback("on_finished")
 
     # =========================================================

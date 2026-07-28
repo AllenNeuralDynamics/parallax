@@ -32,7 +32,7 @@ class YOLOClient:
         """Start the YOLO processing worker"""
         try:
             self.yolo_worker.start()
-            self.logger.info("Simple YOLO client started successfully")
+            self.logger.info(f"Simple YOLO client started successfully")
             return True
         except Exception as e:
             self.logger.error(f"Error starting Simple YOLO client: {e}")

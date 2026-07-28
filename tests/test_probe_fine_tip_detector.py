@@ -46,8 +46,8 @@ def test_get_precise_tip(load_tip_image):
     )
 
     # Print the results for debugging purposes
-    print(f"Return status: {ret}")
-    print(f"Precise tip: {precise_tip}")
+    self.log.info(f"Return status: {ret}")
+    self.log.info(f"Precise tip: {precise_tip}")
 
     # Verify that the detection was successful
     assert ret, "Failed to detect the precise tip."

@@ -93,7 +93,6 @@ class ScreenSetting(QWidget):
                 hw_gamma = self.hw.get_gamma()  # 0.24 ~ 4.0
                 if hw_gamma > 0:
                     self.model_config.gamma = hw_gamma
-                self.log.debug(f"Hardware state synced to model for {self.sn}")
         except Exception as e:
             self.log.error(f"Failed to sync hardware to model for {self.sn}: {e}")
 
@@ -344,7 +343,7 @@ class ScreenSetting(QWidget):
             "Images (*.png *.xpm *.jpg *.bmp *.tiff);;Videos (*.mp4 *.avi *.mov *.mkv);;All Files (*)",
         )
         if file_path:
-            print("Selected file:", file_path)
+            self.log.info(f"Selected file: {file_path}")
             self.screen.mock_cam_set_data(file_path)
 
     def _get_setting_button(self, parent):

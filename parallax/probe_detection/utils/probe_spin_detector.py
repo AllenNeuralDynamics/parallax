@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def get_spin_angle(global_pts: np.ndarray) -> Optional[float]:
     vec, pts_xy, rms_perp = _pca_global_pts_to_vec(global_pts)
     angle_deg = spin_angle_from_vec(vec)
-    print(f"Spin: {angle_deg:.2f}° (0° = -X), vector (XY): {np.round(vec, 4).tolist()}")
+    self.log.info(f"Spin: {angle_deg:.2f}° (0° = -X), vector (XY): {np.round(vec, 4).tolist()}")
     return angle_deg
 
 
@@ -60,7 +60,7 @@ def is_sane_4shanks(global_points: np.ndarray) -> bool:
     3. Checks spacing between sorted points.
     """
     if global_points is None or len(global_points) < 2:
-        # print("Error: Not enough points for sanity check.")
+        # self.log.info("Error: Not enough points for sanity check.")
         return False
 
     # 2. Check linearity (are they actually in a line?)

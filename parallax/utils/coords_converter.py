@@ -121,7 +121,7 @@ def global_to_local(model, sn: str, global_pts: np.ndarray, reticle: Optional[st
     if reticle and reticle != "Global coords":
         global_pts = apply_reticle_adjustments_inverse(model, global_pts, reticle)
     local_row = apply_rigid_transform(T, global_pts)
-    print("local_row:", local_row)
+    logger.info(f"local_row: {local_row}")
     return np.round(local_row, 1)
 
 
@@ -258,10 +258,10 @@ def get_transMs_bregma_to_local(transM, reticle_metadatas) -> Optional[dict[str,
         (JSON-serializable). None if the stage/transform is unavailable.
     """
     if transM is None or transM.shape != (4, 4):
-        print("Invalid transformation matrix.")
+        logger.info(f"Invalid transformation matrix.")
         return None
     if reticle_metadatas is None or len(reticle_metadatas) == 0:
-        print("No reticle metadata available.")
+        logger.info(f"No reticle metadata available.")
         return None
 
     bregma_to_local_transMs: dict[str, list] = {}
@@ -328,7 +328,7 @@ def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
     quat = Rscipy.from_matrix(R).as_quat()  # [QX, QY, QZ, QW]
     QX, QY, QZ, QW = quat
     TX, TY, TZ = tvecs.flatten()
-    print(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
+    self.log.info(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
 
     return QW, QX, QY, QZ, TX, TY, TZ
 

@@ -19,8 +19,7 @@ class YoloSegmentation:
         :param config: Configuration dictionary.
         :param detection_callback: A function to call with the list of detections.
         """
-        # super().__init__() # REMOVED QObject
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.log = logging.getLogger(self.__class__.__name__)
         self.name = name
         self.weights_path = config.get("weights_path", r"external/YoloV11/tip_keypoint_detection_fast.pt")
         self.conf_thresh = config.get("conf_thresh", 0.5)
@@ -38,7 +37,7 @@ class YoloSegmentation:
         self.finished_callback = finished_callback
 
         try:
-            self.logger.debug(f"weights_path: {self.weights_path}")
+            self.log.debug(f"weights_path: {self.weights_path}")
             self.model = YOLO(self.weights_path)
             self.model.overrides["conf"] = self.conf_thresh
             self.model.overrides["iou"] = self.iou_thresh
@@ -46,14 +45,14 @@ class YoloSegmentation:
             self.model.overrides["imgsz"] = self.img_size
             self.model.overrides["verbose"] = False
             self.model.to("cuda" if torch.cuda.is_available() else "cpu")
-            self.logger.info(f"YOLO model loaded from: {self.weights_path}")
-            self.logger.info(f"Model is running on: {self.model.device}")
+            self.log.info(f"YOLO model loaded from: {self.weights_path}")
+            self.log.info(f"Model is running on: {self.model.device}")
 
             # Warmup the model
             self._warmup_model()
-            self.logger.info("YOLO model warmup completed")
+            self.log.info(f"YOLO model warmup completed")
         except Exception as e:
-            self.logger.error(f"Failed to load YOLO model: {e}, running yolo in dummy mode")
+            self.log.error(f"Failed to load YOLO model: {e}, running yolo in dummy mode")
             self.model = None
 
     def start(self):
@@ -62,10 +61,9 @@ class YoloSegmentation:
             return True
 
         self.running = True
-        # Use a standard Thread
         self.worker_thread = Thread(target=self._process_frames, daemon=True)
         self.worker_thread.start()
-        self.logger.info("YOLO segmentation thread started")
+        self.log.info(f"YOLO segmentation thread started")
         return True
 
     def _warmup_model(self):
@@ -73,16 +71,16 @@ class YoloSegmentation:
         if self.model is None:
             return
 
-        self.logger.info("Warming up YOLO model...")
+        self.log.info(f"Warming up YOLO model...")
         warmup_start = time.time()
 
         if not YoloSegmentation._info_printed and hasattr(self.model, "names"):
-            print("--- Available Model Classes for global Yolo ---")
+            self.log.info(f"--- Available Model Classes for global Yolo ---")
             # self.model.names is a dictionary mapping ID (int) to Name (str)
             sorted_class_names = sorted(self.model.names.items())
             for class_id, class_name in sorted_class_names:
-                print(f"    ID: {class_id} / Name: {class_name}")
-            print("-----------------------------\n")
+                self.log.info(f"    ID: {class_id} / Name: {class_name}")
+            self.log.info(f"-----------------------------\n")
             YoloSegmentation._info_printed = True
 
         try:
@@ -99,11 +97,11 @@ class YoloSegmentation:
                 torch.cuda.synchronize()  # Wait for GPU operations to complete
 
             warmup_time = time.time() - warmup_start
-            self.logger.info(f"Model warmup completed in {warmup_time:.2f}s")
+            self.log.info(f"Model warmup completed in {warmup_time:.2f}s")
             self.warmup_done = True
 
         except Exception as e:
-            self.logger.error(f"Warmup failed: {e}")
+            self.log.error(f"Warmup failed: {e}")
             self.warmup_done = True  # Continue anyway
 
     def stop(self):
@@ -111,7 +109,7 @@ class YoloSegmentation:
         self.running = False
         if self.worker_thread:
             self.worker_thread.join(timeout=1.0)
-        self.logger.info("YOLO segmentation worker stopped")
+        self.log.info(f"YOLO segmentation worker stopped")
 
     def process_frame(self, frame: np.ndarray, crop_info, ts: Optional[float] = None):
         """Add frame to processing queue"""
@@ -202,14 +200,14 @@ class YoloSegmentation:
                     time.sleep(0.01)
 
             except Exception as e:
-                self.logger.error(f"Error processing frame: {e}")
+                self.log.error(f"Error processing frame: {e}")
                 time.sleep(0.01)
                 continue
 
-        self.logger.info("yolo_segmentation: Exiting loop.")
+        self.log.info(f"yolo_segmentation: Exiting loop.")
         # Check if a finished callback was provided and call it
         if self.finished_callback:
             try:
                 self.finished_callback()
             except Exception as e:
-                self.logger.error(f"Error calling finished_callback: {e}")
+                self.log.error(f"Error calling finished_callback: {e}")

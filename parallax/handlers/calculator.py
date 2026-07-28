@@ -272,7 +272,7 @@ class Calculator(QWidget):
         if not sn:
             return
         if self.findChild(QGroupBox, f"groupBox_{sn}") is None:
-            print("Error: Group box not found")
+            self.log.info(f"Error: Group box not found for stage {sn}")
             return
         # Clear the QLineEdit for the stage
         self.findChild(QLineEdit, f"localX_{sn}").setText("")
@@ -354,7 +354,7 @@ class Calculator(QWidget):
         Args:
             move_type (str): The type of move (e.g., "stopAll").
         """
-        print("Stopping all stages.")
+        self.log.info(f"Stopping all stages.")
         command = {"move_type": move_type}
         self.stage_controller.request(command)
 
@@ -396,7 +396,7 @@ class Calculator(QWidget):
 
         # Use the confirm_move_stage function to ask for confirmation
         if not self._confirm_move_stage(x, y):
-            print("Stage move canceled by user.")
+            self.log.info(f"Stage move canceled by user.")
             return  # User canceled the move
 
         # If the user confirms, proceed with moving the stage
@@ -405,7 +405,7 @@ class Calculator(QWidget):
 
         command = {"stage_sn": stage_sn, "move_type": "moveXY0", "x": x, "y": y, "z": z}
         self.stage_controller.request(command)
-        print(f"Moving stage {stage_sn} to ({np.round(x * 1000)}, {np.round(y * 1000)}, 0)")
+        self.log.info(f"Moving stage {stage_sn} to ({np.round(x * 1000)}, {np.round(y * 1000)}, 0)")
 
     def _is_z_safe_pos(self, stage_sn, x, y, z=0):
         """

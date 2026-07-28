@@ -170,8 +170,8 @@ class MainWindow(QMainWindow):
             for sn in self.model.get_list_of_stage_sns():
                 if self.model.is_calibrated(sn):
                     calibrated_stages.append(sn)
-            print(" Restored session info to cameras:", self.model.get_calibrated_camera_sns())
-            print(" Restored session info to stages:", calibrated_stages)
+            self.log.info(f" Restored session info to cameras: {self.model.get_calibrated_camera_sns()}")
+            self.log.info(f" Restored session info to stages: {calibrated_stages}")
         else:
             # Clear yaml file
             self.model.clear_session_config()
@@ -211,7 +211,7 @@ class MainWindow(QMainWindow):
         try:
             self.model.scan_for_cameras()
         except Exception as e:
-            print(f"Error refreshing cameras: {e}")
+            self.log.info(f"Error refreshing cameras: {e}")
 
     def refresh_stages(self):
         """Search for connected stages"""
@@ -236,10 +236,10 @@ class MainWindow(QMainWindow):
         self.model.refresh_camera = is_streaming
 
         if is_streaming:
-            print("\nRefreshing Screens")
+            self.log.info(f"Refreshing Screens")
             self.screen_widget_manager.start_streaming()
         else:
-            print("Stop Refreshing Screens")
+            self.log.info(f"Stop Refreshing Screens")
             self.screen_widget_manager.stop_streaming()
 
         self.actionRecording.setEnabled(is_streaming)
@@ -264,9 +264,9 @@ class MainWindow(QMainWindow):
         if new_dir:
             self.dir = new_dir
             self.save_user_configs()  # Save the new directory to user settings
-            print("Selected directory:", self.dir)
+            self.log.info(f"Selected directory: {self.dir}")
         else:
-            print("Selection canceled. Keeping previous:", self.dir)
+            self.log.info(f"Selection canceled. Keeping previous: {self.dir}")
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
         """

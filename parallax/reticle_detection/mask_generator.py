@@ -316,5 +316,5 @@ if __name__ == "__main__":
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     else:
-        print("No reticle detected in the image.")
+        self.log.info(f"No reticle detected in the image.")
     """

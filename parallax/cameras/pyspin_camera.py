@@ -58,7 +58,7 @@ class PySpinCamera(BaseCamera):
         """
         Release resources and close all PySpin cameras.
         """
-        logger.info("cleaning up SpinSDK")
+        logger.info(f"cleaning up SpinSDK")
         for camera in cls.cameras:
             camera.stop(clean=True)
         if cls.pyspin_cameras is not None:
@@ -100,13 +100,13 @@ class PySpinCamera(BaseCamera):
             self.device_color_type = "Color"
         elif camera_color_type == "P":
             self.device_color_type = "Polarized"
-            print("Polarized Camera model not supported.")
+            self.log.info(f"Polarized Camera model not supported.")
             return None
         else:
-            print("Not supported camera type.")
+            self.log.info(f"Not supported camera type.")
             return None
         sn = self.name(sn_only=True)
-        print(f"  {sn}: {self.device_model} {self.device_color_type}")
+        self.log.info(f"  {sn}: {self.device_model} {self.device_color_type}")
 
         # Settings
         self.node_map = self.camera.GetNodeMap()
@@ -116,7 +116,7 @@ class PySpinCamera(BaseCamera):
         try:
             self.camera_info()
         except Exception as e:
-            print(f"Error initializing camera settings: {e}")
+            self.log.info(f"Error initializing camera settings: {e}")
 
     def name(self, sn_only=False):
         """
@@ -156,7 +156,7 @@ class PySpinCamera(BaseCamera):
 
         # Begin Acquisition: Image acquisition must be ended when no more images are needed.
         self.camera.BeginAcquisition()
-        print(f"Begin Single Frame Acquisition {self.name(sn_only=True)} ")
+        self.log.info(f"Begin Single Frame Acquisition {self.name(sn_only=True)} ")
         self.capture_thread = threading.Thread(target=self.capture, daemon=False)
         self.capture_thread.start()
 
@@ -221,7 +221,7 @@ class PySpinCamera(BaseCamera):
             image = self.camera.GetNextImage(1000)
             if image.IsIncomplete():
                 self.log.error(f"Image incomplete: {self.name(sn_only=True)}, Status: {image.GetImageStatus()}")
-                print(f"{self.name(sn_only=True)} Image incomplete: \n\t{image.GetImageStatus()}")
+                self.log.info(f"{self.name(sn_only=True)} Image incomplete: \n\t{image.GetImageStatus()}")
             else:
                 # Release the previous image from the buffer if it exists
                 if self.last_image is not None:
@@ -238,7 +238,7 @@ class PySpinCamera(BaseCamera):
             if "[-1012]" in str(e):
                 if self.running:
                     self.running = False
-                    print(f"{self.name(sn_only=True)} Stream has been aborted. Stopping camera. \n {str(e)}")
+                    self.log.info(f"{self.name(sn_only=True)} Stream has been aborted. Stopping camera. \n {str(e)}")
 
         try:
             # Record the image if video recording is active
@@ -251,7 +251,7 @@ class PySpinCamera(BaseCamera):
                 self.video_recording_idle.set()
         except Exception as e:
             self.log.error(f"An error occurred while recording the video: {e}")
-            print(f"Error {self.name(sn_only=True)}: An error occurred while recording the video.")
+            self.log.info(f"Error {self.name(sn_only=True)}: An error occurred while recording the video.")
 
     def save_last_image(self, filepath, isTimestamp=False, custom_name="Microscope_"):
         """
@@ -277,7 +277,7 @@ class PySpinCamera(BaseCamera):
                 # Convert the image from RGB to BGR
                 image_converted = cv2.cvtColor(image_converted, cv2.COLOR_RGB2BGR)
                 self.log.debug(f"Saving image to {full_path}")
-                print(f"Saving image to {full_path}")
+                self.log.info(f"Saving image to {full_path}")
                 cv2.imwrite(full_path, image_converted)
             else:
                 self.log.error(f"{self.name(sn_only=True)} - Image not found or couldn't be retrieved.")
@@ -365,7 +365,7 @@ class PySpinCamera(BaseCamera):
             else "{}.avi".format(custom_name)
         )
         full_path = os.path.join(filepath, video_name)
-        print(f"Saving video to {full_path}")
+        self.log.info(f"Saving video to {full_path}")
         self.log.debug(f"Try saving video to {full_path}")
 
         # Update camera details

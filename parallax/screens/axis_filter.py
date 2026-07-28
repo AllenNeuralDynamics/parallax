@@ -82,7 +82,6 @@ class AxisFilter(QObject):
 
             pos_x = self.model.get_pos_x(self.name)
             if pos_x is not None:
-                self.log.info(f"{self.name} pos_x: {pos_x}")
                 draw_pt = (int(round(pos_x[0])), int(round(pos_x[1])))
                 cv2.circle(self.frame, draw_pt, 15, (255, 0, 0), -1)
 

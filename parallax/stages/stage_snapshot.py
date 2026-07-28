@@ -61,6 +61,6 @@ class StageSnapshotHandler:
             try:
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(info, f, indent=4)
-                self.log.info(f"Stage info saved successfully at {file_path}")
+                self.info(f"Stage info saved successfully at {file_path}")
             except Exception as e:
                 self.log.error(f"Failed to save snapshot: {e}")

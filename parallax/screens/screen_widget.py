@@ -282,7 +282,7 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
         camera_name = self.get_camera_name()
-        print(f"Clicked position on {camera_name}: {pos}")
+        self.log.info(f"Clicked position on {camera_name}: {pos}")
         self.selected.emit(camera_name, pos)
 
     def _zoom_out(self):
@@ -362,7 +362,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def found_reticle_coords(self, x_coords: np.ndarray, y_coords: np.ndarray, camera_matrix: CameraParams):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
-        print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {camera_matrix.rvec}\ntvecs: {camera_matrix.tvec}")
+        self.log.info(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {camera_matrix.rvec}\ntvecs: {camera_matrix.tvec}")
         coords = np.array([x_coords, y_coords])
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_params(self.camera_name, camera_matrix)

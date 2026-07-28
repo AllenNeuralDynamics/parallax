@@ -98,4 +98,4 @@ if __name__ == "__main__":
     dummy_frame = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
 
     preprocessed_frame = preprocessing(dummy_frame)
-    print("Preprocessing complete. Frame shape:", preprocessed_frame.shape)
+    self.log.info("Preprocessing complete. Frame shape:", preprocessed_frame.shape)
