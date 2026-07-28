@@ -51,7 +51,6 @@ class ReticleDetection:
         for pixels_in_line in pixels_in_lines:
             self._draw_line(reticle_points, pixels_in_line, width, height)
 
-        # cv2.imwrite("debug/reticle_zone.jpg", reticle_points)
         return reticle_points
 
     def _draw_line(self, reticle_points, pixels_in_line, width, height):
@@ -155,12 +154,6 @@ class ReticleDetection:
                 residual_threshold = 5
                 counter = 30
 
-                if self.log.isEnabledFor(logging.DEBUG):
-                    img_remain = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
-                    for pt in centroids:
-                        draw_pt = (int(round(pt[0])), int(round(pt[1])))
-                        cv2.circle(img_remain, draw_pt, 3, (0, 255, 255), -1)
-                    cv2.imwrite(f"debug/remaining_points_after_line_{len(inlier_lines)}.jpg", img_remain)
             else:
                 if residual_threshold <= 15:
                     residual_threshold += 1
@@ -495,7 +488,6 @@ class ReticleDetection:
             for pixel in refined_pixels_per_line:
                 draw_pt = (int(round(pixel[0])), int(round(pixel[1])))
                 cv2.circle(bg, draw_pt, 3, (255, 0, 0), -1)
-        # cv2.imwrite("debug/refined_pixels.jpg", bg)
         return bg, lines, refined_pixels
 
     def get_reticle_zone(self, img):
@@ -557,20 +549,10 @@ class ReticleDetection:
         if not running_flag():
             return False, img, [], []
 
-        if self.log.isEnabledFor(logging.DEBUG):
-            cv2.imwrite("debug/after_eroding.jpg", img)
         ret, inliner_lines, inliner_lines_pixels = self._ransac_detect_lines(img, running_flag)
         self.log.debug(f"n of inliner lines: {len(inliner_lines_pixels)}")
         if not running_flag():
             return False, img, [], []
-
-        # Draw
-        if self.log.isEnabledFor(logging.DEBUG):
-            for inliner_lines_pixel in inliner_lines_pixels:
-                for pixel in inliner_lines_pixel:
-                    pt = (int(round(pixel[0])), int(round(pixel[1])))
-                    cv2.circle(img_color, pt, 1, (0, 255, 0), -1)
-            cv2.imwrite("debug/inliner_pixels.jpg", img_color)
 
         return ret, img, inliner_lines, inliner_lines_pixels
 
@@ -606,13 +588,13 @@ class ReticleDetection:
 
     def get_masked_img(self, img, running_flag=lambda: True):
         bg = self._preprocess_image(img)
-        self._draw_debug(bg, [], "0_bg")
+        #self._draw_debug(bg, [], "0_bg")
         if not running_flag():
             self.log.debug(f"{self.name} get_coords - stop running after preprocessing")
             return False, bg, [], []
 
         masked = self._apply_mask(bg)
-        self._draw_debug(masked, [], "1_bg")
+        #self._draw_debug(masked, [], "1_bg")
         if not running_flag():
             self.log.debug(f"{self.name} get_coords - stop running after masking")
             return False, bg, [], []
@@ -633,7 +615,7 @@ class ReticleDetection:
                 - inliner_lines_pixels (list): List of inlier pixel coordinates for each line.
         """
         ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(img, running_flag)
-        self._draw_debug(bg, pixels_in_lines, "2_detect_morph")
+        #self._draw_debug(bg, pixels_in_lines, "2_detect_morph")
         self.log.debug(f"{self.name} nLines: {len(pixels_in_lines)}")
         if not running_flag():
             self.log.debug(f"{self.name} get_coords - stop running after coords_detect_morph")
@@ -642,14 +624,14 @@ class ReticleDetection:
         if ret:
             bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
             self.log.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}")
-            self._draw_debug(bg, pixels_in_lines, "3_refine_pixels")
+            #self._draw_debug(bg, pixels_in_lines, "3_refine_pixels")
             if not running_flag():
                 self.log.debug(f"{self.name} get_coords - stop running after refine_pixels")
                 return False, bg, [], []
 
             bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
             self.log.debug(f"{self.name} interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
-            self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
+            #self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
             if not running_flag():
                 self.log.debug(f"{self.name} get_coords - stop running after add_missing_pixels")
                 return False, bg, [], []
