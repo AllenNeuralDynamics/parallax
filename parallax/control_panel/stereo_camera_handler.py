@@ -7,9 +7,6 @@ import numpy as np
 
 from parallax.cameras.calibration_camera import evaluate_performance
 
-logger = logging.getLogger(__name__)
-
-
 
 # parallax/stage_widget/stereo_calibrator.py
 class StereoCameraHandler:
@@ -17,6 +14,7 @@ class StereoCameraHandler:
 
     def __init__(self, model):
         """Initializes the StereoCameraHandler with a model and screen widgets."""
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.camA_best = None
         self.camB_best = None
@@ -149,7 +147,7 @@ class StereoCameraHandler:
             coords = self.model.get_coords_axis(sn)
 
             if param is None or coords is None:
-                logger.debug(f"Camera {sn} has no intrinsic or coordinates data.")
+                self.log.debug(f"Camera {sn} has no intrinsic or coordinates data.")
                 continue
 
             params.append(param)

@@ -13,13 +13,10 @@ from parallax.probe_detection.yolo_local.utils import postprocessing as postproc
 from parallax.probe_detection.yolo_local.yolo_client import YOLOClient as LocalYOLOClient
 from parallax.utils.utils import UtilsCrops
 
-# Set logger name
-logger = logging.getLogger(__name__)
-
-
 
 class YoloProcessWorker:
     def __init__(self, name, original_resolution, test=False, detection_callback=None, finished_callback=None):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.frame = None
         self.name = name
         self.original_resolution = original_resolution
@@ -111,7 +108,7 @@ class YoloProcessWorker:
         # If probe is stopped, run local detection on top of global detections
         img_ts = detections[0].get("timestamp")
         if img_ts is None:
-            # logger.warning(...)
+            # self.log.warning(...)
             return
 
         # Check if the image timestamp is after the stage stopped timestamp
@@ -119,10 +116,10 @@ class YoloProcessWorker:
         if is_stage_stopped_img and self.probe_stopped and self.is_detection_on:
             self.stop_detection()
             self.detections = detections.copy()
-            logger.debug(f"\n {self.name} - global detections received: {len(detections)}")
+            self.log.debug(f"\n {self.name} - global detections received: {len(detections)}")
             for i, detection in enumerate(detections):
                 detection["stage_ts"] = self.stage_ts
-                logger.debug(f" {self.name} {i} - {detection['class_name']} - Running local detection...")
+                self.log.debug(f" {self.name} {i} - {detection['class_name']} - Running local detection...")
                 self.yolo_local.newframe_captured(frame, crop_info.copy(), detection=detection, i_th=i)
                 time.sleep(0.01)
         else:
@@ -160,9 +157,9 @@ class YoloProcessWorker:
                 }
         """
         if not detections:
-            logger.warning(f" {self.name} {i} - No local detections received.")
+            self.log.warning(f" {self.name} {i} - No local detections received.")
             return
-        logger.debug(
+        self.log.debug(
             f" {self.name} {i} - Local detections received: {detections[0].get('class_name', '')} {len(detections)}"
         )
 
@@ -176,7 +173,7 @@ class YoloProcessWorker:
             self.detections[i] = detection_original[0]
 
         if self._is_local_batch_complete():
-            logger.debug(f" {self.name} - Local batch complete with {len(self.detections)} detections.")
+            self.log.debug(f" {self.name} - Local batch complete with {len(self.detections)} detections.")
             # emit
             if self.detection_callback:
                 self.detection_callback(self.detections)
@@ -247,11 +244,11 @@ class YoloProcessWorker:
         elif client_name == "global":
             self.global_client_finished = True
 
-        logger.debug(f"Client '{client_name}' finished. ")
-        logger.debug(f"Local state: {self.local_client_finished}, Global state: {self.global_client_finished}")
+        self.log.debug(f"Client '{client_name}' finished. ")
+        self.log.debug(f"Local state: {self.local_client_finished}, Global state: {self.global_client_finished}")
         # Check if BOTH clients have finished
         if self.local_client_finished and self.global_client_finished:
-            logger.info("Both YOLO clients finished. Calling main finished callback.")
+            self.log.info("Both YOLO clients finished. Calling main finished callback.")
             if self.finished_callback:
                 self.finished_callback()
 

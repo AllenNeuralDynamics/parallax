@@ -9,16 +9,13 @@ import logging
 import numpy as np
 from scipy.stats import linregress
 
-# Set logger name
-logger = logging.getLogger(__name__)
-
-
 
 class ReticleDetectCoordsInterest:
     """Class for detecting coordinates of interest in reticle lines."""
 
     def __init__(self):
         """Initialize object"""
+        self.log = logging.getLogger(self.__class__.__name__)
         self.n_interest_pixels = 10
 
     def _fit_line(self, pixels):
@@ -94,10 +91,10 @@ class ReticleDetectCoordsInterest:
 
         # 4. Use a tolerance threshold (10.0 pixels is safe for reticles)
         if min_dist <= 10.0:
-            logger.debug(f"Center lock-on: Index {min_index} at distance {min_dist:.2f}")
+            self.log.debug(f"Center lock-on: Index {min_index} at distance {min_dist:.2f}")
             return int(min_index)
 
-        logger.debug(f"Center not found. Closest dot was {min_dist:.2f}px away.")
+        self.log.debug(f"Center not found. Closest dot was {min_dist:.2f}px away.")
         return None
 
     def _get_pixels_interest(self, center, coords):
@@ -112,7 +109,7 @@ class ReticleDetectCoordsInterest:
         """
         center_index = self._get_center_coords_index(center, coords)
         if center_index is None:
-            logger.debug("Center coordinates not found.")
+            self.log.debug("Center coordinates not found.")
             return
 
         coords[center_index] = center  # Replace center to center point we gets
@@ -133,7 +130,7 @@ class ReticleDetectCoordsInterest:
                 - y_axis (numpy.ndarray): Y-axis coordinates.
         """
         if pixels_in_lines[0] is None or pixels_in_lines[1] is None:
-            logger.error("One of the pixel lines is None. Cannot proceed with orientation calculation.")
+            self.log.error("One of the pixel lines is None. Cannot proceed with orientation calculation.")
             return False, None, None
 
         # Temp solution: first coords of X axis is left side to first coords of Y axis.
@@ -178,21 +175,21 @@ class ReticleDetectCoordsInterest:
         line1 = self._fit_line(pixels_in_lines[0])
         line2 = self._fit_line(pixels_in_lines[1])
         center_point = self._find_intersection(line1, line2)
-        logger.debug(f"center_point: {center_point}")
+        self.log.debug(f"center_point: {center_point}")
 
         for pixels_in_line in pixels_in_lines:
             coords = self._get_pixels_interest(center_point, pixels_in_line)
             if coords is None or len(coords) < self.n_interest_pixels * 2 + 1:
-                logger.debug("_get_pixels_interest fails.")
+                self.log.debug("_get_pixels_interest fails.")
                 if coords is None:
-                    logger.debug("coords: None")
+                    self.log.debug("coords: None")
                 if coords is not None:
-                    logger.debug(f"length of coords: {len(coords)}")
+                    self.log.debug(f"length of coords: {len(coords)}")
                 return False, None, None
             coords_interest.append(coords)
 
         ret, x_axis, y_axis = self._get_orientation(coords_interest)
         if ret is False:
-            logger.debug("getting orientation of x and y axis fails")
+            self.log.debug("getting orientation of x and y axis fails")
             return False, None, None
         return True, x_axis, y_axis

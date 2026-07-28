@@ -47,6 +47,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
         def __init__(self, model, name, test_mode=False):
             """Initializes the CNN-based reticle detection worker."""
             super().__init__(name)
+            self.log = logging.getLogger(self.__class__.__name__)
             self.model = model
             self.test_mode = test_mode
             self.rvecs = None
@@ -76,19 +77,19 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             cv2.imwrite(str(image_dir / query), frame)
 
             # Run SFM once to extract and match features
-            print(f"{self.name} - Extracting Features...")
+            self.log.info(f"{self.name} - Extracting Features...")
             result = self._run_feature_cli(str(image_dir), query, str(export_dir))
             if result == DetectionResult.STOPPED or result is DetectionResult.FAILED:
                 self._clean_output(image_dir, export_dir)
                 return result
 
-            print(f"{self.name} - Matching Features...")
+            self.log.info(f"{self.name} - Matching Features...")
             result = self._run_match_cli(query, str(export_dir))
             if result == DetectionResult.STOPPED or result is DetectionResult.FAILED:
                 self._clean_output(image_dir, export_dir)
                 return result
 
-            print(f"{self.name} - Localizing...")
+            self.log.info(f"{self.name} - Localizing...")
             for attempt in range(1, MAX_RETRIES + 1):
                 self.rvecs, self.tvecs = None, None
 
@@ -98,7 +99,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
                     return result
 
                 if result == DetectionResult.SUCCESS:
-                    logger.info(f"Attempt {attempt}: tvec dist - {np.linalg.norm(self.tvecs):.2f}")
+                    self.log.info(f"Attempt {attempt}: tvec dist - {np.linalg.norm(self.tvecs):.2f}")
                     if np.linalg.norm(self.tvecs) <= DIST_THRESHOLD:
                         break
 
@@ -112,7 +113,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
             imtx = cam_cfg["imtx_INIT"] if cam_cfg else None
             idist = cam_cfg["idist_INIT"] if cam_cfg else None
             if imtx is None or idist is None:
-                logger.warning(f"No camera config found for device model: {device}. Using default parameters.")
+                self.log.warning(f"No camera config found for device model: {device}. Using default parameters.")
                 return DetectionResult.FAILED
             self.x_coords = get_projected_points(objpts_x_coords, self.rvecs, self.tvecs, imtx, idist)
             self.y_coords = get_projected_points(objpts_y_coords, self.rvecs, self.tvecs, imtx, idist)
@@ -129,9 +130,9 @@ class ReticleDetectManagerCNN(BaseReticleManager):
                 return DetectionResult.STOPPED
 
             # Emit detected coordinates
-            logger.debug("CNN")
-            logger.debug(f"rvecs: {self.rvecs}")
-            logger.debug(f"tvecs: {self.tvecs}")
+            self.log.debug("CNN")
+            self.log.debug(f"rvecs: {self.rvecs}")
+            self.log.debug(f"tvecs: {self.tvecs}")
             camera_params = CameraParams(mtx=imtx, dist=idist, rvec=self.rvecs, tvec=self.tvecs)
             self.signals.found_coords.emit(self.x_coords, self.y_coords, camera_params)
             if not self.running:
@@ -167,7 +168,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
 
             while process.poll() is None:
                 if not self.running:
-                    print(f"{step.title()} step cancelled. Terminating process...")
+                    self.log.info(f"{step.title()} step cancelled. Terminating process...")
                     process.terminate()
                     try:
                         process.wait(timeout=20)
@@ -179,7 +180,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
 
             stdout, stderr = process.communicate()
             if process.returncode != 0:
-                print(f"{step.title()} step failed:\n{stderr}")
+                self.log.info(f"{step.title()} step failed:\n{stderr}")
                 return DetectionResult.FAILED
 
             if step == "localize":
@@ -188,7 +189,7 @@ class ReticleDetectManagerCNN(BaseReticleManager):
                     quat, tvec = np.array(values[:4]), np.array(values[4:])
                     self.rvecs, self.tvecs = get_rvec_and_tvec(quat, tvec)
                 except Exception as e:
-                    logger.warning(f"Localization parse failed: {e}")
+                    self.log.warning(f"Localization parse failed: {e}")
                     return DetectionResult.FAILED
 
             return DetectionResult.SUCCESS

@@ -12,7 +12,6 @@ from parallax.config.schemas import ReticleConfig
 logger = logging.getLogger(__name__)
 
 
-
 class ReticleManager:
     reticle_file = reticle_metadata_file
     _data: Optional[ReticleConfig] = None  # The class-level cache

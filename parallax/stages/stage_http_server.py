@@ -12,10 +12,6 @@ from aiohttp import web
 
 from .stage_controller import StageController
 
-# Set up logging
-logger = logging.getLogger(__name__)
-
-
 
 class StageHttpServer:
     """Manages the Stage HTTP Server using aiohttp (Fully Async)"""
@@ -23,6 +19,7 @@ class StageHttpServer:
     def __init__(self, model, port=8081):
         """Initialize the StageHttpServer with a model, stages_info, and port."""
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.stage_controller = StageController(self.model)
         self.port = port
@@ -49,7 +46,7 @@ class StageHttpServer:
         site = web.TCPSite(runner, "localhost", self.port)
         await site.start()
 
-        logger.debug(f"Async HTTP server running on http://localhost:{self.port}")
+        self.log.debug(f"Async HTTP server running on http://localhost:{self.port}")
 
     async def handle_get(self, request):
         """
@@ -80,14 +77,14 @@ class StageHttpServer:
             return web.json_response(info)
 
         except Exception as e:
-            logger.error(f"Error handling GET request: {e}")
+            self.log.error(f"Error handling GET request: {e}")
             return web.json_response({"status": "error", "message": str(e)}, status=500)
 
     async def handle_put(self, request):
         """Handle PUT request asynchronously and immediately process the command"""
         try:
             data = await request.json()
-            logger.info(f"PUT request received:\n{json.dumps(data, indent=2)}")
+            self.log.info(f"PUT request received:\n{json.dumps(data, indent=2)}")
 
             # Offload CPU work to a thread
             loop = asyncio.get_running_loop()
@@ -97,5 +94,5 @@ class StageHttpServer:
             return web.Response(text=result)
 
         except json.JSONDecodeError:
-            logger.error("Invalid JSON received in PUT request")
+            self.log.error("Invalid JSON received in PUT request")
             return web.Response(status=400, text="Bad Request: Invalid JSON format")

@@ -7,12 +7,11 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 
-logger = logging.getLogger(__name__)
-
 
 class ScreenSetting(QWidget):
     def __init__(self, parent, model, screen):
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.parent = parent
         self.screen = screen
@@ -49,7 +48,7 @@ class ScreenSetting(QWidget):
                 # TODO Change the visibility in model
                 self.model.save_config()
         except Exception as e:
-            logger.error(f"Error toggling settings menu: {e}")
+            self.log.error(f"Error toggling settings menu: {e}")
 
     def _periodic_sync(self):
         """The combined loop: HW -> Model -> UI"""
@@ -63,7 +62,7 @@ class ScreenSetting(QWidget):
         Pulls current values from hardware and updates the Pydantic model.
         """
         if not self.hw or not self.model_config:
-            logger.warning(f"Sync failed: Hardware or Model reference missing for {self.sn}")
+            self.log.warning(f"Sync failed: Hardware or Model reference missing for {self.sn}")
             return
         try:
             # Invalidate nodes to ensure we get fresh values from hardware
@@ -94,9 +93,9 @@ class ScreenSetting(QWidget):
                 hw_gamma = self.hw.get_gamma()  # 0.24 ~ 4.0
                 if hw_gamma > 0:
                     self.model_config.gamma = hw_gamma
-                logger.debug(f"Hardware state synced to model for {self.sn}")
+                self.log.debug(f"Hardware state synced to model for {self.sn}")
         except Exception as e:
-            logger.error(f"Failed to sync hardware to model for {self.sn}: {e}")
+            self.log.error(f"Failed to sync hardware to model for {self.sn}: {e}")
 
     def _update_ui_from_model(self):
         """Updates all GUI elements to match the current Pydantic model state."""

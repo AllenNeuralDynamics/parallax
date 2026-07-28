@@ -26,10 +26,6 @@ from parallax.config.config_path import debug_img_dir
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.utils.utils import UtilsCoords, UtilsCrops
 
-# Set logger name
-logger = logging.getLogger(__name__)
-
-
 
 class CurrPrevCmpProcessor:
     """Finding diff image using Current Previous Comparison"""
@@ -43,6 +39,7 @@ class CurrPrevCmpProcessor:
             original_size (tuple): The original size of the image (height, width).
             resized_size (tuple): The resized size of the image (height, width).
         """
+        self.log = logging.getLogger(self.__class__.__name__)
         self.cam_name = cam_name
         self.diff_img = None
         self.mask = None
@@ -116,7 +113,7 @@ class CurrPrevCmpProcessor:
             return False
         if ret:
             # Update Tip
-            logger.debug(f"{self.cam_name} CurrPrevCmpProcessor Update::detect")
+            self.log.debug(f"{self.cam_name} CurrPrevCmpProcessor Update::detect")
             if get_fine_tip:
                 if not self._get_precise_tip(org_img):
                     return False
@@ -236,7 +233,7 @@ class CurrPrevCmpProcessor:
         """
         max_value = np.max(self.diff_img)
         if max_value < 20:
-            logger.debug(f"Not strong pattern detected on diff image. max_value: {max_value}")
+            self.log.debug(f"Not strong pattern detected on diff image. max_value: {max_value}")
             return False
 
         threshold_value = self.shadow_threshold * max_value
@@ -247,6 +244,6 @@ class CurrPrevCmpProcessor:
         return True
 
     def _save_debug_img(self, ts=None):
-        if logger.getEffectiveLevel() == logging.DEBUG:
+        if self.log.getEffectiveLevel() == logging.DEBUG:
             save_path = os.path.join(debug_img_dir, f"{self.cam_name}_{ts}.jpg")
             cv2.imwrite(save_path, self.diff_img)

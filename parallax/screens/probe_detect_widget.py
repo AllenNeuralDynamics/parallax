@@ -10,9 +10,6 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 
-logger = logging.getLogger(__name__)
-
-
 
 class ProbeDetectWidget(QWidget):
     """Settings menu widget to control a microscope screen."""
@@ -20,6 +17,7 @@ class ProbeDetectWidget(QWidget):
     def __init__(self, parent, model, screen):
         """Initialize the ReticleDetectWidget with a parent, model, and screen."""
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         # Add setting button
         self.model = model
         self.parent = parent

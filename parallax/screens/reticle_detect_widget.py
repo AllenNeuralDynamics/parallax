@@ -12,8 +12,6 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 
-logger = logging.getLogger(__name__)
-
 
 
 class ReticleDetectWidget(QWidget):
@@ -22,6 +20,7 @@ class ReticleDetectWidget(QWidget):
     def __init__(self, parent, model, screen):
         """Initialize the ReticleDetectWidget with a parent, model, and screen."""
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         # Add setting button
         self.model = model
         self.parent = parent
@@ -44,7 +43,7 @@ class ReticleDetectWidget(QWidget):
         try:
             import sfm  # noqa: F401
         except ImportError:
-            logger.warning("[WARN] SFM package is not installed.")
+            self.log.warning("[WARN] SFM package is not installed.")
             return False
 
         # Configure external path and add to sys.path if needed
@@ -57,10 +56,10 @@ class ReticleDetectWidget(QWidget):
         # Check if SuperPoint model file exists
         superpoint_file = external_path / "SuperGluePretrainedNetwork" / "models" / "superpoint.py"
         if superpoint_file.exists():
-            logger.debug("[INFO] SuperPoint + LightGlue is available (sfm import + folder check passed)")
+            self.log.debug("[INFO] SuperPoint + LightGlue is available (sfm import + folder check passed)")
             return True
         else:
-            logger.warning("[WARN] SuperPoint + LightGlue not available (superpoint.py missing)")
+            self.log.warning("[WARN] SuperPoint + LightGlue not available (superpoint.py missing)")
             return False
 
     def _run_detection(self):

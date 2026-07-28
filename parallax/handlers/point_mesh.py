@@ -16,9 +16,6 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 
-logger = logging.getLogger(__name__)
-
-
 
 class PointMeshWidget(QWidget):
     """
@@ -33,6 +30,7 @@ class PointMeshWidget(QWidget):
         transM (np.ndarray): The transformation matrix to convert local points to global coordinates.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
 
         self.file_path = file_path
         self.sn = sn
@@ -197,7 +195,7 @@ class PointMesh:
             stage_sn (str): The serial number of the stage.
             trajectory_file (str): Path to the trajectory CSV file.
         ️"""
-        logger.info(f"Displaying trajectory for stage: {stage_sn}")
+        self.log.info(f"Displaying trajectory for stage: {stage_sn}")
 
         try:
             widget = PointMeshWidget(file_path=trajectory_file, sn=stage_sn)
@@ -206,7 +204,7 @@ class PointMesh:
             PointMesh._active_windows = [w for w in PointMesh._active_windows if w.isVisible()]
 
         except Exception as e:
-            logger.error(f"Failed to launch 3D view for {stage_sn}: {e}")
+            self.log.error(f"Failed to launch 3D view for {stage_sn}: {e}")
             QMessageBox.warning(None, "Trajectory Data Error", f"Could not load trajectory for {stage_sn}:\n\n{e}")
 
     @staticmethod
@@ -219,6 +217,6 @@ class PointMesh:
             try:
                 widget.close()
             except Exception as e:
-                logger.error(f"Error closing window: {e}")
+                self.log.error(f"Error closing window: {e}")
 
         PointMesh._active_windows.clear()

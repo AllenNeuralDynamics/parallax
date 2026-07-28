@@ -43,6 +43,7 @@ class ProbeCalibrationHandler(QWidget):
         transform_info_handler: QAction,
     ):
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.screen_widgets = screen_widgets
         self.filter = filter

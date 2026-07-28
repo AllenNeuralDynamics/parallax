@@ -16,9 +16,6 @@ from parallax.config.config_path import ui_dir
 from parallax.stages.stage_controller import StageController
 from parallax.utils.coords_converter import global_to_local, local_to_global
 
-logger = logging.getLogger(__name__)
-
-
 
 class Calculator(QWidget):
     """
@@ -37,6 +34,7 @@ class Calculator(QWidget):
             stage_controller (object): Interface for controlling stage hardware.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.stage_controller = StageController(self.model)
         self.reticle_selector = reticle_selector
@@ -124,7 +122,7 @@ class Calculator(QWidget):
                 if transM is not None:
                     push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
                     if not push_button:
-                        logger.warning(f"Error: QPushButton for {stage_sn} not found")
+                        self.log.warning(f"Error: QPushButton for {stage_sn} not found")
                         continue
                     self._enable(stage_sn)
                     push_button.clicked.connect(self._create_convert_function(stage_sn))
@@ -142,8 +140,8 @@ class Calculator(QWidget):
         Returns:
             function: A lambda function for performing coordinate conversion.
         """
-        logger.debug("\n=== Creating convert function ===")
-        logger.debug(f"Stage SN: {stage_sn}")
+        self.log.debug("\n=== Creating convert function ===")
+        self.log.debug(f"Stage SN: {stage_sn}")
         return lambda: self._convert(stage_sn)
 
     def _convert(self, sn):
@@ -162,10 +160,10 @@ class Calculator(QWidget):
         localY = self.findChild(QLineEdit, f"localY_{sn}").text()
         localZ = self.findChild(QLineEdit, f"localZ_{sn}").text()
 
-        logger.debug("- Convert -")
-        logger.debug(f"User Input (Global): {globalX}, {globalY}, {globalZ}")
-        logger.debug(f"User Input (Local): {localX}, {localY}, {localZ}")
-        logger.debug(f"User Input (Local): {self.reticle}")
+        self.log.debug("- Convert -")
+        self.log.debug(f"User Input (Global): {globalX}, {globalY}, {globalZ}")
+        self.log.debug(f"User Input (Local): {localX}, {localY}, {localZ}")
+        self.log.debug(f"User Input (Local): {self.reticle}")
         trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
             if global_pts is not None:
@@ -180,7 +178,7 @@ class Calculator(QWidget):
             if global_pts_ret is not None:
                 self._show_global_pts_result(sn, global_pts_ret)
         else:
-            logger.warning(f"Error: Invalid transforsmation type for {sn}")
+            self.log.warning(f"Error: Invalid transforsmation type for {sn}")
             return
 
     def _show_local_pts_result(self, sn, local_pts):
@@ -388,12 +386,12 @@ class Calculator(QWidget):
             y = float(self.findChild(QLineEdit, f"localY_{stage_sn}").text()) / 1000
             z = 0  # Z is inverted in the server.
         except ValueError as e:
-            logger.warning(f"Invalid input for stage {stage_sn}: {e}")
+            self.log.warning(f"Invalid input for stage {stage_sn}: {e}")
             return  # Optionally handle the error gracefully (e.g., show a message to the user)
 
         # Safety Check: Check z=15 is high position of stage.
         if not self._is_z_safe_pos(stage_sn, x, y, z):
-            logger.warning(f"Invalid z position for stage {stage_sn}")
+            self.log.warning(f"Invalid z position for stage {stage_sn}")
             return
 
         # Use the confirm_move_stage function to ask for confirmation
@@ -442,7 +440,7 @@ class Calculator(QWidget):
                     return True
 
             except Exception as e:
-                logger.error(f"Error applying transformation for stage {stage_sn}: {e}")
+                self.log.error(f"Error applying transformation for stage {stage_sn}: {e}")
                 return False
         return False
 

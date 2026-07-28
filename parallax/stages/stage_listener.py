@@ -9,15 +9,12 @@ import requests
 from parallax.utils.coords_converter import apply_reticle_adjustments, local_to_global
 from parallax.utils.signals import Signal
 
-# Set logger name
-logger = logging.getLogger(__name__)
-
-
 
 class PathfinderServer:
     """Utility to fetch stage information from the hardware server."""
 
     def __init__(self, url: str):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.url = url
 
     def get_instances(self) -> list:
@@ -27,7 +24,7 @@ class PathfinderServer:
             if response.status_code == 200:
                 return response.json().get("ProbeArray", [])
         except Exception as e:
-            logger.debug(f"Stage HttpServer not enabled: {e}")
+            self.log.debug(f"Stage HttpServer not enabled: {e}")
 
         return []
 
@@ -39,6 +36,7 @@ class Worker(threading.Thread):
     def __init__(self, url):
         """Initialize worker thread"""
         super().__init__(daemon=True)  # daemon=True ensures thread dies when app closes
+        self.log = logging.getLogger(self.__class__.__name__)
         self.url = url
         self._stop_event = threading.Event()
 
@@ -68,16 +66,16 @@ class Worker(threading.Thread):
 
     def run(self):
         """The main loop of the native thread with crash protection."""
-        logger.info("Stage Worker thread started.")
+        self.log.info("Stage Worker thread started.")
         while not self._stop_event.is_set():
             try:
                 self.fetchData()
             except Exception as e:
                 # Log the error but DON'T let the loop exit
-                logger.error(f"Worker Loop Error: {e}", exc_info=True)
+                self.log.error(f"Worker Loop Error: {e}", exc_info=True)
                 time.sleep(2)
             time.sleep(self.curr_interval)
-        logger.info("Stage Worker thread stopped gracefully.")
+        self.log.info("Stage Worker thread stopped gracefully.")
 
     def _print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
@@ -259,7 +257,7 @@ class StageListener:
             if not self.worker.join(timeout=2.0):
                 # If it doesn't join, it's safer to just update the URL
                 # rather than force-killing or starting a second thread.
-                logger.warning("Worker failed to join; falling back to URL update.")
+                self.log.warning("Worker failed to join; falling back to URL update.")
                 self.worker.update_url(self.model.config.pathfinder_server.url)
                 return
 

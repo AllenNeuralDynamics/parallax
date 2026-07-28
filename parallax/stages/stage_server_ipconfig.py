@@ -15,9 +15,6 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 
-logger = logging.getLogger(__name__)
-
-
 
 class StageServerIPConfig(QWidget):
     """
@@ -32,6 +29,7 @@ class StageServerIPConfig(QWidget):
             model (object): The data model for managing stage interactions.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.ip: str = self.model.config.pathfinder_server.ip
         self.port: int = self.model.config.pathfinder_server.port
@@ -53,7 +51,7 @@ class StageServerIPConfig(QWidget):
         # Update UI with loaded values
         self.ui.lineEdit_ip.setText(self.ip)
         self.ui.lineEdit_port.setText(str(self.port))
-        logger.info(f"Loaded Stage Server IP: {self.ip}, Port: {self.port}")
+        self.log.info(f"Loaded Stage Server IP: {self.ip}, Port: {self.port}")
 
     def _is_url_updated(self, ip: str, port: int) -> bool:
         """
@@ -66,8 +64,8 @@ class StageServerIPConfig(QWidget):
         Returns:
             bool: True if the values have changed, False otherwise.
         """
-        logger.debug(f"Previous IP: {self.ip}, Previous Port: {self.port}")
-        logger.debug(f"New IP: {ip}, New Port: {port}")
+        self.log.debug(f"Previous IP: {self.ip}, Previous Port: {self.port}")
+        self.log.debug(f"New IP: {ip}, New Port: {port}")
         return self.ip != ip or self.port != port
 
     def _get_stages_listener_url(self) -> tuple[str, int]:
@@ -83,7 +81,7 @@ class StageServerIPConfig(QWidget):
             return ip, port
         except ValueError as e:
             # Handle non-integer ports or empty IPs
-            logger.error(f"Invalid server configuration input: {e}")
+            self.log.error(f"Invalid server configuration input: {e}")
 
             return self.ip, self.port
 
@@ -99,7 +97,7 @@ class StageServerIPConfig(QWidget):
             bool: True if the IP or port is invalid, False otherwise.
         """
         if not ip or not port:
-            logger.warning("Invalid IP address or port: Empty value detected.")
+            self.log.warning("Invalid IP address or port: Empty value detected.")
             return False
         return True
 
@@ -110,15 +108,15 @@ class StageServerIPConfig(QWidget):
         ip, port = self._get_stages_listener_url()
 
         if init:
-            logger.debug("Initial URL setup: Skipping update check.")
+            self.log.debug("Initial URL setup: Skipping update check.")
             return False
 
         if not self._is_url_updated(ip, port):
-            logger.debug("Skipping refresh: IP and port have not changed.")
+            self.log.debug("Skipping refresh: IP and port have not changed.")
             return False
 
         if not self._is_valid_ip(ip, port):
-            logger.warning("Skipping refresh: Invalid IP address.")
+            self.log.warning("Skipping refresh: Invalid IP address.")
             print("Invalid IP address or port.")
             return False
 
@@ -135,7 +133,7 @@ class StageServerIPConfig(QWidget):
         """
         self.ip, self.port = ip, port
         listener_url = f"{self.ip}:{self.port}"
-        logger.debug(f"Setting stage listener URL: {listener_url}")
+        self.log.debug(f"Setting stage listener URL: {listener_url}")
         self.model.config.pathfinder_server.ip = ip
         self.model.config.pathfinder_server.port = port
         self.model.save_config()
@@ -144,12 +142,12 @@ class StageServerIPConfig(QWidget):
         """
         Refreshes the stage server using the configured IP address and port.
         """
-        logger.info("Refreshing stages with updated server configuration.")
+        self.log.info("Refreshing stages with updated server configuration.")
         self.model.scan_for_usb_stages()
 
     def show(self):
         """
         Displays the Stage Server IP Configuration widget.
         """
-        logger.debug("Displaying the Stage Server IP Configuration widget.")
+        self.log.debug("Displaying the Stage Server IP Configuration widget.")
         super().show()

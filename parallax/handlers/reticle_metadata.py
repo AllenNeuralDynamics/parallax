@@ -24,9 +24,6 @@ from PyQt6.uic import loadUi
 from parallax.config.config_path import ui_dir
 from parallax.config.schemas import ReticleMetadataSchema
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
 
 class ReticleMetadata(QWidget):
     """
@@ -53,6 +50,7 @@ class ReticleMetadata(QWidget):
             reticle_selector (QComboBox): The reticle selector dropdown menu where reticles will be listed.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.reticle_selector = reticle_selector
         self.ui = loadUi(os.path.join(ui_dir, "reticle_metadata.ui"), self)
@@ -96,13 +94,13 @@ class ReticleMetadata(QWidget):
 
             # Pass the name and the Pydantic object to your populate method
             self._populate_groupbox(name, meta_object)
-            logger.debug(f"Created groupbox for reticle: {name}")
+            self.log.debug(f"Created groupbox for reticle: {name}")
 
     def _add_groupbox(self):
         """This method creates new groupboxes with an alphabet name."""
         alphabet = self._find_next_available_alphabet()
         if alphabet is None:
-            logger.warning("No available slot for reticle. All alphabets are assigned.")
+            self.log.warning("No available slot for reticle. All alphabets are assigned.")
             print("No available slot for reticle.")
             return
 
@@ -227,10 +225,10 @@ class ReticleMetadata(QWidget):
             name = group_box.findChild(QLineEdit, "lineEditName").text().strip()
 
             if not name:
-                logger.error("Error: A reticle name field is empty.")
+                self.log.error("Error: A reticle name field is empty.")
                 return
             if name in names_seen:
-                logger.error(f"Error: Duplicate name found - {name}")
+                self.log.error(f"Error: Duplicate name found - {name}")
                 return
             names_seen.add(name)
 
@@ -241,7 +239,7 @@ class ReticleMetadata(QWidget):
                 y = float(group_box.findChild(QLineEdit, "lineEditOffsetY").text())
                 z = float(group_box.findChild(QLineEdit, "lineEditOffsetZ").text())
             except ValueError:
-                logger.error(f"Error: Reticle '{name}' contains invalid numeric offsets.")
+                self.log.error(f"Error: Reticle '{name}' contains invalid numeric offsets.")
                 return
 
             # Package it into your clean Pydantic schema

@@ -7,15 +7,13 @@ stopped across active cameras.
 import logging
 import os
 
-# Set logger name
-logger = logging.getLogger(__name__)
-
 
 class RecordingManager:
     """RecordingManager manages snapshot saving and video recording"""
 
     def __init__(self, model):
         """Initialize recording manager"""
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.recording_camera_list = []
 
@@ -32,7 +30,7 @@ class RecordingManager:
                     # Save the image with a timestamp and custom name
                     screen.save_image(save_path, isTimestamp=True, name=customName)
                 else:
-                    logger.debug("save_last_image) camera not found")
+                    self.log.debug("save_last_image) camera not found")
         else:
             print(f"Check the saving path: {save_path}")
 

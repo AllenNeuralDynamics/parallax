@@ -9,10 +9,6 @@ import time
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
-# Set logger name
-logger = logging.getLogger(__name__)
-
-
 
 class NoFilter(QObject):
     """Class representing no filter."""
@@ -29,6 +25,7 @@ class NoFilter(QObject):
         def __init__(self, name):
             """Initialize the worker object."""
             QObject.__init__(self)
+            self.log = logging.getLogger(self.__class__.__name__)
             self.name = name
             self.running = True
             self.new = False
@@ -74,8 +71,9 @@ class NoFilter(QObject):
 
     def __init__(self, camera_name):
         """Initialize the filter object."""
-        logger.debug(f"{self.name} Init no filter manager")
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.log.debug(f"{self.name} Init no filter manager")
         self.worker = None
         self.name = camera_name
         self.thread = None
@@ -98,7 +96,7 @@ class NoFilter(QObject):
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.destroyed.connect(self.onWorkerDestroyed)  # Debug msg
-        logger.debug(f"{self.name} init camera name")
+        self.log.debug(f"{self.name} init camera name")
 
     def process(self, frame):
         """Process the frame using the worker.
@@ -111,24 +109,24 @@ class NoFilter(QObject):
 
     def start(self):
         """Start the filter by reinitializing and starting the worker and thread."""
-        logger.debug(f" {self.name} Starting thread")
+        self.log.debug(f" {self.name} Starting thread")
         self.init_thread()  # Reinitialize and start the worker and thread
         self.thread.start()
         self.worker.start_running()
 
     def stop(self):
         """Stop the filter by stopping the worker."""
-        logger.debug(f" {self.name} Stopping thread")
+        self.log.debug(f" {self.name} Stopping thread")
         if self.worker is not None:
             self.worker.stop_running()
 
     def onWorkerDestroyed(self):
         """Cleanup after worker finishes."""
-        logger.debug(f"{self.name} worker destroyed")
+        self.log.debug(f"{self.name} worker destroyed")
 
     def onThreadDestroyed(self):
         """Flag if thread is deleted"""
-        logger.debug(f"{self.name} thread destroyed")
+        self.log.debug(f"{self.name} thread destroyed")
         self.threadDeleted = True
         self.thread = None
 
@@ -137,11 +135,11 @@ class NoFilter(QObject):
         self.name = camera_name
         if self.worker is not None:
             self.worker.set_name(self.name)
-        logger.debug(f"{self.name} set camera name")
+        self.log.debug(f"{self.name} set camera name")
 
     def clean(self):
         """Safely clean up the reticle detection manager."""
-        logger.debug(f"{self.name} Cleaning the thread")
+        self.log.debug(f"{self.name} Cleaning the thread")
         if self.worker is not None:
             self.worker.stop_running()  # Signal the worker to stop
 
@@ -150,7 +148,7 @@ class NoFilter(QObject):
             self.thread.wait()  # Wait for the thread to finish
         self.thread = None  # Clear the reference to the thread
         self.worker = None  # Clear the reference to the worker
-        logger.debug(f"{self.name} Cleaned the thread")
+        self.log.debug(f"{self.name} Cleaned the thread")
 
     def __del__(self):
         """Destructor for the filter object."""
