@@ -29,6 +29,7 @@ docs/source/_autosummary/
 # User-specific files
 data/*
 !data/yolo_config.yaml
+!data/logging.yaml
 debug
 
 # Unit test / coverage reports
