@@ -30,12 +30,14 @@ uv sync
 ```
 
 #### 2. Install Spinnaker
-Install the camera interface [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
+Install the camera interface [Spinnaker SDK 4.3 and PySpin](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
+1. Install the Full Spinnaker SDK
+2. Install PySpin
 ```bash
-# Install from the **wheel file** that comes with the Spinnaker SDK ver.4.2.
+# Install from the **wheel file** that comes with the Spinnaker SDK ver.4.3.
 # Replace **<WHEEL_PATH>** with the *full path* to your `.whl`:
 uv pip install "<WHEEL_PATH>"
-# Example) uv pip install spinnaker_python-4.2.0.88-cp310-cp310-win_amd64.whl
+# Example) uv pip install spinnaker_python-4.3.0.190-cp310-cp310-win_amd64.whl
 ```
 
 ## Running Parallax
