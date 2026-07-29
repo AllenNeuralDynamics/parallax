@@ -20,10 +20,6 @@ from parallax.utils.rotations import apply_affine, apply_inverse_affine, make_ho
 from parallax.utils.signals import Signal
 from parallax.utils.transforms import fit_params
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class ProbeCalibration:
     """
@@ -61,6 +57,7 @@ class ProbeCalibration:
         """
         # super().__init__()
         # Native Signals
+        self.log = logging.getLogger(self.__class__.__name__)
         self.calib_complete = Signal()
         self.transM_info = Signal()  # Will emit (sn, transM, L2_err, dist_travel)
         self.model = model
@@ -156,9 +153,9 @@ class ProbeCalibration:
         Returns:
             pd.DataFrame: The DataFrame without duplicates.
         """
-        logger.debug(f"Original rows: {self.df.shape[0]}")
+        self.log.debug(f"Original rows: {self.df.shape[0]}")
         df.drop_duplicates(subset=["sn", "ts_local_coords", "global_x", "global_y", "global_z"])
-        logger.debug(f"Unique rows: {self.df.shape[0]}")
+        self.log.debug(f"Unique rows: {self.df.shape[0]}")
 
         return df
 
@@ -207,7 +204,7 @@ class ProbeCalibration:
 
         if global_pts.ndim != 2 or global_pts.shape[1] != 3 or N_points == 0:
             if N_points == 0:
-                logger.warning("Attempted to compute L2 distance with zero global points.")
+                self.log.warning("Attempted to compute L2 distance with zero global points.")
                 return np.array([])  # Return an empty array as the distance
             raise ValueError("global_points must be a 2D array of shape (N, 3).")
 
@@ -222,12 +219,12 @@ class ProbeCalibration:
         # The difference is N x 3. axis=1 collapses the coordinate dimension (3) per point (N).
         # The result is an (N,) array of distances.
         l2_distance = np.linalg.norm(local_pts - local_pts_exp, axis=1)
-        logger.debug(f"L2 distances: {l2_distance}")
+        self.log.debug(f"L2 distances: {l2_distance}")
 
         # 5. Calculate statistics and log (no change needed here)
         mean_l2_distance = np.mean(l2_distance)
         std_l2_distance = np.std(l2_distance)
-        logger.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
+        self.log.debug(f"mean_l2_distance: {mean_l2_distance}, std_l2_distance: {std_l2_distance}")
 
         # The output l2_distance is an (N,) array, which is the required row vector of distances.
         return l2_distance
@@ -245,7 +242,7 @@ class ProbeCalibration:
         """
         # Ensure df is not empty before processing
         if df.empty:
-            logger.warning("Input DataFrame is empty, returning empty DataFrame.")
+            self.log.warning("Input DataFrame is empty, returning empty DataFrame.")
             return df
 
         # This function relies on self._get_local_global_points to handle extraction and shape.
@@ -267,11 +264,11 @@ class ProbeCalibration:
             mean_l2 = np.mean(l2_inliers)
             std_l2 = np.std(l2_inliers)
 
-            logger.debug(
+            self.log.debug(
                 f"(noise removed) -> mean: {mean_l2:.4f}, std: {std_l2:.4f}, kept: {len(l2_inliers)}/{len(l2_distance)}"
             )
         else:
-            logger.warning("All points were filtered out as outliers based on the threshold.")
+            self.log.warning("All points were filtered out as outliers based on the threshold.")
 
         # Return the filtered DataFrame
         return df_filtered
@@ -288,13 +285,13 @@ class ProbeCalibration:
 
         N_points = local_pts.shape[0]  # Number of points is the first dimension (N)
         if N_points < 3:
-            logger.debug("At least three points are required for optimization (N >= 3).")
+            self.log.debug("At least three points are required for optimization (N >= 3).")
             return None
 
         # local = R @ global + t, where local shape and global shape are 3xN.
         # pts should be 3xN column vectors to fit the fit_params function
         self.origin, self.R, self.avg_err = fit_params(local_pts.T, global_pts.T)
-        logger.debug(f"avg err: {self.avg_err}")
+        self.log.debug(f"avg err: {self.avg_err}")
         transM = make_homogeneous_transform(self.R, self.origin)
 
         return transM
@@ -305,10 +302,10 @@ class ProbeCalibration:
         using vectorized operations for better performance.
         """
         if sn is None:
-            logger.error("Serial number is None.")
+            self.log.error("Serial number is None.")
             return
         if not os.path.exists(file_path):
-            logger.error(f"Points file does not exist: {file_path}")
+            self.log.error(f"Points file does not exist: {file_path}")
             return
 
         try:
@@ -327,10 +324,10 @@ class ProbeCalibration:
                     df.loc[mask, "l2_distance"] = np.round(np.linalg.norm(global_exp_pts - global_pts, axis=1), 1)
 
             df.to_csv(file_path, index=False)
-            logger.debug(f"Updated transformed global points for {sn}")
+            self.log.debug(f"Updated transformed global points for {sn}")
 
         except Exception as e:
-            logger.error(f"Failed to update transformed points: {e}")
+            self.log.error(f"Failed to update transformed points: {e}")
 
     def _write_local_global_points(self, stage, debug_info=None):
         """
@@ -391,13 +388,13 @@ class ProbeCalibration:
                         break
 
         except FileNotFoundError:
-            logger.error("File does not exist")
+            self.log.error("File does not exist")
 
         # Write the new row to the CSV file
         with open(self.points_file, "a", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=new_row_data.keys())
             writer.writerow(new_row_data)
-            logger.debug(f"New point added: {new_row_data}")
+            self.log.debug(f"New point added: {new_row_data}")
 
     def _is_criteria_met_transM(self):
         """
@@ -408,7 +405,7 @@ class ProbeCalibration:
         """
         diff_matrix = np.abs(self.transM_LR - self.transM_LR_prev)
         with np.printoptions(suppress=True, precision=5):
-            logger.debug("Diff matrix:\n%s", diff_matrix)
+            self.log.debug("Diff matrix:\n%s", diff_matrix)
         if np.all(diff_matrix <= self.THRESHOLD_MATRIX):
             return True
         else:
@@ -435,7 +432,7 @@ class ProbeCalibration:
         """
         calib_info = self.model.get_stage_calib_info(sn)
         if calib_info is None:
-            logger.error(f"Calibration info not found for stage {sn}")
+            self.log.error(f"Calibration info not found for stage {sn}")
             return
 
         if file_path is not None:
@@ -469,7 +466,7 @@ class ProbeCalibration:
         if calib_info is None:
             return
 
-        logger.debug(f"Updating movement for {calib_info}")
+        self.log.debug(f"Updating movement for {calib_info}")
         # Check if the stage movement has exceeded the thresholds for x, y, and z axes
         if (
             (calib_info.max_x - calib_info.min_x > self.THRESHOLD_MIN_MAX)
@@ -499,10 +496,10 @@ class ProbeCalibration:
             if len(df) > self.THRESHOLD_N_PTS:
                 return True
             else:
-                logger.debug(f"Not enough points: {len(df)} (need > {self.THRESHOLD_N_PTS})")
+                self.log.debug(f"Not enough points: {len(df)} (need > {self.THRESHOLD_N_PTS})")
                 return False
         except Exception as e:
-            logger.error(f"Error in _is_criteria_number_of_points: {e}")
+            self.log.error(f"Error in _is_criteria_number_of_points: {e}")
             return False
 
     def _is_criteria_met_points_min_max(self, sn):
@@ -569,23 +566,23 @@ class ProbeCalibration:
         """
 
         if not self._is_criteria_number_of_points(df):
-            logger.debug("Not enough points collected for calibration.")
+            self.log.debug("Not enough points collected for calibration.")
             return False
 
         if not self._is_trajectory_distance_sufficient(df):
-            logger.debug("Not enough movement range in X, Y, or Z.")
+            self.log.debug("Not enough movement range in X, Y, or Z.")
             return False
 
         if not self._is_criteria_avg_error_threshold():
-            logger.debug(f"Average error is above the threshold. {self.avg_err} >= {self.THRESHOLD_AVG_ERROR}")
+            self.log.debug(f"Average error is above the threshold. {self.avg_err} >= {self.THRESHOLD_AVG_ERROR}")
             return False
 
         if not self._is_criteria_met_transM():
-            logger.debug("Transformation matrix is not stable.")
+            self.log.debug("Transformation matrix is not stable.")
             self.transM_LR_prev = self.transM_LR
             return False
 
-        logger.debug("All criteria met: calibration can proceed.")
+        self.log.debug("All criteria met: calibration can proceed.")
         return True
 
     def _update_info_ui(self, sn, disp_avg_error=False, save_to_csv=False, file_name=None):
@@ -625,7 +622,7 @@ class ProbeCalibration:
     def update_stage_info_to_model_process(self, stage_id, transM, L2_err, dist_travel) -> None:
         stage_info = self.model.get_stage_calib_info(stage_id)
         if stage_info is None:
-            logger.warning(f"No calibration info found for stage {stage_id}.")
+            self.log.warning(f"No calibration info found for stage {stage_id}.")
             return
 
         stage_info.transM = transM
@@ -712,14 +709,14 @@ class ProbeCalibration:
         # Extract the translation vector (top 3 elements of the last column)
         T = self.transM_LR[:3, 3]
 
-        print("stage sn: ", self.stage.sn)
-        print("Rotation matrix:")
-        print(f" [[{R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f}],")
-        print(f"  [{R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f}],")
-        print(f"  [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]")
-        print("Translation vector:")
-        print(f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]")
-        print("==> Average L2 between stage and global: ", self.avg_err)
+        self.log.info(f"stage sn: {self.stage.sn}")
+        self.log.info("Rotation matrix:")
+        self.log.info(f" [[{R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f}],")
+        self.log.info(f"  [{R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f}],")
+        self.log.info(f"  [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]")
+        self.log.info("Translation vector:")
+        self.log.info(f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]")
+        self.log.info(f"==> Average L2 between stage and global: {self.avg_err}")
 
     def update(self, stage, debug_info=None):
         """
@@ -728,7 +725,7 @@ class ProbeCalibration:
         Args:
             stage (Stage): The current stage object with new position data.
         """
-        logger.debug(f"ProbeCalibration: update {stage.sn}")
+        self.log.debug(f"ProbeCalibration: update {stage.sn}")
         sn = stage.sn
         self.stage = stage
 
@@ -749,7 +746,7 @@ class ProbeCalibration:
             and self.R is not None
             and self.origin is not None
         ):
-            logger.debug("===============")
+            self.log.debug("===============")
             # Iteratively remove outliers and refit transformation
             # Get transM without removing outliers
             thresholds = [500, 300, 100, 70, 50, 45, 40]
@@ -760,8 +757,8 @@ class ProbeCalibration:
                 df = df_
                 local_pts, global_pts = self._get_local_global_points(df)
                 self.transM_LR = self._get_transM(local_pts, global_pts)
-                logger.debug(f"len(df): {len(df)}, threshold: {threshold}, average error: {self.avg_err}")
-            logger.debug("===============")
+                self.log.debug(f"len(df): {len(df)}, threshold: {threshold}, average error: {self.avg_err}")
+            self.log.debug("===============")
 
         self._update_l2_error_current_point()
         self._update_info_ui(sn)  # update transformation matrix and overall LR in UI
@@ -770,7 +767,7 @@ class ProbeCalibration:
         self._update_trajectory_file(sn, self.points_file)
 
         if self.transM_LR is None or len(df) < self.THRESHOLD_N_PTS:
-            logger.debug(f"Not enough points for calibration. {self.transM_LR} = len(df) {len(df)}")
+            self.log.debug(f"Not enough points for calibration. {self.transM_LR} = len(df) {len(df)}")
             return
 
         # Check criteria
@@ -779,11 +776,11 @@ class ProbeCalibration:
 
     def _is_trajectory_distance_sufficient(self, df):
         if df.empty:
-            logger.debug("Trajectory data is empty.")
+            self.log.debug("Trajectory data is empty.")
             return False
 
         if min(df["global_x"]) > 0 or max(df["global_x"]) < 0 or min(df["global_y"]) > 0 or max(df["global_y"]) < 0:
-            logger.debug(
+            self.log.debug(
                 f"Trajectory distance not cross to axis."
                 f"min_x: {min(df['global_x'])}, max_x: {max(df['global_x'])},"
                 f"min_y: {min(df['global_y'])}, max_y: {max(df['global_y'])}"
@@ -795,10 +792,10 @@ class ProbeCalibration:
         df_y = max(df["global_y"]) - min(df["global_y"]) > self.THRESHOLD_MIN_MAX
         df_z = max(df["global_z"]) - min(df["global_z"]) > self.THRESHOLD_MIN_MAX_Z
         if df_x and df_y and df_z:
-            logger.debug("Trajectory distance is sufficient for calibration.")
-            logger.debug(f"X span: {max(df['global_x'])} - {min(df['global_x'])}")
-            logger.debug(f"Y span: {max(df['global_y'])} - {min(df['global_y'])}")
-            logger.debug(f"Z span: {max(df['global_z'])} - {min(df['global_z'])}")
+            self.log.debug("Trajectory distance is sufficient for calibration.")
+            self.log.debug(f"X span: {max(df['global_x'])} - {min(df['global_x'])}")
+            self.log.debug(f"Y span: {max(df['global_y'])} - {min(df['global_y'])}")
+            self.log.debug(f"Z span: {max(df['global_z'])} - {min(df['global_z'])}")
             return True
 
         return False
@@ -819,13 +816,13 @@ class ProbeCalibration:
             5. Emits a signal indicating that calibration is complete.
         """
         # save the filtered points to a new file
-        logger.debug("ProbeCalibration: complete_calibration")
+        self.log.debug("ProbeCalibration: complete_calibration")
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         traj_file_path = self._save_df_to_csv(df, f"points_{sn}_{timestamp}.csv")
 
-        print("\n\n=========================================================")
+        self.log.info("\n\n=========================================================")
         self._print_formatted_transM()
-        print("=========================================================")
+        self.log.info("=========================================================")
         self._update_info_ui(sn, disp_avg_error=True, save_to_csv=True, file_name=f"transM_{sn}_{timestamp}.csv")
         self._write_transformed_global_points(sn, traj_file_path)  # Update transformed points in the file
         self._update_trajectory_file(sn, traj_file_path)  # register file path to model
@@ -834,10 +831,10 @@ class ProbeCalibration:
             self.old_transM = self.transM_LR
             ret = self.run_bundle_adjustment(traj_file_path)
             if ret:
-                print("\n=========================================================")
-                print("** After Bundle Adjustment **")
+                self.log.info("\n=========================================================")
+                self.log.info("** After Bundle Adjustment **")
                 self._print_formatted_transM()
-                print("=========================================================")
+                self.log.info("=========================================================")
                 self._update_info_ui(
                     sn, disp_avg_error=True, save_to_csv=True, file_name=f"transM_BA_{sn}_{timestamp}.csv"
                 )
@@ -846,7 +843,7 @@ class ProbeCalibration:
 
         # Emit the signal to indicate that calibration is complete
         self.calib_complete.emit()
-        logger.debug(f"complete probe calibration {sn}, {self.transM_LR}")
+        self.log.debug(f"complete probe calibration {sn}, {self.transM_LR}")
 
     def run_bundle_adjustment(self, file_path):
         """
@@ -874,10 +871,10 @@ class ProbeCalibration:
         if self.transM_LR is None:
             return False
 
-        logger.debug(f"Number of observations: {len(bal_problem.observations)}")
-        logger.debug(f"Number of 3d points: {len(bal_problem.points)}")
+        self.log.debug(f"Number of observations: {len(bal_problem.observations)}")
+        self.log.debug(f"Number of 3d points: {len(bal_problem.points)}")
         for i in range(len(bal_problem.list_cameras)):
-            logger.debug(f"list of cameras: {bal_problem.list_cameras[i]}")
-            logger.debug(bal_problem.get_camera_params(i))
+            self.log.debug(f"list of cameras: {bal_problem.list_cameras[i]}")
+            self.log.debug(bal_problem.get_camera_params(i))
 
         return True

@@ -1,7 +1,10 @@
+import logging
 from typing import Optional, Tuple
 
 import cv2
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 def preprocessing(
@@ -14,7 +17,7 @@ def preprocessing(
     apply_mask: bool = False,
 ) -> Tuple[np.ndarray, dict, dict]:
 
-    # print("Yolo local input frame shape:", frame.shape)
+    # logger.info(f"Yolo local input frame shape: {frame.shape}")
     crop_info = crop_info or {}
     # Initialize the crop_info dictionary
     crop_info["x_global_offset"] = 0
@@ -37,7 +40,7 @@ def preprocessing(
         try:
             contour = np.array(mask_poly, dtype=np.int32).reshape((-1, 1, 2))
         except Exception as e:
-            print(f"Error converting mask polygon to array: {e}")
+            logger.info(f"Error converting mask polygon to array: {e}")
             # Skip masking if the polygon data is corrupt
             contour = None
 
@@ -48,18 +51,18 @@ def preprocessing(
 
             # 3. Draw the segmentation polygon onto the stencil
             # Fill the polygon area with white (255)
-            cv2.fillPoly(stencil, [contour], 255)
+            cv2.fillPoly(stencil, [contour], (255,))
 
             if mask_margin > 0:
                 # Create a circular kernel for uniform dilation
                 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * mask_margin + 1, 2 * mask_margin + 1))
                 # Dilate the stencil to enlarge the masked area
-                stencil = cv2.dilate(stencil, kernel)
+                stencil = cv2.dilate(stencil, kernel)  # type: ignore[assignment]
 
             # 4. Apply the mask to the frame
             # Use the stencil to isolate the object in the original frame.
             # This creates a 3-channel image where only the masked area is visible.
-            frame = cv2.bitwise_and(frame, frame, mask=stencil)
+            frame = cv2.bitwise_and(frame, frame, mask=stencil)  # type: ignore[assignment]
 
     if detection and detection.get("bbox"):
         # Get the original coordinates of the first bounding box

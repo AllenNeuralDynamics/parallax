@@ -7,9 +7,6 @@ import numpy as np
 
 from parallax.cameras.calibration_camera import evaluate_performance
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 # parallax/stage_widget/stereo_calibrator.py
 class StereoCameraHandler:
@@ -17,6 +14,7 @@ class StereoCameraHandler:
 
     def __init__(self, model):
         """Initializes the StereoCameraHandler with a model and screen widgets."""
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.camA_best = None
         self.camB_best = None
@@ -71,7 +69,7 @@ class StereoCameraHandler:
         camA_best, camB_best = None, None
 
         # Perform calibration between pairs of cameras
-        print(cam_names)
+        self.log.info(cam_names)
         for i in range(len(cam_names) - 1):
             for j in range(i + 1, len(cam_names)):
                 camA, camB = cam_names[i], cam_names[j]
@@ -84,8 +82,8 @@ class StereoCameraHandler:
                     imgpointsB=coordsB,
                     paramsB=paramsB,
                 )
-                print("\n----------------------------------------------------")
-                print(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
+                self.log.info("\n----------------------------------------------------")
+                self.log.info(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
                 if err < min_err:
                     min_err = err
                     camA_best, camB_best = camA, camB
@@ -111,7 +109,7 @@ class StereoCameraHandler:
         min_err = math.inf
 
         # Perform calibration between pairs of cameras
-        print(cam_names)
+        self.log.info(cam_names)
 
         for i in range(len(cam_names) - 1):
             for j in range(i + 1, len(cam_names)):
@@ -127,8 +125,8 @@ class StereoCameraHandler:
                     imgpointsB=coordsB,
                     paramsB=paramsB,
                 )
-                print("\n--------------------------------------------------------")
-                print(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
+                self.log.info("\n--------------------------------------------------------")
+                self.log.info(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
 
                 # calibrationStereo.print_calibrate_stereo_results(camA, camB)
                 if err < min_err:
@@ -149,7 +147,7 @@ class StereoCameraHandler:
             coords = self.model.get_coords_axis(sn)
 
             if param is None or coords is None:
-                logger.debug(f"Camera {sn} has no intrinsic or coordinates data.")
+                self.log.debug(f"Camera {sn} has no intrinsic or coordinates data.")
                 continue
 
             params.append(param)

@@ -25,10 +25,6 @@ from PyQt6.QtCore import QObject, QTimer
 
 from parallax.utils.coords_converter import global_to_local
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 
 class StageController(QObject):
     """
@@ -46,6 +42,7 @@ class StageController(QObject):
             model (object): The model containing stage and probe data.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.timer_count = 0
         self.timer = QTimer(self)
@@ -89,7 +86,7 @@ class StageController(QObject):
         """
         move_type = command.get("move_type")
         if move_type is None:
-            logger.error("No move type found in the command.")
+            self.log.error("No move type found in the command.")
             return
 
         if move_type == "stopAll" or move_type == "stop":
@@ -101,7 +98,7 @@ class StageController(QObject):
         elif move_type == "stepMode":
             self._stepmode_request(command)
         else:
-            logger.warning(f"Invalid move type: {move_type}")
+            self.log.warning(f"Invalid move type: {move_type}")
 
     def _extract_probe_index(self, command: dict) -> Optional[int]:
         """
@@ -110,7 +107,7 @@ class StageController(QObject):
         """
         stage_sn = command.get("stage_sn")
         if not isinstance(stage_sn, str):
-            logger.warning("Invalid or missing stage_sn.")
+            self.log.warning("Invalid or missing stage_sn.")
             return None
         return self._get_probe_index(stage_sn)
 
@@ -148,13 +145,13 @@ class StageController(QObject):
         distance = command.get("distance")
         rate = command.get("rate")
         if distance is None or rate is None:
-            logger.warning("Distance or Rate is not provided for insertion.")
+            self.log.warning("Distance or Rate is not provided for insertion.")
             return
 
         if command.get("world") == "global":
             # Convert global distance to local distance
-            logger.info(f"Distance (global): {distance} um")
-            logger.info(f"Distance (local): {distance} um")
+            self.log.info(f"Distance (global): {distance} um")
+            self.log.info(f"Distance (local): {distance} um")
 
         # update command to coarse and the command
         self.insertion_command["Probe"] = probe_index
@@ -176,7 +173,7 @@ class StageController(QObject):
             # Stop the timer if it's active
             if hasattr(self, "timer") and self.timer.isActive():
                 self.timer.stop()
-                logger.info("Timer stopped. Outside SW may be interrupting.")
+                self.log.info("Timer stopped. Outside SW may be interrupting.")
 
             # Get the status to retrieve all available probes
             status = self._get_status()
@@ -188,7 +185,7 @@ class StageController(QObject):
             for i, _ in enumerate(probe_array):
                 self.probeStop_command["Probe"] = i  # Set the correct probe index
                 self._send_command(self.probeStop_command)
-            logger.info("Sent stop command to all available probes.")
+            self.log.info("Sent stop command to all available probes.")
 
         # Send the stop command for the specified probe
         if move_type == "stop":
@@ -211,7 +208,7 @@ class StageController(QObject):
         move_type = command.get("move_type")
         stage_sn = command.get("stage_sn")
         if not isinstance(stage_sn, str):
-            logger.warning("Invalid or missing stage_sn.")
+            self.log.warning("Invalid or missing stage_sn.")
             return
 
         # Get index of the probe based on the serial number
@@ -219,12 +216,12 @@ class StageController(QObject):
         if probe_index is None:
             return
 
-        logger.info(
+        self.log.info(
             f"Move request received: {stage_sn}-{move_type}",
         )
         if move_type == "moveXY0":
             if self.timer.isActive():
-                logger.warning("A Z movement is already in progress. Cancelling it for the new request.")
+                self.log.warning("A Z movement is already in progress. Cancelling it for the new request.")
                 self.timer.stop()
                 self._z_move_context = None
 
@@ -240,7 +237,7 @@ class StageController(QObject):
             y = command.get("y")
             z = command.get("z")
             if x is None or y is None or z is None:
-                logger.warning("X, Y, or Z coordinates are missing in the command.")
+                self.log.warning("X, Y, or Z coordinates are missing in the command.")
                 return
 
             if command.get("world", None) == "global":
@@ -248,7 +245,7 @@ class StageController(QObject):
                 global_pts_um = np.array([x * 1000, y * 1000, z * 1000], dtype=float)
                 local_pts_um = global_to_local(self.model, stage_sn, global_pts_um)
                 if local_pts_um is None:
-                    logger.warning(f"Failed to convert global coordinates to local for stage {stage_sn}.")
+                    self.log.warning(f"Failed to convert global coordinates to local for stage {stage_sn}.")
                     return
                 # Convert local points from µm to mm for the command
                 command["x"], command["y"], command["z"] = (local_pts_um / 1000).tolist()
@@ -261,7 +258,7 @@ class StageController(QObject):
         """Timer timeout handler to check if the Z movement has reached the target position."""
         context = self._z_move_context
         if context is None:
-            logger.error("Timer fired but no Z movement context set.")
+            self.log.error("Timer fired but no Z movement context set.")
             self.timer.stop()
             return
 
@@ -269,27 +266,27 @@ class StageController(QObject):
         target_z = context["target_z"]
         command = context["command"]
 
-        logger.info(f"Checking Z position for probe {probe_index}: timer_count={self.timer_count}")
+        self.log.info(f"Checking Z position for probe {probe_index}: timer_count={self.timer_count}")
         self.timer_count += 1
 
         if self.timer_count > 20:  # 20 seconds
             self.timer.stop()
             self._z_move_context = None
-            logger.warning("Timer stopped due to timeout.")
-            print(f"Warning: z axis ({target_z} um) target not reached.")
+            self.log.warning("Timer stopped due to timeout.")
+            self.log.info(f"Warning: z axis ({target_z} um) target not reached.")
             return
 
         if self._is_z_at_target(probe_index, target_z):
             self.timer.stop()
             self._z_move_context = None
-            logger.info("Timer stopped because Z reached the target.")
+            self.log.info("Timer stopped because Z reached the target.")
 
             x = command["x"]
             y = command["y"]
             self._update_move_command(probe_index, x=x, y=y, z=None)
             self._send_command(self.probeMotion_command)
         else:
-            logger.debug("Z not at target yet, continuing timer...")
+            self.log.debug("Z not at target yet, continuing timer...")
 
     def _is_z_at_target(self, probe_index: int, target_z: float) -> bool:
         """
@@ -309,15 +306,15 @@ class StageController(QObject):
         # Find the correct probe in the status by probe index
         probe_array = status.get("ProbeArray", [])
         if probe_index >= len(probe_array):
-            logger.warning(f"Invalid probe index: {probe_index}")
+            self.log.warning(f"Invalid probe index: {probe_index}")
             return False
 
         current_z = probe_array[probe_index].get("Stage_Z", None)
         if current_z is None:
-            logger.warning(f"Failed to retrieve Z position for probe {probe_index}")
+            self.log.warning(f"Failed to retrieve Z position for probe {probe_index}")
             return False
 
-        logger.debug(f"Z position check: current={current_z}, target={target_z}")
+        self.log.debug(f"Z position check: current={current_z}, target={target_z}")
         # Return whether the current Z value is close enough to the target
         return abs(current_z - target_z) < 0.01  # Tolerance of 10 um
 
@@ -362,7 +359,7 @@ class StageController(QObject):
         """
         status = self._get_status()
         if status is None:
-            logger.warning("Failed to retrieve status to find probe index.")
+            self.log.warning("Failed to retrieve status to find probe index.")
             return None
 
         # Find probe index based on serial number
@@ -371,7 +368,7 @@ class StageController(QObject):
             if probe["SerialNumber"] == stage_sn:
                 return i  # Set the corresponding probe index
 
-        logger.error(f"Stage serial number {stage_sn} not found in the status.")
+        self.log.error(f"Stage serial number {stage_sn} not found in the status.")
         return None
 
     def _get_status(self) -> Optional[dict]:
@@ -381,11 +378,11 @@ class StageController(QObject):
             response.raise_for_status()  # Raises an error for HTTP failure codes (e.g., 404, 500)
             return response.json()
         except json.JSONDecodeError:
-            logger.error("Response is not in JSON format: %s", response.text)
+            self.log.error("Response is not in JSON format: %s", response.text)
         except requests.RequestException as e:
-            logger.error("Failed to get status: %s", str(e))
+            self.log.error("Failed to get status: %s", str(e))
 
-        logger.warning("Failed to retrieve status.")
+        self.log.warning("Failed to retrieve status.")
         return None  # Return None explicitly in case of failure
 
     def _send_command(self, command: dict) -> None:
@@ -397,4 +394,4 @@ class StageController(QObject):
         """
         headers = {"Content-Type": "application/json"}
         requests.put(self.model.config.pathfinder_server.url, data=json.dumps(command), headers=headers)
-        logger.info(f"Command sent: {json.dumps(command, indent=2)}")
+        self.log.info(f"Command sent: {json.dumps(command, indent=2)}")

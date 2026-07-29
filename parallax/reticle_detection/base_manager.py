@@ -11,9 +11,6 @@ from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
 
 from parallax.config.config_path import debug_img_dir
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class DetectionResult(Enum):
     """Enum for detection results."""
@@ -36,6 +33,7 @@ class BaseDrawWorker(QRunnable):
     def __init__(self, name):
         """Initialize the worker with a name."""
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.signals = DrawWorkerSignal()
         self.name = name
         self.running = False
@@ -60,7 +58,7 @@ class BaseDrawWorker(QRunnable):
             if self.new:
                 if self.state == "Found":
                     self._draw_result()
-                    self._save_debug_image()
+                    # self._save_debug_image()
                 elif self.state == "InProcess":
                     self._draw_progress()
                 elif self.state == "Failed":
@@ -129,7 +127,7 @@ class BaseDrawWorker(QRunnable):
         """Save the current frame as a debug image if in DEBUG mode."""
         if self.draw_flag is False:
             return
-        if logger.getEffectiveLevel() != logging.DEBUG:
+        if self.log.getEffectiveLevel() != logging.DEBUG:
             return
         self.draw_flag = False
         # Save the image with a unique name
@@ -150,20 +148,18 @@ class BaseDrawWorker(QRunnable):
 
     def _draw_coords(self, x_axis_coords, y_axis_coords):
         """Draw axis points on the frame."""
-        size = 2 if logger.getEffectiveLevel() == logging.DEBUG else 7
         for pixel in x_axis_coords:
             draw_pt = (int(round(pixel[0])), int(round(pixel[1])))
-            cv2.circle(self.frame, draw_pt, size, (255, 255, 0), -1)
+            cv2.circle(self.frame, draw_pt, 7, (255, 255, 0), -1)
         for pixel in y_axis_coords:
             draw_pt = (int(round(pixel[0])), int(round(pixel[1])))
-            cv2.circle(self.frame, draw_pt, size, (0, 255, 255), -1)
+            cv2.circle(self.frame, draw_pt, 7, (0, 255, 255), -1)
 
     def _draw_xyz(self, origin, x, y, z):
         """Draw the XYZ axes on the frame."""
-        size = 1 if logger.getEffectiveLevel() == logging.DEBUG else 3
-        self.frame = cv2.line(self.frame, origin, x, (255, 0, 0), size)  # Red line
-        self.frame = cv2.line(self.frame, origin, y, (0, 255, 0), size)  # Green line
-        self.frame = cv2.line(self.frame, origin, z, (0, 0, 255), size)  # Blue line
+        self.frame = cv2.line(self.frame, origin, x, (255, 0, 0), 3)  # Red line
+        self.frame = cv2.line(self.frame, origin, y, (0, 255, 0), 3)  # Green line
+        self.frame = cv2.line(self.frame, origin, z, (0, 0, 255), 3)  # Blue line
 
     def set_name(self, name):
         """Set name as camera serial number."""
@@ -211,6 +207,7 @@ class BaseProcessWorker(QRunnable):
     def __init__(self, name):
         """Initialize the worker with a name."""
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.signals = ProcessWorkerSignal()
         self.name = name
         self.frame = None
@@ -230,13 +227,13 @@ class BaseProcessWorker(QRunnable):
             self.signals.state.emit("InProcess")
             result = self.process(self.frame)
             if result == DetectionResult.STOPPED:
-                logger.debug(f"{self.name} - Outside request to stop processing")
+                self.log.debug(f"{self.name} - Outside request to stop processing")
                 self.signals.state.emit("Stopped")
             if result is DetectionResult.FAILED:
-                logger.debug(f"{self.name} - Detection failed")
+                self.log.debug(f"{self.name} - Detection failed")
                 self.signals.state.emit("Failed")
             if result == DetectionResult.SUCCESS:
-                logger.debug(f"{self.name} - Detection success")
+                self.log.debug(f"{self.name} - Detection success")
                 self.signals.state.emit("Found")
 
             self.signals.finished.emit()
@@ -278,6 +275,7 @@ class BaseReticleManager(QObject):
     def __init__(self, model, name, WorkerClass, ProcessWorkerClass):
         """Initialize the reticle manager with worker classes and a name."""
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.name = name
         self.WorkerClass = WorkerClass
@@ -309,10 +307,10 @@ class BaseReticleManager(QObject):
     def start(self):
         """Start the reticle detection threads."""
         if self.worker is not None or self.processWorker is not None:
-            print(f"{self.name} Previous thread not cleaned up")
+            self.log.info(f"{self.name} Previous thread not cleaned up")
             return
 
-        logger.debug(f"{self.name} Starting thread")
+        self.log.debug(f"{self.name} Starting thread")
         self._init_draw_thread()
         self.worker.start_running()
         self.threadpool.start(self.worker)
@@ -323,7 +321,7 @@ class BaseReticleManager(QObject):
 
     def stop(self):
         """Stop the reticle detection threads."""
-        logger.debug(f"{self.name} Stopping thread")
+        self.log.debug(f"{self.name} Stopping thread")
         if self.worker is None and self.processWorker is None:  # State: Stopped
             return
 

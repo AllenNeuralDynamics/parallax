@@ -13,6 +13,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--log-level",
+        default=None,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Override the console log level specified in the config file.",
+    )
+
+    parser.add_argument(
         "--dummy",
         action="store_true",
         help="Dummy mode for testing without hardware",
@@ -50,7 +57,6 @@ def print_arg_info(args):
     """Print CLI argument selections for debugging."""
     if not args.dummy and args.nCameras != 1:
         print("\nWarning: --num-mock-cameras is only valid in dummy mode.")
-
     if args.dummy:
         print(f"  Simulating {args.nCameras} mock camera(s).")
     if args.bundle_adjustment:

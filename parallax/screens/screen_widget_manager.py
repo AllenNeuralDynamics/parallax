@@ -19,14 +19,13 @@ from parallax.screens.reticle_detect_widget import ReticleDetectWidget
 from parallax.screens.screen_setting import ScreenSetting
 from parallax.screens.screen_widget import ScreenWidget
 
-logger = logging.getLogger(__name__)
-
 
 class ScreenWidgetManager(QObject):
     """Manages microscope display and settings."""
 
     def __init__(self, model, main_window: QMainWindow, device_menu: QMenu):
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.main_window = main_window
         self.device_menu = device_menu
@@ -49,7 +48,7 @@ class ScreenWidgetManager(QObject):
             sn = screen.camera.name(sn_only=True)
             if self.model.is_camera_visible(sn):
                 screen.start_acquisition_camera()
-                logger.debug("Camera acquisition started for:", sn)
+                self.log.debug(f"Camera acquisition started for: {sn}")
 
         self.refresh_timer.timeout.connect(self._refresh_screens)
         self.refresh_timer.start(125)
@@ -64,7 +63,7 @@ class ScreenWidgetManager(QObject):
             sn = screen.camera.name(sn_only=True)
             if self.model.is_camera_visible(sn):
                 screen.stop_acquisition_camera()
-                logger.debug("Camera acquisition stopped for:", sn)
+                self.log.debug(f"Camera acquisition stopped for: {sn}")
 
     def _refresh_screens(self):
         """Refresh only visible screens."""
@@ -73,10 +72,10 @@ class ScreenWidgetManager(QObject):
             try:
                 sn = screen.camera.name(sn_only=True)
             except AttributeError as e:
-                logger.debug("Could not retrieve camera name from screen: %s", str(e))
+                self.log.debug("Could not retrieve camera name from screen: %s", str(e))
                 continue
             except Exception as e:
-                logger.error("Unexpected error retrieving SN: %s", str(e))
+                self.log.error("Unexpected error retrieving SN: %s", str(e))
                 continue
 
             if sn and self.model.is_camera_visible(sn):
@@ -95,12 +94,12 @@ class ScreenWidgetManager(QObject):
             self.model.set_camera_visibility(sn, True)
             if self.model.refresh_camera:
                 screen.start_acquisition_camera()
-                logger.debug("Camera acquisition started for:", sn)
+                self.log.debug(f"Camera acquisition started for: {sn}")
         else:
             self.model.set_camera_visibility(sn, False)
             if self.model.refresh_camera:
                 screen.stop_acquisition_camera()
-                logger.debug("Camera acquisition stopped for:", sn)
+                self.log.debug(f"Camera acquisition stopped for: {sn}")
 
     def _add_screen_dock(self, sn):
         name = str(sn)
@@ -140,7 +139,7 @@ class ScreenWidgetManager(QObject):
 
         # Sync visibility to menu action (when dock is closed or reopened)
         def sync_action_to_dock_visibility(visible, sw=dock):
-            logger.debug("Dock visibility changed:", visible, "for", sw.objectName())
+            self.log.debug(f"Dock visibility changed: {visible} for {sw.objectName()}")
             action = self.menu_actions.get(sw)
             if action:
                 action.blockSignals(True)

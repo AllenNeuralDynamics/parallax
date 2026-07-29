@@ -7,7 +7,10 @@ Classes:
     UtilsCrops: Utility methods for calculating and validating crop regions.
 """
 
+import logging
 from typing import List, Tuple, Union
+
+logger = logging.getLogger(__name__)
 
 
 class UtilsCoords:
@@ -51,7 +54,7 @@ class UtilsCoords:
                 x, y = coord
                 scaled_coords.append([int(x * scale_x), int(y * scale_y)])
             else:
-                print(f"Warning: Unexpected coordinate format {coord}. Skipping scaling.")
+                logger.info(f"Warning: Unexpected coordinate format {coord}. Skipping scaling.")
                 scaled_coords.append(coord)  # Keep the original if format is unexpected
 
         return scaled_coords

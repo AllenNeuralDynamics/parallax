@@ -27,10 +27,6 @@ from parallax.config.config_path import debug_img_dir
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.utils.utils import UtilsCoords, UtilsCrops
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class CurrBgCmpProcessor:
     """Finding diff image using Current and Background Comparison"""
@@ -45,6 +41,7 @@ class CurrBgCmpProcessor:
             resized_size (tuple): The resized size of the image (height, width).
             reticle_zone (numpy.ndarray, optional): The reticle zone image. Defaults to None.
         """
+        self.log = logging.getLogger(self.__class__.__name__)
         self.cam_name = cam_name
         self.diff_img = None
         self.diff_img_crop = None
@@ -81,7 +78,7 @@ class CurrBgCmpProcessor:
         Returns:
             bool: True if probe is detected, False otherwise.
         """
-        logger.debug("CurrBgCmpProcessor::first_cmp")
+        self.log.debug("CurrBgCmpProcessor::first_cmp")
         self.mask = mask
         self.curr_img = org_img
         self.curr_img = self._get_binary(self.curr_img)
@@ -327,6 +324,6 @@ class CurrBgCmpProcessor:
         self.diff_img = cv2.bitwise_and(curr_img, self.bg, mask=self.mask)
 
     def _save_debug_img(self, frame, ts=None):
-        if logger.getEffectiveLevel() == logging.DEBUG:
+        if self.log.getEffectiveLevel() == logging.DEBUG:
             save_path = os.path.join(debug_img_dir, f"{self.cam_name}_{ts}.jpg")
             cv2.imwrite(save_path, frame)

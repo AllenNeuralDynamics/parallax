@@ -17,7 +17,6 @@ from PyQt6.uic import loadUi
 from parallax.config.config_path import ui_dir
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 class PointMeshWidget(QWidget):
@@ -33,6 +32,7 @@ class PointMeshWidget(QWidget):
         transM (np.ndarray): The transformation matrix to convert local points to global coordinates.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
 
         self.file_path = file_path
         self.sn = sn
@@ -65,7 +65,7 @@ class PointMeshWidget(QWidget):
     def _init_ui(self):
         """Initializes the QWebEngineView."""
         # Safety check: close existing if for some reason it exists
-        print("Initializing UI Web View")
+        self.log.info("Initializing UI Web View")
         if self.web_view is not None:
             self.web_view.close()
 

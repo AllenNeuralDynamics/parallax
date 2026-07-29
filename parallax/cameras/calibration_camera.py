@@ -19,7 +19,6 @@ from parallax.session.session_state import CameraParams
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 def calibrate_camera(
@@ -298,6 +297,9 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
     ptsB_in = np.asarray(ptsB, dtype=np.float64)
 
     # cv2.undistortPoints expects N x 1 x 2 input
+    assert paramsA.mtx is not None and paramsA.dist is not None, "Camera A parameters cannot be None"
+    assert paramsB.mtx is not None and paramsB.dist is not None, "Camera B parameters cannot be None"
+
     ptsA_undistorted = cv2.undistortPoints(ptsA_in.reshape(-1, 1, 2), paramsA.mtx, paramsA.dist, P=paramsA.mtx).reshape(
         -1, 2
     )
@@ -314,7 +316,7 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
 
     # Check for valid triangulation results (often Xh[3] being zero or near zero)
     if np.any(np.abs(Xhs[3, :]) < 1e-12):
-        print("Warning: Division by zero or very small w-coordinate encountered in triangulation.")
+        logger.info("Warning: Division by zero or very small w-coordinate encountered in triangulation.")
         # Handle by replacing near-zero w with a small epsilon
         w = Xhs[3, :]
         w[np.abs(w) < 1e-12] = 1e-12
@@ -322,7 +324,7 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
         w = Xhs[3, :]
 
     # Normalize homogeneous coordinates
-    Xs = Xhs[:3, :] / w  # 3xN
+    Xs = Xhs[:3, :] / w  # type: ignore[operator]  # 3xN
     return Xs.T  # Nx3
 
 
@@ -352,7 +354,7 @@ def evaluate_performance(
     average_L2_distance = np.mean(euclidean_distances)
 
     if print_results:
-        print(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance * 1000, 2)} µm³")
+        logger.info(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance * 1000, 2)} µm³")
         _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=print_results)
         logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
@@ -384,4 +386,7 @@ def _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=True):
     l2_z = np.sqrt(mean_squared_diff_z)
 
     if print_results:
-        print(f"x: {np.round(l2_x * 1000, 2)}µm³, y: {np.round(l2_y * 1000, 2)}µm³, z: {np.round(l2_z * 1000, 2)}µm³")
+        x = np.round(l2_x * 1000, 2)
+        y = np.round(l2_y * 1000, 2)
+        z = np.round(l2_z * 1000, 2)
+        logger.info(f"x: {x} µm³, y: {y} µm³, z: {z} µm³")

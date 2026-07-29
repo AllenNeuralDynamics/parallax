@@ -18,10 +18,7 @@ from parallax.reticle_detection.mask_generator import MaskGenerator
 from parallax.reticle_detection.reticle_detection import ReticleDetection
 from parallax.reticle_detection.reticle_detection_coords_interests import ReticleDetectCoordsInterest
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
-IMG_SIZE_ORIGINAL = (4000, 3000)
+IMG_SIZE_ORIGINAL = (4000, 3000)  # TODO move to config
 
 
 class ReticleDetectManager(BaseReticleManager):
@@ -33,6 +30,7 @@ class ReticleDetectManager(BaseReticleManager):
         def __init__(self, model, name, test_mode=False):
             """Initializes the OpenCV-based reticle detection worker."""
             super().__init__(name)
+            self.log = logging.getLogger(self.__class__.__name__)
             self.model = model
             self.test_mode = test_mode
             self.mask_detect = MaskGenerator(initial_detect=True)
@@ -48,7 +46,7 @@ class ReticleDetectManager(BaseReticleManager):
             if not self.running:
                 return DetectionResult.STOPPED
             if not success:
-                logger.debug("[WARN] get_coords failed.")
+                self.log.debug("[WARN] get_coords failed.")
                 return DetectionResult.FAILED
 
             # Retry Loop
@@ -64,14 +62,14 @@ class ReticleDetectManager(BaseReticleManager):
                 )
                 if not success:
                     # REQUIREMENT: If get_coords fails, just return fail immediately
-                    logger.debug("[WARN] get_coords failed. Exiting process.")
+                    self.log.debug("[WARN] get_coords failed. Exiting process.")
                     return DetectionResult.FAILED
 
                 # Attempt to get coordinates of interest
                 success, self.x_coords, self.y_coords = self.coordsInterests.get_coords_interest(inliner_lines)
                 if not success:
                     # If get_coords_interest fails, try the loop again
-                    logger.debug(f"[RETRY {attempt + 1}] get_coords_interest failed. Retrying get_coords...")
+                    self.log.debug(f"[RETRY {attempt + 1}] get_coords_interest failed. Retrying get_coords...")
                     continue
                 # If we reach here, both passed
                 detection_successful = True
@@ -101,9 +99,9 @@ class ReticleDetectManager(BaseReticleManager):
             )
 
             # Emit data
-            logger.debug("OpenCV")
-            logger.debug(f"rvecs: {params.rvec}")
-            logger.debug(f"tvecs: {params.tvec}")
+            self.log.debug("OpenCV")
+            self.log.debug(f"rvecs: {params.rvec}")
+            self.log.debug(f"tvecs: {params.tvec}")
             self.signals.found_coords.emit(self.x_coords, self.y_coords, params)
             if not self.running:
                 return DetectionResult.STOPPED

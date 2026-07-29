@@ -5,14 +5,12 @@ from datetime import datetime
 
 from PyQt6.QtWidgets import QFileDialog
 
-# Set up logging
-logger = logging.getLogger(__name__)
-
 
 class StageSnapshotHandler:
     """Handles gathering stage data and saving snapshots to JSON."""
 
     def __init__(self, model):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.snapshot_folder_path = None
 
@@ -63,6 +61,6 @@ class StageSnapshotHandler:
             try:
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(info, f, indent=4)
-                logger.info(f"Stage info saved successfully at {file_path}")
+                self.info(f"Stage info saved successfully at {file_path}")
             except Exception as e:
-                logger.error(f"Failed to save snapshot: {e}")
+                self.log.error(f"Failed to save snapshot: {e}")

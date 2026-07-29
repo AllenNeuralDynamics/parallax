@@ -20,7 +20,6 @@ from parallax.config.schemas import AppSchema
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 class ConfigManager:
@@ -48,11 +47,11 @@ class ConfigManager:
             return cls._data
 
         except Exception as e:
-            print("\n" + "!" * 60)
-            print("CRITICAL CONFIGURATION ERROR")
-            print(f"File: {cls.settings_file}")
-            print(f"Error: {e}")
-            print("!" * 60 + "\n")
+            logger.critical("\n" + "!" * 60)
+            logger.critical("CRITICAL CONFIGURATION ERROR")
+            logger.critical(f"File: {cls.settings_file}")
+            logger.critical(f"Error: {e}")
+            logger.critical("!" * 60 + "\n")
             logger.critical(f"App launch aborted due to config error: {e}")
             sys.exit(1)
 

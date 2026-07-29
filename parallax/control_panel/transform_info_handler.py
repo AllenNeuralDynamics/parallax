@@ -9,15 +9,13 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class TransformInfoHandler(QWidget):
     """Handles the probe calibration process, including detection, calibration, and metadata management."""
 
     def __init__(self, model, reticle_selector):
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.reticle_selector_comboBox = reticle_selector
 
@@ -169,7 +167,7 @@ class TransformInfoHandler(QWidget):
             self._display_ui(info)
             self.setVisible(True)
         except Exception as e:
-            logger.error(f"Error displaying Transform UI: {e}")
+            self.log.error(f"Error displaying Transform UI: {e}")
             self.setVisible(False)
 
     def display_msg(self, message=None):
@@ -295,8 +293,8 @@ class TransformInfoHandler(QWidget):
             self.rz_label.clearFocus()
 
         except ValueError:
-            print("Invalid input for rz angle", text_val)
-            logger.warning("Invalid input for rz angle")
+            self.log.info(f"Invalid input for rz angle: {text_val}")
+            self.log.warning("Invalid input for rz angle")
             self.display(stage_id)  # Reset display to valid model value
 
     def _show_transformation_help(self):

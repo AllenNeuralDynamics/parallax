@@ -14,10 +14,6 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 from parallax.cameras.calibration_camera import calibrate_camera, get_debug_points
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class AxisFilter(QObject):
     """
@@ -52,6 +48,7 @@ class AxisFilter(QObject):
                 model: The data model associated with the worker.
             """
             QObject.__init__(self)
+            self.log = logging.getLogger(self.__class__.__name__)
             self.model = model
             self.name = name
             self.running = False
@@ -85,7 +82,6 @@ class AxisFilter(QObject):
 
             pos_x = self.model.get_pos_x(self.name)
             if pos_x is not None:
-                logger.info(f"{self.name} pos_x: {pos_x}")
                 draw_pt = (int(round(pos_x[0])), int(round(pos_x[1])))
                 cv2.circle(self.frame, draw_pt, 15, (255, 0, 0), -1)
 
@@ -122,25 +118,25 @@ class AxisFilter(QObject):
 
             # Handle the 4 cases + Right-Hand Rule (RHR) internally
             if min_idx == 0:  # Clicked Start of X -> 180 degree rotation
-                logger.debug("Clicked Start of X -> 180 degree rotation")
+                self.log.debug("Clicked Start of X -> 180 degree rotation")
                 self.reticle_coords[0] = self.reticle_coords[0][::-1]
                 self.reticle_coords[1] = self.reticle_coords[1][::-1]
             elif min_idx == 1:  # Clicked End of X -> Already correct
-                logger.debug("Clicked End of X -> Already correct")
+                self.log.debug("Clicked End of X -> Already correct")
                 pass
             elif min_idx == 2:  # Clicked Start of Y -> 90 degree rotation
-                logger.debug("Clicked Start of Y -> 90 degree rotation")
+                self.log.debug("Clicked Start of Y -> 90 degree rotation")
                 tmp_x = self.reticle_coords[1][::-1].copy()
                 tmp_y = self.reticle_coords[0].copy()
                 self.reticle_coords[0], self.reticle_coords[1] = tmp_x, tmp_y
             elif min_idx == 3:  # Clicked End of Y -> -90 degree rotation
-                logger.debug("Clicked End of Y -> -90 degree rotation")
+                self.log.debug("Clicked End of Y -> -90 degree rotation")
                 tmp_x = self.reticle_coords[1].copy()
                 tmp_y = self.reticle_coords[0][::-1].copy()
                 self.reticle_coords[0], self.reticle_coords[1] = tmp_x, tmp_y
 
             self.pos_x = self.reticle_coords[0][-1]
-            logger.debug(f"Sorted {self.name}: X-axis now at index 0, Positive tip: {self.pos_x}")
+            self.log.debug(f"Sorted {self.name}: X-axis now at index 0, Positive tip: {self.pos_x}")
 
         def clicked_position(self, input_pt):
             """Get clicked position."""
@@ -150,7 +146,7 @@ class AxisFilter(QObject):
             if self.reticle_coords is None:
                 return
 
-            logger.debug(f"clicked_position {input_pt}")
+            self.log.debug(f"clicked_position {input_pt}")
             # Coordinates of points
             pt1, pt2 = self.reticle_coords[0][0], self.reticle_coords[0][-1]
             pt3, pt4 = self.reticle_coords[1][0], self.reticle_coords[1][-1]
@@ -161,13 +157,13 @@ class AxisFilter(QObject):
             self.pos_x = min(pts, key=lambda pt: self.squared_distance(pt, input_pt))
 
             # sort the reticle points and register to the model
-            logger.debug("\n---")
-            logger.debug(f"-x: {self.reticle_coords[0][0]}, +x: {self.reticle_coords[0][-1]}")
-            logger.debug(f"-y: {self.reticle_coords[1][0]}, +y: {self.reticle_coords[1][-1]}")
+            self.log.debug("\n---")
+            self.log.debug(f"-x: {self.reticle_coords[0][0]}, +x: {self.reticle_coords[0][-1]}")
+            self.log.debug(f"-y: {self.reticle_coords[1][0]}, +y: {self.reticle_coords[1][-1]}")
             self.sort_reticle_points()
             self.model.add_pos_x(self.name, self.pos_x)
-            logger.debug(f"-x: {self.reticle_coords[0][0]}, +x: {self.reticle_coords[0][-1]}")
-            logger.debug(f"-y: {self.reticle_coords[1][0]}, +y: {self.reticle_coords[1][-1]}")
+            self.log.debug(f"-x: {self.reticle_coords[0][0]}, +x: {self.reticle_coords[0][-1]}")
+            self.log.debug(f"-y: {self.reticle_coords[1][0]}, +y: {self.reticle_coords[1][-1]}")
             ret, params = calibrate_camera(
                 self.reticle_coords[0],
                 self.reticle_coords[1],
@@ -182,7 +178,7 @@ class AxisFilter(QObject):
         def reset_pos_x(self):
             """Reset the position of the x-axis (pos_x) in the model."""
             self.pos_x = None
-            logger.debug("reset pos_x")
+            self.log.debug("reset pos_x")
 
         def stop_running(self):
             """Stop the worker from running."""
@@ -200,7 +196,7 @@ class AxisFilter(QObject):
                     self.new = False
                 time.sleep(0.001)
             self.finished.emit()
-            logger.debug(f"thread finished {self.name}")
+            self.log.debug(f"thread finished {self.name}")
 
         def set_name(self, name):
             """Set name as camera serial number."""
@@ -210,8 +206,9 @@ class AxisFilter(QObject):
 
     def __init__(self, model, camera_name):
         """Initialize the filter object."""
-        logger.debug("Init axis filter manager")
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.log.debug("Init axis filter manager")
         self.model = model
         self.worker = None
         self.name = camera_name
@@ -236,7 +233,7 @@ class AxisFilter(QObject):
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
         self.worker.destroyed.connect(self.onWorkerDestroyed)
-        logger.debug(f"init camera name: {self.name}")
+        self.log.debug(f"init camera name: {self.name}")
 
     def process(self, frame):
         """Process the frame using the worker.
@@ -249,28 +246,28 @@ class AxisFilter(QObject):
 
     def start(self):
         """Start the filter by reinitializing and starting the worker and thread."""
-        logger.debug(f" {self.name} Starting thread")
+        self.log.debug(f" {self.name} Starting thread")
         self.init_thread()  # Reinitialize and start the worker and thread
         self.worker.start_running()
         self.thread.start()
 
     def stop(self):
         """Stop the filter by stopping the worker."""
-        logger.debug(f" {self.name} Stopping thread")
+        self.log.debug(f" {self.name} Stopping thread")
         if self.worker is not None:
             self.worker.reset_pos_x()
             self.worker.stop_running()
 
     def onWorkerDestroyed(self):
         """Cleanup after worker finishes."""
-        logger.debug(f"{self.name} worker destroyed")
+        self.log.debug(f"{self.name} worker destroyed")
 
     def set_name(self, camera_name):
         """Set camera name."""
         self.name = camera_name
         if self.worker is not None:
             self.worker.set_name(self.name)
-        logger.debug(f"{self.name} set camera name")
+        self.log.debug(f"{self.name} set camera name")
 
     def clicked_position(self, pt):
         """Get clicked position."""
@@ -279,7 +276,7 @@ class AxisFilter(QObject):
 
     def clean(self):
         """Safely clean up the reticle detection manager."""
-        logger.debug(f"{self.name} Cleaning the thread")
+        self.log.debug(f"{self.name} Cleaning the thread")
         if self.worker is not None:
             self.worker.stop_running()  # Signal the worker to stop
 
@@ -289,7 +286,7 @@ class AxisFilter(QObject):
         self.thread = None  # Clear the reference to the thread
         self.worker = None  # Clear the reference to the worker
         self.threadDeleted = True
-        logger.debug(f"{self.name} Cleaned the thread")
+        self.log.debug(f"{self.name} Cleaned the thread")
 
     def onThreadDestroyed(self):
         """Flag if thread is deleted"""

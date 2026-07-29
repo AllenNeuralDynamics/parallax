@@ -7,9 +7,9 @@ This class integrates various hardware components such as cameras and stages and
 their initialization, configuration, and transformations between local and global coordinates.
 """
 
+import logging
 from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
-from venv import logger
 
 import numpy as np
 
@@ -32,6 +32,7 @@ class Model:
             version (str): The version of the model, typically used for camera setup.
             bundle_adjustment (bool): Whether to enable bundle adjustment for calibration.
         """
+        self.log = logging.getLogger(self.__class__.__name__)
         # args from command line
         self.config = config
         self.session = session  # SessionSchema. Initialize after pop-up
@@ -85,7 +86,7 @@ class Model:
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
-        print("Scanning for USB stages...")
+        self.log.info("Scanning for USB stages...")
         server = PathfinderServer(self.config.pathfinder_server.url)
         instances = server.get_instances()
         self.stage_instances = {}  # Reset internal state before updating
@@ -94,7 +95,7 @@ class Model:
             self.stage_instances[stage.sn] = stage
         self.nStages = len(self.stage_instances)
         self.instantiate_session()  # Sync with session after scanning
-        print("  Stages:", list(self.stage_instances.keys()))
+        self.log.info(f"  Stages: {list(self.stage_instances.keys())}")
 
     # =========================
     # Stages
@@ -167,7 +168,7 @@ class Model:
         """
         stage_session = self.session.stages.get(stage_sn)
         if not stage_session or not stage_session.calib_info:
-            logger.debug(f"add_transform: stage '{stage_sn}' not found or uninitialized")
+            self.log.debug(f"add_transform: stage '{stage_sn}' not found or uninitialized")
             return
 
         stage_session.calib_info.transM = transform
@@ -319,7 +320,7 @@ class Model:
         """
         camera_config = self.config.cameras.get(sn)
         if not camera_config:
-            logger.error(f"No configuration found for camera {sn} during read.")
+            self.log.error(f"No configuration found for camera {sn} during read.")
             return
 
         try:
@@ -354,17 +355,17 @@ class Model:
             if hw_gamma > 0.0:
                 camera_config.gamma = hw_gamma
 
-            logger.info(f"Successfully synced model with hardware for {sn}")
+            self.log.info(f"Successfully synced model with hardware for {sn}")
 
         except Exception as e:
-            logger.error(f"Error reading hardware settings for {sn}: {e}")
+            self.log.error(f"Error reading hardware settings for {sn}: {e}")
 
     def _apply_setting_to_camera(self, cam_settings, camera_config):
         """
         Maps the Pydantic camera_config values to the hardware abstraction layer (PySpinSettings).
         """
         try:
-            logger.info(f"Applying settings for camera: {camera_config.customName}")
+            self.log.info(f"Applying settings for camera: {camera_config.customName}")
             # 1. Frame Rate
             cam_settings.set_frame_rate_enable(camera_config.frameRateEnable)
             if camera_config.frameRateEnable:
@@ -395,10 +396,10 @@ class Model:
                 gamma_val = camera_config.gamma
                 cam_settings.set_gamma(gamma_val)
 
-            logger.info(f"Settings successfully applied to {camera_config.customName}")
+            self.log.info(f"Settings successfully applied to {camera_config.customName}")
 
         except Exception as e:
-            logger.error(f"Failed to apply settings to camera {camera_config.customName}: {e}")
+            self.log.error(f"Failed to apply settings to camera {camera_config.customName}: {e}")
 
     # =========================
     # probe detection
@@ -647,7 +648,7 @@ class Model:
         if sn in self.session.cameras:
             # Pydantic validator will convert this to a tuple automatically
             self.session.cameras[sn].pos_x = pt
-            logger.debug(f"pos_x for {sn} set to: {self.session.cameras[sn].pos_x}")
+            self.log.debug(f"pos_x for {sn} set to: {self.session.cameras[sn].pos_x}")
 
     def get_pos_x(self, sn: str):
         """
@@ -711,7 +712,7 @@ class Model:
     # Configurations - Load and Save
     # =========================
     def save_config(self):
-        print("Saving config...")
+        self.log.info("Saving config...")
         ConfigManager.save_settings(self.config)
 
     # =========================
@@ -719,11 +720,11 @@ class Model:
     # =========================
 
     def save_session(self):
-        print("Saving session...")
+        self.log.info("Saving session...")
         SessionManager.save_session(self.session)
 
     def instantiate_session(self):
-        print("\nLoading previous session..")
+        self.log.info("Loading previous session..")
         SessionManager.instantiate(
             self
         )  # Ensure SessionManager is instantiated with the model for session config loading

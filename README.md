@@ -9,8 +9,8 @@ setting up and performing acute *in vivo* electrophysiology experiments.
 
 ## Prerequisites
 - **Python 3.10**: Required for compatibility with the Spinnaker library.
-- [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk) and Teledyne FLIR software for camera support.
-- [Pathfinder MPM Control Panel v.2.8 or later](https://newscaletech.com/multi-probe-micromanipulator/mpm-system-pathfinder-software/)
+- For Teledyne FLIR camera, [Spinnaker SDK 4.3 and PySpin](https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/) (Teledyne FLIR's [guide](https://www.teledynevisionsolutions.com/support/support-center/technical-guidance/iis/installing-pyspin-for-the-spinnaker-sdk/))
+- For Stage control, [Pathfinder MPM Control Panel v.2.8 or later](https://newscaletech.com/multi-probe-micromanipulator/mpm-system-pathfinder-software/)
 
 
 ## Installation
@@ -30,12 +30,14 @@ uv sync
 ```
 
 #### 2. Install Spinnaker
-Install the camera interface [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
+Install the camera interface [Spinnaker SDK 4.3 and PySpin](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
+1. Install the Full Spinnaker SDK
+2. Install PySpin
 ```bash
-# Install from the **wheel file** that comes with the Spinnaker SDK ver.4.2.
+# Install from the **wheel file** that comes with the Spinnaker SDK ver.4.3.
 # Replace **<WHEEL_PATH>** with the *full path* to your `.whl`:
 uv pip install "<WHEEL_PATH>"
-# Example) uv pip install spinnaker_python-4.2.0.88-cp310-cp310-win_amd64.whl
+# Example) uv pip install spinnaker_python-4.3.0.190-cp310-cp310-win_amd64.whl
 ```
 
 ## Running Parallax
@@ -95,10 +97,16 @@ uv run pytest tests
 uv run ruff check
 ```
 
+- Format
+```bash
+uv run ruff format --check parallax
+```
+
 - Type Check
 ```bash
 uv run mypy parallax
 ```
+
 
 ### Documentation
 Create the documentation html files, run:

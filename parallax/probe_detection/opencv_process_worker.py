@@ -9,10 +9,6 @@ from parallax.probe_detection.opencv.curr_prev_cmp_processor import CurrPrevCmpP
 from parallax.probe_detection.opencv.probe_detector import ProbeDetector
 from parallax.reticle_detection.mask_generator import MaskGenerator
 
-# Set logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class OpenCVProcessWorker:
     """
@@ -29,6 +25,7 @@ class OpenCVProcessWorker:
             callbacks (dict): Dictionary of callback functions.
                               Keys: 'on_finished', 'on_tip_stopped', 'on_tip_moving', 'on_status'
         """
+        self.log = logging.getLogger(self.__class__.__name__)
         self.name = name
         self.IMG_SIZE_ORIGINAL = resolution
         self.IMG_SIZE = (1000, 750)
@@ -81,12 +78,12 @@ class OpenCVProcessWorker:
     def start_running(self):
         """Start the internal processing thread."""
         if self.running:
-            print(f"{self.name} - OpenCV Process worker thread already running")
+            self.log.info(f"{self.name} - OpenCV Process worker thread already running")
             return
         self.running = True
         self.worker_thread = threading.Thread(target=self._run_loop, daemon=True, name=f"OpenCVWorker-{self.name}")
         self.worker_thread.start()
-        print(f"{self.name} - OpenCV Process worker thread started")
+        self.log.info(f"{self.name} - OpenCV Process worker thread started")
 
     def stop_running(self):
         """Stop the processing thread."""
@@ -100,7 +97,7 @@ class OpenCVProcessWorker:
         if self.worker_thread and self.worker_thread.is_alive():
             self.worker_thread.join(timeout=1.0)
 
-        print(f"{self.name} - OpenCV Process worker thread stopped")
+        self.log.info(f"{self.name} - OpenCV Process worker thread stopped")
 
     def _run_loop(self):
         """Main loop checking for new frames."""
@@ -113,10 +110,10 @@ class OpenCVProcessWorker:
                 else:
                     time.sleep(0.01)  # Short sleep to prevent CPU hogging
             except Exception as e:
-                print(f"{self.name} - Error in run loop: {e}")
+                self.log.info(f"{self.name} - Error in run loop: {e}")
                 time.sleep(0.1)
 
-        print(f"{self.name} - OpenCV Process worker thread stopped")
+        self.log.info(f"{self.name} - OpenCV Process worker thread stopped")
         self._trigger_callback("on_finished")
 
     # =========================================================
@@ -238,7 +235,7 @@ class OpenCVProcessWorker:
             ret = self.currBgCmpProcess.first_cmp(self.curr_img, self.mask, lambda: self.running, ts=self.stage_ts)
 
         if ret:
-            logger.debug(f"{self.name} - First comparison successful")
+            self.log.debug(f"{self.name} - First comparison successful")
             self._trigger_callback("on_status", "update")
             return True
         return False
@@ -253,7 +250,7 @@ class OpenCVProcessWorker:
 
             # Consistency Check: Is stage time newer than image time?
             if (self.stage_ts is not None and self.img_ts is not None) and (self.stage_ts - self.img_ts > 0):
-                logger.debug(f"{self.name} - Stage ts future: {self.stage_ts}, img ts: {self.img_ts}")
+                self.log.debug(f"{self.name} - Stage ts future: {self.stage_ts}, img ts: {self.img_ts}")
                 return False
 
             # 1. Try Current vs Previous
@@ -266,7 +263,7 @@ class OpenCVProcessWorker:
                 ret = self.currBgCmpProcess.update_cmp(self.curr_img, self.mask, self.gray_img, ts=self.stage_ts)
 
             # Debug Saving
-            if logger.getEffectiveLevel() == logging.DEBUG:
+            if self.log.getEffectiveLevel() == logging.DEBUG:
                 # save_path = os.path.join(debug_img_dir, f"{self.name}_{self.stage_ts}.jpg")
                 pass
 
@@ -321,7 +318,7 @@ class OpenCVProcessWorker:
                     self.last_detected_frame = self.frame.copy()
                     self.last_detected_ts = self.img_ts
 
-                logger.info(f"Emit tip stopped signal (manual click) with coords: {self.probeDetect.probe_tip_org}")
+                self.log.info(f"Emit tip stopped signal (manual click) with coords: {self.probeDetect.probe_tip_org}")
 
     # =========================================================
     #  Helper
@@ -333,4 +330,4 @@ class OpenCVProcessWorker:
             try:
                 self.callbacks[name](*args)
             except Exception as e:
-                logger.error(f"{self.name} - Error in callback '{name}': {e}")
+                self.log.error(f"{self.name} - Error in callback '{name}': {e}")

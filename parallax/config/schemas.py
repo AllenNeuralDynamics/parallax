@@ -1,6 +1,6 @@
 # parallax/config/schemas.py
 from pathlib import Path
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Optional
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
@@ -100,3 +100,28 @@ class ReticleMetadataSchema(BaseModel):
 
 class ReticleConfig(BaseModel):
     reticles: Dict[str, ReticleMetadataSchema]
+
+
+# ----- Schema for Logging Configuration -----
+class HandlerConfig(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    class_: str = Field(..., alias="class")
+    level: Optional[str] = None
+    formatter: Optional[str] = None
+    filename: Optional[str] = None
+
+
+class LoggingConfig(BaseModel):
+    version: Literal[1]
+    disable_existing_loggers: bool = False
+    formatters: Optional[Dict[str, Dict[str, Any]]] = None
+    handlers: Optional[Dict[str, HandlerConfig]] = None
+    loggers: Optional[Dict[str, Dict[str, Any]]] = None
+    root: Optional[Dict[str, Any]] = None
+
+    @field_validator("handlers")
+    @classmethod
+    def console_handler(cls, handlers_dict):
+        if "console" not in handlers_dict:
+            raise ValueError("The 'handlers' configuration must contain a 'console' handler.")
+        return handlers_dict

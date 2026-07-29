@@ -4,9 +4,9 @@ import logging
 from parallax.cameras.camera_base_binding import BaseSettings
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
+
 try:
-    import PySpin
+    import PySpin  # noqa: F401
 except ImportError:
     PySpin = None
     logger.warning("Could not import PySpin.")
@@ -14,6 +14,7 @@ except ImportError:
 
 class PySpinSettings(BaseSettings):
     def __init__(self, sn, node_map, s_notemap, device_color_type):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.sn = sn
         self.node_map = node_map
         self.stream_nodemap = s_notemap
@@ -38,7 +39,7 @@ class PySpinSettings(BaseSettings):
             self._setup_pixel_format()
 
         except Exception as e:
-            print(f"Error initializing camera settings: {e}")
+            self.log.info(f"Error initializing camera settings: {e}")
 
     def _setup_buffer(self):
         # set BufferHandlingMode to NewestOnly to prevent queue buildup and latency
@@ -116,7 +117,7 @@ class PySpinSettings(BaseSettings):
         try:
             self.node_map.InvalidateNodes()
         except Exception as e:
-            logger.error(f"Error invalidating nodes for {self.sn}: {e}")
+            self.log.error(f"Error invalidating nodes for {self.sn}: {e}")
 
     # ------------------------------------------------------------------
     # 1. FRAME RATE
@@ -127,7 +128,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsAvailable(self.node_resulting_fps) and PySpin.IsReadable(self.node_resulting_fps):
                 return float(self.node_resulting_fps.GetValue())
         except Exception as e:
-            logger.error(f"Could not read resulting frame rate for {self.sn}: {e}")
+            self.log.error(f"Could not read resulting frame rate for {self.sn}: {e}")
         return -1.0
 
     def get_frame_rate_enable(self) -> bool:
@@ -136,7 +137,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsReadable(self.node_framerate_enable_mode):
                 return self.node_framerate_enable_mode.GetValue()
         except Exception as e:
-            logger.error(f"Error reading frame rate enable for {self.sn}: {e}")
+            self.log.error(f"Error reading frame rate enable for {self.sn}: {e}")
         return False
 
     def set_frame_rate(self, fps: float):
@@ -144,17 +145,17 @@ class PySpinSettings(BaseSettings):
         try:
             if PySpin.IsReadable(self.node_framerate_enable_mode):
                 if not self.node_framerate_enable_mode.GetValue():
-                    logger.error(f"Cannot set frame rate: AcquisitionFrameRateEnable is Off for {self.sn}.")
+                    self.log.error(f"Cannot set frame rate: AcquisitionFrameRateEnable is Off for {self.sn}.")
                     return
             if PySpin.IsWritable(self.node_framerate):
                 # Only write if the change is significant to avoid unnecessary bus traffic
                 if abs(self.node_framerate.GetValue() - fps) >= 0.1:
                     self.node_framerate.SetValue(float(fps))
-                    logger.info(f"Target FPS updated to {fps:.2f} for {self.sn}")
+                    self.log.info(f"Target FPS updated to {fps:.2f} for {self.sn}")
             else:
-                logger.warning(f"AcquisitionFrameRate node is not writable for {self.sn}")
+                self.log.warning(f"AcquisitionFrameRate node is not writable for {self.sn}")
         except Exception as e:
-            logger.error(f"Error setting frame rate: {e}")
+            self.log.error(f"Error setting frame rate: {e}")
 
     def set_frame_rate_enable(self, enabled: bool):
         """Enables or disables manual control of the acquisition frame rate."""
@@ -162,7 +163,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsWritable(self.node_framerate_enable_mode):
                 self.node_framerate_enable_mode.SetValue(enabled)
         except Exception as e:
-            logger.error(f"Error setting frame rate enable: {e}")
+            self.log.error(f"Error setting frame rate enable: {e}")
 
     # ------------------------------------------------------------------
     # 2. EXPOSURE
@@ -174,7 +175,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsReadable(self.node_exptime):
                 return float(self.node_exptime.GetValue())
         except Exception as e:
-            logger.error(f"Failed to get exposure for {self.sn}: {e}")
+            self.log.error(f"Failed to get exposure for {self.sn}: {e}")
         return -1.0
 
     def get_exposure_auto_mode(self) -> str:
@@ -183,7 +184,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsReadable(self.node_expauto_mode):
                 return self.node_expauto_mode.GetCurrentEntry().GetSymbolic()
         except Exception as e:
-            logger.error(f"Error reading exposure auto mode for {self.sn}: {e}")
+            self.log.error(f"Error reading exposure auto mode for {self.sn}: {e}")
         return "Unknown"
 
     def set_exposure(self, expTime_us: float = 16000):
@@ -191,15 +192,15 @@ class PySpinSettings(BaseSettings):
         try:
             current_mode = self.get_exposure_auto_mode()
             if current_mode != "Off":
-                logger.error(f"Cannot set manual exposure: Camera is currently in {current_mode} mode.")
+                self.log.error(f"Cannot set manual exposure: Camera is currently in {current_mode} mode.")
                 return
             if PySpin.IsWritable(self.node_exptime):
                 self.node_exptime.SetValue(expTime_us)
-                logger.info(f"Manual exposure set to {expTime_us} us.")
+                self.log.info(f"Manual exposure set to {expTime_us} us.")
             else:
-                logger.warning("ExposureTime node is not writable (Check if camera is initialized).")
+                self.log.warning("ExposureTime node is not writable (Check if camera is initialized).")
         except Exception as e:
-            logger.error(f"Error in set_exposure: {e}")
+            self.log.error(f"Error in set_exposure: {e}")
 
     def set_exposure_auto_mode(self, mode: str):
         """Sets the auto exposure mode ('Off', 'Once', 'Continuous')."""
@@ -209,7 +210,7 @@ class PySpinSettings(BaseSettings):
                 if PySpin.IsReadable(entry):
                     self.node_expauto_mode.SetIntValue(entry.GetValue())
         except Exception as e:
-            logger.error(f"Error setting exposure auto mode: {e}")
+            self.log.error(f"Error setting exposure auto mode: {e}")
 
     def set_exposure_time_upper_limit(self, upper_limit_us: float):
         """Sets the upper limit for exposure time if supported by the camera."""
@@ -218,9 +219,9 @@ class PySpinSettings(BaseSettings):
                 self.node_auto_exptime_upper_limit
             ):
                 self.node_auto_exptime_upper_limit.SetValue(upper_limit_us)
-                logger.info(f"Exposure time upper limit set to {upper_limit_us} us for {self.sn}")
+                self.log.info(f"Exposure time upper limit set to {upper_limit_us} us for {self.sn}")
         except Exception as e:
-            logger.error(f"Error setting exposure time upper limit: {e}")
+            self.log.error(f"Error setting exposure time upper limit: {e}")
 
     def set_exposure_time_lower_limit(self, lower_limit_us: float):
         """Sets the lower limit for exposure time if supported by the camera."""
@@ -229,9 +230,9 @@ class PySpinSettings(BaseSettings):
                 self.node_auto_exptime_lower_limit
             ):
                 self.node_auto_exptime_lower_limit.SetValue(lower_limit_us)
-                logger.info(f"Exposure time lower limit set to {lower_limit_us} us for {self.sn}")
+                self.log.info(f"Exposure time lower limit set to {lower_limit_us} us for {self.sn}")
         except Exception as e:
-            logger.error(f"Error setting exposure time lower limit: {e}")
+            self.log.error(f"Error setting exposure time lower limit: {e}")
 
     # ------------------------------------------------------------------
     # 3. GAIN
@@ -243,7 +244,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsAvailable(self.node_gain) and PySpin.IsReadable(self.node_gain):
                 return float(self.node_gain.GetValue())
         except Exception as e:
-            logger.error(f"Failed to get gain for {self.sn}: {e}")
+            self.log.error(f"Failed to get gain for {self.sn}: {e}")
         return -1.0
 
     def get_gain_auto_mode(self) -> str:
@@ -252,7 +253,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsReadable(self.node_gainauto_mode):
                 return self.node_gainauto_mode.GetCurrentEntry().GetSymbolic()
         except Exception as e:
-            logger.error(f"Error reading gain auto mode for {self.sn}: {e}")
+            self.log.error(f"Error reading gain auto mode for {self.sn}: {e}")
         return "Unknown"
 
     def set_gain(self, gain: float = 20.0):
@@ -261,19 +262,19 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsReadable(self.node_gainauto_mode):
                 current_mode = self.node_gainauto_mode.GetCurrentEntry().GetSymbolic()
                 if current_mode != "Off":
-                    logger.error(f"Cannot set manual gain: GainAuto is currently in {current_mode} mode.")
+                    self.log.error(f"Cannot set manual gain: GainAuto is currently in {current_mode} mode.")
                     return
 
             if PySpin.IsWritable(self.node_gain):
                 # Only update if the value actually changes to save bandwidth
                 if abs(self.node_gain.GetValue() - gain) > 0.01:
                     self.node_gain.SetValue(float(gain))
-                    logger.info(f"Manual gain set to {gain:.2f} dB for {self.sn}")
+                    self.log.info(f"Manual gain set to {gain:.2f} dB for {self.sn}")
             else:
-                logger.warning(f"Gain node is not writable for camera {self.sn}")
+                self.log.warning(f"Gain node is not writable for camera {self.sn}")
 
         except Exception as e:
-            logger.error(f"Error in set_gain: {e}")
+            self.log.error(f"Error in set_gain: {e}")
 
     def set_gain_auto_mode(self, mode: str):
         """Sets the auto gain mode ('Off', 'Once', 'Continuous')."""
@@ -283,24 +284,24 @@ class PySpinSettings(BaseSettings):
                 if PySpin.IsReadable(entry):
                     self.node_gainauto_mode.SetIntValue(entry.GetValue())
         except Exception as e:
-            logger.error(f"Error setting gain auto mode: {e}")
+            self.log.error(f"Error setting gain auto mode: {e}")
 
     def set_auto_gain_upper_limit(self, upper_limit_db):
         """Sets the maximum gain the auto-exposure algorithm is allowed to use."""
         try:
             if PySpin.IsAvailable(self.node_gainauto_upper_limit) and PySpin.IsWritable(self.node_gainauto_upper_limit):
                 self.node_gainauto_upper_limit.SetValue(upper_limit_db)
-                logger.info(f"Auto Gain Upper Limit set to {upper_limit_db} dB")
+                self.log.info(f"Auto Gain Upper Limit set to {upper_limit_db} dB")
         except Exception as e:
-            logger.error(f"Failed to set Auto Gain Upper Limit: {e}")
+            self.log.error(f"Failed to set Auto Gain Upper Limit: {e}")
 
     def set_auto_gain_lower_limit(self, lower_limit_db):
         try:
             if PySpin.IsAvailable(self.node_gainauto_lower_limit) and PySpin.IsWritable(self.node_gainauto_lower_limit):
                 self.node_gainauto_lower_limit.SetValue(lower_limit_db)
-                logger.info(f"Auto Gain Lower Limit set to {lower_limit_db} dB")
+                self.log.info(f"Auto Gain Lower Limit set to {lower_limit_db} dB")
         except Exception as e:
-            logger.error(f"Failed to set Auto Gain Lower Limit: {e}")
+            self.log.error(f"Failed to set Auto Gain Lower Limit: {e}")
 
     # ------------------------------------------------------------------
     # 4. WHITE BALANCE
@@ -311,7 +312,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsReadable(self.node_wbauto_mode):
                 return self.node_wbauto_mode.GetCurrentEntry().GetSymbolic()
         except Exception as e:
-            logger.error(f"Error reading white balance auto mode for {self.sn}: {e}")
+            self.log.error(f"Error reading white balance auto mode for {self.sn}: {e}")
         return "Unknown"
 
     def set_wb_auto_mode(self, mode: str):
@@ -321,9 +322,9 @@ class PySpinSettings(BaseSettings):
                 entry = self.node_wbauto_mode.GetEntryByName(mode)
                 if PySpin.IsReadable(entry):
                     self.node_wbauto_mode.SetIntValue(entry.GetValue())
-                    logger.info(f"White Balance Auto Mode set to {mode} for {self.sn}")
+                    self.log.info(f"White Balance Auto Mode set to {mode} for {self.sn}")
         except Exception as e:
-            logger.error(f"Error setting white balance auto mode: {e}")
+            self.log.error(f"Error setting white balance auto mode: {e}")
 
     def get_wb(self, channel: str) -> float:
         """Returns the white balance ratio for the specified channel ('Red' or 'Blue')."""
@@ -339,7 +340,7 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsAvailable(self.node_wb) and PySpin.IsReadable(self.node_wb):
                 return float(self.node_wb.GetValue())
         except Exception as e:
-            logger.error(f"Failed to get white balance for {channel}: {e}")
+            self.log.error(f"Failed to get white balance for {channel}: {e}")
         return -1.0
 
     def set_wb(self, channel: str, wb: float = 1.2):
@@ -348,7 +349,7 @@ class PySpinSettings(BaseSettings):
             if self.device_color_type != "Color":
                 return
             if self.get_wb_auto_mode() != "Off":
-                logger.error(f"Cannot set manual WB: BalanceWhiteAuto is not Off for {self.sn}")
+                self.log.error(f"Cannot set manual WB: BalanceWhiteAuto is not Off for {self.sn}")
                 return
             if PySpin.IsWritable(self.node_balanceratio_mode):
                 if channel == "Red":
@@ -357,9 +358,9 @@ class PySpinSettings(BaseSettings):
                     self.node_balanceratio_mode.SetIntValue(self.node_balanceratio_mode_blue.GetValue())
                 if PySpin.IsWritable(self.node_wb):
                     self.node_wb.SetValue(float(wb))
-                    logger.info(f"Manual WB {channel} set to {wb} for {self.sn}")
+                    self.log.info(f"Manual WB {channel} set to {wb} for {self.sn}")
         except Exception as e:
-            logger.error(f"Error setting manual white balance ({channel}): {e}")
+            self.log.error(f"Error setting manual white balance ({channel}): {e}")
 
     # ------------------------------------------------------------------
     # 5. GAMMA
@@ -371,9 +372,9 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsAvailable(self.node_gamma) and PySpin.IsReadable(self.node_gamma):
                 return float(self.node_gamma.GetValue())
             else:
-                logger.warning(f"Gamma node not readable for camera {self.sn}")
+                self.log.warning(f"Gamma node not readable for camera {self.sn}")
         except Exception as e:
-            logger.error(f"Failed to get gamma for {self.sn}: {e}")
+            self.log.error(f"Failed to get gamma for {self.sn}: {e}")
         return -1.0
 
     def get_gamma_enable(self) -> bool:
@@ -382,33 +383,33 @@ class PySpinSettings(BaseSettings):
             if PySpin.IsReadable(self.node_gammaenable_mode):
                 return self.node_gammaenable_mode.GetValue()
         except Exception as e:
-            logger.error(f"Error reading gamma enable for {self.sn}: {e}")
+            self.log.error(f"Error reading gamma enable for {self.sn}: {e}")
         return False
 
     def set_gamma(self, gamma: float = 1.0):
         """Sets the gamma correction value only if GammaEnable is already True."""
         try:
             if not self.get_gamma_enable():
-                logger.error(f"Cannot set gamma: GammaEnable is False for {self.sn}.")
+                self.log.error(f"Cannot set gamma: GammaEnable is False for {self.sn}.")
                 return
             if PySpin.IsWritable(self.node_gamma):
                 self.node_gamma.SetValue(float(gamma))
-                logger.info(f"Gamma set to {gamma} for {self.sn}")
+                self.log.info(f"Gamma set to {gamma} for {self.sn}")
             else:
-                logger.error(f"Gamma node is not writable for camera {self.sn}")
+                self.log.error(f"Gamma node is not writable for camera {self.sn}")
         except Exception as e:
-            logger.error(f"Error setting gamma value: {e}")
+            self.log.error(f"Error setting gamma value: {e}")
 
     def set_gamma_enable(self, enabled: bool):
         """Enables or disables gamma correction (Matches Frame Rate Enable pattern)."""
         try:
             if PySpin.IsWritable(self.node_gammaenable_mode):
                 self.node_gammaenable_mode.SetValue(enabled)
-                logger.info(f"Gamma enable set to {enabled} for {self.sn}")
+                self.log.info(f"Gamma enable set to {enabled} for {self.sn}")
             else:
-                logger.error(f"GammaEnable node is not writable for {self.sn}")
+                self.log.error(f"GammaEnable node is not writable for {self.sn}")
         except Exception as e:
-            logger.error(f"Error setting gamma enable: {e}")
+            self.log.error(f"Error setting gamma enable: {e}")
 
 
 class MockSettings(BaseSettings):
@@ -419,6 +420,7 @@ class MockSettings(BaseSettings):
     """
 
     def __init__(self):
+        self.log = logging.getLogger(self.__class__.__name__)
         # Default internal state
         self._wb_auto_mode = "Off"
         self._wb_red = 1.0

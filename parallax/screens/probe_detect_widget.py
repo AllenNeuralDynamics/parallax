@@ -10,9 +10,6 @@ from PyQt6.uic import loadUi
 
 from parallax.config.config_path import ui_dir
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class ProbeDetectWidget(QWidget):
     """Settings menu widget to control a microscope screen."""
@@ -20,6 +17,7 @@ class ProbeDetectWidget(QWidget):
     def __init__(self, parent, model, screen):
         """Initialize the ReticleDetectWidget with a parent, model, and screen."""
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         # Add setting button
         self.model = model
         self.parent = parent
@@ -39,12 +37,12 @@ class ProbeDetectWidget(QWidget):
         self.model.set_probe_detect_algorithms(self.screen.camera_name, algorithm)
         # Run open cv default detection
         if self.settingMenu.radioButton2.isChecked():
-            print(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
+            self.log.info(f"{self.screen.camera_name} - 'OpenCV' tracking selected")
             self.screen.set_probe_detect_algorithms("opencv")
 
         # Yolo v11 detection
         elif self.settingMenu.radioButton1.isChecked():
-            print(f"{self.screen.camera_name} - 'YoloV11' tracking selected")
+            self.log.info(f"{self.screen.camera_name} - 'YoloV11' tracking selected")
             self.screen.set_probe_detect_algorithms("yolo")
 
     def _get_setting_button(self):

@@ -21,9 +21,6 @@ import numpy as np
 from parallax.cameras.calibration_camera import triangulate
 from parallax.utils.coords_converter import apply_reticle_adjustments
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class ScreenCoordsMapper:
     """
@@ -44,6 +41,7 @@ class ScreenCoordsMapper:
             y (QLineEdit): UI element to display the calculated global Y coordinate.
             z (QLineEdit): UI element to display the calculated global Z coordinate.
         """
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.screen_widgets = screen_widgets
         self.reticle_selector = reticle_selector
@@ -98,8 +96,8 @@ class ScreenCoordsMapper:
         self.ui_y.setText(str(global_y))
         self.ui_z.setText(str(global_z))
 
-        logger.debug(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
-        print(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
+        self.log.debug(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
+        self.log.info(f"  Global coordinates: ({global_x}, {global_y}, {global_z})")
 
     def reticle_detection_status_change(self):
         """Change the reticle detection status and update the dropdown accordingly."""
@@ -152,7 +150,7 @@ class ScreenCoordsMapper:
         # Get detected points from cameras. This is no more than 2. Return most recent if >2.
         cameras_detected_pts = self.model.get_cameras_detected_pts()
         if len(cameras_detected_pts) < 2:
-            logger.debug("Not enough detected points to calculate global coordinates")
+            self.log.debug("Not enough detected points to calculate global coordinates")
             return None
 
         # Retrieve camera data for bundle adjustment
@@ -167,14 +165,14 @@ class ScreenCoordsMapper:
                 tip_coordsB = pts
 
         if not camA or not camB or tip_coordsA is None or tip_coordsB is None:
-            logger.debug("Insufficient camera data to compute global coordinates")
+            self.log.debug("Insufficient camera data to compute global coordinates")
             return None
 
         # Calculate global coordinates using the stereo
         camA_params = self.model.get_camera_params(camA)
         camB_params = self.model.get_camera_params(camB)
         if camA_params is None or camB_params is None:
-            logger.debug("Camera intrinsic parameters are not available")
+            self.log.debug("Camera intrinsic parameters are not available")
             return None
 
         global_coords = triangulate(ptsA=tip_coordsA, ptsB=tip_coordsB, paramsA=camA_params, paramsB=camB_params)

@@ -17,7 +17,6 @@ class FakeYOLOClient:
 
     def start_client(self):
         self.running = True
-        print(f"FAKE {self.name} started.")
 
     def stop(self):
         self.running = False

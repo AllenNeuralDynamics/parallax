@@ -16,9 +16,6 @@ from parallax.config.config_path import ui_dir
 from parallax.stages.stage_controller import StageController
 from parallax.utils.coords_converter import global_to_local, local_to_global
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class Calculator(QWidget):
     """
@@ -37,6 +34,7 @@ class Calculator(QWidget):
             stage_controller (object): Interface for controlling stage hardware.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.stage_controller = StageController(self.model)
         self.reticle_selector = reticle_selector
@@ -124,7 +122,7 @@ class Calculator(QWidget):
                 if transM is not None:
                     push_button = self.findChild(QPushButton, f"convert_{stage_sn}")
                     if not push_button:
-                        logger.warning(f"Error: QPushButton for {stage_sn} not found")
+                        self.log.warning(f"Error: QPushButton for {stage_sn} not found")
                         continue
                     self._enable(stage_sn)
                     push_button.clicked.connect(self._create_convert_function(stage_sn))
@@ -142,8 +140,8 @@ class Calculator(QWidget):
         Returns:
             function: A lambda function for performing coordinate conversion.
         """
-        logger.debug("\n=== Creating convert function ===")
-        logger.debug(f"Stage SN: {stage_sn}")
+        self.log.debug("\n=== Creating convert function ===")
+        self.log.debug(f"Stage SN: {stage_sn}")
         return lambda: self._convert(stage_sn)
 
     def _convert(self, sn):
@@ -162,10 +160,10 @@ class Calculator(QWidget):
         localY = self.findChild(QLineEdit, f"localY_{sn}").text()
         localZ = self.findChild(QLineEdit, f"localZ_{sn}").text()
 
-        logger.debug("- Convert -")
-        logger.debug(f"User Input (Global): {globalX}, {globalY}, {globalZ}")
-        logger.debug(f"User Input (Local): {localX}, {localY}, {localZ}")
-        logger.debug(f"User Input (Local): {self.reticle}")
+        self.log.debug("- Convert -")
+        self.log.debug(f"User Input (Global): {globalX}, {globalY}, {globalZ}")
+        self.log.debug(f"User Input (Local): {localX}, {localY}, {localZ}")
+        self.log.debug(f"User Input (Local): {self.reticle}")
         trans_type, local_pts, global_pts = self._get_transform_type(globalX, globalY, globalZ, localX, localY, localZ)
         if trans_type == "global_to_local":
             if global_pts is not None:
@@ -180,7 +178,7 @@ class Calculator(QWidget):
             if global_pts_ret is not None:
                 self._show_global_pts_result(sn, global_pts_ret)
         else:
-            logger.warning(f"Error: Invalid transforsmation type for {sn}")
+            self.log.warning(f"Error: Invalid transforsmation type for {sn}")
             return
 
     def _show_local_pts_result(self, sn, local_pts):
@@ -274,7 +272,7 @@ class Calculator(QWidget):
         if not sn:
             return
         if self.findChild(QGroupBox, f"groupBox_{sn}") is None:
-            print("Error: Group box not found")
+            self.log.info(f"Error: Group box not found for stage {sn}")
             return
         # Clear the QLineEdit for the stage
         self.findChild(QLineEdit, f"localX_{sn}").setText("")
@@ -356,7 +354,7 @@ class Calculator(QWidget):
         Args:
             move_type (str): The type of move (e.g., "stopAll").
         """
-        print("Stopping all stages.")
+        self.log.info("Stopping all stages.")
         command = {"move_type": move_type}
         self.stage_controller.request(command)
 
@@ -388,17 +386,17 @@ class Calculator(QWidget):
             y = float(self.findChild(QLineEdit, f"localY_{stage_sn}").text()) / 1000
             z = 0  # Z is inverted in the server.
         except ValueError as e:
-            logger.warning(f"Invalid input for stage {stage_sn}: {e}")
+            self.log.warning(f"Invalid input for stage {stage_sn}: {e}")
             return  # Optionally handle the error gracefully (e.g., show a message to the user)
 
         # Safety Check: Check z=15 is high position of stage.
         if not self._is_z_safe_pos(stage_sn, x, y, z):
-            logger.warning(f"Invalid z position for stage {stage_sn}")
+            self.log.warning(f"Invalid z position for stage {stage_sn}")
             return
 
         # Use the confirm_move_stage function to ask for confirmation
         if not self._confirm_move_stage(x, y):
-            print("Stage move canceled by user.")
+            self.log.info("Stage move canceled by user.")
             return  # User canceled the move
 
         # If the user confirms, proceed with moving the stage
@@ -407,7 +405,7 @@ class Calculator(QWidget):
 
         command = {"stage_sn": stage_sn, "move_type": "moveXY0", "x": x, "y": y, "z": z}
         self.stage_controller.request(command)
-        print(f"Moving stage {stage_sn} to ({np.round(x * 1000)}, {np.round(y * 1000)}, 0)")
+        self.log.info(f"Moving stage {stage_sn} to ({np.round(x * 1000)}, {np.round(y * 1000)}, 0)")
 
     def _is_z_safe_pos(self, stage_sn, x, y, z=0):
         """
@@ -442,7 +440,7 @@ class Calculator(QWidget):
                     return True
 
             except Exception as e:
-                logger.error(f"Error applying transformation for stage {stage_sn}: {e}")
+                self.log.error(f"Error applying transformation for stage {stage_sn}: {e}")
                 return False
         return False
 

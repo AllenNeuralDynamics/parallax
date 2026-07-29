@@ -9,7 +9,6 @@ from parallax.session.session_state import ArcAngle
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 def get_spin_bregma(spin_global: float, reticle_rot: float) -> Optional[float]:

@@ -10,7 +10,6 @@ from parallax.config.config_path import reticle_metadata_file  # Assuming you de
 from parallax.config.schemas import ReticleConfig
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 class ReticleManager:
@@ -42,11 +41,11 @@ class ReticleManager:
             return cls._data
 
         except Exception as e:
-            print("\n" + "!" * 60)
-            print("CRITICAL RETICLE CONFIGURATION ERROR")
-            print(f"File: {cls.reticle_file}")
-            print(f"Error: {e}")
-            print("!" * 60 + "\n")
+            logger.critical("\n" + "!" * 60)
+            logger.critical("CRITICAL RETICLE CONFIGURATION ERROR")
+            logger.critical(f"File: {cls.reticle_file}")
+            logger.critical(f"Error: {e}")
+            logger.critical("!" * 60 + "\n")
             logger.critical(f"App launch aborted due to reticle config error: {e}")
             sys.exit(1)
 

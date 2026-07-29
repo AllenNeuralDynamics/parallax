@@ -30,9 +30,6 @@ from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from ui.resources import rc  # noqa
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt6.uic.uiparser/properties
 logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
@@ -71,16 +68,17 @@ class MainWindow(QMainWindow):
         Args:
             model (object): The data model for the application.
         """
+        self.log = logging.getLogger(self.__class__.__name__)
         QMainWindow.__init__(self)  # Initialize the QMainWindow
         self.model = model
 
         # Update camera information
         self.refresh_cameras()
-        logger.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
+        self.log.debug(f"nPySpinCameras: {self.model.nPySpinCameras}, nMockCameras: {self.model.nMockCameras}")
 
         # Update Stage information
         self.refresh_stages()
-        logger.debug(f"nStages: {self.model.nStages}")
+        self.log.debug(f"nStages: {self.model.nStages}")
 
         # Load the main widget with UI components
         ui = os.path.join(ui_dir, "mainWindow.ui")
@@ -151,10 +149,10 @@ class MainWindow(QMainWindow):
         )
 
         if response == QMessageBox.StandardButton.Yes:
-            logger.debug("User clicked Yes.")
+            self.log.debug("User clicked Yes.")
             return True
         else:
-            logger.debug("User clicked No.")
+            self.log.debug("User clicked No.")
             return False
 
     def ask_session_restore(self):
@@ -171,8 +169,8 @@ class MainWindow(QMainWindow):
             for sn in self.model.get_list_of_stage_sns():
                 if self.model.is_calibrated(sn):
                     calibrated_stages.append(sn)
-            print(" Restored session info to cameras:", self.model.get_calibrated_camera_sns())
-            print(" Restored session info to stages:", calibrated_stages)
+            self.log.info(f" Restored session info to cameras: {self.model.get_calibrated_camera_sns()}")
+            self.log.info(f" Restored session info to stages: {calibrated_stages}")
         else:
             # Clear yaml file
             self.model.clear_session_config()
@@ -212,7 +210,7 @@ class MainWindow(QMainWindow):
         try:
             self.model.scan_for_cameras()
         except Exception as e:
-            print(f"Error refreshing cameras: {e}")
+            self.log.info(f"Error refreshing cameras: {e}")
 
     def refresh_stages(self):
         """Search for connected stages"""
@@ -237,10 +235,10 @@ class MainWindow(QMainWindow):
         self.model.refresh_camera = is_streaming
 
         if is_streaming:
-            print("\nRefreshing Screens")
+            self.log.info("Refreshing Screens")
             self.screen_widget_manager.start_streaming()
         else:
-            print("Stop Refreshing Screens")
+            self.log.info("Stop Refreshing Screens")
             self.screen_widget_manager.stop_streaming()
 
         self.actionRecording.setEnabled(is_streaming)
@@ -265,9 +263,9 @@ class MainWindow(QMainWindow):
         if new_dir:
             self.dir = new_dir
             self.save_user_configs()  # Save the new directory to user settings
-            print("Selected directory:", self.dir)
+            self.log.info(f"Selected directory: {self.dir}")
         else:
-            print("Selection canceled. Keeping previous:", self.dir)
+            self.log.info(f"Selection canceled. Keeping previous: {self.dir}")
 
     def closeEvent(self, event: QCloseEvent | None) -> None:
         """

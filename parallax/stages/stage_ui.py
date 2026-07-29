@@ -10,10 +10,6 @@ import logging
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QWidget
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class StageUI(QWidget):
     """User interface for stage control and display."""
@@ -23,6 +19,7 @@ class StageUI(QWidget):
     def __init__(self, control_panel):
         """Initialize StageUI object"""
         QWidget.__init__(self)
+        self.log = logging.getLogger(self.__class__.__name__)
         self.selected_stage = None
         self.model = control_panel.model
         self.ui = control_panel

@@ -4,16 +4,11 @@ using various image processing techniques.
 """
 
 import json
-import logging
 
 import cv2
 import numpy as np
 
 from parallax.config.config_path import img_processing_config_file
-
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 class MaskGenerator:
@@ -23,8 +18,6 @@ class MaskGenerator:
         """Initialize the MaskGenerator object.
 
         Args:
-            config_path (str, optional): Path to the JSON configuration file.
-            config_dict (dict, optional): Configuration dictionary.
             initial_detect (bool, optional): Whether to perform initial detection with different settings.
         """
         self.img = None
@@ -49,7 +42,7 @@ class MaskGenerator:
                     full_config = json.load(f)
                     return full_config.get("MaskGenerator", {})
             except (FileNotFoundError, json.JSONDecodeError) as e:
-                logger.warning(f"Could not load config file {config_path}: {e}")
+                self.log.warning(f"Could not load config file {config_path}: {e}")
                 return {}
 
         return {}
@@ -277,7 +270,7 @@ class MaskGenerator:
                 self.initial_detect = self.config["initialization"].get("initial_detect", self.initial_detect)
 
         if img is None:
-            logger.debug("Input image of ReticleFrameDetection is None.")
+            self.log.debug("Input image of ReticleFrameDetection is None.")
             return None
 
         # Convert image to grayscale if it is not already
@@ -322,5 +315,5 @@ if __name__ == "__main__":
         cv2.waitKey(0)
         cv2.destroyAllWindows()
     else:
-        print("No reticle detected in the image.")
+        self.log.info(f"No reticle detected in the image.")
     """

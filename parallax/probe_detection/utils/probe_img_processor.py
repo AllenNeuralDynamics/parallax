@@ -13,7 +13,6 @@ from parallax.utils.utils import UtilsCrops
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 
 class ProbeImageProcessor:
@@ -92,7 +91,7 @@ class ProbeImageProcessor:
             "coordinate_conversion": {"default_size": {"width": 512, "height": 512}},
             "bbox": {"default_padding": 10},
             "debug": {
-                "save_intermediate_images": True,
+                "save_intermediate_images": False,
                 "line_color": [0, 255, 0],
                 "line_thickness": 3,
                 "point_color": [0, 0, 255],
@@ -356,7 +355,7 @@ class ProbeImageProcessor:
             for x1, y1, x2, y2, dist in hits:
                 cv2.line(mask_result, (x1, y1), (x2, y2), color, line_thickness)
         else:
-            print("No line mask created.")
+            logger.info("No line mask created.")
             return None
 
         return mask_result
@@ -631,7 +630,8 @@ class ProbeImageProcessor:
         """
 
         if mask is None:
-            print("Mask is None, cannot determine probe points.")
+            logger.info("Mask is None, cannot determine probe points.")
+            return None, None
 
         mask = cv2.copyMakeBorder(mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0])
         dist_transform = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
@@ -715,9 +715,9 @@ class ProbeImageProcessor:
                 return "Unknown"
 
 
+"""
 # Example usage
 if __name__ == "__main__":
-    """
     # Local - Preprocessing
     # crop the global mask to get initial local mask
     mask_global = np.zeros((1080, 1920), dtype=np.uint8)  # Example global mask
@@ -732,9 +732,9 @@ if __name__ == "__main__":
     points = [(400, 900)]  # Example point in global coords
 
     if points is not None:
-        print("points:", points)
+        logger.info(f"points: {points}")
         points_local = ProbeImageProcessor.convert_pts_after_crop_resize(points, bbox)  # to crop coords
-        print("points_local:", points_local)
+        logger.info(f"points_local: {points_local}")
         mask_line = ProbeImageProcessor.detect_line_on_pt(img_local, points_local[0], mask=mask_local)
 
     # Post processing Lift local mask to global

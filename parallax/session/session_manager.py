@@ -20,8 +20,6 @@ from parallax.session.session_state import CameraSession, Session, StageSession
 
 # Set logger name
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 # =========================
 # Custom YAML Dumper
@@ -87,7 +85,6 @@ class SessionManager:
 
             # Wrap it under a 'model' key to match the expected YAML structure
             output_data = {"model": data}
-            logger.debug(output_data)
 
             with open(cls.session_file, "w") as file:
                 yaml.dump(output_data, file, Dumper=CleanDumper, default_flow_style=False, sort_keys=False)

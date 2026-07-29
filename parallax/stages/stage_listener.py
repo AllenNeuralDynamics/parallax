@@ -9,15 +9,12 @@ import requests
 from parallax.utils.coords_converter import apply_reticle_adjustments, local_to_global
 from parallax.utils.signals import Signal
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class PathfinderServer:
     """Utility to fetch stage information from the hardware server."""
 
     def __init__(self, url: str):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.url = url
 
     def get_instances(self) -> list:
@@ -27,7 +24,7 @@ class PathfinderServer:
             if response.status_code == 200:
                 return response.json().get("ProbeArray", [])
         except Exception as e:
-            logger.debug(f"Stage HttpServer not enabled: {e}")
+            self.log.debug(f"Stage HttpServer not enabled: {e}")
 
         return []
 
@@ -39,6 +36,7 @@ class Worker(threading.Thread):
     def __init__(self, url):
         """Initialize worker thread"""
         super().__init__(daemon=True)  # daemon=True ensures thread dies when app closes
+        self.log = logging.getLogger(self.__class__.__name__)
         self.url = url
         self._stop_event = threading.Event()
 
@@ -68,36 +66,36 @@ class Worker(threading.Thread):
 
     def run(self):
         """The main loop of the native thread with crash protection."""
-        logger.info("Stage Worker thread started.")
+        self.log.info("Stage Worker thread started.")
         while not self._stop_event.is_set():
             try:
                 self.fetchData()
             except Exception as e:
                 # Log the error but DON'T let the loop exit
-                logger.error(f"Worker Loop Error: {e}", exc_info=True)
+                self.log.error(f"Worker Loop Error: {e}", exc_info=True)
                 time.sleep(2)
             time.sleep(self.curr_interval)
-        logger.info("Stage Worker thread stopped gracefully.")
+        self.log.info("Stage Worker thread stopped gracefully.")
 
     def _print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
-        print("Trouble Shooting: ")
-        print("1. Check New Scale Stage connection.")
-        print("2. Enable Http Server: 'http://localhost:8080/'")
-        print("3. Click 'Connect' on New Scale SW")
+        self.log.info("Trouble Shooting: ")
+        self.log.info("1. Check New Scale Stage connection.")
+        self.log.info("2. Enable Http Server: 'http://localhost:8080/'")
+        self.log.info("3. Click 'Connect' on New Scale SW")
 
     def get_data(self):
         """Fetch data from the URL."""
         response = requests.get(self.url, timeout=1)
         if response.status_code != 200:
-            print(f"Failed to access {self.url}. Status code: {response.status_code}")
+            self.log.info(f"Failed to access {self.url}. Status code: {response.status_code}")
             return
 
         data = response.json()
         if data["Probes"] == 0:
             if self.is_error_log_printed is False:
                 self.is_error_log_printed = True
-                print("\nStage is not connected to New Scale SW")
+                self.log.info("\nStage is not connected to New Scale SW")
                 self._print_trouble_shooting_msg()
             return
         return data
@@ -132,7 +130,7 @@ class Worker(threading.Thread):
         except Exception as e:
             if not self.is_error_log_printed:
                 self.is_error_log_printed = True
-                print(f"\nStage HttpServer not enabled.: {e}")
+                self.log.info(f"\nStage HttpServer not enabled.: {e}")
                 self._print_trouble_shooting_msg()
 
     def _is_any_stage_move(self, data):
@@ -162,6 +160,7 @@ class StageListener:
     """Pure Python listener using native threading and signals."""
 
     def __init__(self, model):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
 
         # Native Signal
@@ -216,7 +215,7 @@ class StageListener:
             for reticle in self.model.reticle_metadata.reticles.keys():
                 bregma_pt = apply_reticle_adjustments(self.model, global_pts, reticle=reticle)
                 # bregma_pt_ = local_to_bregma(self.model, sn, local_pts, reticle=reticle) # for the sanity check
-                # print(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
+                # self.log.info(f"{reticle}-bregma_pt: {bregma_pt}, bregma_pt_: {bregma_pt_}")
                 if bregma_pt is not None:
                     # make JSON-safe now
                     bregma_pts[reticle] = (
@@ -259,7 +258,7 @@ class StageListener:
             if not self.worker.join(timeout=2.0):
                 # If it doesn't join, it's safer to just update the URL
                 # rather than force-killing or starting a second thread.
-                logger.warning("Worker failed to join; falling back to URL update.")
+                self.log.warning("Worker failed to join; falling back to URL update.")
                 self.worker.update_url(self.model.config.pathfinder_server.url)
                 return
 
@@ -275,4 +274,4 @@ class StageListener:
         # Start the new worker
         self.worker.start()
 
-        print(f"Stage Listener restarted with URL: {new_url}")
+        self.log.info(f"Stage Listener restarted with URL: {new_url}")

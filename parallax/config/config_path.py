@@ -3,7 +3,6 @@
 This module defines the paths used in the project and sets up logging.
 """
 
-import logging
 from pathlib import Path
 
 PARALLAX_ASCII = r"""
@@ -37,6 +36,7 @@ session_file = data_dir / "session.yaml"
 settings_file = data_dir / "settings.yaml"
 stage_server_config_file = data_dir / "stage_server_config.json"
 reticle_metadata_file = data_dir / "reticle_metadata.yaml"
+logging_file = data_dir / "logging.yaml"
 img_processing_config_file = project_root / "parallax" / "config" / "image_processing_config.json"
 
 # CNN-specific directories and string paths for subprocess/argparse
@@ -76,23 +76,3 @@ palette_tips = [
     (0, 100, 50),
     (0, 255, 0),
 ]
-
-# Logging setup
-
-
-def setup_logging():
-    """Set up logging to file."""
-    logger = logging.getLogger()
-    logger.handlers.clear()
-    logger.setLevel(logging.WARNING)
-
-    log_file_path = debug_dir / "parallax_debug.log"
-    with open(log_file_path, "w"):  # Clear the log file
-        pass
-
-    log_handler = logging.FileHandler(log_file_path)
-    log_handler.setLevel(logging.DEBUG)
-    log_handler.setFormatter(
-        logging.Formatter(fmt="%(asctime)s:%(name)s:%(levelname)s:%(filename)s:%(lineno)d: %(message)s")
-    )
-    logger.addHandler(log_handler)

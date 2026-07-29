@@ -15,10 +15,6 @@ from parallax.config.config_path import palette_cool, palette_tips, palette_warm
 from parallax.probe_detection.opencv_process_worker import OpenCVProcessWorker
 from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class DrawWorkerSignal(QObject):
     """Signals for the DrawWorker."""
@@ -44,6 +40,7 @@ class DrawWorker(QRunnable):
             model (object): The main model containing stage and camera data.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.signals = DrawWorkerSignal()
         self.name = name
         self.reticle_coords = reticle_coords
@@ -184,7 +181,7 @@ class DrawWorker(QRunnable):
     @pyqtSlot()
     def run(self):
         """Run the worker thread."""
-        logger.debug(f"{self.name} - draw worker running ")
+        self.log.debug(f"{self.name} - draw worker running ")
         while self.running:
             if self.new:
                 self._draw_reticle()
@@ -194,7 +191,7 @@ class DrawWorker(QRunnable):
                 self.signals.frame_processed.emit(self.frame)
                 self.new = False
             time.sleep(0.001)
-        logger.debug(f"{self.name} - draw worker running done")
+        self.log.debug(f"{self.name} - draw worker running done")
         self.signals.finished.emit()
 
     def stop_running(self):
@@ -298,6 +295,7 @@ class ProbeDetectManager(QObject):
             camera_name (str): Name of the camera being managed for probe detection.
         """
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.name = camera_name
         self.worker = None  # Worker for refersh screen
@@ -361,9 +359,9 @@ class ProbeDetectManager(QObject):
                             keypoints, check_boundary=check_boundary
                         )
                         detection["keypoints_orig"] = refined_keypoints
-                        logger.debug(f"{self.name} Received local {len(detections)} YOLO detections.")
+                        self.log.debug(f"{self.name} Received local {len(detections)} YOLO detections.")
                     except Exception as e:
-                        logger.error(f"Error refining keypoints: {e}")
+                        self.log.error(f"Error refining keypoints: {e}")
 
         # Draw on screen
         if self.worker is not None:
@@ -417,22 +415,22 @@ class ProbeDetectManager(QObject):
         try:
             self.found_coords.emit(stage_ts, img_ts, sn, stage_info, tip_coords, base_coords)
         except Exception as e:
-            logger.error(f"Error emitting found_coords: {e}")
+            self.log.error(f"Error emitting found_coords: {e}")
 
     def start(self):
         """
         Start the probe detection manager by initializing the worker thread and running it.
         """
-        logger.debug(f" {self.name} Starting ProbeDetectManager for with algorithm {self.detect_algorithm}")
+        self.log.debug(f" {self.name} Starting ProbeDetectManager for with algorithm {self.detect_algorithm}")
         wait_time = 0
         while (self.worker is not None or self.opencvProcessWorker is not None) and wait_time < 3.0:
             time.sleep(0.1)
             wait_time += 0.1
         if self.worker is not None or self.opencvProcessWorker is not None:
-            logger.debug(f"{self.name} Previous thread not cleaned up")
+            self.log.debug(f"{self.name} Previous thread not cleaned up")
             return
 
-        logger.debug(f"{self.name} - Starting thread")
+        self.log.debug(f"{self.name} - Starting thread")
         self._init_draw_thread()
         self.worker.start_running()
         self.threadpool.start(self.worker)
@@ -471,8 +469,8 @@ class ProbeDetectManager(QObject):
         """
         Stop the probe detection manager by halting the worker thread.
         """
-        logger.debug(f"  {self.name} Stopping ProbeDetectManager")
-        logger.debug(f"{self.name} - Stopping thread")
+        self.log.debug(f"  {self.name} Stopping ProbeDetectManager")
+        self.log.debug(f"{self.name} - Stopping thread")
         if self.opencvProcessWorker is not None:
             self.opencvProcessWorker.stop_running()
 
@@ -488,12 +486,12 @@ class ProbeDetectManager(QObject):
 
     def _onProcessThreadFinished(self):
         """Handle thread finished signal."""
-        logger.debug(f"{self.name} Opencv thread finished")
+        self.log.debug(f"{self.name} Opencv thread finished")
         self.opencvProcessWorker = None
 
     def _onYoloProcessThreadFinished(self):
         """Handle thread finished signal."""
-        logger.debug(f"{self.name} YOLO thread finished")
+        self.log.debug(f"{self.name} YOLO thread finished")
         self.yoloProcessWorker = None
 
     def process(self, frame, timestamp: float):
@@ -539,7 +537,7 @@ class ProbeDetectManager(QObject):
                 "stage_z": moving_stage.stage_z,
             }
         self.found_coords.emit(stage_ts, img_ts, sn, stage_info, tip_coords, base_coords)
-        logger.debug(f"{self.name} Emit - s({stage_ts}) i({img_ts}) -{tip_coords}")
+        self.log.debug(f"{self.name} Emit - s({stage_ts}) i({img_ts}) -{tip_coords}")
 
     def found_probe_moving(self, img_ts, sn, tip_coords, base_coords):
         """
@@ -564,7 +562,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number.
         """
-        logger.debug(f"  {self.name} Start detection for {sn} with algorithm {self.detect_algorithm}")
+        self.log.debug(f"  {self.name} Start detection for {sn} with algorithm {self.detect_algorithm}")
         if self.worker is not None:  # Clear current tip/base coords and mask
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
@@ -591,7 +589,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
-        logger.debug(f"  {self.name} Enable calibration for {sn} with algorithm {self.detect_algorithm}")
+        self.log.debug(f"  {self.name} Enable calibration for {sn} with algorithm {self.detect_algorithm}")
         if self.worker is not None:
             self.worker.update_tip_coords(None, None)
             self.worker.update_base_coords(None, None)
@@ -610,7 +608,7 @@ class ProbeDetectManager(QObject):
         Args:
             sn (str): Serial number of the device.
         """
-        logger.debug(f"  {self.name} Disable calibration for {sn} with algorithm {self.detect_algorithm}")
+        self.log.debug(f"  {self.name} Disable calibration for {sn} with algorithm {self.detect_algorithm}")
         if self.opencvProcessWorker is not None:
             self.opencvProcessWorker.disable_calib()
         if self.yoloProcessWorker is not None:
@@ -632,7 +630,7 @@ class ProbeDetectManager(QObject):
             self.opencvProcessWorker.set_name(self.name)
         if self.yoloProcessWorker is not None:
             self.yoloProcessWorker.set_name(self.name)
-        logger.debug(f"{self.name} set camera name")
+        self.log.debug(f"{self.name} set camera name")
 
     def get_reticle_coords(self, name):
         """Get the reticle coordinates based on the model's data."""

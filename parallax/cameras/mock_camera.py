@@ -8,9 +8,6 @@ import numpy as np
 from parallax.cameras.camera_base_binding import BaseCamera
 from parallax.cameras.settings import MockSettings
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 class MockCamera(BaseCamera):
     """Mock Camera that supports image or video input, or generates random frames"""
@@ -20,6 +17,7 @@ class MockCamera(BaseCamera):
     def __init__(self):
         """Initialize the mock camera with default settings"""
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self._name = f"MockCamera{MockCamera.n_cameras}"
         MockCamera.n_cameras += 1
         self.settings = MockSettings()

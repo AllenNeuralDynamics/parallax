@@ -20,16 +20,13 @@ from parallax.screens.axis_filter import AxisFilter
 from parallax.screens.no_filter import NoFilter
 from parallax.session.session_state import CameraParams
 
-# Set logger name
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 # Set the logging level for PyQt6.uic.uiparser/properties to WARNING, to ignore DEBUG messages
 logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
 
 
 class ScreenWidget(pg.GraphicsView):
-    """Screens Class"""
+    """Screen Widget Class"""
 
     selected = pyqtSignal(str, tuple)  # camera name, (x, y)
     cleared = pyqtSignal()
@@ -40,6 +37,7 @@ class ScreenWidget(pg.GraphicsView):
     def __init__(self, camera, model=None, parent=None):
         """Init screen widget object"""
         super().__init__(parent=parent)
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
 
         self.view_box = pg.ViewBox(defaultPadding=0)
@@ -127,7 +125,7 @@ class ScreenWidget(pg.GraphicsView):
         if self.camera.running:
             data = self.camera.get_last_image_data()
             if data is None:
-                logger.warning(f"{self.camera_name} - No data received from camera.")
+                self.log.warning(f"{self.camera_name} - No data received from camera.")
                 return
             self._set_data(data)
         else:
@@ -284,7 +282,7 @@ class ScreenWidget(pg.GraphicsView):
         self.click_target.setPos(pos)
         self.click_target.setVisible(True)
         camera_name = self.get_camera_name()
-        print(f"Clicked position on {camera_name}: {pos}")
+        self.log.info(f"Clicked position on {camera_name}: {pos}")
         self.selected.emit(camera_name, pos)
 
     def _zoom_out(self):
@@ -307,7 +305,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
-        logger.debug(f"{self.camera_name} - run_reticle_detection ")
+        self.log.debug(f"{self.camera_name} - run_reticle_detection ")
         self.filter.stop()
         self.axisFilter.stop()
         self.probeDetector.stop()
@@ -316,7 +314,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_cnn_reticle_detection(self):
         """Run reticle detection by stopping the filter and starting the reticle detector."""
-        logger.debug(f"{self.camera_name} - run_reticle_detection ")
+        self.log.debug(f"{self.camera_name} - run_reticle_detection ")
         self.filter.stop()
         self.axisFilter.stop()
         self.probeDetector.stop()
@@ -325,7 +323,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_probe_detection(self):
         """Run probe detection by stopping the filter and starting the probe detector."""
-        logger.debug(f"{self.camera_name} - run_probe_detection")
+        self.log.debug(f"{self.camera_name} - run_probe_detection")
         self.filter.stop()
         self.axisFilter.stop()
         self.reticleDetector.stop()
@@ -334,7 +332,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_no_filter(self):
         """Run without any filter by stopping the reticle detector and probe detector."""
-        logger.debug(f"{self.camera_name} - run no_filter")
+        self.log.debug(f"{self.camera_name} - run no_filter")
         self.reticleDetector.stop()
         self.reticleDetectorCNN.stop()
         self.probeDetector.stop()
@@ -343,7 +341,7 @@ class ScreenWidget(pg.GraphicsView):
 
     def run_axis_filter(self):
         """Run without any filter by stopping the reticle detector and probe detector."""
-        logger.debug(f"{self.camera_name} - run_axis_filter")
+        self.log.debug(f"{self.camera_name} - run_axis_filter")
         self.filter.stop()
         self.reticleDetector.stop()
         self.reticleDetectorCNN.stop()
@@ -352,19 +350,20 @@ class ScreenWidget(pg.GraphicsView):
 
     def get_mask_from_probe_detector(self):
         """Request probe detector to save image to get spin."""
-        logger.debug(f"{self.camera_name} - get_mask_from_probe_detector")
+        self.log.debug(f"{self.camera_name} - get_mask_from_probe_detector")
         mask = self.probeDetector.get_mask()
         return mask
 
     def get_frame_from_probe_detector(self):
         """Request probe detector to save image to get spin."""
-        logger.debug(f"{self.camera_name} - get_frame_from_probe_detector")
+        self.log.debug(f"{self.camera_name} - get_frame_from_probe_detector")
         frame = self.probeDetector.get_frame()
         return frame
 
     def found_reticle_coords(self, x_coords: np.ndarray, y_coords: np.ndarray, camera_matrix: CameraParams):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
-        print(f"\nfound_reticle_coords: {self.camera_name}\nrvecs: {camera_matrix.rvec}\ntvecs: {camera_matrix.tvec}")
+        self.log.info(f"\nfound_reticle_coords: {self.camera_name}")
+        self.log.info(f"xrvecs: {camera_matrix.rvec}\ntvecs: {camera_matrix.tvec}")
         coords = np.array([x_coords, y_coords])
         self.model.add_coords_axis(self.camera_name, coords)
         self.model.add_camera_params(self.camera_name, camera_matrix)

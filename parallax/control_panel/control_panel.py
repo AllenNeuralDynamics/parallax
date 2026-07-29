@@ -29,9 +29,6 @@ from parallax.stages.stage_server_ipconfig import StageServerIPConfig
 from parallax.stages.stage_snapshot import StageSnapshotHandler
 from parallax.stages.stage_ui import StageUI
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
-
 
 @dataclass
 class MenuActions:
@@ -50,6 +47,7 @@ class ControlPanel(QWidget):
 
     def __init__(self, model: Any, screen_widgets: List[ScreenWidget], actions: MenuActions):
         super().__init__()
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
         self.screen_widgets = screen_widgets
         self.menu_actions = actions
@@ -153,7 +151,7 @@ class ControlPanel(QWidget):
         Returns:
             None
         """
-        logger.debug("Initializing stages...")
+        self.log.debug("Initializing stages...")
         # Initialize Stage UI and Listener
         self.stageUI = StageUI(self)
         self.stageListener = StageListener(self.model)
@@ -178,7 +176,7 @@ class ControlPanel(QWidget):
         if not self.stage_server_ipconfig.update_url():
             return
 
-        print("Refreshing stages with updated server configuration...")
+        self.log.info("Refreshing stages with updated server configuration...")
         # refresh the stage using server IP address
         self.stage_server_ipconfig.refresh_stages()  # Update stages server url to model # models.transforms updated
         self.stageUI.initialize()
