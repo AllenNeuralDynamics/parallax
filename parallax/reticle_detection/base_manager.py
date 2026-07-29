@@ -148,20 +148,18 @@ class BaseDrawWorker(QRunnable):
 
     def _draw_coords(self, x_axis_coords, y_axis_coords):
         """Draw axis points on the frame."""
-        size = 2 if self.log.getEffectiveLevel() == logging.DEBUG else 7
         for pixel in x_axis_coords:
             draw_pt = (int(round(pixel[0])), int(round(pixel[1])))
-            cv2.circle(self.frame, draw_pt, size, (255, 255, 0), -1)
+            cv2.circle(self.frame, draw_pt, 7, (255, 255, 0), -1)
         for pixel in y_axis_coords:
             draw_pt = (int(round(pixel[0])), int(round(pixel[1])))
-            cv2.circle(self.frame, draw_pt, size, (0, 255, 255), -1)
+            cv2.circle(self.frame, draw_pt, 7, (0, 255, 255), -1)
 
     def _draw_xyz(self, origin, x, y, z):
         """Draw the XYZ axes on the frame."""
-        size = 1 if self.log.getEffectiveLevel() == logging.DEBUG else 3
-        self.frame = cv2.line(self.frame, origin, x, (255, 0, 0), size)  # Red line
-        self.frame = cv2.line(self.frame, origin, y, (0, 255, 0), size)  # Green line
-        self.frame = cv2.line(self.frame, origin, z, (0, 0, 255), size)  # Blue line
+        self.frame = cv2.line(self.frame, origin, x, (255, 0, 0), 3)  # Red line
+        self.frame = cv2.line(self.frame, origin, y, (0, 255, 0), 3)  # Green line
+        self.frame = cv2.line(self.frame, origin, z, (0, 0, 255), 3)  # Blue line
 
     def set_name(self, name):
         """Set name as camera serial number."""
