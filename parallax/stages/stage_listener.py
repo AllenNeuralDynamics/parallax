@@ -160,6 +160,7 @@ class StageListener:
     """Pure Python listener using native threading and signals."""
 
     def __init__(self, model):
+        self.log = logging.getLogger(self.__class__.__name__)
         self.model = model
 
         # Native Signal
