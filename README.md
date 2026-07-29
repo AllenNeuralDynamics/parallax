@@ -9,8 +9,8 @@ setting up and performing acute *in vivo* electrophysiology experiments.
 
 ## Prerequisites
 - **Python 3.10**: Required for compatibility with the Spinnaker library.
-- [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk) and Teledyne FLIR software for camera support.
-- [Pathfinder MPM Control Panel v.2.8 or later](https://newscaletech.com/multi-probe-micromanipulator/mpm-system-pathfinder-software/)
+- For Teledyne FLIR camera, [Spinnaker SDK 4.3 and PySpin](https://www.teledynevisionsolutions.com/support/support-center/software-firmware-downloads/iis/spinnaker-sdk-download/spinnaker-sdk--download-files/) (Teledyne FLIR's [guide](https://www.teledynevisionsolutions.com/support/support-center/technical-guidance/iis/installing-pyspin-for-the-spinnaker-sdk/))
+- For Stage control, [Pathfinder MPM Control Panel v.2.8 or later](https://newscaletech.com/multi-probe-micromanipulator/mpm-system-pathfinder-software/)
 
 
 ## Installation
@@ -99,6 +99,7 @@ uv run ruff check
 ```bash
 uv run mypy parallax
 ```
+
 
 ### Documentation
 Create the documentation html files, run:
