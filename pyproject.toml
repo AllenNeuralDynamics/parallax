@@ -18,9 +18,10 @@ classifiers = [
 ]
 
 dependencies = [
+    "numpy<2.0.0",
     "PyQt6>=6.10.0",
     "pyqtgraph",
-    "opencv-python",
+    "opencv-python<4.10.0",
     "scipy",
     "pandas",
     "scikit-image",
