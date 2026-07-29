@@ -4,21 +4,22 @@ Parallax: A GUI application for controlling hardware devices.
 """
 
 import atexit
+import logging.config
 import sys
 
+import yaml
 from PyQt6.QtWidgets import QApplication
 
 from parallax import __version__
-from parallax.config.cli import parse_args, print_arg_info
+from parallax.config.cli import parse_args
 from parallax.config.config_manager import ConfigManager
 from parallax.config.config_path import PARALLAX_ASCII, logging_file
 from parallax.config.reticle_manager import ReticleManager
+from parallax.config.schemas import LoggingConfig
 from parallax.main_window import MainWindow
 from parallax.model import Model
 from parallax.session.session_manager import SessionManager
-import yaml
-import logging.config
-from parallax.config.schemas import LoggingConfig
+
 
 def main():
     # Parse command line arguments

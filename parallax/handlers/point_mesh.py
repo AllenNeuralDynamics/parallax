@@ -65,7 +65,7 @@ class PointMeshWidget(QWidget):
     def _init_ui(self):
         """Initializes the QWebEngineView."""
         # Safety check: close existing if for some reason it exists
-        self.log.info(f"Initializing UI Web View")
+        self.log.info("Initializing UI Web View")
         if self.web_view is not None:
             self.web_view.close()
 

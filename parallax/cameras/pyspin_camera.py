@@ -58,7 +58,7 @@ class PySpinCamera(BaseCamera):
         """
         Release resources and close all PySpin cameras.
         """
-        logger.info(f"cleaning up SpinSDK")
+        logger.info("cleaning up SpinSDK")
         for camera in cls.cameras:
             camera.stop(clean=True)
         if cls.pyspin_cameras is not None:
@@ -100,10 +100,10 @@ class PySpinCamera(BaseCamera):
             self.device_color_type = "Color"
         elif camera_color_type == "P":
             self.device_color_type = "Polarized"
-            self.log.info(f"Polarized Camera model not supported.")
+            self.log.info("Polarized Camera model not supported.")
             return None
         else:
-            self.log.info(f"Not supported camera type.")
+            self.log.info("Not supported camera type.")
             return None
         sn = self.name(sn_only=True)
         self.log.info(f"  {sn}: {self.device_model} {self.device_color_type}")

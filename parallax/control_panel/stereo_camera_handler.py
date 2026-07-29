@@ -82,7 +82,7 @@ class StereoCameraHandler:
                     imgpointsB=coordsB,
                     paramsB=paramsB,
                 )
-                self.log.info(f"\n----------------------------------------------------")
+                self.log.info("\n----------------------------------------------------")
                 self.log.info(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
                 if err < min_err:
                     min_err = err
@@ -125,7 +125,7 @@ class StereoCameraHandler:
                     imgpointsB=coordsB,
                     paramsB=paramsB,
                 )
-                self.log.info(f"\n--------------------------------------------------------")
+                self.log.info("\n--------------------------------------------------------")
                 self.log.info(f"  camera pair: {camA}-{camB}, err: {np.round(err * 1000, 2)} µm³")
 
                 # calibrationStereo.print_calibrate_stereo_results(camA, camB)

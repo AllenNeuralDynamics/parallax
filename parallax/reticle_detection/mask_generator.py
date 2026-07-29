@@ -4,7 +4,6 @@ using various image processing techniques.
 """
 
 import json
-import logging
 
 import cv2
 import numpy as np

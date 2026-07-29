@@ -354,7 +354,7 @@ class Calculator(QWidget):
         Args:
             move_type (str): The type of move (e.g., "stopAll").
         """
-        self.log.info(f"Stopping all stages.")
+        self.log.info("Stopping all stages.")
         command = {"move_type": move_type}
         self.stage_controller.request(command)
 
@@ -396,7 +396,7 @@ class Calculator(QWidget):
 
         # Use the confirm_move_stage function to ask for confirmation
         if not self._confirm_move_stage(x, y):
-            self.log.info(f"Stage move canceled by user.")
+            self.log.info("Stage move canceled by user.")
             return  # User canceled the move
 
         # If the user confirms, proceed with moving the stage

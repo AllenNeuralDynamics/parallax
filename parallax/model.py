@@ -7,10 +7,9 @@ This class integrates various hardware components such as cameras and stages and
 their initialization, configuration, and transformations between local and global coordinates.
 """
 
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
 from typing import Any, Dict, Optional, Union
-from venv import logger
 
 import numpy as np
 
@@ -87,7 +86,7 @@ class Model:
 
     def scan_for_usb_stages(self):
         """Scan for all USB-connected stages and initialize them."""
-        self.log.info(f"Scanning for USB stages...")
+        self.log.info("Scanning for USB stages...")
         server = PathfinderServer(self.config.pathfinder_server.url)
         instances = server.get_instances()
         self.stage_instances = {}  # Reset internal state before updating
@@ -713,7 +712,7 @@ class Model:
     # Configurations - Load and Save
     # =========================
     def save_config(self):
-        self.log.info(f"Saving config...")
+        self.log.info("Saving config...")
         ConfigManager.save_settings(self.config)
 
     # =========================
@@ -721,11 +720,11 @@ class Model:
     # =========================
 
     def save_session(self):
-        self.log.info(f"Saving session...")
+        self.log.info("Saving session...")
         SessionManager.save_session(self.session)
 
     def instantiate_session(self):
-        self.log.info(f"Loading previous session..")
+        self.log.info("Loading previous session..")
         SessionManager.instantiate(
             self
         )  # Ensure SessionManager is instantiated with the model for session config loading

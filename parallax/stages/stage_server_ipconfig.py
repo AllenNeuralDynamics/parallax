@@ -117,7 +117,7 @@ class StageServerIPConfig(QWidget):
 
         if not self._is_valid_ip(ip, port):
             self.log.warning("Skipping refresh: Invalid IP address.")
-            self.log.info(f"Invalid IP address or port.")
+            self.log.info("Invalid IP address or port.")
             return False
 
         self._set_stage_listener_url(ip, port)
@@ -142,7 +142,7 @@ class StageServerIPConfig(QWidget):
         """
         Refreshes the stage server using the configured IP address and port.
         """
-        self.log.info(f"Refreshing stages with updated server configuration.")
+        self.log.info("Refreshing stages with updated server configuration.")
         self.model.scan_for_usb_stages()
 
     def show(self):

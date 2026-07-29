@@ -28,7 +28,6 @@ from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipD
 from parallax.utils.utils import UtilsCoords, UtilsCrops
 
 
-
 class CurrBgCmpProcessor:
     """Finding diff image using Current and Background Comparison"""
 

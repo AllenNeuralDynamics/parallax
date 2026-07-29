@@ -258,10 +258,10 @@ def get_transMs_bregma_to_local(transM, reticle_metadatas) -> Optional[dict[str,
         (JSON-serializable). None if the stage/transform is unavailable.
     """
     if transM is None or transM.shape != (4, 4):
-        logger.info(f"Invalid transformation matrix.")
+        logger.info("Invalid transformation matrix.")
         return None
     if reticle_metadatas is None or len(reticle_metadatas) == 0:
-        logger.info(f"No reticle metadata available.")
+        logger.info("No reticle metadata available.")
         return None
 
     bregma_to_local_transMs: dict[str, list] = {}

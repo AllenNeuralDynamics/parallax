@@ -248,7 +248,7 @@ class YoloProcessWorker:
         self.log.debug(f"Local state: {self.local_client_finished}, Global state: {self.global_client_finished}")
         # Check if BOTH clients have finished
         if self.local_client_finished and self.global_client_finished:
-            self.log.info(f"Both YOLO clients finished. Calling main finished callback.")
+            self.log.info("Both YOLO clients finished. Calling main finished callback.")
             if self.finished_callback:
                 self.finished_callback()
 

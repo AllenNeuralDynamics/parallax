@@ -30,7 +30,6 @@ from parallax.handlers.recording_manager import RecordingManager
 from parallax.screens.screen_widget_manager import ScreenWidgetManager
 from ui.resources import rc  # noqa
 
-
 # Set the logging level for PyQt6.uic.uiparser/properties
 logging.getLogger("PyQt6.uic.uiparser").setLevel(logging.WARNING)
 logging.getLogger("PyQt6.uic.properties").setLevel(logging.WARNING)
@@ -45,7 +44,7 @@ class MainWindow(QMainWindow):
     and handles the user interface
     components, camera and stage management, and recording functionality.
     """
-    
+
     # These will be created by loadUi dynamically
     actionDir: QAction
     menuDevices: QMenu
@@ -236,10 +235,10 @@ class MainWindow(QMainWindow):
         self.model.refresh_camera = is_streaming
 
         if is_streaming:
-            self.log.info(f"Refreshing Screens")
+            self.log.info("Refreshing Screens")
             self.screen_widget_manager.start_streaming()
         else:
-            self.log.info(f"Stop Refreshing Screens")
+            self.log.info("Stop Refreshing Screens")
             self.screen_widget_manager.stop_streaming()
 
         self.actionRecording.setEnabled(is_streaming)

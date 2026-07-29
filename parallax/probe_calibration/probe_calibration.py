@@ -710,11 +710,11 @@ class ProbeCalibration:
         T = self.transM_LR[:3, 3]
 
         self.log.info(f"stage sn: {self.stage.sn}")
-        self.log.info(f"Rotation matrix:")
+        self.log.info("Rotation matrix:")
         self.log.info(f" [[{R[0][0]:.5f}, {R[0][1]:.5f}, {R[0][2]:.5f}],")
         self.log.info(f"  [{R[1][0]:.5f}, {R[1][1]:.5f}, {R[1][2]:.5f}],")
         self.log.info(f"  [{R[2][0]:.5f}, {R[2][1]:.5f}, {R[2][2]:.5f}]]")
-        self.log.info(f"Translation vector:")
+        self.log.info("Translation vector:")
         self.log.info(f" [{T[0]:.1f}, {T[1]:.1f}, {T[2]:.1f}]")
         self.log.info(f"==> Average L2 between stage and global: {self.avg_err}")
 
@@ -820,9 +820,9 @@ class ProbeCalibration:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         traj_file_path = self._save_df_to_csv(df, f"points_{sn}_{timestamp}.csv")
 
-        self.log.info(f"\n\n=========================================================")
+        self.log.info("\n\n=========================================================")
         self._print_formatted_transM()
-        self.log.info(f"=========================================================")
+        self.log.info("=========================================================")
         self._update_info_ui(sn, disp_avg_error=True, save_to_csv=True, file_name=f"transM_{sn}_{timestamp}.csv")
         self._write_transformed_global_points(sn, traj_file_path)  # Update transformed points in the file
         self._update_trajectory_file(sn, traj_file_path)  # register file path to model
@@ -831,10 +831,10 @@ class ProbeCalibration:
             self.old_transM = self.transM_LR
             ret = self.run_bundle_adjustment(traj_file_path)
             if ret:
-                self.log.info(f"\n=========================================================")
-                self.log.info(f"** After Bundle Adjustment **")
+                self.log.info("\n=========================================================")
+                self.log.info("** After Bundle Adjustment **")
                 self._print_formatted_transM()
-                self.log.info(f"=========================================================")
+                self.log.info("=========================================================")
                 self._update_info_ui(
                     sn, disp_avg_error=True, save_to_csv=True, file_name=f"transM_BA_{sn}_{timestamp}.csv"
                 )

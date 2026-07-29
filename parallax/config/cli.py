@@ -56,12 +56,12 @@ def parse_args() -> argparse.Namespace:
 def print_arg_info(args):
     """Print CLI argument selections for debugging."""
     if not args.dummy and args.nCameras != 1:
-        print(f"\nWarning: --num-mock-cameras is only valid in dummy mode.")
+        print("\nWarning: --num-mock-cameras is only valid in dummy mode.")
     if args.dummy:
         print(f"  Simulating {args.nCameras} mock camera(s).")
     if args.bundle_adjustment:
-        print(f"\nBundle adjustment feature enabled.")
+        print("\nBundle adjustment feature enabled.")
     if args.test:
-        print(f"\nTest mode to visualize reticle and probe detection.")
+        print("\nTest mode to visualize reticle and probe detection.")
     if args.reticle_detection != "default":
         print(f"\nSelected reticle version: {args.reticle_detection}")

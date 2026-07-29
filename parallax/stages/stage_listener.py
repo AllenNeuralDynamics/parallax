@@ -66,7 +66,7 @@ class Worker(threading.Thread):
 
     def run(self):
         """The main loop of the native thread with crash protection."""
-        self.log.info(f"Stage Worker thread started.")
+        self.log.info("Stage Worker thread started.")
         while not self._stop_event.is_set():
             try:
                 self.fetchData()
@@ -75,14 +75,14 @@ class Worker(threading.Thread):
                 self.log.error(f"Worker Loop Error: {e}", exc_info=True)
                 time.sleep(2)
             time.sleep(self.curr_interval)
-        self.log.info(f"Stage Worker thread stopped gracefully.")
+        self.log.info("Stage Worker thread stopped gracefully.")
 
     def _print_trouble_shooting_msg(self):
         """Print the troubleshooting message."""
-        self.log.info(f"Trouble Shooting: ")
-        self.log.info(f"1. Check New Scale Stage connection.")
-        self.log.info(f"2. Enable Http Server: 'http://localhost:8080/'")
-        self.log.info(f"3. Click 'Connect' on New Scale SW")
+        self.log.info("Trouble Shooting: ")
+        self.log.info("1. Check New Scale Stage connection.")
+        self.log.info("2. Enable Http Server: 'http://localhost:8080/'")
+        self.log.info("3. Click 'Connect' on New Scale SW")
 
     def get_data(self):
         """Fetch data from the URL."""
@@ -95,7 +95,7 @@ class Worker(threading.Thread):
         if data["Probes"] == 0:
             if self.is_error_log_printed is False:
                 self.is_error_log_printed = True
-                self.log.info(f"\nStage is not connected to New Scale SW")
+                self.log.info("\nStage is not connected to New Scale SW")
                 self._print_trouble_shooting_msg()
             return
         return data

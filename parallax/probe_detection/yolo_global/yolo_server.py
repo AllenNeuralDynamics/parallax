@@ -50,7 +50,7 @@ class YoloSegmentation:
 
             # Warmup the model
             self._warmup_model()
-            self.log.info(f"YOLO model warmup completed")
+            self.log.info("YOLO model warmup completed")
         except Exception as e:
             self.log.error(f"Failed to load YOLO model: {e}, running yolo in dummy mode")
             self.model = None
@@ -63,7 +63,7 @@ class YoloSegmentation:
         self.running = True
         self.worker_thread = Thread(target=self._process_frames, daemon=True)
         self.worker_thread.start()
-        self.log.info(f"YOLO segmentation thread started")
+        self.log.info("YOLO segmentation thread started")
         return True
 
     def _warmup_model(self):
@@ -71,16 +71,16 @@ class YoloSegmentation:
         if self.model is None:
             return
 
-        self.log.info(f"Warming up YOLO model...")
+        self.log.info("Warming up YOLO model...")
         warmup_start = time.time()
 
         if not YoloSegmentation._info_printed and hasattr(self.model, "names"):
-            self.log.info(f"--- Available Model Classes for global Yolo ---")
+            self.log.info("--- Available Model Classes for global Yolo ---")
             # self.model.names is a dictionary mapping ID (int) to Name (str)
             sorted_class_names = sorted(self.model.names.items())
             for class_id, class_name in sorted_class_names:
                 self.log.info(f"    ID: {class_id} / Name: {class_name}")
-            self.log.info(f"-----------------------------\n")
+            self.log.info("-----------------------------\n")
             YoloSegmentation._info_printed = True
 
         try:
@@ -109,7 +109,7 @@ class YoloSegmentation:
         self.running = False
         if self.worker_thread:
             self.worker_thread.join(timeout=1.0)
-        self.log.info(f"YOLO segmentation worker stopped")
+        self.log.info("YOLO segmentation worker stopped")
 
     def process_frame(self, frame: np.ndarray, crop_info, ts: Optional[float] = None):
         """Add frame to processing queue"""
@@ -204,7 +204,7 @@ class YoloSegmentation:
                 time.sleep(0.01)
                 continue
 
-        self.log.info(f"yolo_segmentation: Exiting loop.")
+        self.log.info("yolo_segmentation: Exiting loop.")
         # Check if a finished callback was provided and call it
         if self.finished_callback:
             try:

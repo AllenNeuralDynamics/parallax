@@ -16,7 +16,6 @@ from parallax.probe_detection.opencv_process_worker import OpenCVProcessWorker
 from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 
 
-
 class DrawWorkerSignal(QObject):
     """Signals for the DrawWorker."""
 

@@ -99,7 +99,7 @@ class SessionManager:
         Removes missing cameras and adds new ones.
         """
         if getattr(model, "session", None) is None:
-            logger.info(f"[SessionManager] Creating a fresh session configuration.")
+            logger.info("[SessionManager] Creating a fresh session configuration.")
             model.session = Session()
 
         # cameras

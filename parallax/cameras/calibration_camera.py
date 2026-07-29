@@ -313,7 +313,7 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
 
     # Check for valid triangulation results (often Xh[3] being zero or near zero)
     if np.any(np.abs(Xhs[3, :]) < 1e-12):
-        logger.info(f"Warning: Division by zero or very small w-coordinate encountered in triangulation.")
+        logger.info("Warning: Division by zero or very small w-coordinate encountered in triangulation.")
         # Handle by replacing near-zero w with a small epsilon
         w = Xhs[3, :]
         w[np.abs(w) < 1e-12] = 1e-12

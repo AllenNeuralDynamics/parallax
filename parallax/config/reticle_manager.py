@@ -41,11 +41,11 @@ class ReticleManager:
             return cls._data
 
         except Exception as e:
-            logger.critical(f"\n" + "!" * 60)
-            logger.critical(f"CRITICAL RETICLE CONFIGURATION ERROR")
+            logger.critical("\n" + "!" * 60)
+            logger.critical("CRITICAL RETICLE CONFIGURATION ERROR")
             logger.critical(f"File: {cls.reticle_file}")
             logger.critical(f"Error: {e}")
-            logger.critical(f"!" * 60 + "\n")
+            logger.critical("!" * 60 + "\n")
             logger.critical(f"App launch aborted due to reticle config error: {e}")
             sys.exit(1)
 

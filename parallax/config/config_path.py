@@ -3,7 +3,6 @@
 This module defines the paths used in the project and sets up logging.
 """
 
-import logging
 from pathlib import Path
 
 PARALLAX_ASCII = r"""

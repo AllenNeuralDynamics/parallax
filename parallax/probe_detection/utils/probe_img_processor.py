@@ -355,7 +355,7 @@ class ProbeImageProcessor:
             for x1, y1, x2, y2, dist in hits:
                 cv2.line(mask_result, (x1, y1), (x2, y2), color, line_thickness)
         else:
-            logger.info(f"No line mask created.")
+            logger.info("No line mask created.")
             return None
 
         return mask_result
@@ -630,7 +630,7 @@ class ProbeImageProcessor:
         """
 
         if mask is None:
-            logger.info(f"Mask is None, cannot determine probe points.")
+            logger.info("Mask is None, cannot determine probe points.")
             return None, None
 
         mask = cv2.copyMakeBorder(mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=[0, 0, 0])
