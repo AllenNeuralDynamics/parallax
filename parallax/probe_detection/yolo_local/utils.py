@@ -51,18 +51,18 @@ def preprocessing(
 
             # 3. Draw the segmentation polygon onto the stencil
             # Fill the polygon area with white (255)
-            cv2.fillPoly(stencil, [contour], 255)
+            cv2.fillPoly(stencil, [contour], (255,))
 
             if mask_margin > 0:
                 # Create a circular kernel for uniform dilation
                 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * mask_margin + 1, 2 * mask_margin + 1))
                 # Dilate the stencil to enlarge the masked area
-                stencil = cv2.dilate(stencil, kernel)
+                stencil = cv2.dilate(stencil, kernel)  # type: ignore[assignment]
 
             # 4. Apply the mask to the frame
             # Use the stencil to isolate the object in the original frame.
             # This creates a 3-channel image where only the masked area is visible.
-            frame = cv2.bitwise_and(frame, frame, mask=stencil)
+            frame = cv2.bitwise_and(frame, frame, mask=stencil)  # type: ignore[assignment]
 
     if detection and detection.get("bbox"):
         # Get the original coordinates of the first bounding box

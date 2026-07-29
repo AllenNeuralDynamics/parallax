@@ -28,7 +28,6 @@ import parallax.utils.rotations as rotations
 logger = logging.getLogger(__name__)
 
 
-
 def apply_rigid_transform(transM: np.ndarray, global_pts: np.ndarray) -> np.ndarray:
     R = transM[:3, :3]
     t = transM[:3, 3]

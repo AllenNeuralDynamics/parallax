@@ -11,7 +11,6 @@ from parallax.session.session_state import ArcAngle
 logger = logging.getLogger(__name__)
 
 
-
 def get_spin_bregma(spin_global: float, reticle_rot: float) -> Optional[float]:
     """
     Computes the effective spin angle relative to a reticle's initial orientation (Yaw offset).

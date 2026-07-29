@@ -16,7 +16,7 @@ def parse_args() -> argparse.Namespace:
         "--log-level",
         default=None,
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Override the console log level specified in the config file."
+        help="Override the console log level specified in the config file.",
     )
 
     parser.add_argument(

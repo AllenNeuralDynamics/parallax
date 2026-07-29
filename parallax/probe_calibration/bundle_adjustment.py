@@ -19,7 +19,6 @@ from scipy.optimize import leastsq
 logger = logging.getLogger(__name__)
 
 
-
 class BALProblem:
     """
     Class representing the Bundle Adjustment problem (BAL).

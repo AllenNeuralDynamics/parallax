@@ -111,17 +111,6 @@ class StageController(QObject):
             return None
         return self._get_probe_index(stage_sn)
 
-    def _extract_probe_index(self, command: dict) -> Optional[int]:
-        """
-        Helper method to extract the stage_sn from a command, validate its type,
-        and retrieve the corresponding probe index.
-        """
-        stage_sn = command.get("stage_sn")
-        if not isinstance(stage_sn, str):
-            self.log.warning("Invalid or missing stage_sn.")
-            return None
-        return self._get_probe_index(stage_sn)
-
     def _stepmode_request(self, command: dict) -> None:
         """
         Handles the step mode request for the specified stage (probe).

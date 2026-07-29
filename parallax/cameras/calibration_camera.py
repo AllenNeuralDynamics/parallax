@@ -297,6 +297,9 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
     ptsB_in = np.asarray(ptsB, dtype=np.float64)
 
     # cv2.undistortPoints expects N x 1 x 2 input
+    assert paramsA.mtx is not None and paramsA.dist is not None, "Camera A parameters cannot be None"
+    assert paramsB.mtx is not None and paramsB.dist is not None, "Camera B parameters cannot be None"
+
     ptsA_undistorted = cv2.undistortPoints(ptsA_in.reshape(-1, 1, 2), paramsA.mtx, paramsA.dist, P=paramsA.mtx).reshape(
         -1, 2
     )
@@ -321,7 +324,7 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
         w = Xhs[3, :]
 
     # Normalize homogeneous coordinates
-    Xs = Xhs[:3, :] / w  # 3xN
+    Xs = Xhs[:3, :] / w  # type: ignore[operator]  # 3xN
     return Xs.T  # Nx3
 
 

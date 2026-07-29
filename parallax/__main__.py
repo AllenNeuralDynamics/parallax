@@ -31,7 +31,7 @@ def main():
         logging_config_yml = yaml.safe_load(f)
     logging_config = LoggingConfig(**logging_config_yml["logging"])
     if args.log_level:
-        logging_config.handlers['console'].level = args.log_level
+        logging_config.handlers["console"].level = args.log_level
     logging.config.dictConfig(logging_config.model_dump(by_alias=True, exclude_none=True))
 
     # Print the ASCII art

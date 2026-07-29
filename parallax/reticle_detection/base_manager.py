@@ -58,7 +58,7 @@ class BaseDrawWorker(QRunnable):
             if self.new:
                 if self.state == "Found":
                     self._draw_result()
-                    #self._save_debug_image()
+                    # self._save_debug_image()
                 elif self.state == "InProcess":
                     self._draw_progress()
                 elif self.state == "Failed":

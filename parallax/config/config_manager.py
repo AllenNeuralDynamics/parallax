@@ -22,7 +22,6 @@ from parallax.config.schemas import AppSchema
 logger = logging.getLogger(__name__)
 
 
-
 class ConfigManager:
     settings_file = settings_file
     _data: Optional[AppSchema] = None  # The class-level cache

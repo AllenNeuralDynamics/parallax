@@ -12,7 +12,6 @@ from parallax.utils.probe_angles import spin_angle_from_vec
 logger = logging.getLogger(__name__)
 
 
-
 def get_spin_angle(global_pts: np.ndarray) -> Optional[float]:
     vec, pts_xy, rms_perp = _pca_global_pts_to_vec(global_pts)
     angle_deg = spin_angle_from_vec(vec)

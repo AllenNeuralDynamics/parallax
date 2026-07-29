@@ -17,7 +17,6 @@ from parallax.config.config_path import debug_img_dir, img_processing_config_fil
 logger = logging.getLogger(__name__)
 
 
-
 class ProbeFineTipDetector:
     """Class for detecting the fine tip of the probe in an image."""
 

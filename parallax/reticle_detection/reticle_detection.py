@@ -587,13 +587,13 @@ class ReticleDetection:
 
     def get_masked_img(self, img, running_flag=lambda: True):
         bg = self._preprocess_image(img)
-        #self._draw_debug(bg, [], "0_bg")
+        # self._draw_debug(bg, [], "0_bg")
         if not running_flag():
             self.log.debug(f"{self.name} get_coords - stop running after preprocessing")
             return False, bg, [], []
 
         masked = self._apply_mask(bg)
-        #self._draw_debug(masked, [], "1_bg")
+        # self._draw_debug(masked, [], "1_bg")
         if not running_flag():
             self.log.debug(f"{self.name} get_coords - stop running after masking")
             return False, bg, [], []
@@ -614,7 +614,7 @@ class ReticleDetection:
                 - inliner_lines_pixels (list): List of inlier pixel coordinates for each line.
         """
         ret, bg, inliner_lines, pixels_in_lines = self.coords_detect_morph(img, running_flag)
-        #self._draw_debug(bg, pixels_in_lines, "2_detect_morph")
+        # self._draw_debug(bg, pixels_in_lines, "2_detect_morph")
         self.log.debug(f"{self.name} nLines: {len(pixels_in_lines)}")
         if not running_flag():
             self.log.debug(f"{self.name} get_coords - stop running after coords_detect_morph")
@@ -623,14 +623,14 @@ class ReticleDetection:
         if ret:
             bg, inliner_lines, pixels_in_lines = self._refine_pixels(bg, inliner_lines, pixels_in_lines)
             self.log.debug(f"{self.name} detect: {len(pixels_in_lines[0])}, {len(pixels_in_lines[1])}")
-            #self._draw_debug(bg, pixels_in_lines, "3_refine_pixels")
+            # self._draw_debug(bg, pixels_in_lines, "3_refine_pixels")
             if not running_flag():
                 self.log.debug(f"{self.name} get_coords - stop running after refine_pixels")
                 return False, bg, [], []
 
             bg, pixels_in_lines = self._add_missing_pixels(bg, inliner_lines, pixels_in_lines)
             self.log.debug(f"{self.name} interpolate: {len(pixels_in_lines[0])} {len(pixels_in_lines[1])}")
-            #self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
+            # self._draw_debug(bg, pixels_in_lines, "4_add_missing_pixels")
             if not running_flag():
                 self.log.debug(f"{self.name} get_coords - stop running after add_missing_pixels")
                 return False, bg, [], []
