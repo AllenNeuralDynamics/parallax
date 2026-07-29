@@ -97,6 +97,11 @@ uv run pytest tests
 uv run ruff check
 ```
 
+- Format
+```bash
+uv run ruff format --check parallax
+```
+
 - Type Check
 ```bash
 uv run mypy parallax
