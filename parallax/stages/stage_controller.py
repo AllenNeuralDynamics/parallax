@@ -118,7 +118,7 @@ class StageController(QObject):
         """
         stage_sn = command.get("stage_sn")
         if not isinstance(stage_sn, str):
-            logger.warning("Invalid or missing stage_sn.")
+            self.log.warning("Invalid or missing stage_sn.")
             return None
         return self._get_probe_index(stage_sn)
 
