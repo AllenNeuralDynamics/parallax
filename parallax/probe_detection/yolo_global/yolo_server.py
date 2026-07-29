@@ -2,6 +2,7 @@ import logging
 import time
 from collections import deque
 from threading import Thread  # Using Event for better thread signaling
+from typing import Optional
 
 import numpy as np
 import torch
@@ -112,7 +113,7 @@ class YoloSegmentation:
             self.worker_thread.join(timeout=1.0)
         self.logger.info("YOLO segmentation worker stopped")
 
-    def process_frame(self, frame: np.ndarray, crop_info, ts: float = None):
+    def process_frame(self, frame: np.ndarray, crop_info, ts: Optional[float] = None):
         """Add frame to processing queue"""
         if not self.running:
             return

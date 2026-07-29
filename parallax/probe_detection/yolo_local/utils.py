@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -7,12 +7,12 @@ import numpy as np
 def preprocessing(
     frame: np.ndarray,
     detection: dict,
-    crop_info: dict = None,
+    crop_info: Optional[dict] = None,
     target_size: Tuple[int, int] = (320, 320),
     bbox_margin: int = 30,
     mask_margin: int = 50,
     apply_mask: bool = False,
-) -> Tuple[np.ndarray, Dict]:
+) -> Tuple[np.ndarray, dict, dict]:
 
     # print("Yolo local input frame shape:", frame.shape)
     crop_info = crop_info or {}

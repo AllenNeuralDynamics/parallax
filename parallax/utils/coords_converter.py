@@ -203,12 +203,12 @@ def apply_reticle_adjustments(model, global_pts: np.ndarray, reticle: str) -> np
         bregma_pts = rotations.apply_affine(pts=global_pts, affine_R=Rm, translation=tm)
     except Exception as e:
         logger.error(f"Error applying affine reticle transformation: {e}")
-        return None
+        return np.array([global_pts[0], global_pts[1], global_pts[2]])
 
     return np.round(bregma_pts, 1)
 
 
-def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
+def get_transM_bregma_to_local(md, transM: np.ndarray) -> Optional[np.ndarray]:
     """
     Build Tb (bregma→local) from stage T (global→local) and reticle (Rm, tm).
 
@@ -247,7 +247,7 @@ def get_transM_bregma_to_local(md, transM: np.ndarray) -> np.ndarray:
     return Tb
 
 
-def get_transMs_bregma_to_local(transM, reticle_metadatas) -> np.ndarray:
+def get_transMs_bregma_to_local(transM, reticle_metadatas) -> Optional[dict[str, list]]:
     """
     Generate per-reticle Tb (bregma→local) 4x4 matrices for a calibrated stage.
 

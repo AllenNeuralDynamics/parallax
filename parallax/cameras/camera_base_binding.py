@@ -136,9 +136,11 @@ class BaseCamera(ABC):
     Defines the interface expected from all camera types.
     """
 
-    def __init__(self):
+    last_capture_time: float
+
+    def __init__(self) -> None:
         # Every camera implementation must assign an instance of BaseSettings here
-        self.settings: BaseSettings = None
+        self.settings: BaseSettings | None = None
 
     @abstractmethod
     def name(self, sn_only: bool = False) -> str:

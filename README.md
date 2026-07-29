@@ -7,36 +7,40 @@ setting up and performing acute *in vivo* electrophysiology experiments.
 
 **Documentation**: [parallax.readthedocs.io](https://parallax.readthedocs.io/en/latest/index.html).
 
-### Prerequisites
-- **Python==3.10** (Recommended to install via
-[Anaconda](https://www.anaconda.com/products/individual) or 
-[Miniconda](https://docs.conda.io/en/latest/miniconda.html))
-  -  Python 3.10 is required for the Spinnaker library.
-- [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
+## Prerequisites
+- **Python 3.10**: Required for compatibility with the Spinnaker library.
+- [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk) and Teledyne FLIR software for camera support.
+- [Pathfinder MPM Control Panel v.2.8 or later](https://newscaletech.com/multi-probe-micromanipulator/mpm-system-pathfinder-software/)
 
 
-### Installation
-1. Create a virtual environment with **Python 3.10** and activate it:
-2. Install Parallax:
+## Installation
+#### 1. Install Parallax
+Option A, Install from PyPI:
 ```bash
-pip install parallax-app
+uv venv --python 3.10
+# On macOS/Linux: source .venv/bin/activate
+# On Windows: .venv\Scripts\activate
+uv pip install parallax-app
+```
+Option B, Install via local repository (Recommended):
+```bash
+git clone https://github.com/AllenNeuralDynamics/parallax.git
+cd parallax
+uv sync
 ```
 
-To upgrade to the latest version, run:
-```bash
-pip install parallax-app --upgrade
-```
-
-3. Install the camera interface [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
+#### 2. Install Spinnaker
+Install the camera interface [Spinnaker SDK 4.2](https://www.teledynevisionsolutions.com/products/spinnaker-sdk)
 ```bash
 # Install from the **wheel file** that comes with the Spinnaker SDK ver.4.2.
 # Replace **<WHEEL_PATH>** with the *full path* to your `.whl`:
-pip install "<WHEEL_PATH>"
+uv pip install "<WHEEL_PATH>"
+# Example) uv pip install spinnaker_python-4.2.0.88-cp310-cp310-win_amd64.whl
 ```
 
-### Running Parallax
+## Running Parallax
 ```bash
-python -m parallax
+uv run parallax
 ```
 
 ### Optional: Enable SuperPoint + SuperGlue Reticle Detection
@@ -47,16 +51,21 @@ The SuperGluePretrainedNetwork is not included in this repository and is distrib
 Please review their [license](https://github.com/magicleap/SuperGluePretrainedNetwork) before use.
 
 Manual Setup Instructions
-1. Clone the repository if it hasn't been done already.
+Clone the repository if it hasn't been done already.
 ```bash
 git clone https://github.com/AllenNeuralDynamics/parallax.git
+cd parallax
+```
+1. Install the required `sfm` dependency from GitHub:
+```bash
+uv pip install git+https://github.com/AllenNeuralDynamics/sfm.git@main
 ```
 
 2. Clone the repository into the external/ folder in your Parallax project root:
 ```bash
-pip install git+https://github.com/AllenNeuralDynamics/sfm.git@main
 git clone https://github.com/magicleap/SuperGluePretrainedNetwork.git external/SuperGluePretrainedNetwork
 ```
+
 3. Verify your folder structure looks like this:
 ```bash
 parallax/
@@ -70,28 +79,36 @@ parallax/
 ```
 
 ### For developers:
-1. Clone the repository:
+The following are tools used to ensure code quality in this project.
+- Install dependencies:
 ```bash
-git clone https://github.com/AllenNeuralDynamics/parallax.git
+uv sync --all-extras
 ```
-2. Install the package along with dev dependencies:
+
+- Unit Testing
 ```bash
-pip install -e .[dev]
+uv run pytest tests
+```
+
+- Linting
+```bash
+uv run ruff check
+```
+
+- Type Check
+```bash
+uv run mypy parallax
 ```
 
 ### Documentation
-1. To install the dependencies:
+Create the documentation html files, run:
 ```bash
-pip install -e .[docs]
-```
-2. Then to create the documentation html files, run:
-```bash
-sphinx-build -b html docs/ docs/_build
+uv run sphinx-build -b html docs/source docs/_build
 ```
 
 ### Support and Contribution
 If you encounter any problems or would like to contribute to the project, 
-please submit an [Issue](https://github.com/AllenNeuralDynamics/parallax/issues) 
+please submit an [Issue](https://github.com/AllenNeuralDynamics/parallax/issues)
 on GitHub.
 
 ### License

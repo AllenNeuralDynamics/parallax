@@ -7,6 +7,7 @@ and managing the Stage Server's IP address and port settings.
 
 import logging
 import os
+from typing import Any
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget
@@ -23,7 +24,7 @@ class StageServerIPConfig(QWidget):
     Widget for configuring the Stage Server IP.
     """
 
-    def __init__(self, model):
+    def __init__(self, model: Any) -> None:
         """
         Initializes the Stage Server IP Configuration widget.
 
@@ -48,7 +49,7 @@ class StageServerIPConfig(QWidget):
         self._display_url()
         self.model.add_stage_ipconfig_instance(self)
 
-    def _display_url(self):
+    def _display_url(self) -> None:
         # Update UI with loaded values
         self.ui.lineEdit_ip.setText(self.ip)
         self.ui.lineEdit_port.setText(str(self.port))

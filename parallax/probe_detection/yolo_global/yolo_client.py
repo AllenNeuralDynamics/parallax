@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import numpy as np
 
@@ -31,7 +32,7 @@ class YOLOClient:
             self.logger.error(f"Error starting Simple YOLO client: {e}")
             return False
 
-    def newframe_captured(self, frame: np.ndarray, current: float = None):
+    def newframe_captured(self, frame: np.ndarray, current: Optional[float] = None):
         """Put new frame at the specified FPS rate"""
         # Rate limit the frames sent to the YOLO worker
         if self.current_time is None or current - self.current_time > (1 / self.fps):

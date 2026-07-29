@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import time
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -472,7 +473,7 @@ class ProbeImageProcessor:
         return arr
 
     @classmethod
-    def mask_to_bbox_xyxy(cls, mask_u8: np.ndarray, img_shape=None, pad: int = None):
+    def mask_to_bbox_xyxy(cls, mask_u8: np.ndarray, img_shape=None, pad: Optional[int] = None):
         """
         Tight bbox from a uint8 mask considering ALL foreground pixels.
         Returns (left, top, right, bottom) with right/bottom EXCLUSIVE: [x1, y1, x2, y2).
@@ -608,7 +609,7 @@ class ProbeImageProcessor:
                 if d[j] > maxd:
                     maxd = float(d[j])
                     q1, q2 = H[i], H[j]
-            if q1 is not None:
+            if q1 is not None and q2 is not None:
                 p_min, p_max = tuple(q1.astype(int)), tuple(q2.astype(int))
 
         return p_min, p_max

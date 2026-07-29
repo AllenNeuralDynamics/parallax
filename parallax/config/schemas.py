@@ -64,7 +64,7 @@ class PathfinderServerSettings(BaseModel):
             return int(v.strip())
         return v
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def url(self) -> str:
         # Automatically joins IP and Port

@@ -37,10 +37,10 @@ class ProbeCalibrationHandler(QWidget):
         screen_widgets,
         filter,
         reticle_selector,
-        actionTrajectory: QAction = None,
-        actionCalculator: QAction = None,
-        actionReticlesMetadata: QAction = None,
-        transform_info_handler: QWidget = None,
+        actionTrajectory: QAction,
+        actionCalculator: QAction,
+        actionReticlesMetadata: QAction,
+        transform_info_handler: QAction,
     ):
         super().__init__()
         self.model = model
@@ -64,7 +64,7 @@ class ProbeCalibrationHandler(QWidget):
         self.moving_stage_id = None
         self.transMbs = None
         self.arc_angle_global, self.arc_angle_bregma = None, None
-        self.spin_angle = []
+        self.spin_angle: list[float] = []
         self.update_spin_inputs = False
 
         loadUi(os.path.join(ui_dir, "probe_calib.ui"), self)
@@ -78,22 +78,19 @@ class ProbeCalibrationHandler(QWidget):
 
         self.viewTrajectory_btn = self.findChild(QPushButton, "viewTrajectory_btn")
         self.viewTrajectory_btn.clicked.connect(self.view_trajectory_button_handler)
-        if self.actionTrajectory is not None:
-            self.actionTrajectory.triggered.connect(self.view_trajectory_button_handler)
+        self.actionTrajectory.triggered.connect(self.view_trajectory_button_handler)
 
         # Calculation Button
         self.calculation_btn = self.findChild(QPushButton, "calculation_btn")
         self.calculation_btn.clicked.connect(self.calculation_button_handler)
-        if self.actionCalculator is not None:
-            self.actionCalculator.triggered.connect(self.calculation_button_handler)
+        self.actionCalculator.triggered.connect(self.calculation_button_handler)
 
         # Reticle Button
         self.reticle_metadata_btn = self.findChild(QPushButton, "reticle_btn")
         self.reticle_metadata_btn.clicked.connect(self.reticle_button_handler)
         self.reticle_metadata_btn.hide()
         self.reticle_metadata = ReticleMetadata(self.model, self.reticle_selector_comboBox)
-        if self.actionReticlesMetadata is not None:
-            self.actionReticlesMetadata.triggered.connect(self.reticle_button_handler)
+        self.actionReticlesMetadata.triggered.connect(self.reticle_button_handler)
 
         self.probeCalibrationLabel = self.findChild(QLabel, "probeCalibrationLabel")
 
@@ -293,9 +290,9 @@ class ProbeCalibrationHandler(QWidget):
                     logger.debug(f" Lowest shank index: {idx}")
 
                 # Spin
-                spin_angle = self._get_spin_angle(global_coords_4shanks)
-                if spin_angle is not None:
-                    self.spin_angle.append(spin_angle)
+                angle = self._get_spin_angle(global_coords_4shanks)
+                if angle is not None:
+                    self.spin_angle.append(angle)
         else:  # 1 shank
             global_coords = triangulate(ptsA=tip_A, ptsB=tip_B, paramsA=self.camA_params, paramsB=self.camB_params)
 

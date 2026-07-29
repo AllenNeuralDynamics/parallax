@@ -184,7 +184,7 @@ class PointMesh:
     """
 
     # Keep references to windows so Python doesn't garbage collect them
-    _active_windows = []
+    _active_windows: list[QWidget] = []
 
     def __init__(self):
         raise NotImplementedError("PointMesh is a static helper class.")

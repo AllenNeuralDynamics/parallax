@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Optional
 
 from PyQt6.QtCore import QTimer, pyqtSignal
 from PyQt6.QtGui import QAction
@@ -20,7 +21,7 @@ class ReticleDetecthandler(QWidget):
 
     reticleDetectionStatusChanged = pyqtSignal()
 
-    def __init__(self, model, screen_widgets, filter, actionTriangulate: QAction = None):
+    def __init__(self, model, screen_widgets, filter, actionTriangulate: Optional[QAction] = None):
         """
         Args:
             stage_widget (StageWidget): Reference to the parent StageWidget instance.

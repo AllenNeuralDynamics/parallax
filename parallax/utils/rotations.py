@@ -427,6 +427,8 @@ def prepare_data_for_homogeneous_transform(
         (M+1)-D points with 1 in the last position.
     """
     nd = pts.ndim
+    pts_homog: NDArray[np.floating[Any]]
+
     if nd == 1:
         M = pts.shape[0]
         pts_homog = np.ones(M + 1)

@@ -3,7 +3,7 @@ import logging
 import os
 
 from PyQt6.QtCore import QObject, Qt, QTimer
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QAction, QFont, QIcon
 from PyQt6.QtWidgets import (
     QDockWidget,
     QGroupBox,
@@ -30,9 +30,9 @@ class ScreenWidgetManager(QObject):
         self.model = model
         self.main_window = main_window
         self.device_menu = device_menu
-        self.screen_widgets = []
-        self.dock_widgets = []
-        self.menu_actions = {}
+        self.screen_widgets: list[ScreenWidget] = []
+        self.dock_widgets: list[QDockWidget] = []
+        self.menu_actions: dict[str, QAction] = {}
 
         self.refresh_timer = QTimer()
 

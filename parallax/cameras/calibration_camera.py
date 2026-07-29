@@ -290,6 +290,8 @@ def triangulate(ptsA: np.ndarray, ptsB: np.ndarray, paramsA: CameraParams, param
 
     P1 = _P_from_params(paramsA)
     P2 = _P_from_params(paramsB)
+    if P1 is None or P2 is None:
+        raise ValueError("Failed to compute projection matrices for Camera A or Camera B.")
 
     # 2. Undistortion
     ptsA_in = np.asarray(ptsA, dtype=np.float64)
@@ -351,7 +353,7 @@ def evaluate_performance(
 
     if print_results:
         print(f"(Reprojection error) Object points L2 diff: {np.round(average_L2_distance * 1000, 2)} µm³")
-        _evaluate_x_y_z_performance(points_3d_G, print_results=print_results)
+        _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=print_results)
         logger.debug(f"Object points predict:\n{np.around(points_3d_G, decimals=5)}")
 
     return average_L2_distance

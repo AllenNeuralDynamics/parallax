@@ -84,14 +84,6 @@ class StageUI(QWidget):
         else:
             self.ui.stage_sn.setText("----------")
 
-    def _sendInfoToStageWidget(self):
-        """Emits the change signal to other handlers (like ProbeCalibrationHandler)."""
-        curr_stage_id = self._get_current_stage_id()
-        # Notify handlers of the transition
-        self.prev_curr_stages.emit(self.previous_stage_id, curr_stage_id)
-        # Update tracker for the next change
-        self.previous_stage_id = curr_stage_id
-
     def _get_current_stage_id(self):
         """Get the ID of the currently selected stage.
 

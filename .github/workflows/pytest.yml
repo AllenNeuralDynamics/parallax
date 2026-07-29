@@ -22,21 +22,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libegl1 libxkbcommon-x11-0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: '3.10'
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
-
       - name: Install package + test deps
-        run: |
-          pip install -e ".[test]"
-          # optional: linters too
-          pip install -e ".[linters]"
+        run: uv sync --extra test --extra linters
 
       - name: Run tests with coverage
-        run: |
-          pytest --cov=parallax --cov-report=term-missing
-        continue-on-error: true
+        run: uv run pytest --cov=parallax --cov-report=term-missing --cov-fail-under=30
