@@ -383,4 +383,7 @@ def _evaluate_x_y_z_performance(points_3d_G, objpoints, print_results=True):
     l2_z = np.sqrt(mean_squared_diff_z)
 
     if print_results:
-        logger.info(f"x: {np.round(l2_x * 1000, 2)}µm³, y: {np.round(l2_y * 1000, 2)}µm³, z: {np.round(l2_z * 1000, 2)}µm³")
+        x = np.round(l2_x * 1000, 2)
+        y = np.round(l2_y * 1000, 2)
+        z = np.round(l2_z * 1000, 2)
+        logger.info(f"x: {x} µm³, y: {y} µm³, z: {z} µm³")

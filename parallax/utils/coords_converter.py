@@ -328,7 +328,7 @@ def get_quaternion_and_translation(rvecs, tvecs, name="Camera"):
     quat = Rscipy.from_matrix(R).as_quat()  # [QX, QY, QZ, QW]
     QX, QY, QZ, QW = quat
     TX, TY, TZ = tvecs.flatten()
-    self.log.info(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
+    logger.info(f"{name}: {QW:.6f} {QX:.6f} {QY:.6f} {QZ:.6f} {TX:.3f} {TY:.3f} {TZ:.3f}")
 
     return QW, QX, QY, QZ, TX, TY, TZ
 

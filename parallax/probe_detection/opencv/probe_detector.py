@@ -273,7 +273,7 @@ class ProbeDetector:
         # Draw the line segments
         if line_segments is not None:
             if (len(line_segments)) >= 30:
-                self.log.debug(f"{self.stage_sn}-{self.camera_sn} get_tip_hough_line_detection:: Too many line detected.")
+                self.log.debug(f"{self.stage_sn}-{self.camera_sn} Too many line detected.")
                 return found_ret, highest_point, lowest_point
 
             for line in line_segments:
@@ -319,7 +319,7 @@ class ProbeDetector:
             gradient_counts = Counter(self.gradients)
             updated_gradient, _ = gradient_counts.most_common(1)[0]
             self.log.debug(f"{self.stage_sn}-{self.camera_sn}")
-            self.log.debug(f"target angle: {self.angle}, updated: {updated_gradient}, neighbor: {neighboring_gradients}")
+            self.log.debug(f"target angle: {self.angle}, updated: {updated_gradient}")
             # self.log.debug(gradient_counts)
             self.angle = updated_gradient
             return found_ret, highest_point, lowest_point

@@ -309,8 +309,7 @@ class ProbeCalibrationHandler(QWidget):
             cam1=self.camB_best,
             pt1=tip_B,
         )
-        self.log.debug(f"=====\n s: {stage_ts_A} i: {img_ts_A}\n")
-        self.log.debug(f"({stage_A.get('stage_x')}, {stage_A.get('stage_y')}, {stage_A.get('stage_z')}) {global_coords}")
+        self.log.debug(f"s: {stage_ts_A} i: {img_ts_A} - {global_coords}")
 
     def _get_spin_angle(self, global_pts: np.ndarray) -> Optional[float]:
         # sort by global z coords (ascending)
@@ -382,7 +381,6 @@ class ProbeCalibrationHandler(QWidget):
             if camera_name in [self.camA_best, self.camB_best] or self.model.bundle_adjustment:
                 if screen.probeDetector.opencvProcessWorker is not None or screen.probeDetector.worker is not None:
                     self.log.info(f" Probe calibration thread is running for camera: {camera_name}")
-                    self.log.info(f"processWorker: {screen.probeDetector.processWorker}, worker: {screen.probeDetector.worker}")
                     return False
         return True
 

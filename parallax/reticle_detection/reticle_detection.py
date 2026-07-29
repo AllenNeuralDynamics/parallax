@@ -513,7 +513,6 @@ class ReticleDetection:
         Applies morphological operations and adaptive thresholding
         to detect coordinates in an image.
         """
-        img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         if img.shape == (3000, 4000):
             img = cv2.adaptiveThreshold(
                 img,
