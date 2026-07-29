@@ -1,4 +1,4 @@
-# <img src="ui/resources/sextant.png" width="40" alt="Sextant Icon">  Parallax
+# <img src="ui/resources/sextant.png" width="30">  Parallax
 
 <img src="ui/ParallaxReadMe.png" alt="Parallax" width="800"/>
 
