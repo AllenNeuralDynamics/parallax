@@ -4,26 +4,9 @@
 .. automodule:: parallax.model
 
    
-   
-   
-
-   
-   
-   
-
-   
-   
    .. rubric:: Classes
 
    .. autosummary::
    
       Model
    
-   
-
-   
-   
-   
-
-
-

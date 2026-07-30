@@ -22,5 +22,5 @@ Contents
    userGuide
    FAQ
    programmersGuide
-   modules
+   parallaxModules
    
