@@ -3,7 +3,7 @@ User Guide
 .. raw:: html
 
    <div style="text-align: center; margin-bottom: 20px;">
-      <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/lYotKVTJtmQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/lYotKVTJtmQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
    </div>
 
 Parallax provides a :blue:`camera view system` that offers controls for camera parameters like framerate, auto-adjustment, along with snapshot and recording capabilities.

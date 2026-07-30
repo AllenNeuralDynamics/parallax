@@ -51,8 +51,8 @@ Installing Parallax
          # Example: uv pip install spinnaker_python-4.3.0.190-cp310-cp310-win_amd64.whl
 
 
-Optional: Enable SuperPoint + LightGlue
----------------------------------------
+**Optional: Enable SuperPoint + LightGlue**
+
 Parallax supports advanced reticle detection using SuperPoint and LightGlue. To enable this feature, you must manually download the required pretrained models. 
 
 *Note: The SuperGluePretrainedNetwork is not included in this repository and is distributed under its own licensing terms. Please review their* `license <https://github.com/magicleap/SuperGluePretrainedNetwork>`_ *before use.*

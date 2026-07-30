@@ -1,12 +1,19 @@
 Reticle Calibration
 --------------------
 
+**Setup**
+
+Before starting, ensure that the reticle is properly focused in all camera views. Calibration accuracy is highly dependent on image quality.
+
+*   Pay special attention to the center of the reticle (from -10 to 10 on both the x and y axes). These tick marks should be sharp and clear.
+*   Adjust the camera focus as needed to eliminate blurriness, which can significantly impact detection results.
+
 1. **Initiate Detection**
 
    Click the :blue:`Reticle Detection` button. You will be presented with two algorithm options:
 
    * **OpenCV**: Uses traditional computer vision methods (Hough line detection and morphology). It is fast but can be sensitive to glare on the reticle or metal reflections.
-   * **SuperPoint**: Uses a deep learning model (CNN) that is more robust to varying light conditions and occlusions, but may be slower without a GPU.
+   * **SuperPoint**: Uses a deep learning model (CNN) via the `sfm library <https://github.com/AllenNeuralDynamics/sfm.git>`_. It leverages SuperPoint + LightGlue for feature detection and COLMAP for localization. It is more robust to varying light conditions and occlusions, but may be slower without a GPU.
 
    Select the algorithm that best suits your setup. You can re-run detection if the initial attempt fails.
 
@@ -49,4 +56,3 @@ Reticle Calibration
     - :ref:`Q. How should the reticle look in the view? <faq_r_0>`
     - :ref:`Q. Reticle is not detected. What should I do? <faq_r_1>`
     - :ref:`Q. Reprojection error is too high. How to fix it? <faq_r_2>`
-
