@@ -1,18 +1,17 @@
 User Guide
 ====================
-
 .. raw:: html
 
-   <iframe width="640" height="360" src="https://www.youtube.com/embed/iLtgGqeCe1g" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+   <div style="text-align: center; margin-bottom: 20px;">
+      <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/lYotKVTJtmQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+   </div>
 
+Parallax provides a :blue:`camera view system` that offers controls for camera parameters like framerate, auto-adjustment, along with snapshot and recording capabilities.
 
-Parallax features a :blue:`camera view system` with controls for camera parameters such as brightness, as well as snapshot and recording functions. It also connects to a stage controller to read stage coordinates.
+The :blue:`Reticle Detection` function is used to capture the coordinates of the on-screen reticle. To calculate the reticle's 3D position through triangulation, its coordinates must be detected by at least two cameras.
 
-Using the :blue:`Reticle Detection` function, it captures reticle coordinates. To obtain the 3D position of the reticle, the reticle coordinates must be detected by at least two cameras.
+During :blue:`Probe Calibration`, Parallax tracks the probe tip across multiple camera views. It then uses triangulation to determine the probe's 3D position. Once calibration is complete, the system displays the probe tip's global coordinates relative to the calibrated reticle position.
 
-During :blue:`Probe Calibration`, the tip of a probe is tracked across multiple camera views. Using triangulation, it determines the 3D position. At the end of probe calibration, it displays global coordinates, showing the tip location relative to the reticle coordinates.
-
-This page explains how to use the Parallax for basic functions, reticle calibration, and probe calibration.
 
 ----
 
