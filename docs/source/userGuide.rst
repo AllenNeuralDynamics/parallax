@@ -18,7 +18,8 @@ During :blue:`Probe Calibration`, Parallax tracks the probe tip across multiple 
 .. toctree::
     :maxdepth: 1
 
-    userGuideCalibration
+    userGuideReticleCalib
+    userGuideProbeCalib
     userGuideTrajectory
     userGuideReticleMetadata
     userGuideCalc

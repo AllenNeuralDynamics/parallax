@@ -1,39 +1,4 @@
-*User Guide*
 
-Reticle Calibration
---------------------
-
-1. Click on the :blue:`Reticle Detection` button.
-
-    .. image:: _static/_userGuide/_calib/reticleDetection.JPG
-        :alt: reticle detection
-
-    - The reticle will be detected and displayed in the camera view.
-    - The camera view will display reticle coordinate ticks and the x, y, z axes.
-    - Visually inspect the results, and click 'Accept' if the reticle is detected correctly. Otherwise, click 'Reject' to reset.
-
-2. Click the positive-x coordinate of the reticle on each camera view.
-
-    .. image:: _static/_userGuide/_calib/reticleDetection_posX.JPG
-        :alt: positive-x coordinate
-
-3. Reprojection error of reticle points will appear.
-    
-    .. image:: _static/_userGuide/_calib/reticleDetection_result.JPG
-        :alt: positive-x coordinate
-
-    - Tips: An error under 3.0 µm³ is good. An error under 5.0 µm³ is acceptable.
-
-4. For more details, see the :ref:`FAQs <reticle_detection_faqs>`
-
-    - :ref:`Q. How should the reticle look in the view? <faq_r_0>`
-
-    - :ref:`Q. Reticle is not detected. What should I do? <faq_r_1>`
-
-    - :ref:`Q. Reprojection error is too high. How to fix it? <faq_r_2>`
-
-
-----
 
 Probe Calibration
 ------------------
