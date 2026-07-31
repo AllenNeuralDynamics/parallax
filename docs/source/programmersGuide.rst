@@ -20,5 +20,7 @@ Key areas covered:
 .. toctree::
     :maxdepth: 1
 
-    programmersGuide1
-    programmersGuide2
+    programmersGuideReticleCV
+    programmersGuideReticleCNN
+    programmersGuideProbeCV
+    programmersGuideProbeCNN

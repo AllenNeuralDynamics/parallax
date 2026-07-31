@@ -1,61 +1,35 @@
 *Programmer's Guide*
 
-Probe Detection
---------------------
+Probe Detection (CNN)
+---------------------
 
 **Overview**
 
-.. raw:: html
+The CNN-based probe detection utilizes a You Only Look Once (YOLO) model to identify and track probes within the camera's field of view. This approach is particularly effective for detecting both single-shank and multi-shank (e.g., 4-shank) probes, offering a robust alternative to traditional computer vision methods.
 
-    <div class="inline-images" style="text-align: center;">
-        <div style="display: inline-flex; align-items: center; justify-content: center;">
-            <div style="text-align: center;">
-                <img src="_static/_progGuide/_probeDetect/0_pipeline/1.png" width="180px"/>
-                <div style="font-size: 10px;">Preprocessing (Diff)</div>
-            </div>
-            <div style="margin: 0 10px; font-size: 18px;">→</div>
-            <div style="text-align: center;">
-                <img src="_static/_progGuide/_probeDetect/0_pipeline/2.png" width="180px"/>
-                <div style="font-size: 10px;">Line Detection</div>
-            </div>
-            <div style="margin: 0 10px; font-size: 18px;">→</div>
-            <div style="text-align: center;">
-                <img src="_static/_progGuide/_probeDetect/0_pipeline/3.png" width="180px"/>
-                <div style="font-size: 10px;">Tip and Base Detection</div>
-            </div>
-            <div style="margin: 0 10px; font-size: 18px;">→</div>
-            <div style="text-align: center;">
-                <img src="_static/_progGuide/_probeDetect/0_pipeline/4.png" width="180px"/>
-                <div style="font-size: 10px;">Precise tip point</div>
-            </div>
-            <div style="margin: 0 10px; font-size: 18px;">→</div>
-            <div style="text-align: center;">
-                <img src="_static/_progGuide/_probeDetect/0_pipeline/5.png" width="180px"/>
-                <div style="font-size: 10px;">Update Tracking Boundary</div>
-            </div>
-        </div>
-    </div>
-    <br>
+.. note::
+   This section is under development. The information below provides a high-level overview.
 
-Probe detection involves a computer vision pipeline. Here is the general process:
+**The Pipeline**
 
-    1. **Preprocessing (Diff):**  
-    In this step, a difference image is created by comparing the current frame with the previous or background frame. This highlights the areas where motion is occurring between frames.
+1.  **Model Loading**:
+    A pre-trained YOLO model, configured for probe detection, is loaded into the system.
 
-    2. **Line Detection:**  
-    Hough line detection is used to detect straight lines in the difference image. This helps in identifying the angle and edges of the probe within the frame.
+2.  **Frame Preprocessing**:
+    Each frame from the camera feed is preprocessed to match the input requirements of the YOLO model (e.g., resizing, normalization).
 
-    3. **Tip and Base Detection:**  
-    The algorithm then detects the pixel coordinates of the probe’s tip and base, determining the probe’s orientation, position, and bounding box within the frame.
+3.  **Inference**:
+    The preprocessed frame is passed to the YOLO model, which performs object detection to identify the probe(s). The model outputs bounding boxes for each detected shank, along with class probabilities.
 
-    4. **Precise Tip Point:**  
-    The precise tip point of the probe is calculated within the tracking boundary, improving accuracy. This ensures that the detected tip is as accurate as possible using the original image data.
+4.  **Post-processing**:
+    The raw detections from the model are post-processed to determine the precise location of the probe tip(s) and base(s). For multi-shank probes, the system identifies all visible shanks.
 
-    5. **Update Tracking Boundary:**  
-    After detecting the probe tip, the tracking boundary is updated for the next frame. This allows the system to keep following the probe's motion accurately in subsequent frames.
+5.  **Pose Calculation**:
+    Using the detected points, the system calculates the probe's position and orientation.
 
+**Considerations for Multi-Shank Probes**
 
-Please continue reading the rest of the document for detailed steps.
+When using a 4-shank probe, it is crucial that the camera has a clear and unobstructed view of all four shanks. If the camera angle or positioning obscures one or more shanks, the detection accuracy will be compromised. In such cases, it is necessary to adjust the camera setup and restart the calibration process.
 
 
 ----

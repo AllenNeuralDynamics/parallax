@@ -1,6 +1,6 @@
 *Programmer's Guide*
 
-Reticle Detection
+Reticle Detection (OpenCV)
 --------------------
 
 
