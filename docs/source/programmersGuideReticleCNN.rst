@@ -1,6 +1,6 @@
 *Programmer's Guide*
 
-﻿Reticle Detection (CNN)
+Reticle Detection (CNN)
 -----------------------
 
 

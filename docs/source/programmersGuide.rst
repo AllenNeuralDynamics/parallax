@@ -7,13 +7,16 @@ Key areas covered:
 
 1. **Reticle Detection**:
    
-    - The detection process involves several steps: from image preprocessing to mask generation and identifying key coordinates on the reticle.
-    - Algorithms used include thresholding, morphological operations, and RANSAC for line detection.
+    - The reticle detection pipeline provides both traditional OpenCV and modern CNN-based methodologies to identify key coordinates on the reticle grid.
+    - **OpenCV Option**: Relies on classical image processing steps, including thresholding, morphological operations, mask generation, and RANSAC for line detection.
+    - **CNN Option**: Utilizes Convolutional Neural Networks for reticle segmentation and feature extraction, offering improved accuracy and adaptability across varied lighting conditions and backgrounds.
 
 2. **Probe Detection**:
    
-    - The probe detection process uses difference imaging, Hough Line Transform, and gradient analysis to detect the tip and base of a probe.
-    - Once detected, the precise tip location is determined using more refined image processing techniques, and the tracking boundary is updated accordingly.
+    - Offers multiple algorithmic pathways for detecting the tip and base of a neural probe, including OpenCV, general CNN models, and a specialized YOLO pipeline.
+    - **OpenCV Option**: Uses traditional computer vision methods such as difference imaging, Hough Line Transform, and gradient analysis.
+    - **CNN & YOLO Options**: Employs deep learning models, including a two-stage YOLO pipeline (global segmentation and local keypoint detection).
+    - Across all methods, once the general probe area is detected, the precise tip location is determined using refined image processing techniques, and the tracking boundary is updated accordingly.
 
 ----
 
