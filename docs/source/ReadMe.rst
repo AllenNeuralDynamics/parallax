@@ -1,6 +1,17 @@
 Getting Started
 ====================
 
+Hardware Requirements
+---------------------
+Parallax is optimized for use with New Scale's `Modular Insertion System <https://newscaletech.com/modular-insertion-system/>`_, but it is compatible with other types of rigs provided they utilize:
+
+* **New Scale Stages:** For precise micro-manipulation.
+* **FLIR Cameras:** For multi-view imaging.
+* **A Reticle:** An essential calibration and targeting component.
+
+**What is a reticle?**
+In this context, a reticle is a specialized physical calibration marker used to establish a common 3D coordinate system across multiple camera views. It acts as the system's visual ground truth to determine both the camera pose and the precise spatial position of targeted brain regions. Specifically, the origin (0, 0) of the reticle's coordinate system is designed to align precisely with bregma. Parallax currently uses an off-the-shelf reticle integrated directly into a custom headframe holder.
+
 Prerequisites
 --------------
    - **Python 3.10**: Strictly required for compatibility with the Spinnaker library.
@@ -83,9 +94,9 @@ Parallax supports advanced reticle detection using SuperPoint and LightGlue. To 
       │               └── superglue_indoor.pth
 
 
-Running Parallax
-----------------
-**1. Stage Connection Setup**
+
+Stage Connection Setup
+----------------------
 
    - Run Pathfinder MPM Software (v2.8 or later) in administrator mode.
    - Navigate to **MPM System Setup**.
@@ -95,36 +106,14 @@ Running Parallax
          :alt: Enable HTTP server
          :scale: 30%
 
-**2. Launch Parallax:**
+
+Running Parallax
+----------------
+
+Once the software is installed and the stage connection is configured, you can launch the Parallax GUI directly from your terminal:
+
 
    .. code-block:: bash
 
       uv run parallax
 
-
-For Developers
---------------
-Ensure code quality before submitting changes by using the following commands.
-
-**1. Install all dependencies:**
-
-   .. code-block:: bash
-
-      uv sync --all-extras
-
-**2. Code Quality & Testing Tools:**
-
-   .. code-block:: bash
-
-      uv run pytest tests
-      uv run ruff check
-      uv run ruff format --check parallax
-      uv run mypy parallax
-
-**3. Build Documentation:**
-
-To build the HTML documentation locally, run:
-
-   .. code-block:: bash
-
-      uv run sphinx-build -b html docs/source docs/_build
