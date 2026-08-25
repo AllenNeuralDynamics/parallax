@@ -10,11 +10,10 @@ Probe Calibration
     .. image:: _static/_userGuide/_calib/probe_select.jpg
         :alt: Select a probe for calibration
 
-**Position the Probe**: Move the probe tip close to the reticle surface.
+**Position the Probe:** Move the probe tip close to the reticle surface.
 
-    .. tip::
-        Since the camera focus is set on the reticle, bringing the probe tip nearby ensures it is also in focus. This improves the precision of tip detection.
-
+.. tip::
+   Since the camera focus is set on the reticle, bringing the probe tip nearby ensures it is also in sharp focus, which significantly improves the precision of tip detection. Ideally, position the probe tip within a **300 µm to 1,000 µm** range from the reticle surface.
 
 
 **1. Start Calibration**

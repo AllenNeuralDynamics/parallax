@@ -117,8 +117,6 @@ General Interface
 
 - **If I turn on Parallax, it shows noisy data on the view and does not display the camera view. What should I do?**
 
-    Parallax is currently under development, and some functions are not stable. If camera resources are not cleared up in the previous session, such as when the app exits forcefully or the camera interface is unplugged, it can cause this issue.
-    
         .. image:: _static/_faq/reset1.JPG
             :scale: 20%
     

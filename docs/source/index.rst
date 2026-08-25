@@ -18,13 +18,12 @@ Key Features
 * **Photogrammetry-Assisted Targeting:** Utilizes multiple camera views to automatically detect probe positions and assist with spatial navigation.
 * **Automated Reticle Detection:** Features built-in support for neural network models (such as SuperPoint and SuperGlue/LightGlue) to automatically detect and align reticles to determine the camera pose.
 * **Hardware Integration:** Seamlessly interfaces with camera hardware (via the Spinnaker SDK) to provide high-speed, real-time visual feedback during setup.
-Whether you are coordinating compl
 
 Contents
 ==================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    ReadMe
    userGuide

@@ -29,7 +29,7 @@ User Interface Tour
 
 The Parallax interface is divided into several key areas designed to give you flexible control over your experiment. The top row buttons serve as quick-access controls for primary workflows and are categorized by color:
 
-Camera Controls (Orange / Red)
+Camera Controls
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 These icons control the visual feed, capture, and file management for your cameras.
 
@@ -38,16 +38,16 @@ These icons control the visual feed, capture, and file management for your camer
 * |record_icon| **Record:** Start or stop a video recording of the camera view.
 * |folder_icon| **Output Folder:** Assign the directory where your snapshots and video recordings will be saved.
 
-Stage Controls (Blue)
+Stage Controls
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 These icons manage coordinate systems, spatial planning, and hardware communication.
 
 * |mpm_icon| **MPM Server:** Set up and connect to the New Scale server address.
 * |calc_icon| **Calculate Trajectory:** Open the calculator to convert coordinates between the stage's system, the reticle's system, and Bregma's coordinate system.
-* |map_icon| **3D Map:** Visualize the trajectory used to calculate the transformation matrix between the stage's coordinate system and the reticle's coordinate system.
-* |save_icon| **Save Workspace:** Save the stage's current location across all coordinate systems, alongside current camera settings and reticle metadata.
+* |map_icon| **3D Map:** Visualize the trajectory used to calculate the transformation matrix between the manipulator stage's coordinate system and the reticle's coordinate system.
+* |save_icon| **Save Workspace:** Save the stage's current location across all coordinate systems.
 
-Reticle Calibration & Triangulation (Purple)
+Reticle Calibration & Triangulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 These icons are used for multi-camera mathematical alignment.
 
@@ -128,9 +128,10 @@ Under the "Auto" column, the diamond-shaped toggles allow you to switch individu
 * **Auto Mode (Grey Slider):** When the toggle is enabled, the software automatically manages the parameter based on environmental conditions.
 
 **Example Configuration:**
-In the reference image above, **FPS** is manually set to 10, while **Exposure** and **Gain** are toggled into automated mode. In this state, if the lighting conditions in the room change, the software will automatically adjust the Gain first, and then the Exposure to compensate for the light differences, all while keeping the framerate strictly locked at 10 FPS.
+In the reference image above, **FPS** is manually set to 10, while **Exposure** and **Gain** are toggled into automated mode. In this state, if the lighting conditions in the room change, the software will automatically adjust the Gain first, and then the Exposure to compensate for the light differences (up to a maximum exposure limit of 100ms), all while keeping the framerate strictly locked at 10 FPS.
 
-----
+
+
 
 .. toctree::
    :maxdepth: 1

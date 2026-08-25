@@ -29,7 +29,7 @@ The process involves several key stages:
     For a new query image, the pipeline employs **SuperPoint**, a deep learning-based feature detector, to extract robust keypoints and their corresponding descriptors. The high-contrast patterns of the reticle serve as reliable anchor points for feature extraction.
 
 3.  **Feature Matching**
-    The features from the query image are matched against the features of the images in the database using **SuperGlue** or **LightGlue**. These matchers, based on graph neural networks, are highly effective at finding correct correspondences, even in the presence of repetitive structures or variations in lighting.
+    The features from the query image are matched against the features of the images in the database using **LightGlue**. These matchers, based on graph neural networks, are highly effective at finding correct correspondences, even in the presence of repetitive structures or variations in lighting.
 
 4.  **Camera Localization (Online PnP)**
     With the established 2D-to-3D correspondences (linking 2D keypoints in the query image to the 3D points in the SfM map), a Perspective-n-Point (PnP) algorithm, often combined with RANSAC for outlier rejection, is used. This step calculates the precise rotation (as a quaternion) and translation vectors of the query camera relative to the coordinate system of the reticle map.
