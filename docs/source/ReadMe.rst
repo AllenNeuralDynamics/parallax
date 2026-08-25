@@ -10,7 +10,7 @@ Parallax is optimized for use with New Scale's `Modular Insertion System <https:
 * **A Reticle:** An essential calibration and targeting component.
 
 **What is a reticle?**
-In this context, a reticle is a specialized physical calibration marker used to establish a common 3D coordinate system across multiple camera views. It acts as the system's visual ground truth to determine both the camera pose and the precise spatial position of targeted brain regions. Specifically, the origin (0, 0) of the reticle's coordinate system is designed to align precisely with bregma. Parallax currently uses an off-the-shelf reticle integrated directly into a custom headframe holder.
+A reticle is a specialized physical calibration marker used to establish a common 3D coordinate system across multiple camera views. It acts as the system's visual ground truth to determine both the camera pose and the precise spatial position of targeted brain regions. Specifically, the origin (0, 0) of the reticle's coordinate system is designed to align precisely with bregma. Parallax currently uses an off-the-shelf reticle integrated directly into a custom headframe holder.
 
 Prerequisites
 --------------

@@ -45,7 +45,7 @@ These icons manage coordinate systems, spatial planning, and hardware communicat
 * |mpm_icon| **MPM Server:** Set up and connect to the New Scale server address.
 * |calc_icon| **Calculate Trajectory:** Open the calculator to convert coordinates between the stage's system, the reticle's system, and Bregma's coordinate system.
 * |map_icon| **3D Map:** Visualize the trajectory used to calculate the transformation matrix between the manipulator stage's coordinate system and the reticle's coordinate system.
-* |save_icon| **Save Workspace:** Save the stage's current location across all coordinate systems.
+* |save_icon| **Save Stage Information:** Save the stage's current location across all coordinate systems and transformation matrix.
 
 Reticle Calibration & Triangulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
