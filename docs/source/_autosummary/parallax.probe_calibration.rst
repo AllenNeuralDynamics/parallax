@@ -4,26 +4,11 @@
 .. automodule:: parallax.probe_calibration
 
    
-   
-   
+.. rubric:: Modules
 
-   
-   
-   
+.. autosummary::
+   :toctree:
+   :recursive:
 
-   
-   
-   .. rubric:: Classes
-
-   .. autosummary::
-   
-      ProbeCalibration
-   
-   
-
-   
-   
-   
-
-
-
+   bundle_adjustment
+   probe_calibration

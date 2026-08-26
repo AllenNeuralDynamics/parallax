@@ -4,26 +4,15 @@
 .. automodule:: parallax.reticle_detection
 
    
-   
-   
+.. rubric:: Modules
 
-   
-   
-   
+.. autosummary::
+   :toctree:
+   :recursive:
 
-   
-   
-   .. rubric:: Classes
-
-   .. autosummary::
-   
-      ReticleDetection
-   
-   
-
-   
-   
-   
-
-
-
+   base_manager
+   manager_cnn
+   manager_opencv
+   mask_generator
+   reticle_detection
+   reticle_detection_coords_interests
