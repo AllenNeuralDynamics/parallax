@@ -6,7 +6,9 @@ Hardware Requirements
 Parallax is optimized for use with New Scale's `Modular Insertion System <https://newscaletech.com/modular-insertion-system/>`_, but it is compatible with other types of rigs provided they utilize:
 
 * **New Scale Stages:** For precise micro-manipulation.
+* **Neuropixels Probes:** Available from Neuropixels.org. Parallax may work with other types of neural recording probes, but these have not been tested.
 * **FLIR Cameras:** For multi-view imaging.
+* **InfiniProbe Lenses:** Long-working-distance microscope objectives that can focus on the reticle while staying clear of the probes (Model S-25 is recommended).
 * **A Reticle:** An essential calibration and targeting component.
 
 **What is a reticle?**
