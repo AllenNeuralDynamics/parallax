@@ -4,6 +4,7 @@ Parallax: A GUI application for controlling hardware devices.
 """
 
 import atexit
+import faulthandler
 import logging.config
 import sys
 
@@ -20,6 +21,8 @@ from parallax.main_window import MainWindow
 from parallax.model import Model
 from parallax.session.session_manager import SessionManager
 
+_fault_log = None
+
 
 def main():
     # Parse command line arguments
@@ -34,6 +37,12 @@ def main():
         logging_config.handlers["console"].level = args.log_level
     logging.config.dictConfig(logging_config.model_dump(by_alias=True, exclude_none=True))
     logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+    # Leave evidence for crashes that never reach the normal log
+    global _fault_log
+    _fault_log = open("faulthandler.log", "a")  # keep the handle alive for the whole run
+    faulthandler.enable(_fault_log, all_threads=True)  # native crashes: dump every thread's Python stack
+    sys.excepthook = lambda t, v, tb: logger.critical("Uncaught exception", exc_info=(t, v, tb))
 
     # Print the ASCII art
     logger.info(f"Parallax version {__version__}")
