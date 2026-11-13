@@ -33,6 +33,7 @@ def main():
     if args.log_level:
         logging_config.handlers["console"].level = args.log_level
     logging.config.dictConfig(logging_config.model_dump(by_alias=True, exclude_none=True))
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
 
     # Print the ASCII art
     logger.info(f"Parallax version {__version__}")
