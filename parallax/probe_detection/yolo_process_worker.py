@@ -6,6 +6,7 @@ import numpy as np
 import yaml
 
 from parallax.config.config_path import yolo_config_path
+from parallax.config.schemas import YoloConfig
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
 from parallax.probe_detection.yolo_global.yolo_client import YOLOClient as GlobalYOLOClient
@@ -38,29 +39,27 @@ class YoloProcessWorker:
         self.is_detection_on = True
         self.probe_stopped = True
 
-        # init
+        # init: every value must come from yolo_config.yaml (no defaults)
         try:
-            CONFIG = self._load_yolo_config(yolo_config_path)
+            cfg = YoloConfig(**self._load_yolo_config(yolo_config_path))
         except Exception as e:
-            self.log.info(f"Error loading YOLO config: {e}")
-            CONFIG = {}
+            self.log.error(f"Invalid YOLO config {yolo_config_path}: {e}")
+            raise
 
-        keypoints_cfg = CONFIG.get("keypoints", {})
-        segmentation_cfg = CONFIG.get("segmentation", {})
         self.yolo_local = LocalYOLOClient(
             name=self.name,
-            config=keypoints_cfg,
+            config=cfg.keypoints.model_dump(),  # clients still read dicts for now
             detection_callback=self.handle_local_detections,
             finished_callback=lambda: self.wait_finished("local"),
         )
         self.yolo_global = GlobalYOLOClient(
             name=self.name,
-            config=segmentation_cfg,
+            config=cfg.segmentation.model_dump(),
             detection_callback=self.handle_global_detections,
             finished_callback=lambda: self.wait_finished("global"),
         )
 
-        self.movement_threshold = CONFIG.get("image_processing", {}).get("movement_threshold", 8.0)
+        self.movement_threshold = cfg.image_processing.movement_threshold
 
     def update_frame(self, frame: np.ndarray, timestamp: float):
         if self.is_detection_on:

@@ -12,12 +12,15 @@ keypoints:
   yolo:
     weights_path: "external/YoloV11/tip_keypoint_detection_accurate.pt" 
     conf_thresh: 0.2
+    iou_thresh: 0.75
     img_size: 320
     img_dim: [320, 320]
     max_det: 30
     bbox_margin: 30
     apply_mask: True
     mask_margin: 15
+image_processing:
+  movement_threshold: 8.0
 object_detection:
   fps: 5
   yolo:

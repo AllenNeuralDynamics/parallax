@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+import yaml
 
+from parallax.config.config_path import yolo_config_path
 from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 
 
@@ -55,7 +57,8 @@ def worker_with_fakes():
     """
     Creates a worker that uses FakeYOLOClients and MOCKED postprocessing.
     """
-    dummy_config = {"keypoints": {}, "segmentation": {}}
+    with open(yolo_config_path) as f:  # real config: also checks the shipped yaml passes validation
+        dummy_config = yaml.safe_load(f)
 
     # We mock postprocessing so we don't need real 'crop_info' keys (x_global_offset, etc)
     with (
