@@ -11,6 +11,8 @@ from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 
 
 class FakeYOLOClient:
+    """Fake global client: runs a background thread and calls the worker's detection callback."""
+
     def __init__(self, name, config, detection_callback, finished_callback):
         self.name = name
         self.callback = detection_callback
@@ -31,22 +33,22 @@ class FakeYOLOClient:
 
         def _process():
             time.sleep(0.01)
-            if self.name == "Global":
-                # Global simulates finding a probe
-                detections = [{"class_name": "probe", "timestamp": timestamp, "confidence": 0.9}]
-                crop_info = {"x": 0, "y": 0}
-                self.callback(frame, crop_info, detections)
-
-            elif "Local" in self.name:
-                # Local simulates finding a shank
-                i = kwargs.get("i_th", 0)
-                # Note: We include 'model' here so we can assert it later
-                detections = [
-                    {"class_name": "shank", "model": "yolo_local", "confidence": 0.95, "keypoints_orig": [10, 10, 0.9]}
-                ]
-                self.callback({}, detections, i)
+            # Global simulates finding a probe
+            detections = [{"class_name": "probe", "timestamp": timestamp, "confidence": 0.9}]
+            crop_info = {"x": 0, "y": 0}
+            self.callback(frame, crop_info, detections)
 
         threading.Thread(target=_process).start()
+
+
+class FakeYoloKeypoints:
+    """Fake local model: detect() is synchronous (no thread), like the real YoloKeypoints.detect()."""
+
+    def detect(self, frame, ts=None, global_detection=None, i_th=0):
+        # Note: We include 'model' here so we can assert it later
+        return [
+            {"class_name": "shank", "model": "yolo_local", "confidence": 0.95, "keypoints_orig": [10, 10, 0.9]}
+        ]
 
 
 # --- Fixtures ---
@@ -55,7 +57,7 @@ class FakeYOLOClient:
 @pytest.fixture
 def worker_with_fakes():
     """
-    Creates a worker that uses FakeYOLOClients and MOCKED postprocessing.
+    Creates a worker that uses a fake global client, a fake local model and MOCKED postprocessing.
     """
     with open(yolo_config_path) as f:  # real config: also checks the shipped yaml passes validation
         dummy_config = yaml.safe_load(f)
@@ -63,10 +65,8 @@ def worker_with_fakes():
     # We mock postprocessing so we don't need real 'crop_info' keys (x_global_offset, etc)
     with (
         patch(
-            "parallax.probe_detection.yolo_process_worker.LocalYOLOClient",
-            side_effect=lambda name, **kwargs: FakeYOLOClient(
-                "Local", None, kwargs["detection_callback"], kwargs["finished_callback"]
-            ),
+            "parallax.probe_detection.yolo_process_worker.YoloKeypoints",
+            side_effect=lambda *args, **kwargs: FakeYoloKeypoints(),
         ),
         patch(
             "parallax.probe_detection.yolo_process_worker.GlobalYOLOClient",
@@ -109,13 +109,13 @@ def test_full_pipeline_flow(worker_with_fakes):
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
     worker.update_frame(frame, timestamp=100.0)
 
-    # 2. Wait for threaded Fakes
+    # 2. Wait for the (fake) global thread; the local model then runs synchronously on it
     time.sleep(0.2)
 
     # 3. Verify
     # We expect detection_callback to be called TWICE:
     #   1st time by Global (immediate)
-    #   2nd time by Local (after thread delay)
+    #   2nd time with the Local results
 
     # We want to check the LAST call (which should be the Local one)
     assert worker.detection_callback.call_count >= 1
