@@ -1,4 +1,3 @@
-import time
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -114,116 +113,8 @@ def test_initialization_failure_fallback(mock_yolo_lib):
 
     assert worker.model is None
     # Should still initialize basic attributes
-    assert worker.frame_queue.maxlen == 1
-
-
-def test_process_frame_queue_management(mock_yolo_lib, dummy_frame):
-    """Verify process_frame handles the queue and drops old frames."""
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
-    worker.running = True  # Must be running to accept frames
-
-    # 1. Add first frame
-    worker.process_frame(dummy_frame, {}, ts=1.0)
-    assert len(worker.frame_queue) == 1
-    assert worker.frame_queue[0][2] == 1.0  # Check timestamp
-
-    # 2. Add second frame (should replace first due to maxlen=1 or clear())
-    worker.process_frame(dummy_frame, {}, ts=2.0)
-    assert len(worker.frame_queue) == 1
-    assert worker.frame_queue[0][2] == 2.0
-
-
-def test_inference_pipeline_execution(mock_yolo_lib, dummy_frame, sample_yolo_result):
-    """
-    End-to-End test of the thread loop:
-    Queue Frame -> Mock Inference -> Parse Result -> Trigger Callback
-    """
-    _, model_instance = mock_yolo_lib
-    model_instance.track.return_value = sample_yolo_result
-
-    # Setup Callbacks
-    detection_cb = MagicMock()
-
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG, detection_callback=detection_cb)
-
-    # Start Worker
-    worker.start()
-
-    # Send Frame
-    crop_info = {"x": 0, "y": 0}
-    worker.process_frame(dummy_frame, crop_info, ts=123.0)
-
-    # Wait briefly for thread to process
-    time.sleep(0.1)
-
-    # Stop Worker
-    worker.stop()
-
-    # --- Assertions ---
-
-    # 1. Check Inference was called
-    model_instance.track.assert_called()
-
-    # 2. Check Callback was triggered
-    detection_cb.assert_called_once()
-
-    # 3. Verify Data Structure passed to callback
-    args = detection_cb.call_args[0]  # (frame, crop_info, detections)
-    detections = args[2]
-
-    assert len(detections) == 1
-    det = detections[0]
-
-    assert det["model"] == "yolo_global"
-    assert det["timestamp"] == 123.0
-    assert det["class_name"] == "probe"  # From model.names mock {0: 'probe'}
-    assert det["id"] == 1
-    assert len(det["mask"]) > 0  # Should contain the polygon list
-
-
-def test_dummy_mode_execution(mock_yolo_lib, dummy_frame):
-    """Verify behavior when model failed to load (Dummy Mode)."""
-    MockYOLO, _ = mock_yolo_lib
-    MockYOLO.side_effect = Exception("Load Fail")
-
-    detection_cb = MagicMock()
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG, detection_callback=detection_cb)
-
-    # Worker model should be None
-    assert worker.model is None
-
-    worker.start()
-    worker.process_frame(dummy_frame, {}, ts=55.0)
-    time.sleep(0.1)
-    worker.stop()
-
-    # Callback should still fire with dummy data
-    detection_cb.assert_called_once()
-    detections = detection_cb.call_args[0][2]
-
-    assert len(detections) == 1
-    assert detections[0]["class_name"] == "dummy_object"
-
-
-def test_lifecycle_and_finished_callback(mock_yolo_lib):
-    """Verify clean start/stop and finished callback execution."""
-    finished_cb = MagicMock()
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG, finished_callback=finished_cb)
-
-    assert worker.running is False
-
-    # Start
-    worker.start()
-    assert worker.running is True
-    assert worker.worker_thread.is_alive()
-
-    # Stop
-    worker.stop()
-    assert worker.running is False
-    assert not worker.worker_thread.is_alive()
-
-    # Finished Callback
-    finished_cb.assert_called_once()
+    assert worker.conf_thresh == 0.5
+    assert worker.iou_thresh == 0.45
 
 
 def test_warmup_logic(mock_yolo_lib):
@@ -251,9 +142,25 @@ def test_detect_parses_result(mock_yolo_lib, dummy_frame, sample_yolo_result):
     det = detections[0]
     assert det["model"] == "yolo_global"
     assert det["timestamp"] == 7.0
-    assert det["class_name"] == "probe"
+    assert det["class_name"] == "probe"  # From model.names mock {0: 'probe'}
     assert det["id"] == 1
-    assert len(det["mask"]) > 0
+    assert len(det["mask"]) > 0  # Should contain the polygon list
+
+
+def test_detect_tracks_with_persist_and_agnostic_nms(mock_yolo_lib, dummy_frame, sample_yolo_result):
+    """The global model keeps tracker state between frames (persist=True)."""
+    _, model_instance = mock_yolo_lib
+    model_instance.track.return_value = sample_yolo_result
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    model_instance.track.reset_mock()
+
+    worker.detect(dummy_frame, ts=1.0)
+
+    kwargs = model_instance.track.call_args.kwargs
+    assert kwargs["persist"] is True
+    assert kwargs["agnostic_nms"] is True
+    assert kwargs["conf"] == 0.5
+    assert kwargs["iou"] == 0.45
 
 
 def test_detect_dummy_mode(mock_yolo_lib, dummy_frame):
@@ -263,6 +170,7 @@ def test_detect_dummy_mode(mock_yolo_lib, dummy_frame):
     worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
     detections = worker.detect(dummy_frame, ts=1.0)
 
+    assert worker.model is None
     assert len(detections) == 1
     assert detections[0]["class_name"] == "dummy_object"
 

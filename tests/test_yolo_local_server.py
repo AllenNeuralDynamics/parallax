@@ -1,4 +1,3 @@
-import threading
 import time
 from unittest.mock import MagicMock, patch
 
@@ -12,53 +11,21 @@ from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
 # --- 1. Define Fakes ---
 
 
-class FakeYOLOClient:
-    """
-    Mimics the real global YOLOClient.
-    It runs a background thread to simulate processing delay and triggers the worker's
-    handle_global_detections callback.
-    """
+class FakeYoloSegmentation:
+    """Mimics YoloSegmentation.detect(): synchronous, no thread. Returns one global 'probe' detection."""
 
-    def __init__(self, name, config, detection_callback, finished_callback):
-        self.name = name
-        self.callback = detection_callback
-        self.finished_callback = finished_callback
-        self.running = False
-
-    def start_client(self):
-        self.running = True
-
-    def stop(self):
-        self.running = False
-        if self.finished_callback:
-            self.finished_callback()
-
-    def newframe_captured(self, frame, timestamp=None, **kwargs):
-        """Simulates receiving a frame and processing it asynchronously."""
-        if not self.running:
-            return
-
-        def _process():
-            time.sleep(0.01)  # Simulate inference time
-            ts = timestamp if timestamp is not None else time.time()
-
-            # Dummy Global Detection
-            detections = [
-                {
-                    "class_name": "probe",
-                    "class_id": 0,
-                    "confidence": 0.9,
-                    "bbox": [10, 10, 100, 100],
-                    "timestamp": ts,
-                    "id": 1,
-                }
-            ]
-            crop_info = {"orig_size": (1000, 1000), "global_yolo_size": (640, 640)}
-
-            # Trigger Worker's handle_global_detections
-            self.callback(frame, crop_info, detections)
-
-        threading.Thread(target=_process, daemon=True).start()
+    def detect(self, frame, ts=None):
+        ts = ts if ts is not None else time.time()
+        return [
+            {
+                "class_name": "probe",
+                "class_id": 0,
+                "confidence": 0.9,
+                "bbox": [10, 10, 100, 100],
+                "timestamp": ts,
+                "id": 1,
+            }
+        ]
 
 
 class FakeYoloKeypoints:
@@ -87,12 +54,22 @@ class FakeYoloKeypoints:
         return self.results[min(len(self.calls) - 1, len(self.results) - 1)]
 
 
+def wait_for(predicate, timeout=2.0):
+    """Poll until predicate() is true (the worker runs on its own thread)."""
+    end = time.time() + timeout
+    while time.time() < end:
+        if predicate():
+            return True
+        time.sleep(0.005)
+    return predicate()
+
+
 # --- 2. Fixtures ---
 
 
 def make_worker(local_model):
     """
-    Creates a YoloProcessWorker with a fake global client and the given local model.
+    Creates a YoloProcessWorker with a fake global model and the given local model.
     Callers patch post-processing (identity functions) while they use the worker, to avoid KeyError in Utils.
     """
     with open(yolo_config_path) as f:  # real config: also checks the shipped yaml passes validation
@@ -101,10 +78,8 @@ def make_worker(local_model):
     patches = [
         patch("parallax.probe_detection.yolo_process_worker.YoloKeypoints", return_value=local_model),
         patch(
-            "parallax.probe_detection.yolo_process_worker.GlobalYOLOClient",
-            side_effect=lambda name, **kwargs: FakeYOLOClient(
-                "Global", None, kwargs["detection_callback"], kwargs["finished_callback"]
-            ),
+            "parallax.probe_detection.yolo_process_worker.YoloSegmentation",
+            side_effect=lambda *args, **kwargs: FakeYoloSegmentation(),
         ),
         patch(
             "parallax.probe_detection.yolo_process_worker.YoloProcessWorker._load_yolo_config",
@@ -124,7 +99,7 @@ def make_worker(local_model):
 
 @pytest.fixture
 def worker_with_fakes():
-    """Worker with the fake global thread running, so the whole flow can be driven by update_frame()."""
+    """Worker with its thread running, so the whole flow can be driven by update_frame()."""
     with (
         patch(
             "parallax.probe_detection.yolo_process_worker.postprocessing_local",
@@ -181,8 +156,8 @@ def test_pipeline_probe_stopped_triggers_local(worker_with_fakes):
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
     worker.update_frame(frame, timestamp=100.0)
 
-    # 3. Wait for the (fake) global thread; the local model then runs on it
-    time.sleep(0.2)
+    # 3. Wait for the worker thread: global emit first, then the local batch
+    assert wait_for(lambda: worker.detection_callback.call_count >= 2)
 
     # 4. Verify result
     assert worker.detection_callback.called
@@ -212,8 +187,8 @@ def test_pipeline_probe_moving_skips_local(worker_with_fakes):
     # 2. Send Frame
     worker.update_frame(np.zeros((100, 100), dtype=np.uint8), timestamp=200.0)
 
-    # 3. Wait for thread
-    time.sleep(0.1)
+    # 3. Wait for the worker thread
+    assert wait_for(lambda: worker.detection_callback.called)
 
     # 4. Verify result
     assert worker.detection_callback.called

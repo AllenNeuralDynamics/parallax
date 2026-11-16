@@ -1,7 +1,4 @@
 import logging
-import time
-from collections import deque
-from threading import Thread  # Using Event for better thread signaling
 from typing import Optional
 
 import numpy as np
@@ -11,60 +8,21 @@ from parallax.probe_detection.yolo_model import YoloModel
 
 
 class YoloSegmentation:
-    """YOLO segmentation worker that runs in its own thread"""
+    """Global YOLO segmentation: finds and tracks probes in a frame. Synchronous, no thread of its own."""
 
-    def __init__(self, name, config, detection_callback=None, finished_callback=None):
+    def __init__(self, name, config):
         """
         :param config: The `yolo:` block of yolo_config.yaml (see YoloSettings).
-        :param detection_callback: A function to call with the list of detections.
         """
         self.log = logging.getLogger(self.__class__.__name__)
         self.name = name
         settings = YoloSettings(**config)
         self.conf_thresh = settings.conf_thresh
         self.iou_thresh = settings.iou_thresh
-        self.frame_queue = deque(maxlen=1)
-        self.running = False
-        self.worker_thread = None
-
-        # New: Store the callback function
-        self.detection_callback = detection_callback
-        self.finished_callback = finished_callback
 
         # Load + warm up the model (model is None in dummy mode)
         self.yolo = YoloModel(settings, label="global")
         self.model = self.yolo.model
-
-    def start(self):
-        """Start the YOLO segmentation thread"""
-        if self.running:
-            return True
-
-        self.running = True
-        self.worker_thread = Thread(target=self._process_frames, daemon=True)
-        self.worker_thread.start()
-        self.log.info("YOLO segmentation thread started")
-        return True
-
-    def stop(self):
-        """Stop the YOLO processing thread"""
-        self.running = False
-        if self.worker_thread:
-            self.worker_thread.join(timeout=1.0)
-        self.log.info("YOLO segmentation worker stopped")
-
-    def process_frame(self, frame: np.ndarray, crop_info, ts: Optional[float] = None):
-        """Add frame to processing queue"""
-        if not self.running:
-            return
-
-        # Use deque's nature to drop older frames if a new one arrives immediately
-        try:
-            # Clear old frame and append new one to ensure only the latest frame is processed
-            self.frame_queue.clear()
-            self.frame_queue.append((frame, crop_info, ts))
-        except Exception:
-            pass
 
     def detect(self, frame: np.ndarray, ts: Optional[float] = None) -> list[dict]:
         """Synchronous inference: one frame in, detections out. No threads, queues or callbacks."""
@@ -125,31 +83,3 @@ class YoloSegmentation:
                     }
                     detections.append(detection)
         return detections
-
-    def _process_frames(self):
-        """Process frames from the queue"""
-        while self.running:
-            try:
-                if len(self.frame_queue) > 0:
-                    (frame, crop_info, ts) = self.frame_queue.pop()
-                    detections = self.detect(frame, ts)
-
-                    # Call the provided callback function with detections
-                    if self.detection_callback:
-                        self.detection_callback(frame, crop_info, detections)
-                else:
-                    # No frames to process, sleep briefly
-                    time.sleep(0.01)
-
-            except Exception as e:
-                self.log.error(f"Error processing frame: {e}")
-                time.sleep(0.01)
-                continue
-
-        self.log.info("yolo_segmentation: Exiting loop.")
-        # Check if a finished callback was provided and call it
-        if self.finished_callback:
-            try:
-                self.finished_callback()
-            except Exception as e:
-                self.log.error(f"Error calling finished_callback: {e}")
