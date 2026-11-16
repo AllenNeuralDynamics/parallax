@@ -235,3 +235,42 @@ def test_warmup_logic(mock_yolo_lib):
 
     # Check that track was called 3 times during init
     assert model_instance.track.call_count == 3
+
+
+# --- detect(): synchronous inference, no thread ---
+
+
+def test_detect_parses_result(mock_yolo_lib, dummy_frame, sample_yolo_result):
+    _, model_instance = mock_yolo_lib
+    model_instance.track.return_value = sample_yolo_result
+
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    detections = worker.detect(dummy_frame, ts=7.0)
+
+    assert len(detections) == 1
+    det = detections[0]
+    assert det["model"] == "yolo_global"
+    assert det["timestamp"] == 7.0
+    assert det["class_name"] == "probe"
+    assert det["id"] == 1
+    assert len(det["mask"]) > 0
+
+
+def test_detect_dummy_mode(mock_yolo_lib, dummy_frame):
+    MockYOLO, _ = mock_yolo_lib
+    MockYOLO.side_effect = Exception("Load Fail")
+
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    detections = worker.detect(dummy_frame, ts=1.0)
+
+    assert len(detections) == 1
+    assert detections[0]["class_name"] == "dummy_object"
+
+
+def test_detect_returns_empty_when_no_results(mock_yolo_lib, dummy_frame):
+    _, model_instance = mock_yolo_lib
+    model_instance.track.return_value = []
+
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+
+    assert worker.detect(dummy_frame, ts=1.0) == []
