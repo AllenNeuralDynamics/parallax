@@ -23,8 +23,6 @@ class YoloProcessWorker:
     def __init__(self, name, original_resolution, test=False, detection_callback=None, finished_callback=None):
         self.log = logging.getLogger(self.__class__.__name__)
         self.frame = None
-        self.last_detected_frame = None
-        self.copy_last_detected_frame = False
         self.name = name
         self.original_resolution = original_resolution
         self.test = test
@@ -64,8 +62,6 @@ class YoloProcessWorker:
         if not self.is_detection_on:
             return
         self.frame = frame
-        if self.copy_last_detected_frame:
-            self.last_detected_frame = frame.copy()
         if self._accept_frame(timestamp):
             frame_resized, crop_info = preprocessing_global(frame, target_size=tuple(self.global_cfg.yolo.img_dim))
             self._latest.append((frame_resized, crop_info, timestamp))
@@ -307,10 +303,6 @@ class YoloProcessWorker:
     def stop_detection(self):
         """Stop the probe detection."""
         self.is_detection_on = False
-
-    def cache_last_detected_frame(self):
-        """Ask the worker to keep a copy of the latest frame (read it from last_detected_frame)."""
-        self.copy_last_detected_frame = True
 
     def set_name(self, name):
         """Update the camera name."""

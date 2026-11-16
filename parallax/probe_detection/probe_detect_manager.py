@@ -303,7 +303,6 @@ class ProbeDetectManager(QObject):
         self.yoloProcessWorker = None
         self._prev_ts = None
         self.threadpool = QThreadPool()
-        self.last_detected_frame = None
         self.detect_algorithm = "yolo"  # Default algorithm
 
     def _init_draw_thread(self):
@@ -446,15 +445,6 @@ class ProbeDetectManager(QObject):
     def get_mask(self):
         """Save the current image and global mask."""
         return self.worker.mask_bool.astype(np.uint8) * 255
-
-    def get_frame(self):
-        if self.yoloProcessWorker is not None:
-            self.yoloProcessWorker.cache_last_detected_frame()
-            return self.yoloProcessWorker.last_detected_frame
-        elif self.opencvProcessWorker is not None:
-            self.opencvProcessWorker.cache_last_detected_frame()
-            return self.opencvProcessWorker.last_detected_frame
-        return
 
     def set_algorithm(self, algorithms):
         """Set the probe detection algorithm."""
