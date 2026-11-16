@@ -22,8 +22,8 @@ YOLO_CONFIG = {
 @pytest.fixture
 def mock_yolo_lib():
     with (
-        patch("parallax.probe_detection.yolo.model.YOLO") as MockYOLO,
-        patch("parallax.probe_detection.yolo.model.torch") as MockTorch,
+        patch("parallax.probe_detection.yolo.base.YOLO") as MockYOLO,
+        patch("parallax.probe_detection.yolo.base.torch") as MockTorch,
     ):
         MockTorch.cuda.is_available.return_value = False
         model_instance = MockYOLO.return_value

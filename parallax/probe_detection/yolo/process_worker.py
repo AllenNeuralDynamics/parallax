@@ -8,7 +8,7 @@ import numpy as np
 import yaml
 
 from parallax.config.config_path import yolo_config_path
-from parallax.config.schemas import YoloConfig
+from parallax.probe_detection.yolo.schemas import YoloConfig
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.probe_detection.yolo.global_utils import postprocessing as postprocessing_global
 from parallax.probe_detection.yolo.global_utils import preprocessing as preprocessing_global

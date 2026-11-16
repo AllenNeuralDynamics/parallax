@@ -5,13 +5,14 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 
-from parallax.config.schemas import YoloSettings
+from parallax.probe_detection.yolo.schemas import YoloSettings
 
 
-class YoloModel:
+class YoloBase:
     """Loads a YOLO model, moves it to the best device and warms it up.
 
-    No threads, queues or callbacks: the global and local servers own those.
+    Shared by YoloSegmentation (global) and YoloKeypoints (local), which hold it by composition.
+    No threads, queues or callbacks: YoloProcessWorker owns the single thread.
     `model` is None when loading failed (dummy mode).
     """
 

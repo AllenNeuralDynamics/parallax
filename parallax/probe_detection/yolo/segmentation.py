@@ -3,8 +3,8 @@ from typing import Optional
 
 import numpy as np
 
-from parallax.config.schemas import YoloSettings
-from parallax.probe_detection.yolo.model import YoloModel
+from parallax.probe_detection.yolo.schemas import YoloSettings
+from parallax.probe_detection.yolo.base import YoloBase
 
 
 class YoloSegmentation:
@@ -21,7 +21,7 @@ class YoloSegmentation:
         self.iou_thresh = settings.iou_thresh
 
         # Load + warm up the model (model is None in dummy mode)
-        self.yolo = YoloModel(settings, label="global")
+        self.yolo = YoloBase(settings, label="global")
         self.model = self.yolo.model
 
     def detect(self, frame: np.ndarray, ts: Optional[float] = None) -> list[dict]:

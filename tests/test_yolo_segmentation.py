@@ -24,8 +24,8 @@ def mock_yolo_lib():
     Patches the ultralytics.YOLO class and torch module.
     """
     with (
-        patch("parallax.probe_detection.yolo.model.YOLO") as MockYOLO,
-        patch("parallax.probe_detection.yolo.model.torch") as MockTorch,
+        patch("parallax.probe_detection.yolo.base.YOLO") as MockYOLO,
+        patch("parallax.probe_detection.yolo.base.torch") as MockTorch,
     ):
 
         # Setup Torch

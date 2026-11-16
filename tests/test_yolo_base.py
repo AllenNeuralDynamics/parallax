@@ -2,8 +2,8 @@ from unittest.mock import patch
 
 import pytest
 
-from parallax.config.schemas import YoloSettings
-from parallax.probe_detection.yolo.model import YoloModel
+from parallax.probe_detection.yolo.schemas import YoloSettings
+from parallax.probe_detection.yolo.base import YoloBase
 
 
 @pytest.fixture
@@ -21,8 +21,8 @@ def settings():
 @pytest.fixture
 def mock_yolo_lib():
     with (
-        patch("parallax.probe_detection.yolo.model.YOLO") as MockYOLO,
-        patch("parallax.probe_detection.yolo.model.torch") as MockTorch,
+        patch("parallax.probe_detection.yolo.base.YOLO") as MockYOLO,
+        patch("parallax.probe_detection.yolo.base.torch") as MockTorch,
     ):
         MockTorch.cuda.is_available.return_value = False
         model_instance = MockYOLO.return_value
@@ -35,7 +35,7 @@ def mock_yolo_lib():
 def test_load_applies_settings(mock_yolo_lib, settings):
     MockYOLO, model_instance = mock_yolo_lib
 
-    yolo = YoloModel(settings, label="test")
+    yolo = YoloBase(settings, label="test")
 
     MockYOLO.assert_called_once_with("dummy.pt")
     assert yolo.model is model_instance
@@ -53,7 +53,7 @@ def test_load_applies_settings(mock_yolo_lib, settings):
 def test_warmup_runs_three_inferences_with_img_dim(mock_yolo_lib, settings):
     _, model_instance = mock_yolo_lib
 
-    YoloModel(settings, label="test")
+    YoloBase(settings, label="test")
 
     assert model_instance.track.call_count == 3
     frame = model_instance.track.call_args[0][0]
@@ -64,7 +64,7 @@ def test_load_failure_falls_back_to_dummy_mode(mock_yolo_lib, settings):
     MockYOLO, _ = mock_yolo_lib
     MockYOLO.side_effect = Exception("File not found")
 
-    yolo = YoloModel(settings, label="test")
+    yolo = YoloBase(settings, label="test")
 
     assert yolo.model is None
 
@@ -73,6 +73,6 @@ def test_warmup_failure_keeps_model(mock_yolo_lib, settings):
     _, model_instance = mock_yolo_lib
     model_instance.track.side_effect = RuntimeError("boom")
 
-    yolo = YoloModel(settings, label="test")
+    yolo = YoloBase(settings, label="test")
 
     assert yolo.model is model_instance  # warmup errors are logged, not fatal

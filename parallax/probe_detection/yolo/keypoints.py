@@ -3,8 +3,8 @@ from typing import Optional
 
 import numpy as np
 
-from parallax.config.schemas import YoloLocalSettings
-from parallax.probe_detection.yolo.model import YoloModel
+from parallax.probe_detection.yolo.schemas import YoloLocalSettings
+from parallax.probe_detection.yolo.base import YoloBase
 
 
 class YoloKeypoints:
@@ -20,7 +20,7 @@ class YoloKeypoints:
         self.conf_thresh = settings.conf_thresh
 
         # Load + warm up the model (model is None in dummy mode)
-        self.yolo = YoloModel(settings, label="local")
+        self.yolo = YoloBase(settings, label="local")
         self.model = self.yolo.model
         self.names_map = self.yolo.names
 
