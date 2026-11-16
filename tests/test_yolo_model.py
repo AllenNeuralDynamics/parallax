@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 
 from parallax.config.schemas import YoloSettings
-from parallax.probe_detection.yolo_model import YoloModel
+from parallax.probe_detection.yolo.model import YoloModel
 
 
 @pytest.fixture
@@ -21,8 +21,8 @@ def settings():
 @pytest.fixture
 def mock_yolo_lib():
     with (
-        patch("parallax.probe_detection.yolo_model.YOLO") as MockYOLO,
-        patch("parallax.probe_detection.yolo_model.torch") as MockTorch,
+        patch("parallax.probe_detection.yolo.model.YOLO") as MockYOLO,
+        patch("parallax.probe_detection.yolo.model.torch") as MockTorch,
     ):
         MockTorch.cuda.is_available.return_value = False
         model_instance = MockYOLO.return_value

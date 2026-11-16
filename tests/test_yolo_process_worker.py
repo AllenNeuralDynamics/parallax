@@ -7,9 +7,9 @@ import pytest
 import yaml
 
 from parallax.config.config_path import yolo_config_path
-from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
+from parallax.probe_detection.yolo.process_worker import YoloProcessWorker
 
-MODULE = "parallax.probe_detection.yolo_process_worker"
+MODULE = "parallax.probe_detection.yolo.process_worker"
 
 
 class FakeYoloSegmentation:

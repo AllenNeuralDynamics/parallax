@@ -10,12 +10,12 @@ import yaml
 from parallax.config.config_path import yolo_config_path
 from parallax.config.schemas import YoloConfig
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
-from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
-from parallax.probe_detection.yolo_global.utils import preprocessing as preprocessing_global
-from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation
-from parallax.probe_detection.yolo_local.utils import postprocessing as postprocessing_local
-from parallax.probe_detection.yolo_local.utils import preprocessing as preprocessing_local
-from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
+from parallax.probe_detection.yolo.global_utils import postprocessing as postprocessing_global
+from parallax.probe_detection.yolo.global_utils import preprocessing as preprocessing_global
+from parallax.probe_detection.yolo.keypoints import YoloKeypoints
+from parallax.probe_detection.yolo.local_utils import postprocessing as postprocessing_local
+from parallax.probe_detection.yolo.local_utils import preprocessing as preprocessing_local
+from parallax.probe_detection.yolo.segmentation import YoloSegmentation
 from parallax.utils.utils import UtilsCrops
 
 

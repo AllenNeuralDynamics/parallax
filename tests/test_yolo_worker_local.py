@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from parallax.config.config_path import yolo_config_path
-from parallax.probe_detection.yolo_process_worker import YoloProcessWorker
+from parallax.probe_detection.yolo.process_worker import YoloProcessWorker
 
 # --- 1. Define Fakes ---
 
@@ -76,13 +76,13 @@ def make_worker(local_model):
         dummy_config = yaml.safe_load(f)
 
     patches = [
-        patch("parallax.probe_detection.yolo_process_worker.YoloKeypoints", return_value=local_model),
+        patch("parallax.probe_detection.yolo.process_worker.YoloKeypoints", return_value=local_model),
         patch(
-            "parallax.probe_detection.yolo_process_worker.YoloSegmentation",
+            "parallax.probe_detection.yolo.process_worker.YoloSegmentation",
             side_effect=lambda *args, **kwargs: FakeYoloSegmentation(),
         ),
         patch(
-            "parallax.probe_detection.yolo_process_worker.YoloProcessWorker._load_yolo_config",
+            "parallax.probe_detection.yolo.process_worker.YoloProcessWorker._load_yolo_config",
             return_value=dummy_config,
         ),
     ]
@@ -102,11 +102,11 @@ def worker_with_fakes():
     """Worker with its thread running, so the whole flow can be driven by update_frame()."""
     with (
         patch(
-            "parallax.probe_detection.yolo_process_worker.postprocessing_local",
+            "parallax.probe_detection.yolo.process_worker.postprocessing_local",
             side_effect=lambda d, c: d,
         ),
         patch(
-            "parallax.probe_detection.yolo_process_worker.postprocessing_global",
+            "parallax.probe_detection.yolo.process_worker.postprocessing_global",
             side_effect=lambda d, c: d,
         ),
     ):
@@ -131,8 +131,8 @@ def call_global_handler(worker, detections):
     frame = np.zeros((640, 640, 3), dtype=np.uint8)
     crop_info = {"orig_size": (1000, 1000), "global_yolo_size": (640, 640)}
     with (
-        patch("parallax.probe_detection.yolo_process_worker.postprocessing_local", side_effect=lambda d, c: d),
-        patch("parallax.probe_detection.yolo_process_worker.postprocessing_global", side_effect=lambda d, c: d),
+        patch("parallax.probe_detection.yolo.process_worker.postprocessing_local", side_effect=lambda d, c: d),
+        patch("parallax.probe_detection.yolo.process_worker.postprocessing_global", side_effect=lambda d, c: d),
     ):
         worker.handle_global_detections(frame, crop_info, detections)
 

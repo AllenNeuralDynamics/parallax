@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
+from parallax.probe_detection.yolo.keypoints import YoloKeypoints
 
 # Settings have no defaults, so every test passes a complete `yolo:` block
 YOLO_CONFIG = {
@@ -22,8 +22,8 @@ YOLO_CONFIG = {
 @pytest.fixture
 def mock_yolo_lib():
     with (
-        patch("parallax.probe_detection.yolo_model.YOLO") as MockYOLO,
-        patch("parallax.probe_detection.yolo_model.torch") as MockTorch,
+        patch("parallax.probe_detection.yolo.model.YOLO") as MockYOLO,
+        patch("parallax.probe_detection.yolo.model.torch") as MockTorch,
     ):
         MockTorch.cuda.is_available.return_value = False
         model_instance = MockYOLO.return_value

@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 
 from parallax.config.schemas import YoloSettings
-from parallax.probe_detection.yolo_model import YoloModel
+from parallax.probe_detection.yolo.model import YoloModel
 
 
 class YoloSegmentation:

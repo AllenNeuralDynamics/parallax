@@ -3,8 +3,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-# Adjust the import based on your actual file structure
-from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation
+from parallax.probe_detection.yolo.segmentation import YoloSegmentation
 
 # --- Mocks & Fixtures ---
 
@@ -25,8 +24,8 @@ def mock_yolo_lib():
     Patches the ultralytics.YOLO class and torch module.
     """
     with (
-        patch("parallax.probe_detection.yolo_model.YOLO") as MockYOLO,
-        patch("parallax.probe_detection.yolo_model.torch") as MockTorch,
+        patch("parallax.probe_detection.yolo.model.YOLO") as MockYOLO,
+        patch("parallax.probe_detection.yolo.model.torch") as MockTorch,
     ):
 
         # Setup Torch
