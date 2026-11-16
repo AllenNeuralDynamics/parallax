@@ -8,13 +8,13 @@ import numpy as np
 
 from parallax.config.config_path import yolo_config_path
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
-from parallax.probe_detection.yolo.global_utils import postprocessing as postprocessing_global
-from parallax.probe_detection.yolo.global_utils import preprocessing as preprocessing_global
 from parallax.probe_detection.yolo.keypoints import YoloKeypoints
-from parallax.probe_detection.yolo.local_utils import postprocessing as postprocessing_local
-from parallax.probe_detection.yolo.local_utils import preprocessing as preprocessing_local
-from parallax.probe_detection.yolo.schemas import YoloConfig, YoloLocalStage, YoloStage
+from parallax.probe_detection.yolo.keypoints_utils import postprocessing as postprocessing_local
+from parallax.probe_detection.yolo.keypoints_utils import preprocessing as preprocessing_local
+from parallax.probe_detection.yolo.schemas import YoloConfig, YoloKeypointsConfig, YoloSegmentationConfig
 from parallax.probe_detection.yolo.segmentation import YoloSegmentation
+from parallax.probe_detection.yolo.segmentation_utils import postprocessing as postprocessing_global
+from parallax.probe_detection.yolo.segmentation_utils import preprocessing as preprocessing_global
 from parallax.utils.utils import UtilsCrops
 
 
@@ -43,8 +43,8 @@ class YoloProcessWorker:
             raise
 
         # Both models are used synchronously (detect()) from this worker's single thread
-        self.global_cfg: YoloStage = cfg.segmentation
-        self.local_cfg: YoloLocalStage = cfg.keypoints
+        self.global_cfg: YoloSegmentationConfig = cfg.segmentation
+        self.local_cfg: YoloKeypointsConfig = cfg.keypoints
         self.yolo_global = YoloSegmentation(self.name, self.global_cfg.yolo)
         self.yolo_local = YoloKeypoints(self.name, self.local_cfg.yolo)
 

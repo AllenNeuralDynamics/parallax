@@ -26,12 +26,12 @@ class YoloLocalSettings(YoloSettings):
     apply_mask: bool
 
 
-class YoloStage(BaseModel):
+class YoloSegmentationConfig(BaseModel):
     fps: int
     yolo: YoloSettings
 
 
-class YoloLocalStage(BaseModel):
+class YoloKeypointsConfig(BaseModel):
     fps: int
     yolo: YoloLocalSettings
 
@@ -43,8 +43,8 @@ class YoloImageProcessing(BaseModel):
 class YoloConfig(BaseModel):
     """Whole data/yolo_config.yaml. Validated once, then passed down as typed objects."""
 
-    segmentation: YoloStage  # global model
-    keypoints: YoloLocalStage  # local model
+    segmentation: YoloSegmentationConfig  # global model
+    keypoints: YoloKeypointsConfig  # local model
     image_processing: YoloImageProcessing
 
     @classmethod

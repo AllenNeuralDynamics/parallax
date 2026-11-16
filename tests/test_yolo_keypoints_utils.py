@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 # Import the functions to be tested
-from parallax.probe_detection.yolo.local_utils import postprocessing, preprocessing
+from parallax.probe_detection.yolo.keypoints_utils import postprocessing, preprocessing
 
 # ======================= Preprocessing Tests =======================
 
