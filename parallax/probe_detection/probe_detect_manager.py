@@ -12,7 +12,7 @@ import numpy as np
 from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
 
 from parallax.config.config_path import palette_cool, palette_tips, palette_warm
-from parallax.probe_detection.opencv_process_worker import OpenCVProcessWorker
+from parallax.probe_detection.opencv.process_worker import OpenCVProcessWorker
 from parallax.probe_detection.yolo.process_worker import YoloProcessWorker
 
 
