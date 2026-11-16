@@ -1,6 +1,8 @@
 import logging
 import math
 import time
+from collections import deque
+from threading import Event, Thread, current_thread
 
 import numpy as np
 import yaml
@@ -9,7 +11,8 @@ from parallax.config.config_path import yolo_config_path
 from parallax.config.schemas import YoloConfig
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.probe_detection.yolo_global.utils import postprocessing as postprocessing_global
-from parallax.probe_detection.yolo_global.yolo_client import YOLOClient as GlobalYOLOClient
+from parallax.probe_detection.yolo_global.utils import preprocessing as preprocessing_global
+from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation
 from parallax.probe_detection.yolo_local.utils import postprocessing as postprocessing_local
 from parallax.probe_detection.yolo_local.utils import preprocessing as preprocessing_local
 from parallax.probe_detection.yolo_local.yolo_server import YoloKeypoints
@@ -42,25 +45,56 @@ class YoloProcessWorker:
             self.log.error(f"Invalid YOLO config {yolo_config_path}: {e}")
             raise
 
-        # Local (keypoints) model runs synchronously on the global worker thread: never start()ed
+        # Both models are used synchronously (detect()) from this worker's single thread: never start()ed
+        self.global_cfg = cfg.segmentation
         self.local_cfg = cfg.keypoints.yolo
+        self.yolo_global = YoloSegmentation(self.name, self.global_cfg.yolo.model_dump())
         self.yolo_local = YoloKeypoints(self.name, self.local_cfg.model_dump())
-        self.yolo_global = GlobalYOLOClient(
-            name=self.name,
-            config=cfg.segmentation.model_dump(),  # client still reads dicts for now
-            detection_callback=self.handle_global_detections,
-            finished_callback=self._on_global_finished,
-        )
+
+        # Worker thread: processes only the latest frame (a newer frame replaces a waiting one)
+        self._latest: deque = deque(maxlen=1)
+        self._wake = Event()
+        self._running = False
+        self._thread = None
+        self._last_ts = None  # timestamp of the previous frame, for the fps limit
 
         self.movement_threshold = cfg.image_processing.movement_threshold
 
     def update_frame(self, frame: np.ndarray, timestamp: float):
-        if self.is_detection_on:
-            self.frame = frame
-            if self.copy_last_detected_frame:
-                self.last_detected_frame = frame.copy()
-            self.yolo_global.newframe_captured(frame, timestamp)
-            time.sleep(0.01)
+        if not self.is_detection_on:
+            return
+        self.frame = frame
+        if self.copy_last_detected_frame:
+            self.last_detected_frame = frame.copy()
+        if self._accept_frame(timestamp):
+            frame_resized, crop_info = preprocessing_global(frame, target_size=tuple(self.global_cfg.yolo.img_dim))
+            self._latest.append((frame_resized, crop_info, timestamp))
+            self._wake.set()
+
+    def _accept_frame(self, timestamp: float) -> bool:
+        """Frame rate limit (global_cfg.fps). Moved as-is from the old global client."""
+        accept = self._last_ts is None or timestamp - self._last_ts > (1 / self.global_cfg.fps)
+        # NOTE: updated on every frame, not only on accepted ones (same as the old client)
+        self._last_ts = timestamp
+        return accept
+
+    def _run(self):
+        """Worker thread: global detection on the latest frame, then local detection if the probe stopped."""
+        while self._running:
+            if not self._wake.wait(timeout=0.1):
+                continue
+            self._wake.clear()
+            if not self._latest:
+                continue
+            frame, crop_info, ts = self._latest.pop()
+            try:
+                detections = self.yolo_global.detect(frame, ts)
+                self.handle_global_detections(frame, crop_info, detections)
+            except Exception as e:
+                self.log.error(f"{self.name} Error processing frame: {e}")
+
+        self.log.info(f"{self.name} YOLO worker thread exiting.")
+        self._on_finished()
 
     def handle_global_detections(self, frame: np.ndarray, crop_info: dict, detections: list[dict]):
         """
@@ -232,22 +266,33 @@ class YoloProcessWorker:
         self.prev_detections = detections.copy()
         return detections
 
-    def _on_global_finished(self):
-        """The global worker thread has exited; the local model has no thread, so we are done."""
+    def _on_finished(self):
+        """The worker thread has exited."""
         self.log.info("YOLO worker thread finished. Calling main finished callback.")
         if self.finished_callback:
-            self.finished_callback()
+            try:
+                self.finished_callback()
+            except Exception as e:
+                self.log.error(f"Error calling finished_callback: {e}")
 
     def _load_yolo_config(self, config_path):
         with open(config_path, "r") as f:
             return yaml.safe_load(f)
 
-    def start_running(self):  # Running Yolo Server Thread (global; local runs on it)
+    def start_running(self):  # Running the YOLO worker thread
         self.stage_ts = 0.0  # init
-        self.yolo_global.start_client()
+        if self._thread is not None and self._thread.is_alive():
+            return
+        self._running = True
+        self._thread = Thread(target=self._run, daemon=True)
+        self._thread.start()
+        self.log.info(f"{self.name} YOLO worker thread started")
 
-    def stop_running(self):  # Stopping Yolo Server Thread
-        self.yolo_global.stop()
+    def stop_running(self):  # Stopping the YOLO worker thread
+        self._running = False
+        self._wake.set()
+        if self._thread is not None and self._thread is not current_thread():
+            self._thread.join(timeout=1.0)
 
     def disable_calib(self):  # stage is moving
         self.probe_stopped = False
