@@ -5,29 +5,24 @@ from threading import Thread  # Using Event for better thread signaling
 from typing import Optional
 
 import numpy as np
-import torch
-from ultralytics import YOLO
+
+from parallax.config.schemas import YoloSettings
+from parallax.probe_detection.yolo_model import YoloModel
 
 
 class YoloSegmentation:
     """YOLO segmentation worker that runs in its own thread"""
 
-    _info_printed = False
-
     def __init__(self, name, config, detection_callback=None, finished_callback=None):
         """
-        :param config: Configuration dictionary.
+        :param config: The `yolo:` block of yolo_config.yaml (see YoloSettings).
         :param detection_callback: A function to call with the list of detections.
         """
         self.log = logging.getLogger(self.__class__.__name__)
         self.name = name
-        self.weights_path = config.get("weights_path", r"external/YoloV11/tip_keypoint_detection_fast.pt")
-        self.conf_thresh = config.get("conf_thresh", 0.5)
-        self.iou_thresh = config.get("iou_thresh", 0.45)
-        self.img_size = config.get("img_size", 640)
-        self.img_dim = config.get("img_dim", [640, 480])  # input image dimension for YOLO (w, h)
-        self.max_det = config.get("max_det", 30)
-        self.model = None
+        settings = YoloSettings(**config)
+        self.conf_thresh = settings.conf_thresh
+        self.iou_thresh = settings.iou_thresh
         self.frame_queue = deque(maxlen=1)
         self.running = False
         self.worker_thread = None
@@ -36,24 +31,9 @@ class YoloSegmentation:
         self.detection_callback = detection_callback
         self.finished_callback = finished_callback
 
-        try:
-            self.log.debug(f"weights_path: {self.weights_path}")
-            self.model = YOLO(self.weights_path)
-            self.model.overrides["conf"] = self.conf_thresh
-            self.model.overrides["iou"] = self.iou_thresh
-            self.model.overrides["max_det"] = self.max_det
-            self.model.overrides["imgsz"] = self.img_size
-            self.model.overrides["verbose"] = False
-            self.model.to("cuda" if torch.cuda.is_available() else "cpu")
-            self.log.info(f"YOLO model loaded from: {self.weights_path}")
-            self.log.info(f"Model is running on: {self.model.device}")
-
-            # Warmup the model
-            self._warmup_model()
-            self.log.info("YOLO model warmup completed")
-        except Exception as e:
-            self.log.error(f"Failed to load YOLO model: {e}, running yolo in dummy mode")
-            self.model = None
+        # Load + warm up the model (model is None in dummy mode)
+        self.yolo = YoloModel(settings, label="global")
+        self.model = self.yolo.model
 
     def start(self):
         """Start the YOLO segmentation thread"""
@@ -65,44 +45,6 @@ class YoloSegmentation:
         self.worker_thread.start()
         self.log.info("YOLO segmentation thread started")
         return True
-
-    def _warmup_model(self):
-        """Warm up the model with dummy inference to avoid first-frame delay"""
-        if self.model is None:
-            return
-
-        self.log.info("Warming up YOLO model...")
-        warmup_start = time.time()
-
-        if not YoloSegmentation._info_printed and hasattr(self.model, "names"):
-            self.log.info("--- Available Model Classes for global Yolo ---")
-            # self.model.names is a dictionary mapping ID (int) to Name (str)
-            sorted_class_names = sorted(self.model.names.items())
-            for class_id, class_name in sorted_class_names:
-                self.log.info(f"    ID: {class_id} / Name: {class_name}")
-            self.log.info("-----------------------------\n")
-            YoloSegmentation._info_printed = True
-
-        try:
-            # Create dummy frame matching your expected input
-            dummy_frame = np.random.randint(0, 255, (self.img_dim[1], self.img_dim[0], 3), dtype=np.uint8)
-
-            # Run several warmup inferences
-            for i in range(3):
-                # Using predict for simple warmup instead of track if tracking is not essential here
-                _ = self.model.track(dummy_frame, persist=False)
-
-            # Additional GPU warmup if using CUDA
-            if torch.cuda.is_available():
-                torch.cuda.synchronize()  # Wait for GPU operations to complete
-
-            warmup_time = time.time() - warmup_start
-            self.log.info(f"Model warmup completed in {warmup_time:.2f}s")
-            self.warmup_done = True
-
-        except Exception as e:
-            self.log.error(f"Warmup failed: {e}")
-            self.warmup_done = True  # Continue anyway
 
     def stop(self):
         """Stop the YOLO processing thread"""
