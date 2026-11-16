@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from parallax.probe_detection.yolo.schemas import YoloSettings
+from parallax.probe_detection.yolo.schemas import YoloSegmentationSettings
 from parallax.probe_detection.yolo.segmentation import YoloSegmentation
 
 # --- Mocks & Fixtures ---
@@ -16,6 +16,7 @@ YOLO_CONFIG = {
     "img_size": 640,
     "img_dim": [640, 640],
     "max_det": 10,
+    "mask_open_kernel": 3,
 }
 
 
@@ -79,6 +80,11 @@ def sample_yolo_result():
     mock_masks = MagicMock()
     # List of numpy arrays (polygons)
     mock_masks.xy = [np.array([[10, 10], [10, 50], [50, 50], [50, 10]])]
+    # Binary mask (480x640, same as dummy_frame): a 40x40 square at the same place
+    mask = np.zeros((480, 640), dtype=np.uint8)
+    mask[10:50, 10:50] = 1
+    mock_masks.data.__getitem__.return_value.cpu().numpy.return_value = mask
+    mock_result.orig_shape = (480, 640)
 
     # Assemble Result
     mock_result.boxes = mock_boxes
@@ -96,7 +102,7 @@ def test_initialization_loads_model(mock_yolo_lib):
 
     config = {**YOLO_CONFIG, "weights_path": "dummy.pt", "conf_thresh": 0.7, "img_dim": [100, 100]}
 
-    worker = YoloSegmentation("TestWorker", YoloSettings(**config))
+    worker = YoloSegmentation("TestWorker", YoloSegmentationSettings(**config))
 
     # Check Model Init
     MockYOLO.assert_called_once_with("dummy.pt")
@@ -109,7 +115,7 @@ def test_initialization_failure_fallback(mock_yolo_lib):
     MockYOLO, _ = mock_yolo_lib
     MockYOLO.side_effect = Exception("File not found")
 
-    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
+    worker = YoloSegmentation("TestWorker", YoloSegmentationSettings(**YOLO_CONFIG))
 
     assert worker.model is None
     # Should still initialize basic attributes
@@ -121,7 +127,7 @@ def test_warmup_logic(mock_yolo_lib):
     """Verify warmup runs dummy inference 3 times."""
     _, model_instance = mock_yolo_lib
 
-    _ = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
+    _ = YoloSegmentation("TestWorker", YoloSegmentationSettings(**YOLO_CONFIG))
     # Warmup happens in __init__
 
     # Check that track was called 3 times during init
@@ -135,7 +141,7 @@ def test_detect_parses_result(mock_yolo_lib, dummy_frame, sample_yolo_result):
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = sample_yolo_result
 
-    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
+    worker = YoloSegmentation("TestWorker", YoloSegmentationSettings(**YOLO_CONFIG))
     detections = worker.detect(dummy_frame, ts=7.0)
 
     assert len(detections) == 1
@@ -151,7 +157,7 @@ def test_detect_tracks_with_persist_and_agnostic_nms(mock_yolo_lib, dummy_frame,
     """The global model keeps tracker state between frames (persist=True)."""
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = sample_yolo_result
-    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
+    worker = YoloSegmentation("TestWorker", YoloSegmentationSettings(**YOLO_CONFIG))
     model_instance.track.reset_mock()
 
     worker.detect(dummy_frame, ts=1.0)
@@ -167,7 +173,7 @@ def test_detect_dummy_mode(mock_yolo_lib, dummy_frame):
     MockYOLO, _ = mock_yolo_lib
     MockYOLO.side_effect = Exception("Load Fail")
 
-    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
+    worker = YoloSegmentation("TestWorker", YoloSegmentationSettings(**YOLO_CONFIG))
     detections = worker.detect(dummy_frame, ts=1.0)
 
     assert worker.model is None
@@ -179,6 +185,46 @@ def test_detect_returns_empty_when_no_results(mock_yolo_lib, dummy_frame):
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = []
 
-    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
+    worker = YoloSegmentation("TestWorker", YoloSegmentationSettings(**YOLO_CONFIG))
 
     assert worker.detect(dummy_frame, ts=1.0) == []
+
+
+# --- _largest_polygon(): hairline tails and stray blobs ---
+
+
+def _two_piece_mask() -> np.ndarray:
+    """640x640 binary mask: a large square plus a small stray blob joined by a 1-px hairline."""
+    mask = np.zeros((640, 640), dtype=np.uint8)
+    mask[100:300, 100:300] = 1
+    mask[100:120, 400:420] = 1
+    mask[109, 300:400] = 1  # hairline connector
+    return mask
+
+
+def _as_tensor(mask: np.ndarray):
+    t = MagicMock()
+    t.cpu().numpy.return_value = mask
+    return t
+
+
+def test_largest_polygon_keeps_only_largest_piece():
+    """A stray blob joined to the section by a hairline must not appear in the polygon."""
+    poly = YoloSegmentation._largest_polygon(_as_tensor(_two_piece_mask()), (640, 640), np.zeros((0, 2)), open_kernel=3)
+
+    assert max(p[0] for p in poly) < 350  # the stray blob sits at x >= 400
+
+
+def test_largest_polygon_without_opening_keeps_the_hairline():
+    """Documents why the opening is needed: with kernel 0 the blob stays attached."""
+    poly = YoloSegmentation._largest_polygon(_as_tensor(_two_piece_mask()), (640, 640), np.zeros((0, 2)), open_kernel=0)
+
+    assert max(p[0] for p in poly) >= 400
+
+
+def test_largest_polygon_falls_back_when_mask_is_empty():
+    fallback = np.array([[1.0, 2.0], [3.0, 4.0]])
+
+    poly = YoloSegmentation._largest_polygon(_as_tensor(np.zeros((640, 640), dtype=np.uint8)), (640, 640), fallback)
+
+    assert poly == [[1.0, 2.0], [3.0, 4.0]]

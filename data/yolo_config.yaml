@@ -7,6 +7,7 @@ segmentation:
     img_size: 640
     img_dim: [640, 640]
     max_det: 10
+    mask_open_kernel: 3
 keypoints:
   fps: 10
   yolo:

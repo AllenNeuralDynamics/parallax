@@ -1,16 +1,17 @@
 import logging
 from typing import Optional
 
+import cv2
 import numpy as np
 
 from parallax.probe_detection.yolo.base import YoloBase
-from parallax.probe_detection.yolo.schemas import YoloSettings
+from parallax.probe_detection.yolo.schemas import YoloSegmentationSettings
 
 
 class YoloSegmentation:
     """Global YOLO segmentation: finds and tracks probes in a frame. Synchronous, no thread of its own."""
 
-    def __init__(self, name: str, settings: YoloSettings):
+    def __init__(self, name: str, settings: YoloSegmentationSettings):
         """
         :param settings: The validated `yolo:` block of the segmentation stage in yolo_config.yaml.
         """
@@ -19,10 +20,34 @@ class YoloSegmentation:
         self.settings = settings
         self.conf_thresh = settings.conf_thresh
         self.iou_thresh = settings.iou_thresh
+        self.mask_open_kernel = settings.mask_open_kernel
 
         # Load + warm up the model (model is None in dummy mode)
         self.yolo = YoloBase(settings, label="global")
         self.model = self.yolo.model
+
+    @staticmethod
+    def _largest_polygon(mask_tensor, orig_shape, fallback_xy: np.ndarray, open_kernel: int = 0) -> list:
+        """
+        Build a polygon from the binary mask keeping only its largest connected piece.
+        masks.xy joins disjoint pieces with hairline connectors, which leaves tails and stray blobs.
+        Falls back to the original polygon if the mask is empty.
+        """
+        h, w = orig_shape[:2]
+        mask = (mask_tensor.cpu().numpy() > 0.5).astype(np.uint8)
+        if mask.shape != (h, w):
+            mask = cv2.resize(mask, (w, h), interpolation=cv2.INTER_NEAREST)
+        # Opening removes thin bridges and 1-px spurs
+        if open_kernel > 0:
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (open_kernel, open_kernel))
+            opened = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+            if opened.any():
+                mask = opened
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        if not contours:
+            return fallback_xy.tolist()
+        largest = max(contours, key=cv2.contourArea)
+        return largest.reshape(-1, 2).astype(float).tolist()
 
     def detect(self, frame: np.ndarray, ts: Optional[float] = None) -> list[dict]:
         """Synchronous inference: one frame in, detections out. No threads, queues or callbacks."""
@@ -57,7 +82,10 @@ class YoloSegmentation:
             if hasattr(result, "masks") and result.masks is not None:
                 # result.masks.xy contains the polygon coordinates for each mask
                 # It's a list of NumPy arrays, where each array is N x 2 (N points, x, y coordinates)
-                masks_data = {i: mask_poly.tolist() for i, mask_poly in enumerate(result.masks.xy)}
+                masks_data = {
+                    i: self._largest_polygon(result.masks.data[i], result.orig_shape, mask_poly, self.mask_open_kernel)
+                    for i, mask_poly in enumerate(result.masks.xy)
+                }
 
             if hasattr(result, "boxes") and result.boxes is not None:
                 boxes = result.boxes

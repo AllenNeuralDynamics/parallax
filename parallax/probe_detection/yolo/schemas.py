@@ -18,6 +18,14 @@ class YoloSettings(BaseModel):
     max_det: int
 
 
+class YoloSegmentationSettings(YoloSettings):
+    """Global segmentation model: also cleans up the mask polygon."""
+
+    mask_open_kernel: int = Field(
+        description="Ellipse kernel size (px) for opening the mask to cut hairline bridges; 0 disables."
+    )
+
+
 class YoloLocalSettings(YoloSettings):
     """Keypoint model: also crops around the global detection."""
 
@@ -28,7 +36,7 @@ class YoloLocalSettings(YoloSettings):
 
 class YoloSegmentationConfig(BaseModel):
     fps: int
-    yolo: YoloSettings
+    yolo: YoloSegmentationSettings
 
 
 class YoloKeypointsConfig(BaseModel):
