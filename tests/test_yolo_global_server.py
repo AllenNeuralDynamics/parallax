@@ -9,6 +9,16 @@ from parallax.probe_detection.yolo_global.yolo_server import YoloSegmentation
 
 # --- Mocks & Fixtures ---
 
+# Settings have no defaults, so every test passes a complete `yolo:` block
+YOLO_CONFIG = {
+    "weights_path": "dummy.pt",
+    "conf_thresh": 0.5,
+    "iou_thresh": 0.45,
+    "img_size": 640,
+    "img_dim": [640, 640],
+    "max_det": 10,
+}
+
 
 @pytest.fixture
 def mock_yolo_lib():
@@ -16,8 +26,8 @@ def mock_yolo_lib():
     Patches the ultralytics.YOLO class and torch module.
     """
     with (
-        patch("parallax.probe_detection.yolo_global.yolo_server.YOLO") as MockYOLO,
-        patch("parallax.probe_detection.yolo_global.yolo_server.torch") as MockTorch,
+        patch("parallax.probe_detection.yolo_model.YOLO") as MockYOLO,
+        patch("parallax.probe_detection.yolo_model.torch") as MockTorch,
     ):
 
         # Setup Torch
@@ -85,7 +95,7 @@ def test_initialization_loads_model(mock_yolo_lib):
     """Verify initialization sets up the YOLO model and config."""
     MockYOLO, model_instance = mock_yolo_lib
 
-    config = {"weights_path": "dummy.pt", "conf_thresh": 0.7, "img_dim": [100, 100]}
+    config = {**YOLO_CONFIG, "weights_path": "dummy.pt", "conf_thresh": 0.7, "img_dim": [100, 100]}
 
     worker = YoloSegmentation("TestWorker", config)
 
@@ -100,8 +110,7 @@ def test_initialization_failure_fallback(mock_yolo_lib):
     MockYOLO, _ = mock_yolo_lib
     MockYOLO.side_effect = Exception("File not found")
 
-    config = {}
-    worker = YoloSegmentation("TestWorker", config)
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
 
     assert worker.model is None
     # Should still initialize basic attributes
@@ -110,7 +119,7 @@ def test_initialization_failure_fallback(mock_yolo_lib):
 
 def test_process_frame_queue_management(mock_yolo_lib, dummy_frame):
     """Verify process_frame handles the queue and drops old frames."""
-    worker = YoloSegmentation("TestWorker", {})
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
     worker.running = True  # Must be running to accept frames
 
     # 1. Add first frame
@@ -135,7 +144,7 @@ def test_inference_pipeline_execution(mock_yolo_lib, dummy_frame, sample_yolo_re
     # Setup Callbacks
     detection_cb = MagicMock()
 
-    worker = YoloSegmentation("TestWorker", {}, detection_callback=detection_cb)
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG, detection_callback=detection_cb)
 
     # Start Worker
     worker.start()
@@ -178,7 +187,7 @@ def test_dummy_mode_execution(mock_yolo_lib, dummy_frame):
     MockYOLO.side_effect = Exception("Load Fail")
 
     detection_cb = MagicMock()
-    worker = YoloSegmentation("TestWorker", {}, detection_callback=detection_cb)
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG, detection_callback=detection_cb)
 
     # Worker model should be None
     assert worker.model is None
@@ -199,7 +208,7 @@ def test_dummy_mode_execution(mock_yolo_lib, dummy_frame):
 def test_lifecycle_and_finished_callback(mock_yolo_lib):
     """Verify clean start/stop and finished callback execution."""
     finished_cb = MagicMock()
-    worker = YoloSegmentation("TestWorker", {}, finished_callback=finished_cb)
+    worker = YoloSegmentation("TestWorker", YOLO_CONFIG, finished_callback=finished_cb)
 
     assert worker.running is False
 
@@ -221,7 +230,7 @@ def test_warmup_logic(mock_yolo_lib):
     """Verify warmup runs dummy inference 3 times."""
     _, model_instance = mock_yolo_lib
 
-    _ = YoloSegmentation("TestWorker", {})
+    _ = YoloSegmentation("TestWorker", YOLO_CONFIG)
     # Warmup happens in __init__
 
     # Check that track was called 3 times during init
