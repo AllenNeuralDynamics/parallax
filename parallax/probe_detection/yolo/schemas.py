@@ -1,4 +1,7 @@
 # parallax/probe_detection/yolo/schemas.py
+from pathlib import Path
+
+import yaml
 from pydantic import BaseModel
 
 
@@ -38,6 +41,14 @@ class YoloImageProcessing(BaseModel):
 
 
 class YoloConfig(BaseModel):
+    """Whole data/yolo_config.yaml. Validated once, then passed down as typed objects."""
+
     segmentation: YoloStage  # global model
     keypoints: YoloLocalStage  # local model
     image_processing: YoloImageProcessing
+
+    @classmethod
+    def from_yaml(cls, path: str | Path) -> "YoloConfig":
+        """Load and validate the whole yaml file once."""
+        with open(path, "r") as f:
+            return cls(**yaml.safe_load(f))

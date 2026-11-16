@@ -3,20 +3,20 @@ from typing import Optional
 
 import numpy as np
 
-from parallax.probe_detection.yolo.schemas import YoloLocalSettings
 from parallax.probe_detection.yolo.base import YoloBase
+from parallax.probe_detection.yolo.schemas import YoloLocalSettings
 
 
 class YoloKeypoints:
     """Local YOLO keypoints: finds the probe tip keypoints in a crop. Synchronous, no thread of its own."""
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, settings: YoloLocalSettings):
         """
-        :param config: The `yolo:` block of the keypoints stage in yolo_config.yaml (see YoloLocalSettings).
+        :param settings: The validated `yolo:` block of the keypoints stage in yolo_config.yaml.
         """
         self.log = logging.getLogger(self.__class__.__name__)
         self.name = name
-        settings = YoloLocalSettings(**config)
+        self.settings = settings
         self.conf_thresh = settings.conf_thresh
 
         # Load + warm up the model (model is None in dummy mode)

@@ -3,20 +3,20 @@ from typing import Optional
 
 import numpy as np
 
-from parallax.probe_detection.yolo.schemas import YoloSettings
 from parallax.probe_detection.yolo.base import YoloBase
+from parallax.probe_detection.yolo.schemas import YoloSettings
 
 
 class YoloSegmentation:
     """Global YOLO segmentation: finds and tracks probes in a frame. Synchronous, no thread of its own."""
 
-    def __init__(self, name, config):
+    def __init__(self, name: str, settings: YoloSettings):
         """
-        :param config: The `yolo:` block of yolo_config.yaml (see YoloSettings).
+        :param settings: The validated `yolo:` block of the segmentation stage in yolo_config.yaml.
         """
         self.log = logging.getLogger(self.__class__.__name__)
         self.name = name
-        settings = YoloSettings(**config)
+        self.settings = settings
         self.conf_thresh = settings.conf_thresh
         self.iou_thresh = settings.iou_thresh
 

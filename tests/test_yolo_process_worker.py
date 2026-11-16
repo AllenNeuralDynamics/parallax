@@ -4,9 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-import yaml
 
-from parallax.config.config_path import yolo_config_path
 from parallax.probe_detection.yolo.process_worker import YoloProcessWorker
 
 MODULE = "parallax.probe_detection.yolo.process_worker"
@@ -51,16 +49,13 @@ def wait_for(predicate, timeout=2.0):
 @contextmanager
 def build_worker(start):
     """
-    Creates a YoloProcessWorker with fake global/local models and MOCKED postprocessing
+    Creates a YoloProcessWorker (real shipped yolo_config.yaml, so it also checks it validates)
+    with fake global/local models and MOCKED postprocessing
     (identity functions), so we don't need real 'crop_info' keys (x_global_offset, etc).
     """
-    with open(yolo_config_path) as f:  # real config: also checks the shipped yaml passes validation
-        config = yaml.safe_load(f)
-
     with (
         patch(f"{MODULE}.YoloSegmentation", side_effect=lambda *a, **k: FakeYoloSegmentation()),
         patch(f"{MODULE}.YoloKeypoints", side_effect=lambda *a, **k: FakeYoloKeypoints()),
-        patch(f"{MODULE}.YoloProcessWorker._load_yolo_config", return_value=config),
         patch(f"{MODULE}.postprocessing_local", side_effect=lambda dets, crop: dets),
         patch(f"{MODULE}.postprocessing_global", side_effect=lambda dets, crop: dets),
     ):

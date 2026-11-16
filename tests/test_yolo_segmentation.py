@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from parallax.probe_detection.yolo.schemas import YoloSettings
 from parallax.probe_detection.yolo.segmentation import YoloSegmentation
 
 # --- Mocks & Fixtures ---
@@ -95,7 +96,7 @@ def test_initialization_loads_model(mock_yolo_lib):
 
     config = {**YOLO_CONFIG, "weights_path": "dummy.pt", "conf_thresh": 0.7, "img_dim": [100, 100]}
 
-    worker = YoloSegmentation("TestWorker", config)
+    worker = YoloSegmentation("TestWorker", YoloSettings(**config))
 
     # Check Model Init
     MockYOLO.assert_called_once_with("dummy.pt")
@@ -108,7 +109,7 @@ def test_initialization_failure_fallback(mock_yolo_lib):
     MockYOLO, _ = mock_yolo_lib
     MockYOLO.side_effect = Exception("File not found")
 
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
 
     assert worker.model is None
     # Should still initialize basic attributes
@@ -120,7 +121,7 @@ def test_warmup_logic(mock_yolo_lib):
     """Verify warmup runs dummy inference 3 times."""
     _, model_instance = mock_yolo_lib
 
-    _ = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    _ = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
     # Warmup happens in __init__
 
     # Check that track was called 3 times during init
@@ -134,7 +135,7 @@ def test_detect_parses_result(mock_yolo_lib, dummy_frame, sample_yolo_result):
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = sample_yolo_result
 
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
     detections = worker.detect(dummy_frame, ts=7.0)
 
     assert len(detections) == 1
@@ -150,7 +151,7 @@ def test_detect_tracks_with_persist_and_agnostic_nms(mock_yolo_lib, dummy_frame,
     """The global model keeps tracker state between frames (persist=True)."""
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = sample_yolo_result
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
     model_instance.track.reset_mock()
 
     worker.detect(dummy_frame, ts=1.0)
@@ -166,7 +167,7 @@ def test_detect_dummy_mode(mock_yolo_lib, dummy_frame):
     MockYOLO, _ = mock_yolo_lib
     MockYOLO.side_effect = Exception("Load Fail")
 
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
     detections = worker.detect(dummy_frame, ts=1.0)
 
     assert worker.model is None
@@ -178,6 +179,6 @@ def test_detect_returns_empty_when_no_results(mock_yolo_lib, dummy_frame):
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = []
 
-    worker = YoloSegmentation("TestWorker", YOLO_CONFIG)
+    worker = YoloSegmentation("TestWorker", YoloSettings(**YOLO_CONFIG))
 
     assert worker.detect(dummy_frame, ts=1.0) == []

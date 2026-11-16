@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from parallax.probe_detection.yolo.keypoints import YoloKeypoints
+from parallax.probe_detection.yolo.schemas import YoloLocalSettings
 
 # Settings have no defaults, so every test passes a complete `yolo:` block
 YOLO_CONFIG = {
@@ -58,7 +59,7 @@ def test_detect_dummy_mode(mock_yolo_lib, crop):
     MockYOLO, _ = mock_yolo_lib
     MockYOLO.side_effect = Exception("Load Fail")
 
-    worker = YoloKeypoints("Test", YOLO_CONFIG)
+    worker = YoloKeypoints("Test", YoloLocalSettings(**YOLO_CONFIG))
     detections = worker.detect(crop, ts=1.0)
 
     assert worker.model is None
@@ -70,7 +71,7 @@ def test_detect_returns_flat_keypoints_and_drops_low_confidence(mock_yolo_lib, c
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = [make_result(kp_conf=(0.9, 0.2))]
 
-    worker = YoloKeypoints("Test", YOLO_CONFIG)
+    worker = YoloKeypoints("Test", YoloLocalSettings(**YOLO_CONFIG))
     detections = worker.detect(crop, ts=5.0)
 
     assert len(detections) == 1
@@ -93,7 +94,7 @@ def test_detect_copies_fields_from_global_detection(mock_yolo_lib, crop):
         "mask": [[1, 1], [2, 2]],
     }
 
-    worker = YoloKeypoints("Test", YOLO_CONFIG)
+    worker = YoloKeypoints("Test", YoloLocalSettings(**YOLO_CONFIG))
     det = worker.detect(crop, ts=5.0, global_detection=global_detection)[0]
 
     assert det["id"] == 7
@@ -108,7 +109,7 @@ def test_detect_skips_box_with_other_class_than_global(mock_yolo_lib, crop):
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = [make_result(cls_id=1)]  # "4shank"
 
-    worker = YoloKeypoints("Test", YOLO_CONFIG)
+    worker = YoloKeypoints("Test", YoloLocalSettings(**YOLO_CONFIG))
     detections = worker.detect(crop, ts=1.0, global_detection={"class_name": "1shank"})
 
     assert detections == []
@@ -121,7 +122,7 @@ def test_detect_no_boxes_returns_placeholder(mock_yolo_lib, crop):
     result.keypoints = None
     model_instance.track.return_value = [result]
 
-    worker = YoloKeypoints("Test", YOLO_CONFIG)
+    worker = YoloKeypoints("Test", YoloLocalSettings(**YOLO_CONFIG))
     detections = worker.detect(crop, ts=1.0, global_detection={"class_name": "1shank", "id": 3})
 
     assert len(detections) == 1
@@ -137,6 +138,6 @@ def test_detect_returns_empty_when_track_returns_nothing(mock_yolo_lib, crop):
     _, model_instance = mock_yolo_lib
     model_instance.track.return_value = []
 
-    worker = YoloKeypoints("Test", YOLO_CONFIG)
+    worker = YoloKeypoints("Test", YoloLocalSettings(**YOLO_CONFIG))
 
     assert worker.detect(crop, ts=1.0) == []

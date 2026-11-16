@@ -5,16 +5,15 @@ from collections import deque
 from threading import Event, Thread, current_thread
 
 import numpy as np
-import yaml
 
 from parallax.config.config_path import yolo_config_path
-from parallax.probe_detection.yolo.schemas import YoloConfig
 from parallax.probe_detection.utils.probe_fine_tip_detector import ProbeFineTipDetector
 from parallax.probe_detection.yolo.global_utils import postprocessing as postprocessing_global
 from parallax.probe_detection.yolo.global_utils import preprocessing as preprocessing_global
 from parallax.probe_detection.yolo.keypoints import YoloKeypoints
 from parallax.probe_detection.yolo.local_utils import postprocessing as postprocessing_local
 from parallax.probe_detection.yolo.local_utils import preprocessing as preprocessing_local
+from parallax.probe_detection.yolo.schemas import YoloConfig, YoloLocalStage, YoloStage
 from parallax.probe_detection.yolo.segmentation import YoloSegmentation
 from parallax.utils.utils import UtilsCrops
 
@@ -38,16 +37,16 @@ class YoloProcessWorker:
 
         # init: every value must come from yolo_config.yaml (no defaults)
         try:
-            cfg = YoloConfig(**self._load_yolo_config(yolo_config_path))
+            cfg = YoloConfig.from_yaml(yolo_config_path)
         except Exception as e:
             self.log.error(f"Invalid YOLO config {yolo_config_path}: {e}")
             raise
 
-        # Both models are used synchronously (detect()) from this worker's single thread: never start()ed
-        self.global_cfg = cfg.segmentation
-        self.local_cfg = cfg.keypoints.yolo
-        self.yolo_global = YoloSegmentation(self.name, self.global_cfg.yolo.model_dump())
-        self.yolo_local = YoloKeypoints(self.name, self.local_cfg.model_dump())
+        # Both models are used synchronously (detect()) from this worker's single thread
+        self.global_cfg: YoloStage = cfg.segmentation
+        self.local_cfg: YoloLocalStage = cfg.keypoints
+        self.yolo_global = YoloSegmentation(self.name, self.global_cfg.yolo)
+        self.yolo_local = YoloKeypoints(self.name, self.local_cfg.yolo)
 
         # Worker thread: processes only the latest frame (a newer frame replaces a waiting one)
         self._latest: deque = deque(maxlen=1)
@@ -187,7 +186,7 @@ class YoloProcessWorker:
                 'mask': dict  # Inherited from global detection
             }
         """
-        cfg = self.local_cfg
+        cfg = self.local_cfg.yolo
         frame_cropped_resized, crop_info, detection = preprocessing_local(
             frame,
             detection=detection,
@@ -270,10 +269,6 @@ class YoloProcessWorker:
                 self.finished_callback()
             except Exception as e:
                 self.log.error(f"Error calling finished_callback: {e}")
-
-    def _load_yolo_config(self, config_path):
-        with open(config_path, "r") as f:
-            return yaml.safe_load(f)
 
     def start_running(self):  # Running the YOLO worker thread
         self.stage_ts = 0.0  # init

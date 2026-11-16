@@ -3,9 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-import yaml
 
-from parallax.config.config_path import yolo_config_path
 from parallax.probe_detection.yolo.process_worker import YoloProcessWorker
 
 # --- 1. Define Fakes ---
@@ -72,18 +70,11 @@ def make_worker(local_model):
     Creates a YoloProcessWorker with a fake global model and the given local model.
     Callers patch post-processing (identity functions) while they use the worker, to avoid KeyError in Utils.
     """
-    with open(yolo_config_path) as f:  # real config: also checks the shipped yaml passes validation
-        dummy_config = yaml.safe_load(f)
-
     patches = [
         patch("parallax.probe_detection.yolo.process_worker.YoloKeypoints", return_value=local_model),
         patch(
             "parallax.probe_detection.yolo.process_worker.YoloSegmentation",
             side_effect=lambda *args, **kwargs: FakeYoloSegmentation(),
-        ),
-        patch(
-            "parallax.probe_detection.yolo.process_worker.YoloProcessWorker._load_yolo_config",
-            return_value=dummy_config,
         ),
     ]
     for p in patches:
