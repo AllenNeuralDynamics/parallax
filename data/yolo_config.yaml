@@ -19,8 +19,7 @@ keypoints:
     bbox_margin: 30
     apply_mask: True
     mask_margin: 15
-image_processing:
-  movement_threshold: 8.0
+movement_threshold: 8.0
 object_detection:
   fps: 5
   yolo:

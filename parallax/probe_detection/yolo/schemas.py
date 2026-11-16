@@ -2,7 +2,7 @@
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # ----- Schema for YOLO Configuration (data/yolo_config.yaml) -----
@@ -36,16 +36,14 @@ class YoloKeypointsConfig(BaseModel):
     yolo: YoloLocalSettings
 
 
-class YoloImageProcessing(BaseModel):
-    movement_threshold: float  # px the probe tip must move between frames to count as moving
-
-
 class YoloConfig(BaseModel):
     """Whole data/yolo_config.yaml. Validated once, then passed down as typed objects."""
 
     segmentation: YoloSegmentationConfig  # global model
     keypoints: YoloKeypointsConfig  # local model
-    image_processing: YoloImageProcessing
+    movement_threshold: float = Field(
+        description="Pixels the probe tip must move between two frames to count as moving."
+    )
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "YoloConfig":

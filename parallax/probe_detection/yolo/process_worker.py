@@ -55,7 +55,7 @@ class YoloProcessWorker:
         self._thread = None
         self._last_ts = None  # timestamp of the previous frame, for the fps limit
 
-        self.movement_threshold = cfg.image_processing.movement_threshold
+        self.movement_threshold = cfg.movement_threshold
 
     def update_frame(self, frame: np.ndarray, timestamp: float):
         if not self.is_detection_on:
