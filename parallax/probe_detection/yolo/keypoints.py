@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 
 from parallax.probe_detection.yolo.base import YoloBase
+from parallax.probe_detection.yolo.detection import Detection
 from parallax.probe_detection.yolo.schemas import YoloLocalSettings
 
 
@@ -24,13 +25,24 @@ class YoloKeypoints:
         self.model = self.yolo.model
         self.names_map = self.yolo.names
 
+    @staticmethod
+    def _from_global(global_detection: Optional[dict]) -> dict:
+        """Fields a local detection inherits from the global detection it was cropped from (None if missing)."""
+        g = global_detection or {}
+        return {
+            "id": g.get("id"),
+            "stage_ts": g.get("stage_ts"),
+            "bbox_seg": g.get("bbox"),
+            "mask": g.get("mask"),
+        }
+
     def detect(
         self,
         frame: np.ndarray,
         ts: Optional[float] = None,
         global_detection: Optional[dict] = None,
         i_th: int = 0,  # only used in log messages
-    ) -> list[dict]:
+    ) -> list[Detection]:
         """Synchronous inference on one crop. No threads, queues or callbacks."""
         global_class_name = global_detection.get("class_name", "") if global_detection else ""
 
@@ -38,13 +50,13 @@ class YoloKeypoints:
             # Dummy model for debugging
             h, w = frame.shape[:2]
             return [
-                {
-                    "timestamp": ts,
-                    "bbox": [w * 0.2, h * 0.2, w * 0.8, h * 0.8],
-                    "confidence": 0.95,
-                    "class_name": "dummy_object",
-                    "class_id": 0,
-                }
+                Detection(
+                    timestamp=ts,
+                    bbox=[w * 0.2, h * 0.2, w * 0.8, h * 0.8],
+                    confidence=0.95,
+                    class_name="dummy_object",
+                    class_id=0,
+                )
             ]
 
         class_id_to_track = None
@@ -65,7 +77,7 @@ class YoloKeypoints:
         )
 
         # Convert results to detection format
-        detections: list[dict] = []
+        detections: list[Detection] = []
         if results and len(results) > 0:
             result = results[0]
 
@@ -109,45 +121,28 @@ class YoloKeypoints:
                         self.log.debug(f"Skipping local detection '{class_name}'. Requires '{global_class_name}'.")
                         continue
 
-                    detection = {
-                        "model": "yolo_local",
-                        "timestamp": ts,
-                        "bbox": bbox.tolist(),
-                        "class": int(cls_id),
-                        "class_name": class_name,
-                        "confidence": conf,
-                        "id": (global_detection["id"] if global_detection and "id" in global_detection else None),
-                        "keypoints": keypoints_data.get(i, []),
-                        "stage_ts": (
-                            global_detection["stage_ts"] if global_detection and "stage_ts" in global_detection else None
-                        ),
-                        "bbox_seg": (
-                            global_detection["bbox"] if global_detection and "bbox" in global_detection else None
-                        ),
-                        "mask": (global_detection["mask"] if global_detection and "mask" in global_detection else None),
-                    }
+                    detection = Detection(
+                        model="yolo_local",
+                        timestamp=ts,
+                        bbox=bbox.tolist(),
+                        class_id=int(cls_id),
+                        class_name=class_name,
+                        confidence=conf,
+                        keypoints=keypoints_data.get(i, []),
+                        **self._from_global(global_detection),
+                    )
                     detections.append(detection)
 
             else:  # No results
                 self.log.debug(f"{self.name} {i_th}- No detections from YOLO model.")
                 detections = [
-                    {
-                        "model": "yolo_local",
-                        "timestamp": ts,
-                        "confidence": 0.0,  # Detection confidence
-                        "bbox": [],
-                        "keypoints": [],
-                        "class": -1,  # Indicator for no class
-                        # ---------------------
-                        "class_name": global_class_name,
-                        "id": (global_detection["id"] if global_detection and "id" in global_detection else None),
-                        "stage_ts": (
-                            global_detection["stage_ts"] if global_detection and "stage_ts" in global_detection else None
-                        ),
-                        "bbox_seg": (
-                            global_detection["bbox"] if global_detection and "bbox" in global_detection else None
-                        ),
-                        "mask": (global_detection["mask"] if global_detection and "mask" in global_detection else None),
-                    }
+                    Detection(
+                        model="yolo_local",
+                        timestamp=ts,
+                        confidence=0.0,
+                        class_id=-1,  # Indicator for no class
+                        class_name=global_class_name,
+                        **self._from_global(global_detection),
+                    )
                 ]
         return detections

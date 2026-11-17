@@ -83,7 +83,7 @@ class YoloProcessWorker:
                 continue
             frame, crop_info, ts = self._latest.pop()
             try:
-                detections = self.yolo_global.detect(frame, ts)
+                detections = [d.to_dict() for d in self.yolo_global.detect(frame, ts)]
                 self.handle_global_detections(frame, crop_info, detections)
             except Exception as e:
                 self.log.error(f"{self.name} Error processing frame: {e}")
@@ -197,7 +197,10 @@ class YoloProcessWorker:
             apply_mask=cfg.apply_mask,
         )
         ts = detection["timestamp"] if detection and "timestamp" in detection else time.time()
-        detections = self.yolo_local.detect(frame_cropped_resized, ts=ts, global_detection=detection, i_th=i)
+        detections = [
+            d.to_dict()
+            for d in self.yolo_local.detect(frame_cropped_resized, ts=ts, global_detection=detection, i_th=i)
+        ]
 
         if not detections:
             self.log.warning(f" {self.name} {i} - No local detections received.")

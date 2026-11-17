@@ -146,11 +146,11 @@ def test_detect_parses_result(mock_yolo_lib, dummy_frame, sample_yolo_result):
 
     assert len(detections) == 1
     det = detections[0]
-    assert det["model"] == "yolo_global"
-    assert det["timestamp"] == 7.0
-    assert det["class_name"] == "probe"  # From model.names mock {0: 'probe'}
-    assert det["id"] == 1
-    assert len(det["mask"]) > 0  # Should contain the polygon list
+    assert det.model == "yolo_global"
+    assert det.timestamp == 7.0
+    assert det.class_name == "probe"  # From model.names mock {0: 'probe'}
+    assert det.id == 1
+    assert len(det.mask) > 0  # Should contain the polygon list
 
 
 def test_detect_tracks_with_persist_and_agnostic_nms(mock_yolo_lib, dummy_frame, sample_yolo_result):
@@ -178,7 +178,7 @@ def test_detect_dummy_mode(mock_yolo_lib, dummy_frame):
 
     assert worker.model is None
     assert len(detections) == 1
-    assert detections[0]["class_name"] == "dummy_object"
+    assert detections[0].class_name == "dummy_object"
 
 
 def test_detect_returns_empty_when_no_results(mock_yolo_lib, dummy_frame):

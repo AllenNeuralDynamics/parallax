@@ -64,7 +64,7 @@ def test_detect_dummy_mode(mock_yolo_lib, crop):
 
     assert worker.model is None
     assert len(detections) == 1
-    assert detections[0]["class_name"] == "dummy_object"
+    assert detections[0].class_name == "dummy_object"
 
 
 def test_detect_returns_flat_keypoints_and_drops_low_confidence(mock_yolo_lib, crop):
@@ -76,11 +76,11 @@ def test_detect_returns_flat_keypoints_and_drops_low_confidence(mock_yolo_lib, c
 
     assert len(detections) == 1
     det = detections[0]
-    assert det["model"] == "yolo_local"
-    assert det["timestamp"] == 5.0
-    assert det["class_name"] == "1shank"
+    assert det.model == "yolo_local"
+    assert det.timestamp == 5.0
+    assert det.class_name == "1shank"
     # second keypoint (conf 0.2 < conf_thresh 0.5) is dropped; format is [x, y, conf]
-    assert det["keypoints"] == [10.12, 20.46, 0.9]
+    assert det.keypoints == [10.12, 20.46, 0.9]
 
 
 def test_detect_copies_fields_from_global_detection(mock_yolo_lib, crop):
@@ -97,10 +97,10 @@ def test_detect_copies_fields_from_global_detection(mock_yolo_lib, crop):
     worker = YoloKeypoints("Test", YoloLocalSettings(**YOLO_CONFIG))
     det = worker.detect(crop, ts=5.0, global_detection=global_detection)[0]
 
-    assert det["id"] == 7
-    assert det["stage_ts"] == 123.4
-    assert det["bbox_seg"] == [5, 6, 7, 8]
-    assert det["mask"] == [[1, 1], [2, 2]]
+    assert det.id == 7
+    assert det.stage_ts == 123.4
+    assert det.bbox_seg == [5, 6, 7, 8]
+    assert det.mask == [[1, 1], [2, 2]]
     # the global class is turned into a class-id filter for the model
     assert model_instance.track.call_args.kwargs["classes"] == [0]
 
@@ -127,11 +127,11 @@ def test_detect_no_boxes_returns_placeholder(mock_yolo_lib, crop):
 
     assert len(detections) == 1
     det = detections[0]
-    assert det["class"] == -1
-    assert det["confidence"] == 0.0
-    assert det["keypoints"] == []
-    assert det["class_name"] == "1shank"
-    assert det["id"] == 3
+    assert det.class_id == -1
+    assert det.confidence == 0.0
+    assert det.keypoints == []
+    assert det.class_name == "1shank"
+    assert det.id == 3
 
 
 def test_detect_returns_empty_when_track_returns_nothing(mock_yolo_lib, crop):

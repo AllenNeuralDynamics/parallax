@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from parallax.probe_detection.yolo.detection import Detection
 from parallax.probe_detection.yolo.process_worker import YoloProcessWorker
 
 # --- 1. Define Fakes ---
@@ -15,14 +16,7 @@ class FakeYoloSegmentation:
     def detect(self, frame, ts=None):
         ts = ts if ts is not None else time.time()
         return [
-            {
-                "class_name": "probe",
-                "class_id": 0,
-                "confidence": 0.9,
-                "bbox": [10, 10, 100, 100],
-                "timestamp": ts,
-                "id": 1,
-            }
+            Detection(class_name="probe", class_id=0, confidence=0.9, bbox=[10, 10, 100, 100], timestamp=ts, id=1)
         ]
 
 
@@ -49,7 +43,15 @@ class FakeYoloKeypoints:
 
     def detect(self, frame, ts=None, global_detection=None, i_th=0):
         self.calls.append({"ts": ts, "global_detection": global_detection, "i_th": i_th})
-        return self.results[min(len(self.calls) - 1, len(self.results) - 1)]
+        return [as_detection(d) for d in self.results[min(len(self.calls) - 1, len(self.results) - 1)]]
+
+
+def as_detection(d: dict) -> Detection:
+    """The tests describe local results as dicts; the real YoloKeypoints.detect() returns Detection objects."""
+    d = dict(d)
+    if "class" in d:
+        d["class_id"] = d.pop("class")
+    return Detection(**d)
 
 
 def wait_for(predicate, timeout=2.0):

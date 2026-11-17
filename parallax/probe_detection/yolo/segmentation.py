@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from parallax.probe_detection.yolo.base import YoloBase
+from parallax.probe_detection.yolo.detection import Detection
 from parallax.probe_detection.yolo.schemas import YoloSegmentationSettings
 
 
@@ -49,19 +50,19 @@ class YoloSegmentation:
         largest = max(contours, key=cv2.contourArea)
         return largest.reshape(-1, 2).astype(float).tolist()
 
-    def detect(self, frame: np.ndarray, ts: Optional[float] = None) -> list[dict]:
+    def detect(self, frame: np.ndarray, ts: Optional[float] = None) -> list[Detection]:
         """Synchronous inference: one frame in, detections out. No threads, queues or callbacks."""
         if self.model is None:
             # Dummy model for debugging
             h, w = frame.shape[:2]
             return [
-                {
-                    "timestamp": ts,
-                    "bbox": [w * 0.2, h * 0.2, w * 0.8, h * 0.8],
-                    "confidence": 0.95,
-                    "class_name": "dummy_object",
-                    "class_id": 0,
-                }
+                Detection(
+                    timestamp=ts,
+                    bbox=[w * 0.2, h * 0.2, w * 0.8, h * 0.8],
+                    confidence=0.95,
+                    class_name="dummy_object",
+                    class_id=0,
+                )
             ]
 
         # Run YOLO inference
@@ -74,7 +75,7 @@ class YoloSegmentation:
         )
 
         # Convert results to detection format
-        detections: list[dict] = []
+        detections: list[Detection] = []
         if results and len(results) > 0:
             result = results[0]
             # Initialize mask data structure
@@ -99,15 +100,15 @@ class YoloSegmentation:
                         search_id = int(boxes.id[i].cpu().numpy())
                     else:
                         search_id = 0
-                    detection = {
-                        "model": "yolo_global",
-                        "timestamp": ts,
-                        "bbox": bbox.tolist(),
-                        "class": int(cls_id),
-                        "class_name": class_name,
-                        "confidence": conf,
-                        "id": search_id,
-                        "mask": masks_data.get(i, []),
-                    }
+                    detection = Detection(
+                        model="yolo_global",
+                        timestamp=ts,
+                        bbox=bbox.tolist(),
+                        class_id=int(cls_id),
+                        class_name=class_name,
+                        confidence=conf,
+                        id=search_id,
+                        mask=masks_data.get(i, []),
+                    )
                     detections.append(detection)
         return detections

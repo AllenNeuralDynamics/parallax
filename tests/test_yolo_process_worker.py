@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+from parallax.probe_detection.yolo.detection import Detection
 from parallax.probe_detection.yolo.process_worker import YoloProcessWorker
 
 MODULE = "parallax.probe_detection.yolo.process_worker"
@@ -19,7 +20,7 @@ class FakeYoloSegmentation:
     def detect(self, frame, ts=None):
         self.calls.append(ts)
         # Global simulates finding a probe
-        return [{"class_name": "probe", "timestamp": ts, "confidence": 0.9}]
+        return [Detection(class_name="probe", timestamp=ts, confidence=0.9)]
 
 
 class FakeYoloKeypoints:
@@ -31,9 +32,7 @@ class FakeYoloKeypoints:
     def detect(self, frame, ts=None, global_detection=None, i_th=0):
         self.calls.append(i_th)
         # Note: We include 'model' here so we can assert it later
-        return [
-            {"class_name": "shank", "model": "yolo_local", "confidence": 0.95, "keypoints_orig": [10, 10, 0.9]}
-        ]
+        return [Detection(class_name="shank", model="yolo_local", confidence=0.95, keypoints=[10, 10, 0.9])]
 
 
 def wait_for(predicate, timeout=2.0):
@@ -211,7 +210,7 @@ def test_update_frame_does_not_block_the_caller(idle_worker):
 
 def test_error_in_detection_does_not_kill_the_thread(worker_with_fakes):
     worker = worker_with_fakes
-    worker.yolo_global.detect = MagicMock(side_effect=[RuntimeError("boom"), [{"class_name": "probe", "timestamp": 3.0}]])
+    worker.yolo_global.detect = MagicMock(side_effect=[RuntimeError("boom"), [Detection(class_name="probe", timestamp=3.0)]])
     worker.probe_stopped = False
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
 
