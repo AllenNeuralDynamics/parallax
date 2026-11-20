@@ -1,11 +1,7 @@
-*User Guide*
-
 Calculator
-------------
+============
 
-The `Calculator` widget allows you to convert between global and local coordinates 
-for different stages. It also helps you manage stage movements and view global 
-coordinates with reticle metadata.
+The ``Calculator`` widget is a utility for converting coordinates between the global (reticle) and local (stage) reference frames. It also allows you to command stage movements based on calculated coordinates and apply reticle metadata for adjusted conversions.
 
 .. image:: _static/_userGuide/_calc/0.png
    :alt: Calculator Overview
@@ -14,13 +10,12 @@ coordinates with reticle metadata.
 
 ----
 
-1. **Coordinate Conversion**
+1. **Global <-> Local Conversion**
 
-The `Calculator` enables you to convert between **global** and **local** 
-coordinates for each stage. Based on whether global or local coordinates 
-are provided, the calculator determines the direction of the transformation:
+The ``Calculator`` enables you to convert between **global** and **local**
+coordinates for each stage. The calculator automatically determines the conversion direction based on which fields are filled.
 
-    - **Global to Local**: Input global coordinates (X, Y, Z) and click the "Convert (↔)" button to see the corresponding local coordinates.
+    - **Global to Local**: Input global coordinates (X, Y, Z) and click the **Convert (↔)** button to see the corresponding local coordinates.
 
     .. raw:: html
 
@@ -41,7 +36,7 @@ are provided, the calculator determines the direction of the transformation:
         </div>
         <br>
 
-    - **Local to Global**: Input local coordinates (X, Y, Z) and click the "Convert (↔)" button to see the corresponding global coordinates.
+    - **Local to Global**: Input local coordinates (X, Y, Z) and click the **Convert (↔)** button to see the corresponding global coordinates.
 
     .. raw:: html
 
@@ -64,18 +59,15 @@ are provided, the calculator determines the direction of the transformation:
 
 ----
 
-2. **Selecting a Reticle**
+2. **Bregma <-> Local Conversion**
 
-If a reticle is selected, the calculator will automatically apply 
-reticle-specific metadata to the global coordinates during the conversion.
+You can apply a reticle profile's offsets and rotation during conversion by selecting it from the dropdown menu.
 
-    You can select a reticle from the **Global Coords** dropdown. If a reticle 
-    is selected, its metadata (like offsets and rotations) will be applied to 
-    any global coordinates, ensuring that your conversions account for the 
-    reticle's alignment.
+    - **Global Coords**: Converts coordinates without applying any reticle adjustments.
+    - **Global Coords (*reticle_name*)**: Applies the selected reticle profile's metadata (rotation and offset) during the conversion, which is bregma-aligned.
+    
 
-    - **'Global coords' Selected**: The calculator will convert coordinates without applying any reticle adjustments.
-    - **'Global coords (_reticle_name_)' Selected**: The selected reticle's metadata, including rotation and offset, will be applied during conversions.
+    This ensures that your conversions account for any minor misalignments of the physical reticle.
 
     .. raw:: html
 
@@ -96,12 +88,10 @@ reticle-specific metadata to the global coordinates during the conversion.
 
 3. **Stage Movement**
 
-After converting coordinates, you can move the stage to the desired local coordinates. 
+After converting coordinates to a local target, you can command the stage to move to that position.
 
-    The `moveStageXY0` button allows you to send the stage to a specific (X, Y, 0) position, which is the highest position.
+The ``Move Stage (XY, 0)`` button provides a safe way to move the stage. It first moves the probe to its highest Z position (Z=0) before moving to the target X and Y coordinates. This two-step movement prevents accidental collisions with the reticle or sample.
 
-    First, it moves to z = 0 (the highest height), and then it moves to the desired (X, Y) position to avoid collisions with the reticle surface.
-    
     .. image:: _static/_userGuide/_calc/_10.png
         :alt: Calculator Overview
         :width: 500px

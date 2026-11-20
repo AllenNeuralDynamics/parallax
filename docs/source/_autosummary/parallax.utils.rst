@@ -4,27 +4,15 @@
 .. automodule:: parallax.utils
 
    
-   
-   
+.. rubric:: Modules
 
-   
-   
-   
+.. autosummary::
+   :toctree:
+   :recursive:
 
-   
-   
-   .. rubric:: Classes
-
-   .. autosummary::
-   
-      UtilsCoords
-      UtilsCrops
-   
-   
-
-   
-   
-   
-
-
-
+   coords_converter
+   probe_angles
+   rotations
+   signals
+   transforms
+   utils

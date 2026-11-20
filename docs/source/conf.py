@@ -12,7 +12,7 @@ from datetime import date
 from docutils import nodes
 from docutils.parsers.rst import roles
 
-sys.path.insert(0, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../..'))
 
 INSTITUTE_NAME = "Allen Institute for Neural Dynamics"
 
@@ -27,6 +27,7 @@ autoclass_content = "both"
 autodoc_default_options = {
     'private-members': True,   # Include private members
 }
+autodoc_mock_imports = ["PySpin", "SFM"]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
