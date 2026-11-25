@@ -68,3 +68,23 @@ def test_probe_calibration_update(probe_calibration, sample_csv_file, monkeypatc
         probe_calibration.update(row)
 
     assert len(calls) == len(df)
+
+
+def test_update_creates_the_calibration_record_of_a_never_calibrated_stage(probe_calibration, model, monkeypatch):
+    """Without the record the min/max, the trajectory file and the transform are lost and the calibration never ends."""
+
+    class Stage:
+        sn = "SN1"
+
+    class Stop(Exception):
+        pass
+
+    def stop(*args, **kwargs):
+        raise Stop
+
+    monkeypatch.setattr(model, "get_stage_calib_info", lambda sn: model.__dict__.get("_info"))
+    monkeypatch.setattr(model, "reset_stage_calib_info", lambda sn: model.__dict__.__setitem__("_info", object()))
+    monkeypatch.setattr(probe_calibration, "_write_local_global_points", stop)  # the work after the record
+    with pytest.raises(Stop):
+        probe_calibration.update(Stage())
+    assert model.get_stage_calib_info("SN1") is not None

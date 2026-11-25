@@ -729,6 +729,9 @@ class ProbeCalibration:
         sn = stage.sn
         self.stage = stage
 
+        if self.model.get_stage_calib_info(sn) is None:  # a stage that was never calibrated has no record yet
+            self.model.reset_stage_calib_info(sn)
+
         # update points in the file
         self._write_local_global_points(stage, debug_info)  # Do no update if it is duplicates
         self._update_min_max_x_y_z(stage)  # update min max x,y,z and emit signals if criteria met
