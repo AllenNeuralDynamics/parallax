@@ -231,7 +231,10 @@ class PySpinCamera(BaseCamera):
                 self.last_image = image
 
         except PySpin.SpinnakerException as e:
-            self.log.error(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
+            if "[-1011]" in str(e):  # a timeout: no frame within the wait. The camera is fine; the loop tries again
+                self.log.warning(f"{self.name(sn_only=True)} No frame within the timeout [-1011]")
+            else:
+                self.log.error(f"{self.name(sn_only=True)} Couldn't get image \n\t{e}")
             # Check for specific error messages
             # Spinnaker: Stream has been aborted. [-1012]
             # Spinnaker: Camera has been removed from the list and is no longer valid. [-1002]
