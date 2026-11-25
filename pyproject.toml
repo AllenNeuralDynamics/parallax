@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
  
 [project]
 name = "parallax-app"
+version = "1.21.0"
 authors = [
   { name="Hanna Lee", email="hanna.lee@alleninstitute.org" },
 ]
@@ -11,7 +12,6 @@ description = "GUI software for photogrammetry-assisted probe targeting in elect
 license =  {text = "MIT"}
 readme = "README.md"
 keywords = ["parallax"]
-dynamic = ["version"]
 requires-python = ">=3.10, <3.11"
 classifiers = [
     "Programming Language :: Python :: 3"
@@ -45,9 +45,6 @@ parallax = "parallax.__main__:main"
 [tool.hatch.build.targets.wheel]
 packages = ["parallax"]
 include = ["ui/**"]
-
-[tool.hatch.version]
-path = "parallax/__init__.py"
 
 [tool.coverage.run]
 omit = [

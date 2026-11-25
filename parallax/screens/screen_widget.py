@@ -354,12 +354,6 @@ class ScreenWidget(pg.GraphicsView):
         mask = self.probeDetector.get_mask()
         return mask
 
-    def get_frame_from_probe_detector(self):
-        """Request probe detector to save image to get spin."""
-        self.log.debug(f"{self.camera_name} - get_frame_from_probe_detector")
-        frame = self.probeDetector.get_frame()
-        return frame
-
     def found_reticle_coords(self, x_coords: np.ndarray, y_coords: np.ndarray, camera_matrix: CameraParams):
         """Store the found reticle coordinates, camera matrix, and distortion coefficients."""
         self.log.info(f"\nfound_reticle_coords: {self.camera_name}")

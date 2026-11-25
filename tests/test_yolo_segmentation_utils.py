@@ -1,7 +1,7 @@
 import numpy as np
 
 # Import the functions to be tested
-from parallax.probe_detection.yolo_global.utils import postprocessing, preprocessing
+from parallax.probe_detection.yolo.segmentation_utils import postprocessing, preprocessing
 
 # ======================= Preprocessing Tests =======================
 
